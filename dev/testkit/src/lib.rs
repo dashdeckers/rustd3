@@ -5,3 +5,8 @@
 //! no workspace crate, so every crate can use it as a dev-dependency.
 
 pub mod obs;
+pub mod pixels;
+pub mod snapshot;
+mod zone;
+
+pub use zone::zone;
