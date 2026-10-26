@@ -32,6 +32,34 @@ pub(crate) fn round(x: f64) -> f64 {
     if x - r >= 0.5 { r + 1.0 } else { r }
 }
 
+/// JavaScript's `Math.max` of two numbers: NaN when either is, and +0
+/// over −0 (`f64::max` drops a NaN).
+pub(crate) fn max(a: f64, b: f64) -> f64 {
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else if a == b {
+        if a.is_sign_positive() { a } else { b }
+    } else if a > b {
+        a
+    } else {
+        b
+    }
+}
+
+/// JavaScript's `Math.min` of two numbers: NaN when either is, and −0
+/// over +0.
+pub(crate) fn min(a: f64, b: f64) -> f64 {
+    if a.is_nan() || b.is_nan() {
+        f64::NAN
+    } else if a == b {
+        if a.is_sign_negative() { a } else { b }
+    } else if a < b {
+        a
+    } else {
+        b
+    }
+}
+
 /// `round(x)` as an integer: `Some` iff it is finite and |round(x)| ≤ 2⁵³.
 pub(crate) fn to_int(x: f64) -> Option<i64> {
     let r = round(x);
@@ -61,6 +89,18 @@ mod tests {
         assert_eq!(to_int(SAFE * 2.0), None);
         assert_eq!(to_int(f64::NAN), None);
         assert_eq!(to_int(f64::NEG_INFINITY), None);
+    }
+
+    #[test]
+    fn max_and_min_propagate_nan_and_order_signed_zeros() {
+        assert!(max(f64::NAN, 1.0).is_nan());
+        assert!(min(1.0, f64::NAN).is_nan());
+        assert!(max(-0.0, 0.0).is_sign_positive());
+        assert!(max(0.0, -0.0).is_sign_positive());
+        assert!(min(0.0, -0.0).is_sign_negative());
+        assert!(min(-0.0, 0.0).is_sign_negative());
+        assert_eq!(max(1.0, 2.0), 2.0);
+        assert_eq!(min(1.0, 2.0), 1.0);
     }
 
     #[test]

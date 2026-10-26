@@ -108,6 +108,11 @@ impl Format {
         Format::with_scale(locale, specifier, Some((scale, symbol)))
     }
 
+    /// The locale this format writes in.
+    pub fn locale(&self) -> &Locale {
+        &self.locale
+    }
+
     /// `value` formatted.
     pub fn format(&self, value: f64) -> String {
         let value = self.scale.map_or(value, |k| k * value);

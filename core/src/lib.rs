@@ -8,6 +8,7 @@ pub mod ease;
 pub mod format;
 pub mod interpolate;
 pub mod path;
+pub mod scale;
 pub mod ticks;
 
 mod js;

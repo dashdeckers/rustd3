@@ -12,6 +12,13 @@
 //! assert_eq!(ticks::ticks(-10.0, 10.0, 5.0), [-10.0, -5.0, 0.0, 5.0, 10.0]);
 //! assert_eq!(ticks::nice(0.13, 9.71, 5.0), [0.0, 10.0]);
 //! ```
+//!
+//! The tick rules that scale transforms state as their own are building
+//! blocks here too: [`linear`] and [`subdivide`].
+
+mod rules;
+
+pub use rules::{linear, subdivide};
 
 use crate::js;
 

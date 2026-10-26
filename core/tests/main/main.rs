@@ -5,4 +5,5 @@ mod ease;
 mod format;
 mod interpolate;
 mod path;
+mod scale;
 mod ticks;
