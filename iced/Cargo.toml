@@ -20,3 +20,6 @@ rustd3-figure = { workspace = true, optional = true, features = ["raster"] }
 
 [dev-dependencies]
 rustd3-testkit.workspace = true
+
+[lints]
+workspace = true

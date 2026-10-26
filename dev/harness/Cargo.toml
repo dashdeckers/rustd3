@@ -11,3 +11,6 @@ autotests = false
 [dependencies]
 rustd3-core.workspace = true
 rustd3-testkit.workspace = true
+
+[lints]
+workspace = true

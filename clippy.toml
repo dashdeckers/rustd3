@@ -1,0 +1,10 @@
+# clippy.toml — library crates never read clocks or the system zone.
+# Dev crates opt out in dev/clippy.toml.
+allow-unwrap-in-tests = true
+disallowed-methods = [
+  { path = "std::time::Instant::now", reason = "time is a parameter; library code reads no clock" },
+  { path = "std::time::SystemTime::now", reason = "time is a parameter; library code reads no clock" },
+  { path = "jiff::Timestamp::now", reason = "time is a parameter; library code reads no clock", allow-invalid = true },
+  { path = "jiff::Zoned::now", reason = "time is a parameter; library code reads no clock", allow-invalid = true },
+  { path = "jiff::tz::TimeZone::system", reason = "zones are parameters; library code reads no system zone", allow-invalid = true },
+]

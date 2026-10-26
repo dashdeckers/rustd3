@@ -12,3 +12,6 @@ autotests = false
 jiff = { workspace = true, features = ["tzdb-bundle-always"] }
 serde_json.workspace = true
 thiserror.workspace = true
+
+[lints]
+workspace = true

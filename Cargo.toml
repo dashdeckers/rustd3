@@ -24,6 +24,9 @@ derive = ["rustd3-core/derive"]
 rustd3-core.workspace = true
 rustd3-figure = { workspace = true, optional = true }
 
+[lints]
+workspace = true
+
 [workspace]
 resolver = "3"
 members = ["core", "derive", "figure", "fonts", "iced",
@@ -59,6 +62,19 @@ krilla = "0.8.2"
 tiny-skia = "0.12"
 serde_json = "1"
 resvg = "0.48.1"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+allow_attributes_without_reason = "warn"
+mod_module_files = "warn"
+wildcard_enum_match_arm = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
 
 [profile.dev]
 debug = "line-tables-only"

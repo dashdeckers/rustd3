@@ -9,3 +9,6 @@ autotests = false
 
 [dev-dependencies]
 ttf-parser.workspace = true
+
+[lints]
+workspace = true

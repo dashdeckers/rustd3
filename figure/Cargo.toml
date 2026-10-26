@@ -36,3 +36,6 @@ tiny-skia = { workspace = true, optional = true }
 rustd3-testkit.workspace = true
 resvg.workspace = true
 serde_json.workspace = true
+
+[lints]
+workspace = true

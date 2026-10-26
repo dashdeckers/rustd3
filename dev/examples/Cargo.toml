@@ -14,3 +14,6 @@ rustd3-figure = { workspace = true, features = ["fonts", "png", "pdf", "gif", "h
 
 [dev-dependencies]
 rustd3-testkit.workspace = true
+
+[lints]
+workspace = true
