@@ -1,0 +1,13 @@
+# d3 assertions that must keep passing, and per test file the passes it must keep. Written by rustd3-harness --bless after reading the diff.
+#floor d3-ease/test/linear-test.js 11
+d3-ease/test/linear-test.js:6:3
+d3-ease/test/linear-test.js:7:3
+d3-ease/test/linear-test.js:8:3
+d3-ease/test/linear-test.js:9:3
+d3-ease/test/linear-test.js:10:3
+d3-ease/test/linear-test.js:11:3
+d3-ease/test/linear-test.js:12:3
+d3-ease/test/linear-test.js:13:3
+d3-ease/test/linear-test.js:14:3
+d3-ease/test/linear-test.js:15:3
+d3-ease/test/linear-test.js:16:3
