@@ -4,11 +4,35 @@
 // Paths are relative to this file, so it runs from any directory.
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { CATEGORIES, rustStr, translateFile } from "./expr.mjs";
+import array from "./rules/array.mjs";
 import ease from "./rules/ease.mjs";
+import format from "./rules/format.mjs";
+import path from "./rules/path.mjs";
 
+const tests = (names) => names.map((n) => `${n}-test.js`);
 // One generated module per suite: test files of one d3 package, translated
 // in the listed order under the rules for that module's names.
-const SUITES = [{ suite: "stub", package: "d3-ease", files: ["linear-test.js"], rules: ease }];
+const SUITES = [
+  { suite: "path", package: "d3-path", files: tests(["path", "pathRound"]), rules: path },
+  {
+    suite: "ease",
+    package: "d3-ease",
+    files: tests(["back", "bounce", "circle", "cubic", "elastic", "exp", "linear", "poly", "quad", "sin"]),
+    rules: ease,
+  },
+  { suite: "ticks", package: "d3-array", files: tests(["ticks", "tickIncrement", "tickStep", "nice"]), rules: array },
+  {
+    suite: "format",
+    package: "d3-format",
+    files: tests([
+      "arabicLocale", "defaultLocale", "format", "format-trim", "format-type-%", "format-type-b", "format-type-c",
+      "format-type-d", "format-type-e", "format-type-f", "format-type-g", "format-type-n", "format-type-none",
+      "format-type-o", "format-type-p", "format-type-r", "format-type-s", "format-type-x", "formatPrefix",
+      "formatSpecifier", "locale", "precisionFixed", "precisionPrefix", "precisionRound",
+    ]),
+    rules: format,
+  },
+];
 
 const D3 = new URL("../d3/", import.meta.url);
 const SRC = new URL("../src/", import.meta.url);
@@ -59,7 +83,7 @@ function suiteModule({ suite, package: pkg, files, rules }) {
   const fns = new Map();
   for (const file of files) {
     const id = `${pkg}/test/${file}`;
-    const result = translateFile(readFileSync(new URL(id, D3), "utf8"), { id, rules });
+    const result = translateFile(readFileSync(new URL(id.replaceAll("%", "%25"), D3), "utf8"), { id, rules });
     for (const [name, code] of result.fns) {
       if (fns.has(name) && fns.get(name) !== code) throw new Error(`suite ${suite}: two helpers named ${name}`);
       fns.set(name, code);

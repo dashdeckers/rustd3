@@ -1,5 +1,6 @@
-//! What the generated tests call: [`check`], [`skip`], [`throws`] and the
-//! assertion [`Kind`]s. Each call is recorded for the run to fold.
+//! What the generated tests call: [`check`], [`skip`], [`throws`], the
+//! assertion [`Kind`]s, rustd3-core's modules and d3's test helpers. Each
+//! call is recorded for the run to fold.
 
 use std::fmt;
 
@@ -7,7 +8,9 @@ use rustd3_testkit::obs::{Obs, ToObs, Token, Tolerance, tokenize};
 
 use crate::record::{self, Mark, Record};
 
-pub(crate) use crate::stub;
+pub(crate) use rustd3_core::ease::{Ease, Mode};
+pub(crate) use rustd3_core::path::{PathContext, SvgPath};
+pub(crate) use rustd3_core::{format, ticks};
 
 /// The d3 assertion an assertion was written with, which sets its d3 verdict.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -18,13 +21,6 @@ pub enum Kind {
     InDelta(f64),
     /// `assertPathEqual`: equal after d3-shape's `normalizePath` (integers
     /// within 1e-6, everything else to 3 decimals).
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "the stub suite has no path assertions; Phase 3's path suite does"
-        )
-    )]
     PathEq,
     /// `assert.throws`: the call must return `Err`.
     Throws,
@@ -85,13 +81,6 @@ pub fn skip(id: &'static str, reason: &'static str) {
 
 /// `assert.throws`: records a `Kind::Throws` record that passes under both
 /// verdicts iff `f()` returns `Err`; an `Ok(v)` fails and reports `v`.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "the stub suite has no throws assertions; Phase 3's path suite does"
-    )
-)]
 pub fn throws<T: ToObs, E: fmt::Debug>(id: &'static str, f: impl FnOnce() -> Result<T, E>) {
     let (thrown, actual) = match f() {
         Ok(value) => (false, value.to_obs()),
@@ -106,6 +95,56 @@ pub fn throws<T: ToObs, E: fmt::Debug>(id: &'static str, f: impl FnOnce() -> Res
         expected,
     };
     record::push(Record { id, mark });
+}
+
+/// d3-path's test helper `precision(str, p)`: every decimal `\d+\.\d+` in
+/// `s` rounded to `p` places, then printed as the shortest number
+/// (`+parseFloat(s).toFixed(p)`).
+pub fn precision(s: &str, p: f64) -> String {
+    // The tests pass small whole numbers of places.
+    let places = p as usize;
+    let mut out = String::new();
+    let mut rest = s;
+    while let Some(start) = rest.find(|c: char| c.is_ascii_digit()) {
+        out.push_str(&rest[..start]);
+        let digits = &rest[start..];
+        let int = digits
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(digits.len());
+        let frac = digits[int..].strip_prefix('.').map_or(0, |f| {
+            f.find(|c: char| !c.is_ascii_digit()).unwrap_or(f.len())
+        });
+        if frac == 0 {
+            out.push_str(&digits[..int]);
+            rest = &digits[int..];
+            continue;
+        }
+        let end = int + 1 + frac;
+        let value: f64 = digits[..end].parse().expect("digits, a point and digits");
+        let fixed: f64 = format!("{value:.places$}")
+            .parse()
+            .expect("a fixed-point number");
+        out.push_str(&fixed.to_string());
+        rest = &digits[end..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// d3-ease's test helper `out(easeIn)`: the easing reflected in time and value.
+pub fn out(ease: Ease) -> impl Fn(f64) -> f64 {
+    move |t| 1.0 - ease.apply(1.0 - t)
+}
+
+/// d3-ease's test helper `inOut(easeIn)`: the easing, then its reflection.
+pub fn in_out(ease: Ease) -> impl Fn(f64) -> f64 {
+    move |t| {
+        if t < 0.5 {
+            ease.apply(t * 2.0) / 2.0
+        } else {
+            (2.0 - ease.apply((1.0 - t) * 2.0)) / 2.0
+        }
+    }
 }
 
 /// d3's `assertInDelta`: numbers within `delta`, arrays element by element.
@@ -240,6 +279,22 @@ mod tests {
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].id, "a:1:1");
         assert!(matches!(records[0].mark, Mark::Skipped("js: coercion")));
+    }
+
+    #[test]
+    fn precision_rounds_only_decimals_and_prints_them_shortest() {
+        assert_eq!(
+            precision("M10.0001,10A123.456,1e-7,0,0,1,3.06e-15", 1.0),
+            "M10,10A123.5,1e-7,0,0,1,3.1e-15"
+        );
+    }
+
+    #[test]
+    fn out_and_in_out_reflect_an_easing() {
+        let quad = Ease::Quad(Mode::In);
+        assert_eq!(out(quad)(0.25), Ease::Quad(Mode::Out).apply(0.25));
+        assert_eq!(in_out(quad)(0.25), 0.125);
+        assert_eq!(in_out(quad)(0.75), 0.875);
     }
 
     #[test]

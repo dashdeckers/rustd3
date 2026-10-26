@@ -5,13 +5,19 @@
 //
 // A translated expression is a typed value {c, t}: c is Rust code, t its
 // type: num (f64), str (&str or String), bool, vec (Vec<f64>), undef
-// (None), fn (a callable taking `arity` f64s and returning `ret`, num by
-// default), result (Result<(), E>), result-<t> (Result<t, E>), or a type
-// a suite's rules introduce.
+// (None), opt (an Option of a number whose None is d3's NaN), fn (a
+// callable taking `arity` f64s and returning `ret`, num by default),
+// result (Result<(), E>), result-<t> (Result<t, E>), or a type a suite's
+// rules introduce. A fallible value may name its `expect` message.
 //
 // Rules (rules/<d3 module>.mjs) may provide:
 //   identifiers                    {name: typed value} for d3's exports
+//   call(node, ctx)                a call or `new` of d3's, from its AST
 //   method(obj, prop, args, ctx)   a typed value, or undefined (a gap)
+//   field(obj, prop, ctx)          a property read
+//   apply(target, args, ctx)       calling a value that is not a fn
+//   equal(a, b)                    strictEqual of two such values, as bool code
+//   statement(s, ctx)              a loop's skip reason, by throwing it
 //   display                        [t]: types observed through Display
 //
 // Every skip reason starts with the category the report groups by: js:
@@ -30,6 +36,7 @@ export const CATEGORIES = ["js", "types", "api", "gap", "helpers"];
 
 const MATH_FNS = { sqrt: "sqrt", abs: "abs", floor: "floor", ceil: "ceil", sin: "sin", cos: "cos", exp: "exp", log: "ln" };
 const MATH_CONSTS = { PI: "std::f64::consts::PI", E: "std::f64::consts::E", SQRT2: "std::f64::consts::SQRT_2" };
+const NUMBER_CONSTS = { MIN_VALUE: "f64::from_bits(1)", MAX_VALUE: "f64::MAX", EPSILON: "f64::EPSILON" };
 const ARITHMETIC = new Set(["+", "-", "*", "/", "%"]);
 const COMPARE = { "===": "==", "<": "<", ">": ">", "<=": "<=", ">=": ">=" };
 const ASSERTIONS = new Set(["assert", "assertInDelta", "assertPathEqual"]);
@@ -57,8 +64,12 @@ const number = (raw) => {
 const nth = (list, i) => list[i] ?? skip("js: missing argument (undefined)");
 export const needNum = (e, what) => (e.t === "num" ? e.c : skip(`js: ${what} is not a number (coercion)`));
 const fallible = (t) => t === "result" || t.startsWith("result-");
+const unwrap = (e) => `${e.c}.expect(${rustStr(e.expect ?? "d3 test")})`;
 /** The value of a result-<t>; other values pass through. */
-export const val = (e) => (e.t.startsWith("result-") ? { c: `${e.c}.expect("d3 test")`, t: e.t.slice(7) } : e);
+export const val = (e) => (e.t.startsWith("result-") ? { c: unwrap(e), t: e.t.slice(7) } : e);
+/** The name a call's callee refers to, when it is not a local variable. */
+export const calleeName = (node, ctx) =>
+  node.callee.type === "Identifier" && !ctx.vars.has(node.callee.name) ? node.callee.name : null;
 
 export function ex(node, ctx) {
   switch (node.type) {
@@ -68,11 +79,19 @@ export function ex(node, ctx) {
       return identifier(node.name, ctx);
     case "MemberExpression": {
       const name = node.computed ? "[…]" : node.property.name;
-      if (node.object.type === "Identifier" && node.object.name === "Math" && MATH_CONSTS[name]) {
-        return { c: MATH_CONSTS[name], t: "num" };
-      }
-      return skip(`gap: property ${name}`);
+      const consts = { Math: MATH_CONSTS, Number: NUMBER_CONSTS }[node.object.name];
+      if (node.object.type === "Identifier" && consts?.[name]) return { c: consts[name], t: "num" };
+      const obj = val(ex(node.object, ctx));
+      return ctx.rules.field?.(obj, name, ctx) ?? skip(`gap: property ${name} of ${obj.t}`);
     }
+    case "AssignmentExpression":
+      if (node.left.type !== "MemberExpression") return skip(`gap: assignment`);
+      // Later uses of the object see the write, which Rust's read-only fields cannot make.
+      if (node.left.object.type === "Identifier") ctx.written.add(node.left.object.name);
+      return skip("types: a field write (fields are read-only)");
+    case "SequenceExpression":
+      node.expressions.forEach((e) => ex(e, ctx));
+      return skip("gap: a sequence expression");
     case "UnaryExpression": {
       const a = ex(node.argument, ctx);
       if (node.operator === "-") return { c: `-${needNum(a, "negation")}`, t: "num" };
@@ -88,6 +107,7 @@ export function ex(node, ctx) {
     case "ObjectExpression":
       return skip("js: object argument (valueOf coercion)");
     case "CallExpression":
+    case "NewExpression":
       return call(node, ctx);
     default:
       return skip(`gap: ${node.type}`);
@@ -112,6 +132,7 @@ function identifier(name, ctx) {
   if (name === "NaN") return { c: "f64::NAN", t: "num" };
   if (name === "Infinity") return { c: "f64::INFINITY", t: "num" };
   if (name === "undefined") return { c: "Option::<f64>::None", t: "undef" };
+  if (ctx.written.has(name)) skip("types: a value whose fields were written");
   const local = ctx.vars.get(name);
   if (local) {
     ctx.used.add(local.c);
@@ -139,11 +160,12 @@ function binary(node, ctx) {
 }
 
 function call(node, ctx) {
+  const custom = ctx.rules.call?.(node, ctx);
+  if (custom) return custom;
+  if (node.type === "NewExpression") return skip("gap: new");
   const { callee } = node;
   const args = node.arguments.map((a) => ex(a, ctx));
-  if (callee.type === "Identifier" && callee.name === "isNaN") {
-    return { c: `(${needNum(nth(args, 0), "isNaN argument")}).is_nan()`, t: "bool" };
-  }
+  if (callee.type === "Identifier" && callee.name === "isNaN") return { c: nan(nth(args, 0)), t: "bool" };
   if (callee.type === "MemberExpression" && !callee.computed) {
     const prop = callee.property.name;
     if (callee.object.type === "Identifier" && callee.object.name === "Math") return math(prop, args);
@@ -151,10 +173,13 @@ function call(node, ctx) {
     return ctx.rules.method?.(obj, prop, args, ctx) ?? skip(`gap: method ${prop} on ${obj.t}`);
   }
   const target = val(ex(callee, ctx));
-  if (target.t !== "fn") return skip(`gap: calling a ${target.t}`);
+  if (target.t !== "fn") return ctx.rules.apply?.(target, args, ctx) ?? skip(`gap: calling a ${target.t}`);
   if (args.length !== target.arity) skip(`js: ${args.length} arguments for ${target.arity} (undefined)`);
   return { c: `${target.c}(${args.map((a) => needNum(a, "argument")).join(", ")})`, t: target.ret ?? "num" };
 }
+
+/** `isNaN(e)`: None is an opt's NaN. */
+const nan = (e) => (e.t === "opt" ? `${e.c}.is_none()` : `(${needNum(e, "isNaN argument")}).is_nan()`);
 
 function math(prop, args) {
   if (prop === "pow") {
@@ -173,7 +198,7 @@ function helper(name, ctx) {
   const h = ctx.file.helpers.get(name);
   if (h.state === "busy") skip(`helpers: ${name} refers to itself`);
   if (!h.state) define(name, h, ctx.file);
-  if (h.state === "skip") skip(`helpers: ${name} (${h.reason})`);
+  if (h.state === "skip") skip(`${h.reason} (in ${name})`);
   for (const [k, line] of h.lets) if (!ctx.lets.has(k)) ctx.lets.set(k, line);
   for (const [k, code] of h.fns) ctx.fns.set(k, code);
   if (h.kind === "const") {
@@ -191,17 +216,17 @@ function define(name, h, file) {
     if (!h.node) skip("js: a variable without a value (undefined)");
     if (h.kind === "const") {
       const e = val(ex(h.node, ctx));
-      if (!PLAIN.has(e.t)) skip(`gap: a top-level ${e.t}`);
+      if (!PLAIN.has(e.t)) skip(`helpers: a top-level ${e.t}`);
       Object.assign(h, { line: `let mut ${snake(name)} = ${e.c};`, t: e.t, lets: ctx.lets, fns: ctx.fns });
     } else {
       const { params, body, generator, async } = h.node;
-      if (generator || async) skip("gap: generator or async function");
-      if (!params.every((p) => p.type === "Identifier")) skip("gap: parameter pattern");
+      if (generator || async) skip("helpers: generator or async function");
+      if (!params.every((p) => p.type === "Identifier")) skip("helpers: parameter pattern");
       const [ret] = body.body;
-      if (body.body.length !== 1 || ret.type !== "ReturnStatement" || !ret.argument) skip("gap: a body other than one return");
+      if (body.body.length !== 1 || ret.type !== "ReturnStatement" || !ret.argument) skip("helpers: a body other than one return");
       for (const p of params) ctx.vars.set(p.name, { c: snake(p.name), t: "num" });
       const e = val(ex(ret.argument, ctx));
-      if (!RUST_TYPES[e.t]) skip(`gap: returns a ${e.t}`);
+      if (!RUST_TYPES[e.t]) skip(`helpers: returns a ${e.t}`);
       const args = params.map((p) => `${ctx.used.has(snake(p.name)) ? "" : "_"}${snake(p.name)}: f64`);
       const lines = [...ctx.lets.values(), e.c].map((l) => `    ${l}`);
       const code = `fn ${snake(name)}(${args.join(", ")}) -> ${RUST_TYPES[e.t]} {\n${lines.join("\n")}\n}`;
@@ -214,7 +239,7 @@ function define(name, h, file) {
   }
 }
 
-const scope = (file) => ({ file, rules: file.rules, vars: new Map(), lets: new Map(), fns: new Map(), used: new Set() });
+const scope = (file) => ({ file, rules: file.rules, vars: new Map(), lets: new Map(), fns: new Map(), used: new Set(), written: new Set() });
 
 function assertionKind(e) {
   if (e?.type !== "CallExpression") return null;
@@ -251,6 +276,11 @@ function statement(s, ctx, out) {
     }
     return;
   }
+  if (s.type === "TryStatement" && !s.handler) {
+    for (const x of [...s.block.body, ...(s.finalizer?.body ?? [])]) statement(x, ctx, out);
+    return;
+  }
+  ctx.rules.statement?.(s, ctx);
   if (s.type !== "ExpressionStatement") skip(`gap: ${s.type}`);
   const exprs = s.expression.type === "SequenceExpression" ? s.expression.expressions : [s.expression];
   for (const e of exprs) {
@@ -259,7 +289,7 @@ function statement(s, ctx, out) {
       assertion(kind, e, ctx, out);
     } else {
       const v = ex(e, ctx);
-      out.push(fallible(v.t) ? `${v.c}.expect("d3 test");` : `${v.c};`);
+      out.push(fallible(v.t) ? `${unwrap(v)};` : `${v.c};`);
     }
   }
 }
@@ -288,10 +318,14 @@ function check(kind, args, id, ctx) {
   switch (kind) {
     case "assert.strictEqual":
     case "assert.deepStrictEqual":
-    case "assert.equal":
-      return `check(${id}, Kind::Strict, &${obs(arg(0))}, &${obs(arg(1))});`;
+    case "assert.equal": {
+      const [a, b] = [val(arg(0)), val(arg(1))];
+      const same = ctx.rules.equal?.(a, b);
+      if (same) return `check(${id}, Kind::Strict, &${same}, &true);`;
+      return `check(${id}, Kind::Strict, &${obs(a)}, &${obs(b)});`;
+    }
     case "assert.isNaN":
-      return `check(${id}, Kind::Strict, &(${needNum(arg(0), "isNaN argument")}).is_nan(), &true);`;
+      return `check(${id}, Kind::Strict, &${nan(arg(0))}, &true);`;
     case "assertInDelta": {
       const [actual, expected] = [obs(arg(0)), obs(arg(1))];
       const delta = args.length > 2 ? needNum(arg(2), "delta") : "1e-6";
@@ -321,7 +355,8 @@ function thrower(fn, ctx) {
   }
   const e = ex(body, ctx);
   if (!fallible(e.t)) skip("api: the Rust call does not fail");
-  return e.c;
+  // An `Ok` is reported through Obs, which a displayed type reaches as text.
+  return ctx.rules.display?.includes(e.t.slice(7)) ? `${e.c}.map(|v| v.to_string())` : e.c;
 }
 
 function translateTest(node, file) {

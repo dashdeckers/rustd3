@@ -2,8 +2,14 @@
 
 use crate::registry;
 
-mod stub;
+mod path;
+mod ease;
+mod ticks;
+mod format;
 
 pub const SUITES: &[registry::Suite] = &[
-    registry::Suite { name: "stub", tests: stub::TESTS, asserts: stub::ASSERTS },
+    registry::Suite { name: "path", tests: path::TESTS, asserts: path::ASSERTS },
+    registry::Suite { name: "ease", tests: ease::TESTS, asserts: ease::ASSERTS },
+    registry::Suite { name: "ticks", tests: ticks::TESTS, asserts: ticks::ASSERTS },
+    registry::Suite { name: "format", tests: format::TESTS, asserts: format::ASSERTS },
 ];

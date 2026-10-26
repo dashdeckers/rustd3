@@ -19,7 +19,6 @@ mod ratchet;
 mod record;
 mod registry;
 mod run;
-mod stub;
 
 use std::path::Path;
 use std::process::ExitCode;
