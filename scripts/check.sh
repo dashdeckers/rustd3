@@ -25,6 +25,7 @@ quick() {
   local pkgs=("$@")
   if [ ${#pkgs[@]} -eq 0 ]; then mapfile -t pkgs < <(touched); fi
   for p in "${pkgs[@]}"; do TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features; done
+  TZ=Asia/Kathmandu cargo run -q -p rustd3-harness -- --check
 }
 
 full() {
@@ -35,6 +36,7 @@ full() {
   done
   TZ=Asia/Kathmandu cargo test -q -p rustd3-figure   # default features: fonts
   TZ=Asia/Kathmandu cargo test -q -p rustd3
+  node dev/harness/translate/translate.mjs --check
   RUSTDOCFLAGS="-D warnings" cargo doc -q --workspace --no-deps --all-features
 }
 
