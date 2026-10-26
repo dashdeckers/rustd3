@@ -1,0 +1,18 @@
+[package]
+name = "typstspike"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+typst = "0.15.1"
+typst-assets = { version = "0.15.1", features = ["fonts"] }
+typst-svg = "0.15.1"
+typst-layout = "0.15.1"
+ttf-parser = "0.25"
+rustybuzz = "0.20.1"
+lyon = "1.0"
+tiny-skia = "0.12"
+d3 = { path = "../rfc/d3" }
+
+[profile.release]
+debug = false

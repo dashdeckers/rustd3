@@ -1,0 +1,203 @@
+//! Capabilities and lowering. A backend says what it
+//! draws natively; `lower` rewrites the rest into
+//! commands it does draw, so backends stay thin.
+
+use crate::outline::Outlines;
+use figmodel::plot::draw::{Command, List};
+use i_overlay::core::fill_rule::FillRule;
+use i_overlay::core::overlay_rule::OverlayRule;
+use i_overlay::float::single::SingleFloatOverlay;
+use kurbo::{Affine, BezPath, PathEl, Rect, Shape, StrokeOpts};
+use peniko::Brush;
+
+#[derive(Clone, Copy, Debug)]
+pub struct Caps {
+    /// Draws glyph runs from font data.
+    pub glyphs: bool,
+    /// Stamps one shape at many points.
+    pub markers: bool,
+    /// Clips to any path, not only rectangles.
+    pub clip_paths: bool,
+}
+
+pub const ALL: Caps =
+    Caps { glyphs: true, markers: true, clip_paths: true };
+
+/// iced's canvas: rectangle clips; its own text, so
+/// glyph runs arrive as outlines.
+pub const ICED: Caps =
+    Caps { glyphs: false, markers: false, clip_paths: false };
+
+#[derive(Default, Debug)]
+pub struct Stats {
+    pub glyphs: usize,
+    pub markers: usize,
+    pub clipped: usize,
+}
+
+/// Axis-aligned rectangle paths, as `push_clip(rect)`
+/// emits them.
+fn as_rect(p: &BezPath) -> Option<Rect> {
+    let els = p.elements();
+    let pts: Vec<_> = els
+        .iter()
+        .filter_map(|e| match e {
+            PathEl::MoveTo(a) | PathEl::LineTo(a) => Some(*a),
+            PathEl::ClosePath => None,
+            _ => Some(kurbo::Point::new(f64::NAN, f64::NAN)),
+        })
+        .collect();
+    if pts.len() != 4 || pts.iter().any(|q| q.x.is_nan()) {
+        return None;
+    }
+    let r = p.bounding_box();
+    let on = |q: &kurbo::Point| {
+        (q.x == r.x0 || q.x == r.x1) && (q.y == r.y0 || q.y == r.y1)
+    };
+    pts.iter().all(on).then_some(r)
+}
+
+fn contours(p: &BezPath) -> Vec<Vec<[f64; 2]>> {
+    let mut out: Vec<Vec<[f64; 2]>> = Vec::new();
+    kurbo::flatten(p.iter(), 0.05, |e| match e {
+        PathEl::MoveTo(a) => out.push(vec![[a.x, a.y]]),
+        PathEl::LineTo(a) => {
+            if let Some(c) = out.last_mut() {
+                c.push([a.x, a.y]);
+            }
+        }
+        _ => {}
+    });
+    out.retain(|c| c.len() > 2);
+    out
+}
+
+fn intersect(p: &BezPath, clip: &[Vec<[f64; 2]>]) -> BezPath {
+    let subj = contours(p);
+    let shapes = subj.overlay(
+        &clip.to_vec(),
+        OverlayRule::Intersect,
+        FillRule::NonZero,
+    );
+    let mut out = BezPath::new();
+    for shape in shapes {
+        for c in shape {
+            for (i, q) in c.iter().enumerate() {
+                if i == 0 {
+                    out.move_to((q[0], q[1]));
+                } else {
+                    out.line_to((q[0], q[1]));
+                }
+            }
+            out.close_path();
+        }
+    }
+    out
+}
+
+pub fn lower(
+    l: &List,
+    caps: Caps,
+    o: &mut Outlines,
+    st: &mut Stats,
+) -> List {
+    let mut out = List::new(l.size);
+    out.fonts = l.fonts.clone();
+    let mut t = vec![Affine::IDENTITY];
+    // Clip polygons in figure coordinates; None for
+    // groups whose clip the backend draws itself.
+    let mut clips: Vec<Option<Vec<Vec<[f64; 2]>>>> = vec![None];
+    for c in &l.commands {
+        let cur = *t.last().unwrap();
+        let clip = clips.iter().rev().flatten().next().cloned();
+        // A filled shape, clipped in geometry if needed.
+        let mut emit = |out: &mut List, p: BezPath, paint: Brush| {
+            let p = match &clip {
+                Some(cl) => {
+                    st.clipped += 1;
+                    let inv = cur.inverse();
+                    let local: Vec<Vec<[f64; 2]>> = cl
+                        .iter()
+                        .map(|c| {
+                            c.iter()
+                                .map(|q| {
+                                    let v = inv * kurbo::Point::new(q[0], q[1]);
+                                    [v.x, v.y]
+                                })
+                                .collect()
+                        })
+                        .collect();
+                    intersect(&p, &local)
+                }
+                None => p,
+            };
+            out.commands.push(Command::Fill { path: p, paint });
+        };
+        match c {
+            Command::Fill { path, paint } => {
+                emit(&mut out, path.clone(), paint.clone())
+            }
+            Command::Stroke { path, style, paint } => {
+                if clip.is_some() {
+                    let p = kurbo::stroke(
+                        path.iter(),
+                        style,
+                        &StrokeOpts::default(),
+                        0.05,
+                    );
+                    emit(&mut out, p, paint.clone());
+                } else {
+                    out.commands.push(c.clone());
+                }
+            }
+            Command::Markers { shape, at, paint } => {
+                if caps.markers && clip.is_none() {
+                    out.commands.push(c.clone());
+                    continue;
+                }
+                st.markers += 1;
+                for q in at {
+                    let p = Affine::translate(q.to_vec2())
+                        * shape.clone();
+                    emit(&mut out, p, paint.clone());
+                }
+            }
+            Command::Glyphs(r) => {
+                if caps.glyphs && clip.is_none() {
+                    out.commands.push(c.clone());
+                    continue;
+                }
+                st.glyphs += 1;
+                let p = o.run_path(&l.fonts, r);
+                emit(&mut out, p, Brush::Solid(r.fill));
+            }
+            Command::Label(_) => panic!("shape labels first"),
+            Command::Push { transform, clip: cp } => {
+                let next = cur * *transform;
+                t.push(next);
+                let geometric = cp.as_ref().filter(|p| {
+                    !caps.clip_paths && as_rect(p).is_none()
+                });
+                match geometric {
+                    Some(p) => {
+                        clips.push(Some(contours(&(next * p.clone()))));
+                        out.commands.push(Command::Push {
+                            transform: *transform,
+                            clip: None,
+                        });
+                    }
+                    None => {
+                        clips.push(None);
+                        out.commands.push(c.clone());
+                    }
+                }
+            }
+            Command::Pop => {
+                t.pop();
+                clips.pop();
+                out.commands.push(Command::Pop);
+            }
+        }
+    }
+    out
+}

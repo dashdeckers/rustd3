@@ -1,0 +1,136 @@
+# Project configuration for /goon and /handoff.
+# The specification is rustd3.md next to this file (Part I: design;
+# Implementation: front matter, Phases 1-40, Later, Appendices A and B).
+
+project: rustd3
+description: >-
+  An idiomatic Rust port of d3's charting vocabulary plus matplotlib's
+  tier-1 features: typst text, jiff time, SVG/PNG/PDF/GIF outputs and an
+  iced Plot widget.
+
+# GitHub: no repository yet. Create one when Phase 1 lands, then fill
+# these in (milestones M0-M5 can become GitHub milestones).
+repo: none
+milestone: none
+default_branch: main
+
+handoff:
+  dir: .claude/map/rustd3
+  # Numbered sequentially: SESSION_HANDOFF-00.md, -01.md, …
+  prefix: SESSION_HANDOFF
+
+map:
+  spec: .claude/map/rustd3/rustd3.md
+  # A phase's specification is the section "### Phase N — …" of rustd3.md.
+  phase_section: "### Phase {N} —"
+  prototypes: .claude/map/rustd3/proto/README.md
+  decisions: .claude/decisions/phase-{NN}.md
+  phases: 40
+  # Numeric order. Phase 31 is conditional on the benchmark verdict in
+  # decisions/phase-22.md; the user runs Phase 22's windowed benchmark
+  # while agents continue with Phases 23-30.
+  order: "1-40 in numeric order; 31 only when the verdict asks"
+  conditional: [31]
+
+# Workspace structure (target state; members appear in phase 1)
+workspace:
+  - name: rustd3
+    path: "."
+    role: "library: facade, re-exports by feature"
+  - name: rustd3-core
+    path: "core"
+    role: "library: the d3 port (scales, ticks, shapes, format, time, color, series, interact, anim)"
+  - name: rustd3-derive
+    path: "derive"
+    role: "proc-macro: #[derive(Interpolate)]"
+  - name: rustd3-figure
+    path: "figure"
+    role: "library: Figure, layout, marks, typst text, drawing list, SVG/PNG/PDF/GIF"
+  - name: rustd3-fonts
+    path: "fonts"
+    role: "library: bundled DejaVu Sans (2 weights) and New Computer Modern Math"
+  - name: rustd3-iced
+    path: "iced"
+    role: "library: IcedPath, Pointer translation, Plot widget (publish = false until iced 0.15)"
+  - name: rustd3-testkit
+    path: "dev/testkit"
+    role: "dev: Obs tolerant compare, pixel statistics, text snapshots, zones (leaf crate)"
+  - name: rustd3-harness
+    path: "dev/harness"
+    role: "dev: d3's tests translated to Rust, graded through Obs, with a ratchet and per-file floors"
+  - name: rustd3-examples
+    path: "dev/examples"
+    role: "dev: trace, scatter, wheels, use cases, presets"
+  - name: rustd3-bench
+    path: "dev/bench"
+    role: "dev: the full-frame benchmark (windowed and --headless)"
+
+architecture:
+  - "rustd3-derive -> rustd3-core (behind core's derive feature)"
+  - "rustd3-core -> rustd3-figure (+ rustd3-fonts, typst) -> rustd3-iced (figure feature) -> rustd3"
+  - "rustd3-core -> rustd3-iced (core level: IcedPath, Pointer)"
+  - "rustd3-testkit <- every crate's dev-dependencies (depends on no workspace crate)"
+
+checklist:
+  # Every commit's gate (minutes)
+  quick:
+    - scripts/check.sh quick
+  # End of every phase, and on /handoff (run in the background; long)
+  verify:
+    - scripts/check.sh full
+  lint:
+    - cargo fmt --all -- --check
+    - cargo clippy --workspace --all-targets --all-features -- -D warnings
+  # Before phase 1 exists, /goon has nothing to build: start phase 1.
+
+key_files:
+  - CLAUDE.md
+  - .claude/RUST_STYLE.md
+  - .claude/OPAQUE.md
+  - .claude/DECISIONS.md
+  - .claude/map/rustd3/rustd3.md (front matter, then "### Phase {next} —")
+  - .claude/map/rustd3/proto/README.md
+  - core/src/lib.rs
+  - figure/src/lib.rs
+  - iced/src/lib.rs
+  - dev/harness/passing.txt
+
+examples:
+  - command: "cargo run -p rustd3-examples --example trace"
+    description: "Two-panel trace, 3 channels x 1M samples (from Phase 15)"
+  - command: "cargo run -p rustd3-examples --example wheels"
+    description: "The four-wheel figure of Part I, Figures (from Phase 34)"
+  - command: "cargo run -p rustd3-examples --example focus_context"
+    description: "Use case 1, core level, iced (from Phase 32)"
+  - command: "cargo run -p rustd3-examples --example update_pattern"
+    description: "Use case 2, core level, iced (from Phase 32)"
+  - command: "cargo run -p rustd3-examples --example presets"
+    description: "Chart presets rendered to SVG/PNG (from Phase 39)"
+
+benchmarks:
+  - name: full-frame benchmark
+    command: "cargo run --release -p rustd3-bench -- --help (the user runs it windowed on real hardware; agents use --headless)"
+    baseline: "Prototype measurements: whole wheel figure 11.5 / 16-25 / 55.7 ms at 1x / 2x / 4x (2-core container)"
+    target: "Pre-registered rule (rustd3.md, Open question): p99 frame interval <= 1.5 x frame period; input-to-sharp p95 < 100 ms pans, < 150 ms zooms; preview share < 10% during pans. Raster- or upload-bound misses build Phase 31"
+  - name: d3 grading
+    command: "cargo run -p rustd3-harness -- --check"
+    baseline: "Prototype: 1,300 of 1,480 translated assertions (path, ticks, format, ease)"
+    target: "Every translated d3 test file at or above its floor (>= 70% unless a skip table names it), recorded in passing.txt"
+
+style:
+  - "No AI attribution in commits, comments or docs"
+  - "Edition 2024, rust-version 1.97"
+  - "No mod.rs; one semantic type per module; module paths, not composite names (the Conventions list excepted)"
+  - "No unwrap() in library code; thiserror errors carrying the rejected value"
+  - "No ambient clocks or zones in library code (clippy disallowed-methods)"
+  - "f64 geometry; f32 only at backend boundaries and in GlyphRun/Glyph"
+  - "Conventional commits: type(scope): summary, scope = crate"
+  - "Dependencies only from rustd3.md's Workspace list; manifests change only in Phases 1 and 11"
+  - "Nothing from rustd3.md's Later (0.2) list"
+
+workflow:
+  - "One phase per session (two or more where its section names cut points); dispatch with rustd3.md Appendix A"
+  - "A design question rustd3.md does not answer: write D{phase}.{k} in .claude/decisions/phase-NN.md and stop"
+  - "Never bless snapshots or the harness ratchet without reading the diff"
+  - "rustd3.md is not edited by agents; changing a public item of Phases 1-10 is a decision plus every call site updated in the same commit"
+  - "Phase 22's windowed benchmark runs on the user's machine; agents build and smoke-test it headlessly, then continue with Phases 23-30"

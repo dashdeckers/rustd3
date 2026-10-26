@@ -1,0 +1,10 @@
+[package]
+name = "poly"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+smallvec = "1"
+
+[profile.release]
+debug = false

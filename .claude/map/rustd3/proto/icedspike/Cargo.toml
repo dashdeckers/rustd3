@@ -1,0 +1,23 @@
+[package]
+name = "icedspike"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dlist = { path = "../dlist" }
+figmodel = { path = "../figmodel" }
+iced_graphics = { git = "https://github.com/iced-rs/iced", rev = "3cbdacc3b0841c5145c766c3a758657d36b41ffe", features = ["geometry"] }
+iced_wgpu = { git = "https://github.com/iced-rs/iced", rev = "3cbdacc3b0841c5145c766c3a758657d36b41ffe", features = ["geometry"] }
+iced_tiny_skia = { git = "https://github.com/iced-rs/iced", rev = "3cbdacc3b0841c5145c766c3a758657d36b41ffe", features = ["geometry"] }
+vello = "0.11"
+kurbo = "0.13.1"
+peniko = "0.6.1"
+pollster = "0.4"
+tiny-skia = "0.12"
+vello_cpu = "0.3.0"
+
+iced = { git = "https://github.com/iced-rs/iced", rev = "3cbdacc3b0841c5145c766c3a758657d36b41ffe", features = ["canvas", "advanced"] }
+iced_test = { git = "https://github.com/iced-rs/iced", rev = "3cbdacc3b0841c5145c766c3a758657d36b41ffe" }
+
+[profile.release]
+debug = false
