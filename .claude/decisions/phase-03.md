@@ -2,7 +2,7 @@
 
 ## D3.1 — Two d3-format test files pass under 70% and are not in the skip table
 
-**Date:** 2026-10-27 · **Context:** Phase 3, step 5 (feat(harness): grade path, ease, ticks and format) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 3, step 5 (feat(harness): grade path, ease, ticks and format) · **Status:** decided
 
 ### Issue
 
@@ -61,6 +61,13 @@ Two files of the `format` suite are under 70 % after translation:
 
 ### Decision
 
+A (architect, 2026-10-27). Phase 3's skip table gains two rows, which
+this entry carries in place of an edit to rustd3.md:
+`d3-format/test/format-type-c-test.js`, "`c` formats strings;
+`Format::format` takes `f64` (`types:`)"; and
+`d3-format/test/defaultLocale-test.js`, "rebinding the module's
+default locale (`js:`)". Their floors stay at 0 and 2.
+
 Recommended: A. Floors are blessed at the current counts
 (`format-type-c-test.js` 0, `defaultLocale-test.js` 2) so the ratchet
 holds the two passing assertions either way; the skip table itself is
@@ -79,7 +86,7 @@ translated assertion passes.
 
 ## D3.2 — Three statements of Phase 3 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 3, steps 2–3 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 3, steps 2–3 · **Status:** decided
 
 ### Issue
 
@@ -110,6 +117,10 @@ recursion in `Spec::new`), which all 92 assertions of
 | Correctness | Compiles; d3's tests pass | Does not compile; fails `ticks-test.js:113` |
 
 ### Decision
+
+A (architect, 2026-10-27): `ticks` carries no alias; tickSpec doubles
+the count as d3 does, while 0.5 ≤ count < 2 and no tick fits; Phase 6
+adds `Locale::group_from(digits)` together with its caller.
 
 Recommended: A, already built; Phase 6 adds `Locale::group_from(digits)`
 with `Format::format_all`.
