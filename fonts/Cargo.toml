@@ -7,6 +7,10 @@ rust-version.workspace = true
 license-file = "LICENSE"
 autotests = false
 
+[[test]]
+name = "main"
+path = "tests/main/main.rs"
+
 [dev-dependencies]
 ttf-parser.workspace = true
 
