@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::format::{InvalidFormat, Locale};
 use crate::interpolate::{self, Interpolate};
 use crate::js;
-use crate::scale::{TickFormat, Transform};
+use crate::scale::{TickFormat, Transform, transform};
 
 /// A continuous scale: `N` domain stops mapped through a transform onto `N`
 /// range values of any interpolatable type `R` (d3's scaleLinear, scalePow,
@@ -239,6 +239,14 @@ impl<T: Transform, const N: usize> Continuous<T, f64, N> {
     }
 }
 
+impl<R: Interpolate, const N: usize> Continuous<transform::Pow, R, N> {
+    /// d3's `exponent(e)`: the power the domain is raised to; the domain
+    /// and range stay as they are.
+    pub fn exponent(self, exponent: f64) -> Self {
+        self.transformed(transform::Pow::new(exponent))
+    }
+}
+
 /// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
 /// when the last stop is below the first), normalized within its segment,
 /// and the segment's two `values` blended at that fraction.
@@ -280,7 +288,7 @@ fn normalize(a: f64, b: f64, x: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scale::{self, transform};
+    use crate::scale;
 
     /// A three-stop linear scale, which only Phase 5's `piecewise` builds
     /// from outside.

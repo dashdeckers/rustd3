@@ -3,8 +3,10 @@
 //! format that suit it. The trait's canonical path is `scale::Transform`.
 
 mod identity;
+mod pow;
 
 pub use identity::Identity;
+pub use pow::Pow;
 
 use crate::format::{InvalidFormat, Locale};
 use crate::scale::{self, TickFormat};

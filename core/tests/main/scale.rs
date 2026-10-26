@@ -186,3 +186,48 @@ fn tick_format_rejects_a_malformed_specifier() {
     let error = scale::tick_format(&Locale::EN_US, [0.0, 1.0], 10, Some("10..f"));
     assert_eq!(error, Err(InvalidFormat("10..f".to_owned())));
 }
+
+#[test]
+fn pow_raises_the_domain_and_inverts_through_the_root() {
+    let x = scale::pow()
+        .exponent(2.0)
+        .domain([0.0, 10.0])
+        .range([0.0, 100.0]);
+    assert_eq!(x.apply(5.0), 25.0);
+    assert_eq!(x.invert(25.0), 5.0);
+}
+
+#[test]
+fn pow_keeps_the_sign_and_sqrt_is_exponent_one_half() {
+    assert_eq!(scale::pow().exponent(0.5).apply(-4.0), -2.0);
+    let s = scale::sqrt().domain([0.0, 100.0]).range([0.0, 10.0]);
+    assert_eq!(s.apply(25.0), 5.0);
+    assert_eq!(scale::sqrt().apply(0.5), std::f64::consts::FRAC_1_SQRT_2);
+}
+
+#[test]
+fn pow_ticks_and_nice_are_linear_in_data_space() {
+    let x = scale::pow().exponent(2.0).domain([0.0, 10.0]);
+    let units: Vec<f64> = (0..=10).map(f64::from).collect();
+    assert_eq!(x.ticks(10), units);
+    let nice = scale::pow().exponent(2.0).domain([0.13, 9.71]).nice(10);
+    assert_eq!(nice.get_domain(), [0.0, 10.0]);
+}
+
+#[test]
+fn a_new_exponent_keeps_the_domain_and_range() {
+    let x = scale::pow()
+        .domain([1.0, 2.0])
+        .range([3.0, 4.0])
+        .exponent(0.5);
+    assert_eq!(x.get_domain(), [1.0, 2.0]);
+    assert_eq!(x.get_range(), &[3.0, 4.0]);
+    assert_eq!(x.apply(2.0), 4.0);
+}
+
+#[test]
+fn a_clamped_pow_scale_inverts_within_the_domain() {
+    let x = scale::pow().exponent(0.5).domain([1.0, 20.0]).clamp(true);
+    assert_eq!(x.invert(0.0), 1.0);
+    assert_eq!(x.invert(1.0), 20.0);
+}

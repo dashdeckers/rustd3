@@ -29,6 +29,9 @@ use crate::ticks;
 /// d3's scaleLinear: a continuous scale under the identity transform.
 pub type Linear<R = f64, const N: usize = 2> = Continuous<transform::Identity, R, N>;
 
+/// d3's scalePow: a continuous scale under a power transform.
+pub type Pow<R = f64, const N: usize = 2> = Continuous<transform::Pow, R, N>;
+
 /// A continuous scale under `transform` with domain [0, 1] and range
 /// [0, 1], d3's `transformer()` made public.
 pub fn continuous<T: Transform>(transform: T) -> Continuous<T> {
@@ -39,6 +42,18 @@ pub fn continuous<T: Transform>(transform: T) -> Continuous<T> {
 #[doc(alias = "scaleLinear")]
 pub fn linear() -> Linear {
     continuous(transform::Identity)
+}
+
+/// d3.scalePow(): exponent 1, domain [0, 1], range [0, 1].
+#[doc(alias = "scalePow")]
+pub fn pow() -> Pow {
+    continuous(transform::Pow::new(1.0))
+}
+
+/// d3.scaleSqrt(): `pow()` with exponent 0.5.
+#[doc(alias = "scaleSqrt")]
+pub fn sqrt() -> Pow {
+    continuous(transform::Pow::new(0.5))
 }
 
 /// d3-scale's linear nice (linear.js): `domain` extended to multiples of
