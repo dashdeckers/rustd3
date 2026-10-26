@@ -77,3 +77,5 @@ then `decided`.
   a report and when it is persisted here.
 
 ## Index
+
+- `decisions/phase-01.md` — Phase 1: build measurements
