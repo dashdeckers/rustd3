@@ -1,0 +1,67 @@
+[package]
+name = "rustd3"
+description = "d3's vocabulary and math for Rust, with figures and an iced widget"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+autotests = false
+
+[features]
+default = ["fonts"]
+figure = ["dep:rustd3-figure"]
+fonts = ["rustd3-figure?/fonts"]
+raster = ["figure", "rustd3-figure/raster"]
+png = ["figure", "rustd3-figure/png"]
+gif = ["figure", "rustd3-figure/gif"]
+pdf = ["figure", "rustd3-figure/pdf"]
+tiny-skia = ["figure", "rustd3-figure/tiny-skia"]
+helpers = ["figure", "rustd3-figure/helpers"]
+derive = ["rustd3-core/derive"]
+# No `iced` feature until iced 0.15 is on crates.io.
+
+[dependencies]
+rustd3-core.workspace = true
+rustd3-figure = { workspace = true, optional = true }
+
+[workspace]
+resolver = "3"
+members = ["core", "derive", "figure", "fonts", "iced",
+           "dev/testkit", "dev/harness", "dev/examples", "dev/bench"]
+exclude = [".claude"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+rustd3-core = { path = "core", version = "0.1.0" }
+rustd3-derive = { path = "derive", version = "0.1.0" }
+rustd3-figure = { path = "figure", version = "0.1.0", default-features = false }
+rustd3-fonts = { path = "fonts", version = "0.1.0" }
+rustd3-testkit = { path = "dev/testkit" }
+jiff = "0.2.38"
+thiserror = "2"
+syn = "2"
+quote = "1"
+proc-macro2 = "1"
+typst = "0.15.1"
+typst-layout = "0.15.1"
+ttf-parser = "0.25"
+kurbo = "0.13.1"
+peniko = "0.6.1"
+png = "0.18"
+vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "text", "u8_pipeline", "multithreading"] }
+gif = "0.14"
+krilla = "0.8.2"
+tiny-skia = "0.12"
+serde_json = "1"
+resvg = "0.48.1"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = "line-tables-only"

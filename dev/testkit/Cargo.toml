@@ -1,0 +1,14 @@
+[package]
+name = "rustd3-testkit"
+description = "rustd3's test kit: tolerant comparison, pixel statistics, text snapshots and zones"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[dependencies]
+jiff = { workspace = true, features = ["tzdb-bundle-always"] }
+serde_json.workspace = true
+thiserror.workspace = true

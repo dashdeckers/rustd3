@@ -1,0 +1,22 @@
+[package]
+name = "rustd3-iced"
+description = "iced integration for rustd3: IcedPath, pointer input and the Plot widget"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[features]
+default = ["fonts"]
+fonts = ["rustd3-figure?/fonts"]
+figure = ["dep:rustd3-figure"]
+
+[dependencies]
+rustd3-core.workspace = true
+thiserror.workspace = true
+rustd3-figure = { workspace = true, optional = true, features = ["raster"] }
+
+[dev-dependencies]
+rustd3-testkit.workspace = true

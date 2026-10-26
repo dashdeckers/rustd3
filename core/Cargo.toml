@@ -1,0 +1,20 @@
+[package]
+name = "rustd3-core"
+description = "d3's scales, ticks, shapes, formats, time, color and interaction as plain Rust values"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+autotests = false
+
+[features]
+derive = ["dep:rustd3-derive"]
+
+[dependencies]
+jiff.workspace = true
+thiserror.workspace = true
+rustd3-derive = { workspace = true, optional = true }
+
+[dev-dependencies]
+rustd3-testkit.workspace = true
+serde_json.workspace = true

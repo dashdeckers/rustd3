@@ -1,0 +1,19 @@
+[package]
+name = "rustd3-bench"
+description = "The full-frame benchmark of rustd3's Plot widget"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[dependencies]
+rustd3-core.workspace = true
+rustd3-figure = { workspace = true, features = ["fonts", "png"] }
+rustd3-examples = { path = "../examples" }
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+rustd3-testkit.workspace = true
