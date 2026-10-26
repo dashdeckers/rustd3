@@ -3,5 +3,6 @@
 
 mod ease;
 mod format;
+mod interpolate;
 mod path;
 mod ticks;
