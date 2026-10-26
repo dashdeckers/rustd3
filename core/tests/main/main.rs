@@ -2,3 +2,4 @@
 //! where it departs from d3.
 
 mod path;
+mod ticks;

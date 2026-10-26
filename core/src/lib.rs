@@ -5,5 +5,6 @@
 //! graded by d3's own tests.
 
 pub mod path;
+pub mod ticks;
 
 mod js;
