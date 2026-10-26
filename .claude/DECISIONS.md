@@ -78,4 +78,4 @@ then `decided`.
 
 ## Index
 
-- `decisions/phase-01.md` — Phase 1: build measurements
+- `decisions/phase-01.md` — Phase 1: build measurements; D1.1 d3-ease's licence; D1.2 the font licence texts
