@@ -25,7 +25,7 @@ each package.
 
 ## D1.1 — d3-ease is BSD-3-Clause: what `core/LICENSE-d3` carries
 
-**Date:** 2026-10-26 · **Context:** Phase 1, step 1 (`core/LICENSE-d3`); the skeleton was committed without it (0728bd2) · **Status:** open
+**Date:** 2026-10-26 · **Context:** Phase 1, step 1 (`core/LICENSE-d3`); the skeleton was committed without it (0728bd2) · **Status:** decided
 
 ### Issue
 
@@ -67,25 +67,28 @@ clause requires redistributions of source to keep.
 
 ### Decision
 
-Recommended: B, with rustd3-core's `license = "MIT OR Apache-2.0"`
-unchanged: the upstream notices travel in `LICENSE-d3`, as the ISC and
-ColorBrewer ones do.
+B (architect, 2026-10-26): `core/LICENSE-d3` lists the sixteen ISC
+modules with their copyright lines, then the ISC text once, then d3-ease
+3.0.1's LICENSE verbatim (BSD-3-Clause, Mike Bostock and Robert
+Penner). rustd3-core's `license` stays `MIT OR Apache-2.0`: the upstream
+notices travel in `LICENSE-d3`, as the ISC and ColorBrewer ones do.
 
 ### Why
 
-B is the smallest file that keeps every notice d3-ease's licence
-requires, and it follows the structure rustd3.md already uses for the
-one other non-ISC notice.
+Architect, 2026-10-26: B is the smallest file that keeps every notice
+d3-ease's licence requires, and it follows the structure rustd3.md
+already uses for the one other non-ISC notice (Phase 23's ColorBrewer).
 
 ### Followups
 
 - On the answer: write `core/LICENSE-d3` in its own commit, then
   `scripts/check.sh quick` and `full`.
-- Phase 40: the README credit line names d3-ease's licence.
+- Phase 40: the root README's credits name d3-ease's BSD-3-Clause
+  licence (Robert Penner's easing equations) beside d3's ISC.
 
 ## D1.2 — The font licence texts in `proto/fonts/` are incomplete
 
-**Date:** 2026-10-26 · **Context:** Phase 1, step 3 (`fonts/LICENSE*`); the fonts were committed without them (c16e92b) · **Status:** open
+**Date:** 2026-10-26 · **Context:** Phase 1, step 3 (`fonts/LICENSE*`); the fonts were committed without them (c16e92b) · **Status:** decided
 
 ### Issue
 
@@ -139,13 +142,26 @@ without Arev.
 
 ### Decision
 
-Recommended: B.
+B (architect, 2026-10-26). Source:
+`~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typst-assets-0.15.1/NOTICE`
+(typst-assets 0.15.1, the version `Cargo.lock` pins; sha256
+`80ac46fb7d70f1c30bf0c14d3408e6a6f0f9cc9997a00b592aa0d2c8a5243a9d`):
+
+- `fonts/LICENSE-DejaVu` = `NOTICE` lines 139–236 (DejaVu's notice, the
+  Bitstream Vera licence, the Arev licence);
+- `fonts/LICENSE-NewCMMath.txt` = `NOTICE` lines 103–130 (the GUST Font
+  License 1.0);
+- `fonts/LICENSE` = the summary paragraph, then those two texts, as
+  Phase 1 says.
+
+`proto/fonts/` stays as it is; the byte-for-byte comparison applies to
+the three font files.
 
 ### Why
 
-It is the only option whose texts are both whole and from one pinned
-source, and the extraction is a reproducible `sed -n` over a file the
-lock already pins.
+Architect, 2026-10-26: the only option whose texts are both whole and
+from one pinned source, and the extraction is a reproducible `sed -n`
+over a file the lock already pins.
 
 ### Followups
 
