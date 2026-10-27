@@ -16,48 +16,48 @@ fn t1() {   // time-test.js: time.domain(domain) accepts an iterable
 
 fn t2() {   // time-test.js: time.nice() is an alias for time.nice(10)
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 17.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 42.0])]);
-    skip("d3-scale/test/time-test.js:21:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 17.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 42.0])]);
+    check("d3-scale/test/time-test.js:21:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 2.0])]));
 }
 
 fn t3() {   // time-test.js: time.nice() can nice sub-second domains
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 128.0])]);
-    skip("d3-scale/test/time-test.js:26:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 128.0])]);
+    check("d3-scale/test/time-test.js:26:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![local(&la, &[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 130.0])]));
 }
 
 fn t4() {   // time-test.js: time.nice() can nice multi-year domains
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2001.0, 0.0, 1.0]), local(&la, &[2138.0, 0.0, 1.0])]);
-    skip("d3-scale/test/time-test.js:31:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2001.0, 0.0, 1.0]), local(&la, &[2138.0, 0.0, 1.0])]);
+    check("d3-scale/test/time-test.js:31:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![local(&la, &[2000.0, 0.0, 1.0]), local(&la, &[2140.0, 0.0, 1.0])]));
 }
 
 fn t5() {   // time-test.js: time.nice() can nice empty domains
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:36:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0])]);
+    check("d3-scale/test/time-test.js:36:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0])]));
 }
 
 fn t6() {   // time-test.js: time.nice(count) nices using the specified tick count
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 17.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 42.0])]);
-    skip("d3-scale/test/time-test.js:41:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:42:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 17.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 42.0])]);
+    check("d3-scale/test/time-test.js:41:3", Kind::Strict, &tss(&({ x = x.nice(100_usize); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0, 0.0, 15.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 45.0])]));
+    check("d3-scale/test/time-test.js:42:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 2.0])]));
 }
 
 fn t7() {   // time-test.js: time.nice(interval) nices using the specified time interval
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 48.0])]);
-    skip("d3-scale/test/time-test.js:47:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:48:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:49:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:50:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 48.0])]);
+    check("d3-scale/test/time-test.js:47:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Day(1)); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 2.0])]));
+    check("d3-scale/test/time-test.js:48:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Week(Weekday::Sunday, 1)); x.get_domain() })), &tss(&vec![local(&la, &[2008.0, 11.0, 28.0]), local(&la, &[2009.0, 0.0, 4.0])]));
+    check("d3-scale/test/time-test.js:49:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Month(1)); x.get_domain() })), &tss(&vec![local(&la, &[2008.0, 11.0, 1.0]), local(&la, &[2009.0, 1.0, 1.0])]));
+    check("d3-scale/test/time-test.js:50:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Year(1)); x.get_domain() })), &tss(&vec![local(&la, &[2008.0, 0.0, 1.0]), local(&la, &[2010.0, 0.0, 1.0])]));
 }
 
 fn t8() {   // time-test.js: time.nice(interval) can nice empty domains
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:55:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0])]);
+    check("d3-scale/test/time-test.js:55:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Day(1)); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 2.0])]));
 }
 
 fn t9() {   // time-test.js: time.nice(interval) can nice a polylinear domain, only affecting its extent
@@ -66,11 +66,11 @@ fn t9() {   // time-test.js: time.nice(interval) can nice a polylinear domain, o
 
 fn t10() {   // time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 48.0])]);
-    skip("d3-scale/test/time-test.js:65:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:66:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:67:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:68:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2009.0, 0.0, 1.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 1.0, 23.0, 48.0])]);
+    check("d3-scale/test/time-test.js:65:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Day(1).every(3_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 4.0])]));
+    check("d3-scale/test/time-test.js:66:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Week(Weekday::Sunday, 1).every(2_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![local(&la, &[2008.0, 11.0, 21.0]), local(&la, &[2009.0, 0.0, 4.0])]));
+    check("d3-scale/test/time-test.js:67:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Month(1).every(3_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![local(&la, &[2008.0, 9.0, 1.0]), local(&la, &[2009.0, 3.0, 1.0])]));
+    check("d3-scale/test/time-test.js:68:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![local(&la, &[2000.0, 0.0, 1.0]), local(&la, &[2010.0, 0.0, 1.0])]));
 }
 
 fn t11() {   // time-test.js: time.copy() isolates changes to the domain
@@ -136,147 +136,147 @@ fn t15() {   // time-test.js: time.clamp(true).invert(value) never returns a val
 
 fn t16() {   // time-test.js: time.ticks(interval) observes the specified tick interval
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0])]);
-    skip("d3-scale/test/time-test.js:131:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0])]);
+    check("d3-scale/test/time-test.js:131:3", Kind::Strict, &tss(&x.ticks_with(Interval::Minute(1))), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 2.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0])]));
 }
 
 fn t17() {   // time-test.js: time.ticks(interval.every(step)) observes the specified tick interval and step
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 33.0, 4.0])]);
-    skip("d3-scale/test/time-test.js:141:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 33.0, 4.0])]);
+    check("d3-scale/test/time-test.js:141:3", Kind::Strict, &tss(&x.ticks_with(Interval::Minute(1).every(10_u32).expect("d3 test: a step of 1 or more"))), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 10.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 20.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 30.0])]));
 }
 
 fn t18() {   // time-test.js: time.ticks(count) can generate sub-second ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0])]);
-    skip("d3-scale/test/time-test.js:151:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0])]);
+    check("d3-scale/test/time-test.js:151:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 200.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 400.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 600.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 800.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0, 0.0])]));
 }
 
 fn t19() {   // time-test.js: time.ticks(count) can generate 1-second ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]);
-    skip("d3-scale/test/time-test.js:163:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]);
+    check("d3-scale/test/time-test.js:163:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 2.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 3.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]));
 }
 
 fn t20() {   // time-test.js: time.ticks(count) can generate 5-second ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]);
-    skip("d3-scale/test/time-test.js:174:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]);
+    check("d3-scale/test/time-test.js:174:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 5.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 10.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]));
 }
 
 fn t21() {   // time-test.js: time.ticks(count) can generate 15-second ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 50.0])]);
-    skip("d3-scale/test/time-test.js:185:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 50.0])]);
+    check("d3-scale/test/time-test.js:185:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 45.0])]));
 }
 
 fn t22() {   // time-test.js: time.ticks(count) can generate 30-second ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 50.0])]);
-    skip("d3-scale/test/time-test.js:195:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 50.0])]);
+    check("d3-scale/test/time-test.js:195:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 30.0])]));
 }
 
 fn t23() {   // time-test.js: time.ticks(count) can generate 1-minute ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:205:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0, 12.0])]);
+    check("d3-scale/test/time-test.js:205:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 2.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0])]));
 }
 
 fn t24() {   // time-test.js: time.ticks(count) can generate 5-minute ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 21.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:215:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 21.0, 12.0])]);
+    check("d3-scale/test/time-test.js:215:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 5.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 10.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 20.0])]));
 }
 
 fn t25() {   // time-test.js: time.ticks(count) can generate 15-minute ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 8.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 4.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:225:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 8.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 4.0, 12.0])]);
+    check("d3-scale/test/time-test.js:225:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 45.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 0.0])]));
 }
 
 fn t26() {   // time-test.js: time.ticks(count) can generate 30-minute ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 4.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:235:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 4.0, 12.0])]);
+    check("d3-scale/test/time-test.js:235:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 0.0])]));
 }
 
 fn t27() {   // time-test.js: time.ticks(count) can generate 1-hour ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 16.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:245:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 16.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:245:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 13.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 15.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 16.0, 0.0])]));
 }
 
 fn t28() {   // time-test.js: time.ticks(count) can generate 3-hour ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 14.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 2.0, 1.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:255:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 14.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 2.0, 1.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:255:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 15.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 18.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 21.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0])]));
 }
 
 fn t29() {   // time-test.js: time.ticks(count) can generate 6-hour ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 2.0, 14.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:265:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 2.0, 14.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:265:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 18.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 6.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 12.0, 0.0])]));
 }
 
 fn t30() {   // time-test.js: time.ticks(count) can generate 12-hour ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 3.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:275:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 3.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:275:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 12.0, 0.0]), local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 3.0, 12.0, 0.0])]));
 }
 
 fn t31() {   // time-test.js: time.ticks(count) can generate 1-day ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 5.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:285:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 5.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:285:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 4.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0])]));
 }
 
 fn t32() {   // time-test.js: time.ticks(count) can generate 2-day ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:295:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:295:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 7.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 9.0, 0.0, 0.0])]));
 }
 
 fn t33() {   // time-test.js: time.ticks(count) can generate 1-week ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 23.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/time-test.js:305:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 23.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/time-test.js:305:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 9.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 16.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 23.0, 0.0, 0.0])]));
 }
 
 fn t34() {   // time-test.js: time.ticks(count) can generate 1-month ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 18.0]), local(&la, &[2011.0, 4.0, 2.0])]);
-    skip("d3-scale/test/time-test.js:315:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2011.0, 0.0, 18.0]), local(&la, &[2011.0, 4.0, 2.0])]);
+    check("d3-scale/test/time-test.js:315:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 1.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 2.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 3.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 4.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t35() {   // time-test.js: time.ticks(count) can generate 3-month ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2010.0, 11.0, 18.0]), local(&la, &[2011.0, 10.0, 2.0])]);
-    skip("d3-scale/test/time-test.js:325:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2010.0, 11.0, 18.0]), local(&la, &[2011.0, 10.0, 2.0])]);
+    check("d3-scale/test/time-test.js:325:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 3.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 6.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 9.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t36() {   // time-test.js: time.ticks(count) can generate 1-year ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2010.0, 11.0, 18.0]), local(&la, &[2014.0, 2.0, 2.0])]);
-    skip("d3-scale/test/time-test.js:335:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2010.0, 11.0, 18.0]), local(&la, &[2014.0, 2.0, 2.0])]);
+    check("d3-scale/test/time-test.js:335:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2012.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2014.0, 0.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t37() {   // time-test.js: time.ticks(count) can generate multi-year ticks
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[0.0, 11.0, 18.0]), local(&la, &[2014.0, 2.0, 2.0])]);
-    skip("d3-scale/test/time-test.js:345:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[0.0, 11.0, 18.0]), local(&la, &[2014.0, 2.0, 2.0])]);
+    check("d3-scale/test/time-test.js:345:3", Kind::Strict, &tss(&x.ticks(6_usize)), &tss(&vec![local(&la, &[500.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[1000.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[1500.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2000.0, 0.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t38() {   // time-test.js: time.ticks(count) returns one tick for an empty domain
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone()).domain([local(&la, &[2014.0, 2.0, 2.0]), local(&la, &[2014.0, 2.0, 2.0])]);
-    skip("d3-scale/test/time-test.js:355:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone()).domain([local(&la, &[2014.0, 2.0, 2.0]), local(&la, &[2014.0, 2.0, 2.0])]);
+    check("d3-scale/test/time-test.js:355:3", Kind::Strict, &tss(&x.ticks(6_usize)), &tss(&vec![local(&la, &[2014.0, 2.0, 2.0])]));
 }
 
 fn t39() {   // time-test.js: time.ticks() returns descending ticks for a descending domain
     let la = zone("America/Los_Angeles");
-    let mut _x = time::time(la.clone());
-    skip("d3-scale/test/time-test.js:360:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/time-test.js:361:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::time(la.clone());
+    check("d3-scale/test/time-test.js:360:3", Kind::Strict, &tss(&({ x = x.domain([local(&la, &[2014.0, 2.0, 2.0]), local(&la, &[2010.0, 11.0, 18.0])]); x.ticks(4_usize) })), &tss(&vec![local(&la, &[2014.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2012.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0])]));
+    check("d3-scale/test/time-test.js:361:3", Kind::Strict, &tss(&({ x = x.domain([local(&la, &[2011.0, 10.0, 2.0]), local(&la, &[2010.0, 11.0, 18.0])]); x.ticks(4_usize) })), &tss(&vec![local(&la, &[2011.0, 9.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 6.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 3.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t40() {   // time-test.js: time.tickFormat()(date) formats year on New Year's
@@ -326,42 +326,42 @@ fn t47() {   // time-test.js: time.tickFormat(count, specifier) returns a time f
 }
 
 fn t48() {   // utcTime-test.js: scaleUtc.nice() is an alias for scaleUtc.nice(10)
-    let mut _x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 17.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 42.0])]);
-    skip("d3-scale/test/utcTime-test.js:9:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 17.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 42.0])]);
+    check("d3-scale/test/utcTime-test.js:9:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 2.0])]));
 }
 
 fn t49() {   // utcTime-test.js: scaleUtc.nice() can nice sub-second domains
-    let mut _x = time::utc().domain([utc(&[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), utc(&[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 128.0])]);
-    skip("d3-scale/test/utcTime-test.js:14:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), utc(&[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 128.0])]);
+    check("d3-scale/test/utcTime-test.js:14:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![utc(&[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), utc(&[2013.0, 0.0, 1.0, 12.0, 0.0, 0.0, 130.0])]));
 }
 
 fn t50() {   // utcTime-test.js: scaleUtc.nice() can nice multi-year domains
-    let mut _x = time::utc().domain([utc(&[2001.0, 0.0, 1.0]), utc(&[2138.0, 0.0, 1.0])]);
-    skip("d3-scale/test/utcTime-test.js:19:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2001.0, 0.0, 1.0]), utc(&[2138.0, 0.0, 1.0])]);
+    check("d3-scale/test/utcTime-test.js:19:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![utc(&[2000.0, 0.0, 1.0]), utc(&[2140.0, 0.0, 1.0])]));
 }
 
 fn t51() {   // utcTime-test.js: scaleUtc.nice() can nice empty domains
-    let mut _x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 0.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:24:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 0.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:24:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 0.0, 12.0])]));
 }
 
 fn t52() {   // utcTime-test.js: scaleUtc.nice(count) nices using the specified tick count
-    let mut _x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 17.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 42.0])]);
-    skip("d3-scale/test/utcTime-test.js:29:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:30:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 17.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 42.0])]);
+    check("d3-scale/test/utcTime-test.js:29:3", Kind::Strict, &tss(&({ x = x.nice(100_usize); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0, 0.0, 15.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 45.0])]));
+    check("d3-scale/test/utcTime-test.js:30:3", Kind::Strict, &tss(&({ x = x.nice(10_usize); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 2.0])]));
 }
 
 fn t53() {   // utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval
-    let mut _x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 48.0])]);
-    skip("d3-scale/test/utcTime-test.js:35:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:36:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:37:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:38:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 48.0])]);
+    check("d3-scale/test/utcTime-test.js:35:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Day(1)); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 2.0])]));
+    check("d3-scale/test/utcTime-test.js:36:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Week(Weekday::Sunday, 1)); x.get_domain() })), &tss(&vec![utc(&[2008.0, 11.0, 28.0]), utc(&[2009.0, 0.0, 4.0])]));
+    check("d3-scale/test/utcTime-test.js:37:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Month(1)); x.get_domain() })), &tss(&vec![utc(&[2008.0, 11.0, 1.0]), utc(&[2009.0, 1.0, 1.0])]));
+    check("d3-scale/test/utcTime-test.js:38:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Year(1)); x.get_domain() })), &tss(&vec![utc(&[2008.0, 0.0, 1.0]), utc(&[2010.0, 0.0, 1.0])]));
 }
 
 fn t54() {   // utcTime-test.js: scaleUtc.nice(interval) can nice empty domains
-    let mut _x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 0.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:43:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 0.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:43:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Day(1)); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 2.0])]));
 }
 
 fn t55() {   // utcTime-test.js: scaleUtc.nice(interval) can nice a polylinear domain, only affecting its extent
@@ -369,11 +369,11 @@ fn t55() {   // utcTime-test.js: scaleUtc.nice(interval) can nice a polylinear d
 }
 
 fn t56() {   // utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step
-    let mut _x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 48.0])]);
-    skip("d3-scale/test/utcTime-test.js:53:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:54:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:55:3", "gap: time scale ticks and nice (Phase 27, step 7)");
-    skip("d3-scale/test/utcTime-test.js:56:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2009.0, 0.0, 1.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 1.0, 23.0, 48.0])]);
+    check("d3-scale/test/utcTime-test.js:53:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Day(1).every(3_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 4.0])]));
+    check("d3-scale/test/utcTime-test.js:54:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Week(Weekday::Sunday, 1).every(2_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![utc(&[2008.0, 11.0, 21.0]), utc(&[2009.0, 0.0, 4.0])]));
+    check("d3-scale/test/utcTime-test.js:55:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Month(1).every(3_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![utc(&[2008.0, 9.0, 1.0]), utc(&[2009.0, 3.0, 1.0])]));
+    check("d3-scale/test/utcTime-test.js:56:3", Kind::Strict, &tss(&({ x = x.nice_with(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more")); x.get_domain() })), &tss(&vec![utc(&[2000.0, 0.0, 1.0]), utc(&[2010.0, 0.0, 1.0])]));
 }
 
 fn t57() {   // utcTime-test.js: scaleUtc.copy() isolates changes to the domain
@@ -424,123 +424,123 @@ fn t60() {   // utcTime-test.js: scaleUtc.copy() isolates changes to clamping
 }
 
 fn t61() {   // utcTime-test.js: scaleUtc.ticks(interval) observes the specified tick interval
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0])]);
-    skip("d3-scale/test/utcTime-test.js:109:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0])]);
+    check("d3-scale/test/utcTime-test.js:109:3", Kind::Strict, &tss(&x.ticks_with(Interval::Minute(1))), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0])]));
 }
 
 fn t62() {   // utcTime-test.js: scaleUtc.ticks(interval) observes the specified named tick interval
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0])]);
-    skip("d3-scale/test/utcTime-test.js:119:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0])]);
+    check("d3-scale/test/utcTime-test.js:119:3", Kind::Strict, &tss(&x.ticks_with(Interval::Minute(1))), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0])]));
 }
 
 fn t63() {   // utcTime-test.js: scaleUtc.ticks(interval.every(step)) observes the specified tick interval and step
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 33.0, 4.0])]);
-    skip("d3-scale/test/utcTime-test.js:129:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 33.0, 4.0])]);
+    check("d3-scale/test/utcTime-test.js:129:3", Kind::Strict, &tss(&x.ticks_with(Interval::Minute(1).every(10_u32).expect("d3 test: a step of 1 or more"))), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 10.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 20.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 30.0])]));
 }
 
 fn t64() {   // utcTime-test.js: scaleUtc.ticks(count) can generate sub-second ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0])]);
-    skip("d3-scale/test/utcTime-test.js:139:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0])]);
+    check("d3-scale/test/utcTime-test.js:139:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 200.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 400.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 600.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 800.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0, 0.0])]));
 }
 
 fn t65() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-second ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]);
-    skip("d3-scale/test/utcTime-test.js:151:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]);
+    check("d3-scale/test/utcTime-test.js:151:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]));
 }
 
 fn t66() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 5-second ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]);
-    skip("d3-scale/test/utcTime-test.js:162:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]);
+    check("d3-scale/test/utcTime-test.js:162:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 5.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 10.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]));
 }
 
 fn t67() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 15-second ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 50.0])]);
-    skip("d3-scale/test/utcTime-test.js:173:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 50.0])]);
+    check("d3-scale/test/utcTime-test.js:173:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 45.0])]));
 }
 
 fn t68() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 30-second ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 50.0])]);
-    skip("d3-scale/test/utcTime-test.js:183:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 50.0])]);
+    check("d3-scale/test/utcTime-test.js:183:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 30.0])]));
 }
 
 fn t69() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-minute ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:193:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:193:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0])]));
 }
 
 fn t70() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 5-minute ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 3.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 21.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:203:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 3.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 21.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:203:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 5.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 10.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 20.0])]));
 }
 
 fn t71() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 15-minute ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 8.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 4.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:213:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 8.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 4.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:213:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 45.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 0.0])]));
 }
 
 fn t72() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 30-minute ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 4.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:223:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 4.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:223:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 0.0])]));
 }
 
 fn t73() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-hour ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 16.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:233:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 16.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:233:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 13.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 15.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 16.0, 0.0])]));
 }
 
 fn t74() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 3-hour ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 14.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 2.0, 1.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:243:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 14.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 2.0, 1.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:243:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 15.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 18.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 21.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 0.0, 0.0])]));
 }
 
 fn t75() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 6-hour ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 2.0, 14.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:253:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 2.0, 14.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:253:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 18.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 6.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 12.0, 0.0])]));
 }
 
 fn t76() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 12-hour ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 3.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:263:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 3.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:263:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 12.0, 0.0]), utc(&[2011.0, 0.0, 3.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 3.0, 12.0, 0.0])]));
 }
 
 fn t77() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-day ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 5.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:273:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 5.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:273:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 3.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 4.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 5.0, 0.0, 0.0])]));
 }
 
 fn t78() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 2-day ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:283:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:283:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 3.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 5.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 7.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 9.0, 0.0, 0.0])]));
 }
 
 fn t79() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-week ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 23.0, 21.0, 34.0, 12.0])]);
-    skip("d3-scale/test/utcTime-test.js:293:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 23.0, 21.0, 34.0, 12.0])]);
+    check("d3-scale/test/utcTime-test.js:293:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 9.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 16.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 23.0, 0.0, 0.0])]));
 }
 
 fn t80() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-month ticks
-    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 18.0]), utc(&[2011.0, 4.0, 2.0])]);
-    skip("d3-scale/test/utcTime-test.js:303:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 18.0]), utc(&[2011.0, 4.0, 2.0])]);
+    check("d3-scale/test/utcTime-test.js:303:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 1.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 2.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 3.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 4.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t81() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 3-month ticks
-    let mut _x = time::utc().domain([utc(&[2010.0, 11.0, 18.0]), utc(&[2011.0, 10.0, 2.0])]);
-    skip("d3-scale/test/utcTime-test.js:313:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2010.0, 11.0, 18.0]), utc(&[2011.0, 10.0, 2.0])]);
+    check("d3-scale/test/utcTime-test.js:313:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 3.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 6.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 9.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t82() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-year ticks
-    let mut _x = time::utc().domain([utc(&[2010.0, 11.0, 18.0]), utc(&[2014.0, 2.0, 2.0])]);
-    skip("d3-scale/test/utcTime-test.js:323:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2010.0, 11.0, 18.0]), utc(&[2014.0, 2.0, 2.0])]);
+    check("d3-scale/test/utcTime-test.js:323:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2012.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2013.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2014.0, 0.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t83() {   // utcTime-test.js: scaleUtc.ticks(count) can generate multi-year ticks
-    let mut _x = time::utc().domain([utc(&[0.0, 11.0, 18.0]), utc(&[2014.0, 2.0, 2.0])]);
-    skip("d3-scale/test/utcTime-test.js:333:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[0.0, 11.0, 18.0]), utc(&[2014.0, 2.0, 2.0])]);
+    check("d3-scale/test/utcTime-test.js:333:3", Kind::Strict, &tss(&x.ticks(6_usize)), &tss(&vec![utc(&[500.0, 0.0, 1.0, 0.0, 0.0]), utc(&[1000.0, 0.0, 1.0, 0.0, 0.0]), utc(&[1500.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2000.0, 0.0, 1.0, 0.0, 0.0])]));
 }
 
 fn t84() {   // utcTime-test.js: scaleUtc.ticks(count) returns one tick for an empty domain
-    let mut _x = time::utc().domain([utc(&[2014.0, 2.0, 2.0]), utc(&[2014.0, 2.0, 2.0])]);
-    skip("d3-scale/test/utcTime-test.js:343:3", "gap: time scale ticks and nice (Phase 27, step 7)");
+    let mut x = time::utc().domain([utc(&[2014.0, 2.0, 2.0]), utc(&[2014.0, 2.0, 2.0])]);
+    check("d3-scale/test/utcTime-test.js:343:3", Kind::Strict, &tss(&x.ticks(6_usize)), &tss(&vec![utc(&[2014.0, 2.0, 2.0])]));
 }
 
 fn t85() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's
@@ -690,22 +690,22 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/time-test.js:10:3", test: "time-test.js: time.domain([-1e50, 1e50]) is equivalent to time.domain([NaN, NaN])", skip: Some("js: a number as a date (coercion)") },
     Assertion { id: "d3-scale/test/time-test.js:11:3", test: "time-test.js: time.domain([-1e50, 1e50]) is equivalent to time.domain([NaN, NaN])", skip: Some("js: a number as a date (coercion)") },
     Assertion { id: "d3-scale/test/time-test.js:16:3", test: "time-test.js: time.domain(domain) accepts an iterable", skip: Some("js: a domain from an iterable") },
-    Assertion { id: "d3-scale/test/time-test.js:21:3", test: "time-test.js: time.nice() is an alias for time.nice(10)", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:26:3", test: "time-test.js: time.nice() can nice sub-second domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:31:3", test: "time-test.js: time.nice() can nice multi-year domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:36:3", test: "time-test.js: time.nice() can nice empty domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:41:3", test: "time-test.js: time.nice(count) nices using the specified tick count", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:42:3", test: "time-test.js: time.nice(count) nices using the specified tick count", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:47:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:48:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:49:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:50:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:55:3", test: "time-test.js: time.nice(interval) can nice empty domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
+    Assertion { id: "d3-scale/test/time-test.js:21:3", test: "time-test.js: time.nice() is an alias for time.nice(10)", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:26:3", test: "time-test.js: time.nice() can nice sub-second domains", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:31:3", test: "time-test.js: time.nice() can nice multi-year domains", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:36:3", test: "time-test.js: time.nice() can nice empty domains", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:41:3", test: "time-test.js: time.nice(count) nices using the specified tick count", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:42:3", test: "time-test.js: time.nice(count) nices using the specified tick count", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:47:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:48:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:49:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:50:3", test: "time-test.js: time.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:55:3", test: "time-test.js: time.nice(interval) can nice empty domains", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:60:3", test: "time-test.js: time.nice(interval) can nice a polylinear domain, only affecting its extent", skip: Some("types: a polylinear time domain (Time has two stops)") },
-    Assertion { id: "d3-scale/test/time-test.js:65:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:66:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:67:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:68:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
+    Assertion { id: "d3-scale/test/time-test.js:65:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:66:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:67:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:68:3", test: "time-test.js: time.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:74:3", test: "time-test.js: time.copy() isolates changes to the domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:75:3", test: "time-test.js: time.copy() isolates changes to the domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:76:3", test: "time-test.js: time.copy() isolates changes to the domain", skip: None },
@@ -735,31 +735,31 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/time-test.js:124:3", test: "time-test.js: time.clamp(true).invert(value) never returns a value outside the domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:125:3", test: "time-test.js: time.clamp(true).invert(value) never returns a value outside the domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:126:3", test: "time-test.js: time.clamp(true).invert(value) never returns a value outside the domain", skip: None },
-    Assertion { id: "d3-scale/test/time-test.js:131:3", test: "time-test.js: time.ticks(interval) observes the specified tick interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:141:3", test: "time-test.js: time.ticks(interval.every(step)) observes the specified tick interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:151:3", test: "time-test.js: time.ticks(count) can generate sub-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:163:3", test: "time-test.js: time.ticks(count) can generate 1-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:174:3", test: "time-test.js: time.ticks(count) can generate 5-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:185:3", test: "time-test.js: time.ticks(count) can generate 15-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:195:3", test: "time-test.js: time.ticks(count) can generate 30-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:205:3", test: "time-test.js: time.ticks(count) can generate 1-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:215:3", test: "time-test.js: time.ticks(count) can generate 5-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:225:3", test: "time-test.js: time.ticks(count) can generate 15-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:235:3", test: "time-test.js: time.ticks(count) can generate 30-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:245:3", test: "time-test.js: time.ticks(count) can generate 1-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:255:3", test: "time-test.js: time.ticks(count) can generate 3-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:265:3", test: "time-test.js: time.ticks(count) can generate 6-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:275:3", test: "time-test.js: time.ticks(count) can generate 12-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:285:3", test: "time-test.js: time.ticks(count) can generate 1-day ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:295:3", test: "time-test.js: time.ticks(count) can generate 2-day ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:305:3", test: "time-test.js: time.ticks(count) can generate 1-week ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:315:3", test: "time-test.js: time.ticks(count) can generate 1-month ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:325:3", test: "time-test.js: time.ticks(count) can generate 3-month ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:335:3", test: "time-test.js: time.ticks(count) can generate 1-year ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:345:3", test: "time-test.js: time.ticks(count) can generate multi-year ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:355:3", test: "time-test.js: time.ticks(count) returns one tick for an empty domain", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:360:3", test: "time-test.js: time.ticks() returns descending ticks for a descending domain", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/time-test.js:361:3", test: "time-test.js: time.ticks() returns descending ticks for a descending domain", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
+    Assertion { id: "d3-scale/test/time-test.js:131:3", test: "time-test.js: time.ticks(interval) observes the specified tick interval", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:141:3", test: "time-test.js: time.ticks(interval.every(step)) observes the specified tick interval and step", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:151:3", test: "time-test.js: time.ticks(count) can generate sub-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:163:3", test: "time-test.js: time.ticks(count) can generate 1-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:174:3", test: "time-test.js: time.ticks(count) can generate 5-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:185:3", test: "time-test.js: time.ticks(count) can generate 15-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:195:3", test: "time-test.js: time.ticks(count) can generate 30-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:205:3", test: "time-test.js: time.ticks(count) can generate 1-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:215:3", test: "time-test.js: time.ticks(count) can generate 5-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:225:3", test: "time-test.js: time.ticks(count) can generate 15-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:235:3", test: "time-test.js: time.ticks(count) can generate 30-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:245:3", test: "time-test.js: time.ticks(count) can generate 1-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:255:3", test: "time-test.js: time.ticks(count) can generate 3-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:265:3", test: "time-test.js: time.ticks(count) can generate 6-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:275:3", test: "time-test.js: time.ticks(count) can generate 12-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:285:3", test: "time-test.js: time.ticks(count) can generate 1-day ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:295:3", test: "time-test.js: time.ticks(count) can generate 2-day ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:305:3", test: "time-test.js: time.ticks(count) can generate 1-week ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:315:3", test: "time-test.js: time.ticks(count) can generate 1-month ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:325:3", test: "time-test.js: time.ticks(count) can generate 3-month ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:335:3", test: "time-test.js: time.ticks(count) can generate 1-year ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:345:3", test: "time-test.js: time.ticks(count) can generate multi-year ticks", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:355:3", test: "time-test.js: time.ticks(count) returns one tick for an empty domain", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:360:3", test: "time-test.js: time.ticks() returns descending ticks for a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:361:3", test: "time-test.js: time.ticks() returns descending ticks for a descending domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:366:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
     Assertion { id: "d3-scale/test/time-test.js:367:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
     Assertion { id: "d3-scale/test/time-test.js:368:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
@@ -782,22 +782,22 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/time-test.js:409:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
     Assertion { id: "d3-scale/test/time-test.js:410:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
     Assertion { id: "d3-scale/test/time-test.js:415:3", test: "time-test.js: time.tickFormat(count, specifier) returns a time format for the specified specifier", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:9:3", test: "utcTime-test.js: scaleUtc.nice() is an alias for scaleUtc.nice(10)", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:14:3", test: "utcTime-test.js: scaleUtc.nice() can nice sub-second domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:19:3", test: "utcTime-test.js: scaleUtc.nice() can nice multi-year domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:24:3", test: "utcTime-test.js: scaleUtc.nice() can nice empty domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:29:3", test: "utcTime-test.js: scaleUtc.nice(count) nices using the specified tick count", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:30:3", test: "utcTime-test.js: scaleUtc.nice(count) nices using the specified tick count", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:35:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:36:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:37:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:38:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:43:3", test: "utcTime-test.js: scaleUtc.nice(interval) can nice empty domains", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
+    Assertion { id: "d3-scale/test/utcTime-test.js:9:3", test: "utcTime-test.js: scaleUtc.nice() is an alias for scaleUtc.nice(10)", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:14:3", test: "utcTime-test.js: scaleUtc.nice() can nice sub-second domains", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:19:3", test: "utcTime-test.js: scaleUtc.nice() can nice multi-year domains", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:24:3", test: "utcTime-test.js: scaleUtc.nice() can nice empty domains", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:29:3", test: "utcTime-test.js: scaleUtc.nice(count) nices using the specified tick count", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:30:3", test: "utcTime-test.js: scaleUtc.nice(count) nices using the specified tick count", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:35:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:36:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:37:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:38:3", test: "utcTime-test.js: scaleUtc.nice(interval) nices using the specified time interval", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:43:3", test: "utcTime-test.js: scaleUtc.nice(interval) can nice empty domains", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:48:3", test: "utcTime-test.js: scaleUtc.nice(interval) can nice a polylinear domain, only affecting its extent", skip: Some("types: a polylinear time domain (Time has two stops)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:53:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:54:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:55:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:56:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
+    Assertion { id: "d3-scale/test/utcTime-test.js:53:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:54:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:55:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:56:3", test: "utcTime-test.js: scaleUtc.nice(interval.every(step)) nices using the specified time interval and step", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:62:3", test: "utcTime-test.js: scaleUtc.copy() isolates changes to the domain", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:63:3", test: "utcTime-test.js: scaleUtc.copy() isolates changes to the domain", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:64:3", test: "utcTime-test.js: scaleUtc.copy() isolates changes to the domain", skip: None },
@@ -821,30 +821,30 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/utcTime-test.js:102:3", test: "utcTime-test.js: scaleUtc.copy() isolates changes to clamping", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:103:3", test: "utcTime-test.js: scaleUtc.copy() isolates changes to clamping", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:104:3", test: "utcTime-test.js: scaleUtc.copy() isolates changes to clamping", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:109:3", test: "utcTime-test.js: scaleUtc.ticks(interval) observes the specified tick interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:119:3", test: "utcTime-test.js: scaleUtc.ticks(interval) observes the specified named tick interval", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:129:3", test: "utcTime-test.js: scaleUtc.ticks(interval.every(step)) observes the specified tick interval and step", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:139:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate sub-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:151:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:162:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 5-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:173:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 15-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:183:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 30-second ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:193:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:203:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 5-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:213:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 15-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:223:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 30-minute ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:233:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:243:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 3-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:253:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 6-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:263:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 12-hour ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:273:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-day ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:283:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 2-day ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:293:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-week ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:303:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-month ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:313:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 3-month ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:323:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-year ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:333:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate multi-year ticks", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:343:3", test: "utcTime-test.js: scaleUtc.ticks(count) returns one tick for an empty domain", skip: Some("gap: time scale ticks and nice (Phase 27, step 7)") },
+    Assertion { id: "d3-scale/test/utcTime-test.js:109:3", test: "utcTime-test.js: scaleUtc.ticks(interval) observes the specified tick interval", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:119:3", test: "utcTime-test.js: scaleUtc.ticks(interval) observes the specified named tick interval", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:129:3", test: "utcTime-test.js: scaleUtc.ticks(interval.every(step)) observes the specified tick interval and step", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:139:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate sub-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:151:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:162:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 5-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:173:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 15-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:183:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 30-second ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:193:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:203:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 5-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:213:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 15-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:223:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 30-minute ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:233:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:243:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 3-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:253:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 6-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:263:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 12-hour ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:273:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-day ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:283:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 2-day ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:293:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-week ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:303:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-month ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:313:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 3-month ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:323:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-year ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:333:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate multi-year ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:343:3", test: "utcTime-test.js: scaleUtc.ticks(count) returns one tick for an empty domain", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:348:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
     Assertion { id: "d3-scale/test/utcTime-test.js:349:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
     Assertion { id: "d3-scale/test/utcTime-test.js:350:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },

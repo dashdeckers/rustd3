@@ -92,8 +92,8 @@
 #floor d3-scale/test/symlog-test.js 39
 #floor d3-scale/test/threshold-test.js 12
 #floor d3-scale/test/tickFormat-test.js 25
-#floor d3-scale/test/time-test.js 22
-#floor d3-scale/test/utcTime-test.js 18
+#floor d3-scale/test/time-test.js 62
+#floor d3-scale/test/utcTime-test.js 56
 #floor d3-shape/test/area-test.js 7
 #floor d3-shape/test/curve/basis-test.js 8
 #floor d3-shape/test/curve/basisClosed-test.js 6
@@ -3487,6 +3487,21 @@ d3-scale/test/tickFormat-test.js:35:3
 d3-scale/test/tickFormat-test.js:36:3
 d3-scale/test/tickFormat-test.js:41:3
 d3-scale/test/tickFormat-test.js:42:3
+d3-scale/test/time-test.js:21:3
+d3-scale/test/time-test.js:26:3
+d3-scale/test/time-test.js:31:3
+d3-scale/test/time-test.js:36:3
+d3-scale/test/time-test.js:41:3
+d3-scale/test/time-test.js:42:3
+d3-scale/test/time-test.js:47:3
+d3-scale/test/time-test.js:48:3
+d3-scale/test/time-test.js:49:3
+d3-scale/test/time-test.js:50:3
+d3-scale/test/time-test.js:55:3
+d3-scale/test/time-test.js:65:3
+d3-scale/test/time-test.js:66:3
+d3-scale/test/time-test.js:67:3
+d3-scale/test/time-test.js:68:3
 d3-scale/test/time-test.js:74:3
 d3-scale/test/time-test.js:75:3
 d3-scale/test/time-test.js:76:3
@@ -3509,6 +3524,46 @@ d3-scale/test/time-test.js:123:3
 d3-scale/test/time-test.js:124:3
 d3-scale/test/time-test.js:125:3
 d3-scale/test/time-test.js:126:3
+d3-scale/test/time-test.js:131:3
+d3-scale/test/time-test.js:141:3
+d3-scale/test/time-test.js:151:3
+d3-scale/test/time-test.js:163:3
+d3-scale/test/time-test.js:174:3
+d3-scale/test/time-test.js:185:3
+d3-scale/test/time-test.js:195:3
+d3-scale/test/time-test.js:205:3
+d3-scale/test/time-test.js:215:3
+d3-scale/test/time-test.js:225:3
+d3-scale/test/time-test.js:235:3
+d3-scale/test/time-test.js:245:3
+d3-scale/test/time-test.js:255:3
+d3-scale/test/time-test.js:265:3
+d3-scale/test/time-test.js:275:3
+d3-scale/test/time-test.js:285:3
+d3-scale/test/time-test.js:295:3
+d3-scale/test/time-test.js:305:3
+d3-scale/test/time-test.js:315:3
+d3-scale/test/time-test.js:325:3
+d3-scale/test/time-test.js:335:3
+d3-scale/test/time-test.js:345:3
+d3-scale/test/time-test.js:355:3
+d3-scale/test/time-test.js:360:3
+d3-scale/test/time-test.js:361:3
+d3-scale/test/utcTime-test.js:9:3
+d3-scale/test/utcTime-test.js:14:3
+d3-scale/test/utcTime-test.js:19:3
+d3-scale/test/utcTime-test.js:24:3
+d3-scale/test/utcTime-test.js:29:3
+d3-scale/test/utcTime-test.js:30:3
+d3-scale/test/utcTime-test.js:35:3
+d3-scale/test/utcTime-test.js:36:3
+d3-scale/test/utcTime-test.js:37:3
+d3-scale/test/utcTime-test.js:38:3
+d3-scale/test/utcTime-test.js:43:3
+d3-scale/test/utcTime-test.js:53:3
+d3-scale/test/utcTime-test.js:54:3
+d3-scale/test/utcTime-test.js:55:3
+d3-scale/test/utcTime-test.js:56:3
 d3-scale/test/utcTime-test.js:62:3
 d3-scale/test/utcTime-test.js:63:3
 d3-scale/test/utcTime-test.js:64:3
@@ -3527,6 +3582,29 @@ d3-scale/test/utcTime-test.js:98:3
 d3-scale/test/utcTime-test.js:99:3
 d3-scale/test/utcTime-test.js:102:3
 d3-scale/test/utcTime-test.js:103:3
+d3-scale/test/utcTime-test.js:109:3
+d3-scale/test/utcTime-test.js:119:3
+d3-scale/test/utcTime-test.js:129:3
+d3-scale/test/utcTime-test.js:139:3
+d3-scale/test/utcTime-test.js:151:3
+d3-scale/test/utcTime-test.js:162:3
+d3-scale/test/utcTime-test.js:173:3
+d3-scale/test/utcTime-test.js:183:3
+d3-scale/test/utcTime-test.js:193:3
+d3-scale/test/utcTime-test.js:203:3
+d3-scale/test/utcTime-test.js:213:3
+d3-scale/test/utcTime-test.js:223:3
+d3-scale/test/utcTime-test.js:233:3
+d3-scale/test/utcTime-test.js:243:3
+d3-scale/test/utcTime-test.js:253:3
+d3-scale/test/utcTime-test.js:263:3
+d3-scale/test/utcTime-test.js:273:3
+d3-scale/test/utcTime-test.js:293:3
+d3-scale/test/utcTime-test.js:303:3
+d3-scale/test/utcTime-test.js:313:3
+d3-scale/test/utcTime-test.js:323:3
+d3-scale/test/utcTime-test.js:333:3
+d3-scale/test/utcTime-test.js:343:3
 d3-shape/test/area-test.js:14:3
 d3-shape/test/area-test.js:106:3
 d3-shape/test/area-test.js:111:3

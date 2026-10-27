@@ -10,7 +10,7 @@
 // epoch milliseconds. d3-scale's scaleTime() and scaleUtc() are
 // time::time(la.clone()) and time::utc(), "tscale"; a chain of their calls is
 // translated whole, so that setters on a variable assign it (`x = x.nice(10);`)
-// as d3's mutate it.
+// as d3's mutate it; their intervals are the scale's own (time… or utc…).
 import { calleeName, ex, needNum, skip, val } from "../expr.mjs";
 
 const LA = 'let la = zone("America/Los_Angeles");';
@@ -94,7 +94,13 @@ function chain(root, steps, ctx) {
     else if (prop === "domain" || prop === "range") return read(`.get_${prop}()${prop === "range" ? ".to_vec()" : ""}`, prop === "range" ? "vec" : "dates");
     else if (prop === "clamp" && args.length) build(`.clamp(${a().t === "bool" ? a().c : skip("js: a clamp flag other than a boolean (truthiness)")})`);
     else if (prop === "invert") return read(`.invert(${needNum(a(), "inverted value")})`, "date");
-    else if (prop === "nice" || prop === "ticks") skip("gap: time scale ticks and nice (Phase 27, step 7)");
+    else if (prop === "nice" || prop === "ticks") {
+      const by = args.length ? a() : { c: "10_usize" };
+      if (by.t === "interval" && by.utc !== root.utc) skip("api: an interval in another zone than the scale's (Time lays intervals out in its own)");
+      const suffix = by.t === "interval" ? `.${prop}_with(${by.c})` : `.${prop}(${by.t ? whole(by, "tick count", "usize") : by.c})`;
+      if (prop === "ticks") return read(suffix, "dates");
+      build(suffix);
+    }
     else if (prop === "copy") [code, muts] = [current() + (muts ? "" : ".clone()"), null];
     else if (prop === "tickFormat") skip("gap: time tick formats (Phase 28)");
     else if (prop === "clamp") skip("api: d3's clamp() getter (only domain and range have get_)");
