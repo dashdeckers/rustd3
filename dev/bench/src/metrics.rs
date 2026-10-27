@@ -64,6 +64,8 @@ pub struct Shares {
     pub upload_ms: f64,
     /// Inline renders among the raster samples.
     pub inline: u32,
+    /// Offending latency windows or frames summed.
+    pub windows: u32,
 }
 
 /// One rendered cell.
@@ -453,6 +455,7 @@ impl Metrics {
             shares.raster_ms += raster;
             shares.inline += inline;
             shares.upload_ms += self.upload_ms(bytes);
+            shares.windows += 1;
         }
         shares
     }
@@ -478,6 +481,7 @@ impl Metrics {
             shares.raster_ms += raster;
             shares.inline += inline.len() as u32;
             shares.upload_ms += self.upload_ms(frame.uploaded);
+            shares.windows += 1;
         }
         shares
     }
@@ -496,6 +500,7 @@ impl Metrics {
         for frame in &stale {
             shares.ui_ms += frame.ui_ms;
             shares.upload_ms += self.upload_ms(frame.uploaded);
+            shares.windows += 1;
         }
         for generation in generations {
             let (raster, inline) = self.raster_of(generation);
@@ -513,6 +518,13 @@ impl Shares {
         self.raster_ms += other.raster_ms;
         self.upload_ms += other.upload_ms;
         self.inline += other.inline;
+        self.windows += other.windows;
+    }
+
+    /// The mean of each share per offending window or frame, ms.
+    pub fn per_window(&self) -> [f64; 3] {
+        let n = f64::from(self.windows.max(1));
+        [self.ui_ms / n, self.raster_ms / n, self.upload_ms / n]
     }
 
     /// The bucket with the largest share: `ui`, `raster` or `upload`;
@@ -681,6 +693,7 @@ pub mod tests {
             raster_ms: 18.0,
             upload_ms: 2.0 * 1.5,
             inline: 0,
+            windows: 1,
         };
         assert_eq!(shares.bucket(), "raster");
         let ui = Shares {
@@ -713,7 +726,11 @@ pub mod tests {
         ];
         let metrics = Metrics::of(&records).unwrap();
         let shares = metrics.latency_shares(Half::Whole, 20.0);
-        assert_eq!((shares.ui_ms, shares.raster_ms), (3.0, 18.0));
+        assert_eq!(
+            (shares.ui_ms, shares.raster_ms, shares.windows),
+            (3.0, 18.0, 1)
+        );
+        assert_eq!(shares.per_window(), [3.0, 18.0, 0.0]);
         assert_eq!(shares.bucket(), "raster");
     }
 }

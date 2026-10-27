@@ -520,13 +520,15 @@ fn attribution(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, 
     }
     let _ = writeln!(
         md,
-        "Missed budgets, and budgets a single run exceeded (\"over, n = 1\": no verdict), summed \
-         over the offending frames or latency windows of every run (reading 5).\n\n\
-         | Cell | Budget | Verdict | UI ms | raster ms (inline renders) | upload ms | bucket |\n\
-         | --- | --- | --- | --- | --- | --- | --- |"
+        "Missed budgets, and budgets a single run exceeded (\"over, n = 1\": no verdict): the \
+         mean per offending latency window or frame over every run (reading 5); latency \
+         windows of one gesture overlap, so their means are not additive.\n\n\
+         | Cell | Budget | Verdict | windows | UI ms | raster ms (inline renders) | upload ms | bucket |\n\
+         | --- | --- | --- | --- | --- | --- | --- | --- |"
     );
     for (index, _, check) in attributed {
         let s = check.shares;
+        let [ui, raster, upload] = s.per_window();
         let verdict = if check.verdict == Verdict::Missed {
             "missed"
         } else {
@@ -534,13 +536,11 @@ fn attribution(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, 
         };
         let _ = writeln!(
             md,
-            "| {} | {} | {verdict} | {:.1} | {:.1} ({}) | {:.1} | {} |",
+            "| {} | {} | {verdict} | {} | {ui:.1} | {raster:.1} ({}) | {upload:.1} | {} |",
             cell_name(&cells[*index]),
             check.budget.name(),
-            s.ui_ms,
-            s.raster_ms,
+            s.windows,
             s.inline,
-            s.upload_ms,
             s.bucket()
         );
     }
