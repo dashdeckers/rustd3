@@ -23,7 +23,7 @@ use crate::plot::probe::{self, Probe, Sample, Stage};
 use crate::plot::region::{self, Along, Region};
 use crate::plot::slot::{self, Band, Slot};
 use crate::plot::worker::Worker;
-use crate::plot::{Render, handle};
+use crate::plot::{Caching, Render, handle};
 use crate::pointer::Tracker;
 
 /// The widget's tree state: the figure's cache, the rasterizer, and the
@@ -82,6 +82,8 @@ pub(crate) struct State {
     /// Published handles a double click reset: the next resolve publishes
     /// their fitted domains.
     resets: Vec<Key>,
+    /// The `Plot::revision` the slots were last planned at.
+    revision: u64,
 }
 
 /// What queuing a pointer asks of the shell.
@@ -97,6 +99,10 @@ pub(crate) struct Queued {
 pub(crate) struct Pipeline<'a> {
     /// Where changed cells render.
     pub(crate) render: Render,
+    /// Which cells count as changed.
+    pub(crate) caching: Caching,
+    /// The app's revision: a new one changes every cell.
+    pub(crate) revision: u64,
     /// Where stage timings and frame reports go, if anywhere.
     pub(crate) probe: Option<&'a Probe>,
     /// Wakes the UI when the worker has results; the worker keeps a clone.
@@ -130,6 +136,7 @@ impl Default for State {
             map: region::Map::default(),
             modifiers: Modifiers::NONE,
             resets: Vec::new(),
+            revision: 0,
         }
     }
 }
@@ -494,6 +501,7 @@ impl State {
     /// inline, shown at once, or as a job set that replaces the worker's
     /// pending one, as `pipeline.render` asks or, for `Auto`, as the cost
     /// model predicts against the frame budget. Returns how many changed.
+    /// A new `pipeline.revision` refreshes as a rebuilt figure does.
     fn refresh<Message>(
         &mut self,
         figure: &Figure<'_>,
@@ -501,7 +509,7 @@ impl State {
         pipeline: &Pipeline<'_>,
         listeners: &[Listener<'_, Message>],
     ) -> (usize, Vec<Message>) {
-        if !self.stale && self.factor == Some(factor) {
+        if !self.stale && self.factor == Some(factor) && pipeline.revision == self.revision {
             return (0, Vec::new());
         }
         self.stale = false;
@@ -573,7 +581,7 @@ impl State {
         }
         let (xs, ys) = resolved.edges();
         let cells = list::cells(&list, &xs, &ys, k);
-        let changed = self.plan(&cells.cells);
+        let changed = self.plan(&cells.cells, pipeline.caching, pipeline.revision);
         if changed.is_empty() {
             return 0;
         }
@@ -728,9 +736,11 @@ impl State {
     /// Plans a refresh whose partition cells are `cells`: rebuilds the
     /// slots when their rect sequence differs (every slot new and
     /// changed), else finds the slots whose content hash differs from
-    /// their cell's. If any changed, bumps the generation, stores their
-    /// new hashes and marks them pending. Returns their indices.
-    fn plan(&mut self, cells: &[list::Cell]) -> Vec<usize> {
+    /// their cell's; every slot when `revision` is not the one the slots
+    /// were planned at, or when any differs with `caching` off. If any
+    /// changed, bumps the generation, stores their new hashes and marks
+    /// them pending. Returns their indices.
+    fn plan(&mut self, cells: &[list::Cell], caching: Caching, revision: u64) -> Vec<usize> {
         let rects: Vec<[i32; 4]> = cells.iter().map(|cell| slot::device(cell.rect)).collect();
         let same = self.slots.len() == rects.len()
             && self.slots.iter().zip(&rects).all(|(s, r)| s.rect() == *r);
@@ -750,6 +760,16 @@ impl State {
                 .collect();
             self.floor = self.generation + 1;
             (0..cells.len()).collect()
+        };
+        let every = match caching {
+            Caching::On => revision != self.revision,
+            Caching::Off => revision != self.revision || !changed.is_empty(),
+        };
+        self.revision = revision;
+        let changed = if every {
+            (0..cells.len()).collect()
+        } else {
+            changed
         };
         if !changed.is_empty() {
             self.generation += 1;
@@ -931,7 +951,7 @@ mod tests {
     use super::{Pipeline, State};
     use crate::plot::overlay::{Overlay, Shown};
     use crate::plot::probe::{Probe, Sample, Stage};
-    use crate::plot::{Render, fixture};
+    use crate::plot::{Caching, Render, fixture};
 
     /// The factors layout, snapping and placement are checked at.
     const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
@@ -953,6 +973,8 @@ mod tests {
     fn refresh(state: &mut State, fig: &Figure<'_>, k: f32) -> usize {
         let pipeline = Pipeline {
             render: Render::Inline,
+            caching: Caching::On,
+            revision: 0,
             probe: None,
             waker: &Waker::noop(),
         };
@@ -966,6 +988,8 @@ mod tests {
         let probe = Probe::new(clock, tx);
         let pipeline = Pipeline {
             render: Render::Inline,
+            caching: Caching::On,
+            revision: 0,
             probe: Some(&probe),
             waker: &Waker::noop(),
         };
@@ -1180,6 +1204,8 @@ mod tests {
         let (waker, wakes) = counting();
         let pipeline = Pipeline {
             render: Render::Worker,
+            caching: Caching::On,
+            revision: 0,
             probe: Some(&probe),
             waker: &waker,
         };
@@ -1248,6 +1274,8 @@ mod tests {
         let (waker, wakes) = counting();
         let pipeline = Pipeline {
             render: Render::Worker,
+            caching: Caching::On,
+            revision: 0,
             probe: None,
             waker: &waker,
         };

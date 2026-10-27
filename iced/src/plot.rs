@@ -105,6 +105,7 @@
 //! plot areas.
 
 mod budget;
+mod caching;
 pub mod cost;
 mod domains;
 #[cfg(test)]
@@ -133,6 +134,7 @@ use iced_core::{Element, Event, Length, Rectangle, Shell, Size, Widget, window};
 use rustd3_figure::Figure;
 use rustd3_figure::scale::{Kind, ScaleRef};
 
+pub use caching::Caching;
 use listener::Listener;
 use overlay::Shown;
 pub use probe::Probe;
@@ -163,6 +165,8 @@ pub struct Plot<'a, Message> {
     crosshair: bool,
     highlight: bool,
     render: Render,
+    caching: Caching,
+    revision: u64,
     probe: Option<Probe>,
     listeners: Vec<Listener<'a, Message>>,
 }
@@ -178,6 +182,8 @@ impl<'a, Message> Plot<'a, Message> {
             crosshair: true,
             highlight: true,
             render: Render::default(),
+            caching: Caching::default(),
+            revision: 0,
             probe: None,
             listeners: Vec::new(),
         }
@@ -231,6 +237,39 @@ impl<'a, Message> Plot<'a, Message> {
     /// Where changed cells rasterize; defaults to [`Render::Auto`].
     pub fn render(self, render: Render) -> Self {
         Plot { render, ..self }
+    }
+
+    /// How the widget reuses rendered images; defaults to
+    /// [`Caching::On`]. [`Caching::Off`] re-renders every cell whenever
+    /// any changed, a diagnostic for the benchmark.
+    pub fn caching(self, caching: Caching) -> Self {
+        Plot { caching, ..self }
+    }
+
+    /// Bump when something the hashes cannot see changed (a paint
+    /// image's pixels replaced in place, a font swapped); every cell
+    /// re-renders at the next refresh. 0 by default; the widget compares
+    /// each value with the last one it rendered.
+    ///
+    /// ```no_run
+    /// use rustd3_figure::Figure;
+    /// use rustd3_iced::Plot;
+    ///
+    /// /// The app's state: a counter it bumps when it replaces an image's
+    /// /// pixels in place.
+    /// struct App {
+    ///     replaced: u64,
+    /// }
+    ///
+    /// impl App {
+    ///     fn plot(&self) -> Plot<'_, ()> {
+    ///         Plot::new(Figure::new()).revision(self.replaced)
+    ///     }
+    /// }
+    /// # let _ = App { replaced: 0 }.plot();
+    /// ```
+    pub fn revision(self, revision: u64) -> Self {
+        Plot { revision, ..self }
     }
 
     /// Reports per-stage durations, per-cell raster times and what each
@@ -368,6 +407,8 @@ where
             Event::Window(window::Event::RedrawRequested(now)) => {
                 let pipeline = Pipeline {
                     render: self.render,
+                    caching: self.caching,
+                    revision: self.revision,
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
                 };

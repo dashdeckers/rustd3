@@ -1,16 +1,20 @@
 //! The `Plot` widget through the headless harness on the backend
 //! `ICED_TEST_BACKEND` names, against the PNG of the same figure.
 
+use std::sync::mpsc;
 use std::time::Duration;
 
+use iced::time::Instant;
 use iced::{Color, Event, Point, Size, mouse};
 use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_figure::kurbo;
+use rustd3_figure::list::{self, Cells, List};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis};
 use rustd3_iced::Plot;
-use rustd3_iced::plot::Render;
+use rustd3_iced::plot::probe::{self, Sample};
+use rustd3_iced::plot::{Caching, Probe, Render};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
@@ -314,5 +318,161 @@ fn the_ring_around_a_corner_point_stays_inside_the_plot_area() {
         );
         assert_eq!(outside, 0, "{backend}, k = {k}");
         assert!(ring > 0, "{backend}, k = {k}: no ring");
+    }
+}
+
+/// The clock a test's probe times stages with.
+#[expect(clippy::disallowed_methods, reason = "test clock")]
+fn clock() -> Instant {
+    Instant::now()
+}
+
+/// The cells the raster samples among `samples` rendered, in order.
+pub fn rendered(samples: &[Sample]) -> Vec<u32> {
+    samples
+        .iter()
+        .filter_map(|sample| match sample {
+            Sample::Raster {
+                target: probe::Target::Cell(cell),
+                ..
+            } => Some(*cell),
+            Sample::Stage { .. } | Sample::Frame { .. } => None,
+        })
+        .collect()
+}
+
+/// `fig` drawn at `size` logical px for the screen at `k` as the widget
+/// draws it, and its cells.
+pub fn partition(fig: &Figure<'_>, size: Size, k: f32) -> (List, Cells) {
+    let size = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
+    let k = f64::from(k);
+    let mut cache = Cache::default();
+    cache.begin();
+    let resolved = fig.resolve(
+        size,
+        &mut cache,
+        &Held::default(),
+        Target::Screen { scale: k },
+    );
+    let drawn = fig.draw_resolved(&mut cache, &resolved);
+    let (xs, ys) = resolved.edges();
+    let cells = list::cells(&drawn, &xs, &ys, k);
+    (drawn, cells)
+}
+
+/// Dots at `points` on fixed [0, 10] scales in one panel with left and
+/// bottom axes.
+fn fixed(points: Vec<(f64, f64)>) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 10.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 10.0]));
+    fig.panel(0, 0)
+        .mark(dots(points, x, y))
+        .axis(axis::left(y))
+        .axis(axis::bottom(x));
+    fig
+}
+
+/// Eight dots on a falling diagonal, the fourth at `fourth`.
+fn eight(fourth: (f64, f64)) -> Vec<(f64, f64)> {
+    let mut points: Vec<(f64, f64)> = (1..=8).map(|i| (f64::from(i), f64::from(9 - i))).collect();
+    points[3] = fourth;
+    points
+}
+
+#[test]
+fn revision_change_re_renders_everything() {
+    let k = 2.0;
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(clock, tx);
+    let plot = |revision: u64| {
+        Plot::<()>::new(figure())
+            .scale_factor(k)
+            .render(Render::Inline)
+            .probe(probe.clone())
+            .revision(revision)
+    };
+    let cells = partition(&figure(), SIZE, k).1.cells.len();
+    let all: Vec<u32> = (0..u32::try_from(cells).unwrap()).collect();
+    let Some(mut harness) = Harness::new(plot(1), SIZE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t = headless::epoch();
+    let _ = harness.frame(t);
+    assert_eq!(
+        rendered(&rx.try_iter().collect::<Vec<_>>()),
+        all,
+        "{backend}"
+    );
+    // The same revision and an equal figure: nothing renders.
+    harness.rebuild(plot(1));
+    let _ = harness.frame(t + Duration::from_millis(16));
+    let same = rendered(&rx.try_iter().collect::<Vec<_>>());
+    // A new revision: every cell, once.
+    harness.rebuild(plot(2));
+    let _ = harness.frame(t + Duration::from_millis(32));
+    let revised = rendered(&rx.try_iter().collect::<Vec<_>>());
+    harness.rebuild(plot(2));
+    let _ = harness.frame(t + Duration::from_millis(48));
+    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    println!(
+        "revision 1 → 2, {backend}: {cells} cells; {} rendered at the same revision, {} at the new one, {} after",
+        same.len(),
+        revised.len(),
+        after.len()
+    );
+    assert!(same.is_empty(), "{backend}: {same:?}");
+    assert_eq!(revised, all, "{backend}");
+    assert!(after.is_empty(), "{backend}: {after:?}");
+}
+
+#[test]
+fn caching_off_renders_every_cell() {
+    let k = 2.0;
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(clock, tx);
+    let plot = |fourth: (f64, f64), caching: Caching| {
+        Plot::<()>::new(fixed(eight(fourth)))
+            .scale_factor(k)
+            .render(Render::Inline)
+            .probe(probe.clone())
+            .caching(caching)
+    };
+    let cells = partition(&fixed(eight((4.0, 5.0))), SIZE, k).1;
+    let all: Vec<u32> = (0..u32::try_from(cells.cells.len()).unwrap()).collect();
+    // The plot area's cell, which a moved dot changes.
+    let area = plot_area(&fixed(eight((4.0, 5.0))), k, 0);
+    let inside = cells
+        .cell_at([area[0] as i32 + 1, area[1] as i32 + 1])
+        .and_then(|i| u32::try_from(i).ok())
+        .expect("the plot area is a cell");
+    for caching in [Caching::On, Caching::Off] {
+        let Some(mut harness) = Harness::new(plot((4.0, 5.0), caching), SIZE, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let t = headless::epoch();
+        let _ = harness.frame(t);
+        assert_eq!(
+            rendered(&rx.try_iter().collect::<Vec<_>>()),
+            all,
+            "{backend}"
+        );
+        harness.rebuild(plot((4.0, 6.5), caching));
+        let _ = harness.frame(t + Duration::from_millis(16));
+        let moved = rendered(&rx.try_iter().collect::<Vec<_>>());
+        harness.rebuild(plot((4.0, 6.5), caching));
+        let _ = harness.frame(t + Duration::from_millis(32));
+        let unchanged = rendered(&rx.try_iter().collect::<Vec<_>>());
+        println!(
+            "{caching:?}, {backend}: a moved dot renders {moved:?} of {} cells; an equal list {unchanged:?}",
+            all.len()
+        );
+        match caching {
+            Caching::On => assert_eq!(moved, [inside], "{backend}"),
+            Caching::Off => assert_eq!(moved, all, "{backend}"),
+        }
+        assert!(unchanged.is_empty(), "{backend}: {unchanged:?}");
     }
 }

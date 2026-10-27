@@ -12,9 +12,9 @@ use rustd3_figure::scale::{Kind, Scale, ScaleRef};
 use rustd3_figure::{Figure, Held, Target, axis};
 
 use super::{Pipeline, State};
-use crate::plot::Render;
 use crate::plot::domains::Key;
 use crate::plot::listener::Listener;
+use crate::plot::{Caching, Render};
 
 /// Dots on y (handle 0, linear [0, 10]) and x (handle 1, linear [0, 100]
 /// or log [1, 100]), with left and bottom axes; the panel zooms both.
@@ -65,6 +65,8 @@ fn redraw<Message>(
 ) -> (usize, Vec<Message>) {
     let pipeline = Pipeline {
         render: Render::Inline,
+        caching: Caching::On,
+        revision: 0,
         probe: None,
         waker: &Waker::noop(),
     };
