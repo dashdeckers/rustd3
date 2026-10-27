@@ -35,7 +35,7 @@ about 1.5 s in debug, and 300 under `RUSTD3_FUZZ=1`: 37 s in debug,
 
 ## D9.1 — An append with the wrong number of channels has no error variant
 
-**Date:** 2026-10-27 · **Context:** Phase 9, step 1 (9152a42) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 9, step 1 (9152a42) · **Status:** decided
 
 ### Issue
 
@@ -64,6 +64,9 @@ returns.
 
 ### Decision
 
+A (architect, 2026-10-27): `series::Error::Channels { expected, found }`
+is part of the public error type.
+
 Recommended: A, as built (`core/src/series/error.rs`,
 `Recording::append`); tested in `appends_name_every_channel_and_regular_clocks_take_no_x`.
 
@@ -79,7 +82,7 @@ If B or C is chosen, the change is one variant and one check in
 
 ## D9.2 — Statements of Phase 9 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 9, steps 1–6 (9152a42 … 9e2d499) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 9, steps 1–6 (9152a42 … 9e2d499) · **Status:** decided
 
 ### Issue
 
@@ -132,6 +135,12 @@ exactness suite (2: index and raw scan agree on 1,981).
 | (7) | A regular clock rejects an invalid start (`Invalid { index: 0 }`) and an append whose last x is not valid (start 1e308, period 1e308 overflows at sample 1); error indices count from the first sample ever appended; `Stale` carries the columns' recording and revision and the queried recording's revision (documented on the variant); `runs` clips each run to `samples`; `extremes`, `runs` clamp to the channel; `CHUNK` and `BLOCK` are crate-private | — |
 
 ### Decision
+
+A for all seven (architect, 2026-10-27), as built. M4 emits what the
+algorithm emits (first, minimum, maximum, last per column, deduplicated);
+"every sample below four per column" is not a property of M4 and the
+prototype counts confirm the algorithm. Phase 15's generic mark
+constructors name `Points<'a, X, Y>` in their signatures.
 
 Recommended: A for all seven, as built.
 
