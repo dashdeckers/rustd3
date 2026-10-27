@@ -7,6 +7,7 @@
 pub mod ease;
 pub mod format;
 pub mod interpolate;
+pub mod locale;
 pub mod path;
 pub mod scale;
 pub mod ticks;

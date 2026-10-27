@@ -6,6 +6,7 @@ mod fixtures;
 mod format;
 mod fuzz;
 mod interpolate;
+mod locale;
 mod path;
 mod rules;
 mod scale;

@@ -47,10 +47,19 @@ impl TickFormat {
         }
     }
 
-    /// The labels of a whole tick set, one per value, value by value, with
-    /// a log scale's blanking.
+    /// The labels of a whole tick set, one per value: the number format's
+    /// batch rule ([`Format::format_all`]) over every value, then a log
+    /// scale's blanking, so a blanked value still counts towards grouping.
     pub fn format_all(&self, values: &[f64]) -> Vec<String> {
-        values.iter().map(|&v| self.format(v)).collect()
+        let mut labels = self.format.format_all(values);
+        if let Some(keep) = &self.keep {
+            for (label, &value) in labels.iter_mut().zip(values) {
+                if !keep.keeps(value) {
+                    label.clear();
+                }
+            }
+        }
+        labels
     }
 }
 
@@ -116,4 +125,20 @@ pub fn tick_format(
             | Kind::Other(_),
         ) => Format::new(locale, specifier),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_blanked_value_still_decides_the_grouping_of_the_others() {
+        let format = Locale::NEUTRAL.format(",").expect("a valid specifier");
+        let thinned = TickFormat::thinned(format, transform::Log::new(10.0), 1.0);
+        assert_eq!(
+            thinned.format_all(&[1000.0, 90_000.0]),
+            ["1\u{202f}000", ""]
+        );
+        assert_eq!(thinned.format(1000.0), "1000");
+    }
 }

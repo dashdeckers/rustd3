@@ -113,14 +113,45 @@ impl Format {
         &self.locale
     }
 
-    /// `value` formatted.
+    /// `value` formatted. With `,`, it is grouped when its integer digits
+    /// as printed reach the locale's threshold (`NEUTRAL`: 5).
     pub fn format(&self, value: f64) -> String {
+        let parts = self.parts(value);
+        let grouped = self.groups(&parts);
+        self.finish(parts, grouped)
+    }
+
+    /// `values` formatted as one axis. With `,` under a locale that groups
+    /// from N integer digits (`NEUTRAL`: 5), either every value is grouped,
+    /// when some value has at least N integer digits as printed, or none
+    /// is; under a locale that always groups (`EN_US`, d3's tables) each
+    /// value reads as [`format`](Format::format) writes it.
+    ///
+    /// ```
+    /// use rustd3_core::format;
+    ///
+    /// let f = format::format(",")?;
+    /// assert_eq!(f.format_all(&[8000.0, 9000.0]), ["8000", "9000"]);
+    /// assert_eq!(f.format_all(&[8000.0, 10000.0]), ["8\u{202f}000", "10\u{202f}000"]);
+    /// # Ok::<(), format::InvalidFormat>(())
+    /// ```
+    pub fn format_all(&self, values: &[f64]) -> Vec<String> {
+        let parts: Vec<Parts> = values.iter().map(|&v| self.parts(v)).collect();
+        let grouped = parts.iter().any(|p| self.groups(p));
+        parts.into_iter().map(|p| self.finish(p, grouped)).collect()
+    }
+
+    /// Whether `,` groups a value of these parts on its own: its integer
+    /// digits reach the locale's threshold, which 0 or 1 always meets.
+    fn groups(&self, parts: &Parts) -> bool {
+        let from = self.locale.group_from;
+        self.comma && (from <= 1 || parts.digits.chars().count() >= from)
+    }
+
+    /// The parts of `value` as printed, before grouping and padding.
+    fn parts(&self, value: f64) -> Parts {
         let value = self.scale.map_or(value, |k| k * value);
-        let Parts {
-            prefix,
-            mut digits,
-            suffix,
-        } = match self.kind {
+        match self.kind {
             Type::Char => Parts {
                 prefix: self.prefix.clone(),
                 digits: String::new(),
@@ -142,9 +173,17 @@ impl Format {
             | Type::Decimal
             | Type::Hex
             | Type::HexUpper => self.number(value),
-        };
-        let group_from = self.locale.group_from;
-        let grouped = self.comma && (group_from <= 1 || digits.chars().count() >= group_from);
+        }
+    }
+
+    /// `parts` grouped when `grouped`, padded to the width, aligned and
+    /// written in the locale's numerals.
+    fn finish(&self, parts: Parts, grouped: bool) -> String {
+        let Parts {
+            prefix,
+            mut digits,
+            suffix,
+        } = parts;
         if grouped && !self.zero {
             digits = self.locale.group(&digits, usize::MAX);
         }
