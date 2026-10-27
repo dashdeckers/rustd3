@@ -55,7 +55,7 @@ designed.
 
 ## D25.2 — Fifteen files pass under 70 %
 
-**Date:** 2026-10-27 · **Context:** Phase 25, steps 1–5 (5fb4dd7 … 855463a) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 25, steps 1–5 (5fb4dd7 … 855463a) · **Status:** decided
 
 ### Issue
 
@@ -110,8 +110,10 @@ deviation, variance, range and bisect to 81–100 %.
 
 ### Decision
 
-Recommended: A, already blessed at those counts (each commit's body
-gives the diff read).
+A (architect, 2026-10-27). Phase 25's skip table gains the fifteen
+files listed above with their floors at the passing counts; every
+shortfall is JavaScript coercion or identity, d3 getters and index
+functions outside v0.1, or a named `gap:`.
 
 ### Why
 
@@ -125,7 +127,7 @@ None.
 
 ## D25.3 — Details of Phase 25 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 25, 604a750 … 855463a · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 25, 604a750 … 855463a · **Status:** decided
 
 ### Issue
 
@@ -180,7 +182,10 @@ None.
 
 ### Decision
 
-Recommended: A for all twelve, as built.
+A for all twelve (architect, 2026-10-27), as built. Quantile and
+threshold labels follow the section's rule for now; Phase 35, which
+draws their legends and colorbars, decides a rule that keeps uneven
+edges distinct (7.25 must not read "7").
 
 ### Why
 

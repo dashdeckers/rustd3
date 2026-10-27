@@ -24,7 +24,7 @@ the `pub use` run.
 
 ## D24.1 — The field bounds do not make `Self: Clone` hold
 
-**Date:** 2026-10-27 · **Context:** Phase 24, step 1 (4f669da) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 24, step 1 (4f669da) · **Status:** decided
 
 ### Issue
 
@@ -72,9 +72,10 @@ failed.
 
 ### Decision
 
-Recommended: A, as built. The specification's expansion of `Mark<T>`
-reads, after `T: Interpolate,`, also `Self: ::core::clone::Clone,`;
-concrete structs get no where clause, as written.
+A (architect, 2026-10-27), as built: the derive bounds every field type
+as the spec says and adds `Self: Clone` for generic structs, so a type
+parameter that appears only nested or in a skipped `PhantomData<T>`
+compiles.
 
 ### Why
 
@@ -89,7 +90,7 @@ None; Phase 30's `anim::Marks` needs only the trait.
 
 ## D24.2 — Details of Phase 24 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 24, 4f669da … e870a57 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 24, 4f669da … e870a57 · **Status:** decided
 
 ### Issue
 
@@ -123,7 +124,7 @@ None; Phase 30's `anim::Marks` needs only the trait.
 
 ### Decision
 
-Recommended: A for all six, as built.
+A for all six (architect, 2026-10-27), as built.
 
 ### Why
 
