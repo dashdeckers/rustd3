@@ -14,5 +14,6 @@ pub mod lower;
 pub mod path;
 pub mod raster;
 pub mod svg;
+pub mod text;
 
 mod pixels;

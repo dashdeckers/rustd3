@@ -9,3 +9,4 @@ mod sink;
 #[cfg(feature = "tiny-skia")]
 mod skia;
 mod svg;
+mod text;
