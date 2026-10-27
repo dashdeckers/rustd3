@@ -26,7 +26,7 @@ pub mod text;
 mod theme;
 pub mod thin;
 
-pub use figure::{Cache, Figure, Fits, Held, Resolved};
+pub use figure::{Cache, Error, Figure, Fits, Held, Resolved};
 pub use panel::Panel;
 pub use target::Target;
 pub use theme::Theme;

@@ -10,6 +10,7 @@ mod held;
 mod part;
 mod resolve;
 mod resolved;
+mod save;
 
 use std::any::TypeId;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -24,6 +25,7 @@ pub use cache::Cache;
 pub use fits::Fits;
 pub use held::Held;
 pub use resolved::Resolved;
+pub use save::Error;
 
 /// The next figure's id.
 static NEXT: AtomicU64 = AtomicU64::new(0);

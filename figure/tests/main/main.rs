@@ -14,6 +14,7 @@ mod resvg;
 mod sink;
 #[cfg(feature = "tiny-skia")]
 mod skia;
+mod support;
 mod svg;
 mod text;
 mod thin;
