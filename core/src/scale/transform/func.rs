@@ -3,13 +3,15 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::scale::{TickRule, Transform};
+use crate::format::{InvalidFormat, Locale};
+use crate::scale::{self, TickFormat, TickRule, Transform};
 
 /// One direction of a [`Func`]: a closure shared between clones.
 type Map = Arc<dyn Fn(f64) -> f64 + Send + Sync>;
 
 /// A transform from a forward and an inverse closure, ticked by the
-/// [`TickRule`] it was built with; see [`scale::func`](crate::scale::func).
+/// [`TickRule`] it was built with and labelled to the places of its ticks'
+/// smallest gap; see [`scale::func`](crate::scale::func).
 #[derive(Clone)]
 pub struct Func {
     forward: Map,
@@ -52,5 +54,25 @@ impl Transform for Func {
 
     fn ticks(&self, domain: [f64; 2], count: usize) -> Vec<f64> {
         self.rule.ticks(self, domain, count)
+    }
+
+    /// With no specifier, the labels of a scale whose tick rule replaces
+    /// its transform's: `,f` to the places of the smallest gap between
+    /// this transform's ticks, every tick labelled. A given specifier, or
+    /// fewer than two ticks, takes d3's linear tick format; under
+    /// [`TickRule::Data`] the two agree.
+    fn tick_format(
+        &self,
+        locale: &Locale,
+        domain: [f64; 2],
+        count: usize,
+        specifier: Option<&str>,
+    ) -> Result<TickFormat, InvalidFormat> {
+        if specifier.is_none()
+            && let Some(format) = TickFormat::spaced(locale, &self.ticks(domain, count))
+        {
+            return Ok(format);
+        }
+        scale::tick_format(locale, domain, count, specifier).map(TickFormat::from)
     }
 }
