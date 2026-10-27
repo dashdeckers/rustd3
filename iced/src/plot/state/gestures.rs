@@ -176,10 +176,17 @@ fn layout_holds_during_a_wheel_gesture() {
     // view rebuilt after each: [0, 3] narrows to about a third, whose tick
     // labels take two decimals. Then redraws without input up to 288 ms
     // after the last.
-    let (mut t, mut seen) = (t0, Vec::new());
+    let left = |state: &State| {
+        let resolved = state.resolved.as_ref().expect("resolved");
+        let boxes = resolved.label_boxes();
+        boxes.iter().map(|b| b.x0).fold(f64::INFINITY, f64::min)
+    };
+    let reach = left(&state);
+    let (mut t, mut seen, mut grown) = (t0, Vec::new(), 0.0_f64);
     let mut look = |state: &State| {
         let resolved = state.resolved.as_ref().expect("resolved");
         seen.push((resolved.held(), resolved.plot_areas()[0]));
+        grown = grown.max(reach - left(state));
     };
     for _ in 0..8 {
         t += Duration::from_millis(16);
@@ -196,6 +203,11 @@ fn layout_holds_during_a_wheel_gesture() {
     assert!(
         seen.iter().all(|&(held, area)| held && area == start),
         "the plot area holds still: {seen:?}"
+    );
+    // The y labels grew outward, still inside the canvas.
+    assert!(
+        grown > 0.0 && reach - grown >= 0.0,
+        "grown {grown} from {reach}"
     );
     // The first redraw 300 ms after the last step ends the gesture and
     // lays out once, as a fresh resolve of the zoomed domain does.
@@ -218,7 +230,7 @@ fn layout_holds_during_a_wheel_gesture() {
         .resolve(size, &mut cache, &held, Target::Screen { scale: 1.0 });
     let moved = settled.plot_areas()[0];
     println!(
-        "held layout: y {zoomed:?}; left edge {} held, {} once settled",
+        "held layout: y {zoomed:?}; left edge {} held, {} once settled; labels grew {grown:.2} px outward",
         start.x0, moved.x0
     );
     assert_eq!(moved, fresh.plot_areas()[0]);

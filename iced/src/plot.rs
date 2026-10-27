@@ -1,10 +1,14 @@
 //! [`Plot`]: a [`Figure`] shown as images that vello_cpu renders from its
 //! drawing list, the pixels the figure's PNG has, with a crosshair and a
-//! nearest-point highlight drawn over them.
+//! nearest-point highlight drawn over them, zoomed and panned by the
+//! wheel and the mouse.
 //!
 //! `view` builds the figure from the app's state and hands it to the
 //! widget by value; the widget keeps its own state (the figure's cache,
-//! the rendered cells) in iced's widget tree between frames:
+//! the rendered cells, the domains gestures gave the handles nobody
+//! listens to) in iced's widget tree between frames. Here the app owns
+//! the x domain: a wheel or a drag over the plot area sends it the new
+//! window, and its view shows that window, while y stays the widget's:
 //!
 //! ```no_run
 //! use iced::Element;
@@ -15,25 +19,36 @@
 //!
 //! struct App {
 //!     data: Vec<(f64, f64)>,
+//!     /// The x window the user chose, once there is one.
+//!     window: Option<[f64; 2]>,
 //! }
 //!
 //! #[derive(Debug, Clone)]
-//! enum Message {}
-//!
-//! /// The app's data as a figure: one line on fitted scales.
-//! fn figure(data: &[(f64, f64)]) -> Figure<'static> {
-//!     let mut fig = Figure::new();
-//!     let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
-//!     fig.panel(0, 0)
-//!         .mark(line(data.iter().copied(), x, y))
-//!         .axis(axis::left(y))
-//!         .axis(axis::bottom(x));
-//!     fig
+//! enum Message {
+//!     Window([f64; 2]),
 //! }
 //!
 //! impl App {
+//!     fn update(&mut self, message: Message) {
+//!         match message {
+//!             Message::Window(window) => self.window = Some(window),
+//!         }
+//!     }
+//!
 //!     fn view(&self) -> Element<'_, Message> {
-//!         Plot::new(figure(&self.data)).into()
+//!         let mut fig = Figure::new();
+//!         let x = match self.window {
+//!             Some(window) => fig.scale(scale::linear().domain(window)),
+//!             None => fig.fit(scale::linear()),
+//!         };
+//!         let y = fig.fit(scale::linear());
+//!         fig.panel(0, 0)
+//!             .mark(line(self.data.iter().copied(), x, y))
+//!             .axis(axis::left(y))
+//!             .axis(axis::bottom(x))
+//!             .zoom_x(x)
+//!             .zoom_y(y);
+//!         Plot::new(fig).on_change(x, Message::Window).into()
 //!     }
 //! }
 //! ```
@@ -41,16 +56,16 @@
 //! The widget resolves and draws its figure once per `RedrawRequested`,
 //! for the screen at the effective scale factor (`Plot::scale_factor`,
 //! else the renderer's hint, else the window's factor, else 1), and only
-//! when the figure was rebuilt, the widget resized or the factor changed.
-//! It cuts the list into the cells of the canvas's partition by every
-//! plot-area edge, renders only the cells whose content hash changed
-//! (every cell when the partition's rects change), and draws each as
-//! images placed on whole device pixels. A cell whose RGBA would reach
-//! [`BAND_BYTES`] is rendered and drawn as horizontal bands below that
-//! size, so the GPU renderer uploads every image inside the frame that
-//! first draws it. Hovering renders no cell: the crosshair and the
-//! highlight are quads in a layer clipped to the hovered plot area, in the
-//! figure theme's ink.
+//! when the figure was rebuilt, the widget resized, the factor changed or
+//! a gesture changed a domain. It cuts the list into the cells of the
+//! canvas's partition by every plot-area edge, renders only the cells
+//! whose content hash changed (every cell when the partition's rects
+//! change), and draws each as images placed on whole device pixels. A
+//! cell whose RGBA would reach [`BAND_BYTES`] is rendered and drawn as
+//! horizontal bands below that size, so the GPU renderer uploads every
+//! image inside the frame that first draws it. Hovering renders no cell:
+//! the crosshair and the highlight are quads in a layer clipped to the
+//! hovered plot area, in the figure theme's ink.
 //!
 //! Changed cells render inline when the [`cost`] model predicts they take
 //! at most half the frame budget, and otherwise on one thread the widget
@@ -62,6 +77,32 @@
 //! replaces a newer image. Dropping the widget's state joins the thread.
 //! [`Plot::probe`] reports what each frame cost and what it showed, timed
 //! by a clock the app supplies: the library reads none.
+//!
+//! **Gestures.** A wheel over a plot area zooms every handle its panel
+//! zooms (`Panel::zoom_x`, `Panel::zoom_y`) around the cursor, a wheel
+//! over an axis zooms that axis's handle only, and a left-button drag
+//! pans; horizontal wheel deltas pan too. Each handle has its own core
+//! `Zoom`. Pointer input is queued and applied once per
+//! `RedrawRequested`, and each gesture accumulates its transform from its
+//! start, so updates that arrive late lose no distance; a step the scale
+//! rejects (non-finite, reversed, or a span below 2⁻⁴⁰ of its centre)
+//! leaves the gesture where it was. [`Plot::on_change`] turns a handle's
+//! changes into one message per frame and the app owns that domain;
+//! during a gesture the widget continues from what it last published, and
+//! when it publishes it skips drawing in that pass, since the runtime runs
+//! the app's `update` and redraws at once. Other handles' domains are the
+//! widget's, kept by handle position and scale type, and dropped when the
+//! rebuilt figure puts another scale type there. The layout holds still
+//! during a gesture (labels grow outward) and settles once when it ends:
+//! a drag at its release, a wheel gesture at the first redraw 300 ms
+//! after its last step. While a plot-area cell's sharp render is pending,
+//! its previous image is drawn scaled by one affine map per axis, soft
+//! until the new one lands; gutters keep their last image. A double click
+//! returns the handles the panel zooms that a gesture touched to their
+//! fitted domains (a published one receives it as a message); the cursor
+//! shows a grab hand over a zoomable plot area, a grabbing hand during a
+//! drag, a resize arrow over a zoomable axis and a crosshair over other
+//! plot areas.
 
 mod budget;
 pub mod cost;
