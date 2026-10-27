@@ -49,7 +49,7 @@ The trace's large differences are D18.3.
 
 ## D18.1 — No public way to read or set a theme's ink and background
 
-**Date:** 2026-10-27 · **Context:** Phase 18, steps 3 and 4, after 4f471b3 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 18, steps 3 and 4, after 4f471b3 · **Status:** decided
 
 ### Issue
 
@@ -98,7 +98,15 @@ which (4) forbids and no phase defines.
 
 ### Decision
 
-Recommended: A. (Open.)
+A (architect, 2026-10-27). Theme gains the builders `Theme::ink(self,
+Rgb)` and `Theme::background(self, Rgb)` (any alpha; a translucent
+background lets an app's own background show through the widget), and
+the readers `Figure::get_theme(&self) -> &Theme`, `Theme::get_ink(&self)
+-> Rgb` and `Theme::get_background(&self) -> Rgb` in core's `get_` form
+(getters only where a builder takes the name). They replace the
+crate-private `ink()` and `background()` at their call sites. Phase 35's
+seaborn styles set both through the same fields; Phases 36 and 37 read
+them through these readers.
 
 ### Why
 
@@ -118,7 +126,7 @@ untested until some later phase adds a builder.
 
 ## D18.2 — Details of Phase 18 that the section leaves open, or that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 18, 06b1c00 … 4f471b3 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 18, 06b1c00 … 4f471b3 · **Status:** decided
 
 ### Issue
 
@@ -167,7 +175,13 @@ sources as cited; the measurements above (7, 8).
 
 ### Decision
 
-Recommended: A for all nine. (Open.)
+(architect, 2026-10-27) A for (1), (2) and (4)–(9), as built. B for
+(3): figure gains `Figure::draw_resolved(&self, cache: &mut Cache,
+resolved: &Resolved) -> List` (today's private emitter: the list of a
+`Resolved` that this figure's `resolve` or `resolve_held` returned for
+`cache` after the draw's `cache.begin()`), and `draw_with`/`draw_held`
+call it. The widget refreshes with one `begin`, one resolve and one
+`draw_resolved`, so each frame resolves once.
 
 ### Why
 
@@ -183,7 +197,7 @@ what holds.
 
 ## D18.3 — vello_cpu's output on dense strokes depends on the render's origin
 
-**Date:** 2026-10-27 · **Context:** Phase 18, the architect's screenshot check · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 18, the architect's screenshot check · **Status:** decided
 
 ### Issue
 
@@ -226,7 +240,11 @@ not. The PNG has them too.
 
 ### Decision
 
-Recommended: A, with C as a followup for the user. (Open.)
+A (architect, 2026-10-27): recorded as a property of vello_cpu 0.3.0.
+Phase 22 reports the trace's origin-dependent dashes beside its
+scenarios; Phase 31 measures whole-pixel shifts on the trace before it
+relies on them. The widget's reference tests keep figures that do not
+self-overlap densely, or compare the trace at its own origin.
 
 ### Why
 
