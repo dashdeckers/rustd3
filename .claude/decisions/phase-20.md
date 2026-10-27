@@ -138,7 +138,7 @@ until the sharp image lands.
 
 ## D20.4 — Two readers of `Resolved` the section does not name
 
-**Date:** 2026-10-27 · **Context:** Phase 20, step 1, c9e1d6a · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 20, step 1, c9e1d6a · **Status:** decided
 
 ### Issue
 
@@ -169,8 +169,9 @@ and `fig.panels[p].gesture` directly (`proto/figmodel/src/live.rs`).
 
 ### Decision
 
-Recommended: A, as built (c9e1d6a). Only rustd3-iced calls them, so a
-rename costs one commit.
+A (architect, 2026-10-27): figure's public readers
+`Resolved::scale_at(index)` and `Resolved::axis(panel, axis)` stay as
+built; they are what a gesture widget outside the crate needs.
 
 ### Why
 
@@ -185,7 +186,7 @@ Phase 36 (hover and brush over axes) can use the same readers.
 
 ## D20.5 — Details of Phase 20 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 20, c9e1d6a … dc8f665 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 20, c9e1d6a … dc8f665 · **Status:** decided
 
 ### Issue
 
@@ -249,10 +250,12 @@ non-wheel event, 6); the frames and tests in Measurements.
 
 ### Decision
 
-Recommended: A for all thirteen, already built. (10) is the one that
-may want a different answer: a way for an app that owns a domain to get
-its handle's data extent back would need the figure to fit a handle the
-app built with a fixed domain, which no phase defines.
+A for all thirteen (architect, 2026-10-27), as built. For (10): a
+double-click reset publishes the domain the handle resolves to with no
+gesture override. For a fitted handle that is its fitted domain, as
+Part I says; for a handle the app built with its own domain or window,
+it is that domain or window, which is what the figure shows without
+the gesture. Phase 21's windowed handles follow the same rule.
 
 ### Why
 
