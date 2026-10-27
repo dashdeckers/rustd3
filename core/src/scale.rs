@@ -67,6 +67,37 @@ pub fn log() -> Log {
     continuous(transform::Log::new(10.0)).domain([1.0, 10.0])
 }
 
+/// d3.scaleSymlog(): constant 1, domain [0, 1], range [0, 1]; ticks by
+/// decades past the constant where d3 ticks linearly.
+///
+/// ```
+/// use rustd3_core::scale;
+///
+/// let v = scale::symlog().constant(1.0).domain([0.0, 1e6]);
+/// assert_eq!(v.ticks(10), [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]);
+/// ```
+#[doc(alias = "scaleSymlog")]
+pub fn symlog() -> Continuous<transform::Symlog> {
+    continuous(transform::Symlog::new(1.0))
+}
+
+/// A scale under the closures `forward` and `inverse`, ticked by `rule`:
+/// the choice of rule is part of the signature.
+///
+/// ```
+/// use rustd3_core::scale::{self, TickRule};
+///
+/// let s = scale::func(f64::sqrt, |y| y * y, TickRule::Data).domain([0.0, 100.0]);
+/// assert_eq!(s.ticks(5), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
+/// ```
+pub fn func(
+    forward: impl Fn(f64) -> f64 + Send + Sync + 'static,
+    inverse: impl Fn(f64) -> f64 + Send + Sync + 'static,
+    rule: TickRule,
+) -> Continuous<transform::Func> {
+    continuous(transform::Func::new(forward, inverse, rule))
+}
+
 /// d3-scale's linear nice (linear.js): `domain` extended to multiples of
 /// the tick increment for `count` ticks, written back only once the
 /// increment stops changing within ten tries (d3-array's `nice` writes

@@ -19,7 +19,7 @@
 
 mod rules;
 
-pub(crate) use rules::pow10;
+pub(crate) use rules::{decade, pow10};
 pub use rules::{decades, linear, log, subdivide, transformed};
 
 use crate::js;

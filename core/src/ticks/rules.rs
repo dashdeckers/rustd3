@@ -8,7 +8,7 @@ use crate::ticks;
 /// The most values a built-in rule returns.
 const MAX_VALUES: usize = 10_000;
 /// The most decades [`decades`] walks from the constant up.
-const MAX_DECADES: u16 = 400;
+const MAX_DECADES: i32 = 400;
 
 /// d3's linear ticks in data space: `ticks(d[0], d[1], count)`.
 pub fn linear(domain: [f64; 2], count: usize) -> Vec<f64> {
@@ -40,7 +40,7 @@ pub fn decades(domain: [f64; 2], constant: f64, count: usize) -> Vec<f64> {
     }
     let largest = a.abs().max(b.abs());
     let powers: Vec<f64> = (0..MAX_DECADES)
-        .map(|k| scaled(constant, k))
+        .map(|k| decade(constant, k))
         .take_while(|&p| p <= largest)
         .collect();
     let sides = if a < 0.0 && 0.0 < b { 2 } else { 1 };
@@ -162,7 +162,7 @@ pub(crate) fn pow10(k: f64) -> f64 {
 
 /// c·10ᵏ, through an exact power of ten, and split where 10ᵏ alone would
 /// overflow a constant small enough to keep the product finite.
-fn scaled(c: f64, k: u16) -> f64 {
+pub(crate) fn decade(c: f64, k: i32) -> f64 {
     let k = f64::from(k);
     let power = pow10(k);
     if power.is_finite() {

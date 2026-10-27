@@ -297,6 +297,15 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Log, R, N> {
     }
 }
 
+impl<R: Interpolate, const N: usize> Continuous<transform::Symlog, R, N> {
+    /// d3's `constant(c)`: where the symlog turns from linear to
+    /// logarithmic; the domain and range stay as they are. It exists only
+    /// for symlog scales.
+    pub fn constant(self, constant: f64) -> Self {
+        self.transformed(transform::Symlog::new(constant))
+    }
+}
+
 /// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
 /// when the last stop is below the first), normalized within its segment,
 /// and the segment's two `values` blended at that fraction.

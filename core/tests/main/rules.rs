@@ -5,6 +5,7 @@
 
 use rustd3_core::scale::{self, TickRule};
 use rustd3_core::ticks;
+use rustd3_testkit::obs::{ToObs, Tolerance};
 
 /// Frequency laid out by period: Part I's user transform.
 #[derive(Clone, Copy)]
@@ -135,4 +136,124 @@ fn decades_walk_at_most_four_hundred_decades() {
     let z = ticks::decades([0.0, f64::MAX], 1e-300, 1000);
     assert_eq!(z.len(), 401);
     assert!((z[400] / 1e99 - 1.0).abs() < 1e-12);
+}
+
+/// Whether `actual` is within the tolerance of d3's printed `expected`.
+fn close(actual: f64, expected: f64) -> bool {
+    actual
+        .to_obs()
+        .approx_eq(&expected.to_obs(), &Tolerance::default())
+}
+
+/// `symlog()` ticks(10) over `domain`.
+fn symlog_ticks(domain: [f64; 2]) -> Vec<f64> {
+    scale::symlog().domain(domain).ticks(10)
+}
+
+#[test]
+fn symlog_ticks_a_million_by_decades() {
+    assert_eq!(
+        symlog_ticks([0.0, 1e6]),
+        [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]
+    );
+}
+
+#[test]
+fn symlog_with_the_data_rule_ticks_as_d3() {
+    let s = scale::symlog().domain([0.0, 1e6]).tick_rule(TickRule::Data);
+    let expected: Vec<f64> = (0..=10).map(|k| f64::from(k) * 1e5).collect();
+    assert_eq!(s.ticks(10), expected);
+}
+
+#[test]
+fn symlog_ticks_both_sides_of_zero_by_decades() {
+    assert_eq!(
+        symlog_ticks([-1000.0, 1000.0]),
+        [-1000.0, -100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0, 1000.0]
+    );
+    assert_eq!(
+        symlog_ticks([-1e9, 1e9]),
+        [
+            -1e8, -1e6, -1e4, -100.0, -1.0, 0.0, 1.0, 100.0, 1e4, 1e6, 1e8
+        ]
+    );
+}
+
+#[test]
+fn symlog_ticks_linearly_under_a_hundred_constants() {
+    let threes: Vec<f64> = (-6..=6).map(|k| f64::from(k) * 0.5).collect();
+    assert_eq!(symlog_ticks([-3.0, 3.0]), threes);
+    let fives: Vec<f64> = (-1..=10).map(|k| f64::from(k) * 5.0).collect();
+    assert_eq!(symlog_ticks([-5.0, 50.0]), fives);
+}
+
+#[test]
+fn symlog_decades_keep_to_the_domain() {
+    assert_eq!(symlog_ticks([0.0, 100.0]), [0.0, 1.0, 10.0, 100.0]);
+    assert_eq!(symlog_ticks([1.0, 1e4]), [1.0, 10.0, 100.0, 1e3, 1e4]);
+    assert_eq!(
+        symlog_ticks([-1e4, 10.0]),
+        [-1e4, -1e3, -100.0, -10.0, -1.0, 0.0, 1.0, 10.0]
+    );
+}
+
+#[test]
+fn symlog_falls_back_to_linear_ticks_inside_one_decade() {
+    let expected: Vec<f64> = (10..=20).map(|k| f64::from(k) * 100.0).collect();
+    assert_eq!(symlog_ticks([1000.0, 2000.0]), expected);
+}
+
+#[test]
+fn symlog_minor_ticks_are_whole_multiples_per_decade() {
+    let minor: Vec<f64> = scale::symlog()
+        .domain([-1e3, 1e3])
+        .minor(10)
+        .into_iter()
+        .filter(|v| 0.0 < *v && *v < 12.0)
+        .collect();
+    assert_eq!(minor, [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+}
+
+#[test]
+fn symlog_minor_ticks_follow_a_descending_domain() {
+    let minor = scale::symlog().domain([-10.0, -100.0]).minor(10);
+    let expected: Vec<f64> = (2..10).map(|m| -10.0 * f64::from(m)).collect();
+    assert_eq!(minor, expected);
+}
+
+#[test]
+fn symlog_minor_ticks_subdivide_linear_majors_in_data_space() {
+    let minor = scale::symlog().domain([0.0, 1.0]).minor(5);
+    assert_eq!(minor.len(), 20);
+    assert!(close(minor[0], 0.04));
+    assert!(close(minor[4], 0.24));
+}
+
+#[test]
+fn symlog_maps_and_inverts_as_d3() {
+    let s = scale::symlog().domain([-10.0, 10.0]).range([0.0, 1.0]);
+    assert!(close(s.apply(2.0), 0.729078454995663));
+    assert!(close(
+        s.clone().constant(2.0).apply(2.0),
+        0.6934264036172708
+    ));
+    assert!(close(s.invert(0.8), 3.215369133091901));
+}
+
+#[test]
+fn func_ticks_by_the_rule_it_was_given() {
+    let data = scale::func(f64::sqrt, |y| y * y, TickRule::Data).domain([0.0, 100.0]);
+    assert_eq!(data.ticks(5), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
+    let transformed = scale::func(f64::sqrt, |y| y * y, TickRule::Transformed).domain([0.0, 100.0]);
+    assert_eq!(transformed.ticks(5), [0.0, 4.0, 16.0, 36.0, 64.0, 100.0]);
+}
+
+#[test]
+fn func_maps_through_its_closures_and_prints_its_rule() {
+    let s = scale::func(f64::sqrt, |y| y * y, TickRule::Data)
+        .domain([0.0, 100.0])
+        .range([0.0, 10.0]);
+    assert_eq!(s.apply(25.0), 5.0);
+    assert_eq!(s.invert(5.0), 25.0);
+    assert!(format!("{s:?}").contains("Func { rule: Data, .. }"));
 }

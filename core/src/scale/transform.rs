@@ -2,13 +2,17 @@
 //! interpolating, together with the tick rule, nice, minor ticks and tick
 //! format that suit it. The trait's canonical path is `scale::Transform`.
 
+mod func;
 mod identity;
 mod log;
 mod pow;
+mod symlog;
 
+pub use func::Func;
 pub use identity::Identity;
 pub use log::Log;
 pub use pow::Pow;
+pub use symlog::Symlog;
 
 use crate::format::{InvalidFormat, Locale};
 use crate::scale::{self, TickFormat};
