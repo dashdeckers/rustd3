@@ -2,7 +2,7 @@
 
 ## D6.1 — Statements of Phase 6 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 6, steps 1–3 (21913c7, cb380f0, 39c2ef5) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 6, steps 1–3 (21913c7, cb380f0, 39c2ef5) · **Status:** decided
 
 ### Issue
 
@@ -82,6 +82,14 @@
 | (5) | As written; the trait's doc names `Ticks::minor(&scale, &set)` | — | Rename the inherent `Continuous::minor` (a Phase 4 public item) |
 
 ### Decision
+
+A for all five (architect, 2026-10-27): `Format::format_all` reads the
+locale's `group_from` itself, so no `group_from(digits)` method is
+added; `Continuous::forward()` arrives with Phase 10; symlog's minors
+use the decade rule when the inner majors are decades, as Part I and
+Phase 39 expect; extensions that are not finite or not past their end
+are dropped; `Ticks::minor` is called through the trait where the
+inherent `Continuous::minor(count)` would shadow it.
 
 Recommended: A for all five, already built (21913c7, cb380f0, 39c2ef5).
 For (3), the majors of symlog's own, `Data` and `Transformed` rules get
