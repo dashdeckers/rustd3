@@ -140,10 +140,16 @@ pub fn precision(s: &str, p: f64) -> String {
 }
 
 /// JavaScript's `Math.round`: ties toward +∞ (`f64::round` takes them away
-/// from zero).
+/// from zero), and −0 for x in [−0.5, −0], which `assert.deepStrictEqual`
+/// tells from +0.
 pub fn js_round(x: f64) -> f64 {
     let floor = x.floor();
-    if x - floor >= 0.5 { floor + 1.0 } else { floor }
+    let rounded = if x - floor >= 0.5 { floor + 1.0 } else { floor };
+    if rounded == 0.0 {
+        0.0_f64.copysign(x)
+    } else {
+        rounded
+    }
 }
 
 /// d3-scale's test helper `roundEpsilon(x)`: `x` rounded to 12 decimals.
@@ -423,6 +429,16 @@ mod tests {
                 (Kind::Throws, false, false, Obs::Null),
             ]
         );
+    }
+
+    #[test]
+    fn js_round_keeps_the_sign_of_a_zero_result_as_math_round() {
+        assert!(js_round(-0.3).is_sign_negative());
+        assert!(js_round(-0.5).is_sign_negative());
+        assert!(js_round(0.3).is_sign_positive());
+        assert_eq!(js_round(-0.6), -1.0);
+        assert_eq!(js_round(2.5), 3.0);
+        assert!(js_round(f64::NAN).is_nan());
     }
 
     #[test]

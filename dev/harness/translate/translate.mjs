@@ -75,7 +75,7 @@ const SUITES = [
     ],
     rules: shape,
   },
-  { suite: "pie", package: "d3-shape", files: tests(["pie"]), rules: pie },
+  { suite: "pie", package: "d3-shape", files: tests(["pie", "arc"]), rules: pie },
   { suite: "zoom", package: "d3-zoom", files: tests(["transform"]), rules: zoom },
   {
     suite: "time",
