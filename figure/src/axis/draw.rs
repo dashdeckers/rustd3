@@ -22,6 +22,9 @@ pub(crate) trait Draw<'a>: 'a {
     /// The side of the panel it is on.
     fn orient(&self) -> Orient;
 
+    /// Its handle's position in the figure's scale table.
+    fn handle(&self) -> usize;
+
     /// Its palette color, when tinted and the palette has one for its key.
     fn tint(&self, resolved: &Resolved) -> Option<Rgb>;
 
@@ -53,6 +56,10 @@ where
 {
     fn orient(&self) -> Orient {
         self.orient
+    }
+
+    fn handle(&self) -> usize {
+        self.scale.index()
     }
 
     fn tint(&self, resolved: &Resolved) -> Option<Rgb> {

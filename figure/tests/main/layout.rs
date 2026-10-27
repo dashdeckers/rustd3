@@ -6,6 +6,7 @@ use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::layout::{Grid, em, px};
+use rustd3_figure::list::part;
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{self, Key, Style, Text, anchor};
 use rustd3_figure::{Figure, Held, Panel, Target, axis};
@@ -342,5 +343,148 @@ fn layout_settles_within_four_passes() {
         resolve(&fig, &Held::default()).passes(),
         2,
         "fixed counts settle at once"
+    );
+}
+
+/// An `n` × `n` grid of shared axes: x fitted and shared per column, y per
+/// row, left and bottom axes on every panel.
+fn shared(n: usize) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let xs: Vec<_> = (0..n).map(|_| fig.fit(scale::linear())).collect();
+    let ys: Vec<_> = (0..n).map(|_| fig.fit(scale::linear())).collect();
+    for (r, &y) in ys.iter().enumerate() {
+        for (c, &x) in xs.iter().enumerate() {
+            fig.panel(r, c)
+                .mark(line(x, [0.0, 10.0 * (c + 1) as f64]))
+                .mark(line(y, [0.0, 3.0 * (r + 1) as f64]))
+                .axis(axis::left(y))
+                .axis(axis::bottom(x));
+        }
+    }
+    fig
+}
+
+#[test]
+fn grids_of_shared_axes_settle_within_four_passes_labelled_on_the_outer_panels() {
+    for n in [4, 8, 16] {
+        let fig = shared(n);
+        let size = Size::new(1600.0, 1200.0);
+        let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
+        assert!(r.passes() <= 4, "{n}×{n}: {}", r.passes());
+        for (i, (row, col)) in (0..n).flat_map(|r| (0..n).map(move |c| (r, c))).enumerate() {
+            let left = r.plan(i, 0).expect("a left axis");
+            let bottom = r.plan(i, 1).expect("a bottom axis");
+            assert!(left.shown && bottom.shown);
+            assert_eq!(left.labeled, col == 0, "{n}×{n} panel {i}");
+            assert_eq!(bottom.labeled, row == n - 1, "{n}×{n} panel {i}");
+        }
+    }
+}
+
+/// A 1 × 2 grid whose two panels each get the axes `axes` places, over a
+/// y handle fitted to 0 … 3 and a temperature handle fitted to 30 … 65.
+fn one_by_two(
+    axes: impl Fn(&mut Panel<'static>, ScaleRef<Linear>, ScaleRef<Linear>),
+) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let y = fig.fit(scale::linear());
+    let temp = fig.fit(scale::linear());
+    for c in 0..2 {
+        let panel = fig.panel(0, c);
+        panel
+            .mark(line(y, [0.0, 3.0]))
+            .mark(line(temp, [30.0, 65.0]));
+        axes(panel, y, temp);
+    }
+    fig
+}
+
+#[test]
+fn a_shared_axis_is_labelled_on_the_outer_panel_only() {
+    let fig = one_by_two(|p, y, _| {
+        p.axis(axis::left(y));
+    });
+    let r = resolve(&fig, &Held::default());
+    let left = r.plan(0, 0).expect("the left panel's axis");
+    let right = r.plan(1, 0).expect("the right panel's axis");
+    assert!(left.shown && left.labeled, "{left:?}");
+    assert!(right.shown && !right.labeled, "{right:?}");
+    assert_eq!(right.thickness, 8.0, "ticks alone");
+    assert_eq!(r.plan(1, 1), None);
+}
+
+#[test]
+fn a_second_axis_on_one_side_stacks_8_px_past_the_first() {
+    let (fig, ..) = one_panel(|p, _, y| {
+        p.axis(axis::left(y).label("vib"))
+            .axis(axis::left(y).label("temp"));
+    });
+    let r = resolve(&fig, &Held::default());
+    let vib = r.plan(0, 0).expect("vib");
+    let temp = r.plan(0, 1).expect("temp");
+    assert_eq!(vib.offset, 0.0);
+    assert_eq!(temp.offset, vib.thickness + 8.0);
+    let area = r.plot_areas()[0];
+    assert!(
+        (area.x0 - PAD - (temp.offset + temp.thickness)).abs() < 1e-9,
+        "{area:?}"
+    );
+}
+
+#[test]
+fn a_stacked_axis_on_an_inner_panel_is_not_drawn() {
+    let fig = one_by_two(|p, y, temp| {
+        p.axis(axis::left(y).label("vib"))
+            .axis(axis::left(temp).label("temp"));
+    });
+    let r = resolve(&fig, &Held::default());
+    let plans: Vec<_> = (0..2)
+        .map(|axis| r.plan(1, axis).expect("an axis"))
+        .collect();
+    assert!(plans[0].shown && !plans[0].labeled, "{plans:?}");
+    assert!(!plans[1].shown, "{plans:?}");
+    let outer = r.plan(0, 1).expect("the left panel's temp axis");
+    assert!(outer.shown && outer.labeled, "{outer:?}");
+    // The undrawn axis takes no room: the right panel reaches by vib's ticks.
+    let list = fig.draw_with(
+        &mut cache(),
+        Size::new(640.0, 480.0),
+        Target::Vector,
+        &Held::default(),
+    );
+    let axes = |panel: u64| {
+        let ids: Vec<part::Id> = (0..2)
+            .map(|axis| part::Id::new(4 << 56 | panel << 32 | axis))
+            .collect();
+        list.parts.iter().filter(|p| ids.contains(&p.id)).count()
+    };
+    assert_eq!((axes(0), axes(1)), (2, 1));
+}
+
+#[test]
+fn labels_true_labels_an_inner_axis() {
+    let fig = one_by_two(|p, y, _| {
+        p.axis(axis::left(y).labels(true));
+    });
+    let r = resolve(&fig, &Held::default());
+    let inner = r.plan(1, 0).expect("the right panel's axis");
+    assert!(inner.shown && inner.labeled, "{inner:?}");
+}
+
+#[test]
+fn an_explicit_outward_axis_on_an_inner_panel_is_not_drawn_and_labels_false_draws_it() {
+    let fig = one_by_two(|p, y, _| {
+        p.axis(axis::left(y).outward(10.0));
+    });
+    let r = resolve(&fig, &Held::default());
+    assert!(!r.plan(1, 0).expect("an axis").shown);
+    let fig = one_by_two(|p, y, _| {
+        p.axis(axis::left(y).outward(10.0).labels(false));
+    });
+    let r = resolve(&fig, &Held::default());
+    let plan = r.plan(1, 0).expect("an axis");
+    assert!(
+        plan.shown && !plan.labeled && plan.offset == 10.0,
+        "{plan:?}"
     );
 }

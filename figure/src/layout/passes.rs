@@ -8,6 +8,7 @@ use rustd3_core::axis::Orient;
 use crate::axis::{self, Labels};
 use crate::figure::{Figure, Resolved};
 use crate::layout::{self, Plan, Reach, plan};
+use crate::panel::Panel;
 use crate::text::{self, Key, Shaped};
 
 /// Passes at most; counts that have not settled by then are kept.
@@ -77,12 +78,17 @@ impl Layout {
             .map(|p| p.heading().map(|t| Key::new(t, &theme.title())))
             .collect();
         let title = figure.heading().map(|t| Key::new(t, &theme.figure_title()));
+        let roles = plan::roles(panels);
         let bare: Vec<Reach> = panels
             .iter()
-            .map(|p| {
+            .zip(&roles)
+            .map(|(p, roles)| {
+                let counts = vec![2; roles.len()];
+                let thicknesses = vec![theme.tick(); roles.len()];
+                let plans = plan::stack(p.axes(), roles, &counts, &thicknesses);
                 let mut reach = Reach::default();
-                for a in p.axes() {
-                    reach.widen(a.orient(), a.outward().unwrap_or(0.0) + theme.tick());
+                for (a, plan) in p.axes().iter().zip(plans).filter(|(_, plan)| plan.shown) {
+                    reach.widen(a.orient(), plan.offset + plan.thickness);
                 }
                 reach
             })
@@ -94,29 +100,18 @@ impl Layout {
         let mut passes = 0;
         for pass in 1..=PASSES {
             passes = pass;
-            let counts: Vec<Vec<usize>> = panels
-                .iter()
-                .zip(&areas)
-                .map(|(p, area)| {
-                    p.axes()
-                        .iter()
-                        .map(|a| {
-                            a.count().unwrap_or_else(|| {
-                                plan::count(a.orient(), length(a.orient(), *area))
-                            })
-                        })
-                        .collect()
-                })
-                .collect();
+            let counts = counts(figure, &areas);
             let labels: Vec<Vec<Labels>> = panels
                 .iter()
+                .zip(&roles)
                 .zip(&counts)
-                .map(|(p, counts)| {
+                .map(|((p, roles), counts)| {
                     p.axes()
                         .iter()
+                        .zip(roles)
                         .zip(counts)
-                        .map(|(a, &count)| {
-                            let labeled = a.labels().unwrap_or(true);
+                        .map(|((a, role), &count)| {
+                            let labeled = role.shown && role.labeled;
                             Labels::new(&**a, resolved, theme, labeled, count)
                         })
                         .collect()
@@ -135,40 +130,19 @@ impl Layout {
             axes = panels
                 .iter()
                 .zip(labels)
-                .zip(&counts)
-                .map(|((p, labels), counts)| {
-                    p.axes()
-                        .iter()
-                        .zip(labels)
-                        .zip(counts)
-                        .map(|((a, labels), &count)| {
-                            let plan = Plan {
-                                shown: true,
-                                labeled: a.labels().unwrap_or(true),
-                                offset: a.outward().unwrap_or(0.0),
-                                thickness: labels.thickness(text, theme),
-                                count,
-                            };
-                            (labels, plan)
-                        })
-                        .collect()
+                .zip(roles.iter().zip(&counts))
+                .map(|((p, labels), (roles, counts))| {
+                    let thicknesses: Vec<f64> =
+                        labels.iter().map(|l| l.thickness(text, theme)).collect();
+                    let plans = plan::stack(p.axes(), roles, counts, &thicknesses);
+                    labels.into_iter().zip(plans).collect()
                 })
                 .collect();
             reaches = panels
                 .iter()
                 .zip(&axes)
                 .zip(&areas)
-                .map(|((p, axes), area)| {
-                    let mut reach = Reach::default();
-                    for (a, (labels, plan)) in p.axes().iter().zip(axes) {
-                        let orient = a.orient();
-                        reach.widen(orient, plan.offset + plan.thickness);
-                        let length = length(orient, *area);
-                        let positions = a.positions(resolved, length, plan.count);
-                        reach.overhang(orient, labels.overhang(&positions, length, text));
-                    }
-                    reach
-                })
+                .map(|((p, axes), area)| reach(p, axes, *area, resolved, text))
                 .collect();
             let reserve = title
                 .as_ref()
@@ -224,6 +198,48 @@ impl Layout {
             passes,
         }
     }
+}
+
+/// Each panel's axes' tick counts for plot areas `areas`: `.ticks(n)`, or
+/// from the axis's length.
+fn counts(figure: &Figure<'_>, areas: &[Rect]) -> Vec<Vec<usize>> {
+    figure
+        .panels()
+        .iter()
+        .zip(areas)
+        .map(|(p, area)| {
+            p.axes()
+                .iter()
+                .map(|a| {
+                    a.count()
+                        .unwrap_or_else(|| plan::count(a.orient(), length(a.orient(), *area)))
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// How far `panel`'s drawn `axes` reach past its plot area `area`: their
+/// offsets and thicknesses, and their tick labels that overhang its ends.
+fn reach(
+    panel: &Panel<'_>,
+    axes: &[(Labels, Plan)],
+    area: Rect,
+    resolved: &Resolved,
+    text: &text::Cache,
+) -> Reach {
+    let mut reach = Reach::default();
+    for (a, (labels, plan)) in panel.axes().iter().zip(axes) {
+        if !plan.shown {
+            continue;
+        }
+        let orient = a.orient();
+        reach.widen(orient, plan.offset + plan.thickness);
+        let length = length(orient, area);
+        let positions = a.positions(resolved, length, plan.count);
+        reach.overhang(orient, labels.overhang(&positions, length, text));
+    }
+    reach
 }
 
 /// The plot areas of `figure`'s panels for `size`, with `reserve` px above

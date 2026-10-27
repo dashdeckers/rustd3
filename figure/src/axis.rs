@@ -182,7 +182,8 @@ impl<'a, S: Kind> Axis<'a, S> {
     }
 
     /// Moves the axis `px` away from the plot area, as matplotlib's outward
-    /// spines.
+    /// spines. Without it the axis sits on the plot area, or, after an axis
+    /// on the same side, 8 px past that axis's decorations.
     pub fn outward(self, px: f64) -> Self {
         Axis {
             outward: Some(px),
@@ -201,8 +202,10 @@ impl<'a, S: Kind> Axis<'a, S> {
         }
     }
 
-    /// With or without tick labels and title: without, the axis is its
-    /// line and ticks.
+    /// With or without tick labels and title (without, the axis is its line
+    /// and ticks), and drawn whatever its panel's place: without it, an
+    /// axis that a panel further out on its side shows too is drawn
+    /// without labels, and not at all when it is stacked or moved outward.
     pub fn labels(self, labels: bool) -> Self {
         Axis {
             labels: Some(labels),

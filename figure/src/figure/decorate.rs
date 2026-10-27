@@ -63,7 +63,8 @@ impl Figure<'_> {
                     });
                 });
             }
-            for (j, placed) in laid.axes.iter().enumerate() {
+            let shown = laid.axes.iter().enumerate().filter(|(_, a)| a.plan.shown);
+            for (j, placed) in shown {
                 part(list, part::id(Role::Axis, i, j), |list| {
                     let offset = placed.plan.offset;
                     placed

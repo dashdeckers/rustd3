@@ -1,7 +1,7 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
 use crate::figure;
-use crate::layout::{Laid, Layout};
+use crate::layout::{Laid, Layout, Plan};
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
 use crate::text::Key;
@@ -44,6 +44,12 @@ impl Resolved {
     /// Plot-area rects in list px, one per panel in panel order.
     pub fn plot_areas(&self) -> &[kurbo::Rect] {
         &self.areas
+    }
+
+    /// How layout placed axis `axis` (in insertion order) of panel `panel`
+    /// (in the order of first use); `None` when there is no such axis.
+    pub fn plan(&self, panel: usize, axis: usize) -> Option<Plan> {
+        Some(self.panels.get(panel)?.axes.get(axis)?.plan)
     }
 
     /// Layout passes until tick counts settled (1..=4).
