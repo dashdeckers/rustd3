@@ -1,6 +1,6 @@
 //! Marks: the [`Mark`] trait every mark implements, [`Ctx`], what a mark
 //! sees while it draws one panel, and the figure's marks: [`dots`],
-//! [`line`], [`rule_x`] and [`rule_y`].
+//! [`line()`], [`rule_x`] and [`rule_y`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -40,7 +40,7 @@ pub use rule::{Rule, rule_x, rule_y};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data
 /// may borrow for `'a` (a recording's
-/// [`Points`](rustd3_core::series::Points), say), so a figure that borrows
+/// [`Points`], say), so a figure that borrows
 /// is built where the data lives.
 pub trait Mark<'a>: 'a {
     /// Reports the values each fitted handle must span ([`Fits::add`]),
