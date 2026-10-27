@@ -31,6 +31,16 @@ impl Tolerance {
         }
     }
 
+    /// Numbers within `rel` × magnitude and no absolute bound, for values
+    /// near 0 whose scale matters (fixtures of tiny tick values).
+    pub fn relative(rel: f64) -> Self {
+        Self {
+            rel,
+            abs: 0.0,
+            ..Self::default()
+        }
+    }
+
     /// Exact strings: no last-place slack.
     pub fn without_last_place(self) -> Self {
         Self {
@@ -102,6 +112,15 @@ mod tests {
         let exact = Tolerance::default().without_last_place();
         assert!(!exact.texts("0.13", "0.12"));
         assert!(exact.texts("1e+21", "1000000000000000000000"));
+    }
+
+    #[test]
+    fn relative_has_no_absolute_floor() {
+        let tolerance = Tolerance::relative(1e-9);
+        assert!(!tolerance.numbers(1e-9, 2e-9));
+        assert!(tolerance.numbers(1e-9, 1e-9 * (1.0 + 1e-12)));
+        assert!(tolerance.numbers(0.0, 0.0));
+        assert!(Tolerance::default().numbers(1e-9, 2e-9));
     }
 
     #[test]
