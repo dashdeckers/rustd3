@@ -25,6 +25,7 @@ quick() {
   local pkgs=("$@")
   if [ ${#pkgs[@]} -eq 0 ]; then mapfile -t pkgs < <(touched); fi
   for p in "${pkgs[@]}"; do TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features; done
+  if [ "${RUSTD3_FUZZ:-0}" = 1 ]; then TZ=Asia/Kathmandu cargo test -q -p rustd3-core --release --test main fuzz; fi
   TZ=Asia/Kathmandu cargo run -q -p rustd3-harness -- --check
 }
 

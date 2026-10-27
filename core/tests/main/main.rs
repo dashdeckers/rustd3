@@ -2,7 +2,9 @@
 //! where it departs from d3.
 
 mod ease;
+mod fixtures;
 mod format;
+mod fuzz;
 mod interpolate;
 mod path;
 mod rules;
