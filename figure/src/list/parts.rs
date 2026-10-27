@@ -7,7 +7,7 @@
 use std::fmt;
 use std::ops::Range;
 
-use kurbo::{Affine, BezPath, PathEl, Point, Rect};
+use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
 use peniko::{Brush, FontData, ImageData};
 
 use crate::list::{Clip, Command, GlyphRun, List, Paints};
@@ -70,8 +70,10 @@ impl Cells {
 /// device px at `scale`: `round(x · scale)`, sorted and deduplicated; edges
 /// that are not finite are ignored, negative ones taken as 0), with each
 /// cell's parts bucketed once: the parts whose bounds in device px,
-/// inflated by one device px for antialiasing, share interior with the
-/// cell. A cell's hash is FNV-1a 64 of its rect and its parts' hashes in
+/// inflated by one device px for antialiasing but not past the clip the
+/// part is drawn in (taken out to whole device px), share interior with
+/// the cell, so marks clipped to a plot area whose edges lie on device
+/// pixels touch only its cells. A cell's hash is FNV-1a 64 of its rect and its parts' hashes in
 /// order; its work counts one item per `Fill`, `Stroke` or `Image` command
 /// of its parts plus ⌊elements / 16⌋ of a fill's or stroke's path, one per
 /// point of a `Markers` command and one per glyph of a `Glyphs` command;
@@ -82,11 +84,19 @@ pub fn cells(list: &List, xs: &[f64], ys: &[f64], scale: f64) -> Cells {
     let rows = edges(ys, scale);
     let (across, down) = (cols.len().saturating_sub(1), rows.len().saturating_sub(1));
     let mut parts: Vec<Vec<u32>> = vec![Vec::new(); across * down];
-    for (index, part) in list.parts.iter().enumerate() {
+    let clips = clips(list);
+    for (index, (part, clip)) in list.parts.iter().zip(clips).enumerate() {
         if part.bounds.area() <= 0.0 {
             continue;
         }
-        let device = part.bounds.scale_from_origin(scale).inflate(1.0, 1.0);
+        let inflated = part.bounds.scale_from_origin(scale).inflate(1.0, 1.0);
+        let device = match clip {
+            Some(clip) => inflated.intersect(outward(clip.scale_from_origin(scale))),
+            None => inflated,
+        };
+        if device.area() <= 0.0 {
+            continue;
+        }
         let index = u32::try_from(index).expect("invariant: a list holds fewer than 2^32 parts");
         for row in span(&rows, device.y0, device.y1) {
             for col in span(&cols, device.x0, device.x1) {
@@ -131,6 +141,73 @@ pub fn cells(list: &List, xs: &[f64], ys: &[f64], scale: f64) -> Cells {
         })
         .collect();
     Cells { cols, rows, cells }
+}
+
+/// The clip each part of `list` is drawn in, in list px: the intersection
+/// of the clips of the groups open at its first command, through their
+/// transforms; `None` outside every clip.
+fn clips(list: &List) -> Vec<Option<Rect>> {
+    let mut starts = list.parts.iter().map(|part| part.commands.start).peekable();
+    let mut groups = vec![(Affine::IDENTITY, None::<Rect>)];
+    let mut found = Vec::with_capacity(list.parts.len());
+    for (i, command) in list.commands.iter().enumerate() {
+        let (transform, clip) = *groups
+            .last()
+            .expect("invariant: the root group is never popped");
+        while starts.next_if(|&start| start == i).is_some() {
+            found.push(clip);
+        }
+        match command {
+            Command::Push {
+                transform: inner,
+                clip: inner_clip,
+            } => {
+                let next = transform * *inner;
+                let own = inner_clip.as_ref().map(|c| {
+                    next.transform_rect_bbox(match c {
+                        Clip::Rect(r) => r.abs(),
+                        Clip::Path(p) => p.bounding_box(),
+                    })
+                });
+                let clip = match (clip, own) {
+                    (Some(a), Some(b)) => Some(a.intersect(b)),
+                    (a, b) => a.or(b),
+                };
+                groups.push((next, clip));
+            }
+            Command::Pop => {
+                if groups.len() > 1 {
+                    groups.pop();
+                }
+            }
+            Command::Fill { .. }
+            | Command::Stroke { .. }
+            | Command::Markers { .. }
+            | Command::Glyphs(_)
+            | Command::Image { .. } => {}
+        }
+    }
+    found.resize(list.parts.len(), None);
+    found
+}
+
+/// `rect` grown to whole device px: each edge within 1e-6 of a whole
+/// pixel lands on it, the others move outward.
+fn outward(rect: Rect) -> Rect {
+    let edge = |v: f64, out: fn(f64) -> f64| {
+        let near = v.round();
+        if (v - near).abs() <= 1e-6 {
+            near
+        } else {
+            out(v)
+        }
+    };
+    Rect::new(
+        edge(rect.x0, f64::floor),
+        edge(rect.y0, f64::floor),
+        edge(rect.x1, f64::ceil),
+        edge(rect.y1, f64::ceil),
+    )
 }
 
 /// `values` in device px at `scale`, rounded, sorted and deduplicated.

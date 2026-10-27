@@ -4,9 +4,9 @@
 use std::collections::BTreeSet;
 
 use rustd3_core::scale;
-use rustd3_figure::kurbo::{BezPath, Point, Rect, Shape, Size};
+use rustd3_figure::kurbo::{Affine, BezPath, Point, Rect, Shape, Size};
 use rustd3_figure::layout::{Grid, em};
-use rustd3_figure::list::{self, Cells, Command, List, Part, part};
+use rustd3_figure::list::{self, Cells, Clip, Command, List, Part, part};
 use rustd3_figure::mark::{Ctx, Mark, dots};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::{Figure, Fits, Held, Target, axis};
@@ -288,6 +288,46 @@ fn parts_land_in_every_cell_their_bounds_inflated_by_a_device_pixel_touch() {
     let parts: Vec<&[u32]> = cells.cells.iter().map(|c| c.parts.as_slice()).collect();
     assert_eq!(parts, [&[0][..], &[0, 1][..]]);
     assert_ne!(cells.cells[0].hash, cells.cells[1].hash);
+}
+
+#[test]
+fn a_clipped_part_stops_at_its_clip_on_whole_device_pixels() {
+    let brush = Brush::Solid(Color::from_rgba8(0, 0, 0, 255));
+    let clipped = |clip: Rect| List {
+        size: Size::new(200.0, 100.0),
+        commands: vec![
+            Command::Push {
+                transform: Affine::translate((50.0, 0.0)),
+                clip: Some(Clip::Rect(clip)),
+            },
+            Command::Fill {
+                path: Rect::new(-10.0, 10.0, 30.0, 20.0).to_path(0.1),
+                paint: brush.clone(),
+            },
+            Command::Pop,
+        ],
+        // The fill reaches the clip's left edge, x = 50 in list px.
+        parts: vec![part_over(1..2, Rect::new(50.0, 10.0, 80.0, 20.0))],
+        ..List::default()
+    };
+    let parts = |list: &List| -> Vec<Vec<u32>> {
+        list::cells(list, &[0.0, 50.0, 100.0], &[0.0, 100.0], 2.0)
+            .cells
+            .iter()
+            .map(|c| c.parts.clone())
+            .collect()
+    };
+    // A clip on device pixels: the inflated bounds stop at it.
+    let aligned = clipped(Rect::new(0.0, 0.0, 50.0, 100.0));
+    assert_eq!(parts(&aligned), [vec![], vec![0]]);
+    // A clip a quarter px left of the edge reaches the cell before it.
+    let between = clipped(Rect::new(-0.25, 0.0, 50.0, 100.0));
+    assert_eq!(parts(&between), [vec![0], vec![0]]);
+    // Outside every clip the bounds grow by a device px either way.
+    let mut free = clipped(Rect::new(0.0, 0.0, 50.0, 100.0));
+    free.commands = vec![free.commands[1].clone()];
+    free.parts = vec![part_over(0..1, Rect::new(50.0, 10.0, 80.0, 20.0))];
+    assert_eq!(parts(&free), [vec![0], vec![0]]);
 }
 
 #[test]
