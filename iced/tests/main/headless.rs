@@ -40,6 +40,24 @@ pub struct Harness<'a, Message> {
     interaction: mouse::Interaction,
 }
 
+/// A harness between frames whose interface is turned into iced's cache,
+/// so the app's state can change while no view borrows it; as the runtime
+/// does between a frame and the next `view`. [`Parked::resume`] builds the
+/// interface again from the new view, widget state carried over.
+#[cfg(all(feature = "figure", feature = "fonts"))]
+pub struct Parked<Message> {
+    cache: user_interface::Cache,
+    renderer: iced::Renderer,
+    size: Size,
+    scale: f32,
+    cursor: mouse::Cursor,
+    bus: shell::Bus<Message>,
+    wakes: Arc<AtomicUsize>,
+    waited: usize,
+    redraw: window::RedrawRequest,
+    interaction: mouse::Interaction,
+}
+
 /// A screenshot: RGBA8 at physical size, row-major.
 pub struct Shot {
     pub width: u32,
@@ -119,6 +137,29 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             cache,
             &mut self.renderer,
         ));
+    }
+
+    /// Turns the interface into iced's cache, ending its borrow of the
+    /// view, until [`Parked::resume`].
+    #[cfg(all(feature = "figure", feature = "fonts"))]
+    pub fn park(mut self) -> Parked<Message> {
+        let cache = self
+            .ui
+            .take()
+            .expect("invariant: the interface is only taken during a rebuild")
+            .into_cache();
+        Parked {
+            cache,
+            renderer: self.renderer,
+            size: self.size,
+            scale: self.scale,
+            cursor: self.cursor,
+            bus: self.bus,
+            wakes: self.wakes,
+            waited: self.waited,
+            redraw: self.redraw,
+            interaction: self.interaction,
+        }
     }
 
     /// Updates the interface with `events`, in one update.
@@ -243,6 +284,29 @@ impl<'a, Message: 'a> Harness<'a, Message> {
     /// The renderer's name: `tiny-skia` or `wgpu`.
     pub fn backend(&self) -> String {
         self.renderer.name()
+    }
+}
+
+#[cfg(all(feature = "figure", feature = "fonts"))]
+impl<Message> Parked<Message> {
+    /// The harness again, its interface built from `root` over the cache.
+    pub fn resume<'b>(mut self, root: impl iced::Widget<Message> + 'b) -> Harness<'b, Message>
+    where
+        Message: 'b,
+    {
+        let ui = UserInterface::build(root, self.size, self.cache, &mut self.renderer);
+        Harness {
+            ui: Some(ui),
+            renderer: self.renderer,
+            size: self.size,
+            scale: self.scale,
+            cursor: self.cursor,
+            bus: self.bus,
+            wakes: self.wakes,
+            waited: self.waited,
+            redraw: self.redraw,
+            interaction: self.interaction,
+        }
     }
 }
 

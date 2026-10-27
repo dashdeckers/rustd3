@@ -1,5 +1,8 @@
 //! The `Plot` widget through the headless harness on the backend
-//! `ICED_TEST_BACKEND` names, against the PNG of the same figure.
+//! `ICED_TEST_BACKEND` names, against the PNG of the same figure: display
+//! and the overlay; `Plot::revision` and `Plot::caching`; and live data,
+//! the cells an append, a moving window or `drop_front` re-renders, read
+//! from the probe's raster samples against the parts that changed.
 
 use std::sync::mpsc;
 use std::time::Duration;
@@ -7,17 +10,21 @@ use std::time::Duration;
 use iced::time::Instant;
 use iced::{Color, Event, Point, Size, mouse};
 use rustd3_core::color::Rgb;
-use rustd3_core::scale;
+use rustd3_core::scale::{self, Linear};
+use rustd3_core::scheme::COLORBLIND;
+use rustd3_core::series::{Clock, Recording};
 use rustd3_figure::kurbo;
-use rustd3_figure::list::{self, Cells, List};
+use rustd3_figure::list::{self, Cells, List, part};
 use rustd3_figure::mark::{dots, line};
+use rustd3_figure::scale::{Fit, ScaleRef};
 use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::{self, Sample};
-use rustd3_iced::plot::{Caching, Probe, Render};
+use rustd3_iced::plot::{Caching, Probe, Render, cost};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
+use crate::pipeline;
 use crate::reference;
 
 /// The figure's logical size.
@@ -475,4 +482,508 @@ fn caching_off_renders_every_cell() {
         }
         assert!(unchanged.is_empty(), "{backend}: {unchanged:?}");
     }
+}
+
+/// Samples per second of the live recordings.
+const RATE: f64 = 10_000.0;
+
+/// Samples one append adds: 0.1 s at 10 kHz.
+const APPEND: usize = 1_000;
+
+/// Samples `from..from + n` of live channel `seed`: a sine of 1, 2 or
+/// 0.5 Hz and amplitude 0.9, 0.7 or 0.5. Its sampled peaks are exactly
+/// ± the amplitude (each peak's argument rounds to within an ulp of
+/// ±π/2 + 2πk, where the sine rounds to ±1) and one of each lies in every
+/// two seconds, so neither appends nor `drop_front` move a fitted y; and
+/// it is smooth, so no thinned stroke overlaps itself (D18.3).
+fn wave(from: usize, n: usize, seed: usize) -> Vec<f64> {
+    let (hz, amplitude) = [(1.0, 0.9), (2.0, 0.7), (0.5, 0.5)][seed % 3];
+    (from..from + n)
+        .map(|i| amplitude * (std::f64::consts::TAU * hz * (i as f64 / RATE)).sin())
+        .collect()
+}
+
+/// `n` samples at 10 kHz from t = 0 on live channels `seeds`, on a
+/// regular clock.
+fn recording(n: usize, seeds: std::ops::Range<usize>) -> Recording<f64> {
+    let clock = Clock::Regular {
+        start: 0.0,
+        period: 1.0 / RATE,
+    };
+    Recording::new(clock, seeds.map(|seed| wave(0, n, seed))).expect("a valid recording")
+}
+
+/// Appends `n` samples to every channel of `rec`, whose channels are live
+/// channels `seeds`, continuing their waves.
+fn append(rec: &mut Recording<f64>, seeds: std::ops::Range<usize>, n: usize) {
+    let from = usize::try_from(rec.offset()).expect("a small offset") + rec.len();
+    let channels: Vec<Vec<f64>> = seeds.map(|seed| wave(from, n, seed)).collect();
+    rec.extend(&[], channels).expect("a valid append");
+}
+
+/// The live channels of the upper recording.
+const TOP: std::ops::Range<usize> = 0..1;
+
+/// The live channels of the lower recording.
+const BOTTOM: std::ops::Range<usize> = 1..3;
+
+/// How a live trace's x follows its data.
+#[derive(Debug, Clone, Copy)]
+enum Follow {
+    /// A domain the app sets.
+    Fixed([f64; 2]),
+    /// The newest span of data (`Fit::Window`).
+    Window(f64),
+}
+
+/// The live trace: every channel of `top` in the upper panel and of
+/// `bottom` in the lower one, in the palette's colors, sharing x as
+/// `follow` says, each panel's y fitted to its data; left axes, bottom
+/// axes (the upper one unlabelled); the upper panel zooms x. Its x handle.
+fn trace<'a>(
+    top: &'a Recording<f64>,
+    bottom: &'a Recording<f64>,
+    follow: Follow,
+) -> (Figure<'a>, ScaleRef<Linear>) {
+    let mut fig = Figure::new();
+    let t = match follow {
+        Follow::Fixed(domain) => fig.scale(scale::linear().domain(domain)),
+        Follow::Window(span) => fig.fit_with(scale::linear(), Fit::Window(span)),
+    };
+    let (upper, lower) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    let color = fig.scale(scale::ordinal([0_usize, 1, 2], COLORBLIND));
+    let panel = fig.panel(0, 0);
+    for c in 0..top.channels() {
+        panel.mark(line(top.series(c).expect("a channel"), t, upper).stroke(color, c));
+    }
+    panel
+        .axis(axis::left(upper))
+        .axis(axis::bottom(t).labels(false))
+        .zoom_x(t);
+    let panel = fig.panel(1, 0);
+    for c in 0..bottom.channels() {
+        let channel = bottom.series(c).expect("a channel");
+        panel.mark(line(channel, t, lower).stroke(color, top.channels() + c));
+    }
+    panel
+        .axis(axis::left(lower))
+        .axis(axis::bottom(t).label("time [s]"));
+    (fig, t)
+}
+
+/// The widget over [`trace`] at factor `k`, rendering as `render`,
+/// without the overlay, reporting to `probe` if given.
+fn live<'a>(
+    top: &'a Recording<f64>,
+    bottom: &'a Recording<f64>,
+    follow: Follow,
+    k: f32,
+    render: Render,
+    probe: Option<&Probe>,
+) -> Plot<'a, ()> {
+    let plot = Plot::new(trace(top, bottom, follow).0)
+        .scale_factor(k)
+        .render(render)
+        .crosshair(false)
+        .highlight(false);
+    match probe {
+        Some(probe) => plot.probe(probe.clone()),
+        None => plot,
+    }
+}
+
+/// The id of part `index` of `role` in panel `panel` (`role << 56 |
+/// panel << 32 | index`): 4 for axes, 6 for marks.
+fn part_id(role: u64, panel: u64, index: u64) -> part::Id {
+    part::Id::new(role << 56 | panel << 32 | index)
+}
+
+/// The ids of the parts of `after` that `before` does not have with the
+/// same hash, and of those of `before` that `after` lacks, sorted.
+fn changed_parts(before: &List, after: &List) -> Vec<part::Id> {
+    let differ = |a: &List, b: &List| -> Vec<part::Id> {
+        a.parts
+            .iter()
+            .filter(|p| !b.parts.iter().any(|q| q.id == p.id && q.hash == p.hash))
+            .map(|p| p.id)
+            .collect()
+    };
+    let mut ids = differ(after, before);
+    ids.extend(differ(before, after));
+    ids.sort_unstable();
+    ids.dedup();
+    ids
+}
+
+/// The cells of `cells` (cut from `list`) that list one of the parts
+/// `ids`, in order.
+fn listing(cells: &Cells, list: &List, ids: &[part::Id]) -> Vec<u32> {
+    (0_u32..)
+        .zip(&cells.cells)
+        .filter(|(_, cell)| {
+            cell.parts
+                .iter()
+                .any(|&p| ids.contains(&list.parts[p as usize].id))
+        })
+        .map(|(i, _)| i)
+        .collect()
+}
+
+/// The cell of `cells` holding the top left device pixel of panel
+/// `panel`'s plot area of `fig` at `size` and `k`.
+fn area_cell(fig: &Figure<'_>, size: Size, k: f32, cells: &Cells, panel: usize) -> u32 {
+    let size = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
+    let target = Target::Screen {
+        scale: f64::from(k),
+    };
+    let area = fig
+        .resolve(size, &mut Cache::default(), &Held::default(), target)
+        .plot_areas()[panel];
+    let at = [area.x0, area.y0].map(|v| (v * f64::from(k)).round() as i32 + 1);
+    cells
+        .cell_at(at)
+        .and_then(|i| u32::try_from(i).ok())
+        .expect("a plot area is a cell")
+}
+
+/// The frame `shot` against the PNG of `fig` at `size` and `k` on white.
+fn against(shot: &Shot, fig: &Figure<'_>, size: Size, k: f32) -> pixels::Diff {
+    let logical = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
+    let png = reference::png_of(fig, logical, f64::from(k), Color::WHITE);
+    let png = pixels::Image::new(png.width, png.height, &png.rgba)
+        .expect("invariant: a render holds width × height pixels");
+    pixels::Diff::between(&shot.image(), &png, 16).expect("invariant: the shot has the PNG's size")
+}
+
+/// The live figures' logical size.
+const LIVE: Size = Size::new(640.0, 400.0);
+
+#[test]
+fn live_append_re_renders_only_touched_cells() {
+    let k = 2.0;
+    // Channel 0 alone in its own recording; x set wider than the data.
+    let (mut top, bottom) = (recording(100_000, TOP), recording(100_000, BOTTOM));
+    let follow = Follow::Fixed([0.0, 20.0]);
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(clock, tx);
+    let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+    let Some(mut harness) = Harness::new(plot, LIVE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t = headless::epoch();
+    let _ = harness.frame(t);
+    let first = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
+    let parked = harness.park();
+    let revision = top.revision();
+    append(&mut top, TOP, APPEND);
+    assert_eq!(top.revision(), revision + 1);
+    let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+    let mut harness = parked.resume(plot);
+    let shot = harness.frame(t + Duration::from_millis(100));
+    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let (fig, _) = trace(&top, &bottom, follow);
+    let (list, cells) = partition(&fig, LIVE, k);
+    let changed = changed_parts(&before, &list);
+    let cell = area_cell(&fig, LIVE, k, &cells, 0);
+    println!(
+        "append to channel 0, {backend}: {} cells first, then {after:?} (panel 0's plot area is cell {cell}); parts changed {changed:?}",
+        first.len()
+    );
+    assert_eq!(first.len(), cells.cells.len(), "{backend}");
+    assert_eq!(
+        changed,
+        [part_id(6, 0, 0)],
+        "{backend}: only channel 0's line"
+    );
+    assert_eq!(after, [cell], "{backend}");
+    let diff = against(&shot, &fig, LIVE, k);
+    assert!(
+        diff.max() <= bound(&backend),
+        "{backend}: max {}/255",
+        diff.max()
+    );
+}
+
+#[test]
+fn fit_window_follows_in_whole_device_columns() {
+    let follow = Follow::Window(10.0);
+    for k in [1.0, 1.25, 2.0] {
+        let (mut top, mut bottom) = (recording(100_000, TOP), recording(100_000, BOTTOM));
+        let (tx, rx) = mpsc::channel();
+        let probe = Probe::new(clock, tx);
+        let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+        let Some(mut harness) = Harness::new(plot, LIVE, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let t = headless::epoch();
+        let mut last: Option<([f64; 2], List, Cells)> = None;
+        // Every line and both x axes; the y axes and the rest stay.
+        let moving = [
+            part_id(4, 0, 1),
+            part_id(4, 1, 1),
+            part_id(6, 0, 0),
+            part_id(6, 1, 0),
+            part_id(6, 1, 1),
+        ];
+        for step in 0..=10_u32 {
+            if step > 0 {
+                let parked = harness.park();
+                append(&mut top, TOP, APPEND);
+                append(&mut bottom, BOTTOM, APPEND);
+                let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+                harness = parked.resume(plot);
+            }
+            let shot = harness.frame(t + Duration::from_millis(100) * step);
+            let cells_rendered = rendered(&rx.try_iter().collect::<Vec<_>>());
+            let (fig, x) = trace(&top, &bottom, follow);
+            let target = Target::Screen {
+                scale: f64::from(k),
+            };
+            let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
+            let resolved = fig.resolve(size, &mut Cache::default(), &Held::default(), target);
+            let domain = resolved.scale(x).get_domain();
+            let columns = (resolved.plot_areas()[0].width() * f64::from(k)).round();
+            let col = 10.0 / columns;
+            let (list, cells) = partition(&fig, LIVE, k);
+            let diff = against(&shot, &fig, LIVE, k);
+            assert!(
+                diff.max() <= bound(&backend),
+                "{backend}, k = {k}, append {step}: max {}/255",
+                diff.max()
+            );
+            if let Some((previous, before, before_cells)) = &last {
+                let moved = (domain[1] - previous[1]) / col;
+                let changed = changed_parts(before, &list);
+                // The cells the moving parts are in now or were in: a tick
+                // leaving the plot area's end takes its pixels in the
+                // gutter beside it along.
+                let mut expected = listing(&cells, &list, &moving);
+                expected.extend(listing(before_cells, before, &moving));
+                expected.sort_unstable();
+                expected.dedup();
+                println!(
+                    "window, {backend}, k = {k}, append {step}: [{:.4}, {:.4}] moved {moved} of {columns} columns; rendered {cells_rendered:?}",
+                    domain[0], domain[1]
+                );
+                assert!(
+                    (moved - moved.round()).abs() < 1e-9 && moved >= 1.0,
+                    "{backend}, k = {k}: {moved} columns"
+                );
+                assert!(
+                    (moved - columns / 100.0).abs() < 1.0,
+                    "{backend}, k = {k}: {moved} columns of {columns}"
+                );
+                if columns == 1000.0 {
+                    assert_eq!(moved.round(), 10.0, "{backend}, k = {k}");
+                }
+                assert_eq!(changed, moving, "{backend}, k = {k}, append {step}");
+                assert_eq!(
+                    cells_rendered, expected,
+                    "{backend}, k = {k}, append {step}"
+                );
+            } else {
+                assert_eq!(
+                    cells_rendered.len(),
+                    cells.cells.len(),
+                    "{backend}, k = {k}"
+                );
+            }
+            last = Some((domain, list, cells));
+        }
+    }
+}
+
+#[test]
+fn ten_hz_appends_stay_sharp() {
+    // 800 × 500 at 2: plot areas about 1,400 × 760 device px.
+    let (size, k) = (Size::new(800.0, 500.0), 2.0);
+    let follow = Follow::Window(10.0);
+    let (mut top, mut bottom) = (recording(1_000_000, TOP), recording(1_000_000, BOTTOM));
+    // What an append changes, as the cost model predicts it, against half
+    // of the longest frame budget.
+    let (before, _) = partition(&trace(&top, &bottom, follow).0, size, k);
+    let mut grown = (recording(1_000_000, TOP), recording(1_000_000, BOTTOM));
+    append(&mut grown.0, TOP, APPEND);
+    append(&mut grown.1, BOTTOM, APPEND);
+    let (after, cells) = partition(&trace(&grown.0, &grown.1, follow).0, size, k);
+    let changed = changed_parts(&before, &after);
+    let touched = listing(&cells, &after, &changed);
+    let (pixels, work) = touched.iter().fold((0, 0), |(pixels, work), &i| {
+        let cell = &cells.cells[i as usize];
+        let area = (cell.rect.width() * cell.rect.height()) as u64;
+        (pixels + area, work + cell.work)
+    });
+    let predicted = cost::model_ms(pixels, work);
+    println!(
+        "ten appends a second: an append changes {} parts and {} of {} cells, {pixels} device px and {work} items: {predicted:.2} ms predicted",
+        changed.len(),
+        touched.len(),
+        cells.cells.len()
+    );
+    assert!(predicted <= 16.7 / 2.0, "{predicted} ms");
+    drop(grown);
+    // No probe, so nothing calibrates the model; frames 100 ms apart.
+    let _workers = pipeline::workers();
+    let plot = live(&top, &bottom, follow, k, Render::Auto, None);
+    let Some(mut harness) = Harness::new(plot, size, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t = headless::epoch();
+    let _ = harness.frame(t);
+    // The first frame may wait for the worker; settle it.
+    while harness.wait_for_wake(Duration::from_secs(10)) {
+        let _ = harness.events(&[Event::Waken]);
+    }
+    let wakes = harness.wakes();
+    let mut worst = 0;
+    for step in 1..=10_u32 {
+        let parked = harness.park();
+        append(&mut top, TOP, APPEND);
+        append(&mut bottom, BOTTOM, APPEND);
+        harness = parked.resume(live(&top, &bottom, follow, k, Render::Auto, None));
+        let shot = harness.frame(t + Duration::from_millis(100) * step);
+        // Every changed cell rendered inline: no result for a worker to
+        // wake the UI with, and the frame is the sharp one, which differs
+        // from the PNG only where vello_cpu's output depends on a cell's
+        // origin where strokes cross (D18.3); a preview would be shifted.
+        assert_eq!(harness.wakes(), wakes, "{backend}, append {step}");
+        let diff = against(&shot, &trace(&top, &bottom, follow).0, size, k);
+        worst = worst.max(diff.max());
+        assert_eq!(
+            diff.over(),
+            0,
+            "{backend}, append {step}: max {}/255",
+            diff.max()
+        );
+    }
+    println!(
+        "ten appends a second, {backend}: ten sharp frames (max {worst}/255 against the PNG), {wakes} wakes before them, none after"
+    );
+}
+
+#[test]
+fn drop_front_re_renders_the_cell() {
+    let k = 2.0;
+    let (mut top, bottom) = (recording(150_000, TOP), recording(100_000, BOTTOM));
+    let follow = Follow::Fixed([0.0, 20.0]);
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(clock, tx);
+    let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+    let Some(mut harness) = Harness::new(plot, LIVE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t = headless::epoch();
+    let _ = harness.frame(t);
+    let _ = rx.try_iter().count();
+    let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
+    let parked = harness.park();
+    let revision = top.revision();
+    assert_eq!(top.drop_front(65_536), 65_536);
+    assert_eq!(top.revision(), revision + 1);
+    let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+    let mut harness = parked.resume(plot);
+    let shot = harness.frame(t + Duration::from_millis(100));
+    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let (fig, _) = trace(&top, &bottom, follow);
+    let (list, cells) = partition(&fig, LIVE, k);
+    let changed = changed_parts(&before, &list);
+    let cell = area_cell(&fig, LIVE, k, &cells, 0);
+    // A fresh recording of the retained samples draws the same pixels.
+    let series = top.series(0).expect("a channel");
+    let (x, y): (Vec<f64>, Vec<f64>) = (0..series.len())
+        .map(|i| series.get(i).expect("a sample"))
+        .unzip();
+    let fresh = Recording::new(Clock::Explicit(x), [y]).expect("a valid recording");
+    let diff = against(&shot, &trace(&fresh, &bottom, follow).0, LIVE, k);
+    println!(
+        "drop_front of 65,536 samples, {backend}: rendered {after:?} (panel 0's plot area is cell {cell}); parts changed {changed:?}; against a fresh recording max {}/255",
+        diff.max()
+    );
+    assert_eq!(changed, [part_id(6, 0, 0)], "{backend}");
+    assert_eq!(after, [cell], "{backend}");
+    assert!(
+        diff.max() <= bound(&backend),
+        "{backend}: max {}/255",
+        diff.max()
+    );
+}
+
+#[test]
+fn a_gesture_holds_a_windowed_handle() {
+    let k = 1.0;
+    let follow = Follow::Window(10.0);
+    let (mut top, mut bottom) = (recording(100_000, TOP), recording(100_000, BOTTOM));
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(clock, tx);
+    let area = {
+        let (fig, _) = trace(&top, &bottom, follow);
+        let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
+        let target = Target::Screen { scale: 1.0 };
+        fig.resolve(size, &mut Cache::default(), &Held::default(), target)
+            .plot_areas()[0]
+    };
+    let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
+    let Some(mut harness) = Harness::new(plot, LIVE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t0 = headless::epoch();
+    let frame = Duration::from_millis(16);
+    let fresh = harness.frame(t0);
+    // Drag the upper panel 40 px right, then let the layout settle.
+    let from = Point::new(area.center().x as f32, area.center().y as f32);
+    let left = mouse::Button::Left;
+    let moved = |at: Point| Event::Mouse(mouse::Event::CursorMoved { position: at });
+    harness.point_at(from);
+    let _ = harness.events(&[moved(from), Event::Mouse(mouse::Event::ButtonPressed(left))]);
+    let _ = harness.frame(t0 + frame);
+    for (i, dx) in [20.0, 40.0].into_iter().enumerate() {
+        let at = Point::new(from.x + dx, from.y);
+        harness.point_at(at);
+        let _ = harness.events(&[moved(at)]);
+        let _ = harness.frame(t0 + frame * (i as u32 + 2));
+    }
+    let _ = harness.events(&[Event::Mouse(mouse::Event::ButtonReleased(left))]);
+    let _ = harness.frame(t0 + frame * 4);
+    let t1 = t0 + Duration::from_secs(1);
+    let dragged = harness.frame(t1);
+    assert_ne!(dragged.rgba, fresh.rgba, "{backend}: the drag moved x");
+    let _ = rx.try_iter().count();
+    // An append: the held window stays, and no cell renders.
+    let parked = harness.park();
+    append(&mut top, TOP, APPEND);
+    append(&mut bottom, BOTTOM, APPEND);
+    harness = parked.resume(live(&top, &bottom, follow, k, Render::Inline, Some(&probe)));
+    let held = harness.frame(t1 + Duration::from_millis(100));
+    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    println!("held window, {backend}: an append renders {after:?}");
+    assert!(after.is_empty(), "{backend}: {after:?}");
+    assert_eq!(held.rgba, dragged.rgba, "{backend}");
+    // A double click over the panel: the window follows the data again.
+    let click = |harness: &mut Harness<'_, ()>| {
+        let _ = harness.events(&[Event::Mouse(mouse::Event::ButtonPressed(left))]);
+        let _ = harness.events(&[Event::Mouse(mouse::Event::ButtonReleased(left))]);
+    };
+    let t2 = t1 + Duration::from_millis(200);
+    click(&mut harness);
+    let _ = harness.frame(t2);
+    click(&mut harness);
+    let _ = harness.frame(t2 + Duration::from_millis(200));
+    let reset = harness.frame(t2 + Duration::from_secs(1));
+    let diff = against(&reset, &trace(&top, &bottom, follow).0, LIVE, k);
+    println!(
+        "held window, {backend}: after a double click max {}/255 against the windowed figure",
+        diff.max()
+    );
+    assert!(
+        diff.max() <= bound(&backend),
+        "{backend}: max {}/255",
+        diff.max()
+    );
+    assert_ne!(reset.rgba, held.rgba, "{backend}");
 }
