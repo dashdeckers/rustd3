@@ -2,7 +2,11 @@
 //! joins its points, and `State`, the state machine each one draws with
 //! (d3's curve objects, verbatim in structure).
 
+mod basis;
+mod bump;
+mod bundle;
 mod linear;
+mod step;
 
 use crate::path::PathContext;
 
@@ -15,6 +19,32 @@ pub enum Curve {
     /// d3.curveLinearClosed: straight segments, closed back to the first
     /// point.
     LinearClosed,
+    /// d3.curveStep: horizontal and vertical segments, the vertical one
+    /// halfway between points.
+    Step,
+    /// d3.curveStepBefore: the vertical segment at the previous point.
+    StepBefore,
+    /// d3.curveStepAfter: the vertical segment at the next point.
+    StepAfter,
+    /// d3.curveBasis: a cubic B-spline with the points as control points,
+    /// from the first point to the last.
+    Basis,
+    /// d3.curveBasisClosed: a closed cubic B-spline.
+    BasisClosed,
+    /// d3.curveBasisOpen: a cubic B-spline that starts and ends at the
+    /// inner knots.
+    BasisOpen,
+    /// d3.curveBumpX: cubics with horizontal tangents at each point.
+    BumpX,
+    /// d3.curveBumpY: cubics with vertical tangents at each point.
+    BumpY,
+    /// d3.curveBundle: a basis spline straightened toward the line from the
+    /// first point to the last. d3's default beta is 0.85; beta 1 is
+    /// `Basis`. An area draws it as `Basis`.
+    Bundle {
+        /// The bundle strength in [0, 1]: 0 is the straight line.
+        beta: f64,
+    },
 }
 
 /// d3's `_line`, a curve's place in an area: unset for a plain line (d3's
@@ -33,6 +63,12 @@ enum Line {
 pub(crate) enum State {
     Linear(linear::Linear),
     LinearClosed(linear::LinearClosed),
+    Step(step::Step),
+    Basis(basis::Basis),
+    BasisClosed(basis::BasisClosed),
+    BasisOpen(basis::BasisOpen),
+    Bump(bump::Bump),
+    Bundle(bundle::Bundle),
 }
 
 /// `$body` with `$family` bound to the family `$state` holds.
@@ -41,6 +77,12 @@ macro_rules! each {
         match $state {
             State::Linear($family) => $body,
             State::LinearClosed($family) => $body,
+            State::Step($family) => $body,
+            State::Basis($family) => $body,
+            State::BasisClosed($family) => $body,
+            State::BasisOpen($family) => $body,
+            State::Bump($family) => $body,
+            State::Bundle($family) => $body,
         }
     };
 }
@@ -73,11 +115,31 @@ impl Line {
 }
 
 impl State {
-    /// The state `curve` draws a line or an area with.
+    /// The state `curve` draws a line with.
     pub(crate) fn new(curve: Curve) -> State {
         match curve {
             Curve::Linear => State::Linear(linear::Linear::default()),
             Curve::LinearClosed => State::LinearClosed(linear::LinearClosed::default()),
+            Curve::Step => State::Step(step::Step::new(0.5)),
+            Curve::StepBefore => State::Step(step::Step::new(0.0)),
+            Curve::StepAfter => State::Step(step::Step::new(1.0)),
+            Curve::Basis => State::Basis(basis::Basis::new()),
+            Curve::BasisClosed => State::BasisClosed(basis::BasisClosed::new()),
+            Curve::BasisOpen => State::BasisOpen(basis::BasisOpen::new()),
+            Curve::BumpX => State::Bump(bump::Bump::new(true)),
+            Curve::BumpY => State::Bump(bump::Bump::new(false)),
+            Curve::Bundle { beta: 1.0 } => State::Basis(basis::Basis::new()),
+            Curve::Bundle { beta } => State::Bundle(bundle::Bundle::new(beta)),
+        }
+    }
+
+    /// The state `curve` draws an area with: a line's, except that `Bundle`
+    /// draws as `Basis` (d3's bundle has no `areaStart` and throws there).
+    pub(crate) fn area(curve: Curve) -> State {
+        if let Curve::Bundle { .. } = curve {
+            State::new(Curve::Basis)
+        } else {
+            State::new(curve)
         }
     }
 
@@ -85,8 +147,13 @@ impl State {
     pub(crate) fn area_start(&mut self) {
         match self {
             State::Linear(s) => s.area_start(),
-            // d3's closed curves ignore areaStart and areaEnd.
-            State::LinearClosed(_) => {}
+            State::Step(s) => s.area_start(),
+            State::Basis(s) => s.area_start(),
+            State::BasisOpen(s) => s.area_start(),
+            State::Bump(s) => s.area_start(),
+            // d3's closed curves ignore areaStart and areaEnd; `State::area`
+            // holds no bundle.
+            State::LinearClosed(_) | State::BasisClosed(_) | State::Bundle(_) => {}
         }
     }
 
@@ -94,7 +161,11 @@ impl State {
     pub(crate) fn area_end(&mut self) {
         match self {
             State::Linear(s) => s.area_end(),
-            State::LinearClosed(_) => {}
+            State::Step(s) => s.area_end(),
+            State::Basis(s) => s.area_end(),
+            State::BasisOpen(s) => s.area_end(),
+            State::Bump(s) => s.area_end(),
+            State::LinearClosed(_) | State::BasisClosed(_) | State::Bundle(_) => {}
         }
     }
 

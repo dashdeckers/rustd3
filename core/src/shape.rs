@@ -7,8 +7,8 @@
 //! use rustd3_core::shape::{self, Curve};
 //!
 //! let pts = [(0.0, 0.0), (1.0, 2.0), (2.0, 1.0), (3.0, 3.0)];
-//! let d = path::svg(|p| shape::line().curve(Curve::LinearClosed).draw(pts, p));
-//! assert_eq!(d, "M0,0L1,2L2,1L3,3Z");
+//! let d = path::svg(|p| shape::line().curve(Curve::StepAfter).draw(pts, p));
+//! assert_eq!(d, "M0,0L1,0L1,2L2,2L2,1L3,1L3,3");
 //!
 //! let rows = [(0.0, 10.0, 4.0), (1.0, 10.0, 2.0), (2.0, 10.0, 5.0)];
 //! let d = path::svg(|p| shape::area().draw(rows.map(Some), p));

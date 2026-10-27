@@ -70,9 +70,10 @@ impl Area {
     /// Draws `items` into `ctx` as d3's `area(data)` does: for each run of
     /// `Some` items, the curve through `(x, y1)` forward, then through
     /// `(x, y0)` backward, closed by the curve. A closed curve draws the two
-    /// edges as two closed rings, as d3's do.
+    /// edges as two closed rings, as d3's do; `Curve::Bundle` draws as
+    /// `Curve::Basis`.
     pub fn draw<S: Span>(&self, items: impl IntoIterator<Item = S>, ctx: &mut impl PathContext) {
-        let mut state = State::new(self.curve);
+        let mut state = State::area(self.curve);
         let mut base = Vec::new();
         for item in items {
             match item.span(self.baseline) {
