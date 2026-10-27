@@ -1,0 +1,393 @@
+{
+ "cases": [
+  {
+   "extent": [
+    0.0,
+    10.0
+   ],
+   "inverted": false,
+   "limits": [
+    -0.5,
+    10.5
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    3.0,
+    3.0
+   ],
+   "inverted": false,
+   "limits": [
+    2.835,
+    3.165
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    0.0,
+    0.0
+   ],
+   "inverted": false,
+   "limits": [
+    -0.05500000000000001,
+    0.05500000000000001
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    -2.0,
+    -2.0
+   ],
+   "inverted": false,
+   "limits": [
+    -2.1100000000000003,
+    -1.89
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    -7.5,
+    1000000.0
+   ],
+   "inverted": false,
+   "limits": [
+    -100008.25,
+    1100000.75
+   ],
+   "margin": 0.1,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    1e-20,
+    2e-20
+   ],
+   "inverted": false,
+   "limits": [
+    9.5e-21,
+    2.0499999999999997e-20
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    0.1,
+    0.3
+   ],
+   "inverted": false,
+   "limits": [
+    0.1,
+    0.3
+   ],
+   "margin": 0.0,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    -3.0,
+    -1.0
+   ],
+   "inverted": false,
+   "limits": [
+    -3.4,
+    -0.6
+   ],
+   "margin": 0.2,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    1e+300,
+    1e+300
+   ],
+   "inverted": false,
+   "limits": [
+    9.450000000000001e+299,
+    1.055e+300
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    5.0,
+    5.000000000000001
+   ],
+   "inverted": false,
+   "limits": [
+    4.725,
+    5.275000000000001
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    0.0,
+    4.0
+   ],
+   "inverted": false,
+   "limits": [
+    0.0,
+    4.2
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    0.0
+   ]
+  },
+  {
+   "extent": [
+    -2.0,
+    4.0
+   ],
+   "inverted": false,
+   "limits": [
+    -2.3,
+    4.3
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    0.0
+   ]
+  },
+  {
+   "extent": [
+    0.0,
+    4.0
+   ],
+   "inverted": false,
+   "limits": [
+    0.0,
+    4.0
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    0.0,
+    4.0
+   ]
+  },
+  {
+   "extent": [
+    1.0,
+    5.0
+   ],
+   "inverted": false,
+   "limits": [
+    0.6,
+    5.00001
+   ],
+   "margin": 0.1,
+   "scale": "linear",
+   "sticky": [
+    0.0,
+    5.00001
+   ]
+  },
+  {
+   "extent": [
+    0.0,
+    1.0
+   ],
+   "inverted": false,
+   "limits": [
+    0.0,
+    1.0
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    2.0,
+    1.0,
+    0.5,
+    0.0,
+    -1.0
+   ]
+  },
+  {
+   "extent": [
+    2.0,
+    2.0
+   ],
+   "inverted": false,
+   "limits": [
+    1.89,
+    2.1100000000000003
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    2.0
+   ]
+  },
+  {
+   "extent": [
+    -4.0,
+    0.0
+   ],
+   "inverted": false,
+   "limits": [
+    -4.2,
+    0.0
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    0.0
+   ]
+  },
+  {
+   "extent": [
+    1.0,
+    1000.0
+   ],
+   "inverted": false,
+   "limits": [
+    0.7079457843841379,
+    1412.5375446227545
+   ],
+   "margin": 0.05,
+   "scale": "log",
+   "sticky": []
+  },
+  {
+   "extent": [
+    0.01,
+    50.0
+   ],
+   "inverted": false,
+   "limits": [
+    0.004266807006446479,
+    117.18364557960498
+   ],
+   "margin": 0.1,
+   "scale": "log",
+   "sticky": []
+  },
+  {
+   "extent": [
+    3.0,
+    7.0
+   ],
+   "inverted": false,
+   "limits": [
+    2.8755598785317744,
+    7.302925651724682
+   ],
+   "margin": 0.05,
+   "scale": "log",
+   "sticky": []
+  },
+  {
+   "extent": [
+    1e-05,
+    100000.0
+   ],
+   "inverted": false,
+   "limits": [
+    3.162277660168377e-06,
+    316227.7660168382
+   ],
+   "margin": 0.05,
+   "scale": "log",
+   "sticky": []
+  },
+  {
+   "extent": [
+    1.0,
+    100.0
+   ],
+   "inverted": false,
+   "limits": [
+    1.0,
+    125.89254117941677
+   ],
+   "margin": 0.05,
+   "scale": "log",
+   "sticky": [
+    1.0
+   ]
+  },
+  {
+   "extent": [
+    0.0,
+    10.0
+   ],
+   "inverted": true,
+   "limits": [
+    10.5,
+    -0.5
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    0.0,
+    4.0
+   ],
+   "inverted": true,
+   "limits": [
+    4.2,
+    0.0
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": [
+    0.0
+   ]
+  },
+  {
+   "extent": [
+    3.0,
+    3.0
+   ],
+   "inverted": true,
+   "limits": [
+    3.165,
+    2.835
+   ],
+   "margin": 0.05,
+   "scale": "linear",
+   "sticky": []
+  },
+  {
+   "extent": [
+    1.0,
+    1000.0
+   ],
+   "inverted": true,
+   "limits": [
+    1412.5375446227545,
+    0.7079457843841379
+   ],
+   "margin": 0.05,
+   "scale": "log",
+   "sticky": []
+  }
+ ],
+ "matplotlib": "3.11.2"
+}

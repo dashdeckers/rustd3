@@ -12,6 +12,7 @@ mod interact;
 mod interpolate;
 mod locale;
 mod ordinal;
+mod pad;
 mod path;
 mod point;
 mod rules;

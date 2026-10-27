@@ -2,7 +2,8 @@
 //! builders, read by `apply`, `invert`, `ticks` and `tick_format`, and
 //! generic over a public [`Transform`] and the range type; d3's identity
 //! scale; its band, point and ordinal scales over an explicit domain of
-//! keys; and [`Ticks`], what an axis needs from any of them.
+//! keys; [`Ticks`], what an axis needs from any of them; and [`Pad`], a
+//! domain fitted to data as matplotlib autoscales an axis.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -32,6 +33,7 @@ mod band;
 mod continuous;
 mod identity;
 mod ordinal;
+mod pad;
 mod piecewise;
 mod point;
 mod tick_format;
@@ -46,6 +48,7 @@ pub use band::{Band, band};
 pub use continuous::Continuous;
 pub use identity::{Identity, identity};
 pub use ordinal::{Ordinal, ordinal};
+pub use pad::Pad;
 pub use piecewise::piecewise;
 pub use point::{Point, point};
 pub use tick_format::{TickFormat, tick_format};

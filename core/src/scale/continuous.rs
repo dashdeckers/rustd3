@@ -88,6 +88,16 @@ impl<T, R, const N: usize> Continuous<T, R, N> {
         }
     }
 
+    /// d3's `domain()`.
+    pub fn get_domain(&self) -> [f64; N] {
+        self.domain
+    }
+
+    /// The transform, as set for the current domain.
+    pub(crate) fn transform(&self) -> &T {
+        &self.transform
+    }
+
     /// The forward cache: the transform's `forward` of each stop.
     pub(crate) fn forward(&self) -> &[f64; N] {
         &self.forward
@@ -236,19 +246,9 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
             .tick_format(locale, self.ends(), count, specifier)
     }
 
-    /// d3's `domain()`.
-    pub fn get_domain(&self) -> [f64; N] {
-        self.domain
-    }
-
     /// d3's `range()`.
     pub fn get_range(&self) -> &[R; N] {
         &self.range
-    }
-
-    /// The transform, as set for the current domain.
-    pub(crate) fn transform(&self) -> &T {
-        &self.transform
     }
 
     /// The first and last stop, which ticks, nice and formats act on.
