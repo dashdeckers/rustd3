@@ -4,7 +4,7 @@
 mod agree;
 mod exact;
 
-use rustd3_core::series::{Clock, Error, Recording};
+use rustd3_core::series::{self, Clock, Data, Error, Points, Recording};
 
 /// The prototypes' generator: a 64-bit LCG, uniform in [0, 1).
 struct Lcg(u64);
@@ -626,4 +626,54 @@ fn columns_from_another_revision_or_recording_are_stale() {
             .m4(&columns, |_| true)
             .is_ok()
     );
+}
+
+/// A mark over any data: what it holds.
+fn mark<'a, X, Y>(data: impl Data<'a, X, Y>) -> Points<'a, X, Y> {
+    data.into_points()
+}
+
+/// A band key: equality only, no order.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Bin(u8);
+
+#[test]
+fn marks_take_collected_pairs_a_series_or_slices() {
+    let pairs = vec![(0.0, 1.0), (1.0, 3.0)];
+    let owned = mark(pairs.clone());
+    assert_eq!((owned.len(), owned.get(1)), (2, Some((1.0, 3.0))));
+    assert!(owned.series().is_none());
+    let copied = mark(pairs.iter().copied());
+    assert_eq!(copied.iter().collect::<Vec<_>>(), pairs);
+
+    let rec = Recording::new(
+        Clock::Explicit(vec![0.5, 1.5, 4.0]),
+        [[1.0, 2.0, 3.0], [4.0, f64::NAN, 6.0]],
+    )
+    .expect("a valid recording");
+    let indexed = mark(rec.series(1).expect("channel 1"));
+    assert_eq!((indexed.len(), indexed.is_empty()), (3, false));
+    assert_eq!((indexed.get(2), indexed.get(3)), (Some((4.0, 6.0)), None));
+    let view = indexed.series().expect("the indexed view");
+    assert_eq!((view.recording().id(), view.channel()), (rec.id(), 1));
+    assert_eq!(view.extent(), Some([4.0, 6.0]));
+
+    let (x, y) = ([0.0, 1.0, 2.0], [5.0, 7.0]);
+    let borrowed = mark(series::slices(&x, &y));
+    assert_eq!(
+        borrowed.iter().collect::<Vec<_>>(),
+        [(0.0, 5.0), (1.0, 7.0)]
+    );
+    assert!(borrowed.series().is_none());
+}
+
+#[test]
+fn mark_data_needs_no_bound_on_its_keys() {
+    let bins = mark(vec![(Bin(1), "a"), (Bin(2), "b")]);
+    assert_eq!(bins.get(0), Some((Bin(1), "a")));
+    let (keys, labels) = ([Bin(3)], ["c"]);
+    let borrowed = mark(series::slices(&keys, &labels));
+    assert_eq!(borrowed.iter().collect::<Vec<_>>(), [(Bin(3), "c")]);
+    let empty = mark(Vec::<(Bin, &str)>::new());
+    assert!(empty.is_empty());
 }

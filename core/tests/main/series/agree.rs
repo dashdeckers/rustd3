@@ -138,7 +138,7 @@ impl Model {
         let (lo, hi) = (self.x[0], self.x[self.x.len() - 1]);
         let span = (hi - lo).max(1e-3);
         let a = lo - 0.05 * span + random.next() * span;
-        let b = a + random.next() * (hi + 0.05 * span - a);
+        let b = a + random.next() * (hi + 0.05 * span - a).max(0.0);
         let columns = random.len(3_000);
         (0..=columns)
             .map(|c| a + (b - a) * c as f64 / columns as f64)

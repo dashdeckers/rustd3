@@ -2,7 +2,9 @@
 //! prototypes' traces (`proto/thin2`): a vibration-like signal and a slow
 //! signal with gaps of 1 to 50,000 samples, 1,000,000 samples each.
 
+use std::hint::black_box;
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use rustd3_core::series::{Clock, Recording};
 
@@ -77,31 +79,37 @@ fn edges(view: [f64; 2], columns: usize) -> Vec<f64> {
 fn signal() -> &'static Trace {
     static TRACE: OnceLock<Trace> = OnceLock::new();
     TRACE.get_or_init(|| {
-        let mut u = Lcg(42);
-        let tau = std::f64::consts::TAU;
-        let x: Vec<f64> = (0..N).map(|i| i as f64 / 10_000.0).collect();
-        let mut y: Vec<f64> = x
-            .iter()
-            .map(|t| {
-                let burst = if t % 10.0 < 0.2 {
-                    0.8 * (tau * 120.0 * t).sin()
-                } else {
-                    0.0
-                };
-                0.3 * (tau * 0.05 * t).sin()
-                    + 0.4 * (tau * 7.0 * t).sin()
-                    + 0.25 * (u.next() - 0.5)
-                    + burst
-            })
-            .collect();
-        let mut impacts: Vec<usize> = (0..50).map(|_| (u.next() * N as f64) as usize).collect();
-        impacts.sort_unstable();
-        for (k, &i) in impacts.iter().enumerate() {
-            let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
-            y[i] = sign * (1.4 + 0.6 * u.next());
-        }
+        let (x, y, impacts) = vibration(N);
         Trace::new(x, y, impacts)
     })
+}
+
+/// The signal trace of `n` samples: x, y and the impacts, sorted.
+fn vibration(n: usize) -> (Vec<f64>, Vec<f64>, Vec<usize>) {
+    let mut u = Lcg(42);
+    let tau = std::f64::consts::TAU;
+    let x: Vec<f64> = (0..n).map(|i| i as f64 / 10_000.0).collect();
+    let mut y: Vec<f64> = x
+        .iter()
+        .map(|t| {
+            let burst = if t % 10.0 < 0.2 {
+                0.8 * (tau * 120.0 * t).sin()
+            } else {
+                0.0
+            };
+            0.3 * (tau * 0.05 * t).sin()
+                + 0.4 * (tau * 7.0 * t).sin()
+                + 0.25 * (u.next() - 0.5)
+                + burst
+        })
+        .collect();
+    let mut impacts: Vec<usize> = (0..50).map(|_| (u.next() * n as f64) as usize).collect();
+    impacts.sort_unstable();
+    for (k, &i) in impacts.iter().enumerate() {
+        let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
+        y[i] = sign * (1.4 + 0.6 * u.next());
+    }
+    (x, y, impacts)
 }
 
 /// `proto/thin2/src/bin/gaps.rs`: a 0.1 Hz tone with noise, seed 9, with
@@ -235,5 +243,45 @@ fn columns_across_chunk_boundaries_agree_with_a_raw_scan() {
                 trace.agree(view, columns, |y| y < 0.1);
             }
         }
+    }
+}
+
+#[test]
+#[ignore = "report only: cargo test -p rustd3-core --release --test main series -- --ignored"]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "a report-only timing reads the clock"
+)]
+fn build_and_full_view_m4_times_at_one_and_ten_million_samples() {
+    /// The fastest of `runs` runs of `f`.
+    fn best<T>(runs: usize, mut f: impl FnMut() -> T) -> Duration {
+        (0..runs)
+            .map(|_| {
+                let start = Instant::now();
+                black_box(f());
+                start.elapsed()
+            })
+            .min()
+            .unwrap_or_default()
+    }
+    for n in [1_000_000, 10_000_000] {
+        let (x, y, _) = vibration(n);
+        let explicit = best(3, || Recording::new(Clock::Explicit(x.clone()), [&y]));
+        let clock = Clock::Regular {
+            start: 0.0,
+            period: 1e-4,
+        };
+        let regular = best(3, || Recording::new(clock.clone(), [&y]));
+        let rec = Recording::new(Clock::Explicit(x.clone()), [&y]).expect("a valid trace");
+        let edges = edges([x[0], x[n - 1] + 1e-4], 1000);
+        let columns = best(20, || rec.columns(&edges));
+        let grid = rec.columns(&edges).expect("valid edges");
+        let series = rec.series(0).expect("channel 0");
+        let m4 = best(20, || series.m4(&grid, |_| true));
+        let points = series.m4(&grid, |_| true).expect("fresh columns").points();
+        println!(
+            "{n} samples: build {explicit:.2?} explicit, {regular:.2?} regular; \
+             1000 columns {columns:.2?}; full-view M4 {m4:.2?} ({points} points)"
+        );
     }
 }

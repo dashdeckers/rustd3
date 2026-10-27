@@ -20,17 +20,23 @@ mod channel;
 mod chunks;
 mod clock;
 mod columns;
+mod data;
 mod error;
 mod index;
 pub mod m4;
+mod points;
 mod recording;
 mod runs;
+mod slices;
 mod view;
 
 pub use clock::{Clock, Coordinate};
 pub use columns::Columns;
+pub use data::Data;
 pub use error::Error;
+pub use points::Points;
 pub use recording::{Id, Recording};
+pub use slices::{Slices, slices};
 pub use view::Series;
 
 /// Samples per chunk: storage grows and drops by whole chunks.
