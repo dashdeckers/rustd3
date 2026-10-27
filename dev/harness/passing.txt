@@ -41,6 +41,7 @@
 #floor d3-interpolate/test/round-test.js 14
 #floor d3-path/test/path-test.js 62
 #floor d3-path/test/pathRound-test.js 12
+#floor d3-scale/test/identity-test.js 44
 #floor d3-scale/test/linear-test.js 153
 #floor d3-scale/test/log-test.js 121
 #floor d3-scale/test/pow-test.js 155
@@ -1394,6 +1395,50 @@ d3-path/test/pathRound-test.js:57:3
 d3-path/test/pathRound-test.js:64:3
 d3-path/test/pathRound-test.js:71:3
 d3-path/test/pathRound-test.js:78:3
+d3-scale/test/identity-test.js:6:3
+d3-scale/test/identity-test.js:7:3
+d3-scale/test/identity-test.js:12:3
+d3-scale/test/identity-test.js:13:3
+d3-scale/test/identity-test.js:18:3
+d3-scale/test/identity-test.js:19:3
+d3-scale/test/identity-test.js:20:3
+d3-scale/test/identity-test.js:21:3
+d3-scale/test/identity-test.js:22:3
+d3-scale/test/identity-test.js:34:3
+d3-scale/test/identity-test.js:36:3
+d3-scale/test/identity-test.js:41:3
+d3-scale/test/identity-test.js:42:3
+d3-scale/test/identity-test.js:43:3
+d3-scale/test/identity-test.js:44:3
+d3-scale/test/identity-test.js:45:3
+d3-scale/test/identity-test.js:74:3
+d3-scale/test/identity-test.js:75:3
+d3-scale/test/identity-test.js:76:3
+d3-scale/test/identity-test.js:133:3
+d3-scale/test/identity-test.js:134:3
+d3-scale/test/identity-test.js:139:3
+d3-scale/test/identity-test.js:140:3
+d3-scale/test/identity-test.js:141:3
+d3-scale/test/identity-test.js:142:3
+d3-scale/test/identity-test.js:144:3
+d3-scale/test/identity-test.js:145:3
+d3-scale/test/identity-test.js:146:3
+d3-scale/test/identity-test.js:147:3
+d3-scale/test/identity-test.js:152:3
+d3-scale/test/identity-test.js:153:3
+d3-scale/test/identity-test.js:154:3
+d3-scale/test/identity-test.js:155:3
+d3-scale/test/identity-test.js:156:3
+d3-scale/test/identity-test.js:157:3
+d3-scale/test/identity-test.js:158:3
+d3-scale/test/identity-test.js:159:3
+d3-scale/test/identity-test.js:160:3
+d3-scale/test/identity-test.js:168:3
+d3-scale/test/identity-test.js:170:3
+d3-scale/test/identity-test.js:171:3
+d3-scale/test/identity-test.js:174:3
+d3-scale/test/identity-test.js:176:3
+d3-scale/test/identity-test.js:177:3
 d3-scale/test/linear-test.js:7:3
 d3-scale/test/linear-test.js:8:3
 d3-scale/test/linear-test.js:16:3

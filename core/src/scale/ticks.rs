@@ -2,6 +2,7 @@
 //! scales of this crate.
 
 mod continuous;
+mod identity;
 
 use crate::locale::Locale;
 use crate::scale::Transform;

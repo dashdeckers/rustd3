@@ -1,5 +1,6 @@
-// d3-scale's continuous scales. scaleLinear, scalePow, scaleSqrt, scaleLog
-// and scaleSymlog are scale::linear() … scale::symlog(); a chain of method
+// d3-scale's continuous scales and scaleIdentity. scaleLinear, scalePow,
+// scaleSqrt, scaleLog, scaleSymlog and scaleIdentity are scale::linear() …
+// scale::identity(), whose domain and range are one array; a chain of method
 // calls is translated whole, so that setters on a variable assign it
 // (`s = s.domain(…)`) and later reads see the change as d3's do. Tick
 // formats are under EN_US, d3's default. A scale value is {t: "scale", tr,
@@ -12,7 +13,10 @@ import { calleeName, ex, needNum, rustStr, skip, val } from "../expr.mjs";
 import array from "./array.mjs";
 
 const EN_US = "&format::Locale::EN_US";
-const MAKE = { scaleLinear: ["linear", "linear"], scalePow: ["pow", "pow"], scaleSqrt: ["sqrt", "pow"], scaleLog: ["log", "log"], scaleSymlog: ["symlog", "symlog"] };
+const MAKE = {
+  scaleLinear: ["linear", "linear"], scalePow: ["pow", "pow"], scaleSqrt: ["sqrt", "pow"], scaleLog: ["log", "log"],
+  scaleSymlog: ["symlog", "symlog"], scaleIdentity: ["identity", "identity"],
+};
 const SETTERS = { domain: "domain", range: "range", rangeRound: "range_round" };
 const BUILDERS = ["exponent", "base", "constant"];
 const METHODS = new Set([...Object.keys(SETTERS), ...BUILDERS, "clamp", "unknown", "interpolate", "nice", "ticks", "tickFormat", "copy", "invert"]);
@@ -67,6 +71,7 @@ function chain(root, steps, ctx) {
     if (d.n !== r.n) skip("types: a domain and range of different lengths (the type sets the count)");
     if (d.reason || r.reason) skip(d.reason ?? r.reason);
     if (d.n === n) return;
+    if (root.tr === "identity") skip("types: an identity scale with other than two stops (its type holds two)");
     if (name !== null || emitted.some((k) => k !== d.n)) skip("types: a scale whose stop count changes (N is part of its type)");
     if (root.tr !== "linear") skip("api: polylinear log, pow and symlog scales (piecewise is linear only)");
     if (!code.startsWith("scale::linear()")) skip("gap: a polylinear scale built from another scale");
@@ -80,6 +85,7 @@ function chain(root, steps, ctx) {
     if (SETTERS[prop] && args.length) {
       const what = prop === "domain" ? "domain" : "range";
       sizes[what] = stops(args[0], what, ctx);
+      if (root.tr === "identity") sizes.domain = sizes.range = sizes[what];
       if (!sizes[what].reason) {
         build(`.${SETTERS[prop]}(${sizes[what].c})`);
         emitted.push(sizes[what].n);
@@ -128,7 +134,8 @@ export default {
     if (MAKE[name]) {
       const [make, tr] = MAKE[name];
       const [d, r] = node.arguments;
-      const steps = r ? [{ prop: "domain", args: [d] }, { prop: "range", args: [r] }] : d ? [{ prop: "range", args: [d] }] : [];
+      const one = tr === "identity" ? "domain" : "range";
+      const steps = r ? [{ prop: "domain", args: [d] }, { prop: "range", args: [r] }] : d ? [{ prop: one, args: [d] }] : [];
       return chain({ c: `scale::${make}()`, t: "scale", tr }, steps, ctx);
     }
     if (name === "tickFormat") {

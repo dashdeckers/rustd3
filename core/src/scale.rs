@@ -1,6 +1,7 @@
 //! d3-scale's continuous scales as plain values: built by consuming
 //! builders, read by `apply`, `invert`, `ticks` and `tick_format`, and
-//! generic over a public [`Transform`] and the range type.
+//! generic over a public [`Transform`] and the range type; d3's identity
+//! scale; and [`Ticks`], what an axis needs from any of them.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -27,6 +28,7 @@ macro_rules! builtin_transforms {
 
 mod any;
 mod continuous;
+mod identity;
 mod piecewise;
 mod tick_format;
 mod tick_rule;
@@ -35,6 +37,7 @@ pub mod transform;
 
 pub use any::AnyContinuous;
 pub use continuous::Continuous;
+pub use identity::{Identity, identity};
 pub use piecewise::piecewise;
 pub use tick_format::{TickFormat, tick_format};
 pub use tick_rule::TickRule;

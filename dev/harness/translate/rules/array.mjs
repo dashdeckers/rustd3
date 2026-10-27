@@ -10,6 +10,7 @@ export default {
     nice: { c: "ticks::nice", t: "fn", arity: 3, ret: "vec" },
   },
   method(obj, prop, args) {
+    if (prop === "reverse" && obj.t === "strs" && !args.length) return { c: `{ let mut v = ${obj.c}; v.reverse(); v }`, t: "strs" };
     if (obj.t !== "vec" || args.length) return undefined;
     if (prop === "pop") return { c: `${obj.c}.pop().expect("d3 test pop")`, t: "num" };
     if (prop === "reverse") return { c: `{ let mut v = ${obj.c}; v.reverse(); v }`, t: "vec" };

@@ -1617,6 +1617,167 @@ fn t192() {   // radial-test.js: radial(x) can clamp negative values
     skip("d3-scale/test/radial-test.js:79:3", "api: d3's scaleRadial is not part of the design");
 }
 
+fn t193() {   // identity-test.js: scaleIdentity() has the expected defaults
+    let mut s = scale::identity();
+    check("d3-scale/test/identity-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/identity-test.js:7:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+}
+
+fn t194() {   // identity-test.js: scaleIdentity(range) sets the domain and range
+    let mut s = scale::identity().domain([1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:12:3", Kind::Strict, &s.get_domain().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:13:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 2.0]);
+}
+
+fn t195() {   // identity-test.js: identity(x) is the identity function
+    let mut s = scale::identity().domain([1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:18:3", Kind::Strict, &s.apply(0.5), &0.5);
+    check("d3-scale/test/identity-test.js:19:3", Kind::Strict, &s.apply(1.0), &1.0);
+    check("d3-scale/test/identity-test.js:20:3", Kind::Strict, &s.apply(1.5), &1.5);
+    check("d3-scale/test/identity-test.js:21:3", Kind::Strict, &s.apply(2.0), &2.0);
+    check("d3-scale/test/identity-test.js:22:3", Kind::Strict, &s.apply(2.5), &2.5);
+}
+
+fn t196() {   // identity-test.js: identity(x) coerces input to a number
+    let mut _s = scale::identity().domain([1.0, 2.0]);
+    skip("d3-scale/test/identity-test.js:27:3", "js: scale argument is not a number (coercion)");
+}
+
+fn t197() {   // identity-test.js: identity(undefined) returns unknown
+    let mut s = scale::identity().unknown(-1.0);
+    skip("d3-scale/test/identity-test.js:32:3", "js: scale argument is not a number (coercion)");
+    skip("d3-scale/test/identity-test.js:33:3", "js: null (coercion)");
+    check("d3-scale/test/identity-test.js:34:3", Kind::Strict, &s.apply(f64::NAN), &-1.0);
+    skip("d3-scale/test/identity-test.js:35:3", "js: scale argument is not a number (coercion)");
+    check("d3-scale/test/identity-test.js:36:3", Kind::Strict, &s.apply(0.4), &0.4);
+}
+
+fn t198() {   // identity-test.js: identity.invert(y) is the identity function
+    let mut s = scale::identity().domain([1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:41:3", Kind::Strict, &s.invert(0.5), &0.5);
+    check("d3-scale/test/identity-test.js:42:3", Kind::Strict, &s.invert(1.0), &1.0);
+    check("d3-scale/test/identity-test.js:43:3", Kind::Strict, &s.invert(1.5), &1.5);
+    check("d3-scale/test/identity-test.js:44:3", Kind::Strict, &s.invert(2.0), &2.0);
+    check("d3-scale/test/identity-test.js:45:3", Kind::Strict, &s.invert(2.5), &2.5);
+}
+
+fn t199() {   // identity-test.js: identity.invert(y) coerces range value to numbers
+    skip("d3-scale/test/identity-test.js:50:3", "js: strings as range values (coercion)");
+    skip("d3-scale/test/identity-test.js:52:3", "js: strings as range values (coercion)");
+    skip("d3-scale/test/identity-test.js:54:3", "js: strings as range values (coercion)");
+}
+
+fn t200() {   // identity-test.js: identity.invert(y) coerces input to a number
+    let mut _s = scale::identity().domain([1.0, 2.0]);
+    skip("d3-scale/test/identity-test.js:59:3", "js: inverted value is not a number (coercion)");
+}
+
+fn t201() {   // identity-test.js: identity.domain() is an alias for range()
+    skip("d3-scale/test/identity-test.js:64:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:65:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:67:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:69:3", "types: an identity scale with other than two stops (its type holds two)");
+}
+
+fn t202() {   // identity-test.js: identity.domain() defaults to [0, 1]
+    let mut s = scale::identity();
+    check("d3-scale/test/identity-test.js:74:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/identity-test.js:75:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/identity-test.js:76:3", Kind::Strict, &s.apply(0.5), &0.5);
+}
+
+fn t203() {   // identity-test.js: identity.domain() coerces values to numbers
+    skip("d3-scale/test/identity-test.js:81:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:82:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:83:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:84:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:85:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:86:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:88:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:89:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:90:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:92:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:93:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:94:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:96:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:97:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:98:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:99:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:100:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:101:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:103:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:104:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:105:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:107:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:108:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/identity-test.js:109:3", "js: Dates and Number objects in a domain (coercion)");
+}
+
+fn t204() {   // identity-test.js: identity.domain() accepts an iterable
+    skip("d3-scale/test/identity-test.js:114:3", "js: a domain from an iterable");
+    skip("d3-scale/test/identity-test.js:115:3", "js: a domain from an iterable");
+}
+
+fn t205() {   // identity-test.js: identity.domain() can specify a polyidentity domain and range
+    skip("d3-scale/test/identity-test.js:120:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:121:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:122:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:123:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:125:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:126:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:127:3", "types: an identity scale with other than two stops (its type holds two)");
+    skip("d3-scale/test/identity-test.js:128:3", "types: an identity scale with other than two stops (its type holds two)");
+}
+
+fn t206() {   // identity-test.js: identity.domain() does not affect the identity function
+    let mut s = scale::identity().domain([f64::INFINITY, f64::NAN]);
+    check("d3-scale/test/identity-test.js:133:3", Kind::Strict, &s.apply(42.0), &42.0);
+    check("d3-scale/test/identity-test.js:134:3", Kind::Strict, &s.invert(-42.0), &-42.0);
+}
+
+fn t207() {   // identity-test.js: identity.ticks(count) generates ticks of varying degree
+    let mut s = scale::identity();
+    check("d3-scale/test/identity-test.js:139:3", Kind::Strict, &{ let values_ = &s.ticks(1); let format_ = s.tick_format_in(&format::Locale::EN_US, 1, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &vec!["0", "1"]);
+    check("d3-scale/test/identity-test.js:140:3", Kind::Strict, &{ let values_ = &s.ticks(2); let format_ = s.tick_format_in(&format::Locale::EN_US, 2, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &vec!["0.0", "0.5", "1.0"]);
+    check("d3-scale/test/identity-test.js:141:3", Kind::Strict, &{ let values_ = &s.ticks(5); let format_ = s.tick_format_in(&format::Locale::EN_US, 5, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &vec!["0.0", "0.2", "0.4", "0.6", "0.8", "1.0"]);
+    check("d3-scale/test/identity-test.js:142:3", Kind::Strict, &{ let values_ = &s.ticks(10); let format_ = s.tick_format_in(&format::Locale::EN_US, 10, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &vec!["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"]);
+    s = s.domain([1.0, 0.0]);
+    check("d3-scale/test/identity-test.js:144:3", Kind::Strict, &{ let values_ = &s.ticks(1); let format_ = s.tick_format_in(&format::Locale::EN_US, 1, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &{ let mut v = vec!["0", "1"]; v.reverse(); v });
+    check("d3-scale/test/identity-test.js:145:3", Kind::Strict, &{ let values_ = &s.ticks(2); let format_ = s.tick_format_in(&format::Locale::EN_US, 2, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &{ let mut v = vec!["0.0", "0.5", "1.0"]; v.reverse(); v });
+    check("d3-scale/test/identity-test.js:146:3", Kind::Strict, &{ let values_ = &s.ticks(5); let format_ = s.tick_format_in(&format::Locale::EN_US, 5, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &{ let mut v = vec!["0.0", "0.2", "0.4", "0.6", "0.8", "1.0"]; v.reverse(); v });
+    check("d3-scale/test/identity-test.js:147:3", Kind::Strict, &{ let values_ = &s.ticks(10); let format_ = s.tick_format_in(&format::Locale::EN_US, 10, None).expect("d3 test"); values_.iter().map(|v| format_.format(*v)).collect::<Vec<_>>() }, &{ let mut v = vec!["0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0"]; v.reverse(); v });
+}
+
+fn t208() {   // identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision
+    let mut s = scale::identity().domain([0.123456789, 1.23456789]);
+    check("d3-scale/test/identity-test.js:152:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 1, None).expect("d3 test").format(s.ticks(1)[(0.0) as usize]), &"1");
+    check("d3-scale/test/identity-test.js:153:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 2, None).expect("d3 test").format(s.ticks(2)[(0.0) as usize]), &"0.5");
+    check("d3-scale/test/identity-test.js:154:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 4, None).expect("d3 test").format(s.ticks(4)[(0.0) as usize]), &"0.2");
+    check("d3-scale/test/identity-test.js:155:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 8, None).expect("d3 test").format(s.ticks(8)[(0.0) as usize]), &"0.2");
+    check("d3-scale/test/identity-test.js:156:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 16, None).expect("d3 test").format(s.ticks(16)[(0.0) as usize]), &"0.15");
+    check("d3-scale/test/identity-test.js:157:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 32, None).expect("d3 test").format(s.ticks(32)[(0.0) as usize]), &"0.15");
+    check("d3-scale/test/identity-test.js:158:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 64, None).expect("d3 test").format(s.ticks(64)[(0.0) as usize]), &"0.14");
+    check("d3-scale/test/identity-test.js:159:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 128, None).expect("d3 test").format(s.ticks(128)[(0.0) as usize]), &"0.13");
+    check("d3-scale/test/identity-test.js:160:3", Kind::Strict, &s.tick_format_in(&format::Locale::EN_US, 256, None).expect("d3 test").format(s.ticks(256)[(0.0) as usize]), &"0.125");
+}
+
+fn t209() {   // identity-test.js: identity.copy() isolates changes to the domain or range
+    let mut s1 = scale::identity();
+    let mut s2 = s1.clone();
+    let mut s3 = s1.clone();
+    s1 = s1.domain([1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:168:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![0.0, 1.0]);
+    s2 = s2.domain([2.0, 3.0]);
+    check("d3-scale/test/identity-test.js:170:3", Kind::Strict, &s1.get_domain().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:171:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![2.0, 3.0]);
+    let mut s4 = s3.clone();
+    s3 = s3.range([1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:174:3", Kind::Strict, &s4.get_range().to_vec(), &vec![0.0, 1.0]);
+    s4 = s4.range([2.0, 3.0]);
+    check("d3-scale/test/identity-test.js:176:3", Kind::Strict, &s3.get_range().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/identity-test.js:177:3", Kind::Strict, &s4.get_range().to_vec(), &vec![2.0, 3.0]);
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "linear-test.js: scaleLinear() has the expected defaults", run: t0 },
     Test { name: "linear-test.js: scaleLinear(range) sets the range", run: t1 },
@@ -1811,6 +1972,23 @@ pub const TESTS: &[Test] = &[
     Test { name: "radial-test.js: radial.unknown(unknown)(NaN) returns the specified unknown value", run: t190 },
     Test { name: "radial-test.js: radial(x) can handle a negative range", run: t191 },
     Test { name: "radial-test.js: radial(x) can clamp negative values", run: t192 },
+    Test { name: "identity-test.js: scaleIdentity() has the expected defaults", run: t193 },
+    Test { name: "identity-test.js: scaleIdentity(range) sets the domain and range", run: t194 },
+    Test { name: "identity-test.js: identity(x) is the identity function", run: t195 },
+    Test { name: "identity-test.js: identity(x) coerces input to a number", run: t196 },
+    Test { name: "identity-test.js: identity(undefined) returns unknown", run: t197 },
+    Test { name: "identity-test.js: identity.invert(y) is the identity function", run: t198 },
+    Test { name: "identity-test.js: identity.invert(y) coerces range value to numbers", run: t199 },
+    Test { name: "identity-test.js: identity.invert(y) coerces input to a number", run: t200 },
+    Test { name: "identity-test.js: identity.domain() is an alias for range()", run: t201 },
+    Test { name: "identity-test.js: identity.domain() defaults to [0, 1]", run: t202 },
+    Test { name: "identity-test.js: identity.domain() coerces values to numbers", run: t203 },
+    Test { name: "identity-test.js: identity.domain() accepts an iterable", run: t204 },
+    Test { name: "identity-test.js: identity.domain() can specify a polyidentity domain and range", run: t205 },
+    Test { name: "identity-test.js: identity.domain() does not affect the identity function", run: t206 },
+    Test { name: "identity-test.js: identity.ticks(count) generates ticks of varying degree", run: t207 },
+    Test { name: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", run: t208 },
+    Test { name: "identity-test.js: identity.copy() isolates changes to the domain or range", run: t209 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -2615,4 +2793,94 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/radial-test.js:77:3", test: "radial-test.js: radial(x) can clamp negative values", skip: Some("api: d3's scaleRadial is not part of the design") },
     Assertion { id: "d3-scale/test/radial-test.js:78:3", test: "radial-test.js: radial(x) can clamp negative values", skip: Some("api: d3's scaleRadial is not part of the design") },
     Assertion { id: "d3-scale/test/radial-test.js:79:3", test: "radial-test.js: radial(x) can clamp negative values", skip: Some("api: d3's scaleRadial is not part of the design") },
+    Assertion { id: "d3-scale/test/identity-test.js:6:3", test: "identity-test.js: scaleIdentity() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:7:3", test: "identity-test.js: scaleIdentity() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:12:3", test: "identity-test.js: scaleIdentity(range) sets the domain and range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:13:3", test: "identity-test.js: scaleIdentity(range) sets the domain and range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:18:3", test: "identity-test.js: identity(x) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:19:3", test: "identity-test.js: identity(x) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:20:3", test: "identity-test.js: identity(x) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:21:3", test: "identity-test.js: identity(x) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:22:3", test: "identity-test.js: identity(x) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:27:3", test: "identity-test.js: identity(x) coerces input to a number", skip: Some("js: scale argument is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:32:3", test: "identity-test.js: identity(undefined) returns unknown", skip: Some("js: scale argument is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:33:3", test: "identity-test.js: identity(undefined) returns unknown", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:34:3", test: "identity-test.js: identity(undefined) returns unknown", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:35:3", test: "identity-test.js: identity(undefined) returns unknown", skip: Some("js: scale argument is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:36:3", test: "identity-test.js: identity(undefined) returns unknown", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:41:3", test: "identity-test.js: identity.invert(y) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:42:3", test: "identity-test.js: identity.invert(y) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:43:3", test: "identity-test.js: identity.invert(y) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:44:3", test: "identity-test.js: identity.invert(y) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:45:3", test: "identity-test.js: identity.invert(y) is the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:50:3", test: "identity-test.js: identity.invert(y) coerces range value to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:52:3", test: "identity-test.js: identity.invert(y) coerces range value to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:54:3", test: "identity-test.js: identity.invert(y) coerces range value to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:59:3", test: "identity-test.js: identity.invert(y) coerces input to a number", skip: Some("js: inverted value is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:64:3", test: "identity-test.js: identity.domain() is an alias for range()", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:65:3", test: "identity-test.js: identity.domain() is an alias for range()", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:67:3", test: "identity-test.js: identity.domain() is an alias for range()", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:69:3", test: "identity-test.js: identity.domain() is an alias for range()", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:74:3", test: "identity-test.js: identity.domain() defaults to [0, 1]", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:75:3", test: "identity-test.js: identity.domain() defaults to [0, 1]", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:76:3", test: "identity-test.js: identity.domain() defaults to [0, 1]", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:81:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:82:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:83:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:84:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:85:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:86:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:88:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:89:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:90:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:92:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:93:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:94:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:96:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:97:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:98:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:99:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:100:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:101:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:103:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:104:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:105:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:107:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:108:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:109:3", test: "identity-test.js: identity.domain() coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/identity-test.js:114:3", test: "identity-test.js: identity.domain() accepts an iterable", skip: Some("js: a domain from an iterable") },
+    Assertion { id: "d3-scale/test/identity-test.js:115:3", test: "identity-test.js: identity.domain() accepts an iterable", skip: Some("js: a domain from an iterable") },
+    Assertion { id: "d3-scale/test/identity-test.js:120:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:121:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:122:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:123:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:125:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:126:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:127:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:128:3", test: "identity-test.js: identity.domain() can specify a polyidentity domain and range", skip: Some("types: an identity scale with other than two stops (its type holds two)") },
+    Assertion { id: "d3-scale/test/identity-test.js:133:3", test: "identity-test.js: identity.domain() does not affect the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:134:3", test: "identity-test.js: identity.domain() does not affect the identity function", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:139:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:140:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:141:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:142:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:144:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:145:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:146:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:147:3", test: "identity-test.js: identity.ticks(count) generates ticks of varying degree", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:152:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:153:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:154:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:155:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:156:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:157:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:158:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:159:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:160:3", test: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:168:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:170:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:171:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:174:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:176:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/identity-test.js:177:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
 ];
