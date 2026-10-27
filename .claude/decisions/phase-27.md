@@ -257,7 +257,7 @@ that change no core API.
 
 ## D27.3 — `utcTime-test.js:283` expects `utcDay` ticks that d3 7.9.0 no longer gives
 
-**Date:** 2026-10-27 · **Context:** Phase 27, step 7 (212f5c9) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 27, step 7 (212f5c9) · **Status:** decided
 
 ### Issue
 
@@ -292,8 +292,16 @@ gives 4, 6, 8 January. The port gives 4, 6, 8, so the assertion fails.
 
 ### Decision
 
-Recommended: A. The assertion stays translated and failing; nothing is
-skipped and the ratchet does not list it.
+B (architect, 2026-10-27), with a category of its own. The harness
+gains the skip prefix `upstream:` for an assertion that the vendored d3
+itself fails when run in Node, and only for that; the reason names the
+versions ("d3-scale 4.0.2's test expects utcDay; d3-time 3.1.0, which
+d3 7.9.0 vendors, ticks by unixDay; d3 fails it"). `utcTime-test.js:283`
+is the first. "0 failing" stays an invariant every phase's exit
+criteria can rely on, and "a failing assertion is never skipped" keeps
+its meaning for the port: an `upstream:` skip needs the Node run that
+shows d3 failing, cited in the commit body. Done as the first commit of
+Phase 28's session.
 
 ### Why
 
@@ -309,7 +317,7 @@ stale against d3-time 3.1.0, which the harness's d3 run shows.
 
 ## D27.4 — `time-test.js` and `utcTime-test.js` under 70 %
 
-**Date:** 2026-10-27 · **Context:** Phase 27, steps 6–7 (e8e797b, 212f5c9) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 27, steps 6–7 (e8e797b, 212f5c9) · **Status:** decided
 
 ### Issue
 
@@ -346,8 +354,9 @@ value under America/Los_Angeles.
 
 ### Decision
 
-Recommended: A, the section's criterion; both files reach 84 / 96 and
-78 / 85 with Phase 28's tick formats.
+A (architect, 2026-10-27): Phase 27's skip table gains `time-test.js`
+and `utcTime-test.js` with floors 62 and 56; Phase 28 raises them when
+tick formats translate.
 
 ### Why
 
@@ -361,7 +370,7 @@ D27.3.
 
 ## D27.5 — Details of Phase 27b as built
 
-**Date:** 2026-10-27 · **Context:** Phase 27, steps 6–10 (7d7022b … fc3d121) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 27, steps 6–10 (7d7022b … fc3d121) · **Status:** decided
 
 ### Issue
 
@@ -424,7 +433,7 @@ in the Measurements. (6) tests `degenerate_gestures_return_none`,
 
 ### Decision
 
-Recommended: A for all eight, as built.
+A for all eight (architect, 2026-10-27), as built.
 
 ### Why
 
