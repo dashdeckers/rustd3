@@ -18,10 +18,12 @@
 
 mod continuous;
 mod tick_format;
+mod tick_rule;
 pub mod transform;
 
 pub use continuous::Continuous;
 pub use tick_format::{TickFormat, tick_format};
+pub use tick_rule::TickRule;
 pub use transform::Transform;
 
 use crate::ticks;

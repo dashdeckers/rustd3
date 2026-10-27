@@ -14,12 +14,13 @@
 //! ```
 //!
 //! The tick rules that scale transforms state as their own are building
-//! blocks here too: [`linear`], [`log`] and [`subdivide`].
+//! blocks here too: [`linear`], [`transformed`], [`log`], [`decades`] and
+//! [`subdivide`].
 
 mod rules;
 
 pub(crate) use rules::pow10;
-pub use rules::{linear, log, subdivide};
+pub use rules::{decades, linear, log, subdivide, transformed};
 
 use crate::js;
 

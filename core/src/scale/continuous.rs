@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::format::{InvalidFormat, Locale};
 use crate::interpolate::{self, Interpolate};
 use crate::js;
-use crate::scale::{TickFormat, Transform, transform};
+use crate::scale::{TickFormat, TickRule, Transform, transform};
 
 /// A continuous scale: `N` domain stops mapped through a transform onto `N`
 /// range values of any interpolatable type `R` (d3's scaleLinear, scalePow,
@@ -26,6 +26,8 @@ pub struct Continuous<T, R = f64, const N: usize = 2> {
     interpolate: Interpolator<R>,
     clamp: bool,
     unknown: Option<R>,
+    /// The rule that replaces the transform's own, when set.
+    tick_rule: Option<TickRule>,
 }
 
 /// How two range values blend: their own `lerp`, or the caller's function.
@@ -47,6 +49,7 @@ impl<T: fmt::Debug, R: fmt::Debug, const N: usize> fmt::Debug for Continuous<T, 
             .field("interpolate", &self.interpolate)
             .field("clamp", &self.clamp)
             .field("unknown", &self.unknown)
+            .field("tick_rule", &self.tick_rule)
             .finish_non_exhaustive()
     }
 }
@@ -72,6 +75,7 @@ impl<T: Transform> Continuous<T> {
             interpolate: Interpolator::Lerp,
             clamp: false,
             unknown: None,
+            tick_rule: None,
         }
         .transformed(transform)
     }
@@ -96,6 +100,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
             interpolate: Interpolator::Lerp,
             clamp: self.clamp,
             unknown: None,
+            tick_rule: self.tick_rule,
         }
     }
 
@@ -149,9 +154,33 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         })
     }
 
-    /// About `count` ticks over the end stops, by the transform's rule.
+    /// Replaces the transform's tick rule with `rule` (not `.ticks(…)`,
+    /// which is d3's and takes a count).
+    ///
+    /// ```
+    /// use rustd3_core::scale::{self, TickRule};
+    ///
+    /// let s = scale::linear()
+    ///     .domain([0.0, 12.0])
+    ///     .tick_rule(TickRule::custom(|[a, b], _| {
+    ///         (0..).map(|i| a + 3.0 * f64::from(i)).take_while(|v| *v <= b).collect()
+    ///     }));
+    /// assert_eq!(s.ticks(5), [0.0, 3.0, 6.0, 9.0, 12.0]);
+    /// ```
+    pub fn tick_rule(self, rule: TickRule) -> Self {
+        Continuous {
+            tick_rule: Some(rule),
+            ..self
+        }
+    }
+
+    /// About `count` ticks over the end stops, by the tick rule when one is
+    /// set and the transform's rule otherwise.
     pub fn ticks(&self, count: usize) -> Vec<f64> {
-        self.transform.ticks(self.ends(), count)
+        match &self.tick_rule {
+            Some(rule) => rule.ticks(&self.transform, self.ends(), count),
+            None => self.transform.ticks(self.ends(), count),
+        }
     }
 
     /// The transform's minor ticks between `ticks(count)`.
@@ -323,6 +352,7 @@ mod tests {
             interpolate: Interpolator::Lerp,
             clamp: false,
             unknown: None,
+            tick_rule: None,
         }
     }
 

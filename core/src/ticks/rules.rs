@@ -7,10 +7,56 @@ use crate::ticks;
 
 /// The most values a built-in rule returns.
 const MAX_VALUES: usize = 10_000;
+/// The most decades [`decades`] walks from the constant up.
+const MAX_DECADES: u16 = 400;
 
 /// d3's linear ticks in data space: `ticks(d[0], d[1], count)`.
 pub fn linear(domain: [f64; 2], count: usize) -> Vec<f64> {
     ticks::ticks(domain[0], domain[1], count as f64)
+}
+
+/// d3's linear ticks of `forward(domain)`, mapped back through `inverse`.
+pub fn transformed<T: Transform>(transform: &T, domain: [f64; 2], count: usize) -> Vec<f64> {
+    linear(domain.map(|x| transform.forward(x)), count)
+        .into_iter()
+        .map(|u| transform.inverse(u))
+        .collect()
+}
+
+/// 0 and ±c·10ᵏ inside the domain, every k-th decade to stay near `count`:
+/// the decades k = 0, 1, … with c·10ᵏ at most the larger magnitude of the
+/// ends (at most 400 of them), on both sides of 0 when the domain straddles
+/// it, thinned to every ⌈decades · sides / count⌉-th, in domain order.
+/// Empty unless `constant` is positive and both ends are finite.
+pub fn decades(domain: [f64; 2], constant: f64, count: usize) -> Vec<f64> {
+    let reverse = domain[1] < domain[0];
+    let [a, b] = if reverse {
+        [domain[1], domain[0]]
+    } else {
+        domain
+    };
+    if constant.is_nan() || constant <= 0.0 || !a.is_finite() || !b.is_finite() {
+        return Vec::new();
+    }
+    let largest = a.abs().max(b.abs());
+    let powers: Vec<f64> = (0..MAX_DECADES)
+        .map(|k| scaled(constant, k))
+        .take_while(|&p| p <= largest)
+        .collect();
+    let sides = if a < 0.0 && 0.0 < b { 2 } else { 1 };
+    let step = (powers.len() * sides).div_ceil(count.max(1)).max(1);
+    let mut z = Vec::new();
+    if a <= 0.0 && 0.0 <= b {
+        z.push(0.0);
+    }
+    for &p in powers.iter().step_by(step) {
+        z.extend([-p, p].into_iter().filter(|v| (a..=b).contains(v)));
+    }
+    z.sort_by(f64::total_cmp);
+    if reverse {
+        z.reverse();
+    }
+    z
 }
 
 /// d3's log ticks (log.js `ticks`), reflected for a domain that starts
@@ -111,6 +157,18 @@ pub(crate) fn pow10(k: f64) -> f64 {
         0.0
     } else {
         k
+    }
+}
+
+/// c·10ᵏ, through an exact power of ten, and split where 10ᵏ alone would
+/// overflow a constant small enough to keep the product finite.
+fn scaled(c: f64, k: u16) -> f64 {
+    let k = f64::from(k);
+    let power = pow10(k);
+    if power.is_finite() {
+        c * power
+    } else {
+        c * pow10(k - 300.0) * 1e300
     }
 }
 
