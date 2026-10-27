@@ -12,6 +12,7 @@ mod interpolate;
 mod color;
 mod shape;
 mod zoom;
+mod time;
 
 pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "path", tests: path::TESTS, asserts: path::ASSERTS },
@@ -24,4 +25,5 @@ pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "color", tests: color::TESTS, asserts: color::ASSERTS },
     registry::Suite { name: "shape", tests: shape::TESTS, asserts: shape::ASSERTS },
     registry::Suite { name: "zoom", tests: zoom::TESTS, asserts: zoom::ASSERTS },
+    registry::Suite { name: "time", tests: time::TESTS, asserts: time::ASSERTS },
 ];

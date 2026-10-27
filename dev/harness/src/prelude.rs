@@ -4,15 +4,20 @@
 
 use std::fmt;
 
+use rustd3_core::jiff::civil::{Date, Time};
+use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_testkit::obs::{Obs, ToObs, Token, Tolerance, tokenize};
 
 use crate::record::{self, Mark, Record};
 
 pub(crate) use rustd3_core::color::{Cubehelix, Hcl, Hsl, Lab, Rgb};
 pub(crate) use rustd3_core::ease::{Ease, Mode};
+pub(crate) use rustd3_core::jiff::tz::TimeZone;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
 pub(crate) use rustd3_core::shape::{self, Curve};
+pub(crate) use rustd3_core::time::Interval;
 pub(crate) use rustd3_core::{array, format, interact, interpolate, scale, ticks};
+pub(crate) use rustd3_testkit::zone;
 
 /// The d3 assertion an assertion was written with, which sets its d3 verdict.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -226,6 +231,61 @@ pub fn in_out(ease: Ease) -> impl Fn(f64) -> f64 {
     }
 }
 
+/// d3-time's test helper `local(year, month, day, hours, minutes, seconds,
+/// milliseconds)` in `zone`: ECMAScript's MakeDay, MakeTime and MakeDate
+/// over 1 to 7 fields (the month from 0; a missing day is 1, other missing
+/// fields 0; any field may carry into the next, negative ones back; years
+/// 0–99 literal), resolved as `Date` resolves a local time, by jiff's
+/// compatible disambiguation.
+pub fn local(zone: &TimeZone, fields: &[f64]) -> Timestamp {
+    zone.to_timestamp(make_date(fields))
+        .expect("d3 test: a date in jiff's range")
+}
+
+/// d3-time's test helper `utc(…)`: [`local`] in UTC (`Date.UTC`).
+pub fn utc(fields: &[f64]) -> Timestamp {
+    local(&TimeZone::UTC, fields)
+}
+
+/// `new Date(ms)`: the instant `ms` milliseconds from the epoch.
+pub fn millis(ms: f64) -> Timestamp {
+    // Tests pass whole numbers, which `as` keeps exactly below 2^53.
+    Timestamp::from_millisecond(ms as i64).expect("d3 test: a date in jiff's range")
+}
+
+/// A date as the harness compares it: RFC 3339 with nine fraction digits,
+/// exact to the nanosecond, or null for d3's Invalid Date.
+pub fn ts(t: impl Into<Option<Timestamp>>) -> Obs {
+    t.into().map_or(Obs::Null, |t| Obs::Str(format!("{t:.9}")))
+}
+
+/// Dates as [`ts`] compares each.
+pub fn tss(dates: &[Timestamp]) -> Obs {
+    Obs::List(dates.iter().map(|&t| ts(t)).collect())
+}
+
+/// The civil date-time `local` and `utc` resolve: the date from year and
+/// month (carried by whole years) plus `day − 1` days, then the time fields
+/// as one millisecond offset, all in civil arithmetic.
+fn make_date(fields: &[f64]) -> rustd3_core::jiff::civil::DateTime {
+    // Tests pass whole numbers; ECMAScript truncates fields as `as` does.
+    let field = |i: usize, missing: i64| fields.get(i).map_or(missing, |&f| f as i64);
+    let (year, month) = (field(0, 0), field(1, 0));
+    let first = Date::new(
+        i16::try_from(year + month.div_euclid(12)).expect("d3 test: a year jiff holds"),
+        i8::try_from(month.rem_euclid(12) + 1).expect("invariant: a month from 1 to 12"),
+        1,
+    )
+    .expect("d3 test: a year jiff holds");
+    let ms = field(3, 0) * 3_600_000 + field(4, 0) * 60_000 + field(5, 0) * 1_000 + field(6, 0);
+    let offset =
+        SignedDuration::from_hours(24 * (field(2, 1) - 1)) + SignedDuration::from_millis(ms);
+    first
+        .to_datetime(Time::midnight())
+        .checked_add(offset)
+        .expect("d3 test: a date in jiff's range")
+}
+
 /// d3's `assertInDelta`: numbers within `delta`, arrays element by element.
 fn in_delta(actual: &Obs, expected: &Obs, delta: f64) -> bool {
     match (actual, expected) {
@@ -398,6 +458,37 @@ mod tests {
     fn drawn_is_none_for_an_empty_path_as_d3_shape_returns_null() {
         assert_eq!(drawn(|_| {}), None);
         assert_eq!(drawn(|p| p.move_to(0.0, 1.0)), Some("M0,1".to_owned()));
+    }
+
+    #[test]
+    fn local_carries_fields_as_make_date_does() {
+        let la = zone("America/Los_Angeles");
+        let at = |s: &str| s.parse::<Timestamp>().unwrap();
+        assert_eq!(local(&la, &[2011.0, 0.0, 0.0]), at("2010-12-31T08:00:00Z"));
+        assert_eq!(local(&la, &[2011.0, 12.0, 1.0]), at("2012-01-01T08:00:00Z"));
+        assert_eq!(
+            local(&la, &[2011.0, 0.0, 1.0, 24.0]),
+            at("2011-01-02T08:00:00Z")
+        );
+        assert_eq!(local(&la, &[2011.0, -1.0, 1.0]), at("2010-12-01T08:00:00Z"));
+        assert_eq!(
+            local(&la, &[2011.0, 2.0, 13.0, 2.0, 30.0]),
+            at("2011-03-13T10:30:00Z")
+        );
+        assert_eq!(
+            local(&la, &[2011.0, 10.0, 6.0, 1.0, 30.0]),
+            at("2011-11-06T08:30:00Z")
+        );
+        assert_eq!(utc(&[9.0, 10.0, 6.0, 7.0]), at("0009-11-06T07:00:00Z"));
+        assert_eq!(
+            local(&la, &[9.0, 10.0, 6.0, 7.0]),
+            millis(-61_856_384_822_000.0)
+        );
+        assert_eq!(
+            ts(millis(1.0)),
+            Obs::Str("1970-01-01T00:00:00.001000000Z".to_owned())
+        );
+        assert_eq!(ts(None), Obs::Null);
     }
 
     #[test]
