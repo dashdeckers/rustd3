@@ -145,3 +145,23 @@ fn an_empty_batch_has_no_labels() -> Result<(), InvalidFormat> {
     );
     Ok(())
 }
+
+#[test]
+fn bundled_tables_write_the_de_de_and_fr_fr_rows_of_part_i() -> Result<(), InvalidFormat> {
+    use rustd3_core::format;
+
+    let de = Locale::from(format::Locale::DE_DE);
+    assert_eq!(single(&de, ",.1f", 1234567.5)?, "1.234.567,5");
+    assert_eq!(single(&de, "$,.2f", 1234.5)?, "1.234,50\u{a0}€");
+    assert_eq!(
+        tick_labels(&de, [0.0, 8000.0], 5)[1..],
+        ["2.000", "4.000", "6.000", "8.000"]
+    );
+    assert_eq!(tick_labels(&de, [0.0, 12000.0], 5)[6], "12.000");
+    let fr = Locale::from(format::Locale::FR_FR);
+    assert_eq!(single(&fr, ",.1f", 1234567.5)?, "1\u{a0}234\u{a0}567,5");
+    assert_eq!(single(&fr, "$,.2f", 1234.5)?, "1\u{a0}234,50\u{a0}€");
+    assert_eq!(tick_labels(&fr, [0.0, 8000.0], 5)[1], "2\u{a0}000");
+    assert_eq!(tick_labels(&fr, [0.0, 12000.0], 5)[6], "12\u{a0}000");
+    Ok(())
+}

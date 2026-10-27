@@ -415,3 +415,67 @@ fn literal_check_agrees_with_parser() {
     let valid = all.iter().filter(|text| agrees(text)).count();
     assert!(valid > 1000, "{valid} of {} valid", all.len());
 }
+
+#[test]
+fn degenerate_values_under_the_tables_match_d3() {
+    // d3-format 3.1.2's formatLocale over the same JSON tables, in Node,
+    // but for one row.
+    let ar = from_json(table!("ar-001"));
+    let in_ = from_json(table!("en-IN"));
+    let rows: [(&Locale, &str, f64, &str); 17] = [
+        (&Locale::DE_DE, ",.2f", f64::NAN, "NaN"),
+        (&Locale::DE_DE, ",.2f", f64::INFINITY, "Infinity"),
+        (
+            &Locale::DE_DE,
+            "$,.2f",
+            f64::NEG_INFINITY,
+            "−Infinity\u{a0}€",
+        ),
+        (&Locale::DE_DE, ",.1f", -0.0, "0,0"),
+        (&Locale::DE_DE, "+,.1f", -0.0, "−0,0"),
+        (&Locale::DE_DE, "", 0.1 + 0.2, "0,3"),
+        (&Locale::DE_DE, ".3~e", 12345.0, "1,235e+4"),
+        (&Locale::DE_DE, "#x", 255.0, "0xff"),
+        (&Locale::DE_DE, "c", 3.5, "3.5"),
+        (&Locale::FR_FR, ",d", -0.4, "0"),
+        (
+            &Locale::FR_FR,
+            "020,.1f",
+            -1234.5,
+            "−00\u{a0}000\u{a0}000\u{a0}001\u{a0}234,5",
+        ),
+        (&Locale::RU_RU, ".2s", 1e-30, "0,000001y"),
+        // d3's toFixed switches to "1e+21円" here; Phase 3 writes no
+        // exponent notation that JavaScript's printing adds.
+        (
+            &Locale::JA_JP,
+            "$,.0f",
+            1e21,
+            "1,000,000,000,000,000,000,000円",
+        ),
+        (&ar, ",.2f", f64::NAN, "NaN"),
+        (&ar, "$,.2f", f64::NEG_INFINITY, "−Infinity"),
+        (&ar, "020,.1f", -1234.5, "−٠٠٬٠٠٠٬٠٠٠٬٠٠١٬٢٣٤٫٥"),
+        (&in_, "015,d", 1_234_567.0, "00,00,12,34,567"),
+    ];
+    for (locale, specifier, value, d3) in rows {
+        assert_eq!(
+            under(locale, specifier, value),
+            d3,
+            "{specifier} of {value}"
+        );
+    }
+}
+
+#[test]
+fn fmt_takes_the_empty_specifier_and_the_neutral_default() {
+    assert_eq!(rustd3_core::fmt!("").format(0.1 + 0.2), "0.3");
+    assert_eq!(rustd3_core::fmt!(",d").format(12000.0), "12\u{202f}000");
+    assert_eq!(rustd3_core::fmt!(",d").locale(), &Locale::NEUTRAL);
+    assert_eq!(
+        rustd3_core::fmt!("$,.2f").format(-1234.5),
+        format::format("$,.2f").unwrap().format(-1234.5)
+    );
+    assert!(format::format("10..f").is_err());
+    assert!(Locale::DE_DE.format("10..f").is_err());
+}
