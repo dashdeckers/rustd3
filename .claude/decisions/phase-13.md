@@ -48,7 +48,7 @@ point; no ink outside the boxes.
 
 ## D13.1 — Statements of Phase 13 that do not hold as written, or leave a detail open
 
-**Date:** 2026-10-27 · **Context:** Phase 13, 690db00 … 2678df4 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 13, 690db00 … 2678df4 · **Status:** decided
 
 ### Issue
 
@@ -129,7 +129,11 @@ point; no ink outside the boxes.
 
 ### Decision
 
-Recommended: A for all ten, already built (690db00 … 2678df4).
+A for all ten (architect, 2026-10-27), as built. The snippet's text is
+wrapped in `box(…)` so typst keeps its frame as a group with its
+baseline, and `ascent` reads that baseline: a label that starts with
+stacked math sits on its line's baseline, not its numerator's. A
+`#pagebreak()` inside raw markup is `Error::Markup`.
 
 ### Why
 
