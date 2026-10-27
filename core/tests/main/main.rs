@@ -3,6 +3,7 @@
 
 mod axis;
 mod band;
+mod color;
 mod ease;
 mod fixtures;
 mod format;
