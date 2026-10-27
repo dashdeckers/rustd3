@@ -75,29 +75,13 @@ impl Placed {
             .collect()
     }
 
-    /// Appends the axis beside plot area `area` to `list`: its line in the
+    /// Appends the axis line beside plot area `area` to `list`, in the
     /// theme's edge color (its own when tinted) with square caps, so two
-    /// axes meet at a closed corner as matplotlib's projecting spines do,
-    /// its ticks (those whose label the scale's format blanks at the minor
-    /// size and width, d3's log ticks between labelled ones), its kept tick
-    /// labels a tick pad past the ticks on the
-    /// baselines their line box gives ([`Labels::baseline`]), its
-    /// offset or multiplier label (at the right end of a horizontal axis, a
-    /// tick pad beyond the labels; above the top end of a vertical one), and
-    /// its title a label pad past all of them, turned a quarter
-    /// counter-clockwise on the left and clockwise on the right. On raster
-    /// targets (`snap`) the line, its square-capped ends and the ticks lie
-    /// on whole device pixels; labels keep their positions.
-    pub(crate) fn draw(
-        &self,
-        area: Rect,
-        text: &text::Cache,
-        theme: &Theme,
-        snap: Snap,
-        list: &mut List,
-    ) {
+    /// axes meet at a closed corner as matplotlib's projecting spines do;
+    /// on raster targets (`snap`) the line and its square-capped ends lie
+    /// on whole device pixels.
+    pub(crate) fn line(&self, area: Rect, theme: &Theme, snap: Snap, list: &mut List) {
         let labels = &self.labels;
-        let orient = labels.orient;
         let spine = self.spine(area, theme);
         let length = spine.length();
         let width = theme.axis_width();
@@ -114,6 +98,32 @@ impl Placed {
             style: list::stroke(snap.width(width)).with_caps(Cap::Square),
             paint: list::brush(edge),
         });
+    }
+
+    /// Appends the rest of the axis beside plot area `area` to `list`: its
+    /// ticks (those whose label the scale's format blanks at the minor
+    /// size and width, d3's log ticks between labelled ones), its kept tick
+    /// labels a tick pad past the ticks on the
+    /// baselines their line box gives ([`Labels::baseline`]), its
+    /// offset or multiplier label (at the right end of a horizontal axis, a
+    /// tick pad beyond the labels; above the top end of a vertical one), and
+    /// its title a label pad past all of them, turned a quarter
+    /// counter-clockwise on the left and clockwise on the right. On raster
+    /// targets (`snap`) the ticks lie on whole device pixels; labels keep
+    /// their positions.
+    pub(crate) fn draw(
+        &self,
+        area: Rect,
+        text: &text::Cache,
+        theme: &Theme,
+        snap: Snap,
+        list: &mut List,
+    ) {
+        let labels = &self.labels;
+        let orient = labels.orient;
+        let spine = self.spine(area, theme);
+        let length = spine.length();
+        let width = theme.axis_width();
         let mut ticks = BezPath::new();
         let mut minor = BezPath::new();
         for (i, p) in self.positions.iter().enumerate() {

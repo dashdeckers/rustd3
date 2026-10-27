@@ -190,11 +190,11 @@ fn a_panel_pushed_down_by_a_title_changes_its_parts_bounds_and_hashes() {
     assert_eq!(commands, moved);
     assert!(moved_bounds.y0 > bounds.y0, "{bounds:?} {moved_bounds:?}");
     assert_ne!(hash, moved_hash);
-    // The panel, its left axis and its mark moved and changed; the
-    // figure's background and the bottom axis, which did not move, kept
-    // their hashes; the title is a new part.
-    let moved = [2 << 56, 4 << 56, 6 << 56].map(part::Id::new);
-    let kept = [0, 4 << 56 | 1].map(part::Id::new);
+    // The panel, its left axis (line, ticks and labels) and its mark moved
+    // and changed; the figure's background and the bottom axis, which did
+    // not move, kept their hashes; the title is a new part.
+    let moved = [2 << 56, 8 << 56, 4 << 56, 6 << 56].map(part::Id::new);
+    let kept = [0, 8 << 56 | 1, 4 << 56 | 1].map(part::Id::new);
     assert_eq!(after.parts.len(), before.parts.len() + 1);
     for (a, b) in before.parts.iter().zip(&after.parts) {
         assert_eq!(a.id, b.id);

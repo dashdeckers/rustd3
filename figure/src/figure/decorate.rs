@@ -22,7 +22,8 @@ impl Figure<'_> {
     /// wrapped in a part with bounds `Rect::ZERO` and hash 0: the figure
     /// background, then per panel its background, its marks in insertion
     /// order inside one group translated to the plot area and clipped to
-    /// it, its inset legends, its border, axes and title, then the figure
+    /// it, its inset legends, its border, axes (each its line, then its
+    /// ticks and labels) and title, then the figure
     /// title, centred on the plot areas' extent, and the legends in figure
     /// slots. Marks thin through `frame`.
     pub(super) fn decorate(
@@ -76,6 +77,9 @@ impl Figure<'_> {
             }
             let shown = laid.axes.iter().enumerate().filter(|(_, a)| a.plan.shown);
             for (j, placed) in shown {
+                part(list, part::id(Role::Spine, i, j), |list| {
+                    placed.line(*area, theme, snap, list);
+                });
                 part(list, part::id(Role::Axis, i, j), |list| {
                     placed.draw(*area, text, theme, snap, list);
                 });

@@ -1223,8 +1223,9 @@ fn raster_targets_put_plot_area_edges_and_hairlines_on_device_pixels() {
         let list = fig.draw_with(&mut cache(), size, target, &Held::default());
         let mut hairlines = 0;
         for part in &list.parts {
-            // Borders, axes and the rules among the marks.
-            let role = part.id >= part::Id::new(3 << 56) && part.id < part::Id::new(7 << 56);
+            // Borders, axes, their lines and the rules among the marks.
+            let role = part.id >= part::Id::new(3 << 56) && part.id < part::Id::new(7 << 56)
+                || part.id >= part::Id::new(8 << 56) && part.id < part::Id::new(9 << 56);
             if !role {
                 continue;
             }
@@ -1270,10 +1271,10 @@ fn raster_targets_put_plot_area_edges_and_hairlines_on_device_pixels() {
             let axis = list
                 .parts
                 .iter()
-                .find(|p| p.id == part::Id::new(4 << 56))
-                .expect("an axis");
+                .find(|p| p.id == part::Id::new(8 << 56))
+                .expect("an axis line");
             let Command::Stroke { style, .. } = &list.commands[axis.commands.start] else {
-                panic!("the axis line first");
+                panic!("the axis line");
             };
             assert!((style.width * 1.25 - 2.0).abs() < 1e-9, "{}", style.width);
         }

@@ -346,8 +346,13 @@ fn figure_axis_ticks_follow_core_axis_positions() {
         .map(|v| area.x0 + Ticks::position(&ranged, v, 0.0).expect("placed"))
         .collect();
     let list = draw(&fig);
-    let axis = &list.commands[list.parts[2].commands.clone()];
-    let ticks: Vec<f64> = strokes(axis)[1]
+    let part = list
+        .parts
+        .iter()
+        .find(|p| p.id == id(4, 0, 0))
+        .expect("an axis part");
+    let axis = &list.commands[part.commands.clone()];
+    let ticks: Vec<f64> = strokes(axis)[0]
         .elements()
         .iter()
         .filter_map(|e| {
@@ -364,8 +369,9 @@ fn figure_axis_ticks_follow_core_axis_positions() {
     assert_eq!(labels, digits);
 }
 
-/// The strokes of the axis part of panel 0, axis `axis`, in `list`: each
-/// path's tick lengths (its segments') and its width.
+/// The strokes of the axis part of panel 0, axis `axis`, in `list` (its
+/// ticks; the line is a part of its own): each path's tick lengths (its
+/// segments') and its width.
 fn tick_strokes(list: &List, axis: u64) -> Vec<(Vec<f64>, f64)> {
     let part = list
         .parts
@@ -407,12 +413,12 @@ fn ticks_the_scale_blanks_draw_at_the_minor_size_and_width() {
     // d3 labels mantissas 1 and 2 of each decade at 10 ticks, and 1e5.
     assert_eq!((labels.len(), blank), (46, 35));
     let strokes = tick_strokes(&list, 0);
-    assert_eq!(strokes.len(), 3, "line, major and minor ticks");
-    let (major, width) = &strokes[1];
+    assert_eq!(strokes.len(), 2, "major and minor ticks");
+    let (major, width) = &strokes[0];
     assert_eq!(major.len(), 11);
     assert!(major.iter().all(|l| (l - 8.0).abs() < 1e-9), "{major:?}");
     assert!((width - 5.0 / 3.0).abs() < 1e-9);
-    let (minor, width) = &strokes[2];
+    let (minor, width) = &strokes[1];
     assert_eq!(minor.len(), 35);
     assert!(
         minor.iter().all(|l| (l - 16.0 / 3.0).abs() < 1e-9),
@@ -439,9 +445,9 @@ fn ticks_whose_labels_collide_or_a_format_blanks_keep_the_major_size() {
     assert!((1..11).contains(&labelled), "{labelled} labels kept");
     for axis in [0, 1] {
         let strokes = tick_strokes(&list, axis);
-        assert_eq!(strokes.len(), 2, "line and major ticks");
-        assert_eq!(strokes[1].0.len(), 11);
-        assert!(strokes[1].0.iter().all(|l| (l - 8.0).abs() < 1e-9));
+        assert_eq!(strokes.len(), 1, "major ticks");
+        assert_eq!(strokes[0].0.len(), 11);
+        assert!(strokes[0].0.iter().all(|l| (l - 8.0).abs() < 1e-9));
     }
 }
 
@@ -456,13 +462,17 @@ fn decorations_are_parts_in_drawing_order_bounded_by_their_commands() {
     let list = draw(&fig);
     list::check(&list).expect("a valid list");
     let ids: Vec<part::Id> = list.parts.iter().map(|p| p.id).collect();
-    // background, panel, border, three axes, the panel title, the title.
+    // background, panel, border, three axes (each its line, then its
+    // ticks and labels), the panel title, the title.
     let expected = [
         id(0, 0, 0),
         id(2, 0, 0),
         id(3, 0, 0),
+        id(8, 0, 0),
         id(4, 0, 0),
+        id(8, 0, 1),
         id(4, 0, 1),
+        id(8, 0, 2),
         id(4, 0, 2),
         id(5, 0, 0),
         id(1, 0, 0),
@@ -478,13 +488,13 @@ fn decorations_are_parts_in_drawing_order_bounded_by_their_commands() {
     assert_eq!(list.parts[0].bounds, Rect::new(0.0, 0.0, 640.0, 480.0));
     let area = resolve(&fig, &Held::default()).plot_areas()[0];
     assert_eq!(list.parts[1].bounds, area);
-    let title = list.parts[7].bounds;
+    let title = list.parts[10].bounds;
     // The title's ink top on the padding, to the glyphs' f32 precision.
     assert!(
         (title.y0 - 0.8 * 44.0 / 3.0).abs() < 1e-4 && title.y1 < area.y0,
         "{title:?}"
     );
-    let heading = list.parts[6].bounds;
+    let heading = list.parts[9].bounds;
     assert!(
         heading.y1 <= area.y0 - 8.0 + 1e-4 && heading.y0 > title.y1,
         "{heading:?}"
@@ -500,7 +510,10 @@ fn a_tinted_axis_takes_its_palette_color() {
         .mark(line(y, [30.0, 65.0]))
         .axis(axis::left(y).color(color, "t").label("temp"));
     let list = draw(&fig);
-    let axis = &list.commands[list.parts[2].commands.clone()];
+    // The axis line's part, then its ticks and labels'.
+    let (line, rest) = (&list.parts[2], &list.parts[3]);
+    assert_eq!((line.id, rest.id), (id(8, 0, 0), id(4, 0, 0)));
+    let axis = &list.commands[line.commands.start..rest.commands.end];
     // "t" is the second key: colorblind's orange.
     let orange = Brush::Solid(Color::from_rgba8(0xde, 0x8f, 0x05, 0xff));
     let strokes = axis.iter().filter_map(|c| {

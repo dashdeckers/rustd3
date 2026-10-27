@@ -22,6 +22,10 @@ pub(super) enum Role {
     /// A legend: in a corner of a panel, or, under [`FIGURE`], in a figure
     /// slot.
     Legend = 7,
+    /// The line of an axis of a panel, apart from its ticks and labels: a
+    /// new domain moves those and leaves the line, and the cells its
+    /// square caps reach into beside the plot area.
+    Spine = 8,
 }
 
 /// The panel field of figure-level parts that panels' parts could share
@@ -46,5 +50,6 @@ mod tests {
     fn a_part_id_packs_role_panel_and_index() {
         assert_eq!(id(Role::Axis, 3, 1), part::Id::new(0x0400_0003_0000_0001));
         assert_eq!(id(Role::Background, 0, 0), part::Id::new(0));
+        assert_eq!(id(Role::Spine, 1, 2), part::Id::new(0x0800_0001_0000_0002));
     }
 }
