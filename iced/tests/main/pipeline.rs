@@ -1,6 +1,7 @@
 //! The widget's render pipeline through the headless harness on the
 //! backend `ICED_TEST_BACKEND` names: cells rendered on the worker against
-//! the same cells rendered inline, the newest result winning, previous
+//! the same cells rendered inline, `Render::Auto`'s choice, the newest
+//! result winning, previous
 //! images staying until their replacement lands, and the worker thread's
 //! lifetime.
 
@@ -18,7 +19,7 @@ use rustd3_figure::mark::dots;
 use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis, kurbo};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::{self, Sample};
-use rustd3_iced::plot::{Probe, Render};
+use rustd3_iced::plot::{Probe, Render, cost};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
@@ -41,6 +42,9 @@ const DOTS: usize = 2_000;
 
 /// The cheap figures' logical size.
 const MEDIUM: Size = Size::new(480.0, 320.0);
+
+/// The cheap refresh's logical size: 256,000 device px at 2.
+const SMALL: Size = Size::new(320.0, 200.0);
 
 /// The lock [`WORKERS`] holds; a test that failed holding it poisons
 /// nothing the others read.
@@ -180,6 +184,18 @@ fn last_frame(samples: &[Sample]) -> (u64, u32, u32, u32) {
             Sample::Stage { .. } | Sample::Raster { .. } => None,
         })
         .expect("a frame sample")
+}
+
+/// The cost model's time for the cells the raster samples among
+/// `samples` rendered, ms.
+fn modelled(samples: &[Sample]) -> f64 {
+    samples
+        .iter()
+        .filter_map(|sample| match sample {
+            Sample::Raster { pixels, work, .. } => Some(cost::model_ms(u64::from(*pixels), *work)),
+            Sample::Stage { .. } | Sample::Frame { .. } => None,
+        })
+        .sum()
 }
 
 /// What each `Frame` sample among `samples` reported: (missing, previews).
@@ -473,4 +489,84 @@ fn previous_image_stays_until_the_new_one_arrives() {
             diff.max()
         );
     }
+}
+
+#[test]
+fn cheap_refresh_renders_inline() {
+    let k = 2.0;
+    let (tx, rx) = mpsc::channel();
+    let plot = Plot::<()>::new(tinted(0xffffff))
+        .scale_factor(k)
+        .probe(Probe::new(headless::clock, tx));
+    let Some(mut harness) = Harness::new(plot, SMALL, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let _ = harness.frame(headless::epoch());
+    let samples: Vec<Sample> = rx.try_iter().collect();
+    let (generation, images, missing, previews) = last_frame(&samples);
+    let model = modelled(&samples);
+    println!("cheap refresh, {backend}: {images} cells, model {model:.2} ms, inline");
+    assert_eq!((generation, missing, previews), (1, 0, 0), "{backend}");
+    assert!(model <= 8.35, "{backend}: model {model} ms");
+    let rendered = rasters(&samples);
+    assert_eq!(rendered.len(), images as usize);
+    assert!(
+        rendered.iter().all(|&(_, _, inline)| inline),
+        "{rendered:?}"
+    );
+    assert_eq!(harness.wakes(), 0, "{backend}: no worker, no wake");
+}
+
+#[test]
+fn expensive_refresh_uses_the_worker() {
+    let _workers = workers();
+    let k = 2.0;
+    let (tx, rx) = mpsc::channel();
+    let plot = Plot::<()>::new(scatter(DOTS))
+        .scale_factor(k)
+        .probe(Probe::new(headless::clock, tx));
+    let Some(mut harness) = Harness::new(plot, LARGE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t0 = headless::epoch();
+    let _ = harness.frame(t0);
+    let planned: Vec<Sample> = rx.try_iter().collect();
+    let (_, images, missing, _) = last_frame(&planned);
+    assert_eq!(images, 0, "{backend}");
+    assert!(
+        missing > 0,
+        "{backend}: the first frame waits for the worker"
+    );
+    assert!(rasters(&planned).is_empty());
+    assert!(harness.wait_for_wake(Duration::from_secs(10)));
+    harness.events(&[Event::Waken]);
+    assert_eq!(
+        harness.redraw_requested(),
+        RedrawRequest::NextFrame,
+        "{backend}: a shown result redraws"
+    );
+    // The first drain may have taken every result; else the rest come.
+    let t = t0 + Duration::from_millis(16);
+    let _ = harness.frame(t);
+    let mut samples: Vec<Sample> = rx.try_iter().collect();
+    if frames(&samples).last() != Some(&(0, 0)) {
+        samples.extend(settle(&mut harness, &rx, t).samples);
+    }
+    let rendered = rasters(&samples);
+    assert_eq!(
+        rendered.len(),
+        missing as usize,
+        "{backend}: every cell once"
+    );
+    assert!(
+        rendered.iter().all(|&(_, _, inline)| !inline),
+        "{rendered:?}"
+    );
+    let model = modelled(&samples);
+    println!(
+        "expensive refresh, {backend}: {missing} cells on the worker, model {model:.1} ms > 8.35"
+    );
+    assert!(model > 8.35, "{backend}: model {model} ms");
 }

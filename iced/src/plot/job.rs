@@ -9,7 +9,7 @@ use rustd3_figure::kurbo::Rect;
 use rustd3_figure::list::{Bounds, List};
 use rustd3_figure::raster;
 
-use crate::plot::probe;
+use crate::plot::{probe, slot};
 
 /// One cell of one refresh to render, inline or on the worker.
 pub(crate) struct Job {
@@ -99,9 +99,7 @@ impl Job {
 impl Done {
     /// Device pixels of the cell.
     pub(crate) fn pixels(&self) -> u64 {
-        let [x0, y0, x1, y1] = self.rect;
-        let side = |a: i32, b: i32| u64::try_from(b - a).unwrap_or(0);
-        side(x0, x1) * side(y0, y1)
+        slot::pixels(self.rect)
     }
 }
 

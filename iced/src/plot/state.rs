@@ -9,6 +9,8 @@ use iced_core::{Point, Rectangle, Size, image};
 use rustd3_figure::list::{self, Bounds, Outlines};
 use rustd3_figure::{Cache, Figure, Held, Target, Theme, hit, kurbo, raster};
 
+use crate::plot::budget::Budget;
+use crate::plot::cost;
 use crate::plot::job::{Done, Job, Stamp};
 use crate::plot::overlay::{self, Overlay};
 use crate::plot::probe::{self, Probe, Sample, Stage};
@@ -44,6 +46,9 @@ pub(crate) struct State {
     floor: u64,
     /// `RedrawRequested` events handled.
     frame: u64,
+    /// The frame budget, from the last two `RedrawRequested` instants, and
+    /// the cost model's calibration.
+    budget: Budget,
     /// Plot areas in device px, relative to the widget's device origin.
     areas: Vec<[i32; 4]>,
     /// The points the marks draw, list px, for hover.
@@ -78,6 +83,7 @@ impl Default for State {
             generation: 0,
             floor: 0,
             frame: 0,
+            budget: Budget::default(),
             areas: Vec::new(),
             hits: hit::Index::default(),
             overlay: Overlay::default(),
@@ -122,6 +128,7 @@ impl State {
         pipeline: &Pipeline<'_>,
     ) -> usize {
         self.frame += 1;
+        self.budget.frame(now);
         let changed = self.refresh(figure, factor, pipeline);
         let report = self.report(now);
         if let Some(probe) = pipeline.probe {
@@ -134,7 +141,8 @@ impl State {
     /// `factor` and draws it, cuts the list into cells at every plot-area
     /// edge, and renders the cells whose content hash changed: inline,
     /// shown at once, or as a job set that replaces the worker's pending
-    /// one. Returns how many changed.
+    /// one, as `pipeline.render` asks or, for `Auto`, as the cost model
+    /// predicts against the frame budget. Returns how many changed.
     fn refresh(&mut self, figure: &Figure<'_>, factor: f32, pipeline: &Pipeline<'_>) -> usize {
         if !self.stale && self.factor == Some(factor) {
             return 0;
@@ -199,9 +207,17 @@ impl State {
                 enqueued,
             }
         };
+        let model: f64 = changed
+            .iter()
+            .map(|&index| {
+                let rect = self.slots[index].rect();
+                cost::model_ms(slot::pixels(rect), cells.cells[index].work)
+            })
+            .sum();
         let inline = match pipeline.render {
             Render::Inline => true,
-            Render::Worker => !self.start(pipeline.waker),
+            Render::Auto if self.budget.is_inline(model) => true,
+            Render::Auto | Render::Worker => !self.start(pipeline.waker),
         };
         if inline {
             for &index in &changed {
@@ -303,6 +319,10 @@ impl State {
     /// not: shown when it belongs to this partition and is newer than its
     /// slot's image. True when it is shown.
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
+        if let Some(duration) = done.duration {
+            self.budget
+                .calibrate(duration, cost::model_ms(done.pixels(), done.work));
+        }
         if let Some(probe) = probe {
             probe.send(Sample::Raster {
                 frame: self.frame,

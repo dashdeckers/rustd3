@@ -10,6 +10,7 @@ use rustd3_figure::kurbo;
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis};
 use rustd3_iced::Plot;
+use rustd3_iced::plot::Render;
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
@@ -61,10 +62,12 @@ fn samples(n: usize, seed: usize) -> Vec<(f64, f64)> {
         .collect()
 }
 
-/// The first frame of `fig` in the widget at factor `k`, and the
-/// backend's name; `None` when the backend is skipped.
+/// The first frame of `fig` in the widget at factor `k`, rendered
+/// inline, and the backend's name; `None` when the backend is skipped.
+/// (The cost model predicts 8.7 ms for [`figure`] at 2, over half the
+/// first frame's budget, so `Render::Auto` would wait for the worker.)
 fn shoot(fig: Figure<'static>, k: f32) -> Option<(Shot, String)> {
-    let plot = Plot::<()>::new(fig).scale_factor(k);
+    let plot = Plot::<()>::new(fig).scale_factor(k).render(Render::Inline);
     let mut harness = Harness::new(plot, SIZE, k)?;
     let backend = harness.backend();
     Some((harness.frame(headless::epoch()), backend))
@@ -184,10 +187,12 @@ fn changed(before: &Shot, after: &Shot) -> Vec<(u32, u32)> {
         .collect()
 }
 
-/// A frame of `plot` at `k`, then one after the pointer moved to `at`
-/// (logical), the backend's name and whether the move asked for a redraw.
+/// A frame of `plot` at `k`, rendered inline, then one after the pointer
+/// moved to `at` (logical), the backend's name and whether the move asked
+/// for a redraw.
 fn hover(plot: Plot<'static, ()>, k: f32, at: Point) -> Option<(Shot, Shot, String, bool)> {
-    let mut harness = Harness::new(plot.scale_factor(k), SIZE, k)?;
+    let plot = plot.scale_factor(k).render(Render::Inline);
+    let mut harness = Harness::new(plot, SIZE, k)?;
     let backend = harness.backend();
     let t = headless::epoch();
     let before = harness.frame(t);

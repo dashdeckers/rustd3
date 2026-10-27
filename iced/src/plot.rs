@@ -52,6 +52,8 @@
 //! highlight are quads in a layer clipped to the hovered plot area, in the
 //! figure theme's ink.
 
+mod budget;
+pub mod cost;
 #[cfg(test)]
 mod fixture;
 mod handle;
@@ -168,7 +170,7 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Where changed cells rasterize; defaults to [`Render::Inline`].
+    /// Where changed cells rasterize; defaults to [`Render::Auto`].
     pub fn render(self, render: Render) -> Self {
         Plot { render, ..self }
     }

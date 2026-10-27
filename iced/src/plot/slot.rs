@@ -237,6 +237,12 @@ pub(crate) fn bands(rect: [i32; 4]) -> Vec<Range<i32>> {
         .collect()
 }
 
+/// Device pixels of a device rect.
+pub(crate) fn pixels([x0, y0, x1, y1]: [i32; 4]) -> u64 {
+    let side = |a: i32, b: i32| u64::try_from(b - a).unwrap_or(0);
+    side(x0, x1) * side(y0, y1)
+}
+
 /// A partition cell's rect, whose edges are whole device px.
 pub(crate) fn device(rect: Rect) -> [i32; 4] {
     [rect.x0, rect.y0, rect.x1, rect.y1].map(|edge| edge as i32)
