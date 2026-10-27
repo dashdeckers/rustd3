@@ -90,7 +90,8 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
             .map(|(_, scenario, check)| (*scenario, check.clone()))
             .collect::<Vec<_>>(),
     );
-    let report = markdown(&meta, &cells, &checks, outcome);
+    let also = fs::read_to_string(dir.join("also.md")).ok();
+    let report = markdown(&meta, &cells, &checks, outcome, also.as_deref());
     fs::write(dir.join("report.md"), report)?;
     let headless = if meta.headless {
         " (report-only: headless)"
@@ -297,6 +298,7 @@ fn markdown(
     cells: &[Cell<'_>],
     checks: &[(usize, Scenario, Check)],
     outcome: Outcome,
+    also: Option<&str>,
 ) -> String {
     let mut md = String::new();
     let mode = if meta.headless {
@@ -342,6 +344,9 @@ fn markdown(
     attribution(&mut md, cells, checks);
     memory(&mut md, cells, meta);
     flags(&mut md, cells, meta);
+    if let Some(also) = also {
+        let _ = writeln!(md, "{also}");
+    }
     let _ = writeln!(md, "## Rule outcome\n");
     if meta.headless {
         let _ = writeln!(

@@ -4,6 +4,7 @@
 //! raw records, CSV summaries and a report that evaluates the decision
 //! rule registered before any run (`--help` prints the procedure).
 
+mod also;
 mod app;
 mod cli;
 mod driver;
@@ -190,6 +191,10 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
             }
         }
     }
+    println!(
+        "rustd3-bench: measuring the items earlier phases asked for (D15.3, D18.3, D19.3, D21.1)"
+    );
+    fs::write(dir.join("also.md"), also::measure())?;
     let summary = report::build(&dir)?;
     println!("{summary}");
     println!("report: {}", dir.join("report.md").display());
