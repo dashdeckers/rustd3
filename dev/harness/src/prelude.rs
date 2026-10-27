@@ -10,7 +10,7 @@ use crate::record::{self, Mark, Record};
 
 pub(crate) use rustd3_core::ease::{Ease, Mode};
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
-pub(crate) use rustd3_core::{format, ticks};
+pub(crate) use rustd3_core::{format, interpolate, scale, ticks};
 
 /// The d3 assertion an assertion was written with, which sets its d3 verdict.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -129,6 +129,18 @@ pub fn precision(s: &str, p: f64) -> String {
     }
     out.push_str(rest);
     out
+}
+
+/// JavaScript's `Math.round`: ties toward +∞ (`f64::round` takes them away
+/// from zero).
+pub fn js_round(x: f64) -> f64 {
+    let floor = x.floor();
+    if x - floor >= 0.5 { floor + 1.0 } else { floor }
+}
+
+/// d3-scale's test helper `roundEpsilon(x)`: `x` rounded to 12 decimals.
+pub fn round_epsilon(x: f64) -> f64 {
+    js_round(x * 1e12) / 1e12
 }
 
 /// d3-ease's test helper `out(easeIn)`: the easing reflected in time and value.

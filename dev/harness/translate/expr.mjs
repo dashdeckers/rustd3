@@ -4,17 +4,20 @@
 // file-level helpers. d3's own names come from the suite's rules.
 //
 // A translated expression is a typed value {c, t}: c is Rust code, t its
-// type: num (f64), str (&str or String), bool, vec (Vec<f64>), undef
+// type: num (f64), str (&str or String), bool, vec (Vec<f64>; a literal
+// keeps its element code as `items`), strs (a Vec of strings), undef
 // (None), opt (an Option of a number whose None is d3's NaN), fn (a
 // callable taking `arity` f64s and returning `ret`, num by default),
-// result (Result<(), E>), result-<t> (Result<t, E>), or a type a suite's
-// rules introduce. A fallible value may name its `expect` message.
+// result (Result<(), E>), result-<t> (Result<t, E>), local (a function
+// declared in a test, inlined where a statement calls it), or a type a
+// suite's rules introduce. A fallible value may name its `expect` message;
+// a value with `stmt` is written as that statement when it stands alone.
 //
 // Rules (rules/<d3 module>.mjs) may provide:
 //   identifiers                    {name: typed value} for d3's exports
 //   call(node, ctx)                a call or `new` of d3's, from its AST
 //   method(obj, prop, args, ctx)   a typed value, or undefined (a gap)
-//   field(obj, prop, ctx)          a property read
+//   field(obj, prop, ctx, node)    a property read (`[…]` when computed)
 //   apply(target, args, ctx)       calling a value that is not a fn
 //   equal(a, b)                    strictEqual of two such values, as bool code
 //   statement(s, ctx)              a loop's skip reason, by throwing it
@@ -35,7 +38,12 @@ export const skip = (reason) => {
 export const CATEGORIES = ["js", "types", "api", "gap", "helpers"];
 
 const MATH_FNS = { sqrt: "sqrt", abs: "abs", floor: "floor", ceil: "ceil", sin: "sin", cos: "cos", exp: "exp", log: "ln" };
-const MATH_CONSTS = { PI: "std::f64::consts::PI", E: "std::f64::consts::E", SQRT2: "std::f64::consts::SQRT_2" };
+const MATH_CONSTS = {
+  PI: "std::f64::consts::PI",
+  E: "std::f64::consts::E",
+  SQRT2: "std::f64::consts::SQRT_2",
+  SQRT1_2: "std::f64::consts::FRAC_1_SQRT_2",
+};
 const NUMBER_CONSTS = { MIN_VALUE: "f64::from_bits(1)", MAX_VALUE: "f64::MAX", EPSILON: "f64::EPSILON" };
 const ARITHMETIC = new Set(["+", "-", "*", "/", "%"]);
 const COMPARE = { "===": "==", "<": "<", ">": ">", "<=": "<=", ">=": ">=" };
@@ -82,7 +90,7 @@ export function ex(node, ctx) {
       const consts = { Math: MATH_CONSTS, Number: NUMBER_CONSTS }[node.object.name];
       if (node.object.type === "Identifier" && consts?.[name]) return { c: consts[name], t: "num" };
       const obj = val(ex(node.object, ctx));
-      return ctx.rules.field?.(obj, name, ctx) ?? skip(`gap: property ${name} of ${obj.t}`);
+      return ctx.rules.field?.(obj, name, ctx, node) ?? skip(`gap: property ${name} of ${obj.t}`);
     }
     case "AssignmentExpression":
       if (node.left.type !== "MemberExpression") return skip(`gap: assignment`);
@@ -101,8 +109,10 @@ export function ex(node, ctx) {
     case "BinaryExpression":
       return binary(node, ctx);
     case "ArrayExpression": {
-      const items = node.elements.map((e) => (e ? needNum(ex(e, ctx), "array element") : skip("js: array hole")));
-      return { c: items.length ? `vec![${items.join(", ")}]` : "Vec::<f64>::new()", t: "vec" };
+      const values = node.elements.map((e) => (e ? ex(e, ctx) : skip("js: array hole")));
+      if (values.length && values.every((v) => v.t === "str")) return { c: `vec![${values.map((v) => v.c).join(", ")}]`, t: "strs" };
+      const items = values.map((v) => needNum(v, "array element"));
+      return { c: items.length ? `vec![${items.join(", ")}]` : "Vec::<f64>::new()", t: "vec", items };
     }
     case "ObjectExpression":
       return skip("js: object argument (valueOf coercion)");
@@ -182,6 +192,8 @@ function call(node, ctx) {
 const nan = (e) => (e.t === "opt" ? `${e.c}.is_none()` : `(${needNum(e, "isNaN argument")}).is_nan()`);
 
 function math(prop, args) {
+  // JavaScript's Math.round takes ties toward +∞, f64::round away from 0.
+  if (prop === "round") return { c: `js_round(${needNum(nth(args, 0), "Math.round argument")})`, t: "num" };
   if (prop === "pow") {
     return { c: `(${needNum(nth(args, 0), "Math.pow base")}).powf(${needNum(nth(args, 1), "Math.pow exponent")})`, t: "num" };
   }
@@ -270,10 +282,14 @@ function statement(s, ctx, out) {
     for (const d of s.declarations) {
       if (d.id.type !== "Identifier") skip("gap: destructuring");
       if (!d.init) skip("js: a variable without a value (undefined)");
-      const e = val(ex(d.init, ctx));
+      const { stmt, ...e } = val(ex(d.init, ctx));
       out.push({ declares: snake(d.id.name), c: e.c });
       ctx.vars.set(d.id.name, { ...e, c: snake(d.id.name) });
     }
+    return;
+  }
+  if (s.type === "FunctionDeclaration") {
+    ctx.vars.set(s.id.name, { c: snake(s.id.name), t: "local", node: s });
     return;
   }
   if (s.type === "TryStatement" && !s.handler) {
@@ -285,26 +301,47 @@ function statement(s, ctx, out) {
   const exprs = s.expression.type === "SequenceExpression" ? s.expression.expressions : [s.expression];
   for (const e of exprs) {
     const kind = assertionKind(e);
+    const local = e.type === "CallExpression" && e.callee.type === "Identifier" && ctx.vars.get(e.callee.name);
     if (kind) {
       assertion(kind, e, ctx, out);
+    } else if (local?.t === "local") {
+      inline(local.node, e.arguments, ctx, out);
     } else {
       const v = ex(e, ctx);
-      out.push(fallible(v.t) ? `${unwrap(v)};` : `${v.c};`);
+      out.push(v.stmt ?? (fallible(v.t) ? `${unwrap(v)};` : `${v.c};`));
     }
   }
+}
+
+/** A call of a test's own function: its body, in a block, with each parameter bound to its argument's value. */
+function inline(fn, args, ctx, out) {
+  if (fn.params.length !== args.length || !fn.params.every((p) => p.type === "Identifier")) skip("js: a local function called with other arguments (undefined)");
+  const vars = ctx.vars;
+  ctx.vars = new Map(vars);
+  fn.params.forEach((p, i) => ctx.vars.set(p.name, val(ex(args[i], ctx))));
+  out.push("{");
+  for (const s of fn.body.body) statement(s, ctx, out);
+  out.push("}");
+  ctx.vars = vars;
 }
 
 function assertion(kind, node, ctx, out) {
   const id = idOf(node, ctx.file);
   const saved = { lets: new Map(ctx.lets), fns: new Map(ctx.fns), used: new Set(ctx.used) };
+  // An assertion in an inlined function is listed once, however often it runs.
+  const record = (skip) => {
+    const prior = ctx.asserts.find((a) => a.id === id);
+    if (prior && prior.skip !== skip) throw new Error(`${id}: translated one way and skipped another`);
+    if (!prior) ctx.asserts.push({ id, skip });
+  };
   try {
     out.push(check(kind, node.arguments, rustStr(id), ctx));
-    ctx.asserts.push({ id, skip: null });
+    record(null);
   } catch (err) {
     if (!(err instanceof Skip)) throw err;
     Object.assign(ctx, saved);
     out.push(`skip(${rustStr(id)}, ${rustStr(err.message)});`);
-    ctx.asserts.push({ id, skip: err.message });
+    record(err.message);
   }
 }
 

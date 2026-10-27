@@ -7,7 +7,9 @@ import { CATEGORIES, rustStr, translateFile } from "./expr.mjs";
 import array from "./rules/array.mjs";
 import ease from "./rules/ease.mjs";
 import format from "./rules/format.mjs";
+import interpolate from "./rules/interpolate.mjs";
 import path from "./rules/path.mjs";
+import scale from "./rules/scale.mjs";
 
 const tests = (names) => names.map((n) => `${n}-test.js`);
 // One generated module per suite: test files of one d3 package, translated
@@ -32,6 +34,13 @@ const SUITES = [
     ]),
     rules: format,
   },
+  {
+    suite: "scale",
+    package: "d3-scale",
+    files: tests(["linear", "pow", "sqrt", "log", "tickFormat", "radial"]),
+    rules: scale,
+  },
+  { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round"]), rules: interpolate },
 ];
 
 const D3 = new URL("../d3/", import.meta.url);
@@ -95,7 +104,7 @@ function suiteModule({ suite, package: pkg, files, rules }) {
     `    Assertion { id: ${rustStr(a.id)}, test: ${rustStr(t.name)}, skip: ${a.skip === null ? "None" : `Some(${rustStr(a.skip)})`} },`;
   return [
     HEADER,
-    '#![allow(unused_mut, unused_parens, clippy::all, reason = "generated from JavaScript")]',
+    '#![allow(unused_mut, unused_parens, unused_assignments, clippy::all, reason = "generated from JavaScript")]',
     "",
     "use crate::prelude::*;",
     "use crate::registry::{Assertion, Test};",
