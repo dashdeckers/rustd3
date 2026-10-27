@@ -109,7 +109,7 @@ mode means; `None` is the value d3 returns.
 
 ## D7.3 — Statements of Phase 7 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 7, steps 1 and 3 (db97b1c, 4b939e2, bf31f49) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 7, steps 1 and 3 (db97b1c, 4b939e2, bf31f49) · **Status:** decided
 
 ### Issue
 
@@ -136,6 +136,11 @@ mode means; `None` is the value d3 returns.
 | (4) | Private constants in `color.rs`, used by `Rgb` and `Hsl` (bf31f49); a later phase may make them public | Public constants |
 
 ### Decision
+
+A for all four (architect, 2026-10-27): `Point`'s tick position goes
+through d3's `center`; the HSL spot row parses through `FromStr`; CSS
+parsing trims JavaScript's whitespace set, as d3 does; `BRIGHTER` and
+`DARKER` stay private until a phase asks for them.
 
 Recommended: A for all four, already built.
 
