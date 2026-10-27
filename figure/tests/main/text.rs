@@ -15,19 +15,28 @@ use rustd3_figure::text::{
 use crate::sink::DEJAVU;
 
 /// The bundled fonts; without the `fonts` feature, the same three files
-/// given as extra fonts.
+/// given as extra fonts, read once per process as the bundled ones are, so
+/// that their blobs, which part hashes name faces by, are the same in every
+/// cache.
 pub fn fonts() -> Arc<Fonts> {
     #[cfg(feature = "fonts")]
     let fonts = Fonts::bundled();
     #[cfg(not(feature = "fonts"))]
-    let fonts = Arc::new(
-        Fonts::with([
-            DEJAVU.to_vec(),
-            include_bytes!("../../../fonts/DejaVuSans-Bold.ttf").to_vec(),
-            include_bytes!("../../../fonts/NewCMMath-Regular.otf").to_vec(),
-        ])
-        .expect("the font files hold faces"),
-    );
+    let fonts = {
+        static FILES: std::sync::OnceLock<Arc<Fonts>> = std::sync::OnceLock::new();
+        FILES
+            .get_or_init(|| {
+                Arc::new(
+                    Fonts::with([
+                        DEJAVU.to_vec(),
+                        include_bytes!("../../../fonts/DejaVuSans-Bold.ttf").to_vec(),
+                        include_bytes!("../../../fonts/NewCMMath-Regular.otf").to_vec(),
+                    ])
+                    .expect("the font files hold faces"),
+                )
+            })
+            .clone()
+    };
     fonts
 }
 
