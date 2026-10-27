@@ -126,9 +126,10 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         Continuous { domain, ..self }.transformed(transform)
     }
 
-    /// d3's `range(r)`: the values the stops map to, of any interpolatable
-    /// type; a new type resets the interpolator to `lerp` and clears the
-    /// unknown value.
+    /// d3's `range(r)` with a range type of its own: the values the stops
+    /// map to, of any interpolatable type. Since the type may change, it
+    /// always resets the interpolator to `lerp` and clears the unknown
+    /// value; [`with_range`](Continuous::with_range) keeps them.
     pub fn range<S: Interpolate>(self, range: [S; N]) -> Continuous<T, S, N> {
         Continuous {
             transform: self.transform,
@@ -140,6 +141,21 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
             unknown: None,
             tick_rule: self.tick_rule,
         }
+    }
+
+    /// d3's `range(r)` for the same range type: the values the stops map
+    /// to, keeping the interpolator, clamp, unknown value and tick rule.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    ///
+    /// let s = scale::linear().unknown(-1.0).range_round([0.0, 10.0]);
+    /// let wide = s.with_range([0.0, 100.0]);
+    /// assert_eq!(wide.apply(0.555), 56.0);
+    /// assert_eq!(wide.apply(f64::NAN), -1.0);
+    /// ```
+    pub fn with_range(self, range: [R; N]) -> Self {
+        Continuous { range, ..self }
     }
 
     /// d3's `interpolate(f)`: blend neighbouring range values `a` and `b`
@@ -313,10 +329,11 @@ impl<T: Transform, const N: usize> Continuous<T, f64, N> {
         if self.clamp { self.clamped(x) } else { x }
     }
 
-    /// d3's `rangeRound(r)`: `range(r)` with values rounded by
-    /// [`interpolate::round`].
+    /// d3's `rangeRound(r)`: [`with_range(r)`](Continuous::with_range)
+    /// with values rounded by [`interpolate::round`]; clamp and the unknown
+    /// value are kept, as in d3.
     pub fn range_round(self, range: [f64; N]) -> Self {
-        self.range(range)
+        self.with_range(range)
             .interpolate(|a: &f64, b: &f64, t| interpolate::round(*a, *b)(t))
     }
 }

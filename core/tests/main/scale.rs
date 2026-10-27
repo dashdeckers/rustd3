@@ -144,6 +144,37 @@ fn range_round_rounds_the_output() {
 }
 
 #[test]
+fn range_round_keeps_the_unknown_value() {
+    let x = scale::linear().unknown(-1.0).range_round([0.0, 100.0]);
+    assert_eq!(x.apply(f64::NAN), -1.0);
+    assert_eq!(x.apply(0.555), 56.0);
+}
+
+#[test]
+fn with_range_keeps_the_interpolator_clamp_and_unknown_value() {
+    let x = scale::linear()
+        .range_round([0.0, 10.0])
+        .with_range([0.0, 10.0]);
+    assert_eq!(x.apply(0.59), 6.0);
+    let kept = scale::linear()
+        .clamp(true)
+        .unknown(-1.0)
+        .with_range([0.0, 10.0]);
+    assert_eq!(kept.apply(2.0), 10.0);
+    assert_eq!(kept.apply(f64::NAN), -1.0);
+}
+
+#[test]
+fn range_resets_the_interpolator_and_the_unknown_value() {
+    let x = scale::linear()
+        .unknown(-1.0)
+        .range_round([0.0, 10.0])
+        .range([0.0f64, 10.0]);
+    assert_eq!(x.apply(0.25), 2.5);
+    assert!(x.apply(f64::NAN).is_nan());
+}
+
+#[test]
 fn nan_flows_through_unless_an_unknown_value_is_set() {
     let x = scale::linear().clamp(true);
     assert!(x.apply(f64::NAN).is_nan());
