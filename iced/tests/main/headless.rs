@@ -35,6 +35,7 @@ pub struct Harness<'a, Message> {
     #[cfg(all(feature = "figure", feature = "fonts"))]
     waited: usize,
     redraw: window::RedrawRequest,
+    interaction: mouse::Interaction,
 }
 
 /// A screenshot: RGBA8 at physical size, row-major.
@@ -90,6 +91,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             #[cfg(all(feature = "figure", feature = "fonts"))]
             waited: 0,
             redraw: window::RedrawRequest::Wait,
+            interaction: mouse::Interaction::None,
         })
     }
 
@@ -131,9 +133,15 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             &mut self.renderer,
             &mut self.bus,
         );
-        self.redraw = match state {
-            user_interface::State::Updated { redraw_request, .. } => redraw_request,
-            user_interface::State::Outdated => window::RedrawRequest::Wait,
+        (self.redraw, self.interaction) = match state {
+            user_interface::State::Updated {
+                redraw_request,
+                mouse_interaction,
+                ..
+            } => (redraw_request, mouse_interaction),
+            user_interface::State::Outdated => {
+                (window::RedrawRequest::Wait, mouse::Interaction::None)
+            }
         };
         statuses
     }
@@ -184,6 +192,11 @@ impl<'a, Message: 'a> Harness<'a, Message> {
     /// the interface outdated.
     pub fn redraw_requested(&self) -> window::RedrawRequest {
         self.redraw
+    }
+
+    /// The cursor the last update asked for.
+    pub fn interaction(&self) -> mouse::Interaction {
+        self.interaction
     }
 
     /// A waker that counts its wakes, as the updates receive it.

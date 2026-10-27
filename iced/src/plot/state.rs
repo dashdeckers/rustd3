@@ -6,7 +6,7 @@ use std::sync::Arc;
 use iced_core::shell::Waker;
 use iced_core::time::Instant;
 use iced_core::{Event, Point, Rectangle, Size, image, mouse};
-use rustd3_core::interact::{self, Modifiers, Pointer};
+use rustd3_core::interact::{self, Button, Modifiers, Pointer};
 use rustd3_figure::list::{self, Bounds, Outlines};
 use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster};
 
@@ -172,21 +172,35 @@ impl State {
     }
 
     /// Queues `pointer` for the next `RedrawRequested` when a gesture
-    /// reads it: a wheel over a region with zoomable handles (or during a
-    /// drag) and a modifier change.
+    /// reads it, and says what the shell should do: a left press or a
+    /// wheel step over a region with zoomable handles (or during a drag:
+    /// a press ends a drag whose release was lost) is captured and redraws;
+    /// a move during a drag, queued or active, and a left release redraw; a
+    /// modifier change waits for the next redraw.
     pub(crate) fn queue(&mut self, pointer: Pointer) -> Queued {
         let capture = Queued {
             capture: true,
             redraw: true,
         };
+        let redraw = Queued {
+            capture: false,
+            redraw: true,
+        };
+        let dragging = self.is_dragging();
         let queued = match pointer {
-            Pointer::Wheel { x, y, .. } => {
-                let dragging = self.gesture.as_ref().is_some_and(Gesture::is_drag);
-                (dragging || self.zoomable(kurbo::Point::new(x, y))).then_some(capture)
-            }
+            Pointer::Wheel { x, y, .. }
+            | Pointer::Pressed {
+                x,
+                y,
+                button: Button::Left,
+                ..
+            } => (dragging || self.zoomable(kurbo::Point::new(x, y))).then_some(capture),
+            Pointer::Moved { .. } => (dragging || self.input.has_press()).then_some(redraw),
+            Pointer::Released {
+                button: Button::Left,
+            } => Some(redraw),
             Pointer::Modifiers(_) => Some(Queued::default()),
             Pointer::Pressed { .. }
-            | Pointer::Moved { .. }
             | Pointer::Released { .. }
             | Pointer::DoubleClicked { .. }
             | Pointer::Left => None,
@@ -239,9 +253,12 @@ impl State {
     /// Applies the queued input at `now`, once per `RedrawRequested`:
     /// gesture boundaries, then each pointer fed to the gesture's tracks;
     /// accepted steps are stored, pending for `listeners`' handles and
-    /// owned otherwise. A wheel gesture ends at the first redraw
-    /// `gesture::WHEEL_END` after its last step. Returns one message per
-    /// listened handle that changed (the latest domain).
+    /// owned otherwise. A left press over a region with zoomable handles
+    /// starts a drag, which its release ends; a wheel step with no gesture
+    /// starts a wheel gesture on its region (during a drag it feeds the
+    /// drag's tracks), which ends at the first redraw `gesture::WHEEL_END`
+    /// after its last step. Returns one message per listened handle that
+    /// changed (the latest domain).
     fn apply<Message>(
         &mut self,
         now: Instant,
@@ -266,6 +283,27 @@ impl State {
                         gesture.wheeled(now);
                     }
                     changed |= self.feed(pointer, &mut fresh, listeners);
+                }
+                Pointer::Pressed {
+                    x,
+                    y,
+                    button: Button::Left,
+                    ..
+                } => {
+                    // A press ends a wheel gesture, and a drag whose
+                    // release was lost.
+                    self.end(&mut fresh, listeners, &mut messages);
+                    self.begin(self.map.at(kurbo::Point::new(x, y)), gesture::Kind::Drag);
+                    changed |= self.feed(pointer, &mut fresh, listeners);
+                }
+                Pointer::Moved { .. } if self.is_dragging() => {
+                    changed |= self.feed(pointer, &mut fresh, listeners);
+                }
+                Pointer::Released {
+                    button: Button::Left,
+                } if self.is_dragging() => {
+                    changed |= self.feed(pointer, &mut fresh, listeners);
+                    self.end(&mut fresh, listeners, &mut messages);
                 }
                 Pointer::Modifiers(modifiers) => {
                     self.modifiers = modifiers;
@@ -375,6 +413,11 @@ impl State {
             self.domains.release();
             self.stale = true;
         }
+    }
+
+    /// Whether a drag is in progress.
+    fn is_dragging(&self) -> bool {
+        self.gesture.as_ref().is_some_and(Gesture::is_drag)
     }
 
     /// Whether the region at `at` (list px) has zoomable handles.
@@ -690,10 +733,14 @@ impl State {
     }
 
     /// The cursor over a widget laid out at `bounds` with the pointer at
-    /// `at` (logical, in the window): a grab hand over a plot area with
+    /// `at` (logical, in the window): a grabbing hand during a drag, a
+    /// grab hand over a plot area with
     /// zoomable handles, the resize arrow of the axis's direction over a
     /// zoomable axis, a crosshair over other plot areas, none elsewhere.
     pub(crate) fn interaction(&self, at: Option<Point>, bounds: Rectangle) -> mouse::Interaction {
+        if self.is_dragging() {
+            return mouse::Interaction::Grabbing;
+        }
         let Some(at) = at else {
             return mouse::Interaction::None;
         };

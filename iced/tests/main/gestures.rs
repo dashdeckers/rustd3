@@ -18,7 +18,7 @@ use rustd3_iced::plot::Render;
 use crate::headless::{self, Harness, Shot};
 
 /// The figures' logical size.
-const SIZE: Size = Size::new(480.0, 320.0);
+pub const SIZE: Size = Size::new(480.0, 320.0);
 
 /// One frame at 60 Hz.
 const FRAME: Duration = Duration::from_millis(16);
@@ -68,8 +68,9 @@ pub fn run_frame(
     (harness.shoot(), all)
 }
 
-/// Dots on x and y (fixed domains `x` and `y`), with left and bottom axes;
-/// the panel zooms both. Also its handles.
+/// Forty dots in [0, 100] × [0, 10] on x and y (fixed domains `x` and
+/// `y`), with left and bottom axes; the panel zooms both. Also its
+/// handles.
 pub fn figure(x: [f64; 2], y: [f64; 2]) -> (Figure<'static>, ScaleRef<Linear>, ScaleRef<Linear>) {
     let mut fig = Figure::new();
     let hx = fig.scale(scale::linear().domain(x));
@@ -77,10 +78,7 @@ pub fn figure(x: [f64; 2], y: [f64; 2]) -> (Figure<'static>, ScaleRef<Linear>, S
     let points: Vec<(f64, f64)> = (0..40)
         .map(|i| {
             let t = f64::from(i) / 40.0;
-            (
-                x[0] + t * (x[1] - x[0]),
-                y[0] + (t * 9.0).sin().abs() * (y[1] - y[0]),
-            )
+            (100.0 * t, 10.0 * (t * 9.0).sin().abs())
         })
         .collect();
     fig.panel(0, 0)
@@ -476,6 +474,287 @@ fn sub_precision_zoom_is_ignored() {
     // The zoom-out works from the last accepted transform: k back to
     // 2^0.05, far inside the [1e-6, 1e6] extent.
     assert!(expect(spans[3], step), "{backend}: {spans:?}");
+}
+
+/// An app showing [`figure`] on the domains it holds, publishing both
+/// handles when `listens` (else the widget owns them), without the
+/// overlay, so its frames compare with the PNG.
+struct Controlled {
+    x: [f64; 2],
+    y: [f64; 2],
+    k: f32,
+    listens: bool,
+}
+
+impl Controlled {
+    /// Domains x [0, 100], y [0, 10] at factor `k`.
+    fn new(k: f32, listens: bool) -> Controlled {
+        Controlled {
+            x: [0.0, 100.0],
+            y: [0.0, 10.0],
+            k,
+            listens,
+        }
+    }
+}
+
+impl App for Controlled {
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::X(d) => self.x = d,
+            Message::Y(d) => self.y = d,
+            Message::Vib(_) | Message::Temp(_) => {}
+        }
+    }
+
+    fn view(&self) -> Plot<'static, Message> {
+        let (fig, x, y) = figure(self.x, self.y);
+        let plot = Plot::new(fig)
+            .scale_factor(self.k)
+            .render(Render::Inline)
+            .crosshair(false)
+            .highlight(false);
+        if self.listens {
+            plot.on_change(x, Message::X).on_change(y, Message::Y)
+        } else {
+            plot
+        }
+    }
+}
+
+/// One pointer input of a drag, with where the cursor is for it.
+#[derive(Debug, Clone, Copy)]
+enum Step {
+    Press(Point),
+    Move(Point),
+    Release,
+}
+
+impl Step {
+    /// Sends the step's events to `harness`: the cursor placed and moved
+    /// there, then the button pressed or released.
+    fn send(self, harness: &mut Harness<'static, Message>) -> Vec<event::Status> {
+        let moved = |at: Point| Event::Mouse(mouse::Event::CursorMoved { position: at });
+        let left = mouse::Button::Left;
+        match self {
+            Step::Press(at) => {
+                harness.point_at(at);
+                harness.events(&[moved(at), Event::Mouse(mouse::Event::ButtonPressed(left))])
+            }
+            Step::Move(at) => {
+                harness.point_at(at);
+                harness.events(&[moved(at)])
+            }
+            Step::Release => harness.events(&[Event::Mouse(mouse::Event::ButtonReleased(left))]),
+        }
+    }
+}
+
+/// A press at `from`, `moves` moves of `by` each, and the release.
+fn drag(from: Point, by: (f32, f32), moves: u16) -> Vec<Step> {
+    let mut steps = vec![Step::Press(from)];
+    for i in 1..=moves {
+        let i = f32::from(i);
+        steps.push(Step::Move(Point::new(from.x + by.0 * i, from.y + by.1 * i)));
+    }
+    steps.push(Step::Release);
+    steps
+}
+
+/// `steps` sent to a harness of `app`, a frame (as the runtime runs it)
+/// after every `batch` of them and one more after the last, 16 ms apart
+/// from `t0`; then a frame after the layout settled. The last frame and
+/// the backend; `None` when the backend is skipped.
+fn play(app: &mut Controlled, steps: &[Step], batch: usize, t0: Instant) -> Option<(Shot, String)> {
+    let mut harness = Harness::new(app.view(), SIZE, app.k)?;
+    let backend = harness.backend();
+    let mut t = t0;
+    let _ = run_frame(&mut harness, app, t);
+    for chunk in steps.chunks(batch) {
+        for step in chunk {
+            let _ = step.send(&mut harness);
+        }
+        t += FRAME;
+        let _ = run_frame(&mut harness, app, t);
+    }
+    let (shot, messages) = run_frame(&mut harness, app, t + Duration::from_secs(1));
+    assert!(messages.is_empty(), "{backend}: {messages:?}");
+    Some((shot, backend))
+}
+
+#[test]
+fn drag_pans_every_handle_the_panel_zooms() {
+    let k = 2.0;
+    let mut app = Controlled::new(k, true);
+    let area = areas(&figure(app.x, app.y).0, k)[0];
+    let Some(mut harness) = Harness::new(app.view(), SIZE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t0 = headless::epoch();
+    let _ = run_frame(&mut harness, &mut app, t0);
+    let from = Point::new(area.center().x as f32, area.center().y as f32);
+    let statuses = Step::Press(from).send(&mut harness);
+    assert_eq!(
+        statuses,
+        [event::Status::Ignored, event::Status::Captured],
+        "{backend}: the press is captured"
+    );
+    let _ = run_frame(&mut harness, &mut app, t0 + FRAME);
+    assert_eq!(
+        harness.interaction(),
+        mouse::Interaction::Grabbing,
+        "{backend}"
+    );
+    let to = Point::new(from.x + 40.0, from.y + 25.0);
+    let _ = Step::Move(to).send(&mut harness);
+    let (_, messages) = run_frame(&mut harness, &mut app, t0 + FRAME * 2);
+    assert_eq!(messages.len(), 2, "{backend}: {messages:?}");
+    let _ = Step::Release.send(&mut harness);
+    let (_, messages) = run_frame(&mut harness, &mut app, t0 + FRAME * 3);
+    assert!(messages.is_empty(), "{backend}: the release moves nothing");
+    // Content follows the pointer: 40 px right shows what was 40 px left,
+    // 25 px down what was 25 px up.
+    let dx = 40.0 / area.width() * 100.0;
+    let dy = 25.0 / area.height() * 10.0;
+    println!(
+        "drag, {backend}: x {:?}, y {:?} (shifts {dx}, {dy})",
+        app.x, app.y
+    );
+    for (got, want) in app.x.iter().zip([-dx, 100.0 - dx]) {
+        assert!(close(*got, want, 1e-12), "{backend}: x {:?}", app.x);
+    }
+    for (got, want) in app.y.iter().zip([dy, 10.0 + dy]) {
+        assert!(close(*got, want, 1e-12), "{backend}: y {:?}", app.y);
+    }
+    assert_ne!(
+        harness.interaction(),
+        mouse::Interaction::Grabbing,
+        "{backend}"
+    );
+}
+
+#[test]
+fn pan_survives_batched_updates() {
+    let k = 1.0;
+    let area = areas(&figure([0.0, 100.0], [0.0, 10.0]).0, k)[0];
+    let from = Point::new((area.x0 + 100.0) as f32, area.center().y as f32);
+    // 120 px as 6 moves of 20 px: 8 inputs with the press and release.
+    let steps = drag(from, (20.0, 0.0), 6);
+    let t0 = headless::epoch();
+    let mut finals = Vec::new();
+    for batch in [1, 3, steps.len()] {
+        let mut app = Controlled::new(k, true);
+        let Some((shot, backend)) = play(&mut app, &steps, batch, t0) else {
+            return;
+        };
+        println!(
+            "pan, {backend}, an update per {batch} inputs: x {:?}",
+            app.x
+        );
+        finals.push((app.x, shot, backend));
+    }
+    let shift = 120.0 / area.width() * 100.0;
+    let (first, _, backend) = &finals[0];
+    assert!(close(first[0], -shift, 1e-12), "{backend}: {first:?}");
+    for (x, _, _) in &finals[1..] {
+        for (a, b) in x.iter().zip(first) {
+            assert!(close(*a, *b, 1e-12), "{backend}: {x:?} against {first:?}");
+        }
+    }
+    let diff = against_png(&finals[0].1, &figure(*first, [0.0, 10.0]).0, k);
+    assert!(
+        diff.max() <= bound(backend),
+        "{backend}: max {}/255",
+        diff.max()
+    );
+}
+
+#[test]
+fn pan_survives_batched_updates_of_a_widget_owned_domain() {
+    let k = 1.0;
+    let area = areas(&figure([0.0, 100.0], [0.0, 10.0]).0, k)[0];
+    let from = Point::new((area.x0 + 100.0) as f32, area.center().y as f32);
+    let steps = drag(from, (20.0, 0.0), 6);
+    let t0 = headless::epoch();
+    // The app owns the domain and applies every message…
+    let mut controlled = Controlled::new(k, true);
+    let Some((reference, backend)) = play(&mut controlled, &steps, 1, t0) else {
+        return;
+    };
+    // …or the widget does, with every input batch: the same final domain,
+    // so the same pixels.
+    for batch in [1, 3, steps.len()] {
+        let mut owned = Controlled::new(k, false);
+        let (shot, _) = play(&mut owned, &steps, batch, t0).expect("the backend found above");
+        assert_eq!(owned.x, [0.0, 100.0], "the app hears nothing");
+        let diff = rustd3_testkit::pixels::Diff::between(&shot.image(), &reference.image(), 16)
+            .expect("invariant: both shots have the widget's size");
+        println!(
+            "widget-owned pan, {backend}, an update per {batch} inputs: max {}/255 against the controlled one",
+            diff.max()
+        );
+        assert_eq!(diff.max(), 0, "{backend}, batch {batch}");
+    }
+}
+
+#[test]
+fn the_cursor_shows_what_a_gesture_would_do() {
+    let k = 1.0;
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let fixed = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0)
+        .axis(axis::left(y))
+        .axis(axis::bottom(x))
+        .zoom_x(x)
+        .zoom_y(y);
+    fig.panel(0, 1).axis(axis::left(fixed));
+    let rects = areas(&fig, k);
+    let Some(mut harness) = Harness::new(Plot::<Message>::new(fig).scale_factor(k), SIZE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let _ = harness.frame(headless::epoch());
+    let over = |harness: &mut Harness<'static, Message>, x: f64, y: f64| {
+        let at = Point::new(x as f32, y as f32);
+        harness.point_at(at);
+        let _ = harness.events(&[Event::Mouse(mouse::Event::CursorMoved { position: at })]);
+        harness.interaction()
+    };
+    let [zoomed, other] = [rects[0], rects[1]];
+    let cases = [
+        (
+            zoomed.center().x,
+            zoomed.center().y,
+            mouse::Interaction::Grab,
+        ),
+        (
+            zoomed.x0 - 8.0,
+            zoomed.center().y,
+            mouse::Interaction::ResizingVertically,
+        ),
+        (
+            zoomed.center().x,
+            zoomed.y1 + 8.0,
+            mouse::Interaction::ResizingHorizontally,
+        ),
+        (
+            other.center().x,
+            other.center().y,
+            mouse::Interaction::Crosshair,
+        ),
+        (other.x0 - 8.0, other.center().y, mouse::Interaction::None),
+        (2.0, 2.0, mouse::Interaction::None),
+    ];
+    for (x, y, expected) in cases {
+        assert_eq!(
+            over(&mut harness, x, y),
+            expected,
+            "{backend}: at ({x}, {y})"
+        );
+    }
 }
 
 /// The pixel bound of `backend` against the PNG: 1/255 on tiny-skia,
