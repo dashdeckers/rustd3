@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "nod
 import { CATEGORIES, combine, rustStr, translateFile } from "./expr.mjs";
 import array from "./rules/array.mjs";
 import band from "./rules/band.mjs";
+import binned from "./rules/binned.mjs";
 import color from "./rules/color.mjs";
 import ease from "./rules/ease.mjs";
 import format from "./rules/format.mjs";
@@ -14,6 +15,7 @@ import ordinal from "./rules/ordinal.mjs";
 import path from "./rules/path.mjs";
 import scale from "./rules/scale.mjs";
 import shape from "./rules/shape.mjs";
+import stats from "./rules/stats.mjs";
 import zoom from "./rules/zoom.mjs";
 
 const tests = (names) => names.map((n) => `${n}-test.js`);
@@ -46,7 +48,7 @@ const SUITES = [
     suite: "scale",
     package: "d3-scale",
     files: tests(["linear", "pow", "sqrt", "log", "symlog", "tickFormat", "radial", "identity", "band", "point", "ordinal", "sequential", "diverging"]),
-    rules: combine(band, ordinal, color, scale),
+    rules: combine(binned, stats, band, ordinal, color, scale),
   },
   { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round", "rgb", "hsl", "hslLong", "lab", "hcl", "hclLong", "cubehelix", "cubehelixLong", "hue", "quantize", "piecewise"]), rules: combine(color, interpolate) },
   { suite: "color", package: "d3-color", files: tests(["color", "rgb", "hsl", "lab", "hcl", "cubehelix", "gray", "lch"]), rules: color },
