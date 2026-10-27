@@ -164,7 +164,7 @@ harness's readback, not a display.
 
 ## D22.2 — Details of Phase 22 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 22, 477c550 … e533558 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 22, 477c550 … e533558 · **Status:** decided
 
 ### Issue
 
@@ -236,7 +236,9 @@ defers window actions); the smoke runs (Measurements).
 
 ### Decision
 
-Recommended: A for all fifteen, as built.
+A for all fifteen (architect, 2026-10-27), as built. A windowed run
+requires `--refresh-hz` and `--native-factor`; the bench is a binary
+crate with hand-written error `Display`s (no manifest change).
 
 ### Why
 
