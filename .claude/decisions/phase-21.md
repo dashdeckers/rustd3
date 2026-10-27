@@ -49,7 +49,7 @@ same frames showed nothing wrong, but the y-axis strips re-rendered.
 
 ## D21.1 — The window's width and the layout depend on each other
 
-**Date:** 2026-10-27 · **Context:** Phase 21, step 1, a052abf · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 21, step 1, a052abf · **Status:** decided
 
 ### Issue
 
@@ -82,9 +82,10 @@ right end.
 
 ### Decision
 
-Recommended: A, as built (`figure/src/figure/resolve.rs`,
-`scale/window.rs`, `Labels::reserve`). Documented on `Fit::Window` and
-`Figure::fit_with`.
+A (architect, 2026-10-27), as built: resolve repeats fit and layout
+until the column count it fitted with equals the one it laid out (at
+most 3 times), and horizontal axes on a windowed handle reserve room
+for an end label, so the plot area holds still while ticks slide.
 
 ### Why
 
@@ -101,7 +102,7 @@ two from a fresh cache).
 
 ## D21.2 — Cells an append re-rendered beyond the touched ones
 
-**Date:** 2026-10-27 · **Context:** Phase 21, step 3, 60de9af and 1108c09 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 21, step 3, 60de9af and 1108c09 · **Status:** decided
 
 ### Issue
 
@@ -130,7 +131,10 @@ Measured on the live trace at k = 1: every windowed append re-rendered
 
 ### Decision
 
-Recommended: A, as built.
+A (architect, 2026-10-27), as built: a part drawn inside a clip is not
+listed in cells beyond the clip, and each axis line is its own part
+(role 8, `Spine`), so a windowed append re-renders the plot areas and
+the cells whose ticks moved.
 
 ### Why
 
@@ -158,7 +162,7 @@ their newest x of all (documented on `Fit::Window`).
 
 ## D21.4 — Details of Phase 21 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 21, a052abf … 80dd830 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 21, a052abf … 80dd830 · **Status:** decided
 
 ### Issue
 
@@ -196,7 +200,10 @@ their newest x of all (documented on `Fit::Window`).
 
 ### Decision
 
-Recommended: A for all ten, as built.
+A for all ten (architect, 2026-10-27), as built. A mark that reports a
+handle only through `Fits::add` does not place it across a plot area,
+so a `Window` on that handle fits as `All`; the `Fit::Window` docs say
+so.
 
 ### Why
 
