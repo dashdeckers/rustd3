@@ -35,7 +35,7 @@ pub(crate) fn page(fonts: &Arc<Fonts>, frame: &Frame, fill: Color) -> Shaped {
     let height = frame.height().to_pt();
     let ascent = walk.ascent.unwrap_or(height);
     let shift = Affine::translate((0.0, -ascent));
-    let items = walk
+    let items: Vec<Item> = walk
         .items
         .into_iter()
         .map(|item| match item {
@@ -49,12 +49,30 @@ pub(crate) fn page(fonts: &Arc<Fonts>, frame: &Frame, fill: Color) -> Shaped {
             },
         })
         .collect();
+    let last = last(&items);
     Shaped::new(
         fonts.clone(),
         items,
-        [frame.width().to_pt(), ascent, height - ascent],
+        [frame.width().to_pt(), ascent, height - ascent, last],
         walk.missing,
     )
+}
+
+/// The last line's baseline below the first: the lowest origin among the
+/// runs set at the label's largest size (scripts are smaller), 0 for one
+/// line.
+fn last(items: &[Item]) -> f64 {
+    let runs = || {
+        items.iter().filter_map(|item| match item {
+            Item::Run(run) => Some(run),
+            Item::Fill { .. } => None,
+        })
+    };
+    let size = runs().map(|run| run.size).fold(0.0, f32::max);
+    runs()
+        .filter(|run| run.size == size)
+        .map(|run| run.transform.translation().y)
+        .fold(0.0, f64::max)
 }
 
 /// What a walk over a frame has found so far.

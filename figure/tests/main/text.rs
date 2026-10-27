@@ -212,6 +212,7 @@ fn a_newline_breaks_the_label_into_centred_lines() {
         );
         assert_eq!(places(s.width()), "43.817");
         assert_eq!(places(s.ascent() + s.descent()), "24.176");
+        assert_eq!(places(s.last()), places(second.y - first.y));
     });
 }
 
@@ -267,6 +268,7 @@ fn math_sets_in_the_math_face_with_a_smaller_superscript() {
         let sizes: Vec<String> = runs.iter().map(|r| format!("{:.2}", r.size)).collect();
         assert_eq!(sizes, ["11.00", "11.00", "11.00", "11.00", "7.70", "11.00"]);
         assert_eq!(places(s.width()), "61.510");
+        assert_eq!(s.last(), 0.0, "one line: the superscript is no line");
     });
 }
 

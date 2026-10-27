@@ -19,6 +19,7 @@ pub struct Shaped {
     width: f64,
     ascent: f64,
     descent: f64,
+    last: f64,
     missing: usize,
 }
 
@@ -41,7 +42,7 @@ impl Shaped {
     pub(crate) fn new(
         fonts: Arc<Fonts>,
         items: Vec<Item>,
-        [width, ascent, descent]: [f64; 3],
+        [width, ascent, descent, last]: [f64; 4],
         missing: usize,
     ) -> Shaped {
         Shaped {
@@ -50,6 +51,7 @@ impl Shaped {
             width,
             ascent,
             descent,
+            last,
             missing,
         }
     }
@@ -67,6 +69,13 @@ impl Shaped {
     /// From the first baseline to the bottom of the ink, px.
     pub fn descent(&self) -> f64 {
         self.descent
+    }
+
+    /// From the first baseline down to the last line's, px: 0 for one
+    /// line. Read from the runs set at the label's largest size, so
+    /// scripts do not count as lines.
+    pub fn last(&self) -> f64 {
+        self.last
     }
 
     /// Glyphs typst drew as .notdef because no font has them (fig.check

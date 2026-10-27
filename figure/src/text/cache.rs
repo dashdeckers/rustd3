@@ -125,6 +125,11 @@ impl Cache {
             .map(|entry| entry.shaped.as_ref().map(|shaped| &**shaped))
     }
 
+    /// The faces labels are shaped with.
+    pub(crate) fn fonts(&self) -> &Fonts {
+        &self.fonts
+    }
+
     /// What the cache holds and has done.
     pub fn stats(&self) -> Stats {
         Stats {

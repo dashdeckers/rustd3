@@ -42,6 +42,12 @@ fn ink_height(label: &str, size: f64) -> f64 {
     measure(label, size).1
 }
 
+/// DejaVu Sans's OS/2 typographic ascender and descender (1556 and 492 of
+/// 2048 units) at `size` px: the line box a row of tick labels shares.
+fn line_box(size: f64) -> [f64; 2] {
+    [1556.0, 492.0].map(|units| units / 2048.0 * size)
+}
+
 /// `a` and `b` are the same f64, bit for bit.
 fn same(a: f64, b: f64) -> bool {
     a.to_bits() == b.to_bits()
@@ -188,14 +194,15 @@ fn one_panel_reaches_by_its_axes_ticks_pads_and_widest_or_tallest_labels() {
     );
     assert_eq!(labels(r.scale(y))[0], "0.0");
     let area = r.plot_areas()[0];
-    // left: 8 + 4.667 + 23.325 ("0.0"); bottom: 8 + 4.667 + 11.093 (digits).
+    // left: 8 + 4.667 + 23.325 ("0.0"); bottom: 8 + 4.667 + 14.667 (the
+    // line box, which holds the digits' ink).
     let left = area.x0 - PAD;
     let bottom = 480.0 - PAD - area.y1;
     assert_eq!(
         [left, bottom].map(|v| format!("{v:.3}")),
-        ["35.992", "23.760"]
+        ["35.992", "27.333"]
     );
-    let expected = [47.725, 11.733, 580.541, 432.773];
+    let expected = [47.725, 11.733, 580.541, 429.200];
     let actual = [area.x0, area.y0, area.width(), area.height()];
     for (a, e) in actual.into_iter().zip(expected) {
         assert!((a - e).abs() < 0.01, "{actual:?}");
@@ -264,11 +271,13 @@ fn tick_labels_at_the_ends_widen_the_sides_they_cross() {
     fig.panel(0, 0).axis(axis::bottom(x)).axis(axis::right(y));
     let area = resolve(&fig, &Held::default()).plot_areas()[0];
     // "0" overhangs the left end by half its advance, "3.0" the top by
-    // half its ink; the right axis's own reach is wider than "10"'s half.
+    // half its line box, centred on the tick; the right axis's own reach is
+    // wider than "10"'s half.
     let digit = 9.3314;
     assert!((area.x0 - PAD - digit / 2.0).abs() < 1e-3, "{area:?}");
+    let [ascender, descender] = line_box(44.0 / 3.0);
     assert!(
-        (area.y0 - PAD - ink_height("3.0", 14.6667) / 2.0).abs() < 1e-9,
+        (area.y0 - PAD - (ascender + descender) / 2.0).abs() < 1e-9,
         "{area:?}"
     );
     let right = 640.0 - PAD - area.x1;
@@ -539,6 +548,82 @@ fn texts(list: &List, panel: u64, axis: u64) -> Vec<String> {
             }
         })
         .collect()
+}
+
+/// The baselines of the tick labels axis `axis` of panel `panel` draws in
+/// `list`: each run's origin.
+fn baselines(list: &List, panel: u64, axis: u64) -> Vec<f64> {
+    let id = part::Id::new(4 << 56 | panel << 32 | axis);
+    let part = list
+        .parts
+        .iter()
+        .find(|p| p.id == id)
+        .expect("an axis part");
+    list.commands[part.commands.clone()]
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.transform.translation().y)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn tick_labels_of_a_row_share_a_baseline_on_the_text_face_line_box() {
+    let mut fig = Figure::new();
+    let greek = fig.scale(scale::band(["alpha", "beta", "gamma"]));
+    let months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let month = fig.scale(scale::band(months));
+    fig.panel(0, 0)
+        .axis(axis::bottom(greek))
+        .axis(axis::top(greek));
+    fig.panel(1, 0)
+        .axis(axis::bottom(month))
+        .axis(axis::top(month));
+    let size = Size::new(960.0, 720.0);
+    let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+    let areas = resolve_at(&fig, size).plot_areas().to_vec();
+    let [ascender, descender] = line_box(44.0 / 3.0);
+    let gap = 8.0 + 14.0 / 3.0;
+    for (panel, (area, count)) in areas.iter().zip([3, 12]).enumerate() {
+        let bottom = baselines(&list, panel as u64, 0);
+        let top = baselines(&list, panel as u64, 1);
+        assert_eq!((bottom.len(), top.len()), (count, count));
+        for y in bottom {
+            assert!((y - (area.y1 + gap + ascender)).abs() < 1e-9, "{y}");
+        }
+        for y in top {
+            assert!((y - (area.y0 - gap - descender)).abs() < 1e-9, "{y}");
+        }
+    }
+}
+
+#[test]
+fn multi_line_labels_keep_their_first_baseline_below_and_their_last_above() {
+    let mut fig = Figure::new();
+    let keys = fig.scale(scale::band(["one", "two\nlines"]));
+    fig.panel(0, 0)
+        .axis(axis::bottom(keys))
+        .axis(axis::top(keys));
+    let size = Size::new(640.0, 480.0);
+    let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+    // Runs: "one", then the two lines of "two\nlines".
+    let bottom = baselines(&list, 0, 0);
+    let top = baselines(&list, 0, 1);
+    assert_eq!((bottom.len(), top.len()), (3, 3));
+    assert!(bottom[2] > bottom[1] + 10.0, "{bottom:?}");
+    assert!((bottom[0] - bottom[1]).abs() < 1e-9, "{bottom:?}");
+    assert!((top[0] - top[2]).abs() < 1e-9, "{top:?}");
+}
+
+/// `fig` resolved at `size` for vector output.
+fn resolve_at(fig: &Figure<'_>, size: Size) -> rustd3_figure::Resolved {
+    fig.resolve(size, &mut cache(), &Held::default(), Target::Vector)
 }
 
 /// The size, 480 px tall, at which panel 0 of `fig` is `width` px wide.
@@ -865,8 +950,10 @@ fn an_offset_label_takes_a_row_under_a_bottom_axis_and_the_top_above_a_left_one(
     let area = |fig: &Figure<'_>| resolve(fig, &Held::default()).plot_areas()[0];
     let on = area(&notation([1e9, 1e9 + 1.0], axis::left, true));
     let off = area(&notation([0.0, 1.0], axis::left, true));
-    // "1.0" overhangs the top by half its ink; "+1e9" sits a tick pad above.
-    let half = ink_height("1.0", 44.0 / 3.0) / 2.0;
+    // "1.0" overhangs the top by half its line box; "+1e9" sits a tick pad
+    // above.
+    let [ascender, descender] = line_box(44.0 / 3.0);
+    let half = (ascender + descender) / 2.0;
     assert!(
         (on.y0 - off.y0 - (14.0 / 3.0 + ink)).abs() < 1e-9,
         "{on:?} {off:?}"

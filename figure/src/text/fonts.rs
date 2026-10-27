@@ -21,6 +21,8 @@ pub struct Fonts {
     faces: Vec<(Font, FontData)>,
     /// Family names as typst reports them, in fallback order, each once.
     families: Vec<String>,
+    /// The text face's ascender and descender, em.
+    line: [f64; 2],
 }
 
 impl fmt::Debug for Fonts {
@@ -75,11 +77,13 @@ impl Fonts {
                 families.push(family.clone());
             }
         }
+        let line = faces.first().map_or([0.0, 0.0], |(font, _)| line(font));
         Fonts {
             library: LazyHash::new(Library::builder().build()),
             book: LazyHash::new(FontBook::from_fonts(faces.iter().map(|(font, _)| font))),
             faces,
             families,
+            line,
         }
     }
 
@@ -112,6 +116,26 @@ impl Fonts {
     pub(crate) fn families(&self) -> &[String] {
         &self.families
     }
+
+    /// The line box a row of labels of `size` px shares: the text face's
+    /// (the first in fallback order) ascender above the baseline and
+    /// descender below it, px, as typst reads them (the OS/2 typographic
+    /// metrics, else hhea's); 0 and 0 without faces.
+    pub(crate) fn line(&self, size: f64) -> [f64; 2] {
+        self.line.map(|em| em * size)
+    }
+}
+
+/// `font`'s ascender above the baseline and descender below it, em, as
+/// typst reads them: the OS/2 typographic metrics, else hhea's.
+fn line(font: &Font) -> [f64; 2] {
+    let Ok(face) = ttf_parser::Face::parse(font.data(), font.index()) else {
+        return [0.0, 0.0];
+    };
+    let ascender = face.typographic_ascender().unwrap_or(face.ascender());
+    let descender = face.typographic_descender().unwrap_or(face.descender());
+    let em = f64::from(face.units_per_em());
+    [f64::from(ascender) / em, -f64::from(descender) / em]
 }
 
 /// Every face typst reads from one font file, all sharing one blob.
@@ -145,6 +169,14 @@ mod tests {
             ["New Computer Modern Math", "DejaVu Sans"]
         );
         assert_eq!(fonts.faces.len(), 4);
+    }
+
+    #[test]
+    fn the_line_box_is_dejavu_sans_typographic_ascender_and_descender() {
+        // OS/2 sTypoAscender 1556 and sTypoDescender −492 of 2048 units.
+        let [ascender, descender] = Fonts::bundled().line(2048.0);
+        assert!((ascender - 1556.0).abs() < 1e-9, "{ascender}");
+        assert!((descender - 492.0).abs() < 1e-9, "{descender}");
     }
 
     #[test]

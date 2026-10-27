@@ -6,7 +6,7 @@ use std::f64::consts::FRAC_PI_2;
 use kurbo::{BezPath, Cap, Point, Rect};
 use rustd3_core::axis::Orient;
 
-use crate::axis::labels::{anchor, get, notation};
+use crate::axis::labels::{align, get, notation};
 use crate::axis::{Labels, across};
 use crate::layout::Plan;
 use crate::list::{self, Command, List};
@@ -36,9 +36,8 @@ pub(crate) struct Placed {
 impl Placed {
     /// The axis with `labels` and `plan` beside plot area `area`, its ticks
     /// at `positions`, every tick label kept: each label's box is its box
-    /// (advance width by ink height) anchored a tick and a tick pad outside
-    /// the axis line, `None` for a label that is not placed or that typst
-    /// rejected.
+    /// ([`Labels::bounds`]) at the end of its tick plus the tick pad, `None`
+    /// for a label that is not placed, empty, or that typst rejected.
     pub(crate) fn new(
         labels: Labels,
         plan: Plan,
@@ -64,15 +63,14 @@ impl Placed {
     fn measure(&self, area: Rect, text: &text::Cache, theme: &Theme) -> Vec<Option<Rect>> {
         let spine = self.spine(area);
         let gap = theme.tick() + theme.tick_pad();
-        let anchor = anchor(self.labels.orient);
         self.labels
             .ticks
             .iter()
             .zip(&self.positions)
             .map(|(key, p)| {
-                let shaped = get(text, key)?;
+                let shaped = get(text, key.as_ref()?)?;
                 let at = spine.at((*p)?, gap);
-                Some(shaped.bounds(anchor) + at.to_vec2())
+                Some(self.labels.bounds(shaped) + at.to_vec2())
             })
             .collect()
     }
@@ -80,7 +78,8 @@ impl Placed {
     /// Appends the axis beside plot area `area` to `list`: its line in the
     /// theme's edge color (its own when tinted) with square caps, so two
     /// axes meet at a closed corner as matplotlib's projecting spines do,
-    /// its ticks, its kept tick labels a tick pad past the ticks, its
+    /// its ticks, its kept tick labels a tick pad past the ticks on the
+    /// baselines their line box gives ([`Labels::baseline`]), its
     /// offset or multiplier label (at the right end of a horizontal axis, a
     /// tick pad beyond the labels; above the top end of a vertical one), and
     /// its title a label pad past all of them, turned a quarter
@@ -115,10 +114,15 @@ impl Placed {
             paint: list::brush(labels.ink),
         });
         let gap = theme.tick() + theme.tick_pad();
+        let baseline = Anchor {
+            h: align(orient),
+            v: text::anchor::Vertical::Baseline,
+        };
         let kept = labels.ticks.iter().zip(&self.positions).zip(&self.keep);
         for ((key, p), _) in kept.filter(|(_, keep)| **keep) {
-            if let (Some(shaped), Some(p)) = (get(text, key), p) {
-                shaped.place(list, spine.at(*p, gap), anchor(orient), 0.0);
+            if let (Some(shaped), Some(p)) = (key.as_ref().and_then(|k| get(text, k)), p) {
+                let at = spine.at(*p, gap) + kurbo::Vec2::new(0.0, labels.baseline(shaped));
+                shaped.place(list, at, baseline, 0.0);
             }
         }
         let extent = labels.extent(text);
