@@ -3,6 +3,7 @@
 
 use rustd3_core::format::{InvalidFormat, Locale};
 use rustd3_core::scale;
+use rustd3_testkit::obs::{ToObs, Tolerance};
 
 /// `values` formatted by `scale::tick_format` under `EN_US`.
 fn labels(domain: [f64; 2], count: usize, specifier: Option<&str>, values: &[f64]) -> Vec<String> {
@@ -230,4 +231,220 @@ fn a_clamped_pow_scale_inverts_within_the_domain() {
     let x = scale::pow().exponent(0.5).domain([1.0, 20.0]).clamp(true);
     assert_eq!(x.invert(0.0), 1.0);
     assert_eq!(x.invert(1.0), 20.0);
+}
+
+/// `count` copies of `""`.
+fn blanks(count: usize) -> Vec<String> {
+    vec![String::new(); count]
+}
+
+/// `labels` with `blanks(8)` after every one but the last.
+fn decades(labels: &[&str]) -> Vec<String> {
+    let mut out = Vec::new();
+    for (i, label) in labels.iter().enumerate() {
+        out.push((*label).to_owned());
+        if i + 1 < labels.len() {
+            out.extend(blanks(8));
+        }
+    }
+    out
+}
+
+#[test]
+fn log_base_two_ticks_at_powers_of_two() -> Result<(), InvalidFormat> {
+    let x = scale::log().base(2.0).domain([1.0, 1024.0]);
+    let ticks = x.ticks(10);
+    let powers: Vec<f64> = (0..=10).map(|k| 2f64.powi(k)).collect();
+    assert_eq!(ticks, powers);
+    let en = x
+        .tick_format_in(&Locale::EN_US, 10, None)?
+        .format_all(&ticks);
+    assert_eq!(en.last().map(String::as_str), Some("1,024"));
+    let neutral = x.tick_format(10, None)?.format_all(&ticks);
+    assert_eq!(neutral.last().map(String::as_str), Some("1024"));
+    Ok(())
+}
+
+#[test]
+fn log_ticks_count_one_to_nine_per_decade_and_label_the_powers() -> Result<(), InvalidFormat> {
+    let x = scale::log().domain([1.0, 1e6]);
+    let ticks = x.ticks(10);
+    assert_eq!(ticks.len(), 55);
+    let f = x.tick_format_in(&Locale::EN_US, 10, None)?;
+    assert_eq!(
+        f.format_all(&ticks),
+        decades(&["1", "10", "100", "1k", "10k", "100k", "1M"])
+    );
+    assert_eq!(x.ticks(5), [1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]);
+    Ok(())
+}
+
+#[test]
+fn log_labels_thin_to_about_the_count() -> Result<(), InvalidFormat> {
+    let x = scale::log().domain([1.0, 100.0]);
+    let ticks = x.ticks(10);
+    let ten = x
+        .tick_format_in(&Locale::EN_US, 10, None)?
+        .format_all(&ticks);
+    let mut expected: Vec<String> = Vec::new();
+    for leading in [["1", "2", "3", "4", "5"], ["10", "20", "30", "40", "50"]] {
+        expected.extend(leading.iter().map(|s| (*s).to_owned()));
+        expected.extend(blanks(4));
+    }
+    expected.push("100".to_owned());
+    assert_eq!(ten, expected);
+    let five = x
+        .tick_format_in(&Locale::EN_US, 5, None)?
+        .format_all(&ticks);
+    let mut expected: Vec<String> = Vec::new();
+    for leading in [["1", "2"], ["10", "20"]] {
+        expected.extend(leading.iter().map(|s| (*s).to_owned()));
+        expected.extend(blanks(7));
+    }
+    expected.push("100".to_owned());
+    assert_eq!(five, expected);
+    Ok(())
+}
+
+#[test]
+fn log_nice_extends_to_powers_of_the_base_on_either_side_of_zero() {
+    let nice = |domain| scale::log().domain(domain).nice(10).get_domain();
+    assert_eq!(nice([0.15, 68.0]), [0.1, 100.0]);
+    assert_eq!(nice([-68.0, -0.15]), [-100.0, -0.1]);
+    assert_eq!(nice([0.5, 0.5]), [0.1, 1.0]);
+}
+
+#[test]
+fn log_maps_through_the_natural_logarithm() {
+    let x = scale::log().domain([1.0, 10.0]).range([0.0, 1.0]);
+    assert_eq!(x.apply(5.0), 0.6989700043360187);
+    // Node prints 3.16227766016838, one ulp above: V8's exp is not
+    // correctly rounded at ln(10)/2, the platform's is.
+    let invert = x.invert(0.5);
+    assert!(
+        invert
+            .to_obs()
+            .approx_eq(&3.16227766016838.to_obs(), &Tolerance::default())
+    );
+    assert_eq!(invert, 3.1622776601683795);
+}
+
+#[test]
+fn log_ticks_reflect_a_negative_domain() {
+    let x = scale::log().domain([-100.0, -1.0]);
+    let mut expected = vec![-100.0];
+    expected.extend((1..=9).rev().map(|k| -10.0 * f64::from(k)));
+    expected.extend((1..=9).rev().map(|k| -f64::from(k)));
+    assert_eq!(x.ticks(10), expected);
+}
+
+#[test]
+fn log_ticks_are_exact_below_one() {
+    assert_eq!(
+        scale::log().domain([0.5, 1.5]).ticks(10),
+        [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    );
+    assert_eq!(
+        scale::log().domain([0.15, 0.68]).ticks(10),
+        [0.2, 0.3, 0.4, 0.5, 0.6]
+    );
+}
+
+#[test]
+fn log_base_e_ticks_at_powers_of_e() -> Result<(), InvalidFormat> {
+    let x = scale::log().base(std::f64::consts::E).domain([1.0, 100.0]);
+    let ticks = x.ticks(10);
+    assert_eq!(
+        ticks,
+        [
+            1.0,
+            std::f64::consts::E,
+            7.38905609893065,
+            20.085536923187668,
+            54.598150033144236
+        ]
+    );
+    let f = x.tick_format_in(&Locale::EN_US, 10, None)?;
+    assert_eq!(
+        f.format_all(&ticks),
+        [
+            "1",
+            "2.71828182846",
+            "7.38905609893",
+            "20.0855369232",
+            "54.5981500331"
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn log_labels_keep_a_given_specifier() -> Result<(), InvalidFormat> {
+    let x = scale::log().domain([1.0, 1000.0]);
+    let f = x.tick_format_in(&Locale::EN_US, 5, Some("+,"))?;
+    assert_eq!(
+        f.format_all(&x.ticks(10)),
+        decades(&["+1", "+10", "+100", "+1,000"])
+    );
+    Ok(())
+}
+
+#[test]
+fn log_ticks_over_many_decades_skip_decades() {
+    assert_eq!(scale::log().domain([1.0, 1e100]).ticks(10).len(), 11);
+    assert_eq!(scale::log().domain([1e-300, 1e300]).ticks(10).len(), 13);
+}
+
+#[test]
+fn log_ticks_bail_out_where_the_log_of_an_end_is_not_finite() {
+    assert!(scale::log().domain([0.0, 10.0]).ticks(10).is_empty());
+    assert!(
+        scale::log()
+            .domain([1.0, f64::INFINITY])
+            .ticks(10)
+            .is_empty()
+    );
+    assert!(scale::log().base(1.0).ticks(10).is_empty());
+    assert!(scale::log().base(0.0).ticks(10).is_empty());
+    assert!(scale::log().base(-2.0).ticks(10).is_empty());
+}
+
+#[test]
+fn a_log_domain_straddling_zero_gives_nan_no_ticks_and_no_nice() {
+    let x = scale::log().domain([-1.0, 10.0]);
+    assert!(x.apply(5.0).is_nan());
+    assert!(x.ticks(10).is_empty());
+    assert_eq!(x.nice(10).get_domain(), [-1.0, 10.0]);
+}
+
+#[test]
+fn log_ticks_within_one_decade_keep_d3s_multiples_at_a_count_of_one() {
+    let x = scale::log().domain([286.9252014, 329.4978332]);
+    assert_eq!(x.ticks(1), [300.0]);
+    assert_eq!(x.ticks(4), [290.0, 300.0, 310.0, 320.0]);
+}
+
+#[test]
+fn log_minor_ticks_fill_the_decades_between_the_majors() {
+    assert!(scale::log().domain([1.0, 1000.0]).minor(10).is_empty());
+    let minor = scale::log().domain([1.0, 1e6]).minor(5);
+    let expected: Vec<f64> = (0..=5)
+        .flat_map(|k| (2..=9).map(move |m| f64::from(m) * 10f64.powi(k)))
+        .collect();
+    assert_eq!(minor.len(), 48);
+    assert_eq!(minor, expected);
+}
+
+#[test]
+fn log_minor_ticks_follow_the_order_of_a_negative_domain() {
+    let minor = scale::log().domain([-1e3, -1.0]).minor(3);
+    assert_eq!(minor.len(), 24);
+    assert_eq!(minor[..2], [-900.0, -800.0]);
+    assert_eq!(minor[23], -2.0);
+}
+
+#[test]
+fn log_minor_ticks_of_a_non_integer_base_subdivide() {
+    let x = scale::log().base(std::f64::consts::E).domain([1.0, 100.0]);
+    assert_eq!(x.minor(10).len(), 16);
 }

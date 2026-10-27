@@ -247,6 +247,27 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Pow, R, N> {
     }
 }
 
+impl<R: Interpolate, const N: usize> Continuous<transform::Log, R, N> {
+    /// d3's `base(b)`: the base of the ticks, nice and labels; the map is
+    /// the same in every base. It exists only for log scales:
+    ///
+    /// ```compile_fail
+    /// use rustd3_core::scale;
+    ///
+    /// scale::linear().base(2.0);
+    /// ```
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    ///
+    /// let x = scale::log().base(2.0).domain([1.0, 1024.0]);
+    /// assert_eq!(x.ticks(10)[..4], [1.0, 2.0, 4.0, 8.0]);
+    /// ```
+    pub fn base(self, base: f64) -> Self {
+        self.transformed(transform::Log::new(base))
+    }
+}
+
 /// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
 /// when the last stop is below the first), normalized within its segment,
 /// and the segment's two `values` blended at that fraction.

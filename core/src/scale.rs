@@ -32,6 +32,9 @@ pub type Linear<R = f64, const N: usize = 2> = Continuous<transform::Identity, R
 /// d3's scalePow: a continuous scale under a power transform.
 pub type Pow<R = f64, const N: usize = 2> = Continuous<transform::Pow, R, N>;
 
+/// d3's scaleLog: a continuous scale under a log transform.
+pub type Log<R = f64, const N: usize = 2> = Continuous<transform::Log, R, N>;
+
 /// A continuous scale under `transform` with domain [0, 1] and range
 /// [0, 1], d3's `transformer()` made public.
 pub fn continuous<T: Transform>(transform: T) -> Continuous<T> {
@@ -54,6 +57,12 @@ pub fn pow() -> Pow {
 #[doc(alias = "scaleSqrt")]
 pub fn sqrt() -> Pow {
     continuous(transform::Pow::new(0.5))
+}
+
+/// d3.scaleLog(): base 10, domain [1, 10], range [0, 1].
+#[doc(alias = "scaleLog")]
+pub fn log() -> Log {
+    continuous(transform::Log::new(10.0)).domain([1.0, 10.0])
 }
 
 /// d3-scale's linear nice (linear.js): `domain` extended to multiples of

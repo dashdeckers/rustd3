@@ -3,9 +3,11 @@
 //! format that suit it. The trait's canonical path is `scale::Transform`.
 
 mod identity;
+mod log;
 mod pow;
 
 pub use identity::Identity;
+pub use log::Log;
 pub use pow::Pow;
 
 use crate::format::{InvalidFormat, Locale};
@@ -15,6 +17,29 @@ use crate::ticks;
 /// How a continuous scale maps its domain before interpolating, and the
 /// ticks that suit it. A transform states `forward`, `inverse` and its tick
 /// rule; minor ticks, nice and tick formats default to d3's linear scale.
+///
+/// ```
+/// use rustd3_core::{scale, ticks};
+///
+/// /// Frequency laid out by period.
+/// #[derive(Clone, Copy)]
+/// struct Reciprocal;
+///
+/// impl scale::Transform for Reciprocal {
+///     fn forward(&self, x: f64) -> f64 {
+///         1.0 / x
+///     }
+///     fn inverse(&self, y: f64) -> f64 {
+///         1.0 / y
+///     }
+///     fn ticks(&self, d: [f64; 2], n: usize) -> Vec<f64> {
+///         ticks::log(10.0, d, n)
+///     }
+/// }
+///
+/// let f = scale::continuous(Reciprocal).domain([1.0, 1e6]);
+/// assert_eq!(f.ticks(5), [1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]);
+/// ```
 pub trait Transform: Clone {
     /// The transformed value of a domain value.
     fn forward(&self, x: f64) -> f64;
