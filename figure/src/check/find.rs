@@ -40,7 +40,7 @@ impl Figure<'_> {
         let (text, frame) = cache.start();
         let frame = RefCell::new(frame);
         for (i, (panel, area)) in self.panels().iter().zip(resolved.plot_areas()).enumerate() {
-            let ctx = Ctx::new(&resolved, self.style(), *area, text, &frame);
+            let ctx = Ctx::new(&resolved, self.get_theme(), *area, text, &frame);
             for (j, mark) in panel.marks().iter().enumerate() {
                 mark.issues(&ctx.at(i, j), &mut issues);
             }
@@ -69,7 +69,7 @@ fn room(resolved: &Resolved) -> Vec<Issue> {
 /// its labelled axes' titles and its inset legends, then the legends in
 /// figure slots.
 fn overflow(figure: &Figure<'_>, resolved: &Resolved, text: &text::Cache) -> Vec<Issue> {
-    let em = figure.style().em();
+    let em = figure.get_theme().em();
     let canvas = resolved.size();
     let inside = kurbo::Size::new(
         canvas.width - 2.0 * PAD * em,

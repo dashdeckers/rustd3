@@ -219,8 +219,18 @@ impl<'a> Figure<'a> {
         &self.grid
     }
 
-    /// The theme.
-    pub(crate) fn style(&self) -> &Theme {
+    /// The theme the figure is drawn with, as [`theme`](Figure::theme)
+    /// set it.
+    ///
+    /// ```
+    /// use rustd3_core::color::Rgb;
+    /// use rustd3_figure::{Figure, Theme};
+    ///
+    /// let mut fig = Figure::new();
+    /// fig.theme(Theme::default().ink(Rgb::hex(0xff0000)));
+    /// assert_eq!(fig.get_theme().get_ink(), Rgb::hex(0xff0000));
+    /// ```
+    pub fn get_theme(&self) -> &Theme {
         &self.theme
     }
 

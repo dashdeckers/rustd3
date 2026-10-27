@@ -10,7 +10,7 @@ use rustd3_figure::list::{self, Command, GlyphRun, List, part};
 use rustd3_figure::mark::{Ctx, Mark};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::{Kind, ScaleRef};
-use rustd3_figure::{Cache, Figure, Fits, Held, Resolved, Target, axis};
+use rustd3_figure::{Cache, Figure, Fits, Held, Resolved, Target, Theme, axis};
 
 /// A mark that only reports values on one handle; with a base, it also
 /// sticks there, as bars do.
@@ -502,4 +502,37 @@ fn a_format_closure_writes_its_own_labels_whatever_the_locale() {
     let labels = axis_texts(&fig);
     assert_eq!(labels[..3], ["0°", "2000°", "4000°"]);
     assert_eq!(labels.len(), 7);
+}
+
+#[test]
+fn a_themes_ink_and_background_are_drawn_and_read_back() {
+    let (mut fig, _, _) = one_panel();
+    let red = Rgb::hex(0xff0000);
+    let half = Rgb::hex(0x336699).with_opacity(0.5);
+    fig.title("Ink");
+    fig.theme(Theme::default().ink(red).background(half));
+    assert_eq!(fig.get_theme().get_ink(), red);
+    assert_eq!(fig.get_theme().get_background(), half);
+    let list = draw(&fig);
+    let Command::Fill { paint, .. } = &list.commands[list.parts[0].commands.start] else {
+        panic!("the figure background is a fill");
+    };
+    assert_eq!(
+        *paint,
+        Brush::Solid(Color::from_rgba8(0x33, 0x66, 0x99, 128))
+    );
+    let ink = Brush::Solid(Color::from_rgba8(0xff, 0, 0, 0xff));
+    // Both axes (lines, ticks, labels) and the title.
+    let decorations = &list.commands[list.parts[2].commands.start..];
+    let strokes = decorations.iter().filter_map(|c| {
+        if let Command::Stroke { paint, .. } = c {
+            Some(paint)
+        } else {
+            None
+        }
+    });
+    let fills = runs(decorations).into_iter().map(|run| &run.fill);
+    let paints: Vec<&Brush> = strokes.chain(fills).collect();
+    assert!(paints.len() > 10, "{}", paints.len());
+    assert!(paints.iter().all(|p| **p == ink), "{paints:?}");
 }

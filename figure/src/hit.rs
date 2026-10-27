@@ -76,7 +76,7 @@ impl Figure<'_> {
             .zip(resolved.plot_areas())
             .enumerate()
             .map(|(i, (panel, area))| {
-                let ctx = Ctx::new(resolved, self.style(), *area, text, &frame);
+                let ctx = Ctx::new(resolved, self.get_theme(), *area, text, &frame);
                 let mut points = Vec::new();
                 for (j, mark) in panel.marks().iter().enumerate() {
                     let mut sink = Sink::new(area.origin());

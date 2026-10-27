@@ -86,7 +86,7 @@ impl Layout {
         size: Size,
         held: Option<&[Rect]>,
     ) -> Layout {
-        let theme = figure.style();
+        let theme = figure.get_theme();
         let panels = figure.panels();
         let titles: Vec<Option<Key>> = panels
             .iter()
@@ -94,7 +94,7 @@ impl Layout {
             .collect();
         let title = figure.heading().map(|t| Key::new(t, &theme.figure_title()));
         let zero = resolved.target().interactive().then(|| {
-            let style = theme.tick_label(anchor::Horizontal::Middle, theme.ink());
+            let style = theme.tick_label(anchor::Horizontal::Middle, theme.get_ink());
             Key::new(&Text::from("0"), &style)
         });
         let roles = plan::roles(panels);
@@ -268,7 +268,7 @@ impl Layout {
 /// How far each panel of `figure` reaches with every drawn axis at its
 /// offset and tick alone, nothing measured: the first placement's reaches.
 fn bare(figure: &Figure<'_>, roles: &[Vec<plan::Role>]) -> Vec<Reach> {
-    let tick = figure.style().tick();
+    let tick = figure.get_theme().tick();
     figure
         .panels()
         .iter()
@@ -406,7 +406,7 @@ fn inner(size: Size, em: f64, [top, right, bottom, left]: [f64; 4]) -> Rect {
 /// its first track's start to its last track's end. Edges are snapped one
 /// by one, so panels that share an edge still share it.
 fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach], snap: Snap) -> Placement {
-    let theme = figure.style();
+    let theme = figure.get_theme();
     let grid = figure.grid();
     let panels = figure.panels();
     let em = theme.em();

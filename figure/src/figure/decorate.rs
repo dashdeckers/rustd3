@@ -38,7 +38,7 @@ impl Figure<'_> {
         part(list, part::id(Role::Background, 0, 0), |list| {
             list.commands.push(Command::Fill {
                 path: size.to_rect().to_path(TOLERANCE),
-                paint: list::brush(theme.background()),
+                paint: list::brush(theme.get_background()),
             });
         });
         let areas = resolved.plot_areas();

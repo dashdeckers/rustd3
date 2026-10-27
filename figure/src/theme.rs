@@ -52,6 +52,53 @@ impl Default for Theme {
 }
 
 impl Theme {
+    /// Text, ticks and axis lines in `c`; seaborn's ".15", `#262626`, by
+    /// default. The iced widget draws its crosshair and highlight in it. A
+    /// color with a channel or an opacity that is not finite leaves the
+    /// theme as it was.
+    ///
+    /// ```
+    /// use rustd3_core::color::Rgb;
+    /// use rustd3_figure::Theme;
+    ///
+    /// let red = Rgb::hex(0xff0000);
+    /// assert_eq!(Theme::default().ink(red).get_ink(), red);
+    /// assert_eq!(Theme::default().ink(Rgb::new(f64::NAN, 0.0, 0.0)), Theme::default());
+    /// ```
+    pub fn ink(self, c: Rgb) -> Self {
+        if finite(c) {
+            Theme { ink: c, ..self }
+        } else {
+            self
+        }
+    }
+
+    /// Behind the whole figure, `c` at any opacity: under a translucent
+    /// background what the figure is drawn over shows through, such as an
+    /// app's own background under the iced widget. White by default. A
+    /// color with a channel or an opacity that is not finite leaves the
+    /// theme as it was.
+    pub fn background(self, c: Rgb) -> Self {
+        if finite(c) {
+            Theme {
+                background: c,
+                ..self
+            }
+        } else {
+            self
+        }
+    }
+
+    /// Text, ticks and axis lines.
+    pub fn get_ink(&self) -> Rgb {
+        self.ink
+    }
+
+    /// Behind the whole figure.
+    pub fn get_background(&self) -> Rgb {
+        self.background
+    }
+
     /// Axis lines, ticks and borders: 1.25 pt.
     pub(crate) fn axis_width(&self) -> f64 {
         self.pt(1.25)
@@ -65,11 +112,6 @@ impl Theme {
     /// Behind each plot area.
     pub(crate) fn panel(&self) -> Rgb {
         self.panel
-    }
-
-    /// Behind the whole figure.
-    pub(crate) fn background(&self) -> Rgb {
-        self.background
     }
 
     /// Tick labels: 11 pt.
@@ -121,11 +163,6 @@ impl Theme {
     /// Below a title: 6 pt.
     pub(crate) fn title_pad(&self) -> f64 {
         self.pt(6.0)
-    }
-
-    /// Text, ticks and axis lines: seaborn's ".15".
-    pub(crate) fn ink(&self) -> Rgb {
-        self.ink
     }
 
     /// The share of a fitted continuous domain's span added per side.
@@ -220,6 +257,11 @@ impl Theme {
     }
 }
 
+/// Whether every channel and the opacity of `c` are finite.
+fn finite(c: Rgb) -> bool {
+    [c.r, c.g, c.b, c.opacity].iter().all(|v| v.is_finite())
+}
+
 /// Regular text of `size` px in `fill`, its lines aligned by `align`.
 fn style(size: f64, align: anchor::Horizontal, fill: Rgb) -> Style {
     Style {
@@ -260,13 +302,44 @@ mod tests {
         assert_eq!(minor.map(|v| format!("{v:.3}")), ["5.333", "1.333"]);
         assert!(close(theme.title_pad(), 8.0));
         assert_eq!(format!("{:.3}", theme.axis_width()), "1.667");
-        assert_eq!(theme.ink(), Rgb::hex(0x262626));
-        assert_eq!(theme.edge(), theme.ink());
-        assert_eq!([theme.panel(), theme.background()], [Rgb::hex(0xffffff); 2]);
+        assert_eq!(theme.get_ink(), Rgb::hex(0x262626));
+        assert_eq!(theme.edge(), theme.get_ink());
+        assert_eq!(
+            [theme.panel(), theme.get_background()],
+            [Rgb::hex(0xffffff); 2]
+        );
         assert_eq!(theme.margin(), 0.05);
         assert!(close(theme.line_width(), 2.0));
         assert!(close(theme.marker(), 8.0));
         assert_eq!(theme.color(), Rgb::hex(0x0173b2));
         assert_eq!(theme.gray(), scheme::COLORBLIND[7]);
+    }
+
+    #[test]
+    fn ink_and_background_builders_set_what_the_readers_return() {
+        let red = Rgb::hex(0xff0000);
+        let half = Rgb::hex(0x336699).with_opacity(0.5);
+        let theme = Theme::default().ink(red).background(half);
+        assert_eq!((theme.get_ink(), theme.get_background()), (red, half));
+        // The edge and every text style follow the ink.
+        assert_eq!(theme.edge(), red);
+        assert_eq!(theme.title().fill, red);
+        assert_eq!(theme.figure_title().fill, red);
+        assert_eq!(theme.legend_label().fill, red);
+        // The panel keeps its own color.
+        assert_eq!(theme.panel(), Rgb::hex(0xffffff));
+    }
+
+    #[test]
+    fn colors_that_are_not_finite_leave_the_theme_as_it_was() {
+        let theme = Theme::default();
+        for bad in [
+            Rgb::new(f64::NAN, 0.0, 0.0),
+            Rgb::new(0.0, f64::INFINITY, 0.0),
+            Rgb::hex(0xff0000).with_opacity(f64::NAN),
+        ] {
+            assert_eq!(theme.clone().ink(bad), theme);
+            assert_eq!(theme.clone().background(bad), theme);
+        }
     }
 }

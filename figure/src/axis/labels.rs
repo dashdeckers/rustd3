@@ -45,7 +45,7 @@ impl Labels {
     ) -> Labels {
         let orient = axis.orient();
         let tint = axis.tint(resolved);
-        let ink = tint.unwrap_or(theme.ink());
+        let ink = tint.unwrap_or(theme.get_ink());
         let style = theme.tick_label(align(orient), ink);
         let texts = axis.texts(resolved, count);
         let blanking = !axis.formats();
