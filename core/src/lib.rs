@@ -18,6 +18,7 @@ pub mod scheme;
 pub mod series;
 pub mod shape;
 pub mod ticks;
+pub mod time;
 
 mod js;
 
