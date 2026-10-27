@@ -2532,6 +2532,228 @@ fn t402() {   // utcMultiYear-test.js: utcYear.every(n).range(start, stop) retur
     check("d3-time/test/utcMultiYear-test.js:35:3", Kind::Strict, &tss(&Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").range(utc(&[2010.0, 0.0, 1.0]), utc(&[2031.0, 0.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2010.0, 0.0, 1.0]), utc(&[2020.0, 0.0, 1.0]), utc(&[2030.0, 0.0, 1.0])]));
 }
 
+fn t403() {   // ticks-test.js: timeTicks(start, stop, interval) respects the specified interval
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:6:3", Kind::Strict, &tss(&time::ticks_with(local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0]), Interval::Minute(1), &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 2.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0])]));
+}
+
+fn t404() {   // ticks-test.js: timeTicks(start, stop, interval) returns the empty array for invalid intervals
+    skip("d3-time/test/ticks-test.js:15:3", "js: a number as a date (coercion)");
+}
+
+fn t405() {   // ticks-test.js: timeTicks(start, stop, interval.every(step)) observes the specified tick interval and step
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:19:3", Kind::Strict, &tss(&time::ticks_with(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 33.0, 4.0]), Interval::Minute(1).every(10_u32).expect("d3 test: a step of 1 or more"), &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 10.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 20.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 30.0])]));
+}
+
+fn t406() {   // ticks-test.js: timeTicks(start, stop, count) can generate sub-second ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:28:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 200.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 400.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 600.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 800.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0, 0.0])]));
+}
+
+fn t407() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-second ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:39:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 2.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 3.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]));
+}
+
+fn t408() {   // ticks-test.js: timeTicks(start, stop, count) can generate 5-second ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:49:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 5.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 10.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]));
+}
+
+fn t409() {   // ticks-test.js: timeTicks(start, stop, count) can generate 15-second ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:59:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 50.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 45.0])]));
+}
+
+fn t410() {   // ticks-test.js: timeTicks(start, stop, count) can generate 30-second ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:68:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 50.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0, 30.0])]));
+}
+
+fn t411() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-minute ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:77:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 0.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 2.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 4.0])]));
+}
+
+fn t412() {   // ticks-test.js: timeTicks(start, stop, count) can generate 5-minute ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:86:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 3.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 21.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 5.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 10.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 20.0])]));
+}
+
+fn t413() {   // ticks-test.js: timeTicks(start, stop, count) can generate 15-minute ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:95:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 8.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 4.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 15.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 12.0, 45.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 0.0])]));
+}
+
+fn t414() {   // ticks-test.js: timeTicks(start, stop, count) can generate 30-minute ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:104:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 4.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 12.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 13.0, 30.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 0.0])]));
+}
+
+fn t415() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-hour ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:113:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 1.0, 16.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 13.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 14.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 15.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 16.0, 0.0])]));
+}
+
+fn t416() {   // ticks-test.js: timeTicks(start, stop, count) can generate 3-hour ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:122:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 14.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 2.0, 1.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 15.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 18.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 21.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0])]));
+}
+
+fn t417() {   // ticks-test.js: timeTicks(start, stop, count) can generate 6-hour ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:131:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 2.0, 14.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 18.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 6.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 12.0, 0.0])]));
+}
+
+fn t418() {   // ticks-test.js: timeTicks(start, stop, count) can generate 12-hour ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:140:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 3.0, 21.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 2.0, 12.0, 0.0]), local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 3.0, 12.0, 0.0])]));
+}
+
+fn t419() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-day ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:149:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 5.0, 21.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 4.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0])]));
+}
+
+fn t420() {   // ticks-test.js: timeTicks(start, stop, count) can generate 2-day ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:158:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 7.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 9.0, 0.0, 0.0])]));
+}
+
+fn t421() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-week ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:167:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), local(&la, &[2011.0, 0.0, 23.0, 21.0, 34.0, 12.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 9.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 16.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 23.0, 0.0, 0.0])]));
+}
+
+fn t422() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-month ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:176:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 0.0, 18.0]), local(&la, &[2011.0, 4.0, 2.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 1.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 2.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 3.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 4.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t423() {   // ticks-test.js: timeTicks(start, stop, count) can generate 3-month ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:185:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2010.0, 11.0, 18.0]), local(&la, &[2011.0, 10.0, 2.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 3.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 6.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 9.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t424() {   // ticks-test.js: timeTicks(start, stop, count) can generate 1-year ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:194:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2010.0, 11.0, 18.0]), local(&la, &[2014.0, 2.0, 2.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2012.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2014.0, 0.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t425() {   // ticks-test.js: timeTicks(start, stop, count) can generate multi-year ticks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:203:3", Kind::Strict, &tss(&time::ticks(local(&la, &[0.0, 11.0, 18.0]), local(&la, &[2014.0, 2.0, 2.0]), 6_usize, &la)), &tss(&vec![local(&la, &[500.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[1000.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[1500.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2000.0, 0.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t426() {   // ticks-test.js: timeTicks(start, stop, count) returns one tick for an empty domain
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:212:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2014.0, 2.0, 2.0]), local(&la, &[2014.0, 2.0, 2.0]), 6_usize, &la)), &tss(&vec![local(&la, &[2014.0, 2.0, 2.0])]));
+}
+
+fn t427() {   // ticks-test.js: timeTicks(start, stop, count) returns descending ticks for a descending domain
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/ticks-test.js:216:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2014.0, 2.0, 2.0]), local(&la, &[2010.0, 11.0, 18.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2014.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2013.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2012.0, 0.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0])]));
+    check("d3-time/test/ticks-test.js:217:3", Kind::Strict, &tss(&time::ticks(local(&la, &[2011.0, 10.0, 2.0]), local(&la, &[2010.0, 11.0, 18.0]), 4_usize, &la)), &tss(&vec![local(&la, &[2011.0, 9.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 6.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 3.0, 1.0, 0.0, 0.0]), local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t428() {   // utcTicks-test.js: utcTicks(start, stop, interval) respects the specified interval
+    check("d3-time/test/utcTicks-test.js:6:3", Kind::Strict, &tss(&time::ticks_with(utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 4.0]), Interval::Minute(1), &TimeZone::UTC)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0])]));
+}
+
+fn t429() {   // utcTicks-test.js: utcTicks(start, stop, interval.every(step)) observes the specified tick interval and step
+    check("d3-time/test/utcTicks-test.js:15:3", Kind::Strict, &tss(&time::ticks_with(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 33.0, 4.0]), Interval::Minute(1).every(10_u32).expect("d3 test: a step of 1 or more"), &TimeZone::UTC)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 10.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 20.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 30.0])]));
+}
+
+fn t430() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate sub-second ticks
+    check("d3-time/test/utcTicks-test.js:24:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 200.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 400.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 600.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0, 800.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0, 0.0])]));
+}
+
+fn t431() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-second ticks
+    check("d3-time/test/utcTicks-test.js:35:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 4.0])]));
+}
+
+fn t432() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 5-second ticks
+    check("d3-time/test/utcTicks-test.js:45:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 5.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 10.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 20.0])]));
+}
+
+fn t433() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 15-second ticks
+    check("d3-time/test/utcTicks-test.js:55:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 50.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 45.0])]));
+}
+
+fn t434() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 30-second ticks
+    check("d3-time/test/utcTicks-test.js:64:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 50.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 1.0, 30.0])]));
+}
+
+fn t435() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-minute ticks
+    check("d3-time/test/utcTicks-test.js:73:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 0.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 1.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 2.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 3.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 4.0])]));
+}
+
+fn t436() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 5-minute ticks
+    check("d3-time/test/utcTicks-test.js:82:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 3.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 21.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 5.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 10.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 20.0])]));
+}
+
+fn t437() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 15-minute ticks
+    check("d3-time/test/utcTicks-test.js:91:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 8.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 4.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 15.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 12.0, 45.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 0.0])]));
+}
+
+fn t438() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 30-minute ticks
+    check("d3-time/test/utcTicks-test.js:100:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 4.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 12.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 13.0, 30.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 0.0])]));
+}
+
+fn t439() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-hour ticks
+    check("d3-time/test/utcTicks-test.js:109:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 12.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 1.0, 16.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 13.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 14.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 15.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 16.0, 0.0])]));
+}
+
+fn t440() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 3-hour ticks
+    check("d3-time/test/utcTicks-test.js:118:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 14.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 2.0, 1.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 15.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 18.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 21.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 0.0, 0.0])]));
+}
+
+fn t441() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 6-hour ticks
+    check("d3-time/test/utcTicks-test.js:127:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 2.0, 14.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 18.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 6.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 12.0, 0.0])]));
+}
+
+fn t442() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 12-hour ticks
+    check("d3-time/test/utcTicks-test.js:136:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 3.0, 21.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 2.0, 12.0, 0.0]), utc(&[2011.0, 0.0, 3.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 3.0, 12.0, 0.0])]));
+}
+
+fn t443() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-day ticks
+    check("d3-time/test/utcTicks-test.js:145:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 5.0, 21.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 3.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 4.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 5.0, 0.0, 0.0])]));
+}
+
+fn t444() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 2-day ticks
+    check("d3-time/test/utcTicks-test.js:154:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 4.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 6.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 8.0, 0.0, 0.0])]));
+}
+
+fn t445() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-week ticks
+    check("d3-time/test/utcTicks-test.js:162:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 1.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 23.0, 21.0, 34.0, 12.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 2.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 9.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 16.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 23.0, 0.0, 0.0])]));
+}
+
+fn t446() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-month ticks
+    check("d3-time/test/utcTicks-test.js:171:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 0.0, 18.0]), utc(&[2011.0, 4.0, 2.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 1.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 2.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 3.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 4.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t447() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 3-month ticks
+    check("d3-time/test/utcTicks-test.js:180:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2010.0, 11.0, 18.0]), utc(&[2011.0, 10.0, 2.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 3.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 6.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 9.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t448() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate 1-year ticks
+    check("d3-time/test/utcTicks-test.js:189:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2010.0, 11.0, 18.0]), utc(&[2014.0, 2.0, 2.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2012.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2013.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2014.0, 0.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t449() {   // utcTicks-test.js: utcTicks(start, stop, count) can generate multi-year ticks
+    check("d3-time/test/utcTicks-test.js:198:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[0.0, 11.0, 18.0]), utc(&[2014.0, 2.0, 2.0]), 6_usize)), &tss(&vec![utc(&[500.0, 0.0, 1.0, 0.0, 0.0]), utc(&[1000.0, 0.0, 1.0, 0.0, 0.0]), utc(&[1500.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2000.0, 0.0, 1.0, 0.0, 0.0])]));
+}
+
+fn t450() {   // utcTicks-test.js: utcTicks(start, stop, count) returns one tick for an empty domain
+    check("d3-time/test/utcTicks-test.js:207:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2014.0, 2.0, 2.0]), utc(&[2014.0, 2.0, 2.0]), 6_usize)), &tss(&vec![utc(&[2014.0, 2.0, 2.0])]));
+}
+
+fn t451() {   // utcTicks-test.js: utcTicks(start, stop, count) returns descending ticks for a descending domain
+    check("d3-time/test/utcTicks-test.js:211:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2014.0, 2.0, 2.0]), utc(&[2010.0, 11.0, 18.0]), 4_usize)), &tss(&vec![utc(&[2014.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2013.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2012.0, 0.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 0.0, 0.0])]));
+    check("d3-time/test/utcTicks-test.js:212:3", Kind::Strict, &tss(&time::utc_ticks(utc(&[2011.0, 10.0, 2.0]), utc(&[2010.0, 11.0, 18.0]), 4_usize)), &tss(&vec![utc(&[2011.0, 9.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 6.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 3.0, 1.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 1.0, 0.0, 0.0])]));
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "millisecond-test.js: timeMillisecond.every(step) returns every stepth millisecond, starting with the first millisecond of the second", run: t0 },
     Test { name: "utcMillisecond-test.js: utcMillisecond is an alias for timeMillisecond", run: t1 },
@@ -2936,6 +3158,55 @@ pub const TESTS: &[Test] = &[
     Test { name: "utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not round the passed-in-date", run: t400 },
     Test { name: "utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every", run: t401 },
     Test { name: "utcMultiYear-test.js: utcYear.every(n).range(start, stop) returns multiples of n years", run: t402 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, interval) respects the specified interval", run: t403 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, interval) returns the empty array for invalid intervals", run: t404 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, interval.every(step)) observes the specified tick interval and step", run: t405 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate sub-second ticks", run: t406 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-second ticks", run: t407 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 5-second ticks", run: t408 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 15-second ticks", run: t409 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 30-second ticks", run: t410 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-minute ticks", run: t411 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 5-minute ticks", run: t412 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 15-minute ticks", run: t413 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 30-minute ticks", run: t414 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-hour ticks", run: t415 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 3-hour ticks", run: t416 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 6-hour ticks", run: t417 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 12-hour ticks", run: t418 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-day ticks", run: t419 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 2-day ticks", run: t420 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-week ticks", run: t421 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-month ticks", run: t422 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 3-month ticks", run: t423 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate 1-year ticks", run: t424 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) can generate multi-year ticks", run: t425 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) returns one tick for an empty domain", run: t426 },
+    Test { name: "ticks-test.js: timeTicks(start, stop, count) returns descending ticks for a descending domain", run: t427 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, interval) respects the specified interval", run: t428 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, interval.every(step)) observes the specified tick interval and step", run: t429 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate sub-second ticks", run: t430 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-second ticks", run: t431 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 5-second ticks", run: t432 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 15-second ticks", run: t433 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 30-second ticks", run: t434 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-minute ticks", run: t435 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 5-minute ticks", run: t436 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 15-minute ticks", run: t437 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 30-minute ticks", run: t438 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-hour ticks", run: t439 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 3-hour ticks", run: t440 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 6-hour ticks", run: t441 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 12-hour ticks", run: t442 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-day ticks", run: t443 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 2-day ticks", run: t444 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-week ticks", run: t445 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-month ticks", run: t446 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 3-month ticks", run: t447 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-year ticks", run: t448 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) can generate multi-year ticks", run: t449 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) returns one tick for an empty domain", run: t450 },
+    Test { name: "utcTicks-test.js: utcTicks(start, stop, count) returns descending ticks for a descending domain", run: t451 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -4024,4 +4295,55 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-time/test/utcMultiYear-test.js:30:3", test: "utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every", skip: Some("api: interval.count as a value (d3's every intervals lack count and every; an Interval has both)") },
     Assertion { id: "d3-time/test/utcMultiYear-test.js:31:3", test: "utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every", skip: Some("api: interval.every as a value (d3's every intervals lack count and every; an Interval has both)") },
     Assertion { id: "d3-time/test/utcMultiYear-test.js:35:3", test: "utcMultiYear-test.js: utcYear.every(n).range(start, stop) returns multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:6:3", test: "ticks-test.js: timeTicks(start, stop, interval) respects the specified interval", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:15:3", test: "ticks-test.js: timeTicks(start, stop, interval) returns the empty array for invalid intervals", skip: Some("js: a number as a date (coercion)") },
+    Assertion { id: "d3-time/test/ticks-test.js:19:3", test: "ticks-test.js: timeTicks(start, stop, interval.every(step)) observes the specified tick interval and step", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:28:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate sub-second ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:39:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-second ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:49:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 5-second ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:59:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 15-second ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:68:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 30-second ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:77:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:86:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 5-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:95:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 15-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:104:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 30-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:113:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:122:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 3-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:131:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 6-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:140:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 12-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:149:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-day ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:158:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 2-day ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:167:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-week ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:176:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-month ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:185:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 3-month ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:194:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate 1-year ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:203:3", test: "ticks-test.js: timeTicks(start, stop, count) can generate multi-year ticks", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:212:3", test: "ticks-test.js: timeTicks(start, stop, count) returns one tick for an empty domain", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:216:3", test: "ticks-test.js: timeTicks(start, stop, count) returns descending ticks for a descending domain", skip: None },
+    Assertion { id: "d3-time/test/ticks-test.js:217:3", test: "ticks-test.js: timeTicks(start, stop, count) returns descending ticks for a descending domain", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:6:3", test: "utcTicks-test.js: utcTicks(start, stop, interval) respects the specified interval", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:15:3", test: "utcTicks-test.js: utcTicks(start, stop, interval.every(step)) observes the specified tick interval and step", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:24:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate sub-second ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:35:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-second ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:45:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 5-second ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:55:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 15-second ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:64:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 30-second ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:73:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:82:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 5-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:91:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 15-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:100:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 30-minute ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:109:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:118:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 3-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:127:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 6-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:136:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 12-hour ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:145:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-day ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:154:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 2-day ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:162:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-week ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:171:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-month ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:180:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 3-month ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:189:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate 1-year ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:198:3", test: "utcTicks-test.js: utcTicks(start, stop, count) can generate multi-year ticks", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:207:3", test: "utcTicks-test.js: utcTicks(start, stop, count) returns one tick for an empty domain", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:211:3", test: "utcTicks-test.js: utcTicks(start, stop, count) returns descending ticks for a descending domain", skip: None },
+    Assertion { id: "d3-time/test/utcTicks-test.js:212:3", test: "utcTicks-test.js: utcTicks(start, stop, count) returns descending ticks for a descending domain", skip: None },
 ];

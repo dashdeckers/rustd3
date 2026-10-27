@@ -126,6 +126,7 @@
 #floor d3-time/test/second-test.js 29
 #floor d3-time/test/sunday-test.js 47
 #floor d3-time/test/thursday-test.js 19
+#floor d3-time/test/ticks-test.js 25
 #floor d3-time/test/tuesday-test.js 19
 #floor d3-time/test/unixDay-test.js 63
 #floor d3-time/test/utcDay-test.js 63
@@ -140,6 +141,7 @@
 #floor d3-time/test/utcSecond-test.js 28
 #floor d3-time/test/utcSunday-test.js 47
 #floor d3-time/test/utcThursday-test.js 19
+#floor d3-time/test/utcTicks-test.js 25
 #floor d3-time/test/utcTuesday-test.js 19
 #floor d3-time/test/utcWednesday-test.js 19
 #floor d3-time/test/utcWeek-test.js 36
@@ -4135,6 +4137,31 @@ d3-time/test/thursday-test.js:46:3
 d3-time/test/thursday-test.js:47:3
 d3-time/test/thursday-test.js:48:3
 d3-time/test/thursday-test.js:49:3
+d3-time/test/ticks-test.js:6:3
+d3-time/test/ticks-test.js:19:3
+d3-time/test/ticks-test.js:28:3
+d3-time/test/ticks-test.js:39:3
+d3-time/test/ticks-test.js:49:3
+d3-time/test/ticks-test.js:59:3
+d3-time/test/ticks-test.js:68:3
+d3-time/test/ticks-test.js:77:3
+d3-time/test/ticks-test.js:86:3
+d3-time/test/ticks-test.js:95:3
+d3-time/test/ticks-test.js:104:3
+d3-time/test/ticks-test.js:113:3
+d3-time/test/ticks-test.js:122:3
+d3-time/test/ticks-test.js:131:3
+d3-time/test/ticks-test.js:140:3
+d3-time/test/ticks-test.js:149:3
+d3-time/test/ticks-test.js:158:3
+d3-time/test/ticks-test.js:167:3
+d3-time/test/ticks-test.js:176:3
+d3-time/test/ticks-test.js:185:3
+d3-time/test/ticks-test.js:194:3
+d3-time/test/ticks-test.js:203:3
+d3-time/test/ticks-test.js:212:3
+d3-time/test/ticks-test.js:216:3
+d3-time/test/ticks-test.js:217:3
 d3-time/test/tuesday-test.js:10:3
 d3-time/test/tuesday-test.js:11:3
 d3-time/test/tuesday-test.js:12:3
@@ -4584,6 +4611,31 @@ d3-time/test/utcThursday-test.js:46:3
 d3-time/test/utcThursday-test.js:47:3
 d3-time/test/utcThursday-test.js:48:3
 d3-time/test/utcThursday-test.js:49:3
+d3-time/test/utcTicks-test.js:6:3
+d3-time/test/utcTicks-test.js:15:3
+d3-time/test/utcTicks-test.js:24:3
+d3-time/test/utcTicks-test.js:35:3
+d3-time/test/utcTicks-test.js:45:3
+d3-time/test/utcTicks-test.js:55:3
+d3-time/test/utcTicks-test.js:64:3
+d3-time/test/utcTicks-test.js:73:3
+d3-time/test/utcTicks-test.js:82:3
+d3-time/test/utcTicks-test.js:91:3
+d3-time/test/utcTicks-test.js:100:3
+d3-time/test/utcTicks-test.js:109:3
+d3-time/test/utcTicks-test.js:118:3
+d3-time/test/utcTicks-test.js:127:3
+d3-time/test/utcTicks-test.js:136:3
+d3-time/test/utcTicks-test.js:145:3
+d3-time/test/utcTicks-test.js:154:3
+d3-time/test/utcTicks-test.js:162:3
+d3-time/test/utcTicks-test.js:171:3
+d3-time/test/utcTicks-test.js:180:3
+d3-time/test/utcTicks-test.js:189:3
+d3-time/test/utcTicks-test.js:198:3
+d3-time/test/utcTicks-test.js:207:3
+d3-time/test/utcTicks-test.js:211:3
+d3-time/test/utcTicks-test.js:212:3
 d3-time/test/utcTuesday-test.js:10:3
 d3-time/test/utcTuesday-test.js:11:3
 d3-time/test/utcTuesday-test.js:12:3

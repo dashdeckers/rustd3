@@ -80,7 +80,7 @@ const SUITES = [
       "millisecond", "utcMillisecond", "second", "utcSecond", "minute", "utcMinute", "hour", "utcHour", "day", "utcDay",
       "unixDay", "week", "utcWeek", "sunday", "utcSunday", "monday", "utcMonday", "tuesday", "utcTuesday", "wednesday",
       "utcWednesday", "thursday", "utcThursday", "friday", "utcFriday", "saturday", "utcSaturday", "month", "utcMonth",
-      "year", "utcYear", "multiYear", "utcMultiYear",
+      "year", "utcYear", "multiYear", "utcMultiYear", "ticks", "utcTicks",
     ]),
     rules: time,
   },

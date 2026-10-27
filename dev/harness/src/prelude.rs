@@ -16,7 +16,7 @@ pub(crate) use rustd3_core::jiff::civil::Weekday;
 pub(crate) use rustd3_core::jiff::tz::TimeZone;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
 pub(crate) use rustd3_core::shape::{self, Curve};
-pub(crate) use rustd3_core::time::Interval;
+pub(crate) use rustd3_core::time::{self, Interval};
 pub(crate) use rustd3_core::{array, format, interact, interpolate, scale, ticks};
 pub(crate) use rustd3_testkit::zone;
 
