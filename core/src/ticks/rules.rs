@@ -7,19 +7,35 @@ use crate::ticks;
 
 /// The most values a built-in rule returns.
 const MAX_VALUES: usize = 10_000;
+/// How far past an end, relative to it, [`transformed`] keeps a value.
+const ROUND_TRIP: f64 = 1e-9;
 /// The most decades [`decades`] walks from the constant up.
 const MAX_DECADES: i32 = 400;
 
-/// d3's linear ticks in data space: `ticks(d[0], d[1], count)`.
+/// d3's linear ticks in data space: `ticks(d[0], d[1], count)`, and none
+/// for a non-finite end (where d3 gives `[∞]` for equal infinite ends).
 pub fn linear(domain: [f64; 2], count: usize) -> Vec<f64> {
+    if !domain[0].is_finite() || !domain[1].is_finite() {
+        return Vec::new();
+    }
     ticks::ticks(domain[0], domain[1], count as f64)
 }
 
 /// d3's linear ticks of `forward(domain)`, mapped back through `inverse`.
+/// A value the round trip carries past an end by more than a relative
+/// 1e-9 (a transform that underflows or overflows on the domain, such as
+/// the squares of subnormals) is left out.
 pub fn transformed<T: Transform>(transform: &T, domain: [f64; 2], count: usize) -> Vec<f64> {
+    let [low, high] = if domain[1] < domain[0] {
+        [domain[1], domain[0]]
+    } else {
+        domain
+    };
+    let (low, high) = (low - ROUND_TRIP * low.abs(), high + ROUND_TRIP * high.abs());
     linear(domain.map(|x| transform.forward(x)), count)
         .into_iter()
         .map(|u| transform.inverse(u))
+        .filter(|v| v.is_finite() && (low..=high).contains(v))
         .collect()
 }
 
@@ -66,7 +82,8 @@ pub fn decades(domain: [f64; 2], constant: f64, count: usize) -> Vec<f64> {
 /// base at d3's ticks of the exponents. Empty when the log of an end is not
 /// finite or the base is not positive or is 1; the decades branch also
 /// serves an integer base whose per-decade values would number above
-/// 10,000.
+/// 10,000, and leaves out a power that overflows (`log2` of `f64::MAX`
+/// rounds up to 1024).
 pub fn log(base: f64, domain: [f64; 2], count: usize) -> Vec<f64> {
     let log = transform::Log::new(base).for_domain(domain);
     let reverse = domain[1] < domain[0];
@@ -93,6 +110,7 @@ pub fn log(base: f64, domain: [f64; 2], count: usize) -> Vec<f64> {
         ticks::ticks(i, j, (j - i).min(n))
             .into_iter()
             .map(|e| log.pows(e))
+            .filter(|t| t.is_finite())
             .collect()
     };
     if reverse {
@@ -173,7 +191,9 @@ pub(crate) fn decade(c: f64, k: i32) -> f64 {
 }
 
 /// `k` equal steps in transformed space between neighbouring majors (the
-/// majors themselves excluded), stopping after 10,000 values.
+/// majors themselves excluded), stopping after 10,000 values. Steps that
+/// map back to no finite value (majors outside the transform's domain, such
+/// as a square root's negatives) are left out.
 pub fn subdivide<T: Transform>(transform: &T, major: &[f64], k: usize) -> Vec<f64> {
     major
         .windows(2)
@@ -182,6 +202,7 @@ pub fn subdivide<T: Transform>(transform: &T, major: &[f64], k: usize) -> Vec<f6
             (1..k).map(move |i| a + (b - a) * i as f64 / k as f64)
         })
         .map(|u| transform.inverse(u))
+        .filter(|v| v.is_finite())
         .take(MAX_VALUES)
         .collect()
 }
@@ -211,6 +232,40 @@ mod tests {
             10_000
         );
         assert_eq!(subdivide(&transform::Identity, &major, 2), [0.5, 1.5]);
+    }
+
+    #[test]
+    fn linear_gives_no_ticks_for_an_infinite_end() {
+        assert!(linear([f64::INFINITY, f64::INFINITY], 10).is_empty());
+        assert!(linear([0.0, f64::NEG_INFINITY], 10).is_empty());
+        assert_eq!(linear([1.0, 1.0], 10), [1.0]);
+    }
+
+    #[test]
+    fn transformed_leaves_out_values_the_round_trip_carries_away() {
+        let squares = transform::Pow::new(2.0);
+        assert!(transformed(&squares, [-1e-320, -5e-324], 1).is_empty());
+        assert!(transformed(&squares, [1e300, f64::MAX], 2).is_empty());
+        assert_eq!(
+            transformed(&squares, [0.0, 2.0], 2),
+            [0.0, 2.0f64.sqrt(), 2.0]
+        );
+    }
+
+    #[test]
+    fn subdivide_leaves_out_steps_outside_the_transforms_domain() {
+        let log = transform::Log::new(10.0);
+        assert!(subdivide(&log, &[-1.0, 0.0, 1.0], 2).is_empty());
+        let middle = subdivide(&log, &[1.0, 100.0], 2);
+        assert_eq!(middle.len(), 1);
+        assert!((middle[0] - 10.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn log_leaves_out_a_power_that_overflows() {
+        let ticks = log(2.0, [-0.5, -f64::MAX], 1000);
+        assert!(ticks.iter().all(|t| t.is_finite()));
+        assert_eq!(ticks.first(), Some(&-0.5));
     }
 
     #[test]
