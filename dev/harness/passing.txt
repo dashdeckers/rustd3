@@ -1,4 +1,5 @@
 # d3 assertions that must keep passing, and per test file the passes it must keep. Written by rustd3-harness --bless after reading the diff.
+#floor d3-array/test/bin-test.js 15
 #floor d3-array/test/bisect-test.js 62
 #floor d3-array/test/count-test.js 4
 #floor d3-array/test/deviation-test.js 29
@@ -11,6 +12,9 @@
 #floor d3-array/test/quantile-test.js 42
 #floor d3-array/test/range-test.js 77
 #floor d3-array/test/sum-test.js 22
+#floor d3-array/test/threshold/freedmanDiaconic-test.js 4
+#floor d3-array/test/threshold/scott-test.js 4
+#floor d3-array/test/threshold/sturges-test.js 3
 #floor d3-array/test/tickIncrement-test.js 45
 #floor d3-array/test/tickStep-test.js 75
 #floor d3-array/test/ticks-test.js 92
@@ -108,6 +112,21 @@
 #floor d3-shape/test/curve/stepBefore-test.js 8
 #floor d3-shape/test/line-test.js 3
 #floor d3-zoom/test/transform-test.js 11
+d3-array/test/bin-test.js:19:3
+d3-array/test/bin-test.js:48:3
+d3-array/test/bin-test.js:74:3
+d3-array/test/bin-test.js:99:3
+d3-array/test/bin-test.js:109:3
+d3-array/test/bin-test.js:118:3
+d3-array/test/bin-test.js:149:3
+d3-array/test/bin-test.js:160:3
+d3-array/test/bin-test.js:171:3
+d3-array/test/bin-test.js:185:3
+d3-array/test/bin-test.js:199:3
+d3-array/test/bin-test.js:239:3
+d3-array/test/bin-test.js:241:3
+d3-array/test/bin-test.js:247:3
+d3-array/test/bin-test.js:248:3
 d3-array/test/bisect-test.js:10:3
 d3-array/test/bisect-test.js:11:3
 d3-array/test/bisect-test.js:12:3
@@ -504,6 +523,17 @@ d3-array/test/sum-test.js:67:3
 d3-array/test/sum-test.js:68:3
 d3-array/test/sum-test.js:69:3
 d3-array/test/sum-test.js:70:3
+d3-array/test/threshold/freedmanDiaconic-test.js:5:3
+d3-array/test/threshold/freedmanDiaconic-test.js:9:3
+d3-array/test/threshold/freedmanDiaconic-test.js:13:3
+d3-array/test/threshold/freedmanDiaconic-test.js:17:3
+d3-array/test/threshold/scott-test.js:5:3
+d3-array/test/threshold/scott-test.js:9:3
+d3-array/test/threshold/scott-test.js:13:3
+d3-array/test/threshold/scott-test.js:17:3
+d3-array/test/threshold/sturges-test.js:5:3
+d3-array/test/threshold/sturges-test.js:6:3
+d3-array/test/threshold/sturges-test.js:10:3
 d3-array/test/tickIncrement-test.js:5:3
 d3-array/test/tickIncrement-test.js:6:3
 d3-array/test/tickIncrement-test.js:7:3

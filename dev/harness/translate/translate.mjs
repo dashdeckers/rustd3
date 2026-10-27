@@ -35,7 +35,8 @@ const SUITES = [
   {
     suite: "array",
     package: "d3-array",
-    files: tests(["count", "min", "max", "extent", "sum", "mean", "variance", "deviation", "median", "quantile", "range", "bisect"]),
+    files: tests(["count", "min", "max", "extent", "sum", "mean", "variance", "deviation", "median", "quantile", "range", "bisect", "bin",
+      "threshold/sturges", "threshold/scott", "threshold/freedmanDiaconic"]),
     rules: combine(stats, array),
   },
   { suite: "ticks", package: "d3-array", files: tests(["ticks", "tickIncrement", "tickStep", "nice"]), rules: array },

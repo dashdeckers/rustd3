@@ -2,7 +2,8 @@
 //! variances and quantiles, which take any iterator of numbers (a slice
 //! through `.iter().copied()`) and skip NaN as d3 skips null, undefined and
 //! NaN, returning `None` where d3 returns undefined for want of a value;
-//! and d3's `range` and bisection over ascending slices.
+//! d3's `range` and bisection over ascending slices; and [`Bin`], d3's
+//! histogram layout.
 //!
 //! ```
 //! use rustd3_core::array;
@@ -17,10 +18,13 @@
 //! assert_eq!(array::bisect_right(&[1.0, 2.0, 2.0, 3.0], 2.0), 3);
 //! ```
 
+pub mod bin;
+
 mod bisect;
 mod count;
 mod deviation;
 mod extent;
+mod histogram;
 mod max;
 mod mean;
 mod median;
@@ -37,6 +41,7 @@ pub use bisect::{bisect_left, bisect_right};
 pub use count::count;
 pub use deviation::deviation;
 pub use extent::extent;
+pub use histogram::{Bin, bin};
 pub use max::max;
 pub use mean::mean;
 pub use median::median;

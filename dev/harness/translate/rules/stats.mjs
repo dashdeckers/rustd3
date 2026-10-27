@@ -27,13 +27,15 @@ function num(node, ctx, nullIsNaN = false) {
   return needNum(val(ex(node, ctx)), "argument");
 }
 
-/** An array of numbers as Vec<f64> code, projected through `accessor` first. */
-export function data(node, ctx, accessor) {
-  const e = val(ex(accessor ? project(node, accessor, ctx) : node, ctx));
-  if (e.t === "vec") return /^\w+$/.test(e.c) ? `${e.c}.clone()` : e.c; // a variable stays usable
-  if (e.t === "maybes") return `${e.c}.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()`;
-  return skip(`js: ${e.t} values (coercion)`);
+/** A translated array as Vec<f64> code: a variable cloned so it stays usable, NaN for d3's undefined. */
+function numbers(e) {
+  if (e?.t === "vec") return /^\w+$/.test(e.c) ? `${e.c}.clone()` : e.c;
+  if (e?.t === "maybes") return `${e.c}.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()`;
+  return skip(`js: ${e?.t} values (coercion)`);
 }
+
+/** An array of numbers as Vec<f64> code, projected through `accessor` first. */
+export const data = (node, ctx, accessor) => numbers(val(ex(accessor ? project(node, accessor, ctx) : node, ctx)));
 
 /** The property an accessor reads: `(d) => d.x`, or a file-level function returning `b.value`. */
 function property(fn, ctx) {
@@ -108,6 +110,9 @@ export default {
     if (elements.length && elements.every((e) => e?.type === "CallExpression" && calleeName(e, ctx) === "box" && e.arguments.length === 3)) {
       return { c: `vec![${elements.map((e) => ex(e, ctx).c).join(", ")}]`, t: "buckets" };
     }
+    if (elements.length && elements.every((e) => e?.type === "ArrayExpression")) {
+      return { c: `vec![${elements.map((e) => numbers(val(ex(e, ctx)))).join(", ")}]`, t: "rows" };
+    }
     if (!elements.some((e) => e && missing(e))) return undefined;
     const items = elements.map((e) => (!e ? skip("js: array hole") : missing(e) ? "Option::<f64>::None" : `Some(${needNum(val(ex(e, ctx)), "array element")})`));
     return { c: `[${items.join(", ")}]`, t: "maybes" };
@@ -149,8 +154,7 @@ export default {
   },
   apply(target, args) {
     if (target.t !== "bin") return undefined;
-    const [e] = args;
-    const values = e?.t === "maybes" ? `${e.c}.iter().map(|v| v.unwrap_or(f64::NAN)).collect()` : e?.t === "vec" ? e.c : skip(`js: ${e?.t} data (coercion)`);
+    const values = numbers(args[0]);
     const bucket = "((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())";
     return { c: `{ let d_: Vec<f64> = ${values}; ${target.c}.layout(&d_).iter().map(|b| ${bucket}).collect::<Vec<_>>() }`, t: "buckets" };
   },

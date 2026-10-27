@@ -85,3 +85,81 @@ fn bisecting_nan_gives_the_length() {
     assert_eq!(array::bisect_left(&[1.0, 2.0, 3.0], NAN), 3);
     assert_eq!(array::bisect_right(&[1.0, 2.0, 3.0], NAN), 3);
 }
+
+/// Each bucket as (x0, x1, how many values).
+fn lengths(buckets: &[array::bin::Bucket]) -> Vec<(f64, f64, usize)> {
+    buckets
+        .iter()
+        .map(|b| (b.x0, b.x1, b.indices.len()))
+        .collect()
+}
+
+const FIBONACCI: [f64; 9] = [0.0, 1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0];
+
+#[test]
+fn the_default_bin_nices_the_extent_and_widens_the_last_bucket() {
+    let expected = [
+        (0.0, 5.0, 5),
+        (5.0, 10.0, 2),
+        (10.0, 15.0, 1),
+        (15.0, 20.0, 0),
+        (20.0, 25.0, 1),
+    ];
+    assert_eq!(lengths(&array::bin().layout(&FIBONACCI)), expected);
+}
+
+#[test]
+fn a_fixed_domain_drops_the_values_outside_it() {
+    let bin = array::bin()
+        .domain([0.0, 20.0])
+        .thresholds(array::bin::Thresholds::Count(4));
+    let expected = [
+        (0.0, 5.0, 5),
+        (5.0, 10.0, 2),
+        (10.0, 15.0, 1),
+        (15.0, 20.0, 0),
+    ];
+    assert_eq!(lengths(&bin.layout(&FIBONACCI)), expected);
+}
+
+#[test]
+fn given_thresholds_cut_the_extent() {
+    let bin = array::bin().thresholds(array::bin::Thresholds::Values(vec![5.0, 10.0]));
+    let expected = [(0.0, 5.0, 5), (5.0, 10.0, 2), (10.0, 21.0, 2)];
+    assert_eq!(lengths(&bin.layout(&FIBONACCI)), expected);
+}
+
+#[test]
+fn buckets_hold_the_indices_of_their_values() {
+    let buckets = array::bin().layout(&[3.0, 12.0, 1.0]);
+    assert_eq!(buckets[0].indices, [0, 2]);
+}
+
+#[test]
+fn the_threshold_rules_count_as_d3() {
+    let values = array::range(0.0, 20.0, 1.0);
+    assert_eq!(array::bin::sturges(&values), 6);
+    assert_eq!(array::bin::scott(&values, 0.0, 19.0), 3);
+    assert_eq!(array::bin::freedman_diaconis(&values, 0.0, 19.0), 3);
+    let at = |n: f64| array::bin::sturges(&array::range(0.0, n, 1.0));
+    assert_eq!(
+        [at(1.0), at(8.0), at(1024.0), at(1_048_576.0)],
+        [1, 4, 11, 21]
+    );
+}
+
+#[test]
+fn infinite_or_missing_values_bin_as_d3_without_hanging() {
+    let (inf, minus) = (f64::INFINITY, f64::NEG_INFINITY);
+    let layout = |data: Vec<f64>| within_a_second(move || lengths(&array::bin().layout(&data)));
+    assert_eq!(layout(vec![inf, minus]), [(minus, inf, 2)]);
+    assert_eq!(layout(vec![1.0, inf]), [(1.0, inf, 2)]);
+    assert_eq!(layout(vec![minus, 0.0, 1.0, inf]), [(minus, inf, 4)]);
+    assert_eq!(layout(vec![inf]), [(inf, inf, 1)]);
+    for nothing in [vec![NAN, NAN], Vec::new()] {
+        let [(x0, x1, n)] = layout(nothing)[..] else {
+            panic!("one bucket");
+        };
+        assert!(x0.is_nan() && x1.is_nan() && n == 0);
+    }
+}

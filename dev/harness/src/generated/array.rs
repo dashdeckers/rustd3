@@ -1024,6 +1024,172 @@ fn t145() {   // bisect-test.js: bisectRight(array, value, lo, hi) keeps non-com
     check("d3-array/test/bisect-test.js:166:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &4.0);
 }
 
+fn t146() {   // bin-test.js: histogram is a deprecated alias for bin
+    skip("d3-array/test/bin-test.js:7:3", "api: d3's aliases and default accessors (one name per function)");
+}
+
+fn t147() {   // bin-test.js: bin() returns a default bin generator
+    let mut _h = array::bin();
+    skip("d3-array/test/bin-test.js:12:3", "api: bin's value() getter");
+    skip("d3-array/test/bin-test.js:13:3", "api: bin's domain() getter");
+    skip("d3-array/test/bin-test.js:14:3", "api: bin's thresholds() getter");
+}
+
+fn t148() {   // bin-test.js: bin(data) computes bins of the specified array of data
+    let mut h = array::bin();
+    check("d3-array/test/bin-test.js:19:3", Kind::Strict, &{ let d_: Vec<f64> = vec![0.0, 0.0, 0.0, 10.0, 20.0, 20.0]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((0.0, 5.0), vec![0.0, 0.0, 0.0]), ((5.0, 10.0), Vec::<f64>::new()), ((10.0, 15.0), vec![10.0]), ((15.0, 20.0), Vec::<f64>::new()), ((20.0, 25.0), vec![20.0, 20.0])]);
+}
+
+fn t149() {   // bin-test.js: bin(iterable) is equivalent to bin(array)
+    let mut _h = array::bin();
+    skip("d3-array/test/bin-test.js:30:3", "helpers: generator or async function (in iterable)");
+}
+
+fn t150() {   // bin-test.js: bin.value(number) sets the constant value
+    skip("d3-array/test/bin-test.js:41:3", "api: a function or constant as bin's value (Thresholds is a closed set)");
+}
+
+fn t151() {   // bin-test.js: bin(data) does not bin null, undefined, or NaN
+    let mut h = array::bin();
+    check("d3-array/test/bin-test.js:48:3", Kind::Strict, &{ let d_: Vec<f64> = [Some(0.0), Option::<f64>::None, Option::<f64>::None, Some(f64::NAN), Some(10.0), Some(20.0), Some(20.0)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((0.0, 5.0), vec![0.0]), ((5.0, 10.0), Vec::<f64>::new()), ((10.0, 15.0), vec![10.0]), ((15.0, 20.0), Vec::<f64>::new()), ((20.0, 25.0), vec![20.0, 20.0])]);
+}
+
+fn t152() {   // bin-test.js: bin.value(function) sets the value accessor
+    skip("d3-array/test/bin-test.js:62:3", "api: a function or constant as bin's value (Thresholds is a closed set)");
+}
+
+fn t153() {   // bin-test.js: bin.domain(array) sets the domain
+    let mut h = array::bin().domain([0.0, 20.0]);
+    skip("d3-array/test/bin-test.js:73:3", "api: bin's domain() getter");
+    check("d3-array/test/bin-test.js:74:3", Kind::Strict, &{ let d_: Vec<f64> = vec![1.0, 2.0, 2.0, 10.0, 18.0, 18.0]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((0.0, 5.0), vec![1.0, 2.0, 2.0]), ((5.0, 10.0), Vec::<f64>::new()), ((10.0, 15.0), vec![10.0]), ((15.0, 20.0), vec![18.0, 18.0])]);
+}
+
+fn t154() {   // bin-test.js: bin.domain(function) sets the domain accessor
+    skip("d3-array/test/bin-test.js:87:3", "js: a variable without a value (undefined)");
+    skip("d3-array/test/bin-test.js:88:3", "js: a variable without a value (undefined)");
+    skip("d3-array/test/bin-test.js:94:3", "js: a variable without a value (undefined)");
+}
+
+fn t155() {   // bin-test.js: bin.thresholds(number) sets the approximate number of bin thresholds
+    let mut h = array::bin().thresholds(array::bin::Thresholds::Count((3.0) as usize));
+    check("d3-array/test/bin-test.js:99:3", Kind::Strict, &{ let d_: Vec<f64> = vec![0.0, 0.0, 0.0, 10.0, 30.0, 30.0]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((0.0, 10.0), vec![0.0, 0.0, 0.0]), ((10.0, 20.0), vec![10.0]), ((20.0, 30.0), Vec::<f64>::new()), ((30.0, 40.0), vec![30.0, 30.0])]);
+}
+
+fn t156() {   // bin-test.js: bin.thresholds(array) sets the bin thresholds
+    let mut h = array::bin().thresholds(array::bin::Thresholds::Values(vec![10.0, 20.0]));
+    check("d3-array/test/bin-test.js:109:3", Kind::Strict, &{ let d_: Vec<f64> = vec![0.0, 0.0, 0.0, 10.0, 30.0, 30.0]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((0.0, 10.0), vec![0.0, 0.0, 0.0]), ((10.0, 20.0), vec![10.0]), ((20.0, 30.0), vec![30.0, 30.0])]);
+}
+
+fn t157() {   // bin-test.js: bin.thresholds(array) ignores thresholds outside the domain
+    let mut h = array::bin().thresholds(array::bin::Thresholds::Values(vec![0.0, 1.0, 2.0, 3.0, 4.0]));
+    check("d3-array/test/bin-test.js:118:3", Kind::Strict, &{ let d_: Vec<f64> = vec![0.0, 1.0, 2.0, 3.0]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((0.0, 1.0), vec![0.0]), ((1.0, 2.0), vec![1.0]), ((2.0, 3.0), vec![2.0]), ((3.0, 3.0), vec![3.0])]);
+}
+
+fn t158() {   // bin-test.js: bin.thresholds(function) sets the bin thresholds accessor
+    skip("d3-array/test/bin-test.js:130:3", "js: a variable without a value (undefined)");
+    skip("d3-array/test/bin-test.js:135:3", "js: a variable without a value (undefined)");
+    skip("d3-array/test/bin-test.js:136:3", "js: a variable without a value (undefined)");
+}
+
+fn t159() {   // bin-test.js: bin(data) uses nice thresholds
+    let mut h = array::bin().domain([0.0, 1.0]).thresholds(array::bin::Thresholds::Count((5.0) as usize));
+    check("d3-array/test/bin-test.js:149:3", Kind::Strict, &{ let d_: Vec<f64> = Vec::<f64>::new(); h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }.iter().map(|b| vec![b.0.0, b.0.1]).collect::<Vec<_>>(), &vec![vec![0.0, 0.2], vec![0.2, 0.4], vec![0.4, 0.6], vec![0.6, 0.8], vec![0.8, 1.0]]);
+}
+
+fn t160() {   // bin-test.js: bin()() returns bins whose rightmost bin is not too wide
+    let mut h = array::bin();
+    check("d3-array/test/bin-test.js:160:3", Kind::Strict, &{ let d_: Vec<f64> = vec![9.8, 10.0, 11.0, 12.0, 13.0, 13.2]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((9.0, 10.0), vec![9.8]), ((10.0, 11.0), vec![10.0]), ((11.0, 12.0), vec![11.0]), ((12.0, 13.0), vec![12.0]), ((13.0, 14.0), vec![13.0, 13.2])]);
+}
+
+fn t161() {   // bin-test.js: bin(data) handles fractional step correctly
+    let mut h = array::bin().thresholds(array::bin::Thresholds::Count((10.0) as usize));
+    check("d3-array/test/bin-test.js:171:3", Kind::Strict, &{ let d_: Vec<f64> = vec![9.8, 10.0, 11.0, 12.0, 13.0, 13.2]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((9.5, 10.0), vec![9.8]), ((10.0, 10.5), vec![10.0]), ((10.5, 11.0), Vec::<f64>::new()), ((11.0, 11.5), vec![11.0]), ((11.5, 12.0), Vec::<f64>::new()), ((12.0, 12.5), vec![12.0]), ((12.5, 13.0), Vec::<f64>::new()), ((13.0, 13.5), vec![13.0, 13.2])]);
+}
+
+fn t162() {   // bin-test.js: bin(data) handles fractional step correctly with a custom, non-aligned domain
+    let mut h = array::bin().thresholds(array::bin::Thresholds::Count((10.0) as usize)).domain([9.7, 13.3]);
+    check("d3-array/test/bin-test.js:185:3", Kind::Strict, &{ let d_: Vec<f64> = vec![9.8, 10.0, 11.0, 12.0, 13.0, 13.2]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((9.7, 10.0), vec![9.8]), ((10.0, 10.5), vec![10.0]), ((10.5, 11.0), Vec::<f64>::new()), ((11.0, 11.5), vec![11.0]), ((11.5, 12.0), Vec::<f64>::new()), ((12.0, 12.5), vec![12.0]), ((12.5, 13.0), Vec::<f64>::new()), ((13.0, 13.3), vec![13.0, 13.2])]);
+}
+
+fn t163() {   // bin-test.js: bin(data) handles fractional step correctly with a custom, aligned domain
+    let mut h = array::bin().thresholds(array::bin::Thresholds::Count((10.0) as usize)).domain([9.5, 13.5]);
+    check("d3-array/test/bin-test.js:199:3", Kind::Strict, &{ let d_: Vec<f64> = vec![9.8, 10.0, 11.0, 12.0, 13.0, 13.2]; h.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((9.5, 10.0), vec![9.8]), ((10.0, 10.5), vec![10.0]), ((10.5, 11.0), Vec::<f64>::new()), ((11.0, 11.5), vec![11.0]), ((11.5, 12.0), Vec::<f64>::new()), ((12.0, 12.5), vec![12.0]), ((12.5, 13.0), Vec::<f64>::new()), ((13.0, 13.5), vec![13.0, 13.2])]);
+}
+
+fn t164() {   // bin-test.js: bin(data) coerces values to numbers as expected
+    let mut _h = array::bin().thresholds(array::bin::Thresholds::Count((10.0) as usize));
+    skip("d3-array/test/bin-test.js:213:3", "js: strs values (coercion)");
+}
+
+fn t165() {   // bin-test.js: bin(athletes) produces the expected result
+    skip("d3-array/test/bin-test.js:229:3", "js: a file read");
+}
+
+fn t166() {   // bin-test.js: bin(data) assigns floating point values to the correct bins
+    skip("d3-array/test/bin-test.js:234:5", "gap: a for…of loop");
+}
+
+fn t167() {   // bin-test.js: bin(data) assigns integer values to the correct bins
+    check("d3-array/test/bin-test.js:239:3", Kind::Strict, &{ let d_: Vec<f64> = vec![5.0]; array::bin().domain([4.0, 5.0]).layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((4.0, 5.0), vec![5.0])]);
+    let mut eights = vec![8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0];
+    check("d3-array/test/bin-test.js:241:3", Kind::Strict, &{ let d_: Vec<f64> = eights.clone(); array::bin().domain([3.0, 8.0]).layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((3.0, 4.0), Vec::<f64>::new()), ((4.0, 5.0), Vec::<f64>::new()), ((5.0, 6.0), Vec::<f64>::new()), ((6.0, 7.0), Vec::<f64>::new()), ((7.0, 8.0), eights.clone())]);
+}
+
+fn t168() {   // bin-test.js: bin(data) does not mutate user-supplied thresholds as an array
+    let mut thresholds = vec![3.0, 4.0, 5.0, 6.0];
+    let mut b = array::bin().domain([4.0, 5.0]).thresholds(array::bin::Thresholds::Values(thresholds.clone()));
+    check("d3-array/test/bin-test.js:247:3", Kind::Strict, &{ let d_: Vec<f64> = vec![5.0]; b.layout(&d_).iter().map(|b| ((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())).collect::<Vec<_>>() }, &vec![((4.0, 5.0), Vec::<f64>::new()), ((5.0, 5.0), vec![5.0])]);
+    check("d3-array/test/bin-test.js:248:3", Kind::Strict, &thresholds, &vec![3.0, 4.0, 5.0, 6.0]);
+    skip("d3-array/test/bin-test.js:249:3", "api: bin's thresholds() getter");
+}
+
+fn t169() {   // bin-test.js: bin(data) does not mutate user-supplied thresholds as a function
+    skip("d3-array/test/bin-test.js:255:3", "api: a function or constant as bin's thresholds (Thresholds is a closed set)");
+    skip("d3-array/test/bin-test.js:256:3", "api: a function or constant as bin's thresholds (Thresholds is a closed set)");
+    skip("d3-array/test/bin-test.js:257:3", "api: a function or constant as bin's thresholds (Thresholds is a closed set)");
+}
+
+fn t170() {   // sturges-test.js: thresholdSturges(values, min, max) returns the expected result
+    check("d3-array/test/threshold/sturges-test.js:5:3", Kind::Strict, &(array::bin::sturges(&vec![4.0, 3.0, 2.0, 1.0, f64::NAN]) as f64), &3.0);
+    check("d3-array/test/threshold/sturges-test.js:6:3", Kind::Strict, &(array::bin::sturges(&vec![1.0]) as f64), &1.0);
+}
+
+fn t171() {   // sturges-test.js: thresholdSturges(values, min, max) handles empty arrays
+    check("d3-array/test/threshold/sturges-test.js:10:3", Kind::Strict, &(array::bin::sturges(&Vec::<f64>::new()) as f64), &1.0);
+}
+
+fn t172() {   // scott-test.js: thresholdScott(values, min, max) returns the expected result
+    check("d3-array/test/threshold/scott-test.js:5:3", Kind::Strict, &(array::bin::scott(&vec![4.0, 3.0, 2.0, 1.0, f64::NAN], 1.0, 4.0) as f64), &2.0);
+}
+
+fn t173() {   // scott-test.js: thresholdScott(values, min, max) handles values with zero deviation
+    check("d3-array/test/threshold/scott-test.js:9:3", Kind::Strict, &(array::bin::scott(&vec![1.0, 1.0, 1.0, 1.0], 1.0, 4.0) as f64), &1.0);
+}
+
+fn t174() {   // scott-test.js: thresholdScott(values, min, max) handles single-value arrays
+    check("d3-array/test/threshold/scott-test.js:13:3", Kind::Strict, &(array::bin::scott(&vec![1.0], 1.0, 4.0) as f64), &1.0);
+}
+
+fn t175() {   // scott-test.js: thresholdScott(values, min, max) handles empty arrays
+    check("d3-array/test/threshold/scott-test.js:17:3", Kind::Strict, &(array::bin::scott(&Vec::<f64>::new(), 1.0, 4.0) as f64), &1.0);
+}
+
+fn t176() {   // freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) returns the expected result
+    check("d3-array/test/threshold/freedmanDiaconic-test.js:5:3", Kind::Strict, &(array::bin::freedman_diaconis(&vec![4.0, 3.0, 2.0, 1.0, f64::NAN], 1.0, 4.0) as f64), &2.0);
+}
+
+fn t177() {   // freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles values with zero deviation
+    check("d3-array/test/threshold/freedmanDiaconic-test.js:9:3", Kind::Strict, &(array::bin::freedman_diaconis(&vec![1.0, 1.0, 1.0, 1.0], 1.0, 4.0) as f64), &1.0);
+}
+
+fn t178() {   // freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles single-value arrays
+    check("d3-array/test/threshold/freedmanDiaconic-test.js:13:3", Kind::Strict, &(array::bin::freedman_diaconis(&vec![1.0], 1.0, 4.0) as f64), &1.0);
+}
+
+fn t179() {   // freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles empty arrays
+    check("d3-array/test/threshold/freedmanDiaconic-test.js:17:3", Kind::Strict, &(array::bin::freedman_diaconis(&Vec::<f64>::new(), 1.0, 4.0) as f64), &1.0);
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "count-test.js: count() accepts an iterable", run: t0 },
     Test { name: "count-test.js: count() ignores NaN, null", run: t1 },
@@ -1171,6 +1337,40 @@ pub const TESTS: &[Test] = &[
     Test { name: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", run: t143 },
     Test { name: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps comparable values to the left", run: t144 },
     Test { name: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", run: t145 },
+    Test { name: "bin-test.js: histogram is a deprecated alias for bin", run: t146 },
+    Test { name: "bin-test.js: bin() returns a default bin generator", run: t147 },
+    Test { name: "bin-test.js: bin(data) computes bins of the specified array of data", run: t148 },
+    Test { name: "bin-test.js: bin(iterable) is equivalent to bin(array)", run: t149 },
+    Test { name: "bin-test.js: bin.value(number) sets the constant value", run: t150 },
+    Test { name: "bin-test.js: bin(data) does not bin null, undefined, or NaN", run: t151 },
+    Test { name: "bin-test.js: bin.value(function) sets the value accessor", run: t152 },
+    Test { name: "bin-test.js: bin.domain(array) sets the domain", run: t153 },
+    Test { name: "bin-test.js: bin.domain(function) sets the domain accessor", run: t154 },
+    Test { name: "bin-test.js: bin.thresholds(number) sets the approximate number of bin thresholds", run: t155 },
+    Test { name: "bin-test.js: bin.thresholds(array) sets the bin thresholds", run: t156 },
+    Test { name: "bin-test.js: bin.thresholds(array) ignores thresholds outside the domain", run: t157 },
+    Test { name: "bin-test.js: bin.thresholds(function) sets the bin thresholds accessor", run: t158 },
+    Test { name: "bin-test.js: bin(data) uses nice thresholds", run: t159 },
+    Test { name: "bin-test.js: bin()() returns bins whose rightmost bin is not too wide", run: t160 },
+    Test { name: "bin-test.js: bin(data) handles fractional step correctly", run: t161 },
+    Test { name: "bin-test.js: bin(data) handles fractional step correctly with a custom, non-aligned domain", run: t162 },
+    Test { name: "bin-test.js: bin(data) handles fractional step correctly with a custom, aligned domain", run: t163 },
+    Test { name: "bin-test.js: bin(data) coerces values to numbers as expected", run: t164 },
+    Test { name: "bin-test.js: bin(athletes) produces the expected result", run: t165 },
+    Test { name: "bin-test.js: bin(data) assigns floating point values to the correct bins", run: t166 },
+    Test { name: "bin-test.js: bin(data) assigns integer values to the correct bins", run: t167 },
+    Test { name: "bin-test.js: bin(data) does not mutate user-supplied thresholds as an array", run: t168 },
+    Test { name: "bin-test.js: bin(data) does not mutate user-supplied thresholds as a function", run: t169 },
+    Test { name: "sturges-test.js: thresholdSturges(values, min, max) returns the expected result", run: t170 },
+    Test { name: "sturges-test.js: thresholdSturges(values, min, max) handles empty arrays", run: t171 },
+    Test { name: "scott-test.js: thresholdScott(values, min, max) returns the expected result", run: t172 },
+    Test { name: "scott-test.js: thresholdScott(values, min, max) handles values with zero deviation", run: t173 },
+    Test { name: "scott-test.js: thresholdScott(values, min, max) handles single-value arrays", run: t174 },
+    Test { name: "scott-test.js: thresholdScott(values, min, max) handles empty arrays", run: t175 },
+    Test { name: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) returns the expected result", run: t176 },
+    Test { name: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles values with zero deviation", run: t177 },
+    Test { name: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles single-value arrays", run: t178 },
+    Test { name: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles empty arrays", run: t179 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -1737,4 +1937,51 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-array/test/bisect-test.js:164:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
     Assertion { id: "d3-array/test/bisect-test.js:165:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
     Assertion { id: "d3-array/test/bisect-test.js:166:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:7:3", test: "bin-test.js: histogram is a deprecated alias for bin", skip: Some("api: d3's aliases and default accessors (one name per function)") },
+    Assertion { id: "d3-array/test/bin-test.js:12:3", test: "bin-test.js: bin() returns a default bin generator", skip: Some("api: bin's value() getter") },
+    Assertion { id: "d3-array/test/bin-test.js:13:3", test: "bin-test.js: bin() returns a default bin generator", skip: Some("api: bin's domain() getter") },
+    Assertion { id: "d3-array/test/bin-test.js:14:3", test: "bin-test.js: bin() returns a default bin generator", skip: Some("api: bin's thresholds() getter") },
+    Assertion { id: "d3-array/test/bin-test.js:19:3", test: "bin-test.js: bin(data) computes bins of the specified array of data", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:30:3", test: "bin-test.js: bin(iterable) is equivalent to bin(array)", skip: Some("helpers: generator or async function (in iterable)") },
+    Assertion { id: "d3-array/test/bin-test.js:41:3", test: "bin-test.js: bin.value(number) sets the constant value", skip: Some("api: a function or constant as bin's value (Thresholds is a closed set)") },
+    Assertion { id: "d3-array/test/bin-test.js:48:3", test: "bin-test.js: bin(data) does not bin null, undefined, or NaN", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:62:3", test: "bin-test.js: bin.value(function) sets the value accessor", skip: Some("api: a function or constant as bin's value (Thresholds is a closed set)") },
+    Assertion { id: "d3-array/test/bin-test.js:73:3", test: "bin-test.js: bin.domain(array) sets the domain", skip: Some("api: bin's domain() getter") },
+    Assertion { id: "d3-array/test/bin-test.js:74:3", test: "bin-test.js: bin.domain(array) sets the domain", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:87:3", test: "bin-test.js: bin.domain(function) sets the domain accessor", skip: Some("js: a variable without a value (undefined)") },
+    Assertion { id: "d3-array/test/bin-test.js:88:3", test: "bin-test.js: bin.domain(function) sets the domain accessor", skip: Some("js: a variable without a value (undefined)") },
+    Assertion { id: "d3-array/test/bin-test.js:94:3", test: "bin-test.js: bin.domain(function) sets the domain accessor", skip: Some("js: a variable without a value (undefined)") },
+    Assertion { id: "d3-array/test/bin-test.js:99:3", test: "bin-test.js: bin.thresholds(number) sets the approximate number of bin thresholds", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:109:3", test: "bin-test.js: bin.thresholds(array) sets the bin thresholds", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:118:3", test: "bin-test.js: bin.thresholds(array) ignores thresholds outside the domain", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:130:3", test: "bin-test.js: bin.thresholds(function) sets the bin thresholds accessor", skip: Some("js: a variable without a value (undefined)") },
+    Assertion { id: "d3-array/test/bin-test.js:135:3", test: "bin-test.js: bin.thresholds(function) sets the bin thresholds accessor", skip: Some("js: a variable without a value (undefined)") },
+    Assertion { id: "d3-array/test/bin-test.js:136:3", test: "bin-test.js: bin.thresholds(function) sets the bin thresholds accessor", skip: Some("js: a variable without a value (undefined)") },
+    Assertion { id: "d3-array/test/bin-test.js:149:3", test: "bin-test.js: bin(data) uses nice thresholds", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:160:3", test: "bin-test.js: bin()() returns bins whose rightmost bin is not too wide", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:171:3", test: "bin-test.js: bin(data) handles fractional step correctly", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:185:3", test: "bin-test.js: bin(data) handles fractional step correctly with a custom, non-aligned domain", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:199:3", test: "bin-test.js: bin(data) handles fractional step correctly with a custom, aligned domain", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:213:3", test: "bin-test.js: bin(data) coerces values to numbers as expected", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/bin-test.js:229:3", test: "bin-test.js: bin(athletes) produces the expected result", skip: Some("js: a file read") },
+    Assertion { id: "d3-array/test/bin-test.js:234:5", test: "bin-test.js: bin(data) assigns floating point values to the correct bins", skip: Some("gap: a for…of loop") },
+    Assertion { id: "d3-array/test/bin-test.js:239:3", test: "bin-test.js: bin(data) assigns integer values to the correct bins", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:241:3", test: "bin-test.js: bin(data) assigns integer values to the correct bins", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:247:3", test: "bin-test.js: bin(data) does not mutate user-supplied thresholds as an array", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:248:3", test: "bin-test.js: bin(data) does not mutate user-supplied thresholds as an array", skip: None },
+    Assertion { id: "d3-array/test/bin-test.js:249:3", test: "bin-test.js: bin(data) does not mutate user-supplied thresholds as an array", skip: Some("api: bin's thresholds() getter") },
+    Assertion { id: "d3-array/test/bin-test.js:255:3", test: "bin-test.js: bin(data) does not mutate user-supplied thresholds as a function", skip: Some("api: a function or constant as bin's thresholds (Thresholds is a closed set)") },
+    Assertion { id: "d3-array/test/bin-test.js:256:3", test: "bin-test.js: bin(data) does not mutate user-supplied thresholds as a function", skip: Some("api: a function or constant as bin's thresholds (Thresholds is a closed set)") },
+    Assertion { id: "d3-array/test/bin-test.js:257:3", test: "bin-test.js: bin(data) does not mutate user-supplied thresholds as a function", skip: Some("api: a function or constant as bin's thresholds (Thresholds is a closed set)") },
+    Assertion { id: "d3-array/test/threshold/sturges-test.js:5:3", test: "sturges-test.js: thresholdSturges(values, min, max) returns the expected result", skip: None },
+    Assertion { id: "d3-array/test/threshold/sturges-test.js:6:3", test: "sturges-test.js: thresholdSturges(values, min, max) returns the expected result", skip: None },
+    Assertion { id: "d3-array/test/threshold/sturges-test.js:10:3", test: "sturges-test.js: thresholdSturges(values, min, max) handles empty arrays", skip: None },
+    Assertion { id: "d3-array/test/threshold/scott-test.js:5:3", test: "scott-test.js: thresholdScott(values, min, max) returns the expected result", skip: None },
+    Assertion { id: "d3-array/test/threshold/scott-test.js:9:3", test: "scott-test.js: thresholdScott(values, min, max) handles values with zero deviation", skip: None },
+    Assertion { id: "d3-array/test/threshold/scott-test.js:13:3", test: "scott-test.js: thresholdScott(values, min, max) handles single-value arrays", skip: None },
+    Assertion { id: "d3-array/test/threshold/scott-test.js:17:3", test: "scott-test.js: thresholdScott(values, min, max) handles empty arrays", skip: None },
+    Assertion { id: "d3-array/test/threshold/freedmanDiaconic-test.js:5:3", test: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) returns the expected result", skip: None },
+    Assertion { id: "d3-array/test/threshold/freedmanDiaconic-test.js:9:3", test: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles values with zero deviation", skip: None },
+    Assertion { id: "d3-array/test/threshold/freedmanDiaconic-test.js:13:3", test: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles single-value arrays", skip: None },
+    Assertion { id: "d3-array/test/threshold/freedmanDiaconic-test.js:17:3", test: "freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles empty arrays", skip: None },
 ];
