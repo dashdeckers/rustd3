@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use crate::color::parse::{self, Parsed};
 use crate::color::{BRIGHTER, DARKER, Hsl, ParseColorError};
+use crate::interpolate::Interpolate;
 use crate::js;
 
 /// sRGB, channels in 0..=255, opacity in 0..=1, as `d3.rgb`. The channels
@@ -19,6 +20,25 @@ use crate::js;
 /// let hsl = Hsl { h: 200.0, s: 0.6, l: 0.5, opacity: 1.0 };
 /// assert_eq!(Rgb::from(hsl).to_string(), "rgb(51, 153, 204)");
 /// # Ok::<(), rustd3_core::color::ParseColorError>(())
+/// ```
+///
+/// Colors blend through [`Interpolate`], so a color range makes a
+/// `Linear<Rgb>`, which has no `invert`:
+///
+/// ```compile_fail
+/// use rustd3_core::color::Rgb;
+/// use rustd3_core::scale;
+///
+/// let heat = scale::linear().range([Rgb::hex(0xffffff), Rgb::hex(0x4682b4)]);
+/// heat.invert(0.5);
+/// ```
+///
+/// ```
+/// use rustd3_core::color::Rgb;
+/// use rustd3_core::scale;
+///
+/// let heat = scale::linear().range([Rgb::hex(0xffffff), Rgb::hex(0x4682b4)]);
+/// assert_eq!(heat.apply(0.5).to_string(), "rgb(163, 193, 218)");
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rgb {
@@ -86,6 +106,31 @@ impl From<Hsl> for Rgb {
             g: channel(h),
             b: channel(if h < 120.0 { h + 240.0 } else { h - 120.0 }),
             opacity: c.opacity,
+        }
+    }
+}
+
+impl Interpolate for Rgb {
+    /// d3's `interpolateRgb` at gamma 1, channel by channel and for the
+    /// opacity (d3's `nogamma`): `a + t·(b − a)`, or the constant `a` when
+    /// `b − a` is 0 or NaN, `b` when `a` is NaN, so an undefined channel
+    /// takes the other color's.
+    fn lerp(&self, to: &Rgb, t: f64) -> Rgb {
+        let blend = |a: f64, b: f64| {
+            let d = b - a;
+            if d != 0.0 && !d.is_nan() {
+                a + t * d
+            } else if a.is_nan() {
+                b
+            } else {
+                a
+            }
+        };
+        Rgb {
+            r: blend(self.r, to.r),
+            g: blend(self.g, to.g),
+            b: blend(self.b, to.b),
+            opacity: blend(self.opacity, to.opacity),
         }
     }
 }

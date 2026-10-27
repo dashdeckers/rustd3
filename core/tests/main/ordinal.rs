@@ -1,9 +1,11 @@
 //! `scale::Ordinal`, d3's scaleOrdinal with an explicit domain: lookups,
-//! the unknown value, opt-in growth and its `Ticks` over numbers.
+//! the unknown value, opt-in growth, its `Ticks` over numbers and its use
+//! over a categorical scheme.
 
 use rustd3_core::axis;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Ticks};
+use rustd3_core::scheme;
 
 #[test]
 fn keys_map_to_the_range_value_at_their_index() {
@@ -88,4 +90,30 @@ fn an_empty_range_has_a_nan_extent() {
     let [a, b] = scale::ordinal(["a"], Vec::<f64>::new()).extent();
     assert!(a.is_nan() && b.is_nan());
     assert_eq!(scale::ordinal(["a"], [4.0]).extent(), [4.0, 4.0]);
+}
+
+#[test]
+fn an_ordinal_scale_over_category10_colors_its_keys() {
+    let color = scale::ordinal(["cpu", "mem"], scheme::CATEGORY10);
+    assert_eq!(
+        color.apply(&"cpu").map(ToString::to_string).as_deref(),
+        Some("rgb(31, 119, 180)")
+    );
+    assert_eq!(color.apply(&"disk"), None);
+}
+
+#[test]
+fn an_empty_domain_grows_through_category10_in_order() {
+    let mut grow = scale::ordinal(Vec::<&str>::new(), scheme::CATEGORY10);
+    let disk = grow.apply_or_insert("disk").copied();
+    let net = grow.apply_or_insert("net").copied();
+    assert_eq!(
+        disk.map(|c| c.to_string()).as_deref(),
+        Some("rgb(31, 119, 180)")
+    );
+    assert_eq!(
+        net.map(|c| c.to_string()).as_deref(),
+        Some("rgb(255, 127, 14)")
+    );
+    assert_eq!(grow.get_domain(), ["disk", "net"]);
 }

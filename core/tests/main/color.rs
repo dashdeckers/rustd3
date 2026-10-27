@@ -1,8 +1,11 @@
 //! `color::Rgb` and `color::Hsl` against d3-color 3.1.0: every CSS form
 //! the parser accepts or rejects, the alpha rules, conversions both ways,
-//! formats and clamping.
+//! formats, clamping, and d3-interpolate 3.0.1's `interpolateRgb` at gamma
+//! 1 alone and as a scale's range.
 
 use rustd3_core::color::{Hsl, ParseColorError, Rgb};
+use rustd3_core::interpolate::Interpolate;
+use rustd3_core::scale;
 
 /// `s` parsed as sRGB.
 fn rgb(s: &str) -> Rgb {
@@ -367,4 +370,49 @@ fn hex_takes_the_lowest_24_bits() {
     assert_eq!(Rgb::hex(0xff_4682b4), Rgb::hex(0x4682b4));
     const RED: Rgb = Rgb::hex(0xff0000);
     assert_eq!(RED.to_string(), "rgb(255, 0, 0)");
+}
+
+#[test]
+fn black_to_white_is_gray_halfway() {
+    let mid = Rgb::hex(0x000000).lerp(&Rgb::hex(0xffffff), 0.5);
+    assert_eq!(mid.to_string(), "rgb(128, 128, 128)");
+    assert_eq!(mid, Rgb::new(127.5, 127.5, 127.5));
+}
+
+#[test]
+fn a_color_range_makes_a_linear_scale_of_colors() {
+    let steel = rgb("steelblue");
+    let heat = scale::linear().range([Rgb::hex(0xffffff), steel]);
+    assert_eq!(heat.apply(0.5).to_string(), "rgb(163, 193, 218)");
+    assert_eq!(heat.apply(0.0), Rgb::hex(0xffffff));
+    assert_eq!(heat.apply(1.0), steel);
+}
+
+#[test]
+fn an_undefined_channel_takes_the_other_colors() {
+    let red = rgb("red");
+    assert_eq!(
+        rgb("transparent").lerp(&red, 0.5).to_string(),
+        "rgba(255, 0, 0, 0.5)"
+    );
+    let to = Rgb::new(60.0, 80.0, 100.0);
+    assert_eq!(
+        Rgb::new(f64::NAN, 20.0, 40.0).lerp(&to, 0.5),
+        Rgb::new(60.0, 50.0, 70.0)
+    );
+    assert_eq!(
+        to.lerp(&Rgb::new(20.0, 40.0, f64::NAN), 0.5),
+        Rgb::new(40.0, 60.0, 100.0)
+    );
+    let [r, g, b, a] = rgba(Rgb::new(f64::NAN, 1.0, 1.0).lerp(&Rgb::new(f64::NAN, 1.0, 3.0), 0.5));
+    assert_eq!([r, g, b, a], [None, Some(1.0), Some(2.0), Some(1.0)]);
+}
+
+#[test]
+fn rgb_interpolation_is_d3s_with_gamma_one() {
+    let i = |t| rgb("steelblue").lerp(&rgb("#f00"), t).to_string();
+    assert_eq!(i(0.2), "rgb(107, 104, 144)");
+    let a = rgb("rgba(70, 130, 180, 1)");
+    let b = rgb("rgba(255, 0, 0, 0.2)");
+    assert_eq!(a.lerp(&b, 0.2).to_string(), "rgba(107, 104, 144, 0.84)");
 }

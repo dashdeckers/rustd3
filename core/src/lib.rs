@@ -12,6 +12,7 @@ pub mod interpolate;
 pub mod locale;
 pub mod path;
 pub mod scale;
+pub mod scheme;
 pub mod ticks;
 
 mod js;
