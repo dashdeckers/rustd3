@@ -53,7 +53,7 @@ current.
 
 ## D19.1 — The section's 200k-dot harness tests in a debug build
 
-**Date:** 2026-10-27 · **Context:** Phase 19, step 3, 685d6bd · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 19, step 3, 685d6bd · **Status:** decided
 
 ### Issue
 
@@ -84,7 +84,18 @@ release, single-threaded figure.
 
 ### Decision
 
-Recommended: A, as built.
+C, targeted (architect, 2026-10-27). The workspace's dev profile
+optimizes the few dependency crates the debug render spends its time
+in (vello_cpu and its pipeline crates; add tiny-skia or others only if
+a measurement shows they dominate a test), with
+`[profile.dev.package.<crate>] opt-level = 3` entries beside the
+existing `"*"` entry. Done as the first commit before Phase 20's steps:
+measure the 200k-dot plot-area cell in a debug build before and after,
+record the cold-build and `check.sh full` time changes in this file's
+Measurements, and restore the section's 200k-dot tests with its 10 s
+wait if the cell renders well inside it; otherwise keep 2k dots and
+record why. Results do not change: optimization levels leave IEEE
+arithmetic as it is, so every pixel test keeps its bound.
 
 ### Why
 
@@ -98,7 +109,7 @@ Phase 22's benchmark (release) renders the 200k-dot case.
 
 ## D19.2 — Details of Phase 19 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 19, aebb7b8 … b82e188 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 19, aebb7b8 … b82e188 · **Status:** decided
 
 ### Issue
 
@@ -173,7 +184,7 @@ Compiler and lints (1); the iced sources at 3cbdacc (5,
 
 ### Decision
 
-Recommended: A for all sixteen, as built.
+A for all sixteen (architect, 2026-10-27), as built.
 
 ### Why
 
