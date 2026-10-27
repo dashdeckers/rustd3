@@ -52,7 +52,7 @@ None.
 
 ## D10.2 — Statements of Phase 10 that do not hold as written, or leave a detail open
 
-**Date:** 2026-10-27 · **Context:** Phase 10, steps 2–5 (803ec51, 357fb14, 071d71b, 9abb262) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 10, steps 2–5 (803ec51, 357fb14, 071d71b, 9abb262) · **Status:** decided
 
 ### Issue
 
@@ -147,6 +147,12 @@ None.
 | (12) | As written (step 2) | Drop non-finite ends first, as matplotlib |
 
 ### Decision
+
+A for all twelve (architect, 2026-10-27), as built. `get_domain` and
+the crate-private `transform()` live in `Continuous`'s unbounded impl
+block, so `Pad` needs no `Interpolate` bound; `Pad` uses the transform
+as fitted to the padded extent; an empty log scale pads to [1, 10] as
+the spec's rule and spot rows say.
 
 Recommended: A for all twelve, already built. (2) only concerns where a
 test file lives; (6) and (7) refine the algorithm without changing any
