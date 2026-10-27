@@ -33,7 +33,8 @@ pub enum Error<X: Coordinate = f64> {
         /// Its x.
         next: X,
     },
-    /// An x that may not be stored (not finite, for `f64`).
+    /// An x that may not be stored (not finite, for `f64`; jiff's last
+    /// instant, for `Timestamp`).
     #[error("x is not valid at sample {index}: {value:?}")]
     Invalid {
         /// The sample, counted from the first sample ever appended.

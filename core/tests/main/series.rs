@@ -3,8 +3,9 @@
 
 mod agree;
 mod exact;
+mod timestamp;
 
-use rustd3_core::series::{self, Clock, Data, Error, Points, Recording};
+use rustd3_core::series::{self, Clock, Coordinate, Data, Error, Points, Recording};
 
 /// The prototypes' generator: a 64-bit LCG, uniform in [0, 1).
 struct Lcg(u64);
@@ -25,15 +26,15 @@ fn regular(start: f64, period: f64, channels: &[&[f64]]) -> Recording<f64> {
 }
 
 /// Every sample's x, in order.
-fn xs(rec: &Recording<f64>) -> Vec<f64> {
+fn xs<X: Coordinate>(rec: &Recording<X>) -> Vec<X> {
     (0..rec.len()).map(|i| rec.x(i).expect("i < len")).collect()
 }
 
 /// Column edges in samples and M4's polylines for data-space `edges`, from
 /// channel 0's index.
-fn thinned_by_index(
-    rec: &Recording<f64>,
-    edges: &[f64],
+fn thinned_by_index<X: Coordinate>(
+    rec: &Recording<X>,
+    edges: &[X],
     valid: impl Fn(f64) -> bool,
 ) -> (Vec<usize>, Vec<Vec<usize>>) {
     let columns = rec.columns(edges).expect("valid edges");
@@ -46,10 +47,10 @@ fn thinned_by_index(
 /// The raw-scan reference: column edges by `partition_point` over `x`, NaN
 /// runs and per-column extremes by scanning `y`, and M4 as rustd3.md
 /// writes it (Phase 9, Extremes and M4).
-fn m4_scan(
-    x: &[f64],
+fn m4_scan<X: PartialOrd>(
+    x: &[X],
     y: &[f64],
-    edges: &[f64],
+    edges: &[X],
     valid: impl Fn(f64) -> bool,
 ) -> (Vec<usize>, Vec<Vec<usize>>) {
     let edges: Vec<usize> = edges.iter().map(|e| x.partition_point(|t| t < e)).collect();

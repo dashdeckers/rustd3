@@ -1,10 +1,12 @@
 //! Where a recording's x values come from, and the x types it can hold.
 
+mod timestamp;
+
 use std::fmt;
 
 use crate::js;
 
-/// An x type a recording can hold: `f64` here, `Timestamp` from Phase 27.
+/// An x type a recording can hold: `f64`, or jiff's `Timestamp`.
 pub trait Coordinate: Copy + PartialOrd + fmt::Debug + 'static {
     /// A regular clock's step: `f64` for `f64`, `SignedDuration` for `Timestamp`.
     type Period: Copy + PartialEq + fmt::Debug;
@@ -16,10 +18,12 @@ pub trait Coordinate: Copy + PartialOrd + fmt::Debug + 'static {
     /// at 0 for `value < start`; the recording adjusts it against `at`.
     fn index(start: Self, period: Self::Period, value: Self) -> u64;
 
-    /// Whether a value may be stored (finite for `f64`).
+    /// Whether a value may be stored (finite for `f64`; any instant but
+    /// jiff's last, where `at` saturates, for `Timestamp`).
     fn is_valid(self) -> bool;
 
-    /// Whether a period is usable (finite and positive for `f64`).
+    /// Whether a period is usable (finite and positive for `f64`, positive
+    /// for `SignedDuration`).
     fn is_valid_period(period: Self::Period) -> bool;
 }
 
