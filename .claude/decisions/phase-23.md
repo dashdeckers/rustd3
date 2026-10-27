@@ -76,7 +76,7 @@ The section's answers where the phase met the question:
 
 ## D23.2 — Three files pass under 70 %
 
-**Date:** 2026-10-27 · **Context:** Phase 23, steps 1 and 6 (b65ed54, b992a79) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 23, steps 1 and 6 (b65ed54, b992a79) · **Status:** decided
 
 ### Issue
 
@@ -110,8 +110,11 @@ listed at 70 %. Every translated assertion of them passes:
 
 ### Decision
 
-Recommended: A. The floors are blessed at the passing counts (0, 2,
-31), so the ratchet holds every passing assertion either way.
+A (architect, 2026-10-27): Phase 23's skip table gains
+`cubehelix-test.js` (0, `instanceof`), `gray-test.js` (2, null and
+undefined opacity) and `sequential-test.js` (31; getters `api:`, coercion
+`js:`, `types:`), with floors at those counts. No getters are added to
+reach 70 %.
 
 ### Why
 
@@ -124,7 +127,7 @@ None.
 
 ## D23.3 — Details of Phase 23 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 23, b65ed54 … 28b8f16 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 23, b65ed54 … 28b8f16 · **Status:** decided
 
 ### Issue
 
@@ -189,7 +192,7 @@ None.
 
 ### Decision
 
-Recommended: A for all thirteen, as built.
+A for all thirteen (architect, 2026-10-27), as built.
 
 ### Why
 
