@@ -78,7 +78,7 @@ thread, and the test polls (sleep, tick, frame) up to 200 times.
 
 ## D11.1 — Statements of Phase 11 that do not hold as written, or leave a detail open
 
-**Date:** 2026-10-27 · **Context:** Phase 11, steps 1–6 (a872bd6 … 542c74c) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 11, steps 1–6 (a872bd6 … 542c74c) · **Status:** decided
 
 ### Issue
 
@@ -160,6 +160,11 @@ thread, and the test polls (sleep, tick, frame) up to 200 times.
 
 ### Decision
 
+A for all nine (architect, 2026-10-27), as built: the harness takes
+`impl Widget<Message>` at the pinned revision; `ui` is a plain field
+until a phase needs to take it; programs request a redraw only when
+they publish nothing; the Tracker's details and the added tests stand.
+
 Recommended: A for all nine, already built (a872bd6 … 542c74c).
 
 ### Why
@@ -179,3 +184,140 @@ states what "nothing else changes" means for the lockfile.
 - Phase 20: the widget's own pointer handling can publish and request a
   redraw through its `Shell`, so (4) concerns only `canvas::Program`
   apps (use cases, Phase 32).
+
+## D11.2 — Core contract review before M2
+
+**Date:** 2026-10-27 · **Context:** after Phase 11 (cb30109); an independent read-only review of `rustd3-core` at 978d068 · **Status:** decided
+
+### Issue
+
+Phases 1–10 form the core contract; after them, changing a public item
+costs a decision and call-site updates across figure, iced and the dev
+crates. A review of core before the figure layer builds on it found:
+
+1. **Default labels ignore the tick rule.** `Ticks::labels` for
+   `Continuous` (`scale/ticks/continuous.rs`) always formats through
+   the transform's `tick_format`, d3's linear format or log's blanking,
+   even when the ticks came from another rule. `Symlog` has no
+   `tick_format` override, yet its ticks are decades:
+   `symlog().constant(0.05).domain([0, 500])`, count 10, ticks
+   `[0, 0.05, 0.5, 5, 50, 500]`, labels `"0","0","1","5","50","500"`;
+   `constant(1e-6).domain([0, 1e-3])` labels `"0.0000"` three times;
+   `sqrt().domain([0, 1]).tick_rule(TickRule::Transformed)`, count 5,
+   ticks `[0, 0.04, 0.16, 0.36, 0.64, 1]`, labels
+   `"0.0","0.0","0.2","0.4","0.6","1.0"`; `log().domain([1, 1000])
+   .tick_rule(TickRule::Data)`, count 10, blanks six of ten labels.
+2. **`range` and `range_round` clear `unknown` and the interpolator
+   when the range type is unchanged.**
+   `linear().unknown(-1.0).range_round([0, 100]).apply(NaN)` is NaN
+   (d3: −1); `linear().range_round([0, 10]).range([0, 10]).apply(0.59)`
+   is 5.9 (d3: 6). Phase 14's object-safe `Scale::with_range` can only
+   call `range`, so every figure axis would drop a user's `unknown`,
+   rounding and interpolator.
+3. **Log and symlog minor ticks fill every decade even when the majors
+   skip decades.** `log().domain([1, 1e12])`, `Ticks::minor` of
+   `tick_set(5)`: majors 1, 100, 1e4, …; 96 minors at 2–9 of every
+   decade and none at the skipped powers; likewise `[1e-4, 1e4]` at
+   count 5 and symlog `[0, 1e9]` (through `between`), and the inherent
+   `minor(count)`.
+4. **An unbounded width aborts the process.** `format("1000000000000")`
+   parses and then `format(1.0)` tries to allocate about 1 TB;
+   `"99999999999999999999"` saturates the width to `usize::MAX` and
+   `repeat` panics. d3 throws a `RangeError` (V8's string length limit).
+5. **Additive gaps the next phases need:** no way from a runtime
+   `format::Locale` to `locale::Locale` (so 48 of d3's 59 tables could
+   never label an axis); no `Default` for `interact::Transform` (iced's
+   `canvas::Program::State: Default`); no `Debug` or `Clone` for
+   `series::Points` (Phase 15's marks hold it); aliases exist for
+   `Linear`, `Pow` and `Log` only.
+6. **Style:** `scale::Transform` has two public paths
+   (`scale::transform::Transform` too), against "one public path per
+   item"; the crate-private `LogKeep` is a composite name outside the
+   kept list; the two parse errors have different shapes
+   (`InvalidFormat(pub String)`, `ParseColorError` private with
+   `input()`).
+7. **Kept as they are:** `d`/`X` of ±∞ print `Infinity` (the spec's
+   departure, Phase 3); band, point and ordinal keys compare with
+   `PartialEq`, so a NaN key never matches (d3's SameValueZero finds
+   it).
+
+### Investigation
+
+d3 values were computed with Node through the resolve hook; matplotlib
+3.11.2 is installed. No decision of Phases 3–10 covers items 1–6;
+Phase 5's "symlog tick format: the defaults (d3's symlog is
+linearish)" assumed linear ticks, which symlog only has for narrow
+domains.
+
+### Options
+
+| | **A — fix now, before Phase 12** | B — fix when a later phase meets it |
+| --- | --- | --- |
+| Approach | One session of core changes with call sites updated | Leave the contract as is |
+| Cost | ~400 lines, one session | The same work later, plus figure and iced call sites |
+| Correctness | Labels and minors right on every symlog, log and tick-rule axis; no abort from a parsed specifier | Wrong labels ship into the figure layer's snapshots |
+
+### Decision
+
+A (architect, 2026-10-27). The fix session does, one commit per item:
+
+1. **Labels follow the ticks.** `Symlog::tick_format` follows the
+   branch its `ticks` takes: decades label with `",.12~g"` as `Asinh`
+   does; the linear branch keeps d3's linear format. When a scale's
+   `tick_rule` is not the default, its default labels (`Ticks::labels`
+   and `tick_format` without an explicit specifier) are `,f` with
+   `format::precision_fixed` of the smallest positive gap between
+   consecutive ticks, with no log blanking; fewer than two ticks fall
+   back to the transform's format. Tests: the four rows of the Issue.
+2. **`Continuous::with_range(self, range: [R; N]) -> Self`**, public:
+   d3's `range(r)` for the same range type, keeping the interpolator,
+   clamp and unknown. `range_round` is built on it, so it keeps
+   `unknown` as d3 does. `range`'s doc says it always resets the
+   interpolator and the unknown value (its type may change). Phase 14's
+   `Scale::with_range` calls `with_range`. Tests: the two d3 rows.
+3. **Minors under thinned majors follow matplotlib 3.11.2's
+   `LogLocator`** (read the installed source, `ticker.py`, the minor
+   case with `subs='auto'`): where it draws no minor ticks for a
+   stride above one decade, draw none between those majors; where it
+   draws them at the skipped decades, draw those. Same rule for symlog's
+   decade branch and the inherent `minor(count)`. Tests: `[1, 1e12]`
+   and `[1e-4, 1e4]` at count 5, symlog `[0, 1e9]` at count 5, compared
+   with matplotlib's `LogLocator(subs='auto')` output (computed once,
+   values in the test).
+4. **Width bound:** `Specifier::from_str` returns `InvalidFormat` when
+   the width exceeds V8's maximum string length, 2²⁹ − 24 = 536,870,888,
+   d3's `RangeError` point. Phase 26's `const` checker applies the same
+   bound.
+5. **Additive items:** `impl From<format::Locale> for locale::Locale`
+   (the time half Phase 28 adds defaults to the neutral one, so the
+   impl stays valid); `impl Default for interact::Transform`
+   (`IDENTITY`); `Clone for series::Points` where `X: Clone, Y: Clone`
+   and a `Debug` that prints its kind and length (no bounds on the
+   pairs beyond what it needs); aliases `scale::{Symlog, Logit, Asinh}`
+   in the shape of `Linear`, `Pow` and `Log`.
+6. **Style:** `Transform` is defined in a private module of `scale` and
+   re-exported once as `scale::Transform`; `scale::transform` holds the
+   transform types only. `LogKeep` becomes `Keep` (crate-private).
+   `InvalidFormat` takes `ParseColorError`'s shape: a private field and
+   `input()` returning the specifier as given.
+7. Nothing changes for item 7; the band, point and ordinal docs say
+   keys compare with `PartialEq`.
+
+Each change to a public item of Phases 1–10 updates every call site
+(core tests, harness rules and generated code, iced, examples) in the
+same commit, with `scripts/check.sh quick` green; `full` at the end.
+
+### Why
+
+Items 1–3 put wrong output into every axis that uses symlog, a tick
+rule, or a wide log domain, and the figure layer's snapshots would
+bless it. Item 2 is a d3 divergence the figure layer cannot repair
+from outside core. Item 4 turns a configuration typo into an abort.
+Items 5–6 are cheapest before anything outside core names them.
+
+### Followups
+
+- Phase 14: `Scale::with_range` delegates to `Continuous::with_range`.
+- Phase 26: the width bound in the `const` specifier checker.
+- Phase 28: `locale::Locale`'s time half defaults to neutral in the
+  `From<format::Locale>` impl.
