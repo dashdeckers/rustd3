@@ -1,7 +1,96 @@
-//! Figure text: markup from spans and raw typst.
+//! Figure text: markup from spans and raw typst, fonts, shaping through
+//! typst against its measured metrics, and the text cache.
+
+use std::sync::Arc;
 
 use rustd3_core::color::Rgb;
-use rustd3_figure::text::{self, Text, span};
+use rustd3_figure::kurbo::{Point, Rect};
+use rustd3_figure::list::{Command, GlyphRun, List};
+use rustd3_figure::peniko::{Brush, Color};
+use rustd3_figure::text::{
+    self, Anchor, Cache, Error, Fonts, Key, Shaped, Style, Text, anchor, span,
+};
+
+use crate::sink::DEJAVU;
+
+/// The bundled fonts; without the `fonts` feature, the same three files
+/// given as extra fonts.
+pub fn fonts() -> Arc<Fonts> {
+    #[cfg(feature = "fonts")]
+    let fonts = Fonts::bundled();
+    #[cfg(not(feature = "fonts"))]
+    let fonts = Arc::new(
+        Fonts::with([
+            DEJAVU.to_vec(),
+            include_bytes!("../../../fonts/DejaVuSans-Bold.ttf").to_vec(),
+            include_bytes!("../../../fonts/NewCMMath-Regular.otf").to_vec(),
+        ])
+        .expect("the font files hold faces"),
+    );
+    fonts
+}
+
+/// The spot checks' style: 11 px, black, lines centred.
+pub fn style() -> Style {
+    Style {
+        size: 11.0,
+        bold: false,
+        fill: Rgb::hex(0),
+        align: anchor::Horizontal::Middle,
+    }
+}
+
+/// The keys of `labels` in the spot checks' style.
+fn keys(labels: &[Text]) -> Vec<Key> {
+    labels.iter().map(|t| Key::new(t, &style())).collect()
+}
+
+/// `f` of `label` shaped alone in a fresh cache.
+fn shaped<R>(label: impl Into<Text>, f: impl FnOnce(&Shaped) -> R) -> R {
+    let key = Key::new(&label.into(), &style());
+    let mut cache = Cache::new(fonts());
+    cache.prepare([&key]);
+    f(cache.get(&key).expect("prepared").expect("shaped"))
+}
+
+/// The anchor at the box's top-left corner.
+const TOP_LEFT: Anchor = Anchor {
+    h: anchor::Horizontal::Start,
+    v: anchor::Vertical::Top,
+};
+
+/// The list `shaped` places with `anchor` at the origin.
+fn placed(shaped: &Shaped, anchor: Anchor) -> List {
+    let mut list = List::default();
+    shaped.place(&mut list, Point::ORIGIN, anchor, 0.0);
+    list
+}
+
+/// The runs of `shaped` with the box's top-left corner at the origin:
+/// their translations are the baselines' left ends in the box.
+fn runs(shaped: &Shaped) -> Vec<GlyphRun> {
+    placed(shaped, TOP_LEFT)
+        .commands
+        .into_iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// The sum of a run's advances.
+fn advance(run: &GlyphRun) -> f64 {
+    run.glyphs.iter().map(|g| f64::from(g.advance)).sum()
+}
+
+/// `v` to three places, as the spot checks quote typst's values.
+fn places(v: f64) -> String {
+    format!("{v:.3}")
+}
 
 #[test]
 fn a_plain_label_is_one_string_literal() {
@@ -63,4 +152,361 @@ fn a_text_without_characters_is_empty() {
     assert!(Text::default().is_empty());
     assert!(Text::from("").push(text::typst("")).is_empty());
     assert!(!Text::from("").push(" ").is_empty());
+}
+
+#[cfg(feature = "fonts")]
+#[test]
+fn the_bundled_fonts_load_once() {
+    assert!(Arc::ptr_eq(&Fonts::bundled(), &Fonts::bundled()));
+}
+
+#[test]
+fn bytes_without_a_face_are_rejected_with_their_position() {
+    assert_eq!(
+        Fonts::with([DEJAVU.to_vec(), b"not a font".to_vec()]).map(|_| ()),
+        Err(Error::Font { index: 1 })
+    );
+    assert_eq!(
+        Fonts::with([Vec::new()]).map(|_| ()),
+        Err(Error::Font { index: 0 })
+    );
+}
+
+#[test]
+fn digits_are_0_636_em_wide_and_one_run() {
+    shaped("0123456789", |s| {
+        assert_eq!(places(s.width()), "69.985");
+        assert_eq!(places(s.ascent() + s.descent()), "8.320");
+        assert_eq!(runs(s).len(), 1);
+    });
+}
+
+#[test]
+fn the_box_is_the_ink_from_the_first_baseline() {
+    shaped("x", |s| {
+        assert_eq!(places(s.width()), "6.510");
+        assert_eq!(places(s.ascent()), "6.016");
+        assert_eq!(places(s.descent()), "0.000");
+    });
+    shaped("g", |s| {
+        assert_eq!(places(s.width()), "6.982");
+        assert_eq!(places(s.ascent()), "6.161");
+        assert_eq!(places(s.descent()), "2.288");
+    });
+}
+
+#[test]
+fn a_newline_breaks_the_label_into_centred_lines() {
+    shaped("line one\nline two", |s| {
+        let runs = runs(s);
+        assert_eq!(runs.len(), 2);
+        let [first, second] = [0, 1].map(|i| runs[i].transform.translation());
+        assert_eq!(
+            (places(first.x), places(first.y)),
+            ("0.000".into(), "8.357".into())
+        );
+        assert_eq!(
+            (places(second.x), places(second.y)),
+            ("0.215".into(), "24.021".into())
+        );
+        assert_eq!(places(s.width()), "43.817");
+        assert_eq!(places(s.ascent() + s.descent()), "24.176");
+    });
+}
+
+#[test]
+fn a_filled_span_is_its_own_run_in_its_color() {
+    let title = Text::from("Wheel: ").push(span("RL").fill(Rgb::hex(0xc44e52)));
+    assert_eq!(
+        title.typst(),
+        r##"#"Wheel: "#text(fill: rgb("#c44e52"), "RL")"##
+    );
+    shaped(title, |s| {
+        let runs = runs(s);
+        assert_eq!(runs.len(), 2);
+        assert_eq!(places(advance(&runs[0])), "41.642");
+        assert_eq!(places(advance(&runs[1])), "13.771");
+        assert_eq!(runs[0].fill, Brush::Solid(Color::from_rgb8(0, 0, 0)));
+        assert_eq!(runs[1].fill, Brush::Solid(Color::from_rgb8(196, 78, 82)));
+    });
+}
+
+#[test]
+fn markup_characters_in_a_label_are_drawn_as_text() {
+    shaped("a $ # _ b", |s| {
+        let runs = runs(s);
+        assert_eq!(runs.len(), 1);
+        assert_eq!(&*runs[0].text, "a $ # _ b");
+        assert_eq!(places(s.width()), "49.425");
+    });
+}
+
+#[test]
+fn measured_widths_differ_from_a_per_character_estimate() {
+    let width = |label: &str| shaped(label, Shaped::width);
+    assert_eq!(places(width("vibration RMS [m/s²]")), "113.137");
+    assert_eq!(places(width("WWW")), "32.629");
+    assert_eq!(places(width("iii")), "9.168");
+}
+
+#[test]
+fn math_sets_in_the_math_face_with_a_smaller_superscript() {
+    shaped(text::typst("RMS [$m slash s^2$]"), |s| {
+        let runs = runs(s);
+        assert_eq!(runs.len(), 6);
+        let list = placed(s, Anchor::default());
+        assert_eq!(
+            list.fonts.len(),
+            2,
+            "DejaVu Sans and New Computer Modern Math"
+        );
+        let mut faces: Vec<usize> = runs.iter().map(|r| r.font).collect();
+        faces.dedup();
+        assert_eq!(faces, [0, 1, 0]);
+        let sizes: Vec<String> = runs.iter().map(|r| format!("{:.2}", r.size)).collect();
+        assert_eq!(sizes, ["11.00", "11.00", "11.00", "11.00", "7.70", "11.00"]);
+        assert_eq!(places(s.width()), "61.510");
+    });
+}
+
+#[test]
+fn stacked_math_keeps_the_baseline_of_its_line() {
+    shaped(text::typst("$a/b$"), |s| {
+        assert_eq!(
+            places(s.ascent()),
+            "7.730",
+            "the math axis, not the numerator's 3.396"
+        );
+        assert_eq!(places(s.ascent() + s.descent()), "11.602");
+        let list = placed(s, TOP_LEFT);
+        let rules: Vec<Rect> = list
+            .commands
+            .iter()
+            .filter_map(|c| {
+                if let Command::Fill { path, .. } = c {
+                    Some(rustd3_figure::kurbo::Shape::bounding_box(path))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(rules.len(), 1, "the fraction rule");
+        assert_eq!(
+            [rules[0].x0, rules[0].y0, rules[0].x1, rules[0].y1].map(places),
+            ["1.100", "4.760", "5.874", "5.200"],
+            "0.44 px thick, centred on typst's line at y 4.980"
+        );
+    });
+    shaped(text::typst("$sqrt(x)$"), |s| {
+        let runs = runs(s);
+        assert_eq!(&*runs[1].text, "𝑥");
+        assert_eq!(
+            runs[1].transform.translation().y,
+            s.ascent(),
+            "x sits on the baseline"
+        );
+    });
+}
+
+#[test]
+fn glyphs_no_font_has_are_counted_missing() {
+    shaped("漢字", |s| {
+        let runs = runs(s);
+        assert_eq!(runs.len(), 1);
+        let ids: Vec<u32> = runs[0].glyphs.iter().map(|g| g.id).collect();
+        assert_eq!(ids, [0, 0]);
+        assert_eq!(s.missing(), 2);
+    });
+}
+
+#[test]
+fn a_rejected_label_does_not_stop_its_batch() {
+    let labels = [text::typst("$ x^ $"), "ok".into(), "fine".into()];
+    let keys = keys(&labels);
+    let mut cache = Cache::new(fonts());
+    cache.prepare(&keys);
+    match cache.get(&keys[0]) {
+        Some(Err(Error::Markup { markup, message })) => {
+            assert_eq!(markup, keys[0].as_str());
+            assert!(markup.contains("$ x^ $"));
+            assert!(!message.is_empty());
+        }
+        other => panic!("expected a markup error, got {other:?}"),
+    }
+    for key in &keys[1..] {
+        assert!(matches!(cache.get(key), Some(Ok(_))));
+    }
+    assert_eq!(
+        cache.stats().compiles,
+        4,
+        "the batch, then each label alone"
+    );
+    cache.prepare(&keys);
+    assert_eq!(cache.stats().compiles, 4, "the error is cached");
+}
+
+#[test]
+fn a_page_break_is_rejected_and_one_outside_the_box_is_two_pages() {
+    let inside = Key::new(&text::typst("a#pagebreak()b"), &style());
+    let outside = Key::new(&text::typst("a]))#pagebreak()#box([b"), &style());
+    let mut cache = Cache::new(fonts());
+    cache.prepare([&inside, &outside, &Key::new(&"ok".into(), &style())]);
+    assert!(
+        matches!(cache.get(&inside), Some(Err(Error::Markup { message, .. })) if message.contains("pagebreak")),
+        "{:?}",
+        cache.get(&inside)
+    );
+    assert_eq!(
+        cache
+            .get(&outside)
+            .map(|r| r.map(|_| ()).map_err(Error::clone)),
+        Some(Err(Error::Pages {
+            markup: outside.as_str().into(),
+            pages: 2
+        }))
+    );
+}
+
+#[test]
+fn glyph_ids_are_dejavu_sans() {
+    shaped("Wheel: RL", |s| {
+        let ids: Vec<u32> = runs(s)[0].glyphs.iter().map(|g| g.id).collect();
+        assert_eq!(ids, [58, 75, 72, 72, 79, 29, 3, 53, 47]);
+    });
+}
+
+#[test]
+fn the_ink_box_sits_around_its_anchor() {
+    shaped("g", |s| {
+        let middle_top = Anchor {
+            h: anchor::Horizontal::Middle,
+            v: anchor::Vertical::Top,
+        };
+        let b = s.bounds(middle_top);
+        assert_eq!(
+            [b.x0, b.y0, b.x1, b.y1].map(places),
+            ["-3.491", "0.000", "3.491", "8.449"]
+        );
+        let end_bottom = Anchor {
+            h: anchor::Horizontal::End,
+            v: anchor::Vertical::Bottom,
+        };
+        assert_eq!(
+            s.bounds(end_bottom),
+            Rect::new(-s.width(), -s.ascent() - s.descent(), 0.0, 0.0)
+        );
+        let middle = Anchor {
+            h: anchor::Horizontal::Start,
+            v: anchor::Vertical::Middle,
+        };
+        let m = s.bounds(middle);
+        assert!((m.y0 + m.y1).abs() < 1e-12, "centred on the anchor: {m:?}");
+        assert_eq!(s.bounds(Anchor::default()).y1, s.descent());
+    });
+}
+
+/// The spot checks' labels.
+fn spot_labels() -> Vec<Text> {
+    vec![
+        "0123456789".into(),
+        "x".into(),
+        "g".into(),
+        "line one\nline two".into(),
+        Text::from("Wheel: ").push(span("RL").fill(Rgb::hex(0xc44e52))),
+        "a $ # _ b".into(),
+        "vibration RMS [m/s²]".into(),
+        "WWW".into(),
+        "iii".into(),
+        text::typst("RMS [$m slash s^2$]"),
+        "漢字".into(),
+        "Wheel: RL".into(),
+    ]
+}
+
+#[test]
+fn a_second_prepare_of_the_same_labels_compiles_nothing() {
+    let keys = keys(&spot_labels());
+    let mut cache = Cache::new(fonts());
+    cache.prepare(&keys);
+    let first = cache.stats();
+    assert_eq!((first.entries, first.compiles, first.misses), (12, 1, 12));
+    cache.prepare(&keys);
+    let second = cache.stats();
+    assert_eq!(second.compiles, first.compiles);
+    assert_eq!((second.hits, second.misses), (12, 12));
+}
+
+#[test]
+fn a_key_twice_in_one_prepare_is_shaped_once() {
+    let key = Key::new(&"twice".into(), &style());
+    let mut cache = Cache::new(fonts());
+    cache.prepare([&key, &key]);
+    let stats = cache.stats();
+    assert_eq!((stats.entries, stats.misses, stats.hits), (1, 1, 1));
+}
+
+#[test]
+fn labels_unused_for_32_generations_are_dropped() {
+    let [kept, dropped] = ["kept", "dropped"].map(|t| Key::new(&t.into(), &style()));
+    let mut cache = Cache::new(fonts());
+    cache.prepare([&kept, &dropped]);
+    for _ in 0..32 {
+        cache.begin();
+        cache.prepare([&kept]);
+    }
+    assert!(cache.get(&dropped).is_some(), "32 generations unused");
+    cache.begin();
+    assert!(cache.get(&dropped).is_none(), "33 begins evict it");
+    assert!(cache.get(&kept).is_some());
+    assert_eq!(cache.stats().entries, 1);
+    let compiles = cache.stats().compiles;
+    cache.prepare([&dropped]);
+    assert_eq!(cache.stats().compiles, compiles + 1, "shaped again");
+}
+
+#[test]
+fn begin_runs_often_without_typst_failing() {
+    let key = Key::new(&"evicted".into(), &style());
+    let mut cache = Cache::new(fonts());
+    for _ in 0..100 {
+        cache.begin();
+        cache.prepare([&key]);
+    }
+    assert!(matches!(cache.get(&key), Some(Ok(_))));
+}
+
+/// Reported, not asserted: a container's timings vary by ±30 %.
+#[test]
+#[expect(clippy::disallowed_methods, reason = "a test reports wall times")]
+fn one_document_per_batch_costs_less_than_one_per_label() {
+    use std::time::Instant;
+
+    let labels: Vec<Text> = (0..40)
+        .map(|i| format!("{:.1}", 1000.0 + 37.0 * f64::from(i)).into())
+        .collect();
+    let ticks = keys(&labels);
+    let mut batched = Cache::new(fonts());
+    let start = Instant::now();
+    batched.prepare(&ticks);
+    let one = start.elapsed();
+    let mut single = Cache::new(fonts());
+    let start = Instant::now();
+    for key in &ticks {
+        single.prepare([key]);
+    }
+    let each = start.elapsed();
+    assert_eq!(batched.stats().compiles, 1);
+    assert_eq!(single.stats().compiles, 40);
+    let twelve: Vec<Text> = (0..12).map(|i| format!("memo {i}").into()).collect();
+    let twelve = keys(&twelve);
+    let start = Instant::now();
+    Cache::new(fonts()).prepare(&twelve);
+    let fresh = start.elapsed();
+    let start = Instant::now();
+    Cache::new(fonts()).prepare(&twelve);
+    let memoized = start.elapsed();
+    println!(
+        "40 new labels: one document {one:?}, one each {each:?}; \
+         12 labels in a new cache {fresh:?}, again (typst memoizes) {memoized:?}"
+    );
 }

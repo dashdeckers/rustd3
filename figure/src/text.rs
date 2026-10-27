@@ -1,5 +1,7 @@
 //! Figure text through typst: labels written as literal spans or typst
-//! markup, with explicit `\n` line breaks.
+//! markup, with explicit `\n` line breaks, shaped by typst in one document
+//! per batch of new labels, kept in a caller-owned [`Cache`], and placed
+//! into a drawing list as glyph runs and fills.
 //!
 //! ```
 //! use rustd3_core::color::Rgb;
@@ -12,11 +14,24 @@
 //! ```
 
 pub mod anchor;
+mod batch;
+mod cache;
+mod convert;
+mod error;
+mod fonts;
+mod key;
+mod shaped;
 mod span;
 mod style;
+mod world;
 
 use rustd3_core::color::Rgb;
 
+pub use cache::{Cache, Stats};
+pub use error::Error;
+pub use fonts::Fonts;
+pub use key::Key;
+pub use shaped::Shaped;
 pub use span::{Span, span};
 pub use style::Style;
 
