@@ -54,6 +54,8 @@
 #floor d3-interpolate/test/hue-test.js 15
 #floor d3-interpolate/test/lab-test.js 11
 #floor d3-interpolate/test/number-test.js 13
+#floor d3-interpolate/test/piecewise-test.js 14
+#floor d3-interpolate/test/quantize-test.js 2
 #floor d3-interpolate/test/rgb-test.js 19
 #floor d3-interpolate/test/round-test.js 14
 #floor d3-path/test/path-test.js 62
@@ -1950,6 +1952,22 @@ d3-interpolate/test/number-test.js:16:3
 d3-interpolate/test/number-test.js:17:3
 d3-interpolate/test/number-test.js:23:3
 d3-interpolate/test/number-test.js:24:3
+d3-interpolate/test/piecewise-test.js:6:3
+d3-interpolate/test/piecewise-test.js:7:3
+d3-interpolate/test/piecewise-test.js:8:3
+d3-interpolate/test/piecewise-test.js:9:3
+d3-interpolate/test/piecewise-test.js:10:3
+d3-interpolate/test/piecewise-test.js:11:3
+d3-interpolate/test/piecewise-test.js:12:3
+d3-interpolate/test/piecewise-test.js:17:3
+d3-interpolate/test/piecewise-test.js:18:3
+d3-interpolate/test/piecewise-test.js:19:3
+d3-interpolate/test/piecewise-test.js:20:3
+d3-interpolate/test/piecewise-test.js:21:3
+d3-interpolate/test/piecewise-test.js:22:3
+d3-interpolate/test/piecewise-test.js:23:3
+d3-interpolate/test/quantize-test.js:5:3
+d3-interpolate/test/quantize-test.js:12:3
 d3-interpolate/test/rgb-test.js:6:3
 d3-interpolate/test/rgb-test.js:7:3
 d3-interpolate/test/rgb-test.js:8:3

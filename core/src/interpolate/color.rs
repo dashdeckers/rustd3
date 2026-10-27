@@ -2,9 +2,11 @@
 //! space, returned as [`Rgb`]. Each takes its space's type; callers convert
 //! (`Hsl::from(rgb)`), where d3 dispatches on strings.
 
+use std::sync::Arc;
+
 use crate::color::{Cubehelix, Hcl, Hsl, Lab, Rgb};
-use crate::interpolate::Interpolate;
 use crate::interpolate::gamma::Channel;
+use crate::interpolate::{Interpolate, basis};
 
 /// d3.interpolateRgb: `a` to `b` channel by channel in sRGB; an undefined
 /// channel takes the other color's.
@@ -37,6 +39,40 @@ pub fn rgb_gamma(gamma: f64, a: Rgb, b: Rgb) -> impl Fn(f64) -> Rgb + Clone + Se
         b: blue.at(t),
         opacity: opacity.at(t),
     }
+}
+
+/// d3.interpolateRgbBasis: a uniform cubic B-spline through `colors` per
+/// sRGB channel (d3's [`basis`](crate::interpolate::basis)), opaque; an
+/// undefined channel counts as 0.
+///
+/// ```
+/// use rustd3_core::color::Rgb;
+/// use rustd3_core::interpolate;
+///
+/// let [red, green, blue] = [Rgb::hex(0xff0000), Rgb::hex(0x008000), Rgb::hex(0x0000ff)];
+/// let spline = interpolate::rgb_basis(&[red, green, blue]);
+/// assert_eq!(spline(0.25).to_string(), "rgb(133, 59, 5)");
+/// assert_eq!(spline(0.5).to_string(), "rgb(43, 85, 43)");
+/// ```
+#[doc(alias = "interpolateRgbBasis")]
+pub fn rgb_basis(colors: &[Rgb]) -> impl Fn(f64) -> Rgb + Clone + Send + Sync + use<> {
+    // d3's `color.r || 0`: NaN and −0 read as 0.
+    let defined = |v: f64| if v.is_nan() { 0.0 } else { v + 0.0 };
+    let stops: Arc<[Rgb]> = colors
+        .iter()
+        .map(|c| Rgb::new(defined(c.r), defined(c.g), defined(c.b)))
+        .collect();
+    move |t| basis_at(&stops, t)
+}
+
+/// [`rgb_basis`] over `stops` at `t`, without allocating: the spline per
+/// channel, opaque.
+pub(crate) fn basis_at(stops: &[Rgb], t: f64) -> Rgb {
+    Rgb::new(
+        basis::at(stops, t, |c| c.r),
+        basis::at(stops, t, |c| c.g),
+        basis::at(stops, t, |c| c.b),
+    )
 }
 
 /// d3.interpolateHsl: the hue along the shorter arc, saturation,

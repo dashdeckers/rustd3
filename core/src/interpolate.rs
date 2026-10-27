@@ -16,12 +16,22 @@
 //! # Ok::<(), rustd3_core::color::ParseColorError>(())
 //! ```
 
+mod basis;
 mod color;
 pub(crate) mod gamma;
 mod hue;
+mod piecewise;
+mod quantize;
 
-pub use color::{cubehelix, cubehelix_long, hcl, hcl_long, hsl, hsl_long, lab, rgb, rgb_gamma};
+pub use basis::basis;
+pub use color::{
+    cubehelix, cubehelix_long, hcl, hcl_long, hsl, hsl_long, lab, rgb, rgb_basis, rgb_gamma,
+};
 pub use hue::hue;
+pub use piecewise::piecewise;
+pub use quantize::quantize;
+
+use jiff::Timestamp;
 
 use crate::color::{Cubehelix, Hcl, Hsl, Lab};
 use crate::js;
@@ -103,6 +113,34 @@ impl Interpolate for Cubehelix {
         )
         .map(|c| c.at(t));
         Cubehelix { h, s, l, opacity }
+    }
+}
+
+impl Interpolate for Timestamp {
+    /// d3's interpolateDate in nanoseconds: `self + round((to − self)·t)`,
+    /// saturating at [`Timestamp::MIN`] and [`Timestamp::MAX`]. Only the
+    /// difference passes through `f64`, never an epoch value.
+    ///
+    /// ```
+    /// use rustd3_core::interpolate::Interpolate;
+    /// use jiff::Timestamp;
+    ///
+    /// let a: Timestamp = "2026-10-27T00:00:00Z".parse()?;
+    /// let b: Timestamp = "2026-10-27T00:00:00.000000003Z".parse()?;
+    /// assert_eq!(a.lerp(&b, 0.5).to_string(), "2026-10-27T00:00:00.000000002Z");
+    /// assert_eq!(a.lerp(&b, 1e40), Timestamp::MAX);
+    /// # Ok::<(), jiff::Error>(())
+    /// ```
+    fn lerp(&self, to: &Timestamp, t: f64) -> Timestamp {
+        let (a, b) = (self.as_nanosecond(), to.as_nanosecond());
+        // A float to integer cast saturates, and NaN casts to 0.
+        let step = ((b - a) as f64 * t).round() as i128;
+        let (min, max) = (
+            Timestamp::MIN.as_nanosecond(),
+            Timestamp::MAX.as_nanosecond(),
+        );
+        let ns = a.saturating_add(step).clamp(min, max);
+        Timestamp::from_nanosecond(ns).expect("invariant: clamped into the timestamp range")
     }
 }
 

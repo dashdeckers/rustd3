@@ -528,6 +528,43 @@ fn t84() {   // hue-test.js: interpolateHue(a, b) uses the shortest path
     check("d3-interpolate/test/hue-test.js:42:3", Kind::Strict, &i(1.0), &350.0);
 }
 
+fn t85() {   // quantize-test.js: quantize(interpolate, n) returns n uniformly-spaced samples from the specified interpolator
+    check("d3-interpolate/test/quantize-test.js:5:3", Kind::Strict, &interpolate::quantize(interpolate::number(0.0, 1.0), 5), &vec![(0.0 / 4.0), (1.0 / 4.0), (2.0 / 4.0), (3.0 / 4.0), (4.0 / 4.0)]);
+    check("d3-interpolate/test/quantize-test.js:12:3", Kind::Strict, &interpolate::quantize(interpolate::rgb("steelblue".parse::<Rgb>().expect("a CSS color"), "brown".parse::<Rgb>().expect("a CSS color")), 5).iter().map(ToString::to_string).collect::<Vec<_>>(), &vec!["rgb(70, 130, 180)", "rgb(94, 108, 146)", "rgb(118, 86, 111)", "rgb(141, 64, 77)", "rgb(165, 42, 42)"]);
+}
+
+fn t86() {   // piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values
+    let mut i = interpolate::piecewise(&[0.0, 2.0, 10.0], |a: &f64, b: &f64| interpolate::number(*a, *b));
+    check("d3-interpolate/test/piecewise-test.js:6:3", Kind::Strict, &i(-1.0), &-4.0);
+    check("d3-interpolate/test/piecewise-test.js:7:3", Kind::Strict, &i(0.0), &0.0);
+    check("d3-interpolate/test/piecewise-test.js:8:3", Kind::Strict, &i(0.19), &0.76);
+    check("d3-interpolate/test/piecewise-test.js:9:3", Kind::Strict, &i(0.21), &0.84);
+    check("d3-interpolate/test/piecewise-test.js:10:3", Kind::Strict, &i(0.5), &2.0);
+    check("d3-interpolate/test/piecewise-test.js:11:3", Kind::Strict, &i(0.75), &6.0);
+    check("d3-interpolate/test/piecewise-test.js:12:3", Kind::Strict, &i(1.0), &10.0);
+}
+
+fn t87() {   // piecewise-test.js: piecewise(values) uses the default interpolator
+    let mut i = interpolate::piecewise(&[0.0, 2.0, 10.0], |a: &f64, b: &f64| interpolate::number(*a, *b));
+    check("d3-interpolate/test/piecewise-test.js:17:3", Kind::Strict, &i(-1.0), &-4.0);
+    check("d3-interpolate/test/piecewise-test.js:18:3", Kind::Strict, &i(0.0), &0.0);
+    check("d3-interpolate/test/piecewise-test.js:19:3", Kind::Strict, &i(0.19), &0.76);
+    check("d3-interpolate/test/piecewise-test.js:20:3", Kind::Strict, &i(0.21), &0.84);
+    check("d3-interpolate/test/piecewise-test.js:21:3", Kind::Strict, &i(0.5), &2.0);
+    check("d3-interpolate/test/piecewise-test.js:22:3", Kind::Strict, &i(0.75), &6.0);
+    check("d3-interpolate/test/piecewise-test.js:23:3", Kind::Strict, &i(1.0), &10.0);
+}
+
+fn t88() {   // piecewise-test.js: piecewise(values) uses the default interpolator/2
+    skip("d3-interpolate/test/piecewise-test.js:28:3", "types: d3's value interpolation of other than numbers (types decide)");
+    skip("d3-interpolate/test/piecewise-test.js:29:3", "types: d3's value interpolation of other than numbers (types decide)");
+    skip("d3-interpolate/test/piecewise-test.js:30:3", "types: d3's value interpolation of other than numbers (types decide)");
+    skip("d3-interpolate/test/piecewise-test.js:31:3", "types: d3's value interpolation of other than numbers (types decide)");
+    skip("d3-interpolate/test/piecewise-test.js:32:3", "types: d3's value interpolation of other than numbers (types decide)");
+    skip("d3-interpolate/test/piecewise-test.js:33:3", "types: d3's value interpolation of other than numbers (types decide)");
+    skip("d3-interpolate/test/piecewise-test.js:34:3", "types: d3's value interpolation of other than numbers (types decide)");
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "number-test.js: interpolateNumber(a, b) interpolates between two numbers a and b", run: t0 },
     Test { name: "number-test.js: interpolateNumber(a, b) gives exact ends for t=0 and t=1", run: t1 },
@@ -614,6 +651,10 @@ pub const TESTS: &[Test] = &[
     Test { name: "hue-test.js: interpolateHue(a, b) returns b if a is NaN", run: t82 },
     Test { name: "hue-test.js: interpolateHue(a, b) returns NaN if both a and b are NaN", run: t83 },
     Test { name: "hue-test.js: interpolateHue(a, b) uses the shortest path", run: t84 },
+    Test { name: "quantize-test.js: quantize(interpolate, n) returns n uniformly-spaced samples from the specified interpolator", run: t85 },
+    Test { name: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", run: t86 },
+    Test { name: "piecewise-test.js: piecewise(values) uses the default interpolator", run: t87 },
+    Test { name: "piecewise-test.js: piecewise(values) uses the default interpolator/2", run: t88 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -860,4 +901,27 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-interpolate/test/hue-test.js:40:3", test: "hue-test.js: interpolateHue(a, b) uses the shortest path", skip: None },
     Assertion { id: "d3-interpolate/test/hue-test.js:41:3", test: "hue-test.js: interpolateHue(a, b) uses the shortest path", skip: None },
     Assertion { id: "d3-interpolate/test/hue-test.js:42:3", test: "hue-test.js: interpolateHue(a, b) uses the shortest path", skip: None },
+    Assertion { id: "d3-interpolate/test/quantize-test.js:5:3", test: "quantize-test.js: quantize(interpolate, n) returns n uniformly-spaced samples from the specified interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/quantize-test.js:12:3", test: "quantize-test.js: quantize(interpolate, n) returns n uniformly-spaced samples from the specified interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:6:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:7:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:8:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:9:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:10:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:11:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:12:3", test: "piecewise-test.js: piecewise(interpolate, values)(t) returns the expected values", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:17:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:18:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:19:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:20:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:21:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:22:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:23:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator", skip: None },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:28:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:29:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:30:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:31:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:32:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:33:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
+    Assertion { id: "d3-interpolate/test/piecewise-test.js:34:3", test: "piecewise-test.js: piecewise(values) uses the default interpolator/2", skip: Some("types: d3's value interpolation of other than numbers (types decide)") },
 ];
