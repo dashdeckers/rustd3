@@ -11,7 +11,9 @@ use crate::ticks;
 /// d3.scaleBand: each key of the domain maps to the start of its band, the
 /// bands spaced by `step` and `bandwidth` wide. Lookups are a linear search
 /// over the keys, so keys need only `PartialEq`; a key outside the domain
-/// maps to `None`, and nothing is added to the domain.
+/// maps to `None`, and nothing is added to the domain. Keys compare with
+/// `PartialEq`, so a NaN key never matches, where d3's SameValueZero finds
+/// it; the same holds for deduplicating the domain.
 ///
 /// ```
 /// use rustd3_core::scale;

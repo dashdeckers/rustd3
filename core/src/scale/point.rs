@@ -8,7 +8,9 @@ use crate::ticks;
 
 /// d3.scalePoint: a band scale with zero bandwidth (inner padding 1), so
 /// each key maps to a point; its `padding` is the outer padding, and it
-/// has no inner or outer padding builders, as in d3.
+/// has no inner or outer padding builders, as in d3. Keys compare with
+/// `PartialEq`, as a band's: a NaN key never matches, where d3's
+/// SameValueZero finds it.
 ///
 /// ```
 /// use rustd3_core::scale;

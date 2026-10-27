@@ -11,7 +11,9 @@ use crate::ticks;
 /// `range[i % len]`, and any other key to the unknown value when one is
 /// set. d3 appends an unseen key on every call; here that growth is the
 /// opt-in [`apply_or_insert`](Ordinal::apply_or_insert), which needs the
-/// scale mutably.
+/// scale mutably. Keys compare with `PartialEq`, so a NaN key never matches
+/// (and `apply_or_insert` appends it again each time), where d3's
+/// SameValueZero finds it.
 ///
 /// ```
 /// use rustd3_core::scale;
