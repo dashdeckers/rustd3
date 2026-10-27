@@ -10,6 +10,7 @@ use rustd3_testkit::zone;
 mod format;
 mod fuzz;
 mod labels;
+mod locales;
 mod scale;
 
 fn at(s: &str) -> Timestamp {

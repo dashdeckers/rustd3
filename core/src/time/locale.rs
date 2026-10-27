@@ -15,8 +15,11 @@ pub(crate) use ladder::Rung;
 /// the [`Ladder`] tick labels climb.
 ///
 /// `NEUTRAL`, the default, writes English names, ISO composites and a
-/// 24-hour clock and labels ticks with the ISO ladder; `EN_US` is d3's
-/// default definition with d3's ladder. Other tables load at run time
+/// 24-hour clock and labels ticks with the ISO ladder. d3-time-format's
+/// tables for en-US and ten languages are constants generated from its
+/// JSON: `EN_US`, d3's default definition with d3's ladder, and `DE_DE`,
+/// `FR_FR`, `ES_ES`, `IT_IT`, `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`
+/// and `ZH_CN` with the ISO ladder. Its other 24 tables load at run time
 /// through [`Locale::new`].
 ///
 /// ```
@@ -27,6 +30,7 @@ pub(crate) use ladder::Rung;
 /// let la = TimeZone::posix("PST8PDT,M3.2.0,M11.1.0")?;
 /// assert_eq!(Locale::NEUTRAL.format("%c").format(t, &la), "2026-03-07 23:59:30");
 /// assert_eq!(Locale::EN_US.format("%c").format(t, &la), "3/7/2026, 11:59:30 PM");
+/// assert_eq!(Locale::DE_DE.format("%a %d %b").format(t, &la), "Sa 07 Mrz");
 /// assert_eq!(Locale::default().format("%a %d %b").format(t, &la), "Sat 07 Mar");
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
@@ -111,19 +115,6 @@ impl Locale {
         months: MONTHS,
         short_months: SHORT_MONTHS,
         ladder: Ladder::Iso,
-    });
-
-    /// d3's default definition (en-US) and d3's ladder.
-    pub const EN_US: Locale = Locale::from_table(Table {
-        date_time: "%x, %X",
-        date: "%-m/%-d/%Y",
-        time: "%-I:%M:%S %p",
-        periods: ["AM", "PM"],
-        days: DAYS,
-        short_days: SHORT_DAYS,
-        months: MONTHS,
-        short_months: SHORT_MONTHS,
-        ladder: Ladder::D3,
     });
 
     /// The locale a definition states (d3's `timeFormatLocale`).

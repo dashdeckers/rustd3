@@ -38,5 +38,8 @@ python3 dev/fixtures/<name>.py
 
 `format_locales.json` is written by `dev/harness/gen/format_locales.mjs`
 together with the number-locale tables it checks (d3's own
-`formatLocale` over a fixed probe list per locale); `scripts/check.sh
-full` reruns the generator and fails on any difference.
+`formatLocale` over a fixed probe list per locale), and
+`time_locales.json` by `dev/harness/gen/time_locales.mjs` (under
+`TZ=America/Los_Angeles`) together with the time-locale tables (d3's own
+`timeFormatLocale` over seven specifiers on four instants); `scripts/check.sh
+full` reruns both generators and fails on any difference.
