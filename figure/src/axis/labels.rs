@@ -11,13 +11,15 @@ use crate::theme::Theme;
 
 /// One axis's labels for a layout pass: its side and color, the keys of its
 /// tick labels (none when it is not labelled) with their ticks' absolute
-/// indices, and the key of its title, set in that color.
+/// indices, and the keys of its offset or multiplier label and of its
+/// title, set in that color.
 pub(crate) struct Labels {
     pub(super) orient: Orient,
     pub(super) ink: Rgb,
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Key>,
     pub(super) indices: Vec<i64>,
+    pub(super) notation: Option<Key>,
     pub(super) title: Option<Key>,
 }
 
@@ -45,6 +47,10 @@ impl Labels {
         } else {
             (Vec::new(), Vec::new())
         };
+        let notation = axis
+            .notation(resolved, count)
+            .filter(|_| labeled)
+            .map(|t| Key::new(&Text::from(t), &theme.tick_label(notation(orient).h, ink)));
         let title = axis
             .title()
             .filter(|_| labeled)
@@ -55,6 +61,7 @@ impl Labels {
             tinted: tint.is_some(),
             ticks,
             indices,
+            notation,
             title,
         }
     }
@@ -66,24 +73,38 @@ impl Labels {
 
     /// Every key, for the text cache's batch.
     pub(crate) fn keys(&self) -> impl Iterator<Item = &Key> {
-        self.ticks.iter().chain(&self.title)
+        self.ticks.iter().chain(&self.notation).chain(&self.title)
     }
 
     /// How far the axis reaches past its offset: its tick, and, when
     /// labelled, the tick pad, its labels' extent across the axis (the
     /// widest advance beside a vertical axis, the tallest ink under a
-    /// horizontal one) and, with a title, the label pad and the title's ink
-    /// height.
+    /// horizontal one), on a horizontal axis its offset or multiplier label
+    /// a tick pad further, and, with a title, the label pad and the title's
+    /// ink height.
     pub(crate) fn thickness(&self, text: &text::Cache, theme: &Theme) -> f64 {
         let mut thickness = theme.tick();
         if self.ticks.is_empty() && self.title.is_none() {
             return thickness;
         }
         thickness += theme.tick_pad() + self.extent(text);
+        if across(self.orient) {
+            thickness += self.raise(text, theme);
+        }
         if let Some(title) = self.title.as_ref().and_then(|key| get(text, key)) {
             thickness += theme.label_pad() + ink(title);
         }
         thickness
+    }
+
+    /// The room the offset or multiplier label takes: a tick pad and its
+    /// ink height (beyond the tick labels of a horizontal axis, above the
+    /// top end of a vertical one); 0 without one.
+    pub(crate) fn raise(&self, text: &text::Cache, theme: &Theme) -> f64 {
+        self.notation
+            .as_ref()
+            .and_then(|key| get(text, key))
+            .map_or(0.0, |s| theme.tick_pad() + ink(s))
     }
 
     /// The tick labels' extent across the axis: the widest advance beside
@@ -129,6 +150,19 @@ pub(crate) fn anchor(orient: Orient) -> Anchor {
         Orient::Top => (anchor::Horizontal::Middle, anchor::Vertical::Bottom),
         Orient::Left => (anchor::Horizontal::End, anchor::Vertical::Middle),
         Orient::Right => (anchor::Horizontal::Start, anchor::Vertical::Middle),
+    };
+    Anchor { h, v }
+}
+
+/// Where an axis's offset or multiplier label sits: at the right end of a
+/// horizontal axis, beyond its tick labels; above the top end of a vertical
+/// one, starting at a left axis's line and ending at a right one's, over
+/// the plot area.
+pub(crate) fn notation(orient: Orient) -> Anchor {
+    let (h, v) = match orient {
+        Orient::Bottom => (anchor::Horizontal::End, anchor::Vertical::Top),
+        Orient::Top | Orient::Right => (anchor::Horizontal::End, anchor::Vertical::Bottom),
+        Orient::Left => (anchor::Horizontal::Start, anchor::Vertical::Bottom),
     };
     Anchor { h, v }
 }

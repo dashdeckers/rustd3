@@ -4,6 +4,7 @@
 use rustd3_core::color::Rgb;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
+use rustd3_figure::axis::Axis;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::layout::{Cell, Grid, em, px};
 use rustd3_figure::list::{Command, part};
@@ -773,4 +774,118 @@ fn the_same_cell_and_span_give_the_same_panel() {
     assert_eq!(resolve(&fig, &Held::default()).plot_areas().len(), 3);
     fig.panel(1, 0);
     assert_eq!(resolve(&fig, &Held::default()).plot_areas().len(), 4);
+}
+
+/// One panel with a fixed `domain` on axis `side` asking 6 ticks, its
+/// offset notation on or off.
+fn notation(
+    domain: [f64; 2],
+    side: fn(ScaleRef<Linear>) -> Axis<'static, Linear>,
+    on: bool,
+) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain(domain));
+    fig.panel(0, 0).axis(side(x).ticks(6).offset(on));
+    fig
+}
+
+#[test]
+fn far_from_zero_domains_label_ticks_from_an_offset_at_the_axis_end() {
+    let size = Size::new(640.0, 480.0);
+    let rows: [([f64; 2], &[&str]); 3] = [
+        (
+            [1e9, 1e9 + 1.0],
+            &["0.0", "0.2", "0.4", "0.6", "0.8", "1.0", "+1e9"],
+        ),
+        (
+            [12345.0, 12345.3],
+            &[
+                "0.00",
+                "0.05",
+                "0.10",
+                "0.15",
+                "0.20",
+                "0.25",
+                "0.30",
+                "+1.2345e4",
+            ],
+        ),
+        (
+            [-1e9 - 1.0, -1e9],
+            &["−1.0", "−0.8", "−0.6", "−0.4", "−0.2", "0.0", "−1e9"],
+        ),
+    ];
+    for (domain, expected) in rows {
+        let fig = notation(domain, axis::bottom, true);
+        assert_eq!(drawn(&fig, size, 0, 0), expected, "{domain:?}");
+        assert_layout(&fig, size, Target::Vector, &[(0, 0)]);
+    }
+    let fig = notation([1000.0, 1000.5], axis::bottom, true);
+    let labels = drawn(&fig, size, 0, 0);
+    assert_eq!(labels.first().map(String::as_str), Some("1000.0"));
+    assert!(labels.iter().all(|l| !l.contains('e')), "{labels:?}");
+}
+
+#[test]
+fn tiny_domains_label_ticks_in_units_of_a_power_of_ten() {
+    let size = Size::new(640.0, 480.0);
+    for side in [axis::bottom, axis::left] {
+        let fig = notation([0.0, 3e-7], side, true);
+        let expected = ["0.0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0", "1e−7"];
+        assert_eq!(drawn(&fig, size, 0, 0), expected);
+        assert_layout(&fig, size, Target::Vector, &[(0, 0)]);
+    }
+}
+
+#[test]
+fn offset_false_prints_full_labels() {
+    let size = Size::new(640.0, 480.0);
+    let fig = notation([1e9, 1e9 + 1.0], axis::bottom, false);
+    let x = scale::linear().domain([1e9, 1e9 + 1.0]);
+    let full = x.labels(&x.tick_set(6), &Locale::default());
+    assert_eq!(full[1], "1\u{202f}000\u{202f}000\u{202f}000.2");
+    // Labels this long collide: every second one is kept.
+    let kept: Vec<String> = full.iter().step_by(2).cloned().collect();
+    assert_eq!(drawn(&fig, size, 0, 0), kept);
+}
+
+#[test]
+fn an_offset_label_takes_a_row_under_a_bottom_axis_and_the_top_above_a_left_one() {
+    let size = Size::new(640.0, 480.0);
+    let ink = ink_height("+1e9", 44.0 / 3.0);
+    let plan = |fig: &Figure<'_>| resolve(fig, &Held::default()).plan(0, 0).expect("an axis");
+    let on = plan(&notation([1e9, 1e9 + 1.0], axis::bottom, true));
+    let off = plan(&notation([0.0, 1.0], axis::bottom, true));
+    assert!((on.thickness - off.thickness - (14.0 / 3.0 + ink)).abs() < 1e-9);
+    let area = |fig: &Figure<'_>| resolve(fig, &Held::default()).plot_areas()[0];
+    let on = area(&notation([1e9, 1e9 + 1.0], axis::left, true));
+    let off = area(&notation([0.0, 1.0], axis::left, true));
+    // "1.0" overhangs the top by half its ink; "+1e9" sits a tick pad above.
+    let half = ink_height("1.0", 44.0 / 3.0) / 2.0;
+    assert!(
+        (on.y0 - off.y0 - (14.0 / 3.0 + ink)).abs() < 1e-9,
+        "{on:?} {off:?}"
+    );
+    assert!((off.y0 - PAD - half).abs() < 1e-9, "{off:?}");
+    assert_layout(
+        &notation([1e9, 1e9 + 1.0], axis::left, true),
+        size,
+        Target::Vector,
+        &[(0, 0)],
+    );
+}
+
+#[test]
+fn log_axes_keep_their_labels_whatever_their_magnitude() {
+    let size = Size::new(640.0, 480.0);
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::log().domain([1.0, 1e7]));
+    fig.panel(0, 0).axis(axis::left(y));
+    let r = resolve(&fig, &Held::default());
+    let count = r.plan(0, 0).expect("an axis").count;
+    let log = scale::log().domain([1.0, 1e7]);
+    let own = log.labels(&log.tick_set(count), &Locale::default());
+    let kept = drawn(&fig, size, 0, 0);
+    assert!(kept.iter().all(|l| own.contains(l)), "{kept:?} of {own:?}");
+    assert!(kept.contains(&"10M".to_string()), "{kept:?}");
 }

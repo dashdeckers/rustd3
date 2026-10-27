@@ -40,22 +40,26 @@
 
 mod draw;
 mod labels;
+mod offset;
 mod placed;
 
+use std::any::Any;
 use std::rc::Rc;
 
 use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
 use rustd3_core::locale::Locale;
-use rustd3_core::scale::Ticks;
+use rustd3_core::scale::{self, Ticks};
 use rustd3_core::ticks;
 
 use crate::figure::Resolved;
+use crate::layout::collide;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::text::Text;
 
 pub(crate) use draw::Draw;
 pub(crate) use labels::Labels;
+use offset::Notation;
 pub(crate) use placed::Placed;
 
 /// A label for each tick value, in place of the scale's.
@@ -88,6 +92,7 @@ pub struct Axis<'a, S: Kind> {
     label: Option<Text>,
     outward: Option<f64>,
     labels: Option<bool>,
+    offset: bool,
     tint: Option<Tint<'a>>,
 }
 
@@ -102,6 +107,7 @@ impl<S: Kind> Clone for Axis<'_, S> {
             label: self.label.clone(),
             outward: self.outward,
             labels: self.labels,
+            offset: self.offset,
             tint: self.tint.clone(),
         }
     }
@@ -214,6 +220,18 @@ impl<'a, S: Kind> Axis<'a, S> {
             ..self
         }
     }
+
+    /// With or without offset and multiplier notation, on by default. A
+    /// continuous axis whose ticks lie evenly on d3's grid and whose domain
+    /// `[a, b]` sits more than 10⁴ spans from zero labels each tick by its
+    /// distance from an offset with the most trailing zeros, and shows the
+    /// offset ("+1e9") at its end; otherwise, when the domain's largest
+    /// magnitude is below 10⁻⁴ or at least 10⁶, it labels ticks in units of
+    /// that power of ten ("1e−7"), as matplotlib's `ScalarFormatter`.
+    /// Axes with `.format` keep their labels.
+    pub fn offset(self, on: bool) -> Self {
+        Axis { offset: on, ..self }
+    }
 }
 
 impl<S> Axis<'_, S>
@@ -230,15 +248,53 @@ where
         }
     }
 
-    /// The labels of `scale`'s about `count` ticks: the format's, else the
-    /// scale's own under the neutral locale.
+    /// The labels of `scale`'s about `count` ticks: the format's; else,
+    /// under a notation, d3's linear labels of what each tick reads as over
+    /// the domain mapped the same way; else the scale's own; under the
+    /// neutral locale.
     fn texts(&self, scale: &S, count: usize) -> Vec<String> {
         let set = self.set(scale, count);
-        match &self.format {
-            Some(format) => set.values().iter().map(|v| format(v)).collect(),
-            None => scale.labels(&set, &Locale::default()),
+        if let Some(format) = &self.format {
+            return set.values().iter().map(|v| format(v)).collect();
         }
+        let mapped = self.notation(scale, count).zip(self.numbers(scale, count));
+        let Some((notation, (values, domain))) = mapped else {
+            return scale.labels(&set, &Locale::default());
+        };
+        let [a, b] = domain.map(|d| notation.apply(d));
+        let values = values.into_iter().map(|t| notation.apply(t)).collect();
+        let step = ticks::tick_step(a, b, count as f64);
+        let linear = scale::linear().domain([a, b]);
+        linear.labels(&ticks::Set::new(values, step, count), &Locale::default())
     }
+
+    /// The notation of `scale`'s about `count` ticks: none with
+    /// `.offset(false)` or `.format`, for a domain that is not numeric, or
+    /// for ticks that do not lie evenly on d3's grid (log and symlog
+    /// decades).
+    fn notation(&self, scale: &S, count: usize) -> Option<Notation> {
+        if !self.offset || self.format.is_some() {
+            return None;
+        }
+        let (values, domain) = self.numbers(scale, count)?;
+        collide::grid(&values, domain, count)?;
+        Notation::of(domain)
+    }
+
+    /// The tick values and the domain's ends as numbers, when the domain is
+    /// `f64`.
+    fn numbers(&self, scale: &S, count: usize) -> Option<(Vec<f64>, [f64; 2])> {
+        let set = self.set(scale, count);
+        let values = set.values().iter().map(number).collect::<Option<_>>()?;
+        let domain = Kind::domain(scale)?;
+        let domain = (&domain as &dyn Any).downcast_ref::<[f64; 2]>()?;
+        Some((values, *domain))
+    }
+}
+
+/// `v` as a number, when the domain is `f64`.
+fn number<D: 'static>(v: &D) -> Option<f64> {
+    (v as &dyn Any).downcast_ref::<f64>().copied()
 }
 
 /// An axis on side `orient` of handle `h`, with d3's defaults.
@@ -252,6 +308,7 @@ fn new<'a, S: Kind>(orient: Orient, h: ScaleRef<S>) -> Axis<'a, S> {
         label: None,
         outward: None,
         labels: None,
+        offset: true,
         tint: None,
     }
 }

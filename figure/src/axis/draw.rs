@@ -1,6 +1,5 @@
 //! [`Draw`]: an axis with its scale type erased, as a panel holds it.
 
-use std::any::Any;
 use std::collections::HashMap;
 
 use rustd3_core::axis::Orient;
@@ -48,6 +47,10 @@ pub(crate) trait Draw<'a>: 'a {
     /// on that grid; the key's position in the domain for band and point
     /// scales; the position in the set otherwise (log ticks).
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64>;
+
+    /// The offset or multiplier label of about `count` ticks
+    /// (`Axis::offset`), when the axis has one.
+    fn notation(&self, resolved: &Resolved, count: usize) -> Option<String>;
 
     /// The title along the axis.
     fn title(&self) -> Option<&text::Text>;
@@ -105,18 +108,15 @@ where
 
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64> {
         let scale = resolved.scale(self.scale);
-        let set = self.set(scale, count);
-        let values = set.values();
-        let numbers: Option<Vec<f64>> = values.iter().map(number).collect();
-        let domain =
-            Kind::domain(scale).and_then(|d| (&d as &dyn Any).downcast_ref::<[f64; 2]>().copied());
+        let numbers = self.numbers(scale, count);
         if let Some(grid) = numbers
-            .as_deref()
-            .zip(domain)
-            .and_then(|(numbers, domain)| collide::grid(numbers, domain, count))
+            .as_ref()
+            .and_then(|(values, domain)| collide::grid(values, *domain, count))
         {
             return grid;
         }
+        let set = self.set(scale, count);
+        let values = set.values();
         let positions = (0..values.len() as i64).collect();
         if numbers.is_some() || self.values.is_none() {
             return positions;
@@ -142,12 +142,11 @@ where
             .collect()
     }
 
+    fn notation(&self, resolved: &Resolved, count: usize) -> Option<String> {
+        Axis::notation(self, resolved.scale(self.scale), count).map(|n| n.label())
+    }
+
     fn title(&self) -> Option<&text::Text> {
         self.label.as_ref()
     }
-}
-
-/// `v` as a number, when the domain is `f64`.
-fn number<D: 'static>(v: &D) -> Option<f64> {
-    (v as &dyn Any).downcast_ref::<f64>().copied()
 }

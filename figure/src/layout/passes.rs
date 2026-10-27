@@ -10,6 +10,7 @@ use crate::figure::{Figure, Resolved};
 use crate::layout::{self, Plan, Reach, collide, plan};
 use crate::panel::Panel;
 use crate::text::{self, Key, Shaped};
+use crate::theme::Theme;
 
 /// Passes at most; counts that have not settled by then are kept.
 const PASSES: usize = 4;
@@ -86,7 +87,7 @@ impl Layout {
         let mut areas = place(figure, size, 0.0, &bare);
         let mut last: Option<Vec<Vec<usize>>> = None;
         let mut axes: Axes = Vec::new();
-        let mut reaches: Vec<Reach> = Vec::new();
+        let mut reaches: Vec<(Reach, f64)> = Vec::new();
         let mut passes = 0;
         for pass in 1..=PASSES {
             passes = pass;
@@ -132,7 +133,7 @@ impl Layout {
                 .iter()
                 .zip(&axes)
                 .zip(&areas)
-                .map(|((p, axes), area)| reach(p, axes, *area, resolved, text))
+                .map(|((p, axes), area)| reach(p, axes, *area, resolved, text, theme))
                 .collect();
             let reserve = title
                 .as_ref()
@@ -141,7 +142,7 @@ impl Layout {
             let titled: Vec<Reach> = reaches
                 .iter()
                 .zip(&titles)
-                .map(|(reach, title)| {
+                .map(|((reach, _), title)| {
                     let mut reach = *reach;
                     if let Some(s) = title.as_ref().and_then(|key| get(text, key)) {
                         reach.top += theme.title_pad() + ink(s);
@@ -160,7 +161,7 @@ impl Layout {
             .zip(axes)
             .zip(titles)
             .zip(reaches.iter().zip(&areas))
-            .map(|(((p, axes), title), (reach, area))| {
+            .map(|(((p, axes), title), ((reach, above), area))| {
                 let axes = p
                     .axes()
                     .iter()
@@ -168,7 +169,9 @@ impl Layout {
                     .map(|(a, (labels, plan))| {
                         let length = length(a.orient(), *area);
                         let positions = a.positions(resolved, length, plan.count);
-                        Placed::new(labels, plan, positions, *area, text, theme)
+                        let mut placed = Placed::new(labels, plan, positions, *area, text, theme);
+                        placed.above = *above;
+                        placed
                     })
                     .collect();
                 Laid {
@@ -228,26 +231,37 @@ fn counts(figure: &Figure<'_>, areas: &[Rect]) -> Vec<Vec<usize>> {
 }
 
 /// How far `panel`'s drawn `axes` reach past its plot area `area`: their
-/// offsets and thicknesses, and their tick labels that overhang its ends.
+/// offsets and thicknesses, their tick labels that overhang its ends, and
+/// above all that the offset or multiplier labels of its vertical axes;
+/// and how far the top reaches without those labels.
 fn reach(
     panel: &Panel<'_>,
     axes: &[(Labels, Plan)],
     area: Rect,
     resolved: &Resolved,
     text: &text::Cache,
-) -> Reach {
+    theme: &Theme,
+) -> (Reach, f64) {
     let mut reach = Reach::default();
-    for (a, (labels, plan)) in panel.axes().iter().zip(axes) {
-        if !plan.shown {
-            continue;
-        }
+    let shown = || {
+        panel
+            .axes()
+            .iter()
+            .zip(axes)
+            .filter(|(_, (_, plan))| plan.shown)
+    };
+    for (a, (labels, plan)) in shown() {
         let orient = a.orient();
         reach.widen(orient, plan.offset + plan.thickness);
         let length = length(orient, area);
         let positions = a.positions(resolved, length, plan.count);
         reach.overhang(orient, labels.overhang(&positions, length, text));
     }
-    reach
+    let top = reach.top;
+    for (_, (labels, _)) in shown().filter(|(a, _)| !axis::across(a.orient())) {
+        reach.widen(Orient::Top, top + labels.raise(text, theme));
+    }
+    (reach, top)
 }
 
 /// The plot areas of `figure`'s panels for `size`, with `reserve` px above

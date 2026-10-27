@@ -6,7 +6,7 @@ use std::f64::consts::FRAC_PI_2;
 use kurbo::{BezPath, Cap, Point, Rect};
 use rustd3_core::axis::Orient;
 
-use crate::axis::labels::{anchor, get};
+use crate::axis::labels::{anchor, get, notation};
 use crate::axis::{Labels, across};
 use crate::layout::Plan;
 use crate::list::{self, Command, List};
@@ -27,6 +27,10 @@ pub(crate) struct Placed {
     pub(crate) boxes: Vec<Option<Rect>>,
     /// Which tick labels are drawn.
     pub(crate) keep: Vec<bool>,
+    /// How far above the plot area a vertical axis's offset or multiplier
+    /// label sits, a tick pad below its bottom: the panel's top reach
+    /// without those labels.
+    pub(crate) above: f64,
 }
 
 impl Placed {
@@ -49,6 +53,7 @@ impl Placed {
             positions,
             boxes: Vec::new(),
             keep: Vec::new(),
+            above: 0.0,
         };
         placed.boxes = placed.measure(area, text, theme);
         placed.keep = vec![true; placed.boxes.len()];
@@ -75,8 +80,10 @@ impl Placed {
     /// Appends the axis beside plot area `area` to `list`: its line in the
     /// theme's edge color (its own when tinted) with square caps, so two
     /// axes meet at a closed corner as matplotlib's projecting spines do,
-    /// its ticks, its kept tick labels a tick pad past the ticks, and its
-    /// title a label pad past the labels' extent, turned a quarter
+    /// its ticks, its kept tick labels a tick pad past the ticks, its
+    /// offset or multiplier label (at the right end of a horizontal axis, a
+    /// tick pad beyond the labels; above the top end of a vertical one), and
+    /// its title a label pad past all of them, turned a quarter
     /// counter-clockwise on the left and clockwise on the right.
     pub(crate) fn draw(&self, area: Rect, text: &text::Cache, theme: &Theme, list: &mut List) {
         let labels = &self.labels;
@@ -114,8 +121,22 @@ impl Placed {
                 shaped.place(list, spine.at(*p, gap), anchor(orient), 0.0);
             }
         }
+        let extent = labels.extent(text);
+        if let Some(shaped) = labels.notation.as_ref().and_then(|key| get(text, key)) {
+            let at = if across(orient) {
+                spine.at(length, gap + extent + theme.tick_pad())
+            } else {
+                spine.at(0.0, 0.0) - kurbo::Vec2::new(0.0, self.above + theme.tick_pad())
+            };
+            shaped.place(list, at, notation(orient), 0.0);
+        }
         if let Some(title) = labels.title.as_ref().and_then(|key| get(text, key)) {
-            let beyond = gap + labels.extent(text) + theme.label_pad();
+            let raise = if across(orient) {
+                labels.raise(text, theme)
+            } else {
+                0.0
+            };
+            let beyond = gap + extent + raise + theme.label_pad();
             let angle = match orient {
                 Orient::Top | Orient::Bottom => 0.0,
                 Orient::Left => -FRAC_PI_2,
