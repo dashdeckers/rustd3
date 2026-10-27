@@ -4,8 +4,18 @@
 use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_core::series::{Clock, Recording};
+use rustd3_figure::kurbo::Size;
 use rustd3_figure::mark::line;
 use rustd3_figure::{Figure, axis};
+
+/// Samples per channel of the example's recording: 100 s at 10 kHz.
+pub const SAMPLES: usize = 1_000_000;
+
+/// The example's size in logical px.
+pub const SIZE: Size = Size::new(960.0, 600.0);
+
+/// Device px per logical px of the example's PNG.
+pub const SCALE: f64 = 2.0;
 
 /// Samples per second of [`signal`].
 const RATE: f64 = 10_000.0;

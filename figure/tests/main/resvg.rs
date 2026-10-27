@@ -1,11 +1,17 @@
-//! Our SVG rendered back by resvg against vello_cpu's render of the list.
+//! Our SVG rendered back by resvg against vello_cpu's render of the list,
+//! and the example figures' SVG files against their PNG files.
 
 use rustd3_figure::lower;
 use rustd3_figure::raster::Image;
 use rustd3_figure::svg;
 
+#[cfg(all(feature = "png", feature = "fonts"))]
+use rustd3_figure::kurbo::Size;
+
 use crate::raster::vello::{diff, whole};
 use crate::sink;
+#[cfg(all(feature = "png", feature = "fonts"))]
+use crate::{scatter, trace};
 
 /// `svg` rendered by resvg at `scale`, as straight RGBA.
 fn resvg(svg: &str, scale: f32) -> Image {
@@ -50,4 +56,45 @@ fn resvg_renders_our_svg_as_vello_cpu_renders_the_list() {
         d.worst_tile(),
         d.max()
     );
+}
+
+/// `fig` written as the example mains write it, its SVG rendered by resvg
+/// at `scale` against its PNG at `scale`: the worst tile's score.
+#[cfg(all(feature = "png", feature = "fonts"))]
+fn agreement(name: &str, fig: &rustd3_figure::Figure<'_>, size: Size, scale: f64) -> f64 {
+    let base = std::env::temp_dir().join(format!("rustd3-figure-{}-{name}", std::process::id()));
+    let (svg_path, png_path) = (base.with_extension("svg"), base.with_extension("png"));
+    fig.save_svg(&svg_path, size).expect("the SVG is written");
+    fig.save_png(&png_path, size, scale)
+        .expect("the PNG is written");
+    let svg = std::fs::read_to_string(&svg_path).expect("the SVG reads back");
+    let png = std::fs::File::open(&png_path).expect("the PNG opens");
+    let mut reader = png::Decoder::new(std::io::BufReader::new(png))
+        .read_info()
+        .expect("a PNG");
+    let mut rgba = vec![0; reader.output_buffer_size().expect("a size")];
+    let frame = reader.next_frame(&mut rgba).expect("one frame");
+    rgba.truncate(frame.buffer_size());
+    std::fs::remove_file(&svg_path).expect("the SVG is removed");
+    std::fs::remove_file(&png_path).expect("the PNG is removed");
+    let png = Image {
+        width: frame.width,
+        height: frame.height,
+        rgba,
+    };
+    diff(&resvg(&svg, scale as f32), &png).tile_score()
+}
+
+#[cfg(all(feature = "png", feature = "fonts"))]
+#[test]
+fn resvg_renders_the_example_svgs_as_their_pngs() {
+    let rec = trace::recording(trace::SAMPLES);
+    let score = agreement("trace", &trace::trace(&rec), trace::SIZE, trace::SCALE);
+    // Measured 0.0275: resvg and vello_cpu shade the trace's impacts (a
+    // stroke up and back down within a quarter px, overlapping itself)
+    // apart by 0.0258 on the very same list (D15.2).
+    assert!(score <= 0.03, "trace: tile score {score:.4}");
+    let fig = scatter::scatter(scatter::POINTS);
+    let score = agreement("scatter", &fig, scatter::SIZE, scatter::SCALE);
+    assert!(score <= 0.02, "scatter: tile score {score:.4}");
 }

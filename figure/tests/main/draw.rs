@@ -19,13 +19,17 @@ use crate::marks::marked;
 use crate::support::figures_equal;
 use crate::{scatter, trace};
 
-/// The size the scatter is drawn at.
-const SIZE: Size = Size::new(640.0, 480.0);
+/// The size the scatter is drawn at: the example's.
+const SIZE: Size = scatter::SIZE;
 
 #[test]
 fn a_scatter_of_5600_points_in_three_keys_is_three_markers_commands() {
-    let list =
-        scatter::scatter(5600).draw_with(&mut cache(), SIZE, Target::Vector, &Held::default());
+    let list = scatter::scatter(scatter::POINTS).draw_with(
+        &mut cache(),
+        SIZE,
+        Target::Vector,
+        &Held::default(),
+    );
     let counts: Vec<usize> = marked(&list)
         .into_iter()
         .filter_map(|c| {
@@ -37,7 +41,7 @@ fn a_scatter_of_5600_points_in_three_keys_is_three_markers_commands() {
         })
         .collect();
     assert_eq!(counts.len(), 3);
-    assert_eq!(counts.iter().sum::<usize>(), 5600);
+    assert_eq!(counts.iter().sum::<usize>(), 5_600);
 }
 
 #[test]
@@ -68,11 +72,13 @@ fn draw_is_a_vector_draw_with_a_fresh_cache() {
 
 #[test]
 fn the_trace_figure_redraws_with_no_m4_query_and_no_typst_compile() {
-    let rec = trace::recording(200_000);
+    let rec = trace::recording(trace::SAMPLES);
     let fig = trace::trace(&rec);
     let mut cache = cache();
-    let target = Target::File { scale: 2.0 };
-    let size = Size::new(960.0, 600.0);
+    let target = Target::File {
+        scale: trace::SCALE,
+    };
+    let size = trace::SIZE;
     let first = fig.draw_with(&mut cache, size, target, &Held::default());
     let before = cache.stats();
     assert_eq!(before.m4_queries, 3);

@@ -2,8 +2,18 @@
 
 use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
+use rustd3_figure::kurbo::Size;
 use rustd3_figure::mark::dots;
 use rustd3_figure::{Figure, axis};
+
+/// The example's points: as many as the wheel figure's dots.
+pub const POINTS: usize = 5_600;
+
+/// The example's size in logical px.
+pub const SIZE: Size = Size::new(640.0, 480.0);
+
+/// Device px per logical px of the example's PNG.
+pub const SCALE: f64 = 2.0;
 
 /// The clusters' keys and centres.
 const CLUSTERS: [(&str, [f64; 2]); 3] = [("a", [0.0, 0.0]), ("b", [2.5, 1.0]), ("c", [1.0, 2.5])];
