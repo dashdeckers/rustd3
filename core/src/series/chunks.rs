@@ -1,6 +1,7 @@
 //! Samples in fixed-capacity chunks, so appends never move them.
 
 use std::fmt;
+use std::ops::Range;
 
 use crate::series::CHUNK;
 
@@ -68,6 +69,28 @@ impl<T: Copy> Chunks<T> {
         })
     }
 
+    /// The samples of `range`, which must lie in one chunk (as every block
+    /// does), as one slice.
+    pub(crate) fn slice(&self, range: Range<usize>) -> &[T] {
+        let start = range.start % CHUNK;
+        &self.chunks[range.start / CHUNK][start..start + range.len()]
+    }
+
+    /// The samples of `range` (within `len`) as contiguous pieces, each
+    /// with the index of its first sample.
+    pub(crate) fn pieces(&self, range: Range<usize>) -> impl Iterator<Item = (usize, &[T])> {
+        let mut at = range.start;
+        std::iter::from_fn(move || {
+            (at < range.end).then(|| {
+                let first = at;
+                let start = first % CHUNK;
+                let n = (range.end - first).min(CHUNK - start);
+                at += n;
+                (first, &self.chunks[first / CHUNK][start..start + n])
+            })
+        })
+    }
+
     /// Appends `values`, filling the last chunk before starting a new one.
     pub(crate) fn extend(&mut self, mut values: &[T]) {
         while !values.is_empty() {
@@ -120,6 +143,25 @@ mod tests {
             assert_eq!(chunk.capacity(), CHUNK);
         }
         assert_eq!(clone.get(CHUNK + 9), Some(CHUNK + 9));
+    }
+
+    #[test]
+    fn pieces_split_at_chunk_boundaries() {
+        let chunks = filled(2 * CHUNK + 5);
+        let pieces: Vec<_> = chunks
+            .pieces(CHUNK - 2..2 * CHUNK + 3)
+            .map(|(first, piece)| (first, piece.len(), piece[0]))
+            .collect();
+        assert_eq!(
+            pieces,
+            [
+                (CHUNK - 2, 2, CHUNK - 2),
+                (CHUNK, CHUNK, CHUNK),
+                (2 * CHUNK, 3, 2 * CHUNK)
+            ]
+        );
+        assert_eq!(chunks.pieces(5..5).count(), 0);
+        assert_eq!(chunks.slice(CHUNK + 64..CHUNK + 128)[0], CHUNK + 64);
     }
 
     #[test]

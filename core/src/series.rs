@@ -18,7 +18,9 @@ mod channel;
 mod chunks;
 mod clock;
 mod error;
+mod index;
 mod recording;
+mod runs;
 
 pub use clock::{Clock, Coordinate};
 pub use error::Error;
@@ -26,3 +28,6 @@ pub use recording::{Id, Recording};
 
 /// Samples per chunk: storage grows and drops by whole chunks.
 const CHUNK: usize = 65_536;
+
+/// Samples per leaf of the M4 index; a chunk holds whole blocks.
+const BLOCK: usize = 64;
