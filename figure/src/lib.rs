@@ -13,6 +13,7 @@ pub mod list;
 pub mod lower;
 pub mod path;
 pub mod raster;
+pub mod scale;
 pub mod svg;
 pub mod text;
 
