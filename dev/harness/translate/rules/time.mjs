@@ -7,7 +7,10 @@
 // interval's result, None where d3 has an Invalid Date) and "dates"
 // (Vec<Timestamp>); assertions see them through the prelude's ts and tss,
 // RFC 3339 with nine fraction digits. `+date` and date.getTime() are exact
-// epoch milliseconds.
+// epoch milliseconds. d3-scale's scaleTime() and scaleUtc() are
+// time::time(la.clone()) and time::utc(), "tscale"; a chain of their calls is
+// translated whole, so that setters on a variable assign it (`x = x.nice(10);`)
+// as d3's mutate it.
 import { calleeName, ex, needNum, skip, val } from "../expr.mjs";
 
 const LA = 'let la = zone("America/Los_Angeles");';
@@ -66,10 +69,52 @@ function ticks(utc, [a, b, n], ctx) {
   return { c: utc ? `time::utc_ticks(${start}, ${stop}, ${count})` : `time::ticks(${start}, ${stop}, ${count}, ${zone(false, ctx)})`, t: "dates" };
 }
 
+/** A two-element array literal of `item`s: a time scale has two stops. */
+function pair(node, what, item) {
+  if (node.type !== "ArrayExpression") skip(`js: a ${what} from an iterable`);
+  if (node.elements.length !== 2) skip(`types: a polylinear time ${what} (Time has two stops)`);
+  return `[${node.elements.map(item).join(", ")}]`;
+}
+
+const SCALE_METHODS = new Set(["domain", "range", "clamp", "nice", "ticks", "invert", "copy", "interpolate", "tickFormat"]);
+const isScale = (node, ctx) => ctx.vars.get(node.name)?.t === "tscale" || (node.type === "CallExpression" && ["scaleTime", "scaleUtc"].includes(calleeName(node, ctx)));
+
+/** A time scale's chain: its root's value, then each method call in turn. */
+function chain(root, steps, ctx) {
+  const name = [...ctx.vars.values()].includes(root) ? root.c : null;
+  let [code, muts] = [root.c, name ? "" : null]; // muts: setters applied to the variable `name`
+  const current = () => (muts ? `({ ${name} = ${name}${muts}; ${name}.clone() })` : code);
+  const build = (suffix) => (muts !== null ? (muts += suffix) : (code += suffix));
+  const read = (suffix, t) => ({ c: muts ? `({ ${name} = ${name}${muts}; ${name}${suffix} })` : `${code}${suffix}`, t });
+  for (const { prop, args } of steps) {
+    const a = () => val(ex(args[0] ?? skip(`js: ${prop}() without a value (undefined)`), ctx));
+    const number = (e) => (e = val(ex(e, ctx))).t === "num" ? e.c : skip("types: a range of other values than numbers (Time's range is f64)");
+    if (prop === "domain" && args.length) build(`.domain(${pair(args[0], "domain", (e) => date(val(ex(e, ctx))))})`);
+    else if (prop === "range" && args.length) build(`.range(${pair(args[0], "range", number)})`);
+    else if (prop === "domain" || prop === "range") return read(`.get_${prop}()${prop === "range" ? ".to_vec()" : ""}`, prop === "range" ? "vec" : "dates");
+    else if (prop === "clamp" && args.length) build(`.clamp(${a().t === "bool" ? a().c : skip("js: a clamp flag other than a boolean (truthiness)")})`);
+    else if (prop === "invert") return read(`.invert(${needNum(a(), "inverted value")})`, "date");
+    else if (prop === "nice" || prop === "ticks") skip("gap: time scale ticks and nice (Phase 27, step 7)");
+    else if (prop === "copy") [code, muts] = [current() + (muts ? "" : ".clone()"), null];
+    else if (prop === "tickFormat") skip("gap: time tick formats (Phase 28)");
+    else if (prop === "clamp") skip("api: d3's clamp() getter (only domain and range have get_)");
+    else skip("api: d3's interpolate on a time scale (its f64 range is interpolated linearly)");
+  }
+  return { c: current(), t: "tscale", utc: root.utc, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
+}
+
 export default {
   identifiers,
   call(node, ctx) {
     const name = calleeName(node, ctx);
+    if (name === "scaleUtc") return { c: "time::utc()", t: "tscale", utc: true };
+    if (name === "scaleTime") return { c: `time::time(${zone(false, ctx).slice(1)}.clone())`, t: "tscale", utc: false };
+    const steps = [];
+    let root = node;
+    for (; root.type === "CallExpression" && root.callee.type === "MemberExpression" && SCALE_METHODS.has(root.callee.property?.name); root = root.callee.object) {
+      steps.unshift({ prop: root.callee.property.name, args: root.arguments });
+    }
+    if (steps.length && isScale(root, ctx)) return chain(val(ex(root, ctx)), steps, ctx);
     const args = () => node.arguments.map((a) => val(ex(a, ctx)));
     if (node.type === "NewExpression") {
       if (name !== "Date") return undefined;
@@ -105,6 +150,7 @@ export default {
     return { c: `${obj.c}[${whole(ex(node.property, ctx), "index", "usize")}]`, t: "date" };
   },
   apply(target, args, ctx) {
+    if (target.t === "tscale") return { c: `${target.c}.apply(${date(val(args[0] ?? skip("js: a scale called without a date (undefined)")))})`, t: "num" };
     if (target.t !== "interval") return undefined;
     if (!args.length) skip("api: ambient clock (interval() floors new Date)");
     return { c: `${target.c}.floor(${date(val(args[0]))}, ${zone(target.utc, ctx)})`, t: "odate" };

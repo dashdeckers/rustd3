@@ -84,6 +84,7 @@ const SUITES = [
     ]),
     rules: time,
   },
+  { suite: "time_scale", package: "d3-scale", files: tests(["time", "utcTime"]), rules: time },
 ];
 
 const D3 = new URL("../d3/", import.meta.url);
