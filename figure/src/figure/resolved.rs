@@ -134,6 +134,11 @@ impl Resolved {
         self.room
     }
 
+    /// The figure this was resolved from.
+    pub(super) fn figure(&self) -> figure::Id {
+        self.figure
+    }
+
     /// The size the figure was resolved for.
     pub(crate) fn size(&self) -> kurbo::Size {
         self.size

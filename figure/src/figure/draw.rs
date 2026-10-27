@@ -44,7 +44,7 @@ impl Figure<'_> {
     ) -> List {
         cache.begin();
         let resolved = self.resolve(size, cache, held, target);
-        self.emit(cache, &resolved)
+        self.draw_resolved(cache, &resolved)
     }
 
     /// As [`draw_with`](Figure::draw_with), laid out in the plot areas
@@ -60,12 +60,36 @@ impl Figure<'_> {
     ) -> List {
         cache.begin();
         let resolved = self.resolve_held(size, cache, held, target, areas);
-        self.emit(cache, &resolved)
+        self.draw_resolved(cache, &resolved)
     }
 
-    /// The list of `resolved`: decorations and marks, each part bounded by
-    /// its commands and hashed.
-    fn emit(&self, cache: &mut Cache, resolved: &Resolved) -> List {
+    /// The list of `resolved`, which this figure's
+    /// [`resolve`](Figure::resolve) or [`resolve_held`](Figure::resolve_held)
+    /// returned for `cache` after a [`Cache::begin`]: what
+    /// [`draw_with`](Figure::draw_with) emits after it resolves, for a
+    /// caller that also reads the resolved figure (plot areas, cell edges,
+    /// hits) and so resolves once. Debug builds panic for a `Resolved` of
+    /// another figure.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::kurbo::Size;
+    /// use rustd3_figure::{Figure, Held, Target, axis};
+    ///
+    /// let mut fig = Figure::new();
+    /// let y = fig.scale(scale::linear().domain([0.0, 3.0]));
+    /// fig.panel(0, 0).axis(axis::left(y));
+    /// # #[cfg(feature = "fonts")] {
+    /// let mut cache = rustd3_figure::Cache::default();
+    /// let (size, target, held) = (Size::new(640.0, 480.0), Target::Vector, Held::default());
+    /// cache.begin();
+    /// let resolved = fig.resolve(size, &mut cache, &held, target);
+    /// let list = fig.draw_resolved(&mut cache, &resolved);
+    /// assert_eq!(list, fig.draw_with(&mut cache, size, target, &held));
+    /// # }
+    /// ```
+    pub fn draw_resolved(&self, cache: &mut Cache, resolved: &Resolved) -> List {
+        debug_assert!(resolved.figure() == self.id, "a Resolved of another figure");
         let size = resolved.size();
         let mut list = List {
             size,
