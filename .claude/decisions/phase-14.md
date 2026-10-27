@@ -36,7 +36,7 @@ compiled out and `a_foreign_handle_fits_unchecked_in_release_builds` in.
 
 ## D14.1 — Statements of Phase 14 that do not hold as written, or leave a detail open
 
-**Date:** 2026-10-27 · **Context:** Phase 14, 419aa3c … f7c71d1 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 14, 419aa3c … f7c71d1 · **Status:** decided
 
 ### Issue
 
@@ -137,10 +137,12 @@ compiled out and `a_foreign_handle_fits_unchecked_in_release_builds` in.
 
 ### Decision
 
-Recommended: A for all nineteen, built. (1) and (3) are public-API
-choices beyond the section's text: (1) adds a core reader, (3) fixes where
-the figure model's types live; both are cheap to change before Phase 15
-builds on them.
+A for all nineteen (architect, 2026-10-27), as built. Core gains the
+additive `Continuous::admits(x)` (finite, and finite under the
+transform for the current domain, clamp ignored). The figure model's
+types (`Figure`, `Cache`, `Held`, `Fits`, `Resolved`, `Panel`,
+`Target`, `Theme`) sit at the crate root; `axis`, `layout`, `mark` and
+`scale` are public modules; `cache::Stats` has one path.
 
 ### Why
 
