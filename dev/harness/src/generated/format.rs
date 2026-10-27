@@ -5,111 +5,111 @@ use crate::prelude::*;
 use crate::registry::{Assertion, Test};
 
 fn t0() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-001 locale
-    skip("d3-format/test/arabicLocale-test.js:10:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:10:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(-1234.56), &"−١٬٢٣٤٫٥٦");
 }
 
 fn t1() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-AE locale
-    skip("d3-format/test/arabicLocale-test.js:14:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:14:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.إ.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ د.إ.");
 }
 
 fn t2() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-BH locale
-    skip("d3-format/test/arabicLocale-test.js:18:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:18:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.ب.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ د.ب.");
 }
 
 fn t3() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-DJ locale
-    skip("d3-format/test/arabicLocale-test.js:22:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:22:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["‏Fdj ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"‏Fdj ١٬٢٣٤٫٥٦");
 }
 
 fn t4() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-DZ locale
-    skip("d3-format/test/arabicLocale-test.js:26:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:26:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.ج. ".into(), "".into()], ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"د.ج. 1.234,56");
 }
 
 fn t5() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-EG locale
-    skip("d3-format/test/arabicLocale-test.js:30:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:30:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ج.م.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ج.م.");
 }
 
 fn t6() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-EH locale
-    skip("d3-format/test/arabicLocale-test.js:34:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:34:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["د.م. ".into(), "".into()], ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"د.م. 1,234.56");
 }
 
 fn t7() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-ER locale
-    skip("d3-format/test/arabicLocale-test.js:38:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:38:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["Nfk ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"Nfk ١٬٢٣٤٫٥٦");
 }
 
 fn t8() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-IL locale
-    skip("d3-format/test/arabicLocale-test.js:42:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:42:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["₪ ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"₪ ١٬٢٣٤٫٥٦");
 }
 
 fn t9() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-IQ locale
-    skip("d3-format/test/arabicLocale-test.js:46:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:46:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.ع.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ د.ع.");
 }
 
 fn t10() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-JO locale
-    skip("d3-format/test/arabicLocale-test.js:50:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:50:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.أ.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ د.أ.");
 }
 
 fn t11() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-KM locale
-    skip("d3-format/test/arabicLocale-test.js:54:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:54:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ف.ج.ق.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ف.ج.ق.");
 }
 
 fn t12() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-KW locale
-    skip("d3-format/test/arabicLocale-test.js:58:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:58:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.ك.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ د.ك.");
 }
 
 fn t13() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-LB locale
-    skip("d3-format/test/arabicLocale-test.js:62:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:62:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ل.ل.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ل.ل.");
 }
 
 fn t14() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-MA locale
-    skip("d3-format/test/arabicLocale-test.js:66:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:66:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.م. ".into(), "".into()], ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"د.م. 1.234,56");
 }
 
 fn t15() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-MR locale
-    skip("d3-format/test/arabicLocale-test.js:70:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:70:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " أ.م.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ أ.م.");
 }
 
 fn t16() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-OM locale
-    skip("d3-format/test/arabicLocale-test.js:74:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:74:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.ع.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ر.ع.");
 }
 
 fn t17() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-PS locale
-    skip("d3-format/test/arabicLocale-test.js:78:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:78:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["₪ ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"₪ ١٬٢٣٤٫٥٦");
 }
 
 fn t18() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-QA locale
-    skip("d3-format/test/arabicLocale-test.js:82:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:82:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.ق.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ر.ق.");
 }
 
 fn t19() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-SA locale
-    skip("d3-format/test/arabicLocale-test.js:86:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:86:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.س.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ر.س.");
 }
 
 fn t20() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-SD locale
-    skip("d3-format/test/arabicLocale-test.js:90:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:90:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ج.س.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ج.س.");
 }
 
 fn t21() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-SO locale
-    skip("d3-format/test/arabicLocale-test.js:94:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:94:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["‏S ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"‏S ١٬٢٣٤٫٥٦");
 }
 
 fn t22() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-SS locale
-    skip("d3-format/test/arabicLocale-test.js:98:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:98:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["£ ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"£ ١٬٢٣٤٫٥٦");
 }
 
 fn t23() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-SY locale
-    skip("d3-format/test/arabicLocale-test.js:102:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:102:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ل.س.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ل.س.");
 }
 
 fn t24() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-TD locale
-    skip("d3-format/test/arabicLocale-test.js:106:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:106:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["‏FCFA ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"‏FCFA ١٬٢٣٤٫٥٦");
 }
 
 fn t25() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-TN locale
-    skip("d3-format/test/arabicLocale-test.js:110:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:110:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.ت. ".into(), "".into()], ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"د.ت. 1.234,56");
 }
 
 fn t26() {   // arabicLocale-test.js: formatLocale() can format numbers using ar-YE locale
-    skip("d3-format/test/arabicLocale-test.js:114:3", "gap: phase 26 (locale tables) (in locale)");
+    check("d3-format/test/arabicLocale-test.js:114:3", Kind::Strict, &format::Locale::new(format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.ى.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }).format("$,.2f").expect("d3 test").format(1234.56), &"١٬٢٣٤٫٥٦ ر.ى.");
 }
 
 fn t27() {   // defaultLocale-test.js: formatDefaultLocale(definition) returns the new default locale
@@ -1161,26 +1161,27 @@ fn t146() {   // locale-test.js: formatLocale({grouping: [sizes…]}) observes t
 }
 
 fn t147() {   // locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.
-    skip("d3-format/test/locale-test.js:37:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:38:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:39:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:40:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:41:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:42:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:43:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:44:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:45:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:46:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:47:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:48:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:49:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:50:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:51:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:52:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:53:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:54:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:55:3", "gap: phase 26 (locale tables) (in locale)");
-    skip("d3-format/test/locale-test.js:56:3", "gap: phase 26 (locale tables) (in locale)");
+    let mut format = format::Locale::new(format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3, 2, 2, 2, 2, 2, 2, 2, 2, 2].into(), currency: ["₹".into(), "".into()], ..Default::default() }).format(",").expect("d3 test");
+    check("d3-format/test/locale-test.js:37:3", Kind::Strict, &format.format(10.0), &"10");
+    check("d3-format/test/locale-test.js:38:3", Kind::Strict, &format.format(100.0), &"100");
+    check("d3-format/test/locale-test.js:39:3", Kind::Strict, &format.format(1000.0), &"1,000");
+    check("d3-format/test/locale-test.js:40:3", Kind::Strict, &format.format(10000.0), &"10,000");
+    check("d3-format/test/locale-test.js:41:3", Kind::Strict, &format.format(100000.0), &"1,00,000");
+    check("d3-format/test/locale-test.js:42:3", Kind::Strict, &format.format(1000000.0), &"10,00,000");
+    check("d3-format/test/locale-test.js:43:3", Kind::Strict, &format.format(10000000.0), &"1,00,00,000");
+    check("d3-format/test/locale-test.js:44:3", Kind::Strict, &format.format(10000000.4543), &"1,00,00,000.4543");
+    check("d3-format/test/locale-test.js:45:3", Kind::Strict, &format.format(1000.321), &"1,000.321");
+    check("d3-format/test/locale-test.js:46:3", Kind::Strict, &format.format(10.5), &"10.5");
+    check("d3-format/test/locale-test.js:47:3", Kind::Strict, &format.format(-10.0), &"−10");
+    check("d3-format/test/locale-test.js:48:3", Kind::Strict, &format.format(-100.0), &"−100");
+    check("d3-format/test/locale-test.js:49:3", Kind::Strict, &format.format(-1000.0), &"−1,000");
+    check("d3-format/test/locale-test.js:50:3", Kind::Strict, &format.format(-10000.0), &"−10,000");
+    check("d3-format/test/locale-test.js:51:3", Kind::Strict, &format.format(-100000.0), &"−1,00,000");
+    check("d3-format/test/locale-test.js:52:3", Kind::Strict, &format.format(-1000000.0), &"−10,00,000");
+    check("d3-format/test/locale-test.js:53:3", Kind::Strict, &format.format(-10000000.0), &"−1,00,00,000");
+    check("d3-format/test/locale-test.js:54:3", Kind::Strict, &format.format(-10000000.4543), &"−1,00,00,000.4543");
+    check("d3-format/test/locale-test.js:55:3", Kind::Strict, &format.format(-1000.321), &"−1,000.321");
+    check("d3-format/test/locale-test.js:56:3", Kind::Strict, &format.format(-10.5), &"−10.5");
 }
 
 fn t148() {   // locale-test.js: formatLocale({thousands: separator}) observes the specified group separator
@@ -1207,10 +1208,74 @@ fn t151() {   // locale-test.js: formatLocale({nan: nan}) observes the specified
 }
 
 fn t152() {   // locale-test.js: locale data is valid
-    skip("d3-format/test/locale-test.js:86:5", "gap: phase 26 (locale tables)");
-    skip("d3-format/test/locale-test.js:87:5", "gap: phase 26 (locale tables)");
-    skip("d3-format/test/locale-test.js:88:5", "gap: phase 26 (locale tables)");
-    skip("d3-format/test/locale-test.js:89:5", "gap: phase 26 (locale tables)");
+    let tables: [(&[&str], format::Definition); 59] = [
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.إ.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.ب.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["‏Fdj ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.ج. ".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ج.م.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["د.م. ".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["Nfk ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["₪ ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.ع.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.أ.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ف.ج.ق.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " د.ك.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ل.ل.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.ل. ".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.م. ".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " أ.م.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.ع.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["₪ ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.ق.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.س.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ج.س.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["‏S ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["£ ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ل.س.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["‏FCFA ".into(), "".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["د.ت. ".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "numerals"], format::Definition { decimal: "٫".into(), thousands: "٬".into(), grouping: vec![3].into(), currency: ["".into(), " ر.ى.".into()], numerals: Some(["٠".into(), "١".into(), "٢".into(), "٣".into(), "٤".into(), "٥".into(), "٦".into(), "٧".into(), "٨".into(), "٩".into()]), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " Kč".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), " kr".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: "'".into(), grouping: vec![3].into(), currency: ["".into(), " CHF".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["$".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["£".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["€".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3, 2, 2, 2, 2, 2, 2, 2, 2, 2].into(), currency: ["₹".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["$".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "percent"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["Bs ".into(), "".into()], percent: " %".into(), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["$".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), "$".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency", "percent"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], percent: " %".into(), ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["₪".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " Ft".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["€".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["".into(), "円".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["₩".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), " ден.".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["€ ".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), "zł".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["R$".into(), "".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " ₽".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: ".".into(), grouping: vec![3].into(), currency: ["".into(), " €".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " kr".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ",".into(), thousands: " ".into(), grouping: vec![3].into(), currency: ["".into(), " ₴.".into()], ..Default::default() }),
+        (&["decimal", "thousands", "grouping", "currency"], format::Definition { decimal: ".".into(), thousands: ",".into(), grouping: vec![3].into(), currency: ["¥".into(), "".into()], ..Default::default() }),
+    ];
+    for (keys, definition) in tables {
+        check("d3-format/test/locale-test.js:86:5", Kind::Strict, &keys.contains(&"currency"), &true);
+        check("d3-format/test/locale-test.js:87:5", Kind::Strict, &keys.contains(&"decimal"), &true);
+        check("d3-format/test/locale-test.js:88:5", Kind::Strict, &keys.contains(&"grouping"), &true);
+        check("d3-format/test/locale-test.js:89:5", Kind::Strict, &keys.contains(&"thousands"), &true);
+        format::Locale::new(definition);
+    }
 }
 
 fn t153() {   // precisionFixed-test.js: precisionFixed(number) returns the expected value
@@ -1464,33 +1529,33 @@ pub const TESTS: &[Test] = &[
 ];
 
 pub const ASSERTS: &[Assertion] = &[
-    Assertion { id: "d3-format/test/arabicLocale-test.js:10:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-001 locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:14:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-AE locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:18:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-BH locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:22:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-DJ locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:26:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-DZ locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:30:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-EG locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:34:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-EH locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:38:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-ER locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:42:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-IL locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:46:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-IQ locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:50:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-JO locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:54:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-KM locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:58:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-KW locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:62:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-LB locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:66:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-MA locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:70:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-MR locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:74:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-OM locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:78:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-PS locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:82:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-QA locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:86:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SA locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:90:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SD locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:94:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SO locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:98:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SS locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:102:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SY locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:106:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-TD locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:110:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-TN locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/arabicLocale-test.js:114:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-YE locale", skip: Some("gap: phase 26 (locale tables) (in locale)") },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:10:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-001 locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:14:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-AE locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:18:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-BH locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:22:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-DJ locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:26:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-DZ locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:30:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-EG locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:34:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-EH locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:38:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-ER locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:42:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-IL locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:46:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-IQ locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:50:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-JO locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:54:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-KM locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:58:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-KW locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:62:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-LB locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:66:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-MA locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:70:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-MR locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:74:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-OM locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:78:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-PS locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:82:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-QA locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:86:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SA locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:90:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SD locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:94:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SO locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:98:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SS locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:102:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-SY locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:106:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-TD locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:110:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-TN locale", skip: None },
+    Assertion { id: "d3-format/test/arabicLocale-test.js:114:3", test: "arabicLocale-test.js: formatLocale() can format numbers using ar-YE locale", skip: None },
     Assertion { id: "d3-format/test/defaultLocale-test.js:22:5", test: "defaultLocale-test.js: formatDefaultLocale(definition) returns the new default locale", skip: None },
     Assertion { id: "d3-format/test/defaultLocale-test.js:23:5", test: "defaultLocale-test.js: formatDefaultLocale(definition) returns the new default locale", skip: None },
     Assertion { id: "d3-format/test/defaultLocale-test.js:32:5", test: "defaultLocale-test.js: formatDefaultLocale(definition) affects format", skip: Some("js: function identity") },
@@ -2124,26 +2189,26 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-format/test/locale-test.js:30:3", test: "locale-test.js: formatLocale({grouping: [sizes…]}) observes the specified group sizes", skip: None },
     Assertion { id: "d3-format/test/locale-test.js:31:3", test: "locale-test.js: formatLocale({grouping: [sizes…]}) observes the specified group sizes", skip: None },
     Assertion { id: "d3-format/test/locale-test.js:32:3", test: "locale-test.js: formatLocale({grouping: [sizes…]}) observes the specified group sizes", skip: None },
-    Assertion { id: "d3-format/test/locale-test.js:37:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:38:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:39:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:40:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:41:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:42:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:43:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:44:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:45:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:46:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:47:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:48:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:49:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:50:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:51:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:52:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:53:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:54:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:55:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
-    Assertion { id: "d3-format/test/locale-test.js:56:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: Some("gap: phase 26 (locale tables) (in locale)") },
+    Assertion { id: "d3-format/test/locale-test.js:37:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:38:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:39:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:40:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:41:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:42:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:43:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:44:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:45:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:46:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:47:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:48:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:49:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:50:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:51:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:52:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:53:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:54:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:55:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:56:3", test: "locale-test.js: formatLocale(…) can format numbers using the Indian numbering system.", skip: None },
     Assertion { id: "d3-format/test/locale-test.js:60:3", test: "locale-test.js: formatLocale({thousands: separator}) observes the specified group separator", skip: None },
     Assertion { id: "d3-format/test/locale-test.js:61:3", test: "locale-test.js: formatLocale({thousands: separator}) observes the specified group separator", skip: None },
     Assertion { id: "d3-format/test/locale-test.js:65:3", test: "locale-test.js: formatLocale({percent: percent}) observes the specified percent sign", skip: None },
@@ -2155,10 +2220,10 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-format/test/locale-test.js:77:3", test: "locale-test.js: formatLocale({nan: nan}) observes the specified not-a-number representation", skip: Some("js: formatted value is not a number (coercion)") },
     Assertion { id: "d3-format/test/locale-test.js:78:3", test: "locale-test.js: formatLocale({nan: nan}) observes the specified not-a-number representation", skip: Some("js: formatted value is not a number (coercion)") },
     Assertion { id: "d3-format/test/locale-test.js:79:3", test: "locale-test.js: formatLocale({nan: nan}) observes the specified not-a-number representation", skip: Some("js: formatted value is not a number (coercion)") },
-    Assertion { id: "d3-format/test/locale-test.js:86:5", test: "locale-test.js: locale data is valid", skip: Some("gap: phase 26 (locale tables)") },
-    Assertion { id: "d3-format/test/locale-test.js:87:5", test: "locale-test.js: locale data is valid", skip: Some("gap: phase 26 (locale tables)") },
-    Assertion { id: "d3-format/test/locale-test.js:88:5", test: "locale-test.js: locale data is valid", skip: Some("gap: phase 26 (locale tables)") },
-    Assertion { id: "d3-format/test/locale-test.js:89:5", test: "locale-test.js: locale data is valid", skip: Some("gap: phase 26 (locale tables)") },
+    Assertion { id: "d3-format/test/locale-test.js:86:5", test: "locale-test.js: locale data is valid", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:87:5", test: "locale-test.js: locale data is valid", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:88:5", test: "locale-test.js: locale data is valid", skip: None },
+    Assertion { id: "d3-format/test/locale-test.js:89:5", test: "locale-test.js: locale data is valid", skip: None },
     Assertion { id: "d3-format/test/precisionFixed-test.js:5:3", test: "precisionFixed-test.js: precisionFixed(number) returns the expected value", skip: None },
     Assertion { id: "d3-format/test/precisionFixed-test.js:6:3", test: "precisionFixed-test.js: precisionFixed(number) returns the expected value", skip: None },
     Assertion { id: "d3-format/test/precisionFixed-test.js:7:3", test: "precisionFixed-test.js: precisionFixed(number) returns the expected value", skip: None },

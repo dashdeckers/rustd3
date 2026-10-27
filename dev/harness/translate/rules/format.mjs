@@ -1,9 +1,14 @@
 // d3-format's names. Tests run under format::Locale::EN_US, d3's default;
-// formatLocale({…}) is Locale::new over a Definition literal; specifiers
-// have read-only fields; the precision functions' NaN is None (opt).
-import { calleeName, ex, needNum, rustStr, skip } from "../expr.mjs";
+// formatLocale({…}) is Locale::new over a Definition literal; a test's
+// locale("xx-YY") reads d3's JSON table at translation time: the bundled
+// constant when core has one, else a Definition literal; specifiers have
+// read-only fields; the precision functions' NaN is None (opt).
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { calleeName, ex, idOf, needNum, rustStr, skip } from "../expr.mjs";
 
 const EN_US = "format::Locale::EN_US";
+const TABLES = new URL("../../d3/d3-format/locale/", import.meta.url);
+const BUNDLED = new URL("../../../../core/src/format/locales/", import.meta.url);
 const TEXT = ["decimal", "thousands", "percent", "minus", "nan"];
 const READ = {
   fill: [".fill().to_string()", "str"], align: [".align().to_string()", "str"], sign: [".sign().to_string()", "str"],
@@ -24,21 +29,61 @@ function make(locale, name, args) {
 /** A Definition literal from formatLocale's argument, or a top-level const holding one. */
 function definition(node, ctx) {
   const object = node?.type === "Identifier" ? ctx.file.helpers.get(node.name)?.node : node;
-  if (object?.type !== "ObjectExpression") skip("gap: phase 26 (locale tables)");
-  const props = new Map(object.properties.map((p) => [p.key.name ?? p.key.value, p.value]));
-  const str = (v) => (v?.type === "Literal" && typeof v.value === "string" ? `${rustStr(v.value)}.into()` : skip("js: a locale field that is not a string (coercion)"));
-  const size = (e) => (Number.isInteger(e.value) && e.value >= 0 ? String(e.value) : skip("js: a group size that is not a count"));
-  const list = (v, n, f) => (v.type === "ArrayExpression" && (!n || v.elements.length === n) ? v.elements.map(f).join(", ") : skip("js: a malformed locale array"));
-  const fields = [];
-  for (const [key, v] of props) {
-    if (TEXT.includes(key)) fields.push(`${key}: ${str(v)}`);
+  if (object?.type !== "ObjectExpression") skip("js: a locale definition that is not an object literal");
+  const value = (v) => (v.type === "Literal" ? v.value : v.type === "ArrayExpression" ? v.elements.map(value) : null);
+  return fields(Object.fromEntries(object.properties.map((p) => [p.key.name ?? p.key.value, value(p.value)])));
+}
+
+/** A Definition literal holding d3's definition `d`: its strings, string arrays and group sizes. */
+function fields(d) {
+  const str = (v) => (typeof v === "string" ? `${rustStr(v)}.into()` : skip("js: a locale field that is not a string (coercion)"));
+  const size = (n) => (Number.isInteger(n) && n >= 0 ? String(n) : skip("js: a group size that is not a count"));
+  const list = (v, n, f) => (Array.isArray(v) && (!n || v.length === n) ? v.map(f).join(", ") : skip("js: a malformed locale array"));
+  const out = [];
+  for (const [key, v] of Object.entries(d)) {
+    if (TEXT.includes(key)) out.push(`${key}: ${str(v)}`);
     // d3 groups only when thousands is given too.
-    else if (key === "grouping" && props.has("thousands")) fields.push(`grouping: vec![${list(v, 0, size)}].into()`);
-    else if (key === "currency") fields.push(`currency: [${list(v, 2, str)}]`);
-    else if (key === "numerals") fields.push(`numerals: Some([${list(v, 10, str)}])`);
+    else if (key === "grouping" && "thousands" in d) out.push(`grouping: vec![${list(v, 0, size)}].into()`);
+    else if (key === "currency") out.push(`currency: [${list(v, 2, str)}]`);
+    else if (key === "numerals") out.push(`numerals: Some([${list(v, 10, str)}])`);
     else if (key !== "grouping") skip(`js: locale field ${key}`);
   }
-  return `format::Locale::new(format::Definition { ${[...fields, "..Default::default()"].join(", ")} })`;
+  return `format::Definition { ${[...out, "..Default::default()"].join(", ")} }`;
+}
+
+const json = (file) => JSON.parse(readFileSync(new URL(file, TABLES), "utf8"));
+
+/** A test's locale("xx-YY"): d3's table read now, as core's constant when it bundles the table. */
+function table(node) {
+  const [name] = node.arguments;
+  if (name?.type !== "Literal" || typeof name.value !== "string") skip("js: a locale name that is not a string literal");
+  const rust = name.value.replace("-", "_");
+  if (existsSync(new URL(`${rust.toLowerCase()}.rs`, BUNDLED))) return `format::Locale::${rust.toUpperCase()}`;
+  return `format::Locale::new(${fields(json(`${name.value}.json`))})`;
+}
+
+/**
+ * locale-test.js's loop over every JSON table: a Rust loop over each
+ * table's keys and Definition. The loop's `in` checks become `contains`,
+ * formatLocale(locale) builds the locale.
+ */
+function everyTable(s, ctx) {
+  const files = readdirSync(TABLES).filter((f) => /\.json$/i.test(f)).sort();
+  const lines = [`let tables: [(&[&str], format::Definition); ${files.length}] = [`];
+  for (const file of files) lines.push(`    (&[${Object.keys(json(file)).map(rustStr).join(", ")}], ${fields(json(file))}),`);
+  lines.push("];", "for (keys, definition) in tables {");
+  for (const x of s.body.body) {
+    const e = x.expression;
+    const [has, yes] = e?.arguments ?? [];
+    if (x.type === "IfStatement" || x.type === "VariableDeclaration") continue; // the filter and the loop's binding
+    if (has?.operator === "in" && yes?.value === true && e.callee.property?.name === "strictEqual") {
+      const id = idOf(e, ctx.file);
+      lines.push(`    check(${rustStr(id)}, Kind::Strict, &keys.contains(&${rustStr(has.left.value)}), &true);`);
+      ctx.asserts.push({ id, skip: null });
+    } else if (e && calleeName(e, ctx) === "formatLocale") lines.push("    format::Locale::new(definition);");
+    else skip(`gap: ${x.type} in the loop over locale tables`);
+  }
+  return [...lines, "}"];
 }
 
 export default {
@@ -60,8 +105,10 @@ export default {
     }
     if (name === "formatLocale" || name === "formatDefaultLocale") {
       ctx.rebound ||= name === "formatDefaultLocale";
-      return { c: definition(node.arguments[0], ctx), t: "locale" };
+      return { c: `format::Locale::new(${definition(node.arguments[0], ctx)})`, t: "locale" };
     }
+    const h = ctx.file.helpers.get(name);
+    if (h?.kind === "fn" && ctx.file.source.slice(h.node.start, h.node.end).includes("./locale/")) return { c: table(node), t: "locale" };
     if (name !== "format" && name !== "formatPrefix" && name !== "formatSpecifier") return undefined;
     if (ctx.rebound && name !== "formatSpecifier") skip("js: formatDefaultLocale rebinds the module's exports");
     const args = node.arguments.map((a) => ex(a, ctx));
@@ -87,7 +134,7 @@ export default {
   // builds its numbers from strings, +("1e" + i).
   statement(s, ctx) {
     const text = ctx.file.source.slice(s.start, s.end);
-    if (s.type === "ForOfStatement" && text.includes("readdirSync")) skip("gap: phase 26 (locale tables)");
+    if (s.type === "ForOfStatement" && text.includes("readdirSync")) return everyTable(s, ctx);
     if (s.type === "ForStatement" && text.includes('+("1e"')) skip("js: numbers parsed from strings (coercion)");
   },
 };

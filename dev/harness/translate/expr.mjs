@@ -21,7 +21,8 @@
 //   apply(target, args, ctx)       calling a value that is not a fn
 //   equal(a, b)                    strictEqual of two such values, as bool code
 //   array(node, ctx)               an array literal as a type of the rules'
-//   statement(s, ctx)              a statement's skip reason, by throwing it
+//   statement(s, ctx)              a statement's skip reason, by throwing it,
+//                                  or its Rust lines, recording its assertions
 //   display                        [t]: types observed through Display
 //   assertions                     {name: (args, id, ctx) => check code} for
 //                                  a test file's own assertion helpers
@@ -334,10 +335,12 @@ function assertionsIn(node, rules) {
   return found.sort((a, b) => a.start - b.start);
 }
 
-const idOf = (callNode, file) => `${file.id}:${callNode.loc.start.line}:${callNode.loc.start.column + 1}`;
+/** The id of the assertion call `callNode` in `file`. */
+export const idOf = (callNode, file) => `${file.id}:${callNode.loc.start.line}:${callNode.loc.start.column + 1}`;
 
 function statement(s, ctx, out) {
-  ctx.rules.statement?.(s, ctx);
+  const own = ctx.rules.statement?.(s, ctx);
+  if (own) return void out.push(...own);
   if (s.type === "VariableDeclaration") {
     for (const d of s.declarations) {
       if (d.id.type !== "Identifier") skip("gap: destructuring");
