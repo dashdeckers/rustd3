@@ -5,3 +5,4 @@
 pub mod focus_context;
 pub mod scatter;
 pub mod trace;
+pub mod update_pattern;

@@ -2,6 +2,7 @@
 //! through `iced_test`'s simulator, on `ICED_TEST_BACKEND`'s renderer.
 
 mod focus_context;
+mod update_pattern;
 
 use iced::Settings;
 use iced::advanced::renderer::{self, Headless as _};
