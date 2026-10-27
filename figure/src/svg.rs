@@ -12,7 +12,17 @@ use kurbo::{Affine, BezPath, Cap, Join, Point, Rect, Shape};
 use peniko::{Brush, ImageData};
 
 use crate::list::{self, Clip, Command, GlyphRun, List, Outlines, Paints};
+use crate::lower::Caps;
 use crate::pixels;
+
+/// What [`write`] draws natively: everything but sweep gradients, which
+/// [`lower`](crate::lower::lower) rasterizes first.
+pub const CAPS: Caps = Caps {
+    glyphs: true,
+    markers: true,
+    clip_paths: true,
+    sweep: false,
+};
 
 /// How [`write`] writes a list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

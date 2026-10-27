@@ -10,6 +10,7 @@ pub use kurbo;
 pub use peniko;
 
 pub mod list;
+pub mod lower;
 pub mod path;
 pub mod raster;
 pub mod svg;
