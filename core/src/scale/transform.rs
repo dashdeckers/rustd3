@@ -83,6 +83,10 @@ pub trait Transform: Clone {
 
     /// d3's tickFormat for this transform under `locale`. The default is
     /// d3-scale's tickFormat.js.
+    ///
+    /// With no specifier the result must be `Ok`: an override's default
+    /// specifier must parse, since [`scale::Ticks::labels`] labels axes
+    /// through it and panics otherwise.
     fn tick_format(
         &self,
         locale: &Locale,
