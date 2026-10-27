@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use rustd3_core::color::Rgb;
-use rustd3_figure::kurbo::{Point, Rect};
-use rustd3_figure::list::{Command, GlyphRun, List};
+use rustd3_figure::kurbo::{Affine, Point, Rect, Size};
+use rustd3_figure::list::{self, Command, GlyphRun, List};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::text::{
     self, Anchor, Cache, Error, Fonts, Key, Shaped, Style, Text, anchor, span,
@@ -509,4 +509,230 @@ fn one_document_per_batch_costs_less_than_one_per_label() {
         "40 new labels: one document {one:?}, one each {each:?}; \
          12 labels in a new cache {fresh:?}, again (typst memoizes) {memoized:?}"
     );
+}
+
+/// One label of [`labels`]: its text and style, where it goes, how it
+/// is anchored and rotated.
+pub struct Placed {
+    /// The label.
+    pub text: Text,
+    /// Its style.
+    pub style: Style,
+    /// The anchor point.
+    pub at: Point,
+    /// Which point of the box is at `at`.
+    pub anchor: Anchor,
+    /// Clockwise, radians.
+    pub angle: f64,
+}
+
+/// The labels of the snapshots: plain, multi-line, colored, bold, math
+/// with rules, a missing glyph, a translucent span, rotated, at every
+/// anchor.
+pub fn placements() -> Vec<Placed> {
+    use anchor::{Horizontal, Vertical};
+    let at = |h, v| Anchor { h, v };
+    let sized = |size: f64, align: Horizontal| Style {
+        size,
+        fill: Rgb::hex(0x262626),
+        align,
+        ..style()
+    };
+    let place = |text: Text, style: Style, (x, y): (f64, f64), anchor: Anchor, angle: f64| Placed {
+        text,
+        style,
+        at: Point::new(x, y),
+        anchor,
+        angle,
+    };
+    vec![
+        place(
+            "0123456789".into(),
+            sized(11.0, Horizontal::Start),
+            (20.0, 30.0),
+            at(Horizontal::Start, Vertical::Baseline),
+            0.0,
+        ),
+        place(
+            "line one\nline two".into(),
+            sized(11.0, Horizontal::Middle),
+            (240.0, 20.0),
+            at(Horizontal::Middle, Vertical::Top),
+            0.0,
+        ),
+        place(
+            Text::from("Wheel: ").push(span("RL").fill(Rgb::hex(0xc44e52))),
+            sized(14.6667, Horizontal::Start),
+            (460.0, 30.0),
+            at(Horizontal::End, Vertical::Baseline),
+            0.0,
+        ),
+        place(
+            Text::from("bold ").push(span("RMS").bold()).push(" plain"),
+            sized(12.0, Horizontal::Start),
+            (20.0, 90.0),
+            at(Horizontal::Start, Vertical::Middle),
+            0.0,
+        ),
+        place(
+            text::typst("RMS [$m slash s^2$]"),
+            sized(16.0, Horizontal::Start),
+            (240.0, 100.0),
+            at(Horizontal::Middle, Vertical::Middle),
+            0.0,
+        ),
+        place(
+            text::typst("$x = (a + b)/2$"),
+            sized(14.0, Horizontal::Start),
+            (460.0, 130.0),
+            at(Horizontal::End, Vertical::Bottom),
+            0.0,
+        ),
+        place(
+            text::typst("$sqrt(x^2 + 1)$"),
+            sized(14.0, Horizontal::Start),
+            (20.0, 160.0),
+            at(Horizontal::Start, Vertical::Top),
+            0.0,
+        ),
+        place(
+            "漢字 missing".into(),
+            sized(11.0, Horizontal::Start),
+            (240.0, 210.0),
+            at(Horizontal::Middle, Vertical::Baseline),
+            0.0,
+        ),
+        place(
+            Text::from(span("half").fill(Rgb::hex(0x55a868).with_opacity(0.5))),
+            sized(12.0, Horizontal::Start),
+            (20.0, 260.0),
+            at(Horizontal::Start, Vertical::Bottom),
+            0.0,
+        ),
+        place(
+            "Bold title".into(),
+            Style {
+                bold: true,
+                fill: Rgb::hex(0x4c72b0),
+                ..sized(16.0, Horizontal::Middle)
+            },
+            (240.0, 290.0),
+            at(Horizontal::Middle, Vertical::Baseline),
+            0.0,
+        ),
+        place(
+            "vibration RMS [m/s²]".into(),
+            sized(12.0, Horizontal::Middle),
+            (470.0, 300.0),
+            at(Horizontal::Start, Vertical::Bottom),
+            -std::f64::consts::FRAC_PI_2,
+        ),
+    ]
+}
+
+/// `placements` shaped through one cache and placed into a 480 × 320
+/// list, and each label's box as placed, in list px.
+pub fn labels(placements: &[Placed]) -> (List, Vec<Rect>) {
+    let keys: Vec<Key> = placements
+        .iter()
+        .map(|p| Key::new(&p.text, &p.style))
+        .collect();
+    let mut cache = Cache::new(fonts());
+    cache.begin();
+    cache.prepare(&keys);
+    assert_eq!(cache.stats().compiles, 1, "one document");
+    let mut list = List {
+        size: Size::new(480.0, 320.0),
+        ..List::default()
+    };
+    let mut boxes = Vec::new();
+    for (p, key) in placements.iter().zip(&keys) {
+        let shaped = cache.get(key).expect("prepared").expect("shaped");
+        shaped.place(&mut list, p.at, p.anchor, p.angle);
+        let placement = Affine::translate(p.at.to_vec2()) * Affine::rotate(p.angle);
+        boxes.push(placement.transform_rect_bbox(shaped.bounds(p.anchor)));
+    }
+    (list, boxes)
+}
+
+#[test]
+fn list_dump_of_labels() {
+    let (list, _) = labels(&placements());
+    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let store = rustd3_testkit::snapshot::Store::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/snapshots"
+    ));
+    store.check("list_dump_of_labels.txt", &dump);
+}
+
+/// Every label's ink lies in its box and reaches the box's top and bottom
+/// (the ink edges under typst's `"bounds"` text edges) within a device px;
+/// a top, middle or bottom anchor has that edge of the ink on the anchor
+/// point, under a rotation too; nothing is drawn outside the boxes.
+#[cfg(feature = "raster")]
+#[test]
+fn a_vello_render_draws_each_label_in_its_box_at_its_anchor() {
+    let placements = placements();
+    let (list, boxes) = labels(&placements);
+    let scale = 2.0;
+    let image = rustd3_figure::raster::render(&list, scale).expect("the labels render");
+    let inked = |x: u32, y: u32| image.rgba[((y * image.width + x) * 4 + 3) as usize] > 0;
+    let mut claimed = vec![false; (image.width * image.height) as usize];
+    for (p, b) in placements.iter().zip(&boxes) {
+        let device = Rect::new(b.x0 * scale, b.y0 * scale, b.x1 * scale, b.y1 * scale);
+        let search = device.inflate(3.0, 3.0);
+        let mut ink = Rect::new(
+            f64::INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NEG_INFINITY,
+        );
+        for y in search.y0.floor() as u32..search.y1.ceil() as u32 {
+            for x in search.x0.floor() as u32..search.x1.ceil() as u32 {
+                claimed[(y * image.width + x) as usize] = true;
+                if inked(x, y) {
+                    ink = ink.union(Rect::new(
+                        f64::from(x),
+                        f64::from(y),
+                        f64::from(x + 1),
+                        f64::from(y + 1),
+                    ));
+                }
+            }
+        }
+        let text = p.text.typst();
+        let inside = device.inflate(1.0, 1.0);
+        assert!(
+            inside.contains(ink.origin()) && inside.contains(Point::new(ink.x1, ink.y1)),
+            "{text}: ink {ink:?} outside its box {device:?}"
+        );
+        // The text's top-to-bottom axis: y, or x under the quarter turn.
+        let (ink_edges, box_edges, at) = if p.angle == 0.0 {
+            ([ink.y0, ink.y1], [device.y0, device.y1], p.at.y * scale)
+        } else {
+            ([ink.x0, ink.x1], [device.x0, device.x1], p.at.x * scale)
+        };
+        for (i, b) in ink_edges.into_iter().zip(box_edges) {
+            assert!((i - b).abs() <= 1.0, "{text}: ink edge {i} vs box edge {b}");
+        }
+        let [top, bottom] = ink_edges;
+        let on_anchor = match p.anchor.v {
+            anchor::Vertical::Top => Some(top),
+            anchor::Vertical::Middle => Some((top + bottom) / 2.0),
+            anchor::Vertical::Bottom => Some(bottom),
+            anchor::Vertical::Baseline => None,
+        };
+        if let Some(edge) = on_anchor {
+            assert!(
+                (edge - at).abs() <= 1.0,
+                "{text}: ink at {edge}, anchor at {at}"
+            );
+        }
+    }
+    let stray = (0..image.height)
+        .flat_map(|y| (0..image.width).map(move |x| (x, y)))
+        .filter(|&(x, y)| inked(x, y) && !claimed[(y * image.width + x) as usize])
+        .count();
+    assert_eq!(stray, 0, "ink outside every box");
 }
