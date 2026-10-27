@@ -14,10 +14,14 @@ import ordinal from "./rules/ordinal.mjs";
 import path from "./rules/path.mjs";
 import scale from "./rules/scale.mjs";
 import shape from "./rules/shape.mjs";
+import zoom from "./rules/zoom.mjs";
 
 const tests = (names) => names.map((n) => `${n}-test.js`);
 // One generated module per suite: test files of one d3 package, translated
-// in the listed order under the rules for that module's names.
+// in the listed order under the rules for that module's names. d3-zoom's
+// zoom-test.js, zoom-events-test.js and zoom-callback-test.js drive the DOM
+// and stand in Phase 10's skip table; rustd3-core's interact/zoom.rs ports
+// zoom-test.js's numeric sequences.
 const SUITES = [
   { suite: "path", package: "d3-path", files: tests(["path", "pathRound"]), rules: path },
   {
@@ -57,6 +61,7 @@ const SUITES = [
     ],
     rules: shape,
   },
+  { suite: "zoom", package: "d3-zoom", files: tests(["transform"]), rules: zoom },
 ];
 
 const D3 = new URL("../d3/", import.meta.url);

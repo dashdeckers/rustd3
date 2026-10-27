@@ -78,6 +78,7 @@
 #floor d3-shape/test/curve/stepAfter-test.js 8
 #floor d3-shape/test/curve/stepBefore-test.js 8
 #floor d3-shape/test/line-test.js 3
+#floor d3-zoom/test/transform-test.js 11
 d3-array/test/nice-test.js:5:3
 d3-array/test/nice-test.js:6:3
 d3-array/test/nice-test.js:7:3
@@ -2690,3 +2691,14 @@ d3-shape/test/curve/stepBefore-test.js:18:3
 d3-shape/test/line-test.js:12:3
 d3-shape/test/line-test.js:63:3
 d3-shape/test/line-test.js:64:3
+d3-zoom/test/transform-test.js:5:3
+d3-zoom/test/transform-test.js:10:3
+d3-zoom/test/transform-test.js:15:3
+d3-zoom/test/transform-test.js:16:3
+d3-zoom/test/transform-test.js:20:3
+d3-zoom/test/transform-test.js:24:3
+d3-zoom/test/transform-test.js:28:3
+d3-zoom/test/transform-test.js:32:3
+d3-zoom/test/transform-test.js:36:3
+d3-zoom/test/transform-test.js:40:3
+d3-zoom/test/transform-test.js:48:3

@@ -13,7 +13,7 @@ pub(crate) use rustd3_core::ease::{Ease, Mode};
 pub(crate) use rustd3_core::interpolate::Interpolate;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
 pub(crate) use rustd3_core::shape::{self, Curve};
-pub(crate) use rustd3_core::{format, interpolate, scale, ticks};
+pub(crate) use rustd3_core::{format, interact, interpolate, scale, ticks};
 
 /// The d3 assertion an assertion was written with, which sets its d3 verdict.
 #[derive(Debug, Clone, Copy, PartialEq)]
