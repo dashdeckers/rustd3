@@ -7,6 +7,7 @@ use rustd3_core::color::Rgb;
 use rustd3_figure::kurbo::{Affine, Point, Rect, Size};
 use rustd3_figure::list::{self, Command, GlyphRun, List};
 use rustd3_figure::peniko::{Brush, Color};
+use rustd3_figure::svg;
 use rustd3_figure::text::{
     self, Anchor, Cache, Error, Fonts, Key, Shaped, Style, Text, anchor, span,
 };
@@ -735,4 +736,87 @@ fn a_vello_render_draws_each_label_in_its_box_at_its_anchor() {
         .filter(|&(x, y)| inked(x, y) && !claimed[(y * image.width + x) as usize])
         .count();
     assert_eq!(stray, 0, "ink outside every box");
+}
+
+/// `list` as SVG with runs written as `text`.
+fn svg(list: &List, text: svg::Text) -> String {
+    svg::write(list, &svg::Options { text }).expect("the labels need no lowering")
+}
+
+#[test]
+fn svg_text_elements_of_labels() {
+    let (list, _) = labels(&placements());
+    let store = rustd3_testkit::snapshot::Store::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/snapshots"
+    ));
+    store.check(
+        "svg_text_elements_of_labels.txt",
+        &svg(&list, svg::Text::Elements),
+    );
+}
+
+#[test]
+fn a_text_element_carries_the_runs_family_weight_and_positions() {
+    let (list, _) = labels(&placements());
+    let svg = svg(&list, svg::Text::Elements);
+    assert!(!svg.contains("<defs>"), "no glyph outlines");
+    assert!(
+        svg.contains(
+            "<text transform='matrix(1 0 0 1 20 30)' x='0 7 14 21 27.99 34.99 41.99 48.99 55.99 62.99' \
+             y='0' font-family='DejaVu Sans' font-size='11' fill='#262626' xml:space='preserve'>0123456789</text>"
+        ),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("font-family='DejaVu Sans' font-size='16' font-weight='bold' fill='#4c72b0'")
+    );
+    assert!(
+        svg.contains("font-family='NewComputerModern Math' font-size='11.2'"),
+        "the math face's typographic family, as its name table spells it"
+    );
+    assert!(
+        svg.contains("xml:space='preserve'> plain</text>"),
+        "a leading space kept"
+    );
+    assert!(svg.contains("fill='#55a868' fill-opacity='0.502'"));
+}
+
+/// resvg's render of `svg` at 2×, with the bundled fonts for `<text>`.
+fn resvg_render(svg: &str) -> (u32, u32, Vec<u8>) {
+    let mut options = resvg::usvg::Options::default();
+    for font in [
+        DEJAVU,
+        include_bytes!("../../../fonts/DejaVuSans-Bold.ttf"),
+        include_bytes!("../../../fonts/NewCMMath-Regular.otf"),
+    ] {
+        options.fontdb_mut().load_font_data(font.to_vec());
+    }
+    let tree = resvg::usvg::Tree::from_str(svg, &options).expect("our SVG parses");
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(960, 640).expect("a positive size");
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::from_scale(2.0, 2.0),
+        &mut pixmap.as_mut(),
+    );
+    (pixmap.width(), pixmap.height(), pixmap.data().to_vec())
+}
+
+#[test]
+fn resvg_draws_text_elements_close_to_the_outlines() {
+    let (list, _) = labels(&placements());
+    let (w, h, outlined) = resvg_render(&svg(&list, svg::Text::Outlines));
+    let (_, _, elements) = resvg_render(&svg(&list, svg::Text::Elements));
+    let off = outlined
+        .chunks_exact(4)
+        .zip(elements.chunks_exact(4))
+        .filter(|(a, b)| a.iter().zip(*b).any(|(c, d)| c.abs_diff(*d) > 16))
+        .count();
+    let share = off as f64 / f64::from(w * h);
+    println!(
+        "<text> vs outlines through resvg: {off} pixels ({:.3} %) more than 16/255 off",
+        share * 100.0
+    );
+    assert!(off > 0, "resvg re-shapes the text, so some pixels differ");
+    assert!(share <= 0.01, "{off} pixels, {:.3} %", share * 100.0);
 }

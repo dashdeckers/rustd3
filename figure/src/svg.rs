@@ -1,5 +1,6 @@
 //! SVG output: the list written as SVG elements, text as glyph outlines
-//! defined once each and used by every run, ids in command order.
+//! defined once each and used by every run (or, on request, as `<text>`),
+//! ids in command order.
 
 mod base64;
 pub(crate) mod number;
@@ -9,7 +10,7 @@ use std::collections::BTreeSet;
 use std::fmt::Write;
 
 use kurbo::{Affine, BezPath, Cap, Join, Point, Rect, Shape};
-use peniko::{Brush, ImageData};
+use peniko::{Brush, FontData, ImageData};
 
 use crate::list::{self, Clip, Command, GlyphRun, List, Outlines, Paints};
 use crate::lower::Caps;
@@ -39,6 +40,12 @@ pub enum Text {
     /// glyphs that were measured.
     #[default]
     Outlines,
+    /// Each solid run is one `<text>` element with its source text, for
+    /// editing: family and weight from the font's `name` table, one x per
+    /// glyph when glyphs map one to one onto characters, else the first
+    /// glyph's. A viewer re-shapes the text with whatever fonts it has, so
+    /// the drawing may differ from what was measured.
+    Elements,
 }
 
 /// `list` as an SVG document.
@@ -69,11 +76,14 @@ pub enum Text {
 /// ```
 pub fn write(list: &List, options: &Options) -> Result<String, list::Error> {
     list::check(list)?;
-    match options.text {
-        Text::Outlines => {}
-    }
+    let faces = match options.text {
+        Text::Outlines => Vec::new(),
+        Text::Elements => list.fonts.iter().map(Face::read).collect(),
+    };
     let mut writer = Writer {
         list,
+        text: options.text,
+        faces,
         out: String::new(),
         outlines: Outlines::default(),
         ids: Ids::default(),
@@ -96,9 +106,42 @@ struct Ids {
     images: usize,
 }
 
+/// A font as `<text>` names it.
+struct Face {
+    /// The typographic family, else the family, from the `name` table.
+    family: Option<String>,
+    bold: bool,
+}
+
+impl Face {
+    /// `font`'s family and weight; neither for a font ttf-parser cannot read.
+    fn read(font: &FontData) -> Face {
+        let Ok(face) = ttf_parser::Face::parse(font.data.data(), font.index) else {
+            return Face {
+                family: None,
+                bold: false,
+            };
+        };
+        let name = |id: u16| {
+            face.names()
+                .into_iter()
+                .filter(|name| name.name_id == id)
+                .find_map(|name| name.to_string())
+        };
+        Face {
+            family: name(ttf_parser::name_id::TYPOGRAPHIC_FAMILY)
+                .or_else(|| name(ttf_parser::name_id::FAMILY)),
+            bold: face.is_bold(),
+        }
+    }
+}
+
 /// One document being written.
 struct Writer<'a> {
     list: &'a List,
+    text: Text,
+    /// Per list font, for [`Text::Elements`].
+    faces: Vec<Face>,
     out: String,
     outlines: Outlines,
     ids: Ids,
@@ -107,7 +150,8 @@ struct Writer<'a> {
 }
 
 impl Writer<'_> {
-    /// The root element and the glyph outlines every solid run uses.
+    /// The root element and the glyph outlines every solid run uses when
+    /// runs are written as outlines.
     fn header(&mut self) {
         let (w, h) = (
             number::px(self.list.size.width),
@@ -123,7 +167,11 @@ impl Writer<'_> {
             .commands
             .iter()
             .filter_map(|c| match c {
-                Command::Glyphs(run) if matches!(run.fill, Brush::Solid(_)) => Some(run),
+                Command::Glyphs(run)
+                    if self.text == Text::Outlines && matches!(run.fill, Brush::Solid(_)) =>
+                {
+                    Some(run)
+                }
                 Command::Glyphs(_)
                 | Command::Fill { .. }
                 | Command::Stroke { .. }
@@ -289,8 +337,8 @@ impl Writer<'_> {
     }
 
     /// A solid run as `<use>` of the glyph defs under the run's transform
-    /// scaled to 1000 units per em; any other run as one path in its
-    /// group's space.
+    /// scaled to 1000 units per em, or as `<text>`; any other run as one
+    /// path in its group's space.
     fn glyphs(&mut self, command: usize, run: &GlyphRun) -> Result<(), list::Error> {
         let attrs = self.paint(command, "fill", &run.fill)?;
         if !matches!(run.fill, Brush::Solid(_)) {
@@ -300,6 +348,10 @@ impl Writer<'_> {
                 "<path d='{}'{attrs}/>",
                 number::path(&path, number::px)
             );
+            return Ok(());
+        }
+        if self.text == Text::Elements {
+            self.element(run, &attrs);
             return Ok(());
         }
         let k = f64::from(run.size) / 1000.0;
@@ -324,6 +376,43 @@ impl Writer<'_> {
         }
         self.out.push_str("</g>");
         Ok(())
+    }
+
+    /// A solid run as `<text>`, whitespace preserved so that each x stays
+    /// with its glyph's character.
+    fn element(&mut self, run: &GlyphRun, attrs: &str) {
+        let chars = run.text.char_indices();
+        let one_to_one = run.text.chars().count() == run.glyphs.len()
+            && run.glyphs.iter().zip(chars).all(|(glyph, (i, c))| {
+                let text = glyph.text.start as usize..glyph.text.end as usize;
+                text == (i..i + c.len_utf8())
+            });
+        let xs: Vec<String> = if one_to_one {
+            run.glyphs
+                .iter()
+                .map(|g| number::px(f64::from(g.x)))
+                .collect()
+        } else {
+            vec![number::px(
+                run.glyphs.first().map_or(0.0, |g| f64::from(g.x)),
+            )]
+        };
+        let face = &self.faces[run.font];
+        let family = face
+            .family
+            .as_deref()
+            .map(|f| format!(" font-family='{}'", xml(f)))
+            .unwrap_or_default();
+        let weight = if face.bold { " font-weight='bold'" } else { "" };
+        let _ = write!(
+            self.out,
+            "<text transform='{}' x='{}' y='0'{family} font-size='{}'{weight}{attrs} \
+             xml:space='preserve'>{}</text>",
+            number::matrix(run.transform),
+            xs.join(" "),
+            number::unit(f64::from(run.size)),
+            xml(&run.text)
+        );
     }
 
     /// `<image>` with the pixels as a base64 PNG data URI.
@@ -398,6 +487,21 @@ fn stroke(style: &kurbo::Stroke) -> String {
         }
     }
     s
+}
+
+/// `text` escaped for an XML attribute in single quotes or for content.
+fn xml(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '\'' => out.push_str("&apos;"),
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// Straight RGBA as an 8-bit PNG with default compression.

@@ -193,3 +193,50 @@ fn transparent_paints_carry_their_opacity() {
         "{svg}"
     );
 }
+
+#[test]
+fn a_run_whose_glyphs_are_not_its_characters_has_one_x() {
+    let mut run = sink::run("ffi", 10.0, Affine::IDENTITY, sink::rgb(0));
+    run.glyphs.truncate(2);
+    run.glyphs[1].text = 1..3;
+    let list = List {
+        size: Size::new(10.0, 10.0),
+        fonts: sink::fonts(),
+        commands: vec![Command::Glyphs(run)],
+        ..List::default()
+    };
+    let svg = svg::write(
+        &list,
+        &svg::Options {
+            text: svg::Text::Elements,
+        },
+    )
+    .unwrap();
+    assert!(
+        svg.contains("<text transform='matrix(1 0 0 1 0 0)' x='0' y='0' font-family='DejaVu Sans' font-size='10' fill='#000000' xml:space='preserve'>ffi</text>"),
+        "{svg}"
+    );
+}
+
+#[test]
+fn text_elements_escape_markup_characters() {
+    let list = List {
+        size: Size::new(10.0, 10.0),
+        fonts: sink::fonts(),
+        commands: vec![Command::Glyphs(sink::run(
+            "a<&>'b",
+            10.0,
+            Affine::IDENTITY,
+            sink::rgb(0),
+        ))],
+        ..List::default()
+    };
+    let svg = svg::write(
+        &list,
+        &svg::Options {
+            text: svg::Text::Elements,
+        },
+    )
+    .unwrap();
+    assert!(svg.contains(">a&lt;&amp;&gt;&apos;b</text>"), "{svg}");
+}
