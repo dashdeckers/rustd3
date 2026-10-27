@@ -67,7 +67,7 @@ release build of the examples took 11 min 42 s cold.
 
 ## D15.1 — Statements of Phase 15 that do not hold as written, or leave a detail open
 
-**Date:** 2026-10-27 · **Context:** Phase 15, 507178d … a49c764 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 15, 507178d … a49c764 · **Status:** decided
 
 ### Issue
 
@@ -149,10 +149,11 @@ release build of the examples took 11 min 42 s cold.
 
 ### Decision
 
-Recommended: A for all twelve, as built. The two public-API choices
-beyond the section are (1) the core additions (`Clone` readers and
-`Points::indexed`) and (2) `Indexed::thin`'s frame parameter with the
-public `thin::Frame`.
+A for all twelve (architect, 2026-10-27), as built. Core's `Points`
+readers bound `Clone` instead of `Copy` (looser, so no caller breaks)
+and core gains `Points::indexed()`; figure's `Indexed::thin` takes the
+public, opaque `thin::Frame`; the M4 memo key includes the validity
+fingerprint.
 
 ### Why
 
@@ -178,7 +179,7 @@ where a reader sees a band end.
 
 ## D15.2 — The trace example's SVG and PNG agree within 0.03, not 0.02
 
-**Date:** 2026-10-27 · **Context:** Phase 15, exit criterion 2 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 15, exit criterion 2 · **Status:** decided
 
 ### Issue
 
@@ -205,7 +206,9 @@ resvg against vello_cpu: 0.0346 at 1×, 0.0289 at 1.5×, 0.0258 at 2×,
 
 ### Decision
 
-Recommended: A, as built.
+A (architect, 2026-10-27): the trace example's SVG-through-resvg and
+PNG agree within a tile score of 0.03; resvg and vello_cpu already
+differ by 0.0258 on the identical list at self-overlapping strokes.
 
 ### Why
 
@@ -219,7 +222,7 @@ impacts if it measures on the trace.
 
 ## D15.3 — A 1 px line thinned at one column per device px stripes at 2×
 
-**Date:** 2026-10-27 · **Context:** Phase 15, the architect's 2× check · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 15, the architect's 2× check · **Status:** decided
 
 ### Issue
 
@@ -251,8 +254,10 @@ the 2 px variants are solid. Measured with vello_cpu and tiny-skia
 
 ### Decision
 
-Recommended: A, as built; revisit with the full-frame benchmark (Phase 22),
-which measures what more columns cost on screen.
+A (architect, 2026-10-27): one thinning column per device pixel on
+screen, as the section fixes; the theme's 2 px line meets every bound
+at 1× and 2×. Phase 22 reports the 1 px line on a 2× display beside its
+scenarios, and the columns change only on that measurement.
 
 ### Why
 
