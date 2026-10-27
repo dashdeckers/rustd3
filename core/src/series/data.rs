@@ -51,7 +51,7 @@ impl<'a, X, Y, I: IntoIterator<Item = (X, Y)>> Data<'a, X, Y> for I {
 /// Indexed: one channel, the view by value, nothing copied.
 impl<'a, X: Coordinate> Data<'a, X, f64> for Series<'a, X> {
     fn into_points(self) -> Points<'a, X, f64> {
-        Points::indexed(self)
+        Points::from_series(self)
     }
 }
 

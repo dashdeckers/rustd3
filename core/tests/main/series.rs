@@ -678,6 +678,40 @@ fn mark_data_needs_no_bound_on_its_keys() {
     assert!(empty.is_empty());
 }
 
+#[test]
+fn keys_that_are_only_clone_are_read_by_clone() {
+    let names = mark(vec![("front".to_string(), 1.0), ("rear".to_string(), 2.0)]);
+    assert_eq!(names.get(1), Some(("rear".to_string(), 2.0)));
+    let (keys, values) = (["a".to_string()], [3.0]);
+    let borrowed = mark(series::slices(&keys, &values));
+    assert_eq!(
+        borrowed.iter().collect::<Vec<_>>(),
+        [("a".to_string(), 3.0)]
+    );
+}
+
+/// The indexed view of points whose y type is named generically.
+fn indexed<'a, X, Y>(points: &Points<'a, X, Y>) -> Option<Points<'a, X, f64>> {
+    points.indexed()
+}
+
+#[test]
+fn the_indexed_view_needs_no_bound_and_keeps_the_channel() {
+    let rec = Recording::new(
+        Clock::Explicit(vec![0.5, 1.5, 4.0]),
+        [[1.0, 2.0, 3.0], [4.0, f64::NAN, 6.0]],
+    )
+    .expect("a valid recording");
+    let points = mark(rec.series(1).expect("channel 1"));
+    let view = indexed(&points).expect("a series view");
+    assert_eq!(view.get(2), Some((4.0, 6.0)));
+    let series = view.series().expect("still indexed");
+    assert_eq!((series.recording().id(), series.channel()), (rec.id(), 1));
+    assert!(indexed(&mark(vec![(Bin(1), 1.0)])).is_none());
+    let (x, y) = ([0.0], [1.0]);
+    assert!(indexed(&mark(series::slices(&x, &y))).is_none());
+}
+
 /// A key with neither `Clone` nor `Debug`.
 struct Plain;
 

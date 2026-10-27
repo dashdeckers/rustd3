@@ -37,9 +37,9 @@ impl<X, Y> Slices<'_, X, Y> {
     }
 }
 
-impl<X: Copy, Y: Copy> Slices<'_, X, Y> {
-    /// Pair `i`, if both slices hold it.
+impl<X: Clone, Y: Clone> Slices<'_, X, Y> {
+    /// Pair `i`, cloned, if both slices hold it.
     pub(crate) fn get(&self, i: usize) -> Option<(X, Y)> {
-        Some((*self.x.get(i)?, *self.y.get(i)?))
+        Some((self.x.get(i)?.clone(), self.y.get(i)?.clone()))
     }
 }

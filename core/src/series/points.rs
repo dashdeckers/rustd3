@@ -105,17 +105,47 @@ impl<'a, X, Y> Points<'a, X, Y> {
 
 impl<'a, X: Coordinate> Points<'a, X, f64> {
     /// One channel of a recording, borrowed with its index.
-    pub(crate) fn indexed(series: Series<'a, X>) -> Self {
+    pub(crate) fn from_series(series: Series<'a, X>) -> Self {
         let repr = Repr::Series(series.recording(), series.channel(), std::convert::identity);
         Self { repr }
     }
 }
 
-impl<X: Copy, Y: Copy> Points<'_, X, Y> {
-    /// Pair `i`, if there is one.
+impl<'a, X, Y> Points<'a, X, Y> {
+    /// The same recording channel as `f64` pairs, for code generic over
+    /// `X` and `Y` that thins or fits through an index: `Some` for a
+    /// borrowed [`Series`] (a channel holds `f64`, whatever `Y` is named
+    /// here), `None` for collected pairs and slices. Needs no bound.
+    ///
+    /// ```
+    /// use rustd3_core::series::{Clock, Data, Points, Recording};
+    ///
+    /// fn view<'a, X, Y>(points: &Points<'a, X, Y>) -> Option<Points<'a, X, f64>> {
+    ///     points.indexed()
+    /// }
+    ///
+    /// let rec = Recording::new(Clock::Explicit(vec![0.0, 1.0]), [[4.0, 2.0]])?;
+    /// let series = rec.series(0).expect("channel 0").into_points();
+    /// assert_eq!(view(&series).map(|p| p.get(1)), Some(Some((1.0, 2.0))));
+    /// assert!(view(&[(0.0, 1.0)].into_points()).is_none());
+    /// # Ok::<(), rustd3_core::series::Error>(())
+    /// ```
+    pub fn indexed(&self) -> Option<Points<'a, X, f64>> {
+        match &self.repr {
+            Repr::Series(source, channel, _) => Some(Points {
+                repr: Repr::Series(*source, *channel, std::convert::identity),
+            }),
+            Repr::Owned(_) | Repr::Slices(_) => None,
+        }
+    }
+}
+
+impl<X: Clone, Y: Clone> Points<'_, X, Y> {
+    /// Pair `i`, if there is one: cloned from collected pairs and slices,
+    /// read from a recording.
     pub fn get(&self, i: usize) -> Option<(X, Y)> {
         match &self.repr {
-            Repr::Owned(pairs) => pairs.get(i).copied(),
+            Repr::Owned(pairs) => pairs.get(i).cloned(),
             Repr::Slices(slices) => slices.get(i),
             Repr::Series(source, channel, y) => source.get(*channel, i).map(|(x, v)| (x, y(v))),
         }
