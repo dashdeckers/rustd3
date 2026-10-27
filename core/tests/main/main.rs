@@ -16,4 +16,5 @@ mod point;
 mod rules;
 mod scale;
 mod scheme;
+mod shape;
 mod ticks;
