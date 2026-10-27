@@ -2,6 +2,8 @@
 //! `ScalarFormatter` offset text and order of magnitude for a continuous
 //! axis whose domain sits far from zero, or is tiny or huge.
 
+use rustd3_core::format;
+
 /// Domains whose centre is more than this many spans from zero get an
 /// offset.
 const FAR: f64 = 1e4;
@@ -57,18 +59,31 @@ impl Notation {
         }
     }
 
-    /// The label at the axis's end: `+` or `−` and the offset's shortest
-    /// mantissa and exponent (`+1e9`, `+1.2345e4`, `−1e9`), or the
-    /// multiplier (`1e−7`, `1e7`).
-    pub(crate) fn label(self) -> String {
-        let text = match self {
+    /// The label at the axis's end, written in `locale` as tick labels are
+    /// (its decimal mark, minus sign and numerals): `+` or the minus and the
+    /// offset's shortest mantissa and exponent (`+1e9`, `+1.2345e4`,
+    /// `−1e9`), or the multiplier (`1e−7`, `1e7`).
+    pub(crate) fn label(self, locale: &format::Locale) -> String {
+        let (mantissa, digits, exponent, sign) = match self {
             Notation::Offset(o) => {
-                let sign = if o < 0.0 { '−' } else { '+' };
-                format!("{sign}{:e}", o.abs())
+                let text = format!("{o:e}");
+                let (mantissa, exponent) =
+                    text.split_once('e').expect("invariant: {:e} writes an e");
+                let digits = mantissa.bytes().filter(u8::is_ascii_digit).count();
+                let mantissa = mantissa.parse().expect("invariant: {:e} writes a decimal");
+                let exponent = exponent.parse().expect("invariant: {:e} writes an integer");
+                (mantissa, digits, exponent, "+")
             }
-            Notation::Multiplier(m) => format!("1e{m}"),
+            Notation::Multiplier(m) => (1.0, 1, m, ""),
         };
-        text.replace('-', "−")
+        let written = |specifier: &str, value: f64| {
+            let format = locale.format(specifier);
+            format
+                .expect("invariant: an r or d specifier parses")
+                .format(value)
+        };
+        let mantissa = written(&format!("{sign}.{digits}r"), mantissa);
+        format!("{mantissa}e{}", written("d", f64::from(exponent)))
     }
 }
 
@@ -156,7 +171,7 @@ mod tests {
         for (domain, label) in rows {
             let notation = Notation::of(domain).expect("an offset");
             assert!(matches!(notation, Notation::Offset(_)), "{notation:?}");
-            assert_eq!(notation.label(), label);
+            assert_eq!(notation.label(&format::Locale::NEUTRAL), label);
         }
         assert_eq!(
             Notation::of([12345.0, 12345.3]),
@@ -178,16 +193,49 @@ mod tests {
     fn tiny_and_huge_domains_take_a_multiplier() {
         let tiny = Notation::of([0.0, 3e-7]).expect("a multiplier");
         assert_eq!(tiny, Notation::Multiplier(-7));
-        assert_eq!(tiny.label(), "1e−7");
+        assert_eq!(tiny.label(&format::Locale::NEUTRAL), "1e−7");
         assert_eq!(tiny.apply(3e-7), 3.0);
         let huge = Notation::of([0.0, 2.5e7]).expect("a multiplier");
         assert_eq!(
-            (huge, huge.label()),
+            (huge, huge.label(&format::Locale::NEUTRAL)),
             (Notation::Multiplier(7), "1e7".into())
         );
         assert_eq!(Notation::of([0.0, 9.9e5]), None);
         assert_eq!(Notation::of([0.0, 1e-4]), None);
         assert_eq!(Notation::of([0.0, 9.9e-5]), Some(Notation::Multiplier(-5)));
+    }
+
+    #[test]
+    fn labels_take_the_locales_decimal_mark_minus_and_numerals() {
+        let de = format::Locale::DE_DE;
+        let offset = Notation::of([12345.0, 12345.3]).expect("an offset");
+        assert_eq!(offset.label(&de), "+1,2345e4");
+        let hyphen = format::Locale::new(format::Definition {
+            minus: "-".into(),
+            ..format::Definition::default()
+        });
+        let below = Notation::of([-1e9 - 1.0, -1e9]).expect("an offset");
+        assert_eq!(below.label(&hyphen), "-1e9");
+        assert_eq!(Notation::Multiplier(-7).label(&hyphen), "1e-7");
+        assert_eq!(Notation::Multiplier(-7).label(&de), "1e\u{2212}7");
+        let arabic = format::Locale::new(format::Definition {
+            decimal: "\u{66b}".into(),
+            numerals: Some(["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"].map(Into::into)),
+            ..format::Definition::default()
+        });
+        assert_eq!(offset.label(&arabic), "+١٫٢٣٤٥e٤");
+    }
+
+    #[test]
+    fn labels_keep_the_offsets_shortest_digits() {
+        let neutral = format::Locale::NEUTRAL;
+        for (o, label) in [
+            (1.5e9, "+1.5e9"),
+            (-2.0e-3, "−2e−3"),
+            (0.1 + 0.2, "+3.0000000000000004e−1"),
+        ] {
+            assert_eq!(Notation::Offset(o).label(&neutral), label);
+        }
     }
 
     #[test]

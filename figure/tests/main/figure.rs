@@ -3,6 +3,7 @@
 
 use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
+use rustd3_core::format;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_core::scheme::COLORBLIND;
@@ -586,6 +587,24 @@ fn default_tick_labels_are_written_in_the_figure_locale() {
     let offset = axis_texts(&in_locale([1e9, 1e9 + 12_000.0], 6, Locale::EN_US));
     assert_eq!(offset[..7], us[..]);
     assert_eq!(offset[7], "+1e9");
+}
+
+#[test]
+fn the_notation_label_is_written_in_the_figure_locale() {
+    let de = Locale::from(format::Locale::DE_DE);
+    let offset = axis_texts(&in_locale([12_345.0, 12_345.3], 6, de.clone()));
+    assert_eq!(offset[..2], ["0,00", "0,05"]);
+    assert_eq!(offset.last().map(String::as_str), Some("+1,2345e4"));
+    let hyphen = Locale::from(format::Locale::new(format::Definition {
+        minus: "-".into(),
+        ..format::Definition::default()
+    }));
+    let tiny = axis_texts(&in_locale([-3e-7, 0.0], 6, hyphen));
+    assert_eq!(tiny[0], "-3.0");
+    assert_eq!(tiny.last().map(String::as_str), Some("1e-7"));
+    let tiny = axis_texts(&in_locale([0.0, 3e-7], 6, de));
+    assert_eq!(tiny[1..3], ["0,5", "1,0"]);
+    assert_eq!(tiny.last().map(String::as_str), Some("1e\u{2212}7"));
 }
 
 #[test]

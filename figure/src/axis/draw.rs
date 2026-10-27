@@ -152,7 +152,8 @@ where
     }
 
     fn notation(&self, resolved: &Resolved, count: usize) -> Option<String> {
-        Axis::notation(self, resolved.scale(self.scale), count).map(|n| n.label())
+        let locale = resolved.locale().number();
+        Axis::notation(self, resolved.scale(self.scale), count).map(|n| n.label(locale))
     }
 
     fn title(&self) -> Option<&text::Text> {
