@@ -23,6 +23,8 @@ mod hue;
 mod piecewise;
 mod quantize;
 
+pub(crate) use color::basis_at;
+
 pub use basis::basis;
 pub use color::{
     cubehelix, cubehelix_long, hcl, hcl_long, hsl, hsl_long, lab, rgb, rgb_basis, rgb_gamma,

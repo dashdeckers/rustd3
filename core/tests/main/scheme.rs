@@ -1,9 +1,62 @@
 //! The color schemes: the categorical ones' lengths, first and last
-//! entries against d3, seaborn 0.13.2 and Okabe and Ito; the viridis
-//! family's ramps against d3-scale-chromatic 3.1.0.
+//! entries against d3, seaborn 0.13.2 and Okabe and Ito; every
+//! sequential, diverging and cyclical scheme against d3-scale-chromatic
+//! 3.1.0 (`dev/fixtures/schemes.json`, written by `schemes.mjs`).
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scheme;
+use serde_json::Value;
+
+/// The fixture, read at compile time so the test needs no working directory.
+const SCHEMES: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../dev/fixtures/schemes.json"
+));
+
+/// A scheme function.
+type Scheme = fn(f64) -> Rgb;
+
+/// Every scheme function, under the fixture's name for it.
+const FUNCTIONS: [(&str, Scheme); 38] = [
+    ("blues", scheme::blues),
+    ("br_bg", scheme::br_bg),
+    ("bu_gn", scheme::bu_gn),
+    ("bu_pu", scheme::bu_pu),
+    ("cividis", scheme::cividis),
+    ("cool", scheme::cool),
+    ("cubehelix_default", scheme::cubehelix_default),
+    ("gn_bu", scheme::gn_bu),
+    ("greens", scheme::greens),
+    ("greys", scheme::greys),
+    ("inferno", scheme::inferno),
+    ("magma", scheme::magma),
+    ("or_rd", scheme::or_rd),
+    ("oranges", scheme::oranges),
+    ("pi_yg", scheme::pi_yg),
+    ("plasma", scheme::plasma),
+    ("pr_gn", scheme::pr_gn),
+    ("pu_bu", scheme::pu_bu),
+    ("pu_bu_gn", scheme::pu_bu_gn),
+    ("pu_or", scheme::pu_or),
+    ("pu_rd", scheme::pu_rd),
+    ("purples", scheme::purples),
+    ("rainbow", scheme::rainbow),
+    ("rd_bu", scheme::rd_bu),
+    ("rd_gy", scheme::rd_gy),
+    ("rd_pu", scheme::rd_pu),
+    ("rd_yl_bu", scheme::rd_yl_bu),
+    ("rd_yl_gn", scheme::rd_yl_gn),
+    ("reds", scheme::reds),
+    ("sinebow", scheme::sinebow),
+    ("spectral", scheme::spectral),
+    ("turbo", scheme::turbo),
+    ("viridis", scheme::viridis),
+    ("warm", scheme::warm),
+    ("yl_gn", scheme::yl_gn),
+    ("yl_gn_bu", scheme::yl_gn_bu),
+    ("yl_or_br", scheme::yl_or_br),
+    ("yl_or_rd", scheme::yl_or_rd),
+];
 
 /// `colors` as `#rrggbb` strings.
 fn hex(colors: &[Rgb]) -> Vec<String> {
@@ -87,4 +140,54 @@ fn the_viridis_family_ramps_d3s_256_entry_tables() {
     assert_eq!(scheme::viridis(2.0), scheme::viridis(255.0 / 256.0));
     // d3 returns undefined for NaN; the ramp reads entry 0.
     assert_eq!(scheme::viridis(f64::NAN), scheme::viridis(0.0));
+}
+
+#[test]
+fn schemes_match_d3_at_11_samples() {
+    let fixture: Value = serde_json::from_str(SCHEMES).expect("the fixture is JSON");
+    let fixture = fixture.as_object().expect("an object of schemes");
+    let names: Vec<&str> = fixture.keys().map(String::as_str).collect();
+    assert_eq!(
+        names,
+        FUNCTIONS.map(|(name, _)| name),
+        "one function per d3 scheme"
+    );
+    for (name, f) in FUNCTIONS {
+        let expected = fixture[name].as_array().expect("11 samples");
+        let ours: Vec<String> = (0..11)
+            .map(|i| f(f64::from(i) / 10.0).to_string())
+            .collect();
+        assert_eq!(ours, *expected, "{name}");
+    }
+}
+
+#[test]
+fn spot_samples_of_each_kind_of_scheme() {
+    assert_eq!(scheme::blues(0.5).to_string(), "rgb(109, 174, 213)");
+    assert_eq!(scheme::rd_bu(0.25).to_string(), "rgb(228, 130, 104)");
+    assert_eq!(scheme::turbo(0.5).to_string(), "rgb(149, 251, 81)");
+    assert_eq!(scheme::cividis(0.5).to_string(), "rgb(127, 124, 117)");
+    assert_eq!(scheme::sinebow(0.3).to_string(), "rgb(88, 252, 42)");
+    assert_eq!(scheme::rainbow(0.3).to_string(), "rgb(255, 120, 71)");
+    assert_eq!(scheme::warm(0.5).to_string(), "rgb(255, 94, 99)");
+    assert_eq!(
+        scheme::cubehelix_default(0.5).to_string(),
+        "rgb(160, 121, 73)"
+    );
+}
+
+#[test]
+fn spline_and_formula_schemes_give_nan_channels_at_nan() {
+    for f in [
+        scheme::blues,
+        scheme::rd_bu,
+        scheme::turbo,
+        scheme::sinebow,
+        scheme::warm,
+    ] {
+        let c = f(f64::NAN);
+        assert!(c.r.is_nan() && c.g.is_nan() && c.b.is_nan());
+    }
+    assert_eq!(scheme::blues(-1.0), scheme::blues(0.0));
+    assert_eq!(scheme::turbo(2.0), scheme::turbo(1.0));
 }

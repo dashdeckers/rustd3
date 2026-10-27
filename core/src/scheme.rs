@@ -1,7 +1,12 @@
 //! Color schemes: categorical ones as `const` arrays of [`Rgb`] (d3's,
-//! seaborn's and Okabe and Ito's), and d3-scale-chromatic's sequential
-//! ones as plain functions of `t` in [0, 1], named as d3's camel case
-//! lowered to snake case (`interpolateViridis` is [`viridis`]).
+//! seaborn's and Okabe and Ito's), and every d3-scale-chromatic
+//! sequential, diverging and cyclical scheme as a plain function of `t`
+//! in [0, 1], named as d3's camel case lowered to snake case
+//! (`interpolateYlGnBu` is [`yl_gn_bu`]). Each is d3's own code in `f64`:
+//! ColorBrewer's schemes run d3's basis spline over their 9- or 11-stop
+//! rows, turbo and cividis are d3's polynomials, the viridis family d3's
+//! 256-entry tables. At NaN the spline and formula schemes give NaN
+//! channels and the tables entry 0, where d3 returns undefined.
 //!
 //! ```
 //! use rustd3_core::{scale, scheme};
@@ -12,15 +17,25 @@
 //! ```
 
 mod categorical;
+mod cyclical;
+mod diverging;
 mod inferno;
 mod magma;
 mod plasma;
+mod sequential;
+mod stops;
 mod viridis;
 
 pub use categorical::{ACCENT, DARK2, PAIRED, PASTEL1, PASTEL2, SET1, SET2, SET3, TABLEAU10};
+pub use cyclical::{rainbow, sinebow};
+pub use diverging::{br_bg, pi_yg, pr_gn, pu_or, rd_bu, rd_gy, rd_yl_bu, rd_yl_gn, spectral};
 pub use inferno::inferno;
 pub use magma::magma;
 pub use plasma::plasma;
+pub use sequential::{
+    blues, bu_gn, bu_pu, cividis, cool, cubehelix_default, gn_bu, greens, greys, or_rd, oranges,
+    pu_bu, pu_bu_gn, pu_rd, purples, rd_pu, reds, turbo, warm, yl_gn, yl_gn_bu, yl_or_br, yl_or_rd,
+};
 pub use viridis::viridis;
 
 use crate::color::Rgb;
