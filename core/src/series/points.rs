@@ -101,6 +101,24 @@ impl<'a, X, Y> Points<'a, X, Y> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    /// Whether the pairs were collected into the points (an iterator of
+    /// pairs), not borrowed (slices or a recording channel): what a figure
+    /// copies into its marks.
+    ///
+    /// ```
+    /// use rustd3_core::series::{self, Data};
+    ///
+    /// let (x, y) = ([0.0, 1.0], [2.0, 3.0]);
+    /// assert!([(0.0, 2.0)].into_points().is_collected());
+    /// assert!(!series::slices(&x, &y).into_points().is_collected());
+    /// ```
+    pub fn is_collected(&self) -> bool {
+        match &self.repr {
+            Repr::Owned(_) => true,
+            Repr::Slices(_) | Repr::Series(..) => false,
+        }
+    }
 }
 
 impl<'a, X: Coordinate> Points<'a, X, f64> {
