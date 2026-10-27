@@ -1,7 +1,8 @@
 //! d3-scale's continuous scales as plain values: built by consuming
 //! builders, read by `apply`, `invert`, `ticks` and `tick_format`, and
 //! generic over a public [`Transform`] and the range type; d3's identity
-//! scale; and [`Ticks`], what an axis needs from any of them.
+//! scale; its band and point scales over an explicit domain of keys; and
+//! [`Ticks`], what an axis needs from any of them.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -27,18 +28,22 @@ macro_rules! builtin_transforms {
 }
 
 mod any;
+mod band;
 mod continuous;
 mod identity;
 mod piecewise;
+mod point;
 mod tick_format;
 mod tick_rule;
 mod ticks;
 pub mod transform;
 
 pub use any::AnyContinuous;
+pub use band::{Band, band};
 pub use continuous::Continuous;
 pub use identity::{Identity, identity};
 pub use piecewise::piecewise;
+pub use point::{Point, point};
 pub use tick_format::{TickFormat, tick_format};
 pub use tick_rule::TickRule;
 pub use ticks::Ticks;
@@ -174,4 +179,16 @@ pub(crate) fn nice_linear(domain: [f64; 2], count: usize) -> [f64; 2] {
         previous = Some(step);
     }
     domain
+}
+
+/// `keys` in order, each kept at its first position: d3's categorical
+/// domains, which an `InternMap` dedupes.
+fn unique<K: PartialEq>(keys: impl IntoIterator<Item = K>) -> Vec<K> {
+    let mut out: Vec<K> = Vec::new();
+    for key in keys {
+        if !out.contains(&key) {
+            out.push(key);
+        }
+    }
+    out
 }

@@ -2,6 +2,7 @@
 //! where it departs from d3.
 
 mod axis;
+mod band;
 mod ease;
 mod fixtures;
 mod format;
@@ -9,6 +10,7 @@ mod fuzz;
 mod interpolate;
 mod locale;
 mod path;
+mod point;
 mod rules;
 mod scale;
 mod ticks;
