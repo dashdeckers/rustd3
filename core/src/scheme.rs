@@ -1,12 +1,27 @@
-//! Categorical color schemes as `const` arrays of [`Rgb`]: d3's, seaborn's
-//! and Okabe and Ito's.
+//! Color schemes: categorical ones as `const` arrays of [`Rgb`] (d3's,
+//! seaborn's and Okabe and Ito's), and d3-scale-chromatic's sequential
+//! ones as plain functions of `t` in [0, 1], named as d3's camel case
+//! lowered to snake case (`interpolateViridis` is [`viridis`]).
 //!
 //! ```
 //! use rustd3_core::{scale, scheme};
 //!
 //! let color = scale::ordinal(["cpu", "mem"], scheme::CATEGORY10);
 //! assert_eq!(color.apply(&"cpu").map(ToString::to_string).as_deref(), Some("rgb(31, 119, 180)"));
+//! assert_eq!(scheme::viridis(0.5).format_hex(), "#21918c");
 //! ```
+
+mod categorical;
+mod inferno;
+mod magma;
+mod plasma;
+mod viridis;
+
+pub use categorical::{ACCENT, DARK2, PAIRED, PASTEL1, PASTEL2, SET1, SET2, SET3, TABLEAU10};
+pub use inferno::inferno;
+pub use magma::magma;
+pub use plasma::plasma;
+pub use viridis::viridis;
 
 use crate::color::Rgb;
 
@@ -40,6 +55,13 @@ pub const COLORBLIND: [Rgb; 10] = colors([
 pub const OKABE_ITO: [Rgb; 8] = colors([
     0xe69f00, 0x56b4e9, 0x009e73, 0xf0e442, 0x0072b2, 0xd55e00, 0xcc79a7, 0x000000,
 ]);
+
+/// d3's `ramp(range)`: the entry `floor(t·N)` of `table`, clamped to the
+/// first and last; NaN casts to entry 0.
+fn ramp<const N: usize>(table: &[Rgb; N], t: f64) -> Rgb {
+    let i = (t * N as f64).floor().clamp(0.0, (N - 1) as f64);
+    table[i as usize]
+}
 
 /// The opaque colors `0xrrggbb` of `hex`, in order.
 const fn colors<const N: usize>(hex: [u32; N]) -> [Rgb; N] {

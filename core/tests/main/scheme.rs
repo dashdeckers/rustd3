@@ -1,5 +1,6 @@
-//! The categorical schemes: lengths, first and last entries against d3,
-//! seaborn 0.13.2 and Okabe and Ito.
+//! The color schemes: the categorical ones' lengths, first and last
+//! entries against d3, seaborn 0.13.2 and Okabe and Ito; the viridis
+//! family's ramps against d3-scale-chromatic 3.1.0.
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scheme;
@@ -49,4 +50,41 @@ fn category10_is_d3s_and_every_entry_is_opaque() {
         &scheme::OKABE_ITO,
     ];
     assert!(all.iter().flat_map(|s| s.iter()).all(|c| c.opacity == 1.0));
+}
+
+#[test]
+fn colorbrewer_and_tableau_categorical_schemes_are_d3s() {
+    let pair = |a: &str, b: &str| (a.to_owned(), b.to_owned());
+    assert_eq!(ends(&scheme::ACCENT), pair("#7fc97f", "#666666"));
+    assert_eq!(ends(&scheme::DARK2), pair("#1b9e77", "#666666"));
+    assert_eq!(ends(&scheme::PAIRED), pair("#a6cee3", "#b15928"));
+    assert_eq!(ends(&scheme::PASTEL1), pair("#fbb4ae", "#f2f2f2"));
+    assert_eq!(ends(&scheme::PASTEL2), pair("#b3e2cd", "#cccccc"));
+    assert_eq!(ends(&scheme::SET1), pair("#e41a1c", "#999999"));
+    assert_eq!(ends(&scheme::SET2), pair("#66c2a5", "#b3b3b3"));
+    assert_eq!(ends(&scheme::SET3), pair("#8dd3c7", "#ffed6f"));
+    assert_eq!(ends(&scheme::TABLEAU10), pair("#4e79a7", "#bab0ab"));
+    assert_eq!(
+        [
+            scheme::PAIRED.len(),
+            scheme::SET3.len(),
+            scheme::TABLEAU10.len()
+        ],
+        [12, 12, 10]
+    );
+}
+
+#[test]
+fn the_viridis_family_ramps_d3s_256_entry_tables() {
+    assert_eq!(
+        [0.0, 0.25, 0.5, 1.0].map(|t| scheme::viridis(t).format_hex()),
+        ["#440154", "#3b528b", "#21918c", "#fde725"]
+    );
+    assert_eq!(scheme::magma(0.25).format_hex(), "#51127c");
+    assert_eq!(scheme::inferno(0.5).format_hex(), "#bc3754");
+    assert_eq!(scheme::plasma(0.5).format_hex(), "#cc4778");
+    assert_eq!(scheme::viridis(-1.0), scheme::viridis(0.0));
+    assert_eq!(scheme::viridis(2.0), scheme::viridis(255.0 / 256.0));
+    // d3 returns undefined for NaN; the ramp reads entry 0.
+    assert_eq!(scheme::viridis(f64::NAN), scheme::viridis(0.0));
 }
