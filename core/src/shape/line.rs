@@ -1,4 +1,4 @@
-//! d3's line generator ([`Line`](crate::shape::Line)): one curve through a
+//! d3's line generator ([`Line`]): one curve through a
 //! run of points, a new run after every gap; and its radial form
 //! ([`Radial`]).
 

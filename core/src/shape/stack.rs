@@ -1,4 +1,4 @@
-//! d3's stack layout over columns ([`Stack`](crate::shape::Stack)), with
+//! d3's stack layout over columns ([`Stack`]), with
 //! d3's six orders ([`Order`]) and five offsets ([`Offset`]).
 
 mod offset;

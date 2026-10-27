@@ -1,4 +1,4 @@
-//! d3's area generator ([`Area`](crate::shape::Area)): a curve along the
+//! d3's area generator ([`Area`]): a curve along the
 //! top of each run of items, then back along its baseline; and its radial
 //! form ([`Radial`]).
 

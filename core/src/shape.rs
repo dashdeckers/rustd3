@@ -18,9 +18,10 @@
 //!
 //! [`LineOf`] wraps the line in d3-style accessors over a slice of data.
 //! The generators [`Line`], [`Area`], [`Pie`] and [`Stack`] are defined
-//! here and built through the methods in their modules, [`line`],
-//! [`area`], [`pie`] and [`stack`], which also hold the radial forms and
-//! the stack's orders and offsets.
+//! here and built through the methods in their modules,
+//! [`line`](mod@line), [`area`](mod@area), [`pie`](mod@pie) and
+//! [`stack`](mod@stack), which also hold the radial forms and the stack's
+//! orders and offsets.
 
 mod arc;
 pub mod area;
@@ -90,7 +91,7 @@ pub struct Area {
 
 /// d3.pie(): values to the angles of [`Slice`]s, largest first by default;
 /// built by consuming builders, laid out by [`Pie::layout`]. Its methods
-/// and [`pie::Sort`] are in [`pie`].
+/// and [`pie::Sort`] are in [`pie`](mod@pie).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pie {
     sort: pie::Sort,
@@ -101,7 +102,7 @@ pub struct Pie {
 
 /// d3.stack() over columns: orders and offsets as builders, laid out by
 /// [`Stack::layout`]. Its methods, [`stack::Order`] and [`stack::Offset`]
-/// are in [`stack`] (the module).
+/// are in [`stack`](mod@stack).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Stack {
     order: stack::Order,

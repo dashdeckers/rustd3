@@ -1,4 +1,4 @@
-//! d3's pie layout ([`Pie`](crate::shape::Pie)) and its drawing order
+//! d3's pie layout ([`Pie`]) and its drawing order
 //! ([`Sort`]).
 
 use std::cmp::Ordering;
