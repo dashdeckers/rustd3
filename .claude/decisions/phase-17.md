@@ -72,7 +72,7 @@ without fringes, corners closed); the trace and scatter at 1× and 2×.
 
 ## D17.1 — Details of Phase 17 that the section leaves open, or that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 17, 60b696f … 39e814a · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 17, 60b696f … 39e814a · **Status:** decided
 
 ### Issue
 
@@ -144,7 +144,11 @@ without fringes, corners closed); the trace and scatter at 1× and 2×.
 
 ### Decision
 
-Recommended: A for all twelve, as built.
+A for all twelve (architect, 2026-10-27), as built. Minor ticks are
+4 pt by 1 pt (5.333 by 1.333 px), in the theme's units as the major
+6 by 1.25 are; `Legend<K>` has no lifetime; part hashes cover open
+clips and name fonts by blob id; `fig.check` needs `fonts`;
+`Fit::Visible` steps in data units.
 
 ### Why
 
@@ -167,7 +171,7 @@ rows checkable; (12) follows the workspace's lints.
 
 ## D17.2 — The example SVG and PNG no longer share geometry
 
-**Date:** 2026-10-27 · **Context:** Phase 17, step 5 (d06d788) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 17, step 5 (d06d788) · **Status:** decided
 
 ### Issue
 
@@ -194,8 +198,9 @@ trace at 2×.
 
 ### Decision
 
-Recommended: A, as built (`figure/tests/main/resvg.rs`,
-`resvg_renders_the_example_figures_as_their_pngs`).
+A (architect, 2026-10-27): each PNG is compared against its own list
+written as SVG (trace ≤ 0.03, scatter ≤ 0.02); the file-to-file scores
+between the snapped PNG and the unsnapped SVG are bounded at 0.05.
 
 ### Why
 
