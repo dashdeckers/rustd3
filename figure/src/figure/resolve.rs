@@ -36,7 +36,8 @@ impl Figure<'_> {
         held: &Held,
         target: Target,
     ) -> Resolved {
-        let mut resolved = Resolved::new(self.id, self.fitted(held), target);
+        let (scales, marked) = self.fitted(held);
+        let mut resolved = Resolved::new(self.id, scales, target);
         let theme = &self.theme;
         let labels: Vec<Vec<Labels>> = self
             .panels
@@ -64,7 +65,8 @@ impl Figure<'_> {
                 .flatten()
                 .flat_map(Labels::keys)
                 .chain(titles.iter().flatten())
-                .chain(&title),
+                .chain(&title)
+                .chain(&marked),
         );
         let text = &*text;
         let reserve = title
@@ -142,9 +144,9 @@ impl Figure<'_> {
         resolved
     }
 
-    /// Every scale of the table as resolved: held, fitted to the marks'
-    /// data, or as built.
-    fn fitted(&self, held: &Held) -> Vec<Box<dyn Scale>> {
+    /// Every scale of the table as resolved (held, fitted to the marks'
+    /// data, or as built), and the labels the marks draw.
+    fn fitted(&self, held: &Held) -> (Vec<Box<dyn Scale>>, Vec<Key>) {
         let slots = self
             .scales
             .iter()
@@ -156,14 +158,26 @@ impl Figure<'_> {
                 },
             )
             .collect();
-        let mut fits = Fits::new(self.id, slots);
+        let built = self
+            .scales
+            .iter()
+            .enumerate()
+            .map(|(i, entry)| {
+                held.scale(i, &*entry.scale)
+                    .unwrap_or(&*entry.scale)
+                    .boxed()
+            })
+            .collect();
+        let mut fits = Fits::new(self.id, slots, built, self.theme.clone());
         for mark in self.panels.iter().flat_map(Panel::marks) {
             mark.fit(&mut fits);
         }
         let margin = self.theme.margin();
-        self.scales
+        let (slots, labels) = fits.into_parts();
+        let scales = self
+            .scales
             .iter()
-            .zip(fits.into_slots())
+            .zip(slots)
             .enumerate()
             .map(|(i, (entry, slot))| {
                 match (held.scale(i, &*entry.scale), entry.fitter.zip(slot)) {
@@ -172,7 +186,8 @@ impl Figure<'_> {
                     (None, None) => entry.scale.boxed(),
                 }
             })
-            .collect()
+            .collect();
+        (scales, labels)
     }
 
     /// The plot areas of the panels for `size`, with `reserve` px above

@@ -1,21 +1,25 @@
-//! A figure's decorations into a drawing list: backgrounds, borders, axes
-//! and titles, each a part.
+//! A figure into a drawing list: backgrounds, marks, borders, axes and
+//! titles, each a part.
 
-use kurbo::{Point, Rect, Shape};
+use kurbo::{Affine, Point, Rect, Shape};
 
 use crate::figure::part::{self, Role};
 use crate::figure::{Figure, Resolved};
-use crate::list::{self, Command, List, Part};
+use crate::list::{self, Clip, Command, List, Part};
+use crate::mark::Ctx;
+use crate::panel::Panel;
 use crate::text::{self, Anchor, Key, Shaped, anchor};
 
 /// Tolerance of a rectangle's path: exact, rectangles have no curves.
 const TOLERANCE: f64 = 0.1;
 
 impl Figure<'_> {
-    /// Appends the decorations of `resolved` to `list`, each wrapped in a
-    /// part with bounds `Rect::ZERO` and hash 0: the figure background,
-    /// then per panel its background, border, axes and title, then the
-    /// figure title, centred on the plot areas' extent.
+    /// Appends the figure as `resolved` lays it out to `list`, each element
+    /// wrapped in a part with bounds `Rect::ZERO` and hash 0: the figure
+    /// background, then per panel its background, its marks in insertion
+    /// order inside one group translated to the plot area and clipped to
+    /// it, its border, axes and title, then the figure title, centred on
+    /// the plot areas' extent.
     pub(super) fn decorate(&self, resolved: &Resolved, text: &text::Cache, list: &mut List) {
         let theme = &self.theme;
         let size = list.size;
@@ -39,6 +43,8 @@ impl Figure<'_> {
                     paint: list::brush(theme.panel()),
                 });
             });
+            let ctx = Ctx::new(resolved, theme, *area, text);
+            marks(list, i, panel, &ctx);
             if let Some(color) = panel.frame() {
                 part(list, part::id(Role::Border, i, 0), |list| {
                     list.commands.push(Command::Stroke {
@@ -72,6 +78,28 @@ impl Figure<'_> {
                 title.place(list, at, top, 0.0);
             });
         }
+    }
+}
+
+/// Appends the marks of `panel`, the `index`th, each a part, inside a group
+/// translated to its plot area and clipped to it; nothing when no mark
+/// draws.
+fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
+    let area = ctx.rect();
+    let start = list.commands.len();
+    list.commands.push(Command::Push {
+        transform: Affine::translate(area.origin().to_vec2()),
+        clip: Some(Clip::Rect(area.with_origin(Point::ORIGIN))),
+    });
+    for (j, mark) in panel.marks().iter().enumerate() {
+        part(list, part::id(Role::Mark, index, j), |list| {
+            mark.draw(ctx, list)
+        });
+    }
+    if list.commands.len() == start + 1 {
+        list.commands.truncate(start);
+    } else {
+        list.commands.push(Command::Pop);
     }
 }
 

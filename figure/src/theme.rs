@@ -1,6 +1,7 @@
 //! [`Theme`]: the sizes, colors and margins a figure is drawn with.
 
 use rustd3_core::color::Rgb;
+use rustd3_core::scheme;
 
 use crate::text::{Style, anchor};
 
@@ -24,13 +25,18 @@ pub struct Theme {
     background: Rgb,
     /// Fitted continuous domains get this share of their span per side.
     margin: f64,
+    /// Marks without a key take its first color.
+    palette: &'static [Rgb],
+    /// Marks whose key their palette lacks.
+    gray: Rgb,
 }
 
 impl Default for Theme {
     /// seaborn's `ticks` style at `notebook` size: tick labels 11 pt, axis
     /// labels and titles 12 pt, the figure title 14.4 pt, ink `#262626`
     /// for text, ticks and axis lines, white panels and figure, no grid,
-    /// 5% margins.
+    /// 5% margins; lines 1.5 pt wide, markers 6 pt across; seaborn's
+    /// colorblind palette, and its gray `#949494` for keys a palette lacks.
     fn default() -> Self {
         Theme {
             context: 1.0,
@@ -39,6 +45,8 @@ impl Default for Theme {
             panel: Rgb::hex(0xffffff),
             background: Rgb::hex(0xffffff),
             margin: 0.05,
+            palette: &scheme::COLORBLIND,
+            gray: Rgb::hex(0x949494),
         }
     }
 }
@@ -114,6 +122,29 @@ impl Theme {
         self.margin
     }
 
+    /// Lines and rules: 1.5 pt.
+    pub(crate) fn line_width(&self) -> f64 {
+        self.pt(1.5)
+    }
+
+    /// A marker's diameter: 6 pt.
+    pub(crate) fn marker(&self) -> f64 {
+        self.pt(6.0)
+    }
+
+    /// The palette's first color: what marks without a key are drawn in.
+    pub(crate) fn color(&self) -> Rgb {
+        *self
+            .palette
+            .first()
+            .expect("invariant: a theme's palette is not empty")
+    }
+
+    /// What a mark whose key its palette lacks is drawn in.
+    pub(crate) fn gray(&self) -> Rgb {
+        self.gray
+    }
+
     /// A tick label's style: its lines aligned by `align`, in `fill`.
     pub(crate) fn tick_label(&self, align: anchor::Horizontal, fill: Rgb) -> Style {
         style(self.tick_text(), align, fill)
@@ -127,6 +158,12 @@ impl Theme {
     /// A panel title's style: centred lines in ink.
     pub(crate) fn title(&self) -> Style {
         style(self.label_text(), anchor::Horizontal::Middle, self.ink)
+    }
+
+    /// A mark's label (a rule's): tick-label size, its lines aligned by
+    /// `align`, in `fill`.
+    pub(crate) fn mark_label(&self, align: anchor::Horizontal, fill: Rgb) -> Style {
+        style(self.tick_text(), align, fill)
     }
 
     /// The figure title's style: centred lines in ink.
@@ -191,5 +228,9 @@ mod tests {
         assert_eq!(theme.edge(), theme.ink());
         assert_eq!([theme.panel(), theme.background()], [Rgb::hex(0xffffff); 2]);
         assert_eq!(theme.margin(), 0.05);
+        assert!(close(theme.line_width(), 2.0));
+        assert!(close(theme.marker(), 8.0));
+        assert_eq!(theme.color(), Rgb::hex(0x0173b2));
+        assert_eq!(theme.gray(), scheme::COLORBLIND[7]);
     }
 }

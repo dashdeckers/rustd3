@@ -17,6 +17,8 @@ pub(super) enum Role {
     Axis = 4,
     /// A panel's title.
     Heading = 5,
+    /// A mark of a panel.
+    Mark = 6,
 }
 
 /// The id of element `index` of `role` in panel `panel`: `role << 56 |

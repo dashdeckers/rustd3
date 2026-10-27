@@ -5,16 +5,25 @@ use std::any::Any;
 
 use crate::figure;
 use crate::scale::{Kind, Scale, ScaleRef};
+use crate::text::Key;
+use crate::theme::Theme;
 
 /// What marks report while a figure resolves: per fitted handle, the
 /// extent of the values the scale admits and the sticky values a margin
 /// stops at, in the scale's own domain type (no `Timestamp` passes through
 /// `f64`). Handles that are not fitted, or that a gesture holds, ignore
-/// what is reported.
+/// what is reported. The figure's own marks also report the labels they
+/// draw, so that they are shaped in the figure's one batch of text.
 pub struct Fits {
     figure: figure::Id,
     /// One per table entry: a `Slot<S>` for the fitted ones.
     slots: Vec<Option<Box<dyn Any>>>,
+    /// One per table entry: the scale as held, or as built.
+    scales: Vec<Box<dyn Scale>>,
+    /// The figure's theme, which label styles come from.
+    theme: Theme,
+    /// The labels marks draw.
+    labels: Vec<Key>,
 }
 
 /// One fitted handle's scale as built, its extent so far and its sticky
@@ -56,9 +65,21 @@ impl Fitter {
 }
 
 impl Fits {
-    /// Reports for figure `figure`, one slot per table entry.
-    pub(super) fn new(figure: figure::Id, slots: Vec<Option<Box<dyn Any>>>) -> Fits {
-        Fits { figure, slots }
+    /// Reports for figure `figure` drawn with `theme`: one slot and one
+    /// scale (as held, or as built) per table entry.
+    pub(super) fn new(
+        figure: figure::Id,
+        slots: Vec<Option<Box<dyn Any>>>,
+        scales: Vec<Box<dyn Scale>>,
+        theme: Theme,
+    ) -> Fits {
+        Fits {
+            figure,
+            slots,
+            scales,
+            theme,
+            labels: Vec::new(),
+        }
     }
 
     /// Widens `h`'s extent by `v` when its scale admits it (finite and
@@ -80,9 +101,28 @@ impl Fits {
         }
     }
 
-    /// The slots, one per table entry.
-    pub(super) fn into_slots(self) -> Vec<Option<Box<dyn Any>>> {
-        self.slots
+    /// `h`'s scale before fitting: as a gesture holds it, or as built (a
+    /// mark's bridge to its x scale's index, its y scale's admission test).
+    pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> &S {
+        self.scales[h.of(self.figure)]
+            .as_any()
+            .downcast_ref()
+            .expect("invariant: a handle's scale has the handle's type")
+    }
+
+    /// The figure's theme.
+    pub(crate) fn theme(&self) -> &Theme {
+        &self.theme
+    }
+
+    /// A label a mark draws, shaped with the figure's other labels.
+    pub(crate) fn label(&mut self, key: Key) {
+        self.labels.push(key);
+    }
+
+    /// The slots, one per table entry, and the labels marks draw.
+    pub(super) fn into_parts(self) -> (Vec<Option<Box<dyn Any>>>, Vec<Key>) {
+        (self.slots, self.labels)
     }
 
     /// `h`'s slot, if it is fitted and not held.
