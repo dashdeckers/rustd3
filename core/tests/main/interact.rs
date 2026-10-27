@@ -13,6 +13,14 @@ fn t(k: f64, x: f64, y: f64) -> interact::Transform {
 }
 
 #[test]
+fn the_default_transform_is_the_identity() {
+    assert_eq!(
+        interact::Transform::default(),
+        interact::Transform::IDENTITY
+    );
+}
+
+#[test]
 fn scaling_twice_multiplies_the_factors() {
     let transform = interact::Transform::IDENTITY.scale(2.5);
     assert_eq!(transform.scale(2.0), t(5.0, 0.0, 0.0));

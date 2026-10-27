@@ -494,3 +494,13 @@ fn any_continuous_keeps_a_negative_log_domain() {
     );
     assert!(close(moved.apply(-31.622776601683793), 0.5));
 }
+
+#[test]
+fn symlog_logit_and_asinh_scales_have_aliases() {
+    let s: scale::Symlog = scale::symlog();
+    let p: scale::Logit = scale::logit().domain([0.1, 0.9]);
+    let a: scale::Asinh<f32> = scale::asinh().range([0.0f32, 1.0]);
+    assert_eq!(s.apply(1.0), 1.0);
+    assert_eq!(p.get_domain(), [0.1, 0.9]);
+    assert_eq!(a.apply(1.0), 1.0);
+}

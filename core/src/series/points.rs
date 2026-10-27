@@ -1,6 +1,7 @@
 //! What a mark holds: its data as pairs, without bounds on their types.
 
 use std::any::Any;
+use std::fmt;
 
 use crate::series::{Coordinate, Recording, Series, Slices};
 
@@ -41,6 +42,34 @@ impl<X: Coordinate> Source<X> for Recording<X> {
 
     fn any(&self) -> &(dyn Any + 'static) {
         self
+    }
+}
+
+/// Clones collected pairs; borrowed slices and recordings stay borrowed.
+impl<X: Clone, Y: Clone> Clone for Points<'_, X, Y> {
+    fn clone(&self) -> Self {
+        let repr = match &self.repr {
+            Repr::Owned(pairs) => Repr::Owned(pairs.clone()),
+            Repr::Slices(slices) => Repr::Slices(*slices),
+            Repr::Series(source, channel, y) => Repr::Series(*source, *channel, *y),
+        };
+        Self { repr }
+    }
+}
+
+/// What the points are and how many, whatever `X` and `Y` are:
+/// `Points { kind: "collected", len: 2 }`, `"slices"` or `"series"`.
+impl<X, Y> fmt::Debug for Points<'_, X, Y> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let kind = match &self.repr {
+            Repr::Owned(_) => "collected",
+            Repr::Slices(_) => "slices",
+            Repr::Series(..) => "series",
+        };
+        f.debug_struct("Points")
+            .field("kind", &kind)
+            .field("len", &self.len())
+            .finish()
     }
 }
 

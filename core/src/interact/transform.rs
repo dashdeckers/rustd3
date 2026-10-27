@@ -45,6 +45,14 @@ impl fmt::Display for Transform {
     }
 }
 
+impl Default for Transform {
+    /// [`Transform::IDENTITY`], so that a widget's state holding a transform
+    /// can derive `Default`.
+    fn default() -> Self {
+        Transform::IDENTITY
+    }
+}
+
 impl Transform {
     /// d3's `zoomIdentity`: k = 1, no translation.
     #[doc(alias = "zoomIdentity")]

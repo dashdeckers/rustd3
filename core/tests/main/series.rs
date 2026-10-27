@@ -677,3 +677,37 @@ fn mark_data_needs_no_bound_on_its_keys() {
     let empty = mark(Vec::<(Bin, &str)>::new());
     assert!(empty.is_empty());
 }
+
+/// A key with neither `Clone` nor `Debug`.
+struct Plain;
+
+#[test]
+fn points_clone_and_print_their_kind_and_length() {
+    let owned = mark(vec![(0.0, 1.0), (1.0, 3.0)]);
+    let copy = owned.clone();
+    assert_eq!(copy.iter().collect::<Vec<_>>(), [(0.0, 1.0), (1.0, 3.0)]);
+    assert_eq!(
+        format!("{owned:?}"),
+        r#"Points { kind: "collected", len: 2 }"#
+    );
+    let (x, y) = ([0.0, 1.0, 2.0], [5.0, 7.0]);
+    let borrowed = mark(series::slices(&x, &y)).clone();
+    assert_eq!(
+        format!("{borrowed:?}"),
+        r#"Points { kind: "slices", len: 2 }"#
+    );
+    let rec =
+        Recording::new(Clock::Explicit(vec![0.5, 1.5]), [[1.0, 2.0]]).expect("a valid recording");
+    let indexed = mark(rec.series(0).expect("channel 0"));
+    let view = indexed.clone().series().expect("the indexed view");
+    assert_eq!((view.recording().id(), view.channel()), (rec.id(), 0));
+    assert_eq!(
+        format!("{indexed:?}"),
+        r#"Points { kind: "series", len: 2 }"#
+    );
+    let plain = mark(vec![(Plain, Plain)]);
+    assert_eq!(
+        format!("{plain:?}"),
+        r#"Points { kind: "collected", len: 1 }"#
+    );
+}

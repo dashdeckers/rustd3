@@ -20,6 +20,27 @@ fn single(locale: &Locale, specifier: &str, value: f64) -> Result<String, Invali
 }
 
 #[test]
+fn a_number_locale_makes_a_figure_locale() {
+    use std::borrow::Cow;
+
+    use rustd3_core::format::{self, Definition};
+
+    assert_eq!(Locale::from(format::Locale::EN_US), Locale::EN_US);
+    assert_eq!(Locale::from(format::Locale::NEUTRAL), Locale::default());
+    let de = Locale::from(format::Locale::new(Definition {
+        decimal: Cow::Borrowed(","),
+        thousands: Cow::Borrowed("."),
+        grouping: Cow::Borrowed(&[3]),
+        ..Definition::default()
+    }));
+    assert_eq!(
+        tick_labels(&de, [0.0, 12000.0], 5),
+        ["0", "2.000", "4.000", "6.000", "8.000", "10.000", "12.000"]
+    );
+    assert_eq!(tick_labels(&de, [0.0, 1.0], 2), ["0,0", "0,5", "1,0"]);
+}
+
+#[test]
 fn the_default_locale_is_neutral() {
     assert_eq!(Locale::default(), Locale::NEUTRAL);
     assert_eq!(

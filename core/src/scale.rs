@@ -65,6 +65,15 @@ pub type Pow<R = f64, const N: usize = 2> = Continuous<transform::Pow, R, N>;
 /// d3's scaleLog: a continuous scale under a log transform.
 pub type Log<R = f64, const N: usize = 2> = Continuous<transform::Log, R, N>;
 
+/// d3's scaleSymlog: a continuous scale under the symmetric log transform.
+pub type Symlog<R = f64, const N: usize = 2> = Continuous<transform::Symlog, R, N>;
+
+/// A continuous scale under the logit transform, for probabilities.
+pub type Logit<R = f64, const N: usize = 2> = Continuous<transform::Logit, R, N>;
+
+/// A continuous scale under the inverse hyperbolic sine transform.
+pub type Asinh<R = f64, const N: usize = 2> = Continuous<transform::Asinh, R, N>;
+
 /// A continuous scale under `transform` with domain [0, 1] and range
 /// [0, 1], d3's `transformer()` made public.
 pub fn continuous<T: Transform>(transform: T) -> Continuous<T> {
@@ -105,7 +114,7 @@ pub fn log() -> Log {
 /// assert_eq!(v.ticks(10), [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]);
 /// ```
 #[doc(alias = "scaleSymlog")]
-pub fn symlog() -> Continuous<transform::Symlog> {
+pub fn symlog() -> Symlog {
     continuous(transform::Symlog::new(1.0))
 }
 
@@ -119,7 +128,7 @@ pub fn symlog() -> Continuous<transform::Symlog> {
 /// let p = scale::logit().domain([0.001, 0.999]);
 /// assert_eq!(p.ticks(10), [0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999]);
 /// ```
-pub fn logit() -> Continuous<transform::Logit> {
+pub fn logit() -> Logit {
     continuous(transform::Logit)
 }
 
@@ -132,7 +141,7 @@ pub fn logit() -> Continuous<transform::Logit> {
 /// let a = scale::asinh().domain([-1000.0, 1000.0]);
 /// assert_eq!(a.ticks(10), [-100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0]);
 /// ```
-pub fn asinh() -> Continuous<transform::Asinh> {
+pub fn asinh() -> Asinh {
     continuous(transform::Asinh::new(1.0))
 }
 
