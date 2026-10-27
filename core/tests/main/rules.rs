@@ -400,3 +400,85 @@ fn asinh_labels_group_thousands() -> Result<(), InvalidFormat> {
     assert_eq!(f.format(0.1), "0.1");
     Ok(())
 }
+
+#[test]
+fn piecewise_maps_descending_stops_as_d3() {
+    let s = scale::piecewise([4.0, 2.0, 1.0], [1.0, 2.0, 4.0]);
+    assert_eq!(s.apply(1.5), 3.0);
+    assert_eq!(s.invert(1.5), 3.0);
+}
+
+#[test]
+fn piecewise_ticks_and_maps_by_segment() {
+    let s = scale::piecewise([-10.0, 0.0, 100.0], [0.0, 50.0, 100.0]);
+    assert_eq!(s.apply(-5.0), 25.0);
+    assert_eq!(s.apply(50.0), 75.0);
+    assert_eq!(s.ticks(5), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
+}
+
+#[test]
+fn piecewise_nice_moves_only_the_end_stops() {
+    let s = scale::piecewise([-10.3, 0.0, 99.1], [0.0, 1.0, 2.0]).nice(10);
+    assert_eq!(s.get_domain(), [-20.0, 0.0, 100.0]);
+}
+
+#[test]
+fn piecewise_keeps_its_stop_count_through_builders() {
+    let s = scale::piecewise([0.0, 1.0, 2.0, 3.0], [0.0, 10.0, 20.0, 40.0])
+        .domain([0.0, 1.0, 2.0, 4.0])
+        .range([0.0f32, 1.0, 2.0, 3.0]);
+    assert_eq!(s.apply(3.0), 2.5);
+    assert_eq!(s.get_range(), &[0.0, 1.0, 2.0, 3.0]);
+}
+
+#[test]
+fn any_continuous_forwards_to_the_log_scale_it_holds() -> Result<(), InvalidFormat> {
+    let log = scale::log().domain([1.0, 1e3]).range([0.0, 300.0]);
+    let any = scale::AnyContinuous::from(log.clone());
+    for x in [1.0, 2.0, 31.6, 999.0] {
+        assert_eq!(any.apply(x), log.apply(x));
+    }
+    assert_eq!(any.invert(150.0), log.invert(150.0));
+    assert_eq!(any.ticks(10), log.ticks(10));
+    assert_eq!(any.minor(3), log.minor(3));
+    let (a, l) = (any.tick_format(10, None)?, log.tick_format(10, None)?);
+    assert_eq!(a.format_all(&any.ticks(10)), l.format_all(&log.ticks(10)));
+    assert_eq!(any.nice(10).get_domain(), log.nice(10).get_domain());
+    Ok(())
+}
+
+#[test]
+fn any_continuous_takes_every_built_in_scale() {
+    let domain = [0.1, 0.9];
+    let scales: [scale::AnyContinuous; 7] = [
+        scale::linear().domain(domain).into(),
+        scale::pow().exponent(2.0).domain(domain).into(),
+        scale::log().domain(domain).into(),
+        scale::symlog().constant(0.5).domain(domain).into(),
+        scale::logit().domain(domain).into(),
+        scale::asinh().linear_width(2.0).domain(domain).into(),
+        scale::func(f64::sqrt, |y| y * y, TickRule::Data)
+            .domain(domain)
+            .into(),
+    ];
+    for s in &scales {
+        assert!(close(s.apply(0.1), 0.0));
+        assert!(close(s.apply(0.9), 1.0));
+        assert!(close(
+            s.invert(0.5),
+            s.clone().range([0.0, 2.0]).invert(1.0)
+        ));
+        assert!(!s.ticks(5).is_empty());
+    }
+}
+
+#[test]
+fn any_continuous_keeps_a_negative_log_domain() {
+    let any: scale::AnyContinuous = scale::log().domain([-1e3, -1.0]).into();
+    let moved = any.domain([-100.0, -10.0]);
+    assert_eq!(
+        moved.ticks(10),
+        scale::log().domain([-100.0, -10.0]).ticks(10)
+    );
+    assert!(close(moved.apply(-31.622776601683793), 0.5));
+}

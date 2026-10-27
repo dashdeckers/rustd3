@@ -14,8 +14,8 @@ use crate::scale::{TickFormat, TickRule, Transform, transform};
 /// scaleLog and their kin). Builders consume and return the value; ticks,
 /// nice and tick formats act on the end stops, as in d3.
 ///
-/// Only two stops can be built in this version: the constructors make
-/// them, and `domain` and `range` keep `N`.
+/// The constructors make two stops and [`piecewise`](crate::scale::piecewise)
+/// any N ≥ 2; `domain` and `range` keep `N`.
 #[derive(Clone)]
 pub struct Continuous<T, R = f64, const N: usize = 2> {
     transform: T,
@@ -67,11 +67,36 @@ impl<R> fmt::Debug for Interpolator<R> {
 impl<T: Transform> Continuous<T> {
     /// Domain [0, 1] and range [0, 1] under `transform`.
     pub(super) fn new(transform: T) -> Continuous<T> {
+        Continuous::with_stops(transform, [0.0, 1.0], [0.0, 1.0])
+    }
+}
+
+impl<T, R, const N: usize> Continuous<T, R, N> {
+    /// The scale under the transform `f` makes of this one's, every other
+    /// field moved across; `f` must keep the map, since the forward cache
+    /// is kept.
+    pub(crate) fn map_transform<U>(self, f: impl FnOnce(T) -> U) -> Continuous<U, R, N> {
+        Continuous {
+            transform: f(self.transform),
+            domain: self.domain,
+            forward: self.forward,
+            range: self.range,
+            interpolate: self.interpolate,
+            clamp: self.clamp,
+            unknown: self.unknown,
+            tick_rule: self.tick_rule,
+        }
+    }
+}
+
+impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
+    /// `domain` mapped onto `range` under `transform`, by `lerp`, unclamped.
+    pub(super) fn with_stops(transform: T, domain: [f64; N], range: [R; N]) -> Self {
         Continuous {
             transform: transform.clone(),
-            domain: [0.0, 1.0],
-            forward: [0.0, 1.0],
-            range: [0.0, 1.0],
+            domain,
+            forward: domain,
+            range,
             interpolate: Interpolator::Lerp,
             clamp: false,
             unknown: None,
@@ -79,9 +104,7 @@ impl<T: Transform> Continuous<T> {
         }
         .transformed(transform)
     }
-}
 
-impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// d3's `domain(d)`: the stops, mapped onto the range's in order.
     pub fn domain(self, domain: [f64; N]) -> Self {
         let transform = self.transform.clone();
@@ -146,7 +169,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         }
         let x = if self.clamp { self.clamped(x) } else { x };
         let u = self.transform.forward(x);
-        piecewise(&self.forward, &self.range, u, |a, b, t| {
+        polymap(&self.forward, &self.range, u, |a, b, t| {
             match &self.interpolate {
                 Interpolator::Lerp => a.lerp(b, t),
                 Interpolator::Custom(f) => f(a, b, t),
@@ -255,7 +278,7 @@ impl<T: Transform, const N: usize> Continuous<T, f64, N> {
     /// assert_eq!(scale::linear().range([0.0f64, 1.0]).invert(0.5), 0.5);
     /// ```
     pub fn invert(&self, y: f64) -> f64 {
-        let u = piecewise(&self.range, &self.forward, y, |a, b, t| a.lerp(b, t));
+        let u = polymap(&self.range, &self.forward, y, |a, b, t| a.lerp(b, t));
         let x = self.transform.inverse(u);
         if self.clamp { self.clamped(x) } else { x }
     }
@@ -318,7 +341,7 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Asinh, R, N> {
 /// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
 /// when the last stop is below the first), normalized within its segment,
 /// and the segment's two `values` blended at that fraction.
-fn piecewise<V, const N: usize>(
+fn polymap<V, const N: usize>(
     stops: &[f64; N],
     values: &[V; N],
     u: f64,
@@ -358,25 +381,9 @@ mod tests {
     use super::*;
     use crate::scale;
 
-    /// A three-stop linear scale, which only Phase 5's `piecewise` builds
-    /// from outside.
-    fn three(domain: [f64; 3], range: [f64; 3]) -> Continuous<transform::Identity, f64, 3> {
-        let two = scale::linear();
-        Continuous {
-            transform: two.transform,
-            domain,
-            forward: domain,
-            range,
-            interpolate: Interpolator::Lerp,
-            clamp: false,
-            unknown: None,
-            tick_rule: None,
-        }
-    }
-
     #[test]
     fn three_stops_pick_the_segment_of_the_value() {
-        let s = three([-10.0, 0.0, 100.0], [0.0, 1.0, 2.0]);
+        let s = scale::piecewise([-10.0, 0.0, 100.0], [0.0, 1.0, 2.0]);
         assert_eq!(s.apply(-5.0), 0.5);
         assert_eq!(s.apply(50.0), 1.5);
         assert_eq!(s.invert(1.5), 50.0);
@@ -384,7 +391,7 @@ mod tests {
 
     #[test]
     fn three_descending_stops_are_reversed_together_with_the_range() {
-        let s = three([4.0, 2.0, 1.0], [1.0, 2.0, 4.0]);
+        let s = scale::piecewise([4.0, 2.0, 1.0], [1.0, 2.0, 4.0]);
         assert_eq!(s.apply(1.5), 3.0);
         assert_eq!(s.apply(3.0), 1.5);
         assert_eq!(s.invert(1.5), 3.0);
@@ -393,7 +400,7 @@ mod tests {
 
     #[test]
     fn nice_on_three_stops_moves_only_the_ends() {
-        let s = three([1.1, 2.0, 10.9], [0.0, 1.0, 2.0]).nice(10);
+        let s = scale::piecewise([1.1, 2.0, 10.9], [0.0, 1.0, 2.0]).nice(10);
         assert_eq!(s.get_domain(), [1.0, 2.0, 11.0]);
     }
 

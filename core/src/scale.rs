@@ -16,12 +16,25 @@
 //! # Ok::<(), rustd3_core::format::InvalidFormat>(())
 //! ```
 
+/// Calls `$then!` with the names of the built-in transforms, the variants
+/// of `transform::Any`: one list for its forwarding and for the
+/// conversions into `AnyContinuous`.
+macro_rules! builtin_transforms {
+    ($then:ident) => {
+        $then!(Identity, Pow, Log, Symlog, Logit, Asinh, Func);
+    };
+}
+
+mod any;
 mod continuous;
+mod piecewise;
 mod tick_format;
 mod tick_rule;
 pub mod transform;
 
+pub use any::AnyContinuous;
 pub use continuous::Continuous;
+pub use piecewise::piecewise;
 pub use tick_format::{TickFormat, tick_format};
 pub use tick_rule::TickRule;
 pub use transform::Transform;
