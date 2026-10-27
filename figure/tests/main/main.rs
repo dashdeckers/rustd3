@@ -8,6 +8,7 @@ mod layout;
 mod list;
 mod lower;
 mod marks;
+mod parts;
 mod raster;
 #[cfg(feature = "raster")]
 mod resvg;

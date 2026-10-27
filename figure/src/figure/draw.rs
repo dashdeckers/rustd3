@@ -6,7 +6,7 @@ use kurbo::Rect;
 
 use crate::figure::{Cache, Figure, Held, Resolved};
 use crate::layout;
-use crate::list::{Bounds, List, Outlines};
+use crate::list::{self, Bounds, List, Outlines};
 use crate::target::Target;
 
 impl Figure<'_> {
@@ -29,8 +29,10 @@ impl Figure<'_> {
     /// resolves, and emits the figure background, then per panel its
     /// background, its marks (inside a group clipped to the plot area), its
     /// border, axes and title, then the figure title, each a part whose
-    /// bounds are the union of its commands' bounds. Parts' hashes are 0.
-    /// Lines over recordings are thinned through `cache`'s M4 memo, so a
+    /// bounds are the union of its commands' bounds (one
+    /// [`Bounds`](crate::list::Bounds) of the whole list) and whose hash is
+    /// FNV-1a 64 of what it drew where it drew it
+    /// ([`Part::hash`](crate::list::Part::hash)). Lines over recordings are thinned through `cache`'s M4 memo, so a
     /// second draw of an unchanged figure runs no M4 query (and shapes no
     /// text).
     pub fn draw_with(
@@ -62,7 +64,7 @@ impl Figure<'_> {
     }
 
     /// The list of `resolved`: decorations and marks, each part bounded by
-    /// its commands.
+    /// its commands and hashed.
     fn emit(&self, cache: &mut Cache, resolved: &Resolved) -> List {
         let size = resolved.size();
         let mut list = List {
@@ -82,6 +84,7 @@ impl Figure<'_> {
                 .reduce(|a, b| a.union(b))
                 .unwrap_or(Rect::ZERO);
         }
+        list::parts::hash(&mut list);
         list
     }
 }

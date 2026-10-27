@@ -388,7 +388,7 @@ fn decorations_are_parts_in_drawing_order_bounded_by_their_commands() {
     for part in &list.parts {
         assert_eq!(part.commands.start, end, "parts are contiguous and ordered");
         end = part.commands.end;
-        assert_eq!(part.hash, 0);
+        assert_ne!(part.hash, 0);
     }
     assert_eq!(end, list.commands.len());
     assert_eq!(list.parts[0].bounds, Rect::new(0.0, 0.0, 640.0, 480.0));

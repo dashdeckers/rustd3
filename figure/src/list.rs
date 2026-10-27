@@ -11,6 +11,7 @@ mod error;
 mod outline;
 mod paints;
 pub mod part;
+pub(crate) mod parts;
 mod run;
 
 use std::ops::Range;
@@ -55,8 +56,10 @@ pub struct Part {
     pub commands: Range<usize>,
     /// Union of the commands' bounds, in list px.
     pub bounds: Rect,
-    /// FNV-1a 64 of what the part drew. The figure's list builder fills
-    /// it from Phase 17; until then, and in hand-built lists, it is 0.
+    /// FNV-1a 64 of what the part drew and of the groups open at its
+    /// start: equal when a figure draws it again from equal data, different
+    /// when it draws other content or the same content elsewhere. The
+    /// figure's list builder fills it; hand-built lists may leave it 0.
     pub hash: u64,
 }
 
