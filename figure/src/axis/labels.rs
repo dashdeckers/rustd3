@@ -9,12 +9,11 @@ use crate::figure::Resolved;
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
-/// One axis's labels for a resolve: its side, offset and color, the keys of
-/// its tick labels (none when it is not labelled) and of its title, set in
-/// that color.
+/// One axis's labels for a layout pass: its side and color, the keys of its
+/// tick labels (none when it is not labelled) and of its title, set in that
+/// color.
 pub(crate) struct Labels {
     pub(super) orient: Orient,
-    pub(super) outward: f64,
     pub(super) ink: Rgb,
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Key>,
@@ -22,19 +21,21 @@ pub(crate) struct Labels {
 }
 
 impl Labels {
-    /// The labels of `axis` over the resolved scales, in `theme`'s styles.
+    /// The labels of `axis` over the resolved scales for about `count`
+    /// ticks, in `theme`'s styles; none when not `labeled`.
     pub(crate) fn new<'a>(
         axis: &(dyn Draw<'a> + 'a),
         resolved: &Resolved,
         theme: &Theme,
+        labeled: bool,
+        count: usize,
     ) -> Labels {
         let orient = axis.orient();
         let tint = axis.tint(resolved);
         let ink = tint.unwrap_or(theme.ink());
-        let labeled = axis.labeled();
         let style = theme.tick_label(anchor(orient).h, ink);
         let ticks = if labeled {
-            let texts = axis.texts(resolved);
+            let texts = axis.texts(resolved, count);
             texts
                 .into_iter()
                 .map(|t| Key::new(&Text::from(t), &style))
@@ -48,7 +49,6 @@ impl Labels {
             .map(|t| Key::new(t, &theme.axis_label(ink)));
         Labels {
             orient,
-            outward: axis.outward(),
             ink,
             tinted: tint.is_some(),
             ticks,
@@ -56,31 +56,26 @@ impl Labels {
         }
     }
 
-    /// The side of the panel the axis is on.
-    pub(crate) fn orient(&self) -> Orient {
-        self.orient
-    }
-
-    /// Every key, for the text cache's one batch.
+    /// Every key, for the text cache's batch.
     pub(crate) fn keys(&self) -> impl Iterator<Item = &Key> {
         self.ticks.iter().chain(&self.title)
     }
 
-    /// How far the axis reaches past the plot area: its offset and tick,
-    /// and, when labelled, the tick pad, its labels' extent across the axis
-    /// (the widest advance beside a vertical axis, the tallest ink under a
+    /// How far the axis reaches past its offset: its tick, and, when
+    /// labelled, the tick pad, its labels' extent across the axis (the
+    /// widest advance beside a vertical axis, the tallest ink under a
     /// horizontal one) and, with a title, the label pad and the title's ink
     /// height.
-    pub(crate) fn reach(&self, text: &text::Cache, theme: &Theme) -> f64 {
-        let mut reach = self.outward + theme.tick();
+    pub(crate) fn thickness(&self, text: &text::Cache, theme: &Theme) -> f64 {
+        let mut thickness = theme.tick();
         if self.ticks.is_empty() && self.title.is_none() {
-            return reach;
+            return thickness;
         }
-        reach += theme.tick_pad() + self.extent(text);
+        thickness += theme.tick_pad() + self.extent(text);
         if let Some(title) = self.title.as_ref().and_then(|key| get(text, key)) {
-            reach += theme.label_pad() + ink(title);
+            thickness += theme.label_pad() + ink(title);
         }
-        reach
+        thickness
     }
 
     /// The tick labels' extent across the axis: the widest advance beside

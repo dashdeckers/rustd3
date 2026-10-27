@@ -163,7 +163,9 @@ impl<'a, S: Kind> Axis<'a, S> {
         }
     }
 
-    /// d3's `axis.ticks(count)`: about `count` ticks; d3's 10 without it.
+    /// d3's `axis.ticks(count)`: about `count` ticks. Without it the count
+    /// follows the axis's length: one tick per 80 px across, per 35 px up,
+    /// at least 2.
     pub fn ticks(self, count: usize) -> Self {
         Axis {
             count: Some(count),
@@ -213,20 +215,20 @@ impl<S> Axis<'_, S>
 where
     S: Position + Ticks<Domain = <S as Kind>::Domain>,
 {
-    /// The tick set: the scale's about `count` ticks (d3's 10), or the
-    /// chosen values with the scale's step and count.
-    fn set(&self, scale: &S) -> ticks::Set<<S as Kind>::Domain, <S as Ticks>::Step> {
-        let set = scale.tick_set(self.count.unwrap_or(10));
+    /// The tick set: the scale's about `count` ticks, or the chosen values
+    /// with the scale's step and count.
+    fn set(&self, scale: &S, count: usize) -> ticks::Set<<S as Kind>::Domain, <S as Ticks>::Step> {
+        let set = scale.tick_set(count);
         match &self.values {
             Some(values) => set.with_values(values.to_vec()),
             None => set,
         }
     }
 
-    /// The labels of `scale`'s ticks: the format's, else the scale's own
-    /// under the neutral locale.
-    fn texts(&self, scale: &S) -> Vec<String> {
-        let set = self.set(scale);
+    /// The labels of `scale`'s about `count` ticks: the format's, else the
+    /// scale's own under the neutral locale.
+    fn texts(&self, scale: &S, count: usize) -> Vec<String> {
+        let set = self.set(scale, count);
         match &self.format {
             Some(format) => set.values().iter().map(|v| format(v)).collect(),
             None => scale.labels(&set, &Locale::default()),

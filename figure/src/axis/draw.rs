@@ -25,23 +25,26 @@ pub(crate) trait Draw<'a>: 'a {
     /// Its palette color, when tinted and the palette has one for its key.
     fn tint(&self, resolved: &Resolved) -> Option<Rgb>;
 
-    /// Whether its tick labels and title are drawn.
-    fn labeled(&self) -> bool;
+    /// Whether `.labels(b)` set its tick labels and title on or off.
+    fn labels(&self) -> Option<bool>;
 
-    /// The tick labels of the resolved scale.
-    fn texts(&self, resolved: &Resolved) -> Vec<String>;
+    /// The tick count `.ticks(n)` set.
+    fn count(&self) -> Option<usize>;
 
-    /// Each tick's position along a panel `length` px long, aligned with
-    /// [`texts`](Draw::texts): across [0, length] for a horizontal axis, up
-    /// [length, 0] for a vertical one; `None` for a key outside the domain
-    /// or a position that is not finite.
-    fn positions(&self, resolved: &Resolved, length: f64) -> Vec<Option<f64>>;
+    /// The offset `.outward(px)` set, px from the plot area.
+    fn outward(&self) -> Option<f64>;
+
+    /// The tick labels of the resolved scale's about `count` ticks.
+    fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String>;
+
+    /// Each of about `count` ticks' position along a panel `length` px
+    /// long, aligned with [`texts`](Draw::texts): across [0, length] for a
+    /// horizontal axis, up [length, 0] for a vertical one; `None` for a key
+    /// outside the domain or a position that is not finite.
+    fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>>;
 
     /// The title along the axis.
     fn title(&self) -> Option<&text::Text>;
-
-    /// How far it sits from the plot area, px.
-    fn outward(&self) -> f64;
 }
 
 impl<'a, S> Draw<'a> for Axis<'a, S>
@@ -56,15 +59,23 @@ where
         self.tint.as_ref().and_then(|tint| tint(resolved))
     }
 
-    fn labeled(&self) -> bool {
-        self.labels.unwrap_or(true)
+    fn labels(&self) -> Option<bool> {
+        self.labels
     }
 
-    fn texts(&self, resolved: &Resolved) -> Vec<String> {
-        Axis::texts(self, resolved.scale(self.scale))
+    fn count(&self) -> Option<usize> {
+        self.count
     }
 
-    fn positions(&self, resolved: &Resolved, length: f64) -> Vec<Option<f64>> {
+    fn outward(&self) -> Option<f64> {
+        self.outward
+    }
+
+    fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String> {
+        Axis::texts(self, resolved.scale(self.scale), count)
+    }
+
+    fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>> {
         let range = if across(self.orient) {
             [0.0, length]
         } else {
@@ -75,7 +86,7 @@ where
             .as_any()
             .downcast_ref::<S>()
             .expect("invariant: a scale's with_range keeps its type");
-        self.set(ranged)
+        self.set(ranged, count)
             .values()
             .iter()
             .map(|v| Ticks::position(ranged, v, 0.0).filter(|p| p.is_finite()))
@@ -85,25 +96,21 @@ where
     fn title(&self) -> Option<&text::Text> {
         self.label.as_ref()
     }
-
-    fn outward(&self) -> f64 {
-        self.outward.unwrap_or(0.0)
-    }
 }
 
 impl Labels {
-    /// Appends the axis beside plot area `area` to `list`: its line in the
-    /// theme's edge color (its own when tinted) with square caps, so two
-    /// axes meet at a closed corner as matplotlib's projecting spines do,
-    /// its ticks at `positions`
-    /// (along the plot area, aligned with the ticks), its tick labels a tick
-    /// pad past the ticks, and its title a label pad past the labels'
-    /// extent, turned a quarter counter-clockwise on the left and clockwise
-    /// on the right.
+    /// Appends the axis `offset` px outside plot area `area` to `list`: its
+    /// line in the theme's edge color (its own when tinted) with square
+    /// caps, so two axes meet at a closed corner as matplotlib's projecting
+    /// spines do, its ticks at `positions` (along the plot area, aligned
+    /// with the ticks), its tick labels a tick pad past the ticks, and its
+    /// title a label pad past the labels' extent, turned a quarter
+    /// counter-clockwise on the left and clockwise on the right.
     pub(crate) fn draw(
         &self,
         positions: &[Option<f64>],
         area: Rect,
+        offset: f64,
         text: &text::Cache,
         theme: &Theme,
         list: &mut List,
@@ -117,10 +124,10 @@ impl Labels {
         // The axis line, and a point `across` px outward of it `along` px
         // from the plot area's start.
         let line = match orient {
-            Orient::Top => area.y0 - self.outward,
-            Orient::Bottom => area.y1 + self.outward,
-            Orient::Left => area.x0 - self.outward,
-            Orient::Right => area.x1 + self.outward,
+            Orient::Top => area.y0 - offset,
+            Orient::Bottom => area.y1 + offset,
+            Orient::Left => area.x0 - offset,
+            Orient::Right => area.x1 + offset,
         };
         let at = |along: f64, across_: f64| {
             if across(orient) {

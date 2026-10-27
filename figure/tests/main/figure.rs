@@ -167,7 +167,9 @@ fn the_cache_counts_the_figure_title_once_per_new_text() {
     cache.begin();
     fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
     let stats = cache.stats().text;
-    assert_eq!((stats.entries, stats.misses, stats.hits), (1, 1, 1));
+    // Each resolve runs two layout passes, each with the title in its
+    // batch: one miss, then hits.
+    assert_eq!((stats.entries, stats.misses, stats.hits), (1, 1, 3));
 }
 
 /// The single-panel row: 640 × 480, `left(y)` and `bottom(x)`, x fitted
@@ -250,8 +252,11 @@ fn figure_axis_ticks_follow_core_axis_positions() {
     let resolved = resolve(&fig, &Held::default());
     let area = resolved.plot_areas()[0];
     let ranged = resolved.scale(x).clone().with_range([0.0, area.width()]);
+    // One tick per 80 px: 8 over about 610 px.
+    let count = (area.width() / 80.0).round() as usize;
+    assert_eq!(count, 8, "{area:?}");
     let expected: Vec<f64> = ranged
-        .tick_set(10)
+        .tick_set(count)
         .values()
         .iter()
         .map(|v| area.x0 + Ticks::position(&ranged, v, 0.0).expect("placed"))
@@ -342,6 +347,11 @@ fn a_tinted_axis_takes_its_palette_color() {
     });
     let fills = runs(axis).into_iter().map(|run| &run.fill);
     let paints: Vec<&Brush> = strokes.chain(fills).collect();
-    assert_eq!(paints.len(), 2 + 8 + 1, "line, ticks, 8 labels, the title");
+    // [28.25, 66.75] over about 433 px: 12 ticks asked, every 2 from 30.
+    assert_eq!(
+        paints.len(),
+        2 + 19 + 1,
+        "line, ticks, 19 labels, the title"
+    );
     assert!(paints.iter().all(|p| **p == orange), "{paints:?}");
 }

@@ -1,34 +1,32 @@
 //! Resolving a figure: domains fitted to the marks' data or held by a
-//! gesture, labels measured through the text cache in one batch, and the
-//! grid laid out by protrusions.
+//! gesture, labels measured through the text cache, and the grid laid out
+//! in passes.
 
-use rustd3_core::axis::Orient;
-
-use crate::axis::{self, Labels};
 use crate::figure::fits::Fits;
-use crate::figure::resolved::Laid;
 use crate::figure::{Cache, Figure, Held, Resolved};
-use crate::layout::{self, Reach};
+use crate::layout::Layout;
 use crate::panel::Panel;
 use crate::scale::Scale;
 use crate::target::Target;
-use crate::text::{self, Key, Shaped};
+use crate::text::Key;
 
 impl Figure<'_> {
     /// Fits every fitted handle's domain to the data of every mark that
-    /// uses it (held handles keep the held scale), measures every label
-    /// through `cache`'s text cache in one batch, and lays the grid out for
-    /// `size`. `target` is kept in the result.
+    /// uses it (held handles keep the held scale), and lays the grid out
+    /// for `size`, measuring every label through `cache`'s text cache, one
+    /// batch per layout pass. `target` is kept in the result.
     ///
-    /// Layout is one protrusion pass: each panel reaches past its plot area
-    /// by its axes (tick, tick pad, the labels' extent and, with a title,
-    /// the label pad and the title's ink height, at the axis's offset), by
-    /// tick labels that overhang its ends (measured on the plot areas laid
-    /// out without them) and by its title (title pad and ink height, above
-    /// everything on top); each column takes the largest reach of its
-    /// panels per side and each row likewise, and the rest is split by
-    /// weight inside 0.8 em of padding, below the figure title's ink height
-    /// and 8 px.
+    /// Each pass takes every axis's tick count from its length in the last
+    /// placement (one tick per 80 px across, per 35 px up, at least 2;
+    /// `.ticks(n)` fixes it) and places the plot areas again, until the
+    /// counts settle (at most four passes): each panel reaches past its
+    /// plot area by its axes (tick, tick pad, the labels' extent and, with
+    /// a title, the label pad and the title's ink height, at the axis's
+    /// offset), by tick labels that overhang its ends and by its title
+    /// (title pad and ink height, above everything on top); each column
+    /// takes the largest reach of its panels per side and each row
+    /// likewise, and the rest is split by weight inside 0.8 em of padding,
+    /// below the figure title's ink height and 8 px.
     pub fn resolve(
         &self,
         size: kurbo::Size,
@@ -38,109 +36,12 @@ impl Figure<'_> {
     ) -> Resolved {
         let (scales, marked) = self.fitted(held);
         let mut resolved = Resolved::new(self.id, scales, target);
-        let theme = &self.theme;
-        let labels: Vec<Vec<Labels>> = self
-            .panels
-            .iter()
-            .map(|p| {
-                p.axes()
-                    .iter()
-                    .map(|a| Labels::new(&**a, &resolved, theme))
-                    .collect()
-            })
-            .collect();
-        let titles: Vec<Option<Key>> = self
-            .panels
-            .iter()
-            .map(|p| p.heading().map(|t| Key::new(t, &theme.title())))
-            .collect();
+        let layout = Layout::new(self, &resolved, cache.text(), &marked, size);
         let title = self
             .title
             .as_ref()
-            .map(|t| Key::new(t, &theme.figure_title()));
-        let text = cache.text();
-        text.prepare(
-            labels
-                .iter()
-                .flatten()
-                .flat_map(Labels::keys)
-                .chain(titles.iter().flatten())
-                .chain(&title)
-                .chain(&marked),
-        );
-        let text = &*text;
-        let reserve = title
-            .as_ref()
-            .and_then(|key| get(text, key))
-            .map_or(0.0, |s| ink(s) + theme.title_pad());
-        let titled = |reach: &Reach, title: &Option<Key>| {
-            let mut reach = *reach;
-            if let Some(s) = title.as_ref().and_then(|key| get(text, key)) {
-                reach.top += theme.title_pad() + ink(s);
-            }
-            reach
-        };
-        let axes: Vec<Reach> = labels
-            .iter()
-            .map(|axes| {
-                let mut reach = Reach::default();
-                for a in axes {
-                    reach.widen(a.orient(), a.reach(text, theme));
-                }
-                reach
-            })
-            .collect();
-        let bare: Vec<Reach> = axes
-            .iter()
-            .zip(&titles)
-            .map(|(r, t)| titled(r, t))
-            .collect();
-        let bare = self.areas(size, reserve, &bare);
-        let overhung: Vec<Reach> = self
-            .panels
-            .iter()
-            .zip(&labels)
-            .zip(axes)
-            .zip(&bare)
-            .map(|(((panel, labels), mut reach), area)| {
-                for (a, l) in panel.axes().iter().zip(labels) {
-                    let length = length(l.orient(), *area);
-                    let positions = a.positions(&resolved, length);
-                    reach.overhang(l.orient(), l.overhang(&positions, length, text));
-                }
-                reach
-            })
-            .collect();
-        let reaches: Vec<Reach> = overhung
-            .iter()
-            .zip(&titles)
-            .map(|(r, t)| titled(r, t))
-            .collect();
-        let areas = self.areas(size, reserve, &reaches);
-        let laid = self
-            .panels
-            .iter()
-            .zip(labels)
-            .zip(titles)
-            .zip(overhung.iter().zip(&areas))
-            .map(|(((panel, labels), title), (reach, area))| {
-                let axes = panel
-                    .axes()
-                    .iter()
-                    .zip(labels)
-                    .map(|(a, l)| {
-                        let positions = a.positions(&resolved, length(l.orient(), *area));
-                        (l, positions)
-                    })
-                    .collect();
-                Laid {
-                    axes,
-                    title,
-                    top: reach.top,
-                }
-            })
-            .collect();
-        resolved.place(areas, laid, title);
+            .map(|t| Key::new(t, &self.theme.figure_title()));
+        resolved.place(layout, title);
         resolved
     }
 
@@ -188,74 +89,5 @@ impl Figure<'_> {
             })
             .collect();
         (scales, labels)
-    }
-
-    /// The plot areas of the panels for `size`, with `reserve` px above
-    /// the grid for the figure title and each panel reaching `reaches`
-    /// past its plot area.
-    fn areas(&self, size: kurbo::Size, reserve: f64, reaches: &[Reach]) -> Vec<kurbo::Rect> {
-        let em = self.theme.em();
-        let pad = 0.8 * em;
-        let rows = tracks(
-            self.grid.row_weights().len(),
-            self.panels.iter().map(|p| p.cell().0),
-        );
-        let cols = tracks(
-            self.grid.col_weights().len(),
-            self.panels.iter().map(|p| p.cell().1),
-        );
-        let mut row_reach = vec![[0.0_f64; 2]; rows];
-        let mut col_reach = vec![[0.0_f64; 2]; cols];
-        for (panel, reach) in self.panels.iter().zip(reaches) {
-            let (r, c) = panel.cell();
-            let row = &mut row_reach[r];
-            *row = [row[0].max(reach.top), row[1].max(reach.bottom)];
-            let col = &mut col_reach[c];
-            *col = [col[0].max(reach.left), col[1].max(reach.right)];
-        }
-        let ys = layout::tracks(
-            self.grid.row_weights(),
-            &self.grid.row_gaps_px(rows, em),
-            &row_reach,
-            [pad + reserve, size.height - 2.0 * pad - reserve],
-        );
-        let xs = layout::tracks(
-            self.grid.col_weights(),
-            &self.grid.col_gaps_px(cols, em),
-            &col_reach,
-            [pad, size.width - 2.0 * pad],
-        );
-        self.panels
-            .iter()
-            .map(|p| {
-                let ([y, h], [x, w]) = (ys[p.cell().0], xs[p.cell().1]);
-                kurbo::Rect::new(x, y, x + w, y + h)
-            })
-            .collect()
-    }
-}
-
-/// The number of tracks along one axis: as many as there are weights, or
-/// as the panels' cells need.
-fn tracks(weights: usize, cells: impl Iterator<Item = usize>) -> usize {
-    cells.map(|c| c + 1).fold(weights, usize::max)
-}
-
-/// `key`'s shaped label; `None` when typst rejected it.
-fn get<'c>(text: &'c text::Cache, key: &Key) -> Option<&'c Shaped> {
-    text.get(key)?.ok()
-}
-
-/// The ink height of a shaped label.
-fn ink(shaped: &Shaped) -> f64 {
-    shaped.ascent() + shaped.descent()
-}
-
-/// The length of `area` along an axis on side `orient`.
-fn length(orient: Orient, area: kurbo::Rect) -> f64 {
-    if axis::across(orient) {
-        area.width()
-    } else {
-        area.height()
     }
 }

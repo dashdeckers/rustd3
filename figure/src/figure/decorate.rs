@@ -63,9 +63,12 @@ impl Figure<'_> {
                     });
                 });
             }
-            for (j, (labels, positions)) in laid.axes.iter().enumerate() {
+            for (j, placed) in laid.axes.iter().enumerate() {
                 part(list, part::id(Role::Axis, i, j), |list| {
-                    labels.draw(positions, *area, text, theme, list);
+                    let offset = placed.plan.offset;
+                    placed
+                        .labels
+                        .draw(&placed.positions, *area, offset, text, theme, list);
                 });
             }
             if let Some(title) = shaped(text, laid.title.as_ref()) {

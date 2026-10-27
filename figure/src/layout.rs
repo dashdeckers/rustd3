@@ -17,9 +17,13 @@
 //! # let _ = grid;
 //! ```
 
+mod passes;
+mod plan;
 mod protrusion;
 mod tracks;
 
+pub(crate) use passes::{Laid, Layout};
+pub use plan::Plan;
 pub(crate) use protrusion::Reach;
 pub(crate) use tracks::tracks;
 

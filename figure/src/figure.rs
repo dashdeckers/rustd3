@@ -147,6 +147,26 @@ impl<'a> Figure<'a> {
         self
     }
 
+    /// The panels, in the order of their first use.
+    pub(crate) fn panels(&self) -> &[Panel<'a>] {
+        &self.panels
+    }
+
+    /// The grid.
+    pub(crate) fn grid(&self) -> &Grid {
+        &self.grid
+    }
+
+    /// The theme.
+    pub(crate) fn style(&self) -> &Theme {
+        &self.theme
+    }
+
+    /// The title.
+    pub(crate) fn heading(&self) -> Option<&Text> {
+        self.title.as_ref()
+    }
+
     /// Appends `scale` to the table.
     fn add<S>(&mut self, scale: Box<dyn Scale>, fitter: Option<fits::Fitter>) -> ScaleRef<S> {
         let index = u32::try_from(self.scales.len())

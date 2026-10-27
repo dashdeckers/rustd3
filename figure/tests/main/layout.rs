@@ -4,13 +4,13 @@
 use rustd3_core::color::Rgb;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
-use rustd3_figure::kurbo::Rect;
+use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::layout::{Grid, em, px};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{self, Key, Style, Text, anchor};
-use rustd3_figure::{Figure, Held, Panel, axis};
+use rustd3_figure::{Figure, Held, Panel, Target, axis};
 
-use crate::figure::{line, resolve};
+use crate::figure::{cache, line, resolve};
 
 /// 0.8 em of padding at notebook: 0.8 × 11 pt × 4/3.
 const PAD: f64 = 0.8 * 11.0 * 4.0 / 3.0;
@@ -301,4 +301,46 @@ fn attached_panels_with_axes_and_titles_share_pixel_ranges_exactly() {
     let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
     assert_attached(&areas, &cells);
     assert!(areas[0].x0 < areas[1].x0 && areas[0].y0 < areas[2].y0);
+}
+
+/// A `rows` × `cols` grid of panels at `size`, each with a left and a
+/// bottom axis on its own handles, fitted to 0 … 10 and 0 … 3.
+fn grid(rows: usize, cols: usize) -> Figure<'static> {
+    let mut fig = Figure::new();
+    for r in 0..rows {
+        for c in 0..cols {
+            let x = fig.fit(scale::linear());
+            let y = fig.fit(scale::linear());
+            fig.panel(r, c)
+                .mark(line(x, [0.0, 10.0]))
+                .mark(line(y, [0.0, 3.0]))
+                .axis(axis::left(y))
+                .axis(axis::bottom(x));
+        }
+    }
+    fig
+}
+
+#[test]
+fn layout_settles_within_four_passes() {
+    for n in [1, 2, 4, 8, 16] {
+        for size in [Size::new(640.0, 480.0), Size::new(1600.0, 1200.0)] {
+            let fig = grid(n, n);
+            let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
+            assert!(
+                (2..=4).contains(&r.passes()),
+                "{n}×{n} at {size:?}: {}",
+                r.passes()
+            );
+        }
+    }
+    let (fig, ..) = one_panel(|p, x, y| {
+        p.axis(axis::left(y).ticks(5))
+            .axis(axis::bottom(x).ticks(5));
+    });
+    assert_eq!(
+        resolve(&fig, &Held::default()).passes(),
+        2,
+        "fixed counts settle at once"
+    );
 }
