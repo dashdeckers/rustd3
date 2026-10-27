@@ -45,6 +45,149 @@ pub trait Interpolate: Clone {
     fn lerp(&self, to: &Self, t: f64) -> Self;
 }
 
+/// Derives [`Interpolate`](trait@Interpolate) field by field for a struct
+/// with named fields. `use rustd3_core::interpolate::Interpolate;` imports
+/// the trait and the derive together; derive `Clone` as well, the trait's
+/// supertrait.
+///
+/// ```
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Debug, Clone, PartialEq, Interpolate)]
+/// struct Bar {
+///     y: f64,
+///     width: f64,
+///     opacity: f64,
+///     value: f64,
+///     #[interpolate(skip)]
+///     name: String,
+/// }
+///
+/// let a = Bar { y: 0.0, width: 0.0, opacity: 0.0, value: 0.0, name: "a".into() };
+/// let b = Bar { y: 40.0, width: 200.0, opacity: 1.0, value: 10.0, name: "b".into() };
+/// let quarter = Bar { y: 10.0, width: 50.0, opacity: 0.25, value: 2.5, name: "a".into() };
+/// assert_eq!(a.lerp(&b, 0.25), quarter);
+/// assert_eq!(a.lerp(&b, 1.0).name, "b");
+/// ```
+///
+/// A field whose type has no `Interpolate` impl is an error (E0277):
+///
+/// ```compile_fail,E0277
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Bad {
+///     name: String,
+/// }
+/// ```
+///
+/// Skipped, it keeps the start value until `t = 1`:
+///
+/// ```
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Good {
+///     #[interpolate(skip)]
+///     name: String,
+/// }
+/// ```
+///
+/// The same holds for a type of your own until it implements the trait:
+///
+/// ```compile_fail,E0277
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone)]
+/// struct Weight(f64);
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Edge {
+///     weight: Weight,
+/// }
+/// ```
+///
+/// ```
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Edge {
+///     weight: f64,
+/// }
+/// ```
+///
+/// A generic struct interpolates for the parameters its fields can blend:
+/// `Mark<f64>` implements the trait, `Mark<String>` does not (E0599).
+///
+/// ```compile_fail,E0599
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Mark<T> {
+///     v: T,
+///     #[interpolate(skip)]
+///     label: String,
+/// }
+///
+/// let a = Mark { v: String::from("a"), label: String::new() };
+/// a.lerp(&a, 0.5);
+/// ```
+///
+/// ```
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Mark<T> {
+///     v: T,
+///     #[interpolate(skip)]
+///     label: String,
+/// }
+///
+/// let a = Mark { v: 1.0, label: String::new() };
+/// assert_eq!(a.lerp(&Mark { v: 3.0, label: String::new() }, 0.5).v, 2.0);
+/// ```
+///
+/// Only structs with named fields derive it, not enums:
+///
+/// ```compile_fail
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// enum Shape {
+///     Dot { r: f64 },
+/// }
+/// ```
+///
+/// ```
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct Dot {
+///     r: f64,
+/// }
+/// ```
+///
+/// nor tuple structs:
+///
+/// ```compile_fail
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct P(f64, f64);
+/// ```
+///
+/// ```
+/// use rustd3_core::interpolate::Interpolate;
+///
+/// #[derive(Clone, Interpolate)]
+/// struct P {
+///     x: f64,
+///     y: f64,
+/// }
+/// ```
+#[cfg(feature = "derive")]
+pub use rustd3_derive::Interpolate;
+
 impl Interpolate for f64 {
     /// d3's interpolateNumber, `self · (1 − t) + to · t`: exact at t = 0
     /// and t = 1.
