@@ -124,6 +124,10 @@ impl<S: Position> Rule<S> {
 impl<'a, S: Position> Mark<'a> for Rule<S> {
     fn fit(&self, fits: &mut Fits) {
         fits.add(self.scale, &self.value);
+        match self.along {
+            Along::X => fits.across(self.scale),
+            Along::Y => {}
+        }
         if let Some(key) = self.key(fits.theme()) {
             fits.label(key);
         }

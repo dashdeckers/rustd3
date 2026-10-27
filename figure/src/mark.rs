@@ -209,17 +209,18 @@ fn admits<S: Kind>(scale: &S, v: f64) -> bool {
     value::<<S as Kind>::Domain>(v).is_some_and(|v| scale.admits(&v))
 }
 
-/// Reports `points` on `x` and `y`: a recording channel through the x
-/// scale's index (its first and last x, and its y extremes among the values
-/// `y` admits), read in O(log n); anything else pair by pair. When `y` is
-/// fitted to what `x` shows (`Fit::Visible`), only the y values of the
-/// points `x` shows.
+/// Reports `points` on `x` and `y`, and `x` as placed across the plot
+/// area: a recording channel through the x scale's index (its first and
+/// last x, and its y extremes among the values `y` admits), read in
+/// O(log n); anything else pair by pair. When `y` is fitted to what `x`
+/// shows (`Fit::Visible`), only the y values of the points `x` shows.
 fn fit<'a, X: Position, Y: Position>(
     points: &Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     fits: &mut Fits,
 ) {
+    fits.across(x);
     if let Some(window) = fits.window(x, y) {
         visible(points, &window, y, fits);
         return;

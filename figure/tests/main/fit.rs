@@ -3,11 +3,14 @@
 //! handles skip it. The rows are matplotlib 3.11.2's `get_ylim` for the
 //! same data, except where noted.
 
-use rustd3_core::scale::{self, Log};
+use rustd3_core::scale::{self, Continuous, Linear, Log};
+use rustd3_core::series::{Clock, Recording};
+use rustd3_figure::kurbo::{Rect, Size};
+use rustd3_figure::mark;
 use rustd3_figure::scale::{Fit, Kind, ScaleRef};
-use rustd3_figure::{Figure, Held};
+use rustd3_figure::{Cache, Figure, Held, Resolved, Target, axis};
 
-use crate::figure::{Values, line, resolve};
+use crate::figure::{Values, cache, line, resolve};
 
 /// `a` within 1e-12 of `b`, relative.
 fn close(a: f64, b: f64) -> bool {
@@ -125,7 +128,7 @@ fn a_held_handle_skips_fitting_until_released() {
 }
 
 #[test]
-fn visible_and_window_fit_as_all_for_now() {
+fn visible_and_window_fit_as_all_on_a_handle_no_mark_places_across() {
     assert_domain(fitted(&[0.0, 3.0], false, Fit::Visible), [-0.15, 3.15]);
     assert_domain(fitted(&[0.0, 3.0], false, Fit::Window(5.0)), [-0.15, 3.15]);
 }
@@ -163,4 +166,182 @@ fn a_foreign_handle_fits_unchecked_in_release_builds() {
         resolve(&fig, &Held::default()).scale(y).get_domain(),
         [-0.5, 10.5],
     );
+}
+
+/// The canvas padding on both sides at notebook size: 2 × 0.8 em.
+const PAD: f64 = 2.0 * 0.8 * 44.0 / 3.0;
+
+/// A canvas whose one panel without axes has a plot area 1000 × 240 px.
+const BARE: Size = Size::new(1000.0 + PAD, 240.0 + PAD);
+
+/// The screen at 1×: one thinning column per px.
+const SCREEN: Target = Target::Screen { scale: 1.0 };
+
+/// `n` samples at 10 kHz whose last x is exactly `last`, of a 7 Hz tone,
+/// on an explicit clock.
+fn tone(n: u32, last: f64) -> Recording<f64> {
+    let x: Vec<f64> = (0..n).map(|i| last - f64::from(n - 1 - i) * 1e-4).collect();
+    let y: Vec<f64> = x.iter().map(|t| (t * 44.0).sin()).collect();
+    Recording::new(Clock::Explicit(x), [y]).expect("a valid recording")
+}
+
+/// Appends `n` samples of the tone after `rec`'s last, 1e-4 s apart.
+fn append(rec: &mut Recording<f64>, n: u32) {
+    let last = rec
+        .series(0)
+        .and_then(|s| s.get(s.len() - 1))
+        .expect("a sample")
+        .0;
+    let x: Vec<f64> = (1..=n).map(|i| last + f64::from(i) * 1e-4).collect();
+    let y: Vec<f64> = x.iter().map(|t| (t * 44.0).sin()).collect();
+    rec.extend(&x, [y]).expect("a valid append");
+}
+
+/// A line over `rec` on an x handle showing its last 10 s (`Fit::Window`)
+/// and a fixed y, with no axes; the x handle.
+fn windowed(rec: &Recording<f64>) -> (Figure<'_>, ScaleRef<Linear>) {
+    let mut fig = Figure::new();
+    let t = fig.fit_with(scale::linear(), Fit::Window(10.0));
+    let v = fig.scale(scale::linear().domain([-2.0, 2.0]));
+    fig.panel(0, 0)
+        .mark(mark::line(rec.series(0).expect("a channel"), t, v));
+    (fig, t)
+}
+
+/// `fig` resolved on [`BARE`] for the screen at 1× through `cache`; its
+/// plot area is 1000 px wide.
+fn bare(fig: &Figure<'_>, cache: &mut Cache) -> Resolved {
+    let r = fig.resolve(BARE, cache, &Held::default(), SCREEN);
+    assert_eq!(r.plot_areas()[0].width(), 1000.0);
+    r
+}
+
+#[test]
+fn fit_window_moves_in_whole_columns() {
+    let mut rec = tone(10_000, 123.456);
+    let mut cache = cache();
+    let first = {
+        let (fig, t) = windowed(&rec);
+        bare(&fig, &mut cache).scale(t).get_domain()
+    };
+    // col = 10 / 1000 = 0.01; right = ceil(12,345.6) · 0.01.
+    assert_domain(first, [113.46, 123.46]);
+    append(&mut rec, 1000);
+    let second = {
+        let (fig, t) = windowed(&rec);
+        bare(&fig, &mut cache).scale(t).get_domain()
+    };
+    assert_domain(second, [113.56, 123.56]);
+    let moved = (second[1] - first[1]) / 0.01;
+    assert!((moved - 10.0).abs() < 1e-9, "{moved} columns");
+    // One sample more, at 123.5561: the window stays.
+    rec.extend(&[123.5561], [[0.5]]).expect("a valid append");
+    let (fig, t) = windowed(&rec);
+    assert_eq!(bare(&fig, &mut cache).scale(t).get_domain(), second);
+    // A fresh cache fits the same window.
+    assert_eq!(
+        bare(&fig, &mut crate::figure::cache())
+            .scale(t)
+            .get_domain(),
+        second
+    );
+}
+
+#[test]
+fn fit_window_with_no_data_is_all() {
+    let rec = Recording::new(Clock::Explicit(Vec::new()), [Vec::<f64>::new()]).expect("empty");
+    let (fig, t) = windowed(&rec);
+    assert_eq!(bare(&fig, &mut cache()).scale(t).get_domain(), [0.0, 1.0]);
+}
+
+#[test]
+fn fit_window_column_edges_shift_by_whole_columns() {
+    let mut rec = tone(100_000, 37.0001);
+    let mut cache = cache();
+    // The thinning columns' edges: the inverse of the device px edges.
+    let mut edges = |rec: &Recording<f64>| -> Vec<f64> {
+        let (fig, t) = windowed(rec);
+        let r = bare(&fig, &mut cache);
+        let x: Linear = r.scale(t).clone().range([0.0, 1000.0]);
+        (0..=1000)
+            .map(|i| Continuous::invert(&x, f64::from(i)))
+            .collect()
+    };
+    let before = edges(&rec);
+    append(&mut rec, 1000);
+    let after = edges(&rec);
+    let col = 0.01;
+    let shift = (after[0] - before[0]) / col;
+    let k = shift.round();
+    println!("1,000 samples at 10 kHz moved the column edges by {shift} columns");
+    assert!((shift - k).abs() < 1e-9 && k == 10.0, "{shift}");
+    let k = k as usize;
+    let worst = after[..=1000 - k]
+        .iter()
+        .zip(&before[k..])
+        .map(|(a, b)| (a - b).abs() / col)
+        .fold(0.0, f64::max);
+    assert!(worst < 1e-9, "edges apart by {worst} columns");
+}
+
+#[test]
+fn fit_window_on_a_y_handle_fits_as_all() {
+    let rec = tone(1000, 5.0);
+    let mut fig = Figure::new();
+    let t = fig.fit(scale::linear());
+    let v = fig.fit_with(scale::linear(), Fit::Window(0.5));
+    fig.panel(0, 0)
+        .mark(mark::line(rec.series(0).expect("a channel"), t, v));
+    let r = bare(&fig, &mut cache());
+    // The tone spans [−1, 1] within its 0.1 s: padded 5%.
+    let [low, high] = r.scale(v).get_domain();
+    assert!(low < -1.0 && high > 1.0, "{low}, {high}");
+    assert_domain(r.scale(t).get_domain(), [4.895105, 5.004995]);
+}
+
+#[test]
+fn a_window_follows_the_widest_panel_that_places_it() {
+    let rec = tone(10_000, 123.456);
+    let mut fig = Figure::new();
+    let t = fig.fit_with(scale::linear(), Fit::Window(10.0));
+    let v = fig.scale(scale::linear().domain([-2.0, 2.0]));
+    let series = rec.series(0).expect("a channel");
+    fig.panel(0, 0).mark(mark::line(series, t, v));
+    fig.panel(0, 1).mark(mark::line(series, t, v));
+    fig.layout(rustd3_figure::layout::Grid::new().cols([3.0, 1.0]));
+    let r = fig.resolve(BARE, &mut cache(), &Held::default(), SCREEN);
+    let widest = r.plot_areas()[0].width();
+    assert!(widest > r.plot_areas()[1].width());
+    let [left, right] = r.scale(t).get_domain();
+    let col = 10.0 / widest;
+    assert!(
+        ((right / col) - (right / col).round()).abs() < 1e-6,
+        "{right}"
+    );
+    assert!((right - left - 10.0).abs() < 1e-9 && right >= 123.456 && right - 123.456 < col);
+}
+
+#[test]
+fn a_windowed_axis_holds_the_layout_while_ticks_slide() {
+    // Ticks every second pass the right end as the window moves 0.1 s per
+    // append; the axis reserves half a label at both ends all along.
+    let mut rec = tone(10_000, 113.95);
+    let mut cache = cache();
+    let mut areas: Vec<Rect> = Vec::new();
+    for _ in 0..20 {
+        {
+            let mut fig = Figure::new();
+            let t = fig.fit_with(scale::linear(), Fit::Window(10.0));
+            let v = fig.scale(scale::linear().domain([-2.0, 2.0]));
+            fig.panel(0, 0)
+                .mark(mark::line(rec.series(0).expect("a channel"), t, v))
+                .axis(axis::left(v))
+                .axis(axis::bottom(t));
+            let size = Size::new(640.0, 300.0);
+            let r = fig.resolve(size, &mut cache, &Held::default(), SCREEN);
+            areas.push(r.plot_areas()[0]);
+        }
+        append(&mut rec, 1000);
+    }
+    assert!(areas.iter().all(|a| *a == areas[0]), "{areas:?}");
 }

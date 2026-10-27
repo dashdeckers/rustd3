@@ -30,6 +30,7 @@ mod paint;
 mod point;
 mod position;
 pub(crate) mod visible;
+pub(crate) mod window;
 
 use std::any::Any;
 

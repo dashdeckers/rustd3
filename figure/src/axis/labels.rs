@@ -206,6 +206,22 @@ impl Labels {
                 [before.max(-(p + low)), after.max(p + high - length)]
             })
     }
+
+    /// How far the tick labels would reach past the two ends of the panel
+    /// along the axis, wherever their ticks sit: the most any of them
+    /// reaches before its tick and after it ([before its start, after its
+    /// end]), as if one sat at each end. What an axis on a `Fit::Window`
+    /// handle reserves, so ticks sliding past the ends move no layout.
+    pub(crate) fn reserve(&self, text: &text::Cache) -> [f64; 2] {
+        let across = across(self.orient);
+        shaped(text, &self.ticks)
+            .flatten()
+            .fold([0.0, 0.0], |[before, after], s| {
+                let b = self.bounds(s);
+                let (low, high) = if across { (b.x0, b.x1) } else { (b.y0, b.y1) };
+                [before.max(-low), after.max(high)]
+            })
+    }
 }
 
 /// How a tick label aligns on the end of its tick plus the tick pad:

@@ -327,9 +327,11 @@ fn counts(figure: &Figure<'_>, areas: &[Rect]) -> Vec<Vec<usize>> {
 }
 
 /// How far `panel`'s drawn `axes` reach past its plot area `area`: their
-/// offsets and thicknesses, their tick labels that overhang its ends, and
-/// above all that the offset or multiplier labels of its vertical axes;
-/// and how far the top reaches without those labels.
+/// offsets and thicknesses, their tick labels that overhang its ends (on a
+/// horizontal axis of a `Fit::Window` handle, the most any of them would
+/// overhang at either end), and above all that the offset or multiplier
+/// labels of its vertical axes; and how far the top reaches without those
+/// labels.
 fn reach(
     panel: &Panel<'_>,
     axes: &[(Labels, Plan)],
@@ -349,9 +351,14 @@ fn reach(
     for (a, (labels, plan)) in shown() {
         let orient = a.orient();
         reach.widen(orient, plan.offset + plan.thickness);
-        let length = length(orient, area);
-        let positions = a.positions(resolved, length, plan.count);
-        reach.overhang(orient, labels.overhang(&positions, length, text));
+        let overhang = if axis::across(orient) && resolved.windowed(a.handle()) {
+            labels.reserve(text)
+        } else {
+            let length = length(orient, area);
+            let positions = a.positions(resolved, length, plan.count);
+            labels.overhang(&positions, length, text)
+        };
+        reach.overhang(orient, overhang);
     }
     let top = reach.top;
     for (_, (labels, _)) in shown().filter(|(a, _)| !axis::across(a.orient())) {

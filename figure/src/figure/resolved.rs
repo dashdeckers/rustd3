@@ -33,6 +33,9 @@ pub struct Resolved {
     zooms: Vec<[Vec<usize>; 2]>,
     /// Per panel, each axis's side and handle position, in insertion order.
     axes: Vec<Vec<(Orient, usize)>>,
+    /// Per table entry, whether it is a `Fit::Window` handle some panel
+    /// places across.
+    windowed: Vec<bool>,
 }
 
 impl Resolved {
@@ -60,6 +63,7 @@ impl Resolved {
             held: false,
             zooms: Vec::new(),
             axes: Vec::new(),
+            windowed: Vec::new(),
         }
     }
 
@@ -202,9 +206,18 @@ impl Resolved {
         self.title.as_ref()
     }
 
+    /// Whether the handle at table position `index` is a `Fit::Window`
+    /// handle some panel places across: its horizontal axes reserve room
+    /// for a tick label at either end.
+    pub(crate) fn windowed(&self, index: usize) -> bool {
+        self.windowed.get(index).copied().unwrap_or(false)
+    }
+
     /// Records, for each of `panels` (this figure's), the handles it zooms
-    /// and its axes' sides and handles.
-    pub(super) fn bind(&mut self, panels: &[Panel<'_>]) {
+    /// and its axes' sides and handles, and per table entry whether it is
+    /// a window placed across.
+    pub(super) fn bind(&mut self, panels: &[Panel<'_>], windowed: Vec<bool>) {
+        self.windowed = windowed;
         self.zooms = panels.iter().map(|p| p.zooms(self.figure)).collect();
         self.axes = panels
             .iter()

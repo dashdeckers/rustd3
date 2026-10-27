@@ -12,7 +12,7 @@ mod resolve;
 mod resolved;
 mod save;
 
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 use std::fmt::Display;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -73,12 +73,14 @@ pub struct Figure<'a> {
     legends: Vec<(Slot, Box<dyn legend::Draw>)>,
 }
 
-/// One scale of the table, how to fit it when it is fitted, and whether
-/// to what its panels' x shows (`Fit::Visible`).
+/// One scale of the table, how to fit it when it is fitted, whether to
+/// what its panels' x shows (`Fit::Visible`), and the span of x it shows
+/// when it is a window (`Fit::Window`).
 struct Entry {
     scale: Box<dyn Scale>,
     fitter: Option<fits::Fitter>,
     visible: bool,
+    window: Option<f64>,
 }
 
 impl Default for Figure<'_> {
@@ -105,7 +107,12 @@ impl<'a> Figure<'a> {
 
     /// A scale whose domain is the one it was built with.
     pub fn scale<S: Kind>(&mut self, s: S) -> ScaleRef<S> {
-        self.add(Box::new(s), None)
+        self.add(Entry {
+            scale: Box::new(s),
+            fitter: None,
+            visible: false,
+            window: None,
+        })
     }
 
     /// A scale fitted to the data of every mark that uses it:
@@ -115,9 +122,40 @@ impl<'a> Figure<'a> {
     }
 
     /// A scale whose domain follows its marks' data as `fit` says.
-    /// `Fit::Window` resolves as `Fit::All` for now. `Fit::Window(())` on a
-    /// categorical scale (span `()`) means nothing, and debug builds panic
-    /// on it.
+    ///
+    /// A `Fit::Window(span)` handle shows the newest `span` of x, in whole
+    /// thinning columns of the widest panel that places it across its plot
+    /// area (see [`Fit::Window`]): resolving lays the figure out with the
+    /// window, measures the plot areas, and fits and lays out again until
+    /// the column count it fitted with is the one it laid out (the last
+    /// count is remembered in the [`Cache`], so a layout that did not move
+    /// takes one pass). `Fit::Window(())` on a categorical scale (span
+    /// `()`) means nothing, and debug builds panic on it.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_core::series::{Clock, Recording};
+    /// use rustd3_figure::mark::line;
+    /// use rustd3_figure::scale::Fit;
+    /// use rustd3_figure::{Figure, Held, Target};
+    /// use rustd3_figure::kurbo::Size;
+    ///
+    /// // 20 s at 100 Hz; the window shows the last 5 s.
+    /// let y: Vec<f64> = (0..2000).map(|i| (f64::from(i) * 0.01).sin()).collect();
+    /// let rec = Recording::new(Clock::Regular { start: 0.0, period: 0.01 }, [&y])?;
+    /// let mut fig = Figure::new();
+    /// let t = fig.fit_with(scale::linear(), Fit::Window(5.0));
+    /// let v = fig.fit(scale::linear());
+    /// fig.panel(0, 0).mark(line(rec.series(0).expect("channel 0"), t, v));
+    /// # #[cfg(feature = "fonts")] {
+    /// let mut cache = rustd3_figure::Cache::default();
+    /// let target = Target::Screen { scale: 1.0 };
+    /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), target);
+    /// let [left, right] = r.scale(t).get_domain();
+    /// assert!(right >= 19.99 && (right - left - 5.0).abs() < 1e-9);
+    /// # }
+    /// # Ok::<(), rustd3_core::series::Error>(())
+    /// ```
     ///
     /// A `Fit::Visible` handle on y fits to the data whose x lies in the
     /// resolved domain of its marks' x handles (read from a recording's
@@ -132,7 +170,16 @@ impl<'a> Figure<'a> {
             "Fit::Window on a categorical scale"
         );
         let visible = matches!(fit, Fit::Visible);
-        self.add(Box::new(s), Some((fits::Fitter::of::<S>(), visible)))
+        let window = match fit {
+            Fit::Window(span) => (&span as &dyn Any).downcast_ref::<f64>().copied(),
+            Fit::All | Fit::Visible => None,
+        };
+        self.add(Entry {
+            scale: Box::new(s),
+            fitter: Some(fits::Fitter::of::<S>()),
+            visible,
+            window: window.filter(|span| span.is_finite() && *span > 0.0),
+        })
     }
 
     /// The panel in grid cell `(row, col)`, made on first use; panels keep
@@ -239,17 +286,11 @@ impl<'a> Figure<'a> {
         self.title.as_ref()
     }
 
-    /// Appends `scale` to the table, fitted by `fit` (and to what x shows
-    /// when its flag is set) when given.
-    fn add<S>(&mut self, scale: Box<dyn Scale>, fit: Option<(fits::Fitter, bool)>) -> ScaleRef<S> {
+    /// Appends `entry` to the table; its handle.
+    fn add<S>(&mut self, entry: Entry) -> ScaleRef<S> {
         let index = u32::try_from(self.scales.len())
             .expect("invariant: a figure holds fewer than 2^32 scales");
-        let (fitter, visible) = fit.map_or((None, false), |(f, v)| (Some(f), v));
-        self.scales.push(Entry {
-            scale,
-            fitter,
-            visible,
-        });
+        self.scales.push(entry);
         ScaleRef::new(self.id, index)
     }
 }

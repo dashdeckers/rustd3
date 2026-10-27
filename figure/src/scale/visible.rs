@@ -11,7 +11,7 @@ const STEPS: f64 = 8.0;
 /// the scale table and its scale's type, which survive a figure's rebuild:
 /// kept in [`figure::Cache`](crate::Cache), so the widget's cache carries
 /// it from frame to frame.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct Memory {
     domains: HashMap<(usize, TypeId), [f64; 2]>,
 }

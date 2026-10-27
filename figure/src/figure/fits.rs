@@ -28,6 +28,20 @@ pub struct Fits {
     /// table entry, whether it is such a handle (so its scale is not
     /// resolved yet); `None` in the first pass.
     pending: Option<Vec<bool>>,
+    /// The panel whose marks report now.
+    panel: usize,
+    /// Per table entry, the panels whose marks place it across their plot
+    /// areas (their x), each once.
+    across: Vec<Vec<usize>>,
+}
+
+/// What the marks reported: per table entry its slot, filled when it is
+/// fitted and not held, and the panels that place it across; and the
+/// labels marks draw.
+pub(super) struct Reports {
+    pub(super) slots: Vec<Option<Box<dyn Any>>>,
+    pub(super) across: Vec<Vec<usize>>,
+    pub(super) labels: Vec<Key>,
 }
 
 /// One fitted handle's scale as built, its extent so far and its sticky
@@ -49,7 +63,17 @@ pub(super) struct Fitter {
     /// The scale of a filled slot of a `Fit::Visible` handle, fitted with
     /// a margin and stepped from what the memory holds for its index.
     settle: Settle,
+    /// The largest value a filled slot's extent holds, when the domain is
+    /// `f64`.
+    last: fn(&dyn Any) -> Option<f64>,
+    /// The scale as built showing exactly `ends`, when its domain is `f64`
+    /// and it admits both.
+    window: Window,
 }
+
+/// [`Fitter::window`]'s function: the scale as built and the window's
+/// ends.
+type Window = fn(&dyn Scale, [f64; 2]) -> Option<Box<dyn Scale>>;
 
 /// [`Fitter::settle`]'s function: a slot, the margin, the memory and the
 /// entry's index.
@@ -62,7 +86,21 @@ impl Fitter {
             start: start::<S>,
             finish: finish::<S>,
             settle: settle::<S>,
+            last: last::<S>,
+            window: window::<S>,
         }
+    }
+
+    /// The largest value `slot`, a filled slot of this fitter's, holds
+    /// when the domain is `f64`: a window's last x.
+    pub(super) fn last(self, slot: &dyn Any) -> Option<f64> {
+        (self.last)(slot)
+    }
+
+    /// `scale`, this fitter's type as built, showing exactly `ends` (no
+    /// margin), when its domain is `f64` and it admits both ends.
+    pub(super) fn window(self, scale: &dyn Scale, ends: [f64; 2]) -> Option<Box<dyn Scale>> {
+        (self.window)(scale, ends)
     }
 
     /// The scale of `slot`, entry `index`'s, fitted with `margin` as a
@@ -98,6 +136,7 @@ impl Fits {
         scales: Vec<Box<dyn Scale>>,
         theme: Theme,
     ) -> Fits {
+        let across = vec![Vec::new(); scales.len()];
         Fits {
             figure,
             slots,
@@ -105,6 +144,8 @@ impl Fits {
             theme,
             labels: Vec::new(),
             pending: None,
+            panel: 0,
+            across,
         }
     }
 
@@ -178,9 +219,30 @@ impl Fits {
         self.labels.push(key);
     }
 
-    /// The slots, one per table entry, and the labels marks draw.
-    pub(super) fn into_parts(self) -> (Vec<Option<Box<dyn Any>>>, Vec<Key>) {
-        (self.slots, self.labels)
+    /// The marks of panel `panel` report next.
+    pub(super) fn enter(&mut self, panel: usize) {
+        self.panel = panel;
+    }
+
+    /// `h` is the x of a mark of the panel reporting now: placed across
+    /// its plot area, which a `Fit::Window` handle's columns are counted
+    /// in.
+    pub(crate) fn across<S: Kind>(&mut self, h: ScaleRef<S>) {
+        let index = h.of(self.figure);
+        if let Some(panels) = self.across.get_mut(index)
+            && !panels.contains(&self.panel)
+        {
+            panels.push(self.panel);
+        }
+    }
+
+    /// What the marks reported.
+    pub(super) fn into_reports(self) -> Reports {
+        Reports {
+            slots: self.slots,
+            across: self.across,
+            labels: self.labels,
+        }
     }
 
     /// `h`'s slot, if it is fitted and not held.
@@ -232,6 +294,30 @@ fn settle<S: Kind>(
         Some(settled) => Box::new(slot.scale.fitted(Some(&settled), &[], 0.0)),
         None => Box::new(fitted),
     }
+}
+
+/// The upper end of `slot`'s extent, a `Slot<S>`'s, when its domain is
+/// `f64`.
+fn last<S: Kind>(slot: &dyn Any) -> Option<f64> {
+    let slot = slot
+        .downcast_ref::<Slot<S>>()
+        .expect("invariant: an entry's slot is made by its fitter");
+    let [_, high] = slot.extent.as_ref()?;
+    (high as &dyn Any).downcast_ref().copied()
+}
+
+/// `scale`, an `S`, showing exactly `ends` when its domain is `f64` and it
+/// admits both.
+fn window<S: Kind>(scale: &dyn Scale, ends: [f64; 2]) -> Option<Box<dyn Scale>> {
+    let scale = scale
+        .as_any()
+        .downcast_ref::<S>()
+        .expect("invariant: an entry's fitter is made for its scale's type");
+    let ends = self::ends::<S>(ends)?;
+    if !ends.iter().all(|v| scale.admits(v)) {
+        return None;
+    }
+    Some(Box::new(scale.fitted(Some(&ends), &[], 0.0)))
 }
 
 /// `[a, b]` as the ends of an `S` domain, when its domain is `f64`.
