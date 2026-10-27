@@ -29,6 +29,10 @@ mod visible;
 // that the snapshots and the thinning spot checks draw exactly what the
 // examples draw.
 #[path = "../../../dev/examples/src/scatter.rs"]
+#[cfg_attr(
+    not(feature = "raster"),
+    expect(dead_code, reason = "only the raster agreement test reads SCALE")
+)]
 mod scatter;
 #[path = "../../../dev/examples/src/trace.rs"]
 mod trace;
