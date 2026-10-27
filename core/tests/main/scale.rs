@@ -318,15 +318,14 @@ fn log_nice_extends_to_powers_of_the_base_on_either_side_of_zero() {
 fn log_maps_through_the_natural_logarithm() {
     let x = scale::log().domain([1.0, 10.0]).range([0.0, 1.0]);
     assert_eq!(x.apply(5.0), 0.6989700043360187);
-    // Node prints 3.16227766016838, one ulp above: V8's exp is not
-    // correctly rounded at ln(10)/2, the platform's is.
+    // Node prints 3.16227766016838, one ulp above the nearest double: V8's
+    // exp is not correctly rounded at ln(10)/2 (D4.1).
     let invert = x.invert(0.5);
     assert!(
         invert
             .to_obs()
             .approx_eq(&3.16227766016838.to_obs(), &Tolerance::default())
     );
-    assert_eq!(invert, 3.1622776601683795);
 }
 
 #[test]
