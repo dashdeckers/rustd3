@@ -1,17 +1,25 @@
 //! Thinning at draw time: M4 per column of a recording channel, its memo
 //! across draws, and lines drawn as given.
 
-use rustd3_core::scale::{self, Log};
-use rustd3_core::series::{Clock, Recording};
-use rustd3_figure::kurbo::{BezPath, PathEl, Size};
-use rustd3_figure::list::{Command, List};
+use std::sync::OnceLock;
+
+use rustd3_core::color::Rgb;
+use rustd3_core::scale::{self, Continuous, Linear, Log};
+use rustd3_core::series::{Clock, Recording, m4};
+use rustd3_figure::kurbo::{BezPath, PathEl, Point, Rect, Size};
+use rustd3_figure::list::{self, Command, List};
 use rustd3_figure::mark::line;
-use rustd3_figure::scale::{Indexed, Position, Scale};
+#[cfg(feature = "raster")]
+use rustd3_figure::raster::Image;
+use rustd3_figure::scale::{Indexed, Position, Scale, ScaleRef};
 use rustd3_figure::thin::Thin;
-use rustd3_figure::{Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 
 use crate::figure::cache;
 use crate::marks::marked;
+#[cfg(feature = "raster")]
+use crate::raster::vello::render;
+use crate::trace;
 
 /// `n` samples at 1 kHz on three channels: a ramp with a wobble, its
 /// negation, and a tone around 0 that dips below it.
@@ -201,4 +209,209 @@ fn a_channel_on_a_log_and_a_linear_y_is_thinned_for_each() {
     assert_eq!(both.len(), 2);
     assert_ne!(vertices(&both[0]), vertices(&both[1]));
     assert_eq!(both[1].elements(), alone[0].elements());
+}
+
+/// `signal(1_000_000, 42)` on an explicit clock, and its impacts.
+fn vibration() -> &'static (Recording<f64>, Vec<usize>) {
+    static TRACE: OnceLock<(Recording<f64>, Vec<usize>)> = OnceLock::new();
+    TRACE.get_or_init(|| {
+        let (x, y, impacts) = trace::signal(1_000_000, 42);
+        let rec = Recording::new(Clock::Explicit(x), [y]).expect("a valid recording");
+        (rec, impacts)
+    })
+}
+
+/// The prototype's view of the vibration trace (`proto/thin2`): x over
+/// [0, 100] s, y over [−2.4, 2.4] in a plot area 1000 × 240 px, stroked
+/// 1 px wide in (30, 60, 140); the figure's size; its x and y handles.
+fn prototype(thin: Thin) -> (Figure<'static>, Size, [ScaleRef<Linear>; 2]) {
+    let (rec, _) = vibration();
+    let mut fig = Figure::new();
+    let t = fig.scale(scale::linear().domain([0.0, 100.0]));
+    let v = fig.scale(scale::linear().domain([-2.4, 2.4]));
+    fig.panel(0, 0).mark(
+        line(rec.series(0).expect("the trace"), t, v)
+            .width(1.0)
+            .color(Rgb::new(30.0, 60.0, 140.0))
+            .thin(thin),
+    );
+    let pad = 2.0 * 0.8 * 44.0 / 3.0;
+    (fig, Size::new(1000.0 + pad, 240.0 + pad), [t, v])
+}
+
+/// `h`'s resolved scale over `range`, as a mark sees it.
+fn ranged(resolved: &Resolved, h: ScaleRef<Linear>, range: [f64; 2]) -> Linear {
+    let scale = Scale::with_range(resolved.scale(h), range);
+    scale
+        .as_any()
+        .downcast_ref::<Linear>()
+        .expect("its type")
+        .clone()
+}
+
+/// What the prototype's figure draws for `target`: the thinned path, the
+/// plot area, the list, and core's M4 at `per_px` columns per list px
+/// over the same edges.
+struct Thinned {
+    path: BezPath,
+    area: Rect,
+    list: List,
+    lines: m4::Lines,
+    places: Vec<Point>,
+}
+
+fn thinned(target: Target, per_px: f64) -> Thinned {
+    let (rec, _) = vibration();
+    let (fig, size, [t, v]) = prototype(Thin::Auto);
+    let mut cache = cache();
+    let list = fig.draw_with(&mut cache, size, target, &Held::default());
+    assert_eq!(cache.stats().m4_queries, 1);
+    let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
+    let area = resolved.plot_areas()[0];
+    let x = ranged(&resolved, t, [0.0, area.width()]);
+    let y = ranged(&resolved, v, [area.height(), 0.0]);
+    let n = (area.width() * per_px).round() as u32;
+    let edges: Vec<f64> = (0..=n)
+        .map(|i| Continuous::invert(&x, f64::from(i) / per_px))
+        .collect();
+    let columns = rec.columns(&edges).expect("valid edges");
+    let series = rec.series(0).expect("the trace");
+    let lines = series.m4(&columns, f64::is_finite).expect("fresh columns");
+    let places = lines
+        .iter()
+        .flatten()
+        .map(|&i| {
+            let (a, b) = series.get(i).expect("a sample");
+            Point::new(x.apply(a), y.apply(b))
+        })
+        .collect();
+    let path = paths(&list)[0].clone();
+    Thinned {
+        path,
+        area,
+        list,
+        lines,
+        places,
+    }
+}
+
+/// The vertices of a path, in order.
+fn points(path: &BezPath) -> Vec<Point> {
+    path.elements()
+        .iter()
+        .filter_map(|e| match e {
+            PathEl::MoveTo(p) | PathEl::LineTo(p) => Some(*p),
+            PathEl::QuadTo(..) | PathEl::CurveTo(..) | PathEl::ClosePath => None,
+        })
+        .collect()
+}
+
+#[test]
+fn the_trace_on_screen_keeps_four_points_per_column_and_every_impact() {
+    let (_, impacts) = vibration();
+    let thinned = thinned(Target::Screen { scale: 1.0 }, 1.0);
+    list::check(&thinned.list).expect("a valid list");
+    assert_eq!(thinned.area.width(), 1000.0);
+    let lines = &thinned.lines;
+    assert_eq!(points(&thinned.path), thinned.places);
+    assert!(lines.points() <= 4 * 1000 + 2 * lines.len() + 2);
+    let kept: Vec<usize> = lines.iter().flatten().copied().collect();
+    let found = impacts
+        .iter()
+        .filter(|i| kept.binary_search(i).is_ok())
+        .count();
+    // Performance's 3,949 came from edges `100 × c / 1000`; the scale's
+    // inverse rounds 246 of the 1,001 edges an ulp apart from those, which
+    // moves 127 boundaries that fall exactly on a sample by one (D15.1).
+    assert_eq!((lines.len(), lines.points(), found), (1, 3947, 50));
+}
+
+#[test]
+fn the_trace_for_vector_output_takes_four_columns_per_px() {
+    let thinned = thinned(Target::Vector, 4.0);
+    list::check(&thinned.list).expect("a valid list");
+    assert_eq!(thinned.area.width(), 1000.0);
+    assert_eq!(points(&thinned.path), thinned.places);
+    let lines = &thinned.lines;
+    assert!(lines.points() <= 4 * 4000 + 2 * lines.len() + 2);
+    // Performance: 15,429, with edges `100 × c / 4000` (see above).
+    assert_eq!(lines.points(), 15_427);
+}
+
+/// The plot area of the prototype's figure drawn with every sample
+/// stroked, rendered at 1×: what thinned lines are measured against.
+#[cfg(feature = "raster")]
+fn every_sample() -> &'static Image {
+    static FULL: OnceLock<Image> = OnceLock::new();
+    FULL.get_or_init(|| {
+        let (fig, size, _) = prototype(Thin::Off);
+        let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+        assert_eq!(vertices(paths(&list)[0]), 1_000_000);
+        let area = list.parts[1].bounds;
+        render(&list, area, 1.0)
+    })
+}
+
+/// The share of pixels with a channel that differs by more than 16/255.
+#[cfg(feature = "raster")]
+fn pixels_off(a: &Image, b: &Image) -> f64 {
+    assert_eq!((a.width, a.height), (b.width, b.height));
+    let pixels = a.rgba.chunks_exact(4).zip(b.rgba.chunks_exact(4));
+    let off = pixels
+        .filter(|(p, q)| p.iter().zip(*q).any(|(c, d)| c.abs_diff(*d) > 16))
+        .count();
+    off as f64 / f64::from(a.width * a.height)
+}
+
+/// Each pixel column's topmost and bottommost inked row: a pixel at least
+/// half covered by the line, its red channel half-way or more from white
+/// to the line's 30. A fainter anti-aliasing fringe is not where a reader
+/// sees the band end; counting it moves a column's end by a whole impact
+/// whenever a 1 px impact line sits near a pixel edge (D15.1).
+#[cfg(feature = "raster")]
+fn ink(image: &Image) -> Vec<Option<(u32, u32)>> {
+    (0..image.width)
+        .map(|x| {
+            let inked = |y: &u32| image.rgba[((y * image.width + x) * 4) as usize] <= 142;
+            let top = (0..image.height).find(inked)?;
+            let bottom = (0..image.height).rev().find(inked)?;
+            Some((top, bottom))
+        })
+        .collect()
+}
+
+/// The share of pixel columns whose top or bottom ink is more than 1 px
+/// away from the other image's.
+#[cfg(feature = "raster")]
+fn columns_off(a: &Image, b: &Image) -> f64 {
+    let off = ink(a)
+        .into_iter()
+        .zip(ink(b))
+        .filter(|(p, q)| match (p, q) {
+            (Some((t, b)), Some((u, c))) => t.abs_diff(*u) > 1 || b.abs_diff(*c) > 1,
+            (None, None) => false,
+            (Some(_), None) | (None, Some(_)) => true,
+        })
+        .count();
+    off as f64 / f64::from(a.width)
+}
+
+#[cfg(feature = "raster")]
+#[test]
+fn the_trace_for_vector_output_is_within_5_percent_of_every_sample_stroked() {
+    let thinned = thinned(Target::Vector, 4.0);
+    let image = render(&thinned.list, thinned.area, 1.0);
+    let off = pixels_off(&image, every_sample());
+    assert!(off <= 0.05, "{:.2}% of pixels off", 100.0 * off);
+}
+
+#[cfg(feature = "raster")]
+#[test]
+fn the_trace_on_screen_is_within_12_percent_and_its_columns_within_3_percent() {
+    let thinned = thinned(Target::Screen { scale: 1.0 }, 1.0);
+    let image = render(&thinned.list, thinned.area, 1.0);
+    let off = pixels_off(&image, every_sample());
+    let columns = columns_off(&image, every_sample());
+    assert!(off <= 0.12, "{:.2}% of pixels off", 100.0 * off);
+    assert!(columns <= 0.03, "{:.2}% of columns off", 100.0 * columns);
 }

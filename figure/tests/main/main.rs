@@ -1,6 +1,7 @@
 //! rustd3-figure's tests: the figure model, fitting and layout; marks and
-//! thinning; the drawing list, its checks and its outputs; text.
+//! thinning; drawing; the drawing list, its checks and its outputs; text.
 
+mod draw;
 mod figure;
 mod fit;
 mod layout;
@@ -16,3 +17,11 @@ mod skia;
 mod svg;
 mod text;
 mod thin;
+
+// The example figures of rustd3-examples, compiled into these tests so
+// that the snapshots and the thinning spot checks draw exactly what the
+// examples draw.
+#[path = "../../../dev/examples/src/scatter.rs"]
+mod scatter;
+#[path = "../../../dev/examples/src/trace.rs"]
+mod trace;

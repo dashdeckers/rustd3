@@ -3,9 +3,16 @@
 /// What a figure is resolved and drawn for.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Target {
-    /// SVG, PDF: list px, no snapping.
+    /// SVG, PDF: list px, 4 thinning columns per px, no snapping.
     Vector,
-    /// iced: device px = list px × `scale`.
+    /// PNG, GIF: device px = list px × `scale`; 4 thinning columns per
+    /// device px.
+    File {
+        /// Device pixels per list px.
+        scale: f64,
+    },
+    /// iced: device px = list px × `scale`; 1 thinning column per device
+    /// px.
     Screen {
         /// Device pixels per list px.
         scale: f64,
@@ -17,15 +24,19 @@ impl Target {
     pub(crate) fn scale_factor(self) -> f64 {
         match self {
             Target::Vector => 1.0,
-            Target::Screen { scale } => scale,
+            Target::File { scale } | Target::Screen { scale } => scale,
         }
     }
 
     /// Thinning columns per list px: four per list pixel for vector
-    /// output, one per device pixel on screen.
+    /// output, four per device pixel for files, one per device pixel on
+    /// screen. Files are thinned finer than the screen because M4's zigzag
+    /// leaves lighter stripes inside dense bands that overlapping segments
+    /// fill: at four columns per pixel they nearly vanish.
     pub(crate) fn columns(self) -> f64 {
         match self {
             Target::Vector => 4.0,
+            Target::File { scale } => 4.0 * scale,
             Target::Screen { scale } => scale,
         }
     }

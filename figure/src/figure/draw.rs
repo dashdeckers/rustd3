@@ -9,6 +9,20 @@ use crate::list::{Bounds, List, Outlines};
 use crate::target::Target;
 
 impl Figure<'_> {
+    /// The figure as a drawing list of `size` logical px for vector output
+    /// ([`Target::Vector`]), with a fresh [`Cache`] over the bundled fonts
+    /// and nothing held: what `save_svg` writes. Repeated outputs of one
+    /// figure keep a cache and call [`draw_with`](Figure::draw_with).
+    #[cfg(feature = "fonts")]
+    pub fn draw(&self, size: kurbo::Size) -> List {
+        self.draw_with(
+            &mut Cache::default(),
+            size,
+            Target::Vector,
+            &Held::default(),
+        )
+    }
+
     /// The figure as a drawing list of `size` for `target`, with `held`'s
     /// scales: starts a draw of `cache` (the text cache's generation),
     /// resolves, and emits the figure background, then per panel its
