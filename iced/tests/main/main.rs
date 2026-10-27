@@ -3,4 +3,5 @@
 mod canvas;
 mod headless;
 mod path;
+mod placement;
 mod pointer;
