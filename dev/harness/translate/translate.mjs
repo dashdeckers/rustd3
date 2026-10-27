@@ -37,7 +37,7 @@ const SUITES = [
   {
     suite: "scale",
     package: "d3-scale",
-    files: tests(["linear", "pow", "sqrt", "log", "tickFormat", "radial"]),
+    files: tests(["linear", "pow", "sqrt", "log", "symlog", "tickFormat", "radial"]),
     rules: scale,
   },
   { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round"]), rules: interpolate },

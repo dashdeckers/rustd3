@@ -1343,20 +1343,180 @@ fn t152() {   // log-test.js: log.ticks() returns the empty array when the domai
     check("d3-scale/test/log-test.js:455:3", Kind::Strict, &({ x = x.domain([0.0, 0.0]); x.ticks(10) }), &Vec::<f64>::new());
 }
 
-fn t153() {   // tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks
+fn t153() {   // symlog-test.js: scaleSymlog() has the expected defaults
+    let mut s = scale::symlog();
+    check("d3-scale/test/symlog-test.js:7:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/symlog-test.js:8:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+    skip("d3-scale/test/symlog-test.js:9:3", "api: d3's clamp() getter (only domain and range have get_)");
+    skip("d3-scale/test/symlog-test.js:10:3", "api: d3's constant() getter (only domain and range have get_)");
+}
+
+fn t154() {   // symlog-test.js: symlog(x) maps a domain value x to a range value y
+    let mut s = scale::symlog().domain([-100.0, 100.0]);
+    check("d3-scale/test/symlog-test.js:15:3", Kind::Strict, &s.apply(-100.0), &0.0);
+    check("d3-scale/test/symlog-test.js:16:3", Kind::Strict, &s.apply(100.0), &1.0);
+    check("d3-scale/test/symlog-test.js:17:3", Kind::Strict, &s.apply(0.0), &0.5);
+}
+
+fn t155() {   // symlog-test.js: symlog.invert(y) maps a range value y to a domain value x
+    let mut s = scale::symlog().domain([-100.0, 100.0]);
+    check("d3-scale/test/symlog-test.js:22:3", Kind::InDelta(1e-6), &s.invert(1.0), &100.0);
+}
+
+fn t156() {   // symlog-test.js: symlog.invert(y) coerces range values to numbers
+    skip("d3-scale/test/symlog-test.js:27:3", "js: strings as range values (coercion)");
+}
+
+fn t157() {   // symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number
+    skip("d3-scale/test/symlog-test.js:31:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/symlog-test.js:32:3", "js: strings as range values (coercion)");
+}
+
+fn t158() {   // symlog-test.js: symlog.constant(constant) sets the constant to the specified value
+    let mut _s = scale::symlog().constant(5.0);
+    skip("d3-scale/test/symlog-test.js:37:3", "api: d3's constant() getter (only domain and range have get_)");
+}
+
+fn t159() {   // symlog-test.js: symlog.constant(constant) changing the constant does not change the domain or range
+    let mut s = scale::symlog().constant(2.0);
+    check("d3-scale/test/symlog-test.js:42:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/symlog-test.js:43:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+}
+
+fn t160() {   // symlog-test.js: symlog.domain(domain) accepts an array of numbers
+    skip("d3-scale/test/symlog-test.js:47:3", "types: a domain and range of different lengths (the type sets the count)");
+    check("d3-scale/test/symlog-test.js:48:3", Kind::Strict, &scale::symlog().domain([1.0, 0.0]).get_domain().to_vec(), &vec![1.0, 0.0]);
+    skip("d3-scale/test/symlog-test.js:49:3", "types: a domain and range of different lengths (the type sets the count)");
+}
+
+fn t161() {   // symlog-test.js: symlog.domain(domain) coerces domain values to numbers
+    skip("d3-scale/test/symlog-test.js:53:3", "js: Dates and Number objects in a domain (coercion)");
+    skip("d3-scale/test/symlog-test.js:54:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/symlog-test.js:55:3", "js: Dates and Number objects in a domain (coercion)");
+}
+
+fn t162() {   // symlog-test.js: symlog.domain(domain) makes a copy of domain values
+    skip("d3-scale/test/symlog-test.js:60:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/symlog-test.js:62:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/symlog-test.js:63:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t163() {   // symlog-test.js: symlog.domain() returns a copy of domain values
+    skip("d3-scale/test/symlog-test.js:68:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/symlog-test.js:70:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t164() {   // symlog-test.js: symlog.range(range) does not coerce range to numbers
+    skip("d3-scale/test/symlog-test.js:75:3", "js: strings as range values (coercion)");
+    skip("d3-scale/test/symlog-test.js:76:3", "js: strings as range values (coercion)");
+}
+
+fn t165() {   // symlog-test.js: symlog.range(range) can accept range values as arrays or objects
+    skip("d3-scale/test/symlog-test.js:80:3", "js: objects and arrays as range values (d3's runtime interpolate)");
+    skip("d3-scale/test/symlog-test.js:81:3", "js: objects and arrays as range values (d3's runtime interpolate)");
+}
+
+fn t166() {   // symlog-test.js: symlog.range(range) makes a copy of range values
+    skip("d3-scale/test/symlog-test.js:86:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/symlog-test.js:88:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/symlog-test.js:89:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t167() {   // symlog-test.js: symlog.range() returns a copy of range values
+    skip("d3-scale/test/symlog-test.js:94:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/symlog-test.js:96:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t168() {   // symlog-test.js: symlog.clamp() is false by default
+    skip("d3-scale/test/symlog-test.js:100:3", "api: d3's clamp() getter (only domain and range have get_)");
+    check("d3-scale/test/symlog-test.js:101:3", Kind::Strict, &scale::symlog().range([10.0, 20.0]).apply(3.0), &30.0);
+    check("d3-scale/test/symlog-test.js:102:3", Kind::Strict, &scale::symlog().range([10.0, 20.0]).apply(-1.0), &0.0);
+    check("d3-scale/test/symlog-test.js:103:3", Kind::Strict, &scale::symlog().range([10.0, 20.0]).invert(30.0), &3.0);
+    check("d3-scale/test/symlog-test.js:104:3", Kind::Strict, &scale::symlog().range([10.0, 20.0]).invert(0.0), &-1.0);
+}
+
+fn t169() {   // symlog-test.js: symlog.clamp(true) restricts output values to the range
+    check("d3-scale/test/symlog-test.js:108:3", Kind::Strict, &scale::symlog().clamp(true).range([10.0, 20.0]).apply(2.0), &20.0);
+    check("d3-scale/test/symlog-test.js:109:3", Kind::Strict, &scale::symlog().clamp(true).range([10.0, 20.0]).apply(-1.0), &10.0);
+}
+
+fn t170() {   // symlog-test.js: symlog.clamp(true) restricts input values to the domain
+    check("d3-scale/test/symlog-test.js:113:3", Kind::Strict, &scale::symlog().clamp(true).range([10.0, 20.0]).invert(30.0), &1.0);
+    check("d3-scale/test/symlog-test.js:114:3", Kind::Strict, &scale::symlog().clamp(true).range([10.0, 20.0]).invert(0.0), &0.0);
+}
+
+fn t171() {   // symlog-test.js: symlog.clamp(clamp) coerces the specified clamp value to a boolean
+    skip("d3-scale/test/symlog-test.js:118:3", "js: a clamp flag other than a boolean (truthiness)");
+    skip("d3-scale/test/symlog-test.js:119:3", "js: a clamp flag other than a boolean (truthiness)");
+    skip("d3-scale/test/symlog-test.js:120:3", "js: a clamp flag other than a boolean (truthiness)");
+    skip("d3-scale/test/symlog-test.js:121:3", "js: a clamp flag other than a boolean (truthiness)");
+}
+
+fn t172() {   // symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated
+    let mut x = scale::symlog();
+    let mut y = x.clone();
+    x = x.domain([1.0, 2.0]);
+    check("d3-scale/test/symlog-test.js:127:3", Kind::Strict, &y.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/symlog-test.js:128:3", Kind::Strict, &x.apply(1.0), &0.0);
+    check("d3-scale/test/symlog-test.js:129:3", Kind::Strict, &y.apply(1.0), &1.0);
+    y = y.domain([2.0, 3.0]);
+    check("d3-scale/test/symlog-test.js:131:3", Kind::Strict, &x.apply(2.0), &1.0);
+    check("d3-scale/test/symlog-test.js:132:3", Kind::Strict, &y.apply(2.0), &0.0);
+    check("d3-scale/test/symlog-test.js:133:3", Kind::Strict, &x.get_domain().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/symlog-test.js:134:3", Kind::Strict, &y.get_domain().to_vec(), &vec![2.0, 3.0]);
+    let mut y2 = ({ x = x.domain([1.0, 1.9]); x.clone() });
+    x = x.nice(5);
+    check("d3-scale/test/symlog-test.js:137:3", Kind::Strict, &x.get_domain().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/symlog-test.js:138:3", Kind::Strict, &y2.get_domain().to_vec(), &vec![1.0, 1.9]);
+}
+
+fn t173() {   // symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated
+    let mut x = scale::symlog();
+    let mut y = x.clone();
+    x = x.range([1.0, 2.0]);
+    check("d3-scale/test/symlog-test.js:144:3", Kind::Strict, &x.invert(1.0), &0.0);
+    check("d3-scale/test/symlog-test.js:145:3", Kind::Strict, &y.invert(1.0), &1.0);
+    check("d3-scale/test/symlog-test.js:146:3", Kind::Strict, &y.get_range().to_vec(), &vec![0.0, 1.0]);
+    y = y.range([2.0, 3.0]);
+    check("d3-scale/test/symlog-test.js:148:3", Kind::Strict, &x.invert(2.0), &1.0);
+    check("d3-scale/test/symlog-test.js:149:3", Kind::Strict, &y.invert(2.0), &0.0);
+    check("d3-scale/test/symlog-test.js:150:3", Kind::Strict, &x.get_range().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/symlog-test.js:151:3", Kind::Strict, &y.get_range().to_vec(), &vec![2.0, 3.0]);
+}
+
+fn t174() {   // symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated
+    let mut x = scale::symlog().clamp(true);
+    let mut y = x.clone();
+    x = x.clamp(false);
+    check("d3-scale/test/symlog-test.js:157:3", Kind::Strict, &x.apply(3.0), &2.0);
+    check("d3-scale/test/symlog-test.js:158:3", Kind::Strict, &y.apply(2.0), &1.0);
+    skip("d3-scale/test/symlog-test.js:159:3", "api: d3's clamp() getter (only domain and range have get_)");
+    y = y.clamp(false);
+    check("d3-scale/test/symlog-test.js:161:3", Kind::Strict, &x.apply(3.0), &2.0);
+    check("d3-scale/test/symlog-test.js:162:3", Kind::Strict, &y.apply(3.0), &2.0);
+    skip("d3-scale/test/symlog-test.js:163:3", "api: d3's clamp() getter (only domain and range have get_)");
+}
+
+fn t175() {   // symlog-test.js: symlog().clamp(true).invert(x) cannot return a value outside the domain
+    let mut x = scale::symlog().domain([1.0, 20.0]).clamp(true);
+    check("d3-scale/test/symlog-test.js:168:3", Kind::Strict, &x.invert(0.0), &1.0);
+    check("d3-scale/test/symlog-test.js:169:3", Kind::Strict, &x.invert(1.0), &20.0);
+}
+
+fn t176() {   // tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks
     check("d3-scale/test/tickFormat-test.js:5:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1.0], 10, None).expect("d3 test").format(0.2), &"0.2");
     check("d3-scale/test/tickFormat-test.js:6:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1.0], 20, None).expect("d3 test").format(0.2), &"0.20");
     check("d3-scale/test/tickFormat-test.js:7:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [-100.0, 100.0], 10, None).expect("d3 test").format(-20.0), &"−20");
 }
 
-fn t154() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate fixed precision if not specified
+fn t177() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate fixed precision if not specified
     check("d3-scale/test/tickFormat-test.js:11:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1.0], 10, Some("+f")).expect("d3 test").format(0.2), &"+0.2");
     check("d3-scale/test/tickFormat-test.js:12:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1.0], 20, Some("+f")).expect("d3 test").format(0.2), &"+0.20");
     check("d3-scale/test/tickFormat-test.js:13:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1.0], 10, Some("+%")).expect("d3 test").format(0.2), &"+20%");
     check("d3-scale/test/tickFormat-test.js:14:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.19, 0.21], 10, Some("+%")).expect("d3 test").format(0.2), &"+20.0%");
 }
 
-fn t155() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate round precision if not specified
+fn t178() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate round precision if not specified
     check("d3-scale/test/tickFormat-test.js:18:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 9.0], 10, Some("")).expect("d3 test").format(2.10), &"2");
     check("d3-scale/test/tickFormat-test.js:19:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 9.0], 100, Some("")).expect("d3 test").format(2.01), &"2");
     check("d3-scale/test/tickFormat-test.js:20:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 9.0], 100, Some("")).expect("d3 test").format(2.11), &"2.1");
@@ -1373,56 +1533,56 @@ fn t155() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) s
     check("d3-scale/test/tickFormat-test.js:31:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.19, 0.21], 10, Some("p")).expect("d3 test").format(0.201), &"20.1%");
 }
 
-fn t156() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate prefix precision if not specified
+fn t179() {   // tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate prefix precision if not specified
     check("d3-scale/test/tickFormat-test.js:35:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1e6], 10, Some("$s")).expect("d3 test").format(0.51e6), &"$0.5M");
     check("d3-scale/test/tickFormat-test.js:36:3", Kind::Strict, &scale::tick_format(&format::Locale::EN_US, [0.0, 1e6], 100, Some("$s")).expect("d3 test").format(0.501e6), &"$0.50M");
 }
 
-fn t157() {   // tickFormat-test.js: tickFormat(start, stop, count) uses the default precision when the domain is invalid
+fn t180() {   // tickFormat-test.js: tickFormat(start, stop, count) uses the default precision when the domain is invalid
     let mut f = scale::tick_format(&format::Locale::EN_US, [0.0, f64::NAN], 10, None).expect("d3 test");
     check("d3-scale/test/tickFormat-test.js:41:3", Kind::Strict, &f.to_string(), &" >-,f");
     check("d3-scale/test/tickFormat-test.js:42:3", Kind::Strict, &f.format(0.12), &"0.120000");
 }
 
-fn t158() {   // radial-test.js: scaleRadial() has the expected defaults
+fn t181() {   // radial-test.js: scaleRadial() has the expected defaults
     skip("d3-scale/test/radial-test.js:6:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:7:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:8:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:9:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t159() {   // radial-test.js: scaleRadial(range) sets the range
+fn t182() {   // radial-test.js: scaleRadial(range) sets the range
     skip("d3-scale/test/radial-test.js:14:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:15:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:16:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t160() {   // radial-test.js: scaleRadial(domain, range) sets the range
+fn t183() {   // radial-test.js: scaleRadial(domain, range) sets the range
     skip("d3-scale/test/radial-test.js:21:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:22:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:23:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t161() {   // radial-test.js: radial(x) maps a domain value x to a range value y
+fn t184() {   // radial-test.js: radial(x) maps a domain value x to a range value y
     skip("d3-scale/test/radial-test.js:27:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t162() {   // radial-test.js: radial(x) ignores extra range values if the domain is smaller than the range
+fn t185() {   // radial-test.js: radial(x) ignores extra range values if the domain is smaller than the range
     skip("d3-scale/test/radial-test.js:31:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:32:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t163() {   // radial-test.js: radial(x) ignores extra domain values if the range is smaller than the domain
+fn t186() {   // radial-test.js: radial(x) ignores extra domain values if the range is smaller than the domain
     skip("d3-scale/test/radial-test.js:36:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:37:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t164() {   // radial-test.js: radial(x) maps an empty domain to the middle of the range
+fn t187() {   // radial-test.js: radial(x) maps an empty domain to the middle of the range
     skip("d3-scale/test/radial-test.js:41:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:42:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t165() {   // radial-test.js: radial(x) can map a bilinear domain with two values to the corresponding range
+fn t188() {   // radial-test.js: radial(x) can map a bilinear domain with two values to the corresponding range
     skip("d3-scale/test/radial-test.js:47:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:48:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:49:3", "api: d3's scaleRadial is not part of the design");
@@ -1436,22 +1596,22 @@ fn t165() {   // radial-test.js: radial(x) can map a bilinear domain with two va
     skip("d3-scale/test/radial-test.js:57:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t166() {   // radial-test.js: radial(NaN) returns undefined
+fn t189() {   // radial-test.js: radial(NaN) returns undefined
     skip("d3-scale/test/radial-test.js:62:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:63:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:64:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:65:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t167() {   // radial-test.js: radial.unknown(unknown)(NaN) returns the specified unknown value
+fn t190() {   // radial-test.js: radial.unknown(unknown)(NaN) returns the specified unknown value
     skip("d3-scale/test/radial-test.js:69:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t168() {   // radial-test.js: radial(x) can handle a negative range
+fn t191() {   // radial-test.js: radial(x) can handle a negative range
     skip("d3-scale/test/radial-test.js:73:3", "api: d3's scaleRadial is not part of the design");
 }
 
-fn t169() {   // radial-test.js: radial(x) can clamp negative values
+fn t192() {   // radial-test.js: radial(x) can clamp negative values
     skip("d3-scale/test/radial-test.js:77:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:78:3", "api: d3's scaleRadial is not part of the design");
     skip("d3-scale/test/radial-test.js:79:3", "api: d3's scaleRadial is not part of the design");
@@ -1611,23 +1771,46 @@ pub const TESTS: &[Test] = &[
     Test { name: "log-test.js: log.tickFormat(count, specifier) with base two trims trailing zeroes by default", run: t150 },
     Test { name: "log-test.js: log.tickFormat(count, specifier) preserves trailing zeroes if needed", run: t151 },
     Test { name: "log-test.js: log.ticks() returns the empty array when the domain is degenerate", run: t152 },
-    Test { name: "tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks", run: t153 },
-    Test { name: "tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate fixed precision if not specified", run: t154 },
-    Test { name: "tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate round precision if not specified", run: t155 },
-    Test { name: "tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate prefix precision if not specified", run: t156 },
-    Test { name: "tickFormat-test.js: tickFormat(start, stop, count) uses the default precision when the domain is invalid", run: t157 },
-    Test { name: "radial-test.js: scaleRadial() has the expected defaults", run: t158 },
-    Test { name: "radial-test.js: scaleRadial(range) sets the range", run: t159 },
-    Test { name: "radial-test.js: scaleRadial(domain, range) sets the range", run: t160 },
-    Test { name: "radial-test.js: radial(x) maps a domain value x to a range value y", run: t161 },
-    Test { name: "radial-test.js: radial(x) ignores extra range values if the domain is smaller than the range", run: t162 },
-    Test { name: "radial-test.js: radial(x) ignores extra domain values if the range is smaller than the domain", run: t163 },
-    Test { name: "radial-test.js: radial(x) maps an empty domain to the middle of the range", run: t164 },
-    Test { name: "radial-test.js: radial(x) can map a bilinear domain with two values to the corresponding range", run: t165 },
-    Test { name: "radial-test.js: radial(NaN) returns undefined", run: t166 },
-    Test { name: "radial-test.js: radial.unknown(unknown)(NaN) returns the specified unknown value", run: t167 },
-    Test { name: "radial-test.js: radial(x) can handle a negative range", run: t168 },
-    Test { name: "radial-test.js: radial(x) can clamp negative values", run: t169 },
+    Test { name: "symlog-test.js: scaleSymlog() has the expected defaults", run: t153 },
+    Test { name: "symlog-test.js: symlog(x) maps a domain value x to a range value y", run: t154 },
+    Test { name: "symlog-test.js: symlog.invert(y) maps a range value y to a domain value x", run: t155 },
+    Test { name: "symlog-test.js: symlog.invert(y) coerces range values to numbers", run: t156 },
+    Test { name: "symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number", run: t157 },
+    Test { name: "symlog-test.js: symlog.constant(constant) sets the constant to the specified value", run: t158 },
+    Test { name: "symlog-test.js: symlog.constant(constant) changing the constant does not change the domain or range", run: t159 },
+    Test { name: "symlog-test.js: symlog.domain(domain) accepts an array of numbers", run: t160 },
+    Test { name: "symlog-test.js: symlog.domain(domain) coerces domain values to numbers", run: t161 },
+    Test { name: "symlog-test.js: symlog.domain(domain) makes a copy of domain values", run: t162 },
+    Test { name: "symlog-test.js: symlog.domain() returns a copy of domain values", run: t163 },
+    Test { name: "symlog-test.js: symlog.range(range) does not coerce range to numbers", run: t164 },
+    Test { name: "symlog-test.js: symlog.range(range) can accept range values as arrays or objects", run: t165 },
+    Test { name: "symlog-test.js: symlog.range(range) makes a copy of range values", run: t166 },
+    Test { name: "symlog-test.js: symlog.range() returns a copy of range values", run: t167 },
+    Test { name: "symlog-test.js: symlog.clamp() is false by default", run: t168 },
+    Test { name: "symlog-test.js: symlog.clamp(true) restricts output values to the range", run: t169 },
+    Test { name: "symlog-test.js: symlog.clamp(true) restricts input values to the domain", run: t170 },
+    Test { name: "symlog-test.js: symlog.clamp(clamp) coerces the specified clamp value to a boolean", run: t171 },
+    Test { name: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", run: t172 },
+    Test { name: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", run: t173 },
+    Test { name: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", run: t174 },
+    Test { name: "symlog-test.js: symlog().clamp(true).invert(x) cannot return a value outside the domain", run: t175 },
+    Test { name: "tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks", run: t176 },
+    Test { name: "tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate fixed precision if not specified", run: t177 },
+    Test { name: "tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate round precision if not specified", run: t178 },
+    Test { name: "tickFormat-test.js: tickFormat(start, stop, count, specifier) sets the appropriate prefix precision if not specified", run: t179 },
+    Test { name: "tickFormat-test.js: tickFormat(start, stop, count) uses the default precision when the domain is invalid", run: t180 },
+    Test { name: "radial-test.js: scaleRadial() has the expected defaults", run: t181 },
+    Test { name: "radial-test.js: scaleRadial(range) sets the range", run: t182 },
+    Test { name: "radial-test.js: scaleRadial(domain, range) sets the range", run: t183 },
+    Test { name: "radial-test.js: radial(x) maps a domain value x to a range value y", run: t184 },
+    Test { name: "radial-test.js: radial(x) ignores extra range values if the domain is smaller than the range", run: t185 },
+    Test { name: "radial-test.js: radial(x) ignores extra domain values if the range is smaller than the domain", run: t186 },
+    Test { name: "radial-test.js: radial(x) maps an empty domain to the middle of the range", run: t187 },
+    Test { name: "radial-test.js: radial(x) can map a bilinear domain with two values to the corresponding range", run: t188 },
+    Test { name: "radial-test.js: radial(NaN) returns undefined", run: t189 },
+    Test { name: "radial-test.js: radial.unknown(unknown)(NaN) returns the specified unknown value", run: t190 },
+    Test { name: "radial-test.js: radial(x) can handle a negative range", run: t191 },
+    Test { name: "radial-test.js: radial(x) can clamp negative values", run: t192 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -2299,6 +2482,77 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/log-test.js:453:3", test: "log-test.js: log.ticks() returns the empty array when the domain is degenerate", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:454:3", test: "log-test.js: log.ticks() returns the empty array when the domain is degenerate", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:455:3", test: "log-test.js: log.ticks() returns the empty array when the domain is degenerate", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:7:3", test: "symlog-test.js: scaleSymlog() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:8:3", test: "symlog-test.js: scaleSymlog() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:9:3", test: "symlog-test.js: scaleSymlog() has the expected defaults", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:10:3", test: "symlog-test.js: scaleSymlog() has the expected defaults", skip: Some("api: d3's constant() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:15:3", test: "symlog-test.js: symlog(x) maps a domain value x to a range value y", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:16:3", test: "symlog-test.js: symlog(x) maps a domain value x to a range value y", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:17:3", test: "symlog-test.js: symlog(x) maps a domain value x to a range value y", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:22:3", test: "symlog-test.js: symlog.invert(y) maps a range value y to a domain value x", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:27:3", test: "symlog-test.js: symlog.invert(y) coerces range values to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:31:3", test: "symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:32:3", test: "symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:37:3", test: "symlog-test.js: symlog.constant(constant) sets the constant to the specified value", skip: Some("api: d3's constant() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:42:3", test: "symlog-test.js: symlog.constant(constant) changing the constant does not change the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:43:3", test: "symlog-test.js: symlog.constant(constant) changing the constant does not change the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:47:3", test: "symlog-test.js: symlog.domain(domain) accepts an array of numbers", skip: Some("types: a domain and range of different lengths (the type sets the count)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:48:3", test: "symlog-test.js: symlog.domain(domain) accepts an array of numbers", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:49:3", test: "symlog-test.js: symlog.domain(domain) accepts an array of numbers", skip: Some("types: a domain and range of different lengths (the type sets the count)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:53:3", test: "symlog-test.js: symlog.domain(domain) coerces domain values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:54:3", test: "symlog-test.js: symlog.domain(domain) coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:55:3", test: "symlog-test.js: symlog.domain(domain) coerces domain values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:60:3", test: "symlog-test.js: symlog.domain(domain) makes a copy of domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:62:3", test: "symlog-test.js: symlog.domain(domain) makes a copy of domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:63:3", test: "symlog-test.js: symlog.domain(domain) makes a copy of domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:68:3", test: "symlog-test.js: symlog.domain() returns a copy of domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:70:3", test: "symlog-test.js: symlog.domain() returns a copy of domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:75:3", test: "symlog-test.js: symlog.range(range) does not coerce range to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:76:3", test: "symlog-test.js: symlog.range(range) does not coerce range to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:80:3", test: "symlog-test.js: symlog.range(range) can accept range values as arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:81:3", test: "symlog-test.js: symlog.range(range) can accept range values as arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:86:3", test: "symlog-test.js: symlog.range(range) makes a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:88:3", test: "symlog-test.js: symlog.range(range) makes a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:89:3", test: "symlog-test.js: symlog.range(range) makes a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:94:3", test: "symlog-test.js: symlog.range() returns a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:96:3", test: "symlog-test.js: symlog.range() returns a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:100:3", test: "symlog-test.js: symlog.clamp() is false by default", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:101:3", test: "symlog-test.js: symlog.clamp() is false by default", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:102:3", test: "symlog-test.js: symlog.clamp() is false by default", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:103:3", test: "symlog-test.js: symlog.clamp() is false by default", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:104:3", test: "symlog-test.js: symlog.clamp() is false by default", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:108:3", test: "symlog-test.js: symlog.clamp(true) restricts output values to the range", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:109:3", test: "symlog-test.js: symlog.clamp(true) restricts output values to the range", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:113:3", test: "symlog-test.js: symlog.clamp(true) restricts input values to the domain", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:114:3", test: "symlog-test.js: symlog.clamp(true) restricts input values to the domain", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:118:3", test: "symlog-test.js: symlog.clamp(clamp) coerces the specified clamp value to a boolean", skip: Some("js: a clamp flag other than a boolean (truthiness)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:119:3", test: "symlog-test.js: symlog.clamp(clamp) coerces the specified clamp value to a boolean", skip: Some("js: a clamp flag other than a boolean (truthiness)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:120:3", test: "symlog-test.js: symlog.clamp(clamp) coerces the specified clamp value to a boolean", skip: Some("js: a clamp flag other than a boolean (truthiness)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:121:3", test: "symlog-test.js: symlog.clamp(clamp) coerces the specified clamp value to a boolean", skip: Some("js: a clamp flag other than a boolean (truthiness)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:127:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:128:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:129:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:131:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:132:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:133:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:134:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:137:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:138:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:144:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:145:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:146:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:148:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:149:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:150:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:151:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:157:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:158:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:159:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:161:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:162:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:163:3", test: "symlog-test.js: symlog.copy() returns a copy with changes to clamping are isolated", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:168:3", test: "symlog-test.js: symlog().clamp(true).invert(x) cannot return a value outside the domain", skip: None },
+    Assertion { id: "d3-scale/test/symlog-test.js:169:3", test: "symlog-test.js: symlog().clamp(true).invert(x) cannot return a value outside the domain", skip: None },
     Assertion { id: "d3-scale/test/tickFormat-test.js:5:3", test: "tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks", skip: None },
     Assertion { id: "d3-scale/test/tickFormat-test.js:6:3", test: "tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks", skip: None },
     Assertion { id: "d3-scale/test/tickFormat-test.js:7:3", test: "tickFormat-test.js: tickFormat(start, stop, count) returns a format suitable for the ticks", skip: None },

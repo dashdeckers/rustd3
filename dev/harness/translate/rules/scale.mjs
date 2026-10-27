@@ -1,19 +1,21 @@
-// d3-scale's continuous scales. scaleLinear, scalePow, scaleSqrt and
-// scaleLog are scale::linear() … scale::log(); a chain of method calls is
-// translated whole, so that setters on a variable assign it
+// d3-scale's continuous scales. scaleLinear, scalePow, scaleSqrt, scaleLog
+// and scaleSymlog are scale::linear() … scale::symlog(); a chain of method
+// calls is translated whole, so that setters on a variable assign it
 // (`s = s.domain(…)`) and later reads see the change as d3's do. Tick
-// formats are under EN_US, d3's default. A scale value is {t: "scale", tr}
-// (its transform); domain and range always have two stops here: other
-// lengths, and range values other than numbers, are skips decided at the
-// first step that reads the scale.
+// formats are under EN_US, d3's default. A scale value is {t: "scale", tr,
+// n} (its transform and stop count). A linear chain whose domain and range
+// both reach n > 2 stops becomes scale::piecewise(…) followed by its calls;
+// unequal lengths, a variable or chain changing n, and range values other
+// than numbers are skips decided at the first step that reads the scale.
 import { color } from "../../d3/d3-color/src/index.js";
 import { calleeName, ex, needNum, rustStr, skip, val } from "../expr.mjs";
 import array from "./array.mjs";
 
 const EN_US = "&format::Locale::EN_US";
-const MAKE = { scaleLinear: ["linear", "linear"], scalePow: ["pow", "pow"], scaleSqrt: ["sqrt", "pow"], scaleLog: ["log", "log"] };
+const MAKE = { scaleLinear: ["linear", "linear"], scalePow: ["pow", "pow"], scaleSqrt: ["sqrt", "pow"], scaleLog: ["log", "log"], scaleSymlog: ["symlog", "symlog"] };
 const SETTERS = { domain: "domain", range: "range", rangeRound: "range_round" };
-const METHODS = new Set([...Object.keys(SETTERS), "clamp", "unknown", "interpolate", "nice", "ticks", "tickFormat", "copy", "invert", "exponent", "base"]);
+const BUILDERS = ["exponent", "base", "constant"];
+const METHODS = new Set([...Object.keys(SETTERS), ...BUILDERS, "clamp", "unknown", "interpolate", "nice", "ticks", "tickFormat", "copy", "invert"]);
 const INTERPOLATORS = { interpolateNumber: "number", interpolateRound: "round" };
 
 /** A tick count as a usize literal; d3's 10 when absent. */
@@ -55,14 +57,21 @@ function chain(root, steps, ctx) {
   const name = [...ctx.vars.values()].includes(root) ? root.c : null;
   let code = root.c;
   let muts = name ? "" : null; // setters applied to the variable `name`
-  const sizes = { domain: { n: 2 }, range: { n: 2 } };
+  let n = root.n ?? 2;
+  const sizes = { domain: { n }, range: { n } };
+  const emitted = []; // the lengths of the setters written so far
   // Blocks are parenthesized, so that a method call may follow them in any position.
   const current = () => (muts ? `({ ${name} = ${name}${muts}; ${name}.clone() })` : code);
   const settled = () => {
     const [d, r] = [sizes.domain, sizes.range];
     if (d.n !== r.n) skip("types: a domain and range of different lengths (the type sets the count)");
     if (d.reason || r.reason) skip(d.reason ?? r.reason);
-    if (d.n !== 2) skip("gap: phase 5 (piecewise scales)");
+    if (d.n === n) return;
+    if (name !== null || emitted.some((k) => k !== d.n)) skip("types: a scale whose stop count changes (N is part of its type)");
+    if (root.tr !== "linear") skip("api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    if (!code.startsWith("scale::linear()")) skip("gap: a polylinear scale built from another scale");
+    code = `scale::piecewise(${d.c}, ${r.c})${code.slice("scale::linear()".length)}`;
+    n = d.n;
   };
   const build = (suffix) => (muts !== null ? (muts += suffix) : (code += suffix));
   const read = (suffix, t) => ({ c: muts ? `({ ${name} = ${name}${muts}; ${name}${suffix} })` : `${code}${suffix}`, t });
@@ -71,12 +80,15 @@ function chain(root, steps, ctx) {
     if (SETTERS[prop] && args.length) {
       const what = prop === "domain" ? "domain" : "range";
       sizes[what] = stops(args[0], what, ctx);
-      if (!sizes[what].reason && sizes[what].n === 2) build(`.${SETTERS[prop]}(${sizes[what].c})`);
+      if (!sizes[what].reason) {
+        build(`.${SETTERS[prop]}(${sizes[what].c})`);
+        emitted.push(sizes[what].n);
+      }
       continue;
     }
     settled();
     if (prop === "domain" || prop === "range") return read(`.get_${prop}().to_vec()`, "vec");
-    if (!args.length && ["clamp", "unknown", "interpolate", "exponent", "base"].includes(prop)) skip(`api: d3's ${prop}() getter (only domain and range have get_)`);
+    if (!args.length && ["clamp", "unknown", "interpolate", ...BUILDERS].includes(prop)) skip(`api: d3's ${prop}() getter (only domain and range have get_)`);
     if (prop === "ticks") return read(`.ticks(${count(arg(0))})`, "vec");
     if (prop === "tickFormat") return read(`.tick_format_in(${EN_US}, ${count(arg(0))}, ${specifier(args[1])})`, "result-tickfmt");
     if (prop === "invert") return read(`.invert(${needNum(arg(0), "inverted value")})`, "num");
@@ -89,11 +101,11 @@ function chain(root, steps, ctx) {
       const flag = arg(0);
       build(`.clamp(${flag.t === "bool" ? flag.c : skip("js: a clamp flag other than a boolean (truthiness)")})`);
     } else if (prop === "unknown") build(`.unknown(${needNum(arg(0), "unknown value")})`);
-    else if (prop === "exponent" || prop === "base") build(`.${prop}(${needNum(arg(0), prop)})`);
+    else if (BUILDERS.includes(prop)) build(`.${prop}(${needNum(arg(0), prop)})`);
     else build(interpolator(args[0], ctx));
   }
   settled();
-  return { c: current(), t: "scale", tr: root.tr, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
+  return { c: current(), t: "scale", tr: root.tr, n, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
 }
 
 /** `.interpolate(f)` for d3's number interpolators. */

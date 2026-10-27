@@ -46,6 +46,7 @@
 #floor d3-scale/test/pow-test.js 155
 #floor d3-scale/test/radial-test.js 0
 #floor d3-scale/test/sqrt-test.js 3
+#floor d3-scale/test/symlog-test.js 39
 #floor d3-scale/test/tickFormat-test.js 25
 d3-array/test/nice-test.js:5:3
 d3-array/test/nice-test.js:6:3
@@ -1825,6 +1826,45 @@ d3-scale/test/pow-test.js:446:3
 d3-scale/test/sqrt-test.js:6:3
 d3-scale/test/sqrt-test.js:7:3
 d3-scale/test/sqrt-test.js:14:3
+d3-scale/test/symlog-test.js:7:3
+d3-scale/test/symlog-test.js:8:3
+d3-scale/test/symlog-test.js:15:3
+d3-scale/test/symlog-test.js:16:3
+d3-scale/test/symlog-test.js:17:3
+d3-scale/test/symlog-test.js:22:3
+d3-scale/test/symlog-test.js:42:3
+d3-scale/test/symlog-test.js:43:3
+d3-scale/test/symlog-test.js:48:3
+d3-scale/test/symlog-test.js:101:3
+d3-scale/test/symlog-test.js:102:3
+d3-scale/test/symlog-test.js:103:3
+d3-scale/test/symlog-test.js:104:3
+d3-scale/test/symlog-test.js:108:3
+d3-scale/test/symlog-test.js:109:3
+d3-scale/test/symlog-test.js:113:3
+d3-scale/test/symlog-test.js:114:3
+d3-scale/test/symlog-test.js:127:3
+d3-scale/test/symlog-test.js:128:3
+d3-scale/test/symlog-test.js:129:3
+d3-scale/test/symlog-test.js:131:3
+d3-scale/test/symlog-test.js:132:3
+d3-scale/test/symlog-test.js:133:3
+d3-scale/test/symlog-test.js:134:3
+d3-scale/test/symlog-test.js:137:3
+d3-scale/test/symlog-test.js:138:3
+d3-scale/test/symlog-test.js:144:3
+d3-scale/test/symlog-test.js:145:3
+d3-scale/test/symlog-test.js:146:3
+d3-scale/test/symlog-test.js:148:3
+d3-scale/test/symlog-test.js:149:3
+d3-scale/test/symlog-test.js:150:3
+d3-scale/test/symlog-test.js:151:3
+d3-scale/test/symlog-test.js:157:3
+d3-scale/test/symlog-test.js:158:3
+d3-scale/test/symlog-test.js:161:3
+d3-scale/test/symlog-test.js:162:3
+d3-scale/test/symlog-test.js:168:3
+d3-scale/test/symlog-test.js:169:3
 d3-scale/test/tickFormat-test.js:5:3
 d3-scale/test/tickFormat-test.js:6:3
 d3-scale/test/tickFormat-test.js:7:3
