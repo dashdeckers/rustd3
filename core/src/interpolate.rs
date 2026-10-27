@@ -268,13 +268,13 @@ impl Interpolate for Timestamp {
     ///
     /// ```
     /// use rustd3_core::interpolate::Interpolate;
-    /// use jiff::Timestamp;
+    /// use rustd3_core::jiff::Timestamp;
     ///
     /// let a: Timestamp = "2026-10-27T00:00:00Z".parse()?;
     /// let b: Timestamp = "2026-10-27T00:00:00.000000003Z".parse()?;
     /// assert_eq!(a.lerp(&b, 0.5).to_string(), "2026-10-27T00:00:00.000000002Z");
     /// assert_eq!(a.lerp(&b, 1e40), Timestamp::MAX);
-    /// # Ok::<(), jiff::Error>(())
+    /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
     fn lerp(&self, to: &Timestamp, t: f64) -> Timestamp {
         let (a, b) = (self.as_nanosecond(), to.as_nanosecond());

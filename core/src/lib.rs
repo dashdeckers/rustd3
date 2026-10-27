@@ -20,3 +20,7 @@ pub mod shape;
 pub mod ticks;
 
 mod js;
+
+/// jiff, which time is built on: figure, iced and applications name its
+/// types (`Timestamp`, `tz::TimeZone`, `civil::Weekday`) through this path.
+pub use jiff;
