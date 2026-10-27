@@ -3,6 +3,8 @@
 mod canvas;
 mod headless;
 mod path;
+#[cfg(all(feature = "figure", feature = "fonts"))]
+mod pipeline;
 mod placement;
 #[cfg(all(feature = "figure", feature = "fonts"))]
 mod plot;

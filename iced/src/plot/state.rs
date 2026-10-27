@@ -3,16 +3,18 @@
 
 use std::sync::Arc;
 
+use iced_core::shell::Waker;
 use iced_core::time::Instant;
 use iced_core::{Point, Rectangle, Size, image};
 use rustd3_figure::list::{self, Bounds, Outlines};
 use rustd3_figure::{Cache, Figure, Held, Target, Theme, hit, kurbo, raster};
 
-use crate::plot::handle;
 use crate::plot::job::{Done, Job, Stamp};
 use crate::plot::overlay::{self, Overlay};
 use crate::plot::probe::{self, Probe, Sample, Stage};
 use crate::plot::slot::{self, Band, Slot};
+use crate::plot::worker::Worker;
+use crate::plot::{Render, handle};
 
 /// The widget's tree state: the figure's cache, the rasterizer, and the
 /// slots of the partition's cells. It borrows nothing of the figure.
@@ -48,12 +50,18 @@ pub(crate) struct State {
     hits: hit::Index,
     /// The crosshair and highlight where the pointer is.
     overlay: Overlay,
+    /// The render thread, started with the first job set it gets.
+    worker: Option<Worker>,
 }
 
 /// How a `RedrawRequested` renders and reports what it did.
 pub(crate) struct Pipeline<'a> {
+    /// Where changed cells render.
+    pub(crate) render: Render,
     /// Where stage timings and frame reports go, if anywhere.
     pub(crate) probe: Option<&'a Probe>,
+    /// Wakes the UI when the worker has results; the worker keeps a clone.
+    pub(crate) waker: &'a Waker,
 }
 
 impl Default for State {
@@ -73,6 +81,7 @@ impl Default for State {
             areas: Vec::new(),
             hits: hit::Index::default(),
             overlay: Overlay::default(),
+            worker: None,
         }
     }
 }
@@ -123,8 +132,9 @@ impl State {
 
     /// Resolves `figure` once at the widget's size for the screen at
     /// `factor` and draws it, cuts the list into cells at every plot-area
-    /// edge, and renders the cells whose content hash changed. Returns how
-    /// many changed.
+    /// edge, and renders the cells whose content hash changed: inline,
+    /// shown at once, or as a job set that replaces the worker's pending
+    /// one. Returns how many changed.
     fn refresh(&mut self, figure: &Figure<'_>, factor: f32, pipeline: &Pipeline<'_>) -> usize {
         if !self.stale && self.factor == Some(factor) {
             return 0;
@@ -171,32 +181,87 @@ impl State {
         let bounds = Arc::new(Bounds::of(&list, &mut self.outlines));
         let list = Arc::new(list);
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
-        let jobs: Vec<Job> = changed
-            .iter()
-            .map(|&index| {
-                let cell = &cells.cells[index];
-                let rect = self.slots[index].rect();
-                Job {
-                    target: probe::Target::Cell(
-                        u32::try_from(index).expect("invariant: fewer than 2^32 cells"),
-                    ),
-                    generation: self.generation,
-                    hash: cell.hash,
-                    list: Arc::clone(&list),
-                    bounds: Arc::clone(&bounds),
-                    rect,
-                    bands: slot::bands(rect),
-                    scale: k,
-                    work: cell.work,
-                    enqueued,
-                }
-            })
-            .collect();
-        for job in jobs {
-            let done = job.run(&mut self.raster);
-            self.land(done, true, probe);
+        let generation = self.generation;
+        let job = |index: usize, rect: [i32; 4]| {
+            let cell = &cells.cells[index];
+            Job {
+                target: probe::Target::Cell(
+                    u32::try_from(index).expect("invariant: fewer than 2^32 cells"),
+                ),
+                generation,
+                hash: cell.hash,
+                list: Arc::clone(&list),
+                bounds: Arc::clone(&bounds),
+                rect,
+                bands: slot::bands(rect),
+                scale: k,
+                work: cell.work,
+                enqueued,
+            }
+        };
+        let inline = match pipeline.render {
+            Render::Inline => true,
+            Render::Worker => !self.start(pipeline.waker),
+        };
+        if inline {
+            for &index in &changed {
+                let done = job(index, self.slots[index].rect()).run(&mut self.raster);
+                self.land(done, true, probe);
+            }
+            // Nothing left for the worker: its rest is out of date.
+            if let Some(worker) = &self.worker
+                && self.slots.iter().all(|slot| slot.pending().is_none())
+            {
+                worker.replace(Vec::new());
+            }
+        } else {
+            // The new set replaces the pending one, whose unfinished jobs
+            // the worker abandons: every slot still waiting renders again.
+            let mut order: Vec<usize> = (0..self.slots.len())
+                .filter(|&index| self.slots[index].pending().is_some())
+                .collect();
+            for &index in &order {
+                self.slots[index].requeue(generation);
+            }
+            order.sort_by_key(|&index| !self.is_area(self.slots[index].rect()));
+            let jobs = order
+                .into_iter()
+                .map(|index| job(index, self.slots[index].rect()))
+                .collect();
+            if let Some(worker) = &self.worker {
+                worker.replace(jobs);
+            }
         }
         changed.len()
+    }
+
+    /// Starts the worker unless it runs, waking the UI through `waker`.
+    /// False when the OS cannot start a thread: cells then render inline.
+    fn start(&mut self, waker: &Waker) -> bool {
+        if self.worker.is_none() {
+            self.worker = Worker::start(waker.clone()).ok();
+        }
+        self.worker.is_some()
+    }
+
+    /// Whether a device rect lies inside a plot area.
+    fn is_area(&self, [x0, y0, x1, y1]: [i32; 4]) -> bool {
+        self.areas
+            .iter()
+            .any(|&[ax0, ay0, ax1, ay1]| ax0 <= x0 && ay0 <= y0 && x1 <= ax1 && y1 <= ay1)
+    }
+
+    /// Applies the worker's results in arrival order, each reported to
+    /// `probe`. True when any was shown, so the widget redraws.
+    pub(crate) fn drain(&mut self, probe: Option<&Probe>) -> bool {
+        let Some(worker) = &self.worker else {
+            return false;
+        };
+        let mut shown = false;
+        for done in worker.drain() {
+            shown |= self.land(done, false, probe);
+        }
+        shown
     }
 
     /// Plans a refresh whose partition cells are `cells`: rebuilds the
@@ -368,16 +433,18 @@ pub(super) fn cache() -> Cache {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::mpsc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, mpsc};
 
+    use iced_core::shell::Waker;
     use iced_core::time::Instant;
     use iced_core::{Point, Rectangle, Size};
     use rustd3_figure::{Figure, Held, Target, kurbo};
 
     use super::{Pipeline, State};
-    use crate::plot::fixture;
     use crate::plot::overlay::{Overlay, Shown};
     use crate::plot::probe::{Probe, Sample, Stage};
+    use crate::plot::{Render, fixture};
 
     /// The factors layout, snapping and placement are checked at.
     const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
@@ -394,25 +461,59 @@ mod tests {
         state
     }
 
-    /// One `RedrawRequested` without a probe; the number of cells whose
-    /// content changed.
+    /// One inline `RedrawRequested` without a probe; the number of cells
+    /// whose content changed.
     fn refresh(state: &mut State, fig: &Figure<'_>, k: f32) -> usize {
-        state.redraw(fig, k, clock(), &Pipeline { probe: None })
+        let pipeline = Pipeline {
+            render: Render::Inline,
+            probe: None,
+            waker: &Waker::noop(),
+        };
+        state.redraw(fig, k, clock(), &pipeline)
     }
 
-    /// One `RedrawRequested` reported to a fresh probe; its samples.
+    /// One inline `RedrawRequested` reported to a fresh probe; its
+    /// samples.
     fn probed(state: &mut State, fig: &Figure<'_>, k: f32) -> Vec<Sample> {
         let (tx, rx) = mpsc::channel();
         let probe = Probe::new(clock, tx);
-        state.redraw(
-            fig,
-            k,
-            clock(),
-            &Pipeline {
-                probe: Some(&probe),
-            },
-        );
+        let pipeline = Pipeline {
+            render: Render::Inline,
+            probe: Some(&probe),
+            waker: &Waker::noop(),
+        };
+        state.redraw(fig, k, clock(), &pipeline);
         rx.try_iter().collect()
+    }
+
+    /// A waker that counts its wakes.
+    fn counting() -> (Waker, Arc<AtomicUsize>) {
+        let wakes = Arc::new(AtomicUsize::new(0));
+        let waker = Waker::new({
+            let wakes = Arc::clone(&wakes);
+            move || {
+                wakes.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+        (waker, wakes)
+    }
+
+    /// Drains the worker's results into `state` after each wake, reported
+    /// to `probe`, until no slot waits for a render; at most ten seconds
+    /// per wake.
+    fn settle(state: &mut State, wakes: &AtomicUsize, probe: Option<&Probe>) {
+        let mut seen = 0;
+        while state.slots.iter().any(|slot| slot.pending().is_some()) {
+            let woke = (0..10_000).any(|_| {
+                wakes.load(Ordering::SeqCst) > seen || {
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                    false
+                }
+            });
+            assert!(woke, "no wake within ten seconds");
+            seen = wakes.load(Ordering::SeqCst);
+            state.drain(probe);
+        }
     }
 
     /// The targets of the raster samples among `samples`.
@@ -584,6 +685,96 @@ mod tests {
                 }]
             ),
             "{idle:?}"
+        );
+        // The same refresh on the worker: the frame shows no image, and
+        // every cell reports when its result is drained.
+        let (tx, rx) = mpsc::channel();
+        let probe = Probe::new(clock, tx);
+        let (waker, wakes) = counting();
+        let pipeline = Pipeline {
+            render: Render::Worker,
+            probe: Some(&probe),
+            waker: &waker,
+        };
+        let mut state = self::state(640.0, 480.0);
+        state.redraw(&fixture::grid(), 2.0, clock(), &pipeline);
+        let planned: Vec<Sample> = rx.try_iter().collect();
+        let stages = planned
+            .iter()
+            .filter(|sample| matches!(sample, Sample::Stage { .. }))
+            .count();
+        assert_eq!(stages, 2);
+        assert!(rasters(&planned).is_empty());
+        assert!(
+            matches!(
+                planned.last(),
+                Some(Sample::Frame { frame: 1, generation: 1, images: 0, missing, previews: 0, uploaded: 0, .. })
+                    if *missing == slots
+            ),
+            "{planned:?}"
+        );
+        settle(&mut state, &wakes, Some(&probe));
+        let drained: Vec<Sample> = rx.try_iter().collect();
+        let mut cells = rasters(&drained);
+        cells.sort_unstable();
+        assert_eq!(cells, expected, "one raster sample per cell");
+        let (mut pixels, mut ms) = (0, 0.0);
+        for sample in &drained {
+            if let Sample::Raster {
+                frame,
+                inline,
+                pixels: p,
+                duration,
+                ..
+            } = sample
+            {
+                assert_eq!((*frame, *inline), (1, false));
+                pixels += u64::from(*p);
+                ms += duration.as_secs_f64() * 1e3;
+            }
+        }
+        println!(
+            "worker: {} samples after {} wakes; {pixels} px in {ms:.1} ms: {:.0} px/ms",
+            drained.len(),
+            wakes.load(Ordering::SeqCst),
+            pixels as f64 / ms
+        );
+        state.redraw(&fixture::grid(), 2.0, clock(), &pipeline);
+        let shown: Vec<Sample> = rx.try_iter().collect();
+        assert!(
+            matches!(
+                shown.as_slice(),
+                [Sample::Frame { frame: 2, generation: 1, images, missing: 0, previews: 0, uploaded, .. }]
+                    if *images == slots && *uploaded == 1280 * 960 * 4
+            ),
+            "{shown:?}"
+        );
+    }
+
+    #[test]
+    fn every_slot_lands_after_a_replaced_set() {
+        // A set replaced before it finished: the slots it would have
+        // rendered render in the new set.
+        let dots: Vec<(f64, f64)> = (1..=8).map(|i| (f64::from(i), f64::from(9 - i))).collect();
+        let mut moved = dots.clone();
+        moved[3] = (4.0, 6.5);
+        let (waker, wakes) = counting();
+        let pipeline = Pipeline {
+            render: Render::Worker,
+            probe: None,
+            waker: &waker,
+        };
+        let mut state = state(480.0, 320.0);
+        state.redraw(&fixture::pair(dots), 2.0, clock(), &pipeline);
+        state.rebuilt();
+        state.redraw(&fixture::pair(moved), 2.0, clock(), &pipeline);
+        assert_eq!(state.generation, 2);
+        settle(&mut state, &wakes, None);
+        assert!(
+            state
+                .slots
+                .iter()
+                .all(|slot| !slot.is_missing() && !slot.is_preview())
         );
     }
 

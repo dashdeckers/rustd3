@@ -69,11 +69,24 @@ impl Slot {
         self.hash
     }
 
+    /// The generation a render is pending for.
+    pub(crate) fn pending(&self) -> Option<u64> {
+        self.pending
+    }
+
     /// The cell's content changed to `hash` at `generation`, whose render
     /// is now pending.
     pub(crate) fn change(&mut self, hash: u64, generation: u64) {
         self.hash = hash;
         self.pending = Some(generation);
+    }
+
+    /// A pending render moves to `generation`: the job set it was in was
+    /// replaced by one that renders it again.
+    pub(crate) fn requeue(&mut self, generation: u64) {
+        if self.pending.is_some() {
+            self.pending = Some(generation);
+        }
     }
 
     /// A render of content `hash` for `generation` finished; `bands` is
@@ -184,12 +197,6 @@ impl Slot {
                 }
             })
             .collect()
-    }
-
-    /// The generation a render is pending for.
-    #[cfg(test)]
-    pub(crate) fn pending(&self) -> Option<u64> {
-        self.pending
     }
 
     /// The generation of the image on screen.
@@ -391,6 +398,23 @@ mod tests {
         assert!(!slot.land(2, 20, None));
         assert_eq!((slot.generation(), slot.pending()), (Some(1), None));
         assert!(slot.is_preview());
+    }
+
+    #[test]
+    fn a_requeued_render_waits_for_the_new_generation() {
+        let mut slot = slot([0, 0, 4, 2]);
+        slot.change(10, 1);
+        slot.requeue(3);
+        assert!(
+            slot.land(1, 10, Some(image())),
+            "the old set's result shows"
+        );
+        assert_eq!(slot.pending(), Some(3));
+        assert!(slot.land(3, 10, Some(image())));
+        assert_eq!(slot.pending(), None);
+        // Nothing pending, nothing to requeue.
+        slot.requeue(4);
+        assert_eq!(slot.pending(), None);
     }
 
     #[test]

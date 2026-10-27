@@ -9,6 +9,7 @@
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use iced::advanced::Renderer as _;
 use iced::advanced::graphics::color::GAMMA_CORRECTION;
@@ -28,6 +29,8 @@ pub struct Harness<'a, Message> {
     cursor: mouse::Cursor,
     bus: shell::Bus<Message>,
     wakes: Arc<AtomicUsize>,
+    /// Wakes [`Harness::wait_for_wake`] has seen.
+    waited: usize,
     redraw: window::RedrawRequest,
 }
 
@@ -81,6 +84,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             cursor: mouse::Cursor::Unavailable,
             bus: shell::Bus::new(),
             wakes: Arc::new(AtomicUsize::new(0)),
+            waited: 0,
             redraw: window::RedrawRequest::Wait,
         })
     }
@@ -160,6 +164,21 @@ impl<'a, Message: 'a> Harness<'a, Message> {
         self.wakes.load(Ordering::SeqCst)
     }
 
+    /// Waits up to `timeout`, polling [`Harness::wakes`] every millisecond,
+    /// for a wake this method has not seen yet. True when one came.
+    pub fn wait_for_wake(&mut self, timeout: Duration) -> bool {
+        let polls = timeout.as_millis();
+        for _ in 0..=polls {
+            let wakes = self.wakes();
+            if wakes > self.waited {
+                self.waited = wakes;
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        false
+    }
+
     /// The messages published since the last call.
     pub fn messages(&mut self) -> Vec<Message> {
         self.bus.drain().map(|(message, _)| message).collect()
@@ -203,4 +222,21 @@ pub fn features() -> String {
 )]
 pub fn epoch() -> Instant {
     Instant::now()
+}
+
+/// The clock a test's probe times stages with.
+#[expect(clippy::disallowed_methods, reason = "test clock")]
+pub fn clock() -> Instant {
+    Instant::now()
+}
+
+/// Threads of this process named `name` (Linux: `/proc/self/task`).
+#[cfg(target_os = "linux")]
+pub fn threads(name: &str) -> usize {
+    std::fs::read_dir("/proc/self/task")
+        .expect("Linux lists a process's threads in /proc/self/task")
+        .filter_map(Result::ok)
+        .filter_map(|task| std::fs::read_to_string(task.path().join("comm")).ok())
+        .filter(|comm| comm.trim_end() == name)
+        .count()
 }

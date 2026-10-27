@@ -58,9 +58,11 @@ mod handle;
 mod job;
 mod overlay;
 pub mod probe;
+mod render;
 mod scale_factor;
 mod slot;
 mod state;
+mod worker;
 
 use std::marker::PhantomData;
 
@@ -74,6 +76,7 @@ use rustd3_figure::Figure;
 
 use overlay::Shown;
 pub use probe::Probe;
+pub use render::Render;
 use state::{Pipeline, State};
 
 /// RGBA bytes at which a cell is split into bands: wgpu uploads images
@@ -99,6 +102,7 @@ pub struct Plot<'a, Message> {
     scale_factor: Option<f32>,
     crosshair: bool,
     highlight: bool,
+    render: Render,
     probe: Option<Probe>,
     _message: PhantomData<Message>,
 }
@@ -113,6 +117,7 @@ impl<'a, Message> Plot<'a, Message> {
             scale_factor: None,
             crosshair: true,
             highlight: true,
+            render: Render::default(),
             probe: None,
             _message: PhantomData,
         }
@@ -161,6 +166,11 @@ impl<'a, Message> Plot<'a, Message> {
             highlight: on,
             ..self
         }
+    }
+
+    /// Where changed cells rasterize; defaults to [`Render::Inline`].
+    pub fn render(self, render: Render) -> Self {
+        Plot { render, ..self }
     }
 
     /// Reports per-stage durations, per-cell raster times and what each
@@ -236,7 +246,9 @@ where
                     state.window_factor(),
                 );
                 let pipeline = Pipeline {
+                    render: self.render,
                     probe: self.probe.as_ref(),
+                    waker: shell.waker(),
                 };
                 // New cells may move the plot areas or the points under
                 // the pointer.
@@ -254,13 +266,17 @@ where
                     shell.request_redraw();
                 }
             }
+            Event::Waken => {
+                if state.drain(self.probe.as_ref()) {
+                    shell.request_redraw();
+                }
+            }
             Event::Window(_)
             | Event::Mouse(_)
             | Event::Keyboard(_)
             | Event::Touch(_)
             | Event::InputMethod(_)
-            | Event::Clipboard(_)
-            | Event::Waken => {}
+            | Event::Clipboard(_) => {}
         }
     }
 
