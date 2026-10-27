@@ -13,6 +13,7 @@ import interpolate from "./rules/interpolate.mjs";
 import ordinal from "./rules/ordinal.mjs";
 import path from "./rules/path.mjs";
 import scale from "./rules/scale.mjs";
+import shape from "./rules/shape.mjs";
 
 const tests = (names) => names.map((n) => `${n}-test.js`);
 // One generated module per suite: test files of one d3 package, translated
@@ -45,6 +46,17 @@ const SUITES = [
   },
   { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round", "rgb"]), rules: combine(color, interpolate) },
   { suite: "color", package: "d3-color", files: tests(["color", "rgb", "hsl"]), rules: color },
+  {
+    suite: "shape",
+    package: "d3-shape",
+    files: [
+      ...tests(["basis", "basisClosed", "basisOpen", "bumpX", "bumpY", "bundle", "cardinal", "cardinalClosed", "cardinalOpen",
+        "catmullRom", "catmullRomClosed", "catmullRomOpen", "linear", "linearClosed", "monotoneX", "monotoneY", "natural",
+        "step", "stepAfter", "stepBefore"].map((n) => `curve/${n}`)),
+      ...tests(["line", "area"]),
+    ],
+    rules: shape,
+  },
 ];
 
 const D3 = new URL("../d3/", import.meta.url);

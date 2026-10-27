@@ -20,7 +20,8 @@
 //   field(obj, prop, ctx, node)    a property read (`[…]` when computed)
 //   apply(target, args, ctx)       calling a value that is not a fn
 //   equal(a, b)                    strictEqual of two such values, as bool code
-//   statement(s, ctx)              a loop's skip reason, by throwing it
+//   array(node, ctx)               an array literal as a type of the rules'
+//   statement(s, ctx)              a statement's skip reason, by throwing it
 //   display                        [t]: types observed through Display
 //   assertions                     {name: (args, id, ctx) => check code} for
 //                                  a test file's own assertion helpers
@@ -28,9 +29,11 @@
 //                                  undefined where fields are read-only
 //   finish(line)                   each line of a translated test, rewritten
 //                                  once the whole test is read
+//   nullable                       [t]: Options whose None is d3's null
 // combine(...rules) merges rule sets: the first that answers a hook wins.
 //
-// `assert.strictEqual(x, null)` checks a fallible x for Err, d3's null.
+// `assert.strictEqual(x, null)` checks a fallible x for Err, d3's null, and
+// a nullable one for None.
 //
 // Every skip reason starts with the category the report groups by: js:
 // (JavaScript semantics), types: (ruled out by the Rust types), api: (left
@@ -55,12 +58,13 @@ export function combine(...sets) {
     }
     return undefined;
   };
-  const hooks = ["call", "method", "field", "apply", "equal", "statement", "assign"];
+  const hooks = ["call", "method", "field", "apply", "equal", "statement", "assign", "array"];
   return {
     ...Object.fromEntries(hooks.map((h) => [h, first(h)])),
     identifiers: Object.assign({}, ...sets.map((r) => r.identifiers)),
     assertions: Object.assign({}, ...sets.map((r) => r.assertions)),
     display: sets.flatMap((r) => r.display ?? []),
+    nullable: sets.flatMap((r) => r.nullable ?? []),
     finish: (line) => sets.reduce((l, r) => r.finish?.(l) ?? l, line),
   };
 }
@@ -142,6 +146,8 @@ export function ex(node, ctx) {
     case "BinaryExpression":
       return binary(node, ctx);
     case "ArrayExpression": {
+      const typed = ctx.rules.array?.(node, ctx);
+      if (typed) return typed;
       const values = node.elements.map((e) => (e ? ex(e, ctx) : skip("js: array hole")));
       if (values.length && values.every((v) => v.t === "str")) return { c: `vec![${values.map((v) => v.c).join(", ")}]`, t: "strs" };
       const items = values.map((v) => needNum(v, "array element"));
@@ -311,6 +317,7 @@ function assertionsIn(node, rules) {
 const idOf = (callNode, file) => `${file.id}:${callNode.loc.start.line}:${callNode.loc.start.column + 1}`;
 
 function statement(s, ctx, out) {
+  ctx.rules.statement?.(s, ctx);
   if (s.type === "VariableDeclaration") {
     for (const d of s.declarations) {
       if (d.id.type !== "Identifier") skip("gap: destructuring");
@@ -329,7 +336,6 @@ function statement(s, ctx, out) {
     for (const x of [...s.block.body, ...(s.finalizer?.body ?? [])]) statement(x, ctx, out);
     return;
   }
-  ctx.rules.statement?.(s, ctx);
   if (s.type !== "ExpressionStatement") skip(`gap: ${s.type}`);
   const exprs = s.expression.type === "SequenceExpression" ? s.expression.expressions : [s.expression];
   for (const e of exprs) {
@@ -393,6 +399,7 @@ function check(kind, args, id, ctx) {
     case "assert.equal": {
       if (args[1]?.type === "Literal" && args[1].value === null) {
         const e = arg(0);
+        if (ctx.rules.nullable?.includes(e.t)) return `check(${id}, Kind::Strict, &${e.c}, &());`;
         return fallible(e.t) ? `check(${id}, Kind::Strict, &${e.c}.is_err(), &true);` : skip("js: null (coercion)");
       }
       const [a, b] = [val(arg(0)), val(arg(1))];

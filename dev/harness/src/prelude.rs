@@ -12,6 +12,7 @@ pub(crate) use rustd3_core::color::{Hsl, Rgb};
 pub(crate) use rustd3_core::ease::{Ease, Mode};
 pub(crate) use rustd3_core::interpolate::Interpolate;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
+pub(crate) use rustd3_core::shape::{self, Curve};
 pub(crate) use rustd3_core::{format, interpolate, scale, ticks};
 
 /// The d3 assertion an assertion was written with, which sets its d3 verdict.
@@ -143,6 +144,15 @@ pub fn js_round(x: f64) -> f64 {
 /// d3-scale's test helper `roundEpsilon(x)`: `x` rounded to 12 decimals.
 pub fn round_epsilon(x: f64) -> f64 {
     js_round(x * 1e12) / 1e12
+}
+
+/// What d3-shape's generators return: the path `draw` writes into a fresh
+/// [`SvgPath`], or `None` (d3's `null`) when it is empty.
+pub fn drawn(draw: impl FnOnce(&mut SvgPath)) -> Option<String> {
+    let mut path = SvgPath::new();
+    draw(&mut path);
+    let data = path.to_string();
+    (!data.is_empty()).then_some(data)
 }
 
 /// d3.interpolateRgb(a, b) at gamma 1, a closure of `t`.
@@ -372,6 +382,12 @@ mod tests {
             interpolate_rgb(Rgb::new(0.0, 0.0, 0.0), Rgb::new(255.0, 0.0, 0.0))(0.5),
             Rgb::new(127.5, 0.0, 0.0)
         );
+    }
+
+    #[test]
+    fn drawn_is_none_for_an_empty_path_as_d3_shape_returns_null() {
+        assert_eq!(drawn(|_| {}), None);
+        assert_eq!(drawn(|p| p.move_to(0.0, 1.0)), Some("M0,1".to_owned()));
     }
 
     #[test]
