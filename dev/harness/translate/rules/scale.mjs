@@ -13,7 +13,7 @@
 import { color } from "../../d3/d3-color/src/index.js";
 import { calleeName, ex, needNum, rustStr, skip, val } from "../expr.mjs";
 import array from "./array.mjs";
-import { into } from "./color.mjs";
+import { blend, into } from "./color.mjs";
 
 const EN_US = "&format::Locale::EN_US";
 const MAKE = {
@@ -101,7 +101,7 @@ function chain(root, steps, ctx) {
     }
     settled();
     if (!args.length && ["clamp", "unknown", "interpolate", ...BUILDERS].includes(prop)) skip(`api: d3's ${prop}() getter (only domain and range have get_)`);
-    if (r !== "num" && ["range", "unknown", "interpolate"].includes(prop)) skip(`gap: phase 23 (${prop} of a color range)`);
+    if (r !== "num" && ["range", "unknown"].includes(prop)) skip(`gap: the ${prop} of a color range`);
     if (prop === "domain" || prop === "range") return read(`.get_${prop}().to_vec()`, "vec");
     if (prop === "ticks") return read(`.ticks(${count(arg(0))})`, "vec");
     if (prop === "tickFormat") return read(`.tick_format_in(${EN_US}, ${count(arg(0))}, ${specifier(args[1])})`, "result-tickfmt");
@@ -117,7 +117,7 @@ function chain(root, steps, ctx) {
       build(`.clamp(${flag.t === "bool" ? flag.c : skip("js: a clamp flag other than a boolean (truthiness)")})`);
     } else if (prop === "unknown") build(`.unknown(${needNum(arg(0), "unknown value")})`);
     else if (BUILDERS.includes(prop)) build(`.${prop}(${needNum(arg(0), prop)})`);
-    else build(interpolator(args[0], ctx));
+    else build(interpolator(args[0], r, ctx));
   }
   settled();
   if (!retyped()) return { c: current(), t: "scale", tr: root.tr, n, r, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
@@ -137,12 +137,14 @@ function chain(root, steps, ctx) {
   };
 }
 
-/** `.interpolate(f)` for d3's number interpolators. */
-function interpolator(node, ctx) {
-  const f = node?.type === "Identifier" && !ctx.vars.has(node.name) && INTERPOLATORS[node.name];
-  if (f) return `.interpolate(|a: &f64, b: &f64, t: f64| interpolate::${f}(*a, *b)(t))`;
+/** `.interpolate(f)` for d3's number interpolators over numbers and its color interpolators over colors. */
+function interpolator(node, r, ctx) {
+  const name = node?.type === "Identifier" && !ctx.vars.has(node.name) && node.name;
+  if (r === "num" && INTERPOLATORS[name]) return `.interpolate(|a: &f64, b: &f64, t: f64| interpolate::${INTERPOLATORS[name]}(*a, *b)(t))`;
+  const colors = r === "rgb" && blend(name, [{ c: "*a", t: "rgb" }, { c: "*b", t: "rgb" }]);
+  if (colors) return `.interpolate(|a: &Rgb, b: &Rgb, t: f64| ${colors.c}(t))`;
   if (node?.type === "Identifier" && ctx.vars.get(node.name)?.t === "local") skip("js: a custom interpolator returning arrays");
-  return skip("gap: phase 23 (other interpolators)");
+  return skip("types: an interpolator of other values than the range's");
 }
 
 export default {

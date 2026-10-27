@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use crate::color::parse::{self, Parsed};
 use crate::color::{BRIGHTER, DARKER, Hsl, ParseColorError};
-use crate::interpolate::Interpolate;
+use crate::interpolate::{self, Interpolate};
 use crate::js;
 
 /// sRGB, channels in 0..=255, opacity in 0..=1, as `d3.rgb`. The channels
@@ -111,27 +111,12 @@ impl From<Hsl> for Rgb {
 }
 
 impl Interpolate for Rgb {
-    /// d3's `interpolateRgb` at gamma 1, channel by channel and for the
-    /// opacity (d3's `nogamma`): `a + t·(b − a)`, or the constant `a` when
-    /// `b − a` is 0 or NaN, `b` when `a` is NaN, so an undefined channel
-    /// takes the other color's.
+    /// d3's `interpolateRgb` at gamma 1 ([`interpolate::rgb`]), channel by
+    /// channel and for the opacity (d3's `nogamma`): `a + t·(b − a)`, or the
+    /// constant `a` when `b − a` is 0 or NaN, `b` when `a` is NaN, so an
+    /// undefined channel takes the other color's.
     fn lerp(&self, to: &Rgb, t: f64) -> Rgb {
-        let blend = |a: f64, b: f64| {
-            let d = b - a;
-            if d != 0.0 && !d.is_nan() {
-                a + t * d
-            } else if a.is_nan() {
-                b
-            } else {
-                a
-            }
-        };
-        Rgb {
-            r: blend(self.r, to.r),
-            g: blend(self.g, to.g),
-            b: blend(self.b, to.b),
-            opacity: blend(self.opacity, to.opacity),
-        }
+        interpolate::rgb(*self, *to)(t)
     }
 }
 

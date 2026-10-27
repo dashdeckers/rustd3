@@ -48,7 +48,7 @@ const SUITES = [
     files: tests(["linear", "pow", "sqrt", "log", "symlog", "tickFormat", "radial", "identity", "band", "point", "ordinal"]),
     rules: combine(band, ordinal, color, scale),
   },
-  { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round", "rgb"]), rules: combine(color, interpolate) },
+  { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round", "rgb", "hsl", "hslLong", "lab", "hcl", "hclLong", "cubehelix", "cubehelixLong", "hue"]), rules: combine(color, interpolate) },
   { suite: "color", package: "d3-color", files: tests(["color", "rgb", "hsl", "lab", "hcl", "cubehelix", "gray", "lch"]), rules: color },
   {
     suite: "shape",

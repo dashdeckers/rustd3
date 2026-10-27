@@ -10,7 +10,6 @@ use crate::record::{self, Mark, Record};
 
 pub(crate) use rustd3_core::color::{Cubehelix, Hcl, Hsl, Lab, Rgb};
 pub(crate) use rustd3_core::ease::{Ease, Mode};
-pub(crate) use rustd3_core::interpolate::Interpolate;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
 pub(crate) use rustd3_core::shape::{self, Curve};
 pub(crate) use rustd3_core::{format, interact, interpolate, scale, ticks};
@@ -153,11 +152,6 @@ pub fn drawn(draw: impl FnOnce(&mut SvgPath)) -> Option<String> {
     draw(&mut path);
     let data = path.to_string();
     (!data.is_empty()).then_some(data)
-}
-
-/// d3.interpolateRgb(a, b) at gamma 1, a closure of `t`.
-pub fn interpolate_rgb(a: Rgb, b: Rgb) -> impl Fn(f64) -> Rgb {
-    move |t| a.lerp(&b, t)
 }
 
 /// d3-color's test helper `assertRgbEqual(c, r, g, b, opacity)`: each
@@ -398,10 +392,6 @@ mod tests {
         };
         assert!(hsl_equal(&h, 120.0, f64::NAN, 0.5, 1.0));
         assert!(!hsl_equal(&h, 120.0, f64::NAN, 0.5, 0.9));
-        assert_eq!(
-            interpolate_rgb(Rgb::new(0.0, 0.0, 0.0), Rgb::new(255.0, 0.0, 0.0))(0.5),
-            Rgb::new(127.5, 0.0, 0.0)
-        );
     }
 
     #[test]

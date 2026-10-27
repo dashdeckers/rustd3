@@ -1,5 +1,6 @@
 // d3-color's rgb, hsl, lab, hcl, cubehelix, gray, lch and color, its test
-// helpers, and d3-interpolate's interpolateRgb at gamma 1. The vendored d3
+// helpers, and d3-interpolate's color interpolators (interpolateRgb …
+// interpolateCubehelixLong, `.gamma(y)` included). The vendored d3
 // parses string literals here: one it rejects is an Err in Rust, a types:
 // skip, except in color(s), which stays a Result for `strictEqual(…, null)`.
 // A color is {t: "rgb"}, {t: "hsl"} and so on, printed by Display (d3's
@@ -16,7 +17,23 @@ const TYPES = { rgb: "Rgb", hsl: "Hsl", lab: "Lab", hcl: "Hcl", cubehelix: "Cube
 // Constructors of three channels; lch takes them in reverse, gray takes one.
 const NEW = { rgb: "Rgb::new", lab: "Lab::new", hcl: "Hcl::new", cubehelix: "Cubehelix::new", lch: "Hcl::lch", gray: "Lab::gray" };
 const SPACE = { lch: "hcl", gray: "lab" };
-const NAMES = ["color", "rgb", "hsl", "lab", "hcl", "cubehelix", "gray", "lch", "interpolateRgb"];
+// d3's color interpolators: the Rust function, its space, and the function `.gamma(y)` makes.
+const BLENDS = {
+  interpolateRgb: ["rgb", "rgb", "rgb_gamma"], interpolateHsl: ["hsl", "hsl"], interpolateHslLong: ["hsl_long", "hsl"],
+  interpolateLab: ["lab", "lab"], interpolateHcl: ["hcl", "hcl"], interpolateHclLong: ["hcl_long", "hcl"],
+  interpolateCubehelix: ["cubehelix", "cubehelix", "cubehelix"], interpolateCubehelixLong: ["cubehelix_long", "cubehelix", "cubehelix_long"],
+};
+const NAMES = ["color", "rgb", "hsl", "lab", "hcl", "cubehelix", "gray", "lch", ...Object.keys(BLENDS)];
+
+/** d3's color interpolator `name` of the colors `args`, or `name.gamma(y)`'s with `gamma` set: a closure of t. */
+export function blend(name, args, gamma) {
+  if (!BLENDS[name]) return undefined;
+  const [f, space, gammaFn] = BLENDS[name];
+  if (args.length !== 2) skip(`js: ${args.length} arguments to ${name} (undefined)`);
+  const first = gamma !== undefined ? `${gamma}, ` : space === "cubehelix" ? "1.0, " : "";
+  const c = `interpolate::${gamma !== undefined ? gammaFn : f}(${first}${args.map((a) => into(a, space).c).join(", ")})`;
+  return { c, t: "fn", arity: 1, ret: "rgb" };
+}
 
 /**
  * `e` as `space`: d3's rgb(e), hsl(e), lab(e) … of a string literal or a
@@ -76,10 +93,7 @@ export default {
     const name = calleeName(node, ctx);
     if (!NAMES.includes(name) || node.type !== "CallExpression") return undefined;
     const args = node.arguments.map((a) => val(ex(a, ctx)));
-    if (name === "interpolateRgb") {
-      if (args.length !== 2) skip(`js: ${args.length} arguments to interpolateRgb (undefined)`);
-      return { c: `interpolate_rgb(${into(args[0], "rgb").c}, ${into(args[1], "rgb").c})`, t: "fn", arity: 1, ret: "rgb" };
-    }
+    if (BLENDS[name]) return blend(name, args);
     if (name === "color") {
       if (args.length !== 1 || args[0].t !== "str") skip("js: color of other than one string (coercion)");
       const parsed = args[0].raw !== undefined && d3color(args[0].raw);
@@ -97,7 +111,7 @@ export default {
     return { c: name === "rgb" ? `${c}.with_opacity(${o})` : `${TYPES[space]} { opacity: ${o}, ..${c} }`, t: space };
   },
   method(obj, prop, args) {
-    if (obj.t === "d3fn" && prop === "gamma") skip("gap: phase 23 (interpolateRgb.gamma)");
+    if (obj.t === "d3fn" && prop === "gamma" && BLENDS[obj.c]?.[2]) return { c: obj.c, t: "gamma", gamma: needNum(args[0], "gamma") };
     return FIELDS[obj.t] ? (METHODS[prop]?.(obj, args) ?? skip(`gap: ${obj.t}.${prop}`)) : undefined;
   },
   // c.r = v, c.h += v, ++c.g on a color variable; d3's TestColor prototypes are js.
@@ -111,6 +125,7 @@ export default {
     const stmt = update ? `${target} ${node.operator[0]}= 1.0;` : `${target} ${node.operator} ${needNum(val(ex(node.right, ctx)), "a channel")};`;
     return { c: update && !node.prefix ? `{ let old = ${target}; ${stmt} old }` : `{ ${stmt} ${target} }`, t: "num", stmt };
   },
+  apply: (target, args) => (target.t === "gamma" ? blend(target.c, args.map(val), target.gamma) : undefined),
   field(obj, prop) {
     if (obj.t === "d3fn") skip("js: prototypes");
     return FIELDS[obj.t]?.includes(prop) ? { c: `${obj.c}.${prop}`, t: "num" } : undefined;

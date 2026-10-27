@@ -1,8 +1,8 @@
-// d3-interpolate's number interpolators: interpolateNumber(a, b) and
-// interpolateRound(a, b) are closures of t.
+// d3-interpolate's number interpolators: interpolateNumber(a, b),
+// interpolateRound(a, b) and interpolateHue(a, b) are closures of t.
 import { calleeName, ex, needNum, skip } from "../expr.mjs";
 
-const FNS = { interpolateNumber: "interpolate::number", interpolateRound: "interpolate::round" };
+const FNS = { interpolateNumber: "interpolate::number", interpolateRound: "interpolate::round", interpolateHue: "interpolate::hue" };
 
 export default {
   call(node, ctx) {

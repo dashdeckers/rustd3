@@ -1054,9 +1054,11 @@ fn t115() {   // log-test.js: log.range(…) can take arrays or objects
 }
 
 fn t116() {   // log-test.js: log.interpolate(f) sets the interpolator
-    skip("d3-scale/test/log-test.js:99:3", "gap: phase 23 (interpolate of a color range)");
-    skip("d3-scale/test/log-test.js:100:3", "gap: phase 23 (interpolate of a color range)");
-    skip("d3-scale/test/log-test.js:102:3", "gap: phase 23 (interpolate of a color range)");
+    let mut x = scale::log().range(["red".parse::<Rgb>().expect("a CSS color"), "blue".parse::<Rgb>().expect("a CSS color")]);
+    skip("d3-scale/test/log-test.js:99:3", "api: d3's interpolate() getter (only domain and range have get_)");
+    check("d3-scale/test/log-test.js:100:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(77, 0, 178)");
+    x = x.interpolate(|a: &Rgb, b: &Rgb, t: f64| interpolate::hsl(Hsl::from(*a), Hsl::from(*b))(t));
+    check("d3-scale/test/log-test.js:102:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(154, 0, 255)");
 }
 
 fn t117() {   // log-test.js: log(x) does not clamp by default
@@ -1191,9 +1193,12 @@ fn t129() {   // log-test.js: log.copy() isolates changes to the range
 }
 
 fn t130() {   // log-test.js: log.copy() isolates changes to the interpolator
-    skip("d3-scale/test/log-test.js:241:3", "gap: phase 23 (interpolate of a color range)");
-    skip("d3-scale/test/log-test.js:242:3", "gap: phase 23 (interpolate of a color range)");
-    skip("d3-scale/test/log-test.js:243:3", "gap: phase 23 (interpolate of a color range)");
+    let mut x = scale::log().range(["red".parse::<Rgb>().expect("a CSS color"), "blue".parse::<Rgb>().expect("a CSS color")]);
+    let mut y = x.clone();
+    x = x.interpolate(|a: &Rgb, b: &Rgb, t: f64| interpolate::hsl(Hsl::from(*a), Hsl::from(*b))(t));
+    check("d3-scale/test/log-test.js:241:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(154, 0, 255)");
+    check("d3-scale/test/log-test.js:242:3", Kind::Strict, &y.apply(5.0).to_string(), &"rgb(77, 0, 178)");
+    skip("d3-scale/test/log-test.js:243:3", "api: d3's interpolate() getter (only domain and range have get_)");
 }
 
 fn t131() {   // log-test.js: log.copy() isolates changes to clamping
@@ -3066,9 +3071,9 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/log-test.js:87:3", test: "log-test.js: log.range(…) can take colors", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:92:3", test: "log-test.js: log.range(…) can take arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
     Assertion { id: "d3-scale/test/log-test.js:94:3", test: "log-test.js: log.range(…) can take arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
-    Assertion { id: "d3-scale/test/log-test.js:99:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
-    Assertion { id: "d3-scale/test/log-test.js:100:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
-    Assertion { id: "d3-scale/test/log-test.js:102:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
+    Assertion { id: "d3-scale/test/log-test.js:99:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/log-test.js:100:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:102:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:107:3", test: "log-test.js: log(x) does not clamp by default", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/log-test.js:108:3", test: "log-test.js: log(x) does not clamp by default", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:109:3", test: "log-test.js: log(x) does not clamp by default", skip: None },
@@ -3135,9 +3140,9 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/log-test.js:233:3", test: "log-test.js: log.copy() isolates changes to the range", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:234:3", test: "log-test.js: log.copy() isolates changes to the range", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:235:3", test: "log-test.js: log.copy() isolates changes to the range", skip: None },
-    Assertion { id: "d3-scale/test/log-test.js:241:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
-    Assertion { id: "d3-scale/test/log-test.js:242:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
-    Assertion { id: "d3-scale/test/log-test.js:243:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
+    Assertion { id: "d3-scale/test/log-test.js:241:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:242:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:243:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/log-test.js:249:3", test: "log-test.js: log.copy() isolates changes to clamping", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:250:3", test: "log-test.js: log.copy() isolates changes to clamping", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:251:3", test: "log-test.js: log.copy() isolates changes to clamping", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
