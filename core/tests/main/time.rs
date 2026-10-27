@@ -2,7 +2,7 @@
 //! under the zone of each row, and the port's own sub-millisecond rows.
 
 use rustd3_core::jiff::Timestamp;
-use rustd3_core::jiff::civil::Weekday;
+use rustd3_core::jiff::civil::{Weekday, date};
 use rustd3_core::jiff::tz::TimeZone;
 use rustd3_core::time::Interval;
 use rustd3_testkit::zone;
@@ -15,31 +15,20 @@ fn ms(ms: i64) -> Timestamp {
     Timestamp::from_millisecond(ms).expect("an instant in range")
 }
 
-fn range(interval: Interval, start: Timestamp, stop: Timestamp, tz: &TimeZone) -> Vec<Timestamp> {
-    interval.range(start, stop, tz).collect()
+/// `new Date(year, month − 1, day, hour)` in `tz`: a local time resolved
+/// as `Date` resolves it.
+fn local_hour(tz: &TimeZone, year: i16, month: i8, day: i8, hour: i8) -> Timestamp {
+    tz.to_timestamp(date(year, month, day).at(hour, 0, 0, 0))
+        .expect("a local date in range")
 }
 
-#[test]
-fn hours_floor_on_the_local_clock_of_half_and_quarter_hour_zones() {
-    let t = ms(1_456_279_843_199);
-    let kolkata = zone("Asia/Kolkata");
-    assert_eq!(
-        Interval::Hour(1).floor(t, &kolkata),
-        Some(ms(1_456_277_400_000))
-    );
-    assert_eq!(
-        Interval::Hour(1).ceil(t, &kolkata),
-        Some(ms(1_456_281_000_000))
-    );
-    let kathmandu = zone("Asia/Kathmandu");
-    assert_eq!(
-        Interval::Hour(1).floor(t, &kathmandu),
-        Some(ms(1_456_276_500_000))
-    );
-    assert_eq!(
-        Interval::Hour(1).ceil(t, &kathmandu),
-        Some(ms(1_456_280_100_000))
-    );
+/// Local midnight of a civil date in `tz`.
+fn local(tz: &TimeZone, year: i16, month: i8, day: i8) -> Timestamp {
+    local_hour(tz, year, month, day, 0)
+}
+
+fn range(interval: Interval, start: Timestamp, stop: Timestamp, tz: &TimeZone) -> Vec<Timestamp> {
+    interval.range(start, stop, tz).collect()
 }
 
 #[test]
@@ -139,39 +128,6 @@ fn counts_divide_the_difference_of_the_floors() {
     assert_eq!(Interval::Minute(1).count(start, end, &la), Some(239));
     assert_eq!(Interval::Second(1).count(end, start, &la), Some(-14_399));
     assert_eq!(Interval::Millisecond(7).count(ms(0), ms(10), &la), Some(10));
-}
-
-/// d3-time's `local(y, m, d)`: midnight of a civil date in `tz`.
-fn local(tz: &TimeZone, year: i16, month: i8, day: i8) -> Timestamp {
-    tz.to_timestamp(rustd3_core::jiff::civil::date(year, month, day).at(0, 0, 0, 0))
-        .expect("a local date in range")
-}
-
-#[test]
-fn days_start_at_the_first_instant_even_where_midnight_is_skipped() {
-    let sao_paulo = zone("America/Sao_Paulo");
-    let day = Interval::Day(1);
-    assert_eq!(
-        day.floor(at("2016-10-16T03:00:00Z"), &sao_paulo),
-        Some(ms(1_476_586_800_000))
-    );
-    assert_eq!(
-        day.ceil(at("2016-10-16T04:00:00Z"), &sao_paulo),
-        Some(ms(1_476_669_600_000))
-    );
-    let days = range(
-        day,
-        local(&sao_paulo, 2016, 10, 14),
-        local(&sao_paulo, 2016, 10, 18),
-        &sao_paulo,
-    );
-    let expected = [
-        1_476_414_000_000,
-        1_476_500_400_000,
-        1_476_586_800_000,
-        1_476_669_600_000,
-    ];
-    assert_eq!(days, expected.map(ms));
 }
 
 #[test]
@@ -288,4 +244,192 @@ fn offsets_beyond_any_calendar_are_none() {
         assert_eq!(interval.offset(t, i64::MIN, &utc), None);
     }
     assert_eq!(Interval::Millisecond(1).offset(t, i64::MIN, &utc), None);
+}
+
+/// The 32 active cases of d3-time 3.1.0's `test/test-time-zones`, with the
+/// milliseconds Node prints in each zone.
+#[test]
+fn time_zones_script_cases() {
+    let hour = Interval::Hour(1);
+    let t = ms(1_456_279_843_199);
+    let offsets: [(&str, i64, i64, [i64; 3]); 2] = [
+        (
+            "Asia/Kolkata",
+            1_456_277_400_000,
+            1_456_281_000_000,
+            [1_320_604_200_000, 1_320_607_800_000, 1_320_611_400_000],
+        ),
+        (
+            "Asia/Kathmandu",
+            1_456_276_500_000,
+            1_456_280_100_000,
+            [1_320_603_300_000, 1_320_606_900_000, 1_320_610_500_000],
+        ),
+    ];
+    for (name, floor, ceil, hours) in offsets {
+        let tz = zone(name);
+        assert_eq!(hour.floor(t, &tz), Some(ms(floor)), "{name} floor");
+        assert_eq!(hour.ceil(t, &tz), Some(ms(ceil)), "{name} ceil");
+        let (start, stop) = (
+            local_hour(&tz, 2011, 11, 7, 0),
+            local_hour(&tz, 2011, 11, 7, 3),
+        );
+        assert_eq!(range(hour, start, stop, &tz), hours.map(ms), "{name} range");
+    }
+
+    // São Paulo: daylight saving ends at midnight on 2016-02-21 and begins
+    // at midnight on 2016-10-16.
+    let tz = zone("America/Sao_Paulo");
+    let day = Interval::Day(1);
+    let utc = |month, day, hour| local_hour(&TimeZone::UTC, 2016, month, day, hour);
+    struct Transition {
+        month: i8,
+        day: i8,
+        floors: [i64; 4],
+        ceils: [i64; 4],
+        rounds: [i64; 4],
+        range: [i64; 4],
+    }
+    let transitions = [
+        Transition {
+            month: 2,
+            day: 21,
+            floors: [
+                1_455_933_600_000,
+                1_455_933_600_000,
+                1_456_023_600_000,
+                1_456_023_600_000,
+            ],
+            ceils: [
+                1_456_023_600_000,
+                1_456_023_600_000,
+                1_456_023_600_000,
+                1_456_110_000_000,
+            ],
+            rounds: [
+                1_455_933_600_000,
+                1_456_023_600_000,
+                1_456_023_600_000,
+                1_456_110_000_000,
+            ],
+            range: [
+                1_455_847_200_000,
+                1_455_933_600_000,
+                1_456_023_600_000,
+                1_456_110_000_000,
+            ],
+        },
+        Transition {
+            month: 10,
+            day: 16,
+            floors: [
+                1_476_500_400_000,
+                1_476_500_400_000,
+                1_476_586_800_000,
+                1_476_586_800_000,
+            ],
+            ceils: [
+                1_476_586_800_000,
+                1_476_586_800_000,
+                1_476_586_800_000,
+                1_476_669_600_000,
+            ],
+            rounds: [
+                1_476_500_400_000,
+                1_476_586_800_000,
+                1_476_586_800_000,
+                1_476_669_600_000,
+            ],
+            range: [
+                1_476_414_000_000,
+                1_476_500_400_000,
+                1_476_586_800_000,
+                1_476_669_600_000,
+            ],
+        },
+    ];
+    for x in transitions {
+        for (h, (floor, ceil)) in (1..=4).zip(x.floors.into_iter().zip(x.ceils)) {
+            assert_eq!(
+                day.floor(utc(x.month, x.day, h), &tz),
+                Some(ms(floor)),
+                "{}-{} {h}:00Z floor",
+                x.month,
+                x.day
+            );
+            assert_eq!(
+                day.ceil(utc(x.month, x.day, h), &tz),
+                Some(ms(ceil)),
+                "{}-{} {h}:00Z ceil",
+                x.month,
+                x.day
+            );
+        }
+        let probes = [(x.day - 1, 14), (x.day - 1, 15), (x.day, 14), (x.day, 15)];
+        for ((d, h), round) in probes.into_iter().zip(x.rounds) {
+            assert_eq!(
+                day.round(utc(x.month, d, h), &tz),
+                Some(ms(round)),
+                "{}-{d} {h}:00Z round",
+                x.month
+            );
+        }
+        let (start, stop) = (
+            local(&tz, 2016, x.month, x.day - 2),
+            local(&tz, 2016, x.month, x.day + 2),
+        );
+        assert_eq!(
+            range(day, start, stop, &tz),
+            x.range.map(ms),
+            "{} range",
+            x.month
+        );
+    }
+}
+
+#[test]
+fn sub_millisecond_intervals_step_exactly() {
+    let utc = TimeZone::UTC;
+    let t0 = at("2026-10-25T12:00:00.000000007Z").as_nanosecond();
+    let ns = |n: i128| Timestamp::from_nanosecond(t0 + n).expect("an instant in 2026");
+    let offsets = |interval, start, stop| -> Vec<i128> {
+        range(interval, ns(start), ns(stop), &utc)
+            .iter()
+            .map(|t| t.as_nanosecond() - t0)
+            .collect()
+    };
+    assert_eq!(offsets(Interval::Nanosecond(1), 0, 5), [0, 1, 2, 3, 4]);
+    assert_eq!(offsets(Interval::Nanosecond(10), 0, 40), [3, 13, 23, 33]);
+    assert_eq!(
+        offsets(Interval::Microsecond(1), 0, 4_000),
+        [993, 1_993, 2_993, 3_993]
+    );
+    assert_eq!(
+        Interval::Microsecond(1).floor(ns(1_500), &utc),
+        Some(ns(993))
+    );
+    assert_eq!(
+        Interval::Nanosecond(1).offset(ns(0), 1_000_000_007, &utc),
+        Some(ns(1_000_000_007))
+    );
+    // The same instants through an f64 epoch value lose their nanoseconds.
+    let through_f64 = |n: i128| ((t0 + n) as f64) as i128 - t0;
+    assert!((0..5).any(|n| through_f64(n) != n));
+}
+
+#[test]
+fn interval_range_is_lazy() {
+    let utc = TimeZone::UTC;
+    let (start, stop) = (at("2026-10-25T00:00:00Z"), at("2026-10-26T00:00:00Z"));
+    let mut nanoseconds = Interval::Nanosecond(1).range(start, stop, &utc);
+    let first: Vec<i128> = nanoseconds
+        .by_ref()
+        .take(10)
+        .map(|t| t.as_nanosecond() - start.as_nanosecond())
+        .collect();
+    assert_eq!(first, (0..10).collect::<Vec<i128>>());
+    let eleventh = nanoseconds.next().expect("86.4e12 boundaries in a day");
+    assert_eq!(eleventh.as_nanosecond() - start.as_nanosecond(), 10);
+    // A range holds its state, not its boundaries.
+    assert!(size_of_val(&nanoseconds) <= 128);
 }
