@@ -1018,3 +1018,68 @@ fn labels_that_grow_past_held_reaches_give_way_to_a_larger_panels() {
         "{right:?}"
     );
 }
+
+/// A 2 × 2 grid of scales: x linear over [0, 12 000] per column on bottom
+/// axes, y log over [1, 1e5] in the top row and symlog over [−100, 100] in
+/// the bottom row on left axes, a band of months on top, right twin axes
+/// with titles (one far from zero, one tiny), a figure title and panel
+/// titles.
+pub fn scales() -> Figure<'static> {
+    let mut fig = Figure::new();
+    fig.title("Layout passes on a grid of scales");
+    let xs: Vec<_> = (0..2)
+        .map(|_| fig.scale(scale::linear().domain([0.0, 12_000.0])))
+        .collect();
+    let log = fig.scale(scale::log().domain([1.0, 1e5]));
+    let symlog = fig.scale(scale::symlog().domain([-100.0, 100.0]));
+    let months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    let month = fig.scale(scale::band(months).padding(0.1));
+    let epoch = fig.scale(scale::linear().domain([1e9, 1e9 + 5.0]));
+    let current = fig.scale(scale::linear().domain([0.0, 2.5e-6]));
+    let names = ["A", "B", "C", "D"];
+    for r in 0..2 {
+        for (c, &x) in xs.iter().enumerate() {
+            let panel = fig.panel(r, c);
+            panel
+                .title(format!("Panel {}", names[2 * r + c]))
+                .axis(axis::bottom(x).label("distance [m]"));
+            if r == 0 {
+                panel.axis(axis::left(log)).axis(axis::top(month));
+            } else {
+                panel.axis(axis::left(symlog));
+            }
+            if c == 1 && r == 0 {
+                panel.axis(axis::right(epoch).label("time [s]"));
+            }
+            if c == 1 && r == 1 {
+                panel.axis(axis::right(current).label("current [A]"));
+            }
+        }
+    }
+    fig
+}
+
+#[test]
+fn list_dump_of_a_grid_of_scales() {
+    let fig = scales();
+    let size = Size::new(960.0, 720.0);
+    let cells = [(0, 0), (0, 1), (1, 0), (1, 1)];
+    for target in [
+        Target::Vector,
+        Target::File { scale: 2.0 },
+        Target::Screen { scale: 2.0 },
+    ] {
+        assert_layout(&fig, size, target, &cells);
+    }
+    let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+    rustd3_figure::list::check(&list).expect("a valid list");
+    let dump =
+        rustd3_figure::list::dump(&list, rustd3_figure::list::dump::Options { glyphs: false });
+    let store = rustd3_testkit::snapshot::Store::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/snapshots"
+    ));
+    store.check("list_dump_of_a_grid_of_scales.txt", &dump);
+}
