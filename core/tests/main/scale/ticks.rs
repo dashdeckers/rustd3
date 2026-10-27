@@ -2,6 +2,7 @@
 //! under `NEUTRAL` and `EN_US`, minor ticks and extents, against d3-scale
 //! 4.0.2 where d3 has the value.
 
+use rustd3_core::format::InvalidFormat;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, AnyContinuous, TickRule, Ticks};
 use rustd3_testkit::obs::{ToObs, Tolerance};
@@ -347,4 +348,18 @@ fn a_position_off_the_domain_is_returned_for_the_axis_to_skip() {
         .position(&-1.0, 0.5)
         .expect("continuous positions are Some");
     assert!(at.is_nan());
+}
+
+#[test]
+fn rebinding_labels_keeps_the_specifier_and_the_si_prefix() -> Result<(), InvalidFormat> {
+    let x = scale::linear().domain([0.0, 1e6]);
+    let set = x.tick_set(5);
+    let neutral = x.tick_format(5, Some("$s"))?;
+    assert_eq!(neutral.format(500_000.0), "0.5M");
+    assert_eq!(
+        neutral.labels(&set, &Locale::EN_US),
+        ["$0.0M", "$0.2M", "$0.4M", "$0.6M", "$0.8M", "$1.0M"]
+    );
+    assert_eq!(neutral.labels(&set, &Locale::NEUTRAL)[5], "1.0M");
+    Ok(())
 }
