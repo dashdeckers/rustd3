@@ -21,6 +21,7 @@ mod curve;
 mod line;
 pub mod pie;
 mod slice;
+pub mod stack;
 
 pub use arc::Arc;
 pub use area::{Area, Span};
@@ -50,6 +51,15 @@ pub fn area() -> Area {
     Area::default()
 }
 
+/// d3.stack() over columns: orders and offsets as builders, laid out by
+/// [`Stack::layout`]. Its methods, [`stack::Order`] and [`stack::Offset`]
+/// are in [`stack`] (the module).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Stack {
+    order: stack::Order,
+    offset: stack::Offset,
+}
+
 /// d3.pie(): descending, from 0 to τ, unpadded.
 pub fn pie() -> Pie {
     Pie::default()
@@ -58,4 +68,20 @@ pub fn pie() -> Pie {
 /// d3.arc(): radii 0, no corners, padded as each slice says.
 pub fn arc() -> Arc {
     Arc::default()
+}
+
+/// d3.stack() over columns (Part I, Shapes and `PathContext`): one layer per
+/// column, in the columns' order on a zero baseline, each `[y0, y1]` per
+/// row; rows are the shortest column's length.
+///
+/// ```
+/// use rustd3_core::shape;
+///
+/// let apples = [3.0, 2.0, 1.0];
+/// let bananas = [1.0, 1.0, 4.0];
+/// let layers = shape::stack(&[&apples, &bananas]);
+/// assert_eq!(layers[1], [[3.0, 4.0], [2.0, 3.0], [1.0, 5.0]]);
+/// ```
+pub fn stack(columns: &[&[f64]]) -> Vec<Vec<[f64; 2]>> {
+    Stack::default().layout(columns)
 }
