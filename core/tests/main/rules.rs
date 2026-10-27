@@ -223,6 +223,18 @@ fn symlog_minor_ticks_follow_a_descending_domain() {
 }
 
 #[test]
+fn symlog_minor_ticks_subdivide_symmetric_linear_majors_through_decades() {
+    let s = scale::symlog().domain([-20.0, 20.0]);
+    assert_eq!(s.ticks(4), [-20.0, -10.0, 0.0, 10.0, 20.0]);
+    let minor = s.minor(4);
+    assert_eq!(minor.len(), 16);
+    assert!(close(minor[0], -18.0) && close(minor[15], 18.0));
+    let t = scale::symlog().domain([-10.0, 20.0]);
+    assert_eq!(t.ticks(3), [-10.0, 0.0, 10.0, 20.0]);
+    assert_eq!(t.minor(3).len(), 12);
+}
+
+#[test]
 fn symlog_minor_ticks_subdivide_linear_majors_in_data_space() {
     let minor = scale::symlog().domain([0.0, 1.0]).minor(5);
     assert_eq!(minor.len(), 20);

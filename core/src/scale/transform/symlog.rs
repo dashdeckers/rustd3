@@ -80,23 +80,27 @@ impl Transform for Symlog {
         }
     }
 
-    /// When every nonzero major is ±c·10ᵏ, m·c·10ᵏ for m = 2 … 9 strictly
+    /// When every nonzero major is ±c·10ᵏ, or every one but the first and
+    /// last is and at least two of those share a sign (an axis's majors
+    /// extended by one step past each end), m·c·10ᵏ for m = 2 … 9 strictly
     /// between neighbouring majors of one sign (none next to 0), at most
-    /// 10,000. The first and last major may lie anywhere past their
-    /// neighbours when at least two majors are decades, as an axis's
-    /// majors extended by one step are. Otherwise five equal steps in data
-    /// space between majors.
+    /// 10,000. Otherwise five equal steps in data space between majors:
+    /// evenly spaced majors never hold two decades of one sign.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
-        let tied = |v: f64| v == 0.0 || self.decade(v);
+        let tied = |v: &f64| *v == 0.0 || self.decade(*v);
         let inner = major
             .get(1..major.len().saturating_sub(1))
             .unwrap_or_default();
-        let ends = [major.first(), major.last()]
-            .into_iter()
-            .flatten()
-            .all(|&v| tied(v));
-        let decades = major.iter().filter(|&&v| self.decade(v)).count();
-        if !inner.iter().all(|&v| tied(v)) || !(ends || decades >= 2) {
+        let paired = |positive: bool| {
+            inner
+                .iter()
+                .filter(|v| (**v > 0.0) == positive && self.decade(**v))
+                .count()
+                >= 2
+        };
+        let decades =
+            major.iter().all(tied) || (inner.iter().all(tied) && (paired(true) || paired(false)));
+        if !decades {
             return ticks::subdivide(&transform::Identity, major, 5);
         }
         let mut minor = Vec::new();
