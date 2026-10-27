@@ -39,7 +39,7 @@ valid specifiers under d3's pattern), 16 fill and width edges, and all
 
 ## D26.1 — The parser accepts a fill outside the BMP; d3's pattern does not
 
-**Date:** 2026-10-27 · **Context:** Phase 26, step 3 (936e299) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 26, step 3 (936e299) · **Status:** decided
 
 ### Issue
 
@@ -75,8 +75,8 @@ letters (the pattern's `i` flag folds no non-ASCII character into
 
 ### Decision
 
-Recommended: A. The section's grammar asks for 4-byte fills, padding
-counts characters in Rust, and nothing depends on rejecting them.
+A (architect, 2026-10-27): the parser and `is_valid` accept any `char`
+as a fill, including one outside the BMP that d3 rejects.
 
 ### Why
 
@@ -90,7 +90,7 @@ agreement test's edge list asserting `"😀>10"` invalid.
 
 ## D26.2 — `defaultLocale-test.js` stays under 70 %
 
-**Date:** 2026-10-27 · **Context:** Phase 26, step 2 (48e4b66) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 26, step 2 (48e4b66) · **Status:** decided
 
 ### Issue
 
@@ -112,8 +112,9 @@ change the file: it loads no JSON table.
 
 ### Decision
 
-Recommended: A, D3.1's answer; the exit criterion's "(6)" is read as
-the file's assertion count, whose floor D3.1 fixed at 2.
+A (architect, 2026-10-27): D3.1's skip-table row for
+`defaultLocale-test.js` (floor 2) stands; a rebound default locale
+stays out of the design.
 
 ### Why
 
@@ -125,7 +126,7 @@ None.
 
 ## D26.3 — Details of Phase 26 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 26, 697500d … 68fedf6 · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 26, 697500d … 68fedf6 · **Status:** decided
 
 ### Issue
 
@@ -173,7 +174,7 @@ None.
 
 ### Decision
 
-Recommended: A for all eight.
+A for all eight (architect, 2026-10-27), as built.
 
 ### Why
 
