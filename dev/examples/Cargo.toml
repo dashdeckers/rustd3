@@ -11,9 +11,13 @@ autotests = false
 [dependencies]
 rustd3-core = { workspace = true, features = ["derive"] }
 rustd3-figure = { workspace = true, features = ["fonts", "png", "pdf", "gif", "helpers"] }
+rustd3-iced = { workspace = true, features = ["figure"] }
+iced = { workspace = true, features = ["advanced", "canvas"] }
 
 [dev-dependencies]
 rustd3-testkit.workspace = true
+iced_test.workspace = true
+png.workspace = true
 
 [lints]
 workspace = true

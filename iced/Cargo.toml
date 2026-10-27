@@ -11,15 +11,21 @@ autotests = false
 [features]
 default = ["fonts"]
 fonts = ["rustd3-figure?/fonts"]
-figure = ["dep:rustd3-figure"]
+figure = ["dep:rustd3-figure", "rustd3-figure/raster"]
 
 [dependencies]
 rustd3-core.workspace = true
 thiserror.workspace = true
-rustd3-figure = { workspace = true, optional = true, features = ["raster"] }
+rustd3-figure = { workspace = true, optional = true }
+iced_core.workspace = true
+iced_widget = { workspace = true, features = ["advanced", "canvas", "image"] }
 
 [dev-dependencies]
+iced = { workspace = true, features = ["advanced", "canvas"] }
+iced_test.workspace = true
+iced_runtime.workspace = true
 rustd3-testkit.workspace = true
+png.workspace = true
 
 [lints]
 workspace = true
