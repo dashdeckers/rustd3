@@ -223,15 +223,16 @@ fn vibration() -> &'static (Recording<f64>, Vec<usize>) {
 
 /// The prototype's view of the vibration trace (`proto/thin2`): x over
 /// [0, 100] s, y over [−2.4, 2.4] in a plot area 1000 × 240 px, stroked
-/// 1 px wide in (30, 60, 140); the figure's size; its x and y handles.
-fn prototype(thin: Thin) -> (Figure<'static>, Size, [ScaleRef<Linear>; 2]) {
+/// `width` px wide (the prototype's 1, or the theme's 2) in (30, 60, 140);
+/// the figure's size; its x and y handles.
+fn prototype(thin: Thin, width: f64) -> (Figure<'static>, Size, [ScaleRef<Linear>; 2]) {
     let (rec, _) = vibration();
     let mut fig = Figure::new();
     let t = fig.scale(scale::linear().domain([0.0, 100.0]));
     let v = fig.scale(scale::linear().domain([-2.4, 2.4]));
     fig.panel(0, 0).mark(
         line(rec.series(0).expect("the trace"), t, v)
-            .width(1.0)
+            .width(width)
             .color(Rgb::new(30.0, 60.0, 140.0))
             .thin(thin),
     );
@@ -260,9 +261,9 @@ struct Thinned {
     places: Vec<Point>,
 }
 
-fn thinned(target: Target, per_px: f64) -> Thinned {
+fn thinned(target: Target, per_px: f64, width: f64) -> Thinned {
     let (rec, _) = vibration();
-    let (fig, size, [t, v]) = prototype(Thin::Auto);
+    let (fig, size, [t, v]) = prototype(Thin::Auto, width);
     let mut cache = cache();
     let list = fig.draw_with(&mut cache, size, target, &Held::default());
     assert_eq!(cache.stats().m4_queries, 1);
@@ -309,7 +310,7 @@ fn points(path: &BezPath) -> Vec<Point> {
 #[test]
 fn the_trace_on_screen_keeps_four_points_per_column_and_every_impact() {
     let (_, impacts) = vibration();
-    let thinned = thinned(Target::Screen { scale: 1.0 }, 1.0);
+    let thinned = thinned(Target::Screen { scale: 1.0 }, 1.0, 1.0);
     list::check(&thinned.list).expect("a valid list");
     assert_eq!(thinned.area.width(), 1000.0);
     let lines = &thinned.lines;
@@ -328,7 +329,7 @@ fn the_trace_on_screen_keeps_four_points_per_column_and_every_impact() {
 
 #[test]
 fn the_trace_for_vector_output_takes_four_columns_per_px() {
-    let thinned = thinned(Target::Vector, 4.0);
+    let thinned = thinned(Target::Vector, 4.0, 1.0);
     list::check(&thinned.list).expect("a valid list");
     assert_eq!(thinned.area.width(), 1000.0);
     assert_eq!(points(&thinned.path), thinned.places);
@@ -338,17 +339,17 @@ fn the_trace_for_vector_output_takes_four_columns_per_px() {
     assert_eq!(lines.points(), 15_427);
 }
 
-/// The plot area of the prototype's figure drawn with every sample
-/// stroked, rendered at 1×: what thinned lines are measured against.
+/// The plot area of the prototype's figure with every sample stroked,
+/// rendered at `scale`: 1 px wide at 1×, the theme's 2 px at 2×. What
+/// thinned lines are measured against.
 #[cfg(feature = "raster")]
-fn every_sample() -> &'static Image {
-    static FULL: OnceLock<Image> = OnceLock::new();
-    FULL.get_or_init(|| {
-        let (fig, size, _) = prototype(Thin::Off);
+fn every_sample(scale: f64) -> &'static Image {
+    static RENDERS: [OnceLock<Image>; 2] = [OnceLock::new(), OnceLock::new()];
+    RENDERS[usize::from(scale > 1.0)].get_or_init(|| {
+        let (fig, size, _) = prototype(Thin::Off, scale);
         let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
         assert_eq!(vertices(paths(&list)[0]), 1_000_000);
-        let area = list.parts[1].bounds;
-        render(&list, area, 1.0)
+        render(&list, list.parts[1].bounds, scale)
     })
 }
 
@@ -399,19 +400,40 @@ fn columns_off(a: &Image, b: &Image) -> f64 {
 #[cfg(feature = "raster")]
 #[test]
 fn the_trace_for_vector_output_is_within_5_percent_of_every_sample_stroked() {
-    let thinned = thinned(Target::Vector, 4.0);
+    let thinned = thinned(Target::Vector, 4.0, 1.0);
     let image = render(&thinned.list, thinned.area, 1.0);
-    let off = pixels_off(&image, every_sample());
+    let off = pixels_off(&image, every_sample(1.0));
     assert!(off <= 0.05, "{:.2}% of pixels off", 100.0 * off);
 }
 
 #[cfg(feature = "raster")]
 #[test]
 fn the_trace_on_screen_is_within_12_percent_and_its_columns_within_3_percent() {
-    let thinned = thinned(Target::Screen { scale: 1.0 }, 1.0);
+    let thinned = thinned(Target::Screen { scale: 1.0 }, 1.0, 1.0);
     let image = render(&thinned.list, thinned.area, 1.0);
-    let off = pixels_off(&image, every_sample());
-    let columns = columns_off(&image, every_sample());
+    let off = pixels_off(&image, every_sample(1.0));
+    let columns = columns_off(&image, every_sample(1.0));
     assert!(off <= 0.12, "{:.2}% of pixels off", 100.0 * off);
     assert!(columns <= 0.03, "{:.2}% of columns off", 100.0 * columns);
+}
+
+/// At 2× the line has the theme's width: a 1 px line at one column per
+/// device px stripes at 2×, 24% of its columns off (D15.3).
+#[cfg(feature = "raster")]
+#[test]
+fn the_trace_at_2x_keeps_the_bounds_per_device_pixel() {
+    let file = thinned(Target::File { scale: 2.0 }, 8.0, 2.0);
+    let image = render(&file.list, file.area, 2.0);
+    let off = pixels_off(&image, every_sample(2.0));
+    assert!(off <= 0.05, "file: {:.2}% of pixels off", 100.0 * off);
+    let screen = thinned(Target::Screen { scale: 2.0 }, 2.0, 2.0);
+    let image = render(&screen.list, screen.area, 2.0);
+    let off = pixels_off(&image, every_sample(2.0));
+    let columns = columns_off(&image, every_sample(2.0));
+    assert!(off <= 0.12, "screen: {:.2}% of pixels off", 100.0 * off);
+    assert!(
+        columns <= 0.03,
+        "screen: {:.2}% of columns off",
+        100.0 * columns
+    );
 }
