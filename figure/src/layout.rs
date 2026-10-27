@@ -24,6 +24,7 @@ mod passes;
 mod plan;
 mod protrusion;
 mod slots;
+mod snap;
 mod tracks;
 
 pub use cell::Cell;
@@ -31,6 +32,7 @@ pub use hold::Areas;
 pub(crate) use passes::{Laid, Layout};
 pub use plan::Plan;
 pub(crate) use protrusion::Reach;
+pub(crate) use snap::Snap;
 pub(crate) use tracks::tracks;
 
 /// A length in px, or in multiples of the theme's tick-label size, so gaps

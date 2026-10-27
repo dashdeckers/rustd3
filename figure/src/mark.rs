@@ -28,6 +28,7 @@ use kurbo::{Cap, Join};
 use rustd3_core::series::Points;
 
 use crate::figure::{Fits, Resolved};
+use crate::layout::Snap;
 use crate::list::List;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{self, Key, Shaped};
@@ -113,6 +114,11 @@ impl Ctx<'_> {
     /// output.
     pub fn scale_factor(&self) -> f64 {
         self.resolved.target().scale_factor()
+    }
+
+    /// How the target lays hairlines on its pixel grid.
+    pub(crate) fn snap(&self) -> Snap {
+        Snap::of(self.resolved.target())
     }
 
     /// Thinning columns per list px: one per device pixel on screen, four

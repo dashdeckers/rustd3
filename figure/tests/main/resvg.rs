@@ -58,10 +58,13 @@ fn resvg_renders_our_svg_as_vello_cpu_renders_the_list() {
     );
 }
 
-/// `fig` written as the example mains write it, its SVG rendered by resvg
-/// at `scale` against its PNG at `scale`: the worst tile's score.
+/// `fig`'s PNG at `scale`, written as the example mains write it, against
+/// two SVGs rendered by resvg at `scale`: the one `save_svg` writes (vector
+/// output, nothing snapped), and the same figure drawn for the PNG's target
+/// (its plot areas and hairlines on device pixels): the worst tiles'
+/// scores, (example files, same list).
 #[cfg(all(feature = "png", feature = "fonts"))]
-fn agreement(name: &str, fig: &rustd3_figure::Figure<'_>, size: Size, scale: f64) -> f64 {
+fn agreement(name: &str, fig: &rustd3_figure::Figure<'_>, size: Size, scale: f64) -> (f64, f64) {
     let base = std::env::temp_dir().join(format!("rustd3-figure-{}-{name}", std::process::id()));
     let (svg_path, png_path) = (base.with_extension("svg"), base.with_extension("png"));
     fig.save_svg(&svg_path, size).expect("the SVG is written");
@@ -82,19 +85,30 @@ fn agreement(name: &str, fig: &rustd3_figure::Figure<'_>, size: Size, scale: f64
         height: frame.height,
         rgba,
     };
-    diff(&resvg(&svg, scale as f32), &png).tile_score()
+    let target = rustd3_figure::Target::File { scale };
+    let held = rustd3_figure::Held::default();
+    let list = fig.draw_with(&mut crate::figure::cache(), size, target, &held);
+    let lowered = lower::lower(&list, svg::CAPS).expect("the figure lowers");
+    let same = svg::write(&lowered.list, &svg::Options::default()).expect("SVG needs no sweep");
+    let files = diff(&resvg(&svg, scale as f32), &png).tile_score();
+    let same = diff(&resvg(&same, scale as f32), &png).tile_score();
+    (files, same)
 }
 
 #[cfg(all(feature = "png", feature = "fonts"))]
 #[test]
-fn resvg_renders_the_example_svgs_as_their_pngs() {
+fn resvg_renders_the_example_figures_as_their_pngs() {
     let rec = trace::recording(trace::SAMPLES);
-    let score = agreement("trace", &trace::trace(&rec), trace::SIZE, trace::SCALE);
-    // Measured 0.0275: resvg and vello_cpu shade the trace's impacts (a
-    // stroke up and back down within a quarter px, overlapping itself)
-    // apart by 0.0258 on the very same list (D15.2).
-    assert!(score <= 0.03, "trace: tile score {score:.4}");
+    let (files, same) = agreement("trace", &trace::trace(&rec), trace::SIZE, trace::SCALE);
+    // resvg and vello_cpu shade the trace's impacts (a stroke up and back
+    // down within a quarter px, overlapping itself) 0.0258 apart on the
+    // very same vector list (D15.2); on the PNG's own list 0.0200.
+    assert!(same <= 0.03, "trace: tile score {same:.4}");
+    // The SVG file is not snapped: the PNG's plot areas sit up to half a
+    // device px elsewhere (D17.2), 0.0473 at 2x.
+    assert!(files <= 0.05, "trace files: tile score {files:.4}");
     let fig = scatter::scatter(scatter::POINTS);
-    let score = agreement("scatter", &fig, scatter::SIZE, scatter::SCALE);
-    assert!(score <= 0.02, "scatter: tile score {score:.4}");
+    let (files, same) = agreement("scatter", &fig, scatter::SIZE, scatter::SCALE);
+    assert!(same <= 0.02, "scatter: tile score {same:.4}");
+    assert!(files <= 0.05, "scatter files: tile score {files:.4}");
 }

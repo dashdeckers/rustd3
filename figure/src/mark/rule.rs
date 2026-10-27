@@ -131,7 +131,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
 
     /// A stroke across the plot area and the label's runs, when the value
     /// is placed within half the line's width of the plot area; nothing
-    /// otherwise.
+    /// otherwise. On raster targets the line covers whole device pixels.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let theme = ctx.theme();
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
@@ -143,6 +143,8 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
         let Some(pos) = pos.filter(|p| (-width / 2.0..=length + width / 2.0).contains(p)) else {
             return;
         };
+        let snap = ctx.snap();
+        let (pos, width) = (snap.line(pos, width), snap.width(width));
         let (line, label, corner) = match self.along {
             Along::X => (
                 kurbo::Line::new((pos, 0.0), (pos, h)),

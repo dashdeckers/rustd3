@@ -8,7 +8,7 @@ use rustd3_core::axis::Orient;
 
 use crate::axis::labels::{align, get, notation};
 use crate::axis::{Labels, across};
-use crate::layout::Plan;
+use crate::layout::{Plan, Snap};
 use crate::list::{self, Command, List};
 use crate::text::{self, Anchor};
 use crate::theme::Theme;
@@ -61,7 +61,7 @@ impl Placed {
 
     /// Each tick label's box beside plot area `area`.
     fn measure(&self, area: Rect, text: &text::Cache, theme: &Theme) -> Vec<Option<Rect>> {
-        let spine = self.spine(area);
+        let spine = self.spine(area, theme);
         let gap = theme.tick() + theme.tick_pad();
         self.labels
             .ticks
@@ -85,47 +85,56 @@ impl Placed {
     /// offset or multiplier label (at the right end of a horizontal axis, a
     /// tick pad beyond the labels; above the top end of a vertical one), and
     /// its title a label pad past all of them, turned a quarter
-    /// counter-clockwise on the left and clockwise on the right.
-    pub(crate) fn draw(&self, area: Rect, text: &text::Cache, theme: &Theme, list: &mut List) {
+    /// counter-clockwise on the left and clockwise on the right. On raster
+    /// targets (`snap`) the line, its square-capped ends and the ticks lie
+    /// on whole device pixels; labels keep their positions.
+    pub(crate) fn draw(
+        &self,
+        area: Rect,
+        text: &text::Cache,
+        theme: &Theme,
+        snap: Snap,
+        list: &mut List,
+    ) {
         let labels = &self.labels;
         let orient = labels.orient;
-        let spine = self.spine(area);
+        let spine = self.spine(area, theme);
         let length = spine.length();
-        let stroke = list::stroke(theme.axis_width());
+        let width = theme.axis_width();
         let edge = if labels.tinted {
             labels.ink
         } else {
             theme.edge()
         };
         let mut path = BezPath::new();
-        path.move_to(spine.at(0.0, 0.0));
-        path.line_to(spine.at(length, 0.0));
+        path.move_to(spine.snapped(0.0, 0.0, width, snap));
+        path.line_to(spine.snapped(length, 0.0, width, snap));
         list.commands.push(Command::Stroke {
             path,
-            style: stroke.clone().with_caps(Cap::Square),
+            style: list::stroke(snap.width(width)).with_caps(Cap::Square),
             paint: list::brush(edge),
         });
         let mut ticks = BezPath::new();
         let mut minor = BezPath::new();
         for (i, p) in self.positions.iter().enumerate() {
             let Some(p) = p else { continue };
-            let (path, length) = if labels.minor.get(i).copied().unwrap_or(false) {
-                (&mut minor, theme.minor_tick())
+            let (path, length, w) = if labels.minor.get(i).copied().unwrap_or(false) {
+                (&mut minor, theme.minor_tick(), theme.minor_width())
             } else {
-                (&mut ticks, theme.tick())
+                (&mut ticks, theme.tick(), width)
             };
-            path.move_to(spine.at(*p, 0.0));
-            path.line_to(spine.at(*p, length));
+            path.move_to(spine.snapped(*p, 0.0, w, snap));
+            path.line_to(spine.snapped(*p, length, w, snap));
         }
         list.commands.push(Command::Stroke {
             path: ticks,
-            style: stroke,
+            style: list::stroke(snap.width(width)),
             paint: list::brush(labels.ink),
         });
         if !minor.elements().is_empty() {
             list.commands.push(Command::Stroke {
                 path: minor,
-                style: list::stroke(theme.minor_width()),
+                style: list::stroke(snap.width(theme.minor_width())),
                 paint: list::brush(labels.ink),
             });
         }
@@ -175,21 +184,25 @@ impl Placed {
         }
     }
 
-    /// Where the axis sits beside plot area `area`.
-    fn spine(&self, area: Rect) -> Spine {
+    /// Where the axis sits beside plot area `area`, as wide as `theme`'s
+    /// axis lines.
+    fn spine(&self, area: Rect, theme: &Theme) -> Spine {
         Spine {
             orient: self.labels.orient,
             area,
             offset: self.plan.offset,
+            width: theme.axis_width(),
         }
     }
 }
 
-/// An axis line: its side of a plot area and its offset outside it.
+/// An axis line: its side of a plot area, its offset outside it and its
+/// width.
 struct Spine {
     orient: Orient,
     area: Rect,
     offset: f64,
+    width: f64,
 }
 
 impl Spine {
@@ -200,6 +213,20 @@ impl Spine {
         } else {
             self.area.height()
         }
+    }
+
+    /// [`at`](Spine::at) with the axis line where `snap` lays a line of its
+    /// width and `along` where it lays a hairline `w` px wide across it, so
+    /// the axis line, its ends and its ticks cover whole device pixels on
+    /// raster targets.
+    fn snapped(&self, along: f64, beyond: f64, w: f64, snap: Snap) -> Point {
+        let base = self.at(along, 0.0);
+        let snapped = if across(self.orient) {
+            Point::new(snap.line(base.x, w), snap.line(base.y, self.width))
+        } else {
+            Point::new(snap.line(base.x, self.width), snap.line(base.y, w))
+        };
+        snapped + (self.at(along, beyond) - base)
     }
 
     /// The point `beyond` px outward of the axis line, `along` px from the

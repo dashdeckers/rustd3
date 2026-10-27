@@ -7,6 +7,7 @@ use kurbo::{Affine, Point, Rect, Shape};
 
 use crate::figure::part::{self, Role};
 use crate::figure::{Figure, Resolved};
+use crate::layout::Snap;
 use crate::list::{self, Clip, Command, List, Part};
 use crate::mark::Ctx;
 use crate::panel::Panel;
@@ -33,6 +34,7 @@ impl Figure<'_> {
     ) {
         let theme = &self.theme;
         let size = list.size;
+        let snap = Snap::of(resolved.target());
         part(list, part::id(Role::Background, 0, 0), |list| {
             list.commands.push(Command::Fill {
                 path: size.to_rect().to_path(TOLERANCE),
@@ -61,10 +63,13 @@ impl Figure<'_> {
                 });
             }
             if let Some(color) = panel.frame() {
+                let width = theme.axis_width();
+                let corners = [area.origin(), Point::new(area.x1, area.y1)];
+                let [a, b] = corners.map(|p| snap.point(p, width));
                 part(list, part::id(Role::Border, i, 0), |list| {
                     list.commands.push(Command::Stroke {
-                        path: area.to_path(TOLERANCE),
-                        style: list::stroke(theme.axis_width()),
+                        path: Rect::from_points(a, b).to_path(TOLERANCE),
+                        style: list::stroke(snap.width(width)),
                         paint: list::brush(color),
                     });
                 });
@@ -72,7 +77,7 @@ impl Figure<'_> {
             let shown = laid.axes.iter().enumerate().filter(|(_, a)| a.plan.shown);
             for (j, placed) in shown {
                 part(list, part::id(Role::Axis, i, j), |list| {
-                    placed.draw(*area, text, theme, list);
+                    placed.draw(*area, text, theme, snap, list);
                 });
             }
             if let Some(title) = shaped(text, laid.title.as_ref()) {

@@ -1170,3 +1170,125 @@ fn list_dump_of_a_grid_of_scales() {
     ));
     store.check("list_dump_of_a_grid_of_scales.txt", &dump);
 }
+
+/// A 2 × 2 grid with linear and log axes, a right twin, borders and rules
+/// at awkward values.
+fn ruled() -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 12_000.0]));
+    let y = fig.scale(scale::log().domain([1.0, 1e5]));
+    let twin = fig.scale(scale::linear().domain([0.0, 2.5e-6]));
+    fig.title("Snapped");
+    for r in 0..2 {
+        for c in 0..2 {
+            let panel = fig.panel(r, c);
+            panel
+                .border(Rgb::hex(0x4d4d4d))
+                .axis(axis::left(y))
+                .axis(axis::bottom(x).label("distance [m]"))
+                .mark(rustd3_figure::mark::rule_y(333.3, y).dash([4.0, 3.0]))
+                .mark(rustd3_figure::mark::rule_x(4_321.0, x).width(1.0));
+            if c == 1 {
+                panel.axis(axis::right(twin).label("current [A]"));
+            }
+        }
+    }
+    fig
+}
+
+/// Whether `v` px is a whole number of device px at `scale`.
+fn whole(v: f64, scale: f64) -> bool {
+    (v * scale - (v * scale).round()).abs() < 1e-9
+}
+
+#[test]
+fn raster_targets_put_plot_area_edges_and_hairlines_on_device_pixels() {
+    let fig = ruled();
+    let size = Size::new(960.0, 720.0);
+    let vector = fig
+        .resolve(size, &mut cache(), &Held::default(), Target::Vector)
+        .plot_areas()
+        .to_vec();
+    for scale in [1.0, 1.25, 1.5, 2.0] {
+        let target = Target::File { scale };
+        let r = fig.resolve(size, &mut cache(), &Held::default(), target);
+        let areas = r.plot_areas();
+        for (a, v) in areas.iter().zip(&vector) {
+            for (edge, raw) in [(a.x0, v.x0), (a.y0, v.y0), (a.x1, v.x1), (a.y1, v.y1)] {
+                assert!(whole(edge, scale), "{edge} at {scale}");
+                assert_eq!(edge, rustd3_figure::raster::snap::edge(raw, scale));
+            }
+        }
+        assert_layout(&fig, size, target, &[(0, 0), (0, 1), (1, 0), (1, 1)]);
+        let list = fig.draw_with(&mut cache(), size, target, &Held::default());
+        let mut hairlines = 0;
+        for part in &list.parts {
+            // Borders, axes and the rules among the marks.
+            let role = part.id >= part::Id::new(3 << 56) && part.id < part::Id::new(7 << 56);
+            if !role {
+                continue;
+            }
+            for command in &list.commands[part.commands.clone()] {
+                let Command::Stroke { path, style, .. } = command else {
+                    continue;
+                };
+                assert!(whole(style.width, scale) && style.width * scale >= 1.0);
+                let half = style.width / 2.0;
+                let mut from = None;
+                for e in path.elements() {
+                    match *e {
+                        rustd3_figure::kurbo::PathEl::MoveTo(p) => from = Some(p),
+                        rustd3_figure::kurbo::PathEl::LineTo(p) => {
+                            let a = from.expect("a segment starts with a move");
+                            let across = if a.x == p.x {
+                                Some(p.x)
+                            } else if a.y == p.y {
+                                Some(p.y)
+                            } else {
+                                None
+                            };
+                            let c = across.expect("hairlines are axis-aligned");
+                            assert!(
+                                whole(c - half, scale) && whole(c + half, scale),
+                                "{c} ± {half} at {scale}"
+                            );
+                            hairlines += 1;
+                            from = Some(p);
+                        }
+                        rustd3_figure::kurbo::PathEl::ClosePath => {}
+                        rustd3_figure::kurbo::PathEl::QuadTo(..)
+                        | rustd3_figure::kurbo::PathEl::CurveTo(..) => {
+                            panic!("a curve among hairlines")
+                        }
+                    }
+                }
+            }
+        }
+        assert!(hairlines > 100, "{hairlines} hairline segments");
+        if scale == 1.25 {
+            // 1.25 pt = 1.667 px = 2.083 device px: 2.
+            let axis = list
+                .parts
+                .iter()
+                .find(|p| p.id == part::Id::new(4 << 56))
+                .expect("an axis");
+            let Command::Stroke { style, .. } = &list.commands[axis.commands.start] else {
+                panic!("the axis line first");
+            };
+            assert!((style.width * 1.25 - 2.0).abs() < 1e-9, "{}", style.width);
+        }
+    }
+}
+
+#[test]
+fn vector_output_keeps_plot_areas_unsnapped() {
+    let fig = ruled();
+    let size = Size::new(960.0, 720.0);
+    let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
+    let edges: Vec<f64> = r
+        .plot_areas()
+        .iter()
+        .flat_map(|a| [a.x0, a.y0, a.x1, a.y1])
+        .collect();
+    assert!(edges.iter().any(|e| !whole(*e, 1.0)), "{edges:?}");
+}

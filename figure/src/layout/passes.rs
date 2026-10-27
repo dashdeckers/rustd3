@@ -8,7 +8,7 @@ use rustd3_core::axis::Orient;
 use crate::axis::{self, Labels, Placed};
 use crate::figure::{Figure, Resolved};
 use crate::layout::slots::Slots;
-use crate::layout::{self, Plan, Reach, collide, plan};
+use crate::layout::{self, Plan, Reach, Snap, collide, plan};
 use crate::legend::{Block, Content, Inset, Slot};
 use crate::panel::Panel;
 use crate::text::{self, Key, Shaped, Text, anchor};
@@ -118,13 +118,13 @@ impl Layout {
             .flat_map(Content::keys)
             .cloned()
             .collect();
+        let snap = Snap::of(resolved.target());
         let mut areas = match held {
             Some(rects) => rects.to_vec(),
-            None => place(
-                figure,
-                inner(size, theme.em(), [0.0; 4]),
-                &bare(figure, &roles),
-            ),
+            None => {
+                let inner = inner(size, theme.em(), [0.0; 4]);
+                place(figure, inner, &bare(figure, &roles), snap)
+            }
         };
         let mut last: Option<Vec<Vec<usize>>> = None;
         let mut axes: Axes = Vec::new();
@@ -206,7 +206,7 @@ impl Layout {
                 })
                 .collect();
             let reserve = reserve(&slots(&slotted, text, theme), title.as_ref(), text, theme);
-            areas = place(figure, inner(size, theme.em(), reserve), &titled);
+            areas = place(figure, inner(size, theme.em(), reserve), &titled, snap);
             if last.as_ref() == Some(&counts) {
                 break;
             }
@@ -398,11 +398,12 @@ fn inner(size: Size, em: f64, [top, right, bottom, left]: [f64; 4]) -> Rect {
 }
 
 /// The plot areas of `figure`'s panels with the tracks filling `inner` and
-/// each panel reaching `reaches` past its plot area. A panel's left reach
-/// counts against its first column, its right reach against its last, and
-/// likewise for rows; its plot area runs from its first track's start to
-/// its last track's end.
-fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach]) -> Vec<Rect> {
+/// each panel reaching `reaches` past its plot area, their edges snapped by
+/// `snap`. A panel's left reach counts against its first column, its right
+/// reach against its last, and likewise for rows; its plot area runs from
+/// its first track's start to its last track's end. Edges are snapped one
+/// by one, so panels that share an edge still share it.
+fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach], snap: Snap) -> Vec<Rect> {
     let theme = figure.style();
     let grid = figure.grid();
     let panels = figure.panels();
@@ -445,7 +446,7 @@ fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach]) -> Vec<Rect> {
         .map(|p| {
             let [y0, y1] = span(&ys, p.cell().rows());
             let [x0, x1] = span(&xs, p.cell().cols());
-            Rect::new(x0, y0, x1, y1)
+            snap.rect(Rect::new(x0, y0, x1, y1))
         })
         .collect()
 }
