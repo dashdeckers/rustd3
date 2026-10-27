@@ -17,8 +17,10 @@
 //! # let _ = grid;
 //! ```
 
+mod protrusion;
 mod tracks;
 
+pub(crate) use protrusion::Reach;
 pub(crate) use tracks::tracks;
 
 /// A length in px, or in multiples of the theme's tick-label size, so gaps

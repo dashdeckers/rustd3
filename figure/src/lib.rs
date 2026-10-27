@@ -9,6 +9,7 @@
 pub use kurbo;
 pub use peniko;
 
+pub mod axis;
 mod figure;
 pub mod layout;
 pub mod list;

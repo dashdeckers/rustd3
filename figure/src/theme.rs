@@ -42,6 +42,11 @@ impl Theme {
         self.text(11.0)
     }
 
+    /// Axis labels and panel titles: 12 pt.
+    pub(crate) fn label_text(&self) -> f64 {
+        self.text(12.0)
+    }
+
     /// The figure title: matplotlib's `large`, 1.2 × 12 pt.
     pub(crate) fn figure_title_text(&self) -> f64 {
         self.text(14.4)
@@ -52,9 +57,29 @@ impl Theme {
         self.tick_text()
     }
 
+    /// Tick marks: 6 pt.
+    pub(crate) fn tick(&self) -> f64 {
+        self.pt(6.0)
+    }
+
+    /// Between a tick and its label: 3.5 pt.
+    pub(crate) fn tick_pad(&self) -> f64 {
+        self.pt(3.5)
+    }
+
+    /// Between tick labels and the axis label: 4 pt.
+    pub(crate) fn label_pad(&self) -> f64 {
+        self.pt(4.0)
+    }
+
     /// Below a title: 6 pt.
     pub(crate) fn title_pad(&self) -> f64 {
         self.pt(6.0)
+    }
+
+    /// Text, ticks and axis lines: seaborn's ".15".
+    pub(crate) fn ink(&self) -> Rgb {
+        self.ink
     }
 
     /// The share of a fitted continuous domain's span added per side.
@@ -62,19 +87,28 @@ impl Theme {
         self.margin
     }
 
-    /// The figure title's style: centred lines in ink.
-    pub(crate) fn figure_title(&self) -> Style {
-        self.style(self.figure_title_text(), anchor::Horizontal::Middle)
+    /// A tick label's style: its lines aligned by `align`, in `fill`.
+    pub(crate) fn tick_label(&self, align: anchor::Horizontal, fill: Rgb) -> Style {
+        style(self.tick_text(), align, fill)
     }
 
-    /// Text of `size` px in ink, its lines aligned by `align`.
-    fn style(&self, size: f64, align: anchor::Horizontal) -> Style {
-        Style {
-            size,
-            bold: false,
-            fill: self.ink,
-            align,
-        }
+    /// An axis label's style: centred lines in `fill`.
+    pub(crate) fn axis_label(&self, fill: Rgb) -> Style {
+        style(self.label_text(), anchor::Horizontal::Middle, fill)
+    }
+
+    /// A panel title's style: centred lines in ink.
+    pub(crate) fn title(&self) -> Style {
+        style(self.label_text(), anchor::Horizontal::Middle, self.ink)
+    }
+
+    /// The figure title's style: centred lines in ink.
+    pub(crate) fn figure_title(&self) -> Style {
+        style(
+            self.figure_title_text(),
+            anchor::Horizontal::Middle,
+            self.ink,
+        )
     }
 
     /// `v` pt at this context, in px.
@@ -85,6 +119,16 @@ impl Theme {
     /// `v` pt of text at this context and font scale, in px.
     fn text(&self, v: f64) -> f64 {
         self.pt(v) * self.font_scale
+    }
+}
+
+/// Regular text of `size` px in `fill`, its lines aligned by `align`.
+fn style(size: f64, align: anchor::Horizontal, fill: Rgb) -> Style {
+    Style {
+        size,
+        bold: false,
+        fill,
+        align,
     }
 }
 
@@ -110,9 +154,12 @@ mod tests {
         assert_eq!(format!("{:.3}", theme.em()), "14.667");
         let gap = em(1.6).to_px(theme.em());
         assert_eq!(format!("{gap:.3}"), "23.467");
+        assert!(close(theme.label_text(), 16.0));
         assert!(close(theme.figure_title_text(), 19.2));
+        let pads = [theme.tick(), theme.tick_pad(), theme.label_pad()];
+        assert_eq!(pads.map(|v| format!("{v:.3}")), ["8.000", "4.667", "5.333"]);
         assert!(close(theme.title_pad(), 8.0));
-        assert_eq!(theme.figure_title().fill, Rgb::hex(0x262626));
+        assert_eq!(theme.ink(), Rgb::hex(0x262626));
         assert_eq!(theme.margin(), 0.05);
     }
 }

@@ -2,31 +2,42 @@
 //! attached panels sharing pixel ranges exactly.
 
 use rustd3_core::color::Rgb;
-use rustd3_core::scale;
+use rustd3_core::locale::Locale;
+use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_figure::kurbo::Rect;
 use rustd3_figure::layout::{Grid, em, px};
+use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{self, Key, Style, Text, anchor};
-use rustd3_figure::{Figure, Held};
+use rustd3_figure::{Figure, Held, Panel, axis};
 
 use crate::figure::{line, resolve};
 
 /// 0.8 em of padding at notebook: 0.8 × 11 pt × 4/3.
 const PAD: f64 = 0.8 * 11.0 * 4.0 / 3.0;
 
-/// The figure title, measured in the theme's style at `size` px:
-/// (width, ink height).
-fn title_box(size: f64) -> (f64, f64) {
+/// `label` measured in the theme's ink at `size` px: (width, ink height).
+fn measure(label: &str, size: f64) -> (f64, f64) {
     let style = Style {
         size,
         bold: false,
         fill: Rgb::hex(0x262626),
         align: anchor::Horizontal::Middle,
     };
-    let key = Key::new(&Text::from("Hub vibration and bearing temperature"), &style);
+    let key = Key::new(&Text::from(label), &style);
     let mut cache = text::Cache::new(crate::text::fonts());
     cache.prepare([&key]);
     let shaped = cache.get(&key).expect("prepared").expect("shaped");
     (shaped.width(), shaped.ascent() + shaped.descent())
+}
+
+/// The figure title, measured at `size` px: (width, ink height).
+fn title_box(size: f64) -> (f64, f64) {
+    measure("Hub vibration and bearing temperature", size)
+}
+
+/// `label`'s ink height at `size` px.
+fn ink_height(label: &str, size: f64) -> f64 {
+    measure(label, size).1
 }
 
 /// `a` and `b` are the same f64, bit for bit.
@@ -133,4 +144,161 @@ fn attached_panels_of_a_bare_grid_share_pixel_ranges_exactly() {
     }
     let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
     assert_attached(&areas, &cells);
+}
+
+/// One 640 × 480 panel with `left(y)` and `bottom(x)`, x fitted to 0 … 10
+/// and y to 0 … 3, each axis passed through `axes`.
+fn one_panel(
+    axes: impl Fn(&mut Panel<'static>, ScaleRef<Linear>, ScaleRef<Linear>),
+) -> (Figure<'static>, ScaleRef<Linear>, ScaleRef<Linear>) {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let panel = fig.panel(0, 0);
+    panel.mark(line(x, [0.0, 10.0])).mark(line(y, [0.0, 3.0]));
+    axes(panel, x, y);
+    (fig, x, y)
+}
+
+/// The labels core gives `scale`'s ticks at d3's default count.
+fn labels(scale: &Linear) -> Vec<String> {
+    scale.labels(&scale.tick_set(10), &Locale::default())
+}
+
+#[test]
+fn one_panel_reaches_by_its_axes_ticks_pads_and_widest_or_tallest_labels() {
+    let (fig, x, y) = one_panel(|p, x, y| {
+        p.axis(axis::left(y)).axis(axis::bottom(x));
+    });
+    let r = resolve(&fig, &Held::default());
+    assert_eq!(r.scale(x).get_domain(), [-0.5, 10.5]);
+    assert_eq!(
+        labels(r.scale(x)),
+        (0..=10).map(|i| i.to_string()).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        r.scale(y).get_domain().map(|v| format!("{v:.2}")),
+        ["-0.15", "3.15"]
+    );
+    assert_eq!(
+        r.scale(y).tick_set(10).values(),
+        [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    );
+    assert_eq!(labels(r.scale(y))[0], "0.0");
+    let area = r.plot_areas()[0];
+    // left: 8 + 4.667 + 23.325 ("0.0"); bottom: 8 + 4.667 + 11.093 (digits).
+    let left = area.x0 - PAD;
+    let bottom = 480.0 - PAD - area.y1;
+    assert_eq!(
+        [left, bottom].map(|v| format!("{v:.3}")),
+        ["35.992", "23.760"]
+    );
+    let expected = [47.725, 11.733, 580.541, 432.773];
+    let actual = [area.x0, area.y0, area.width(), area.height()];
+    for (a, e) in actual.into_iter().zip(expected) {
+        assert!((a - e).abs() < 0.01, "{actual:?}");
+    }
+}
+
+#[test]
+fn an_axis_title_adds_the_label_pad_and_its_ink_height() {
+    let (bare, ..) = one_panel(|p, x, _| {
+        p.axis(axis::bottom(x));
+    });
+    let (titled, ..) = one_panel(|p, x, _| {
+        p.axis(axis::bottom(x).label("speed [km/h]"));
+    });
+    let bare = resolve(&bare, &Held::default()).plot_areas()[0];
+    let titled = resolve(&titled, &Held::default()).plot_areas()[0];
+    let added = bare.y1 - titled.y1;
+    let ink = ink_height("speed [km/h]", 16.0);
+    assert!((added - (16.0 / 3.0 + ink)).abs() < 1e-9, "{added} {ink}");
+}
+
+#[test]
+fn a_rotated_left_title_adds_its_ink_height_too() {
+    let (bare, ..) = one_panel(|p, _, y| {
+        p.axis(axis::left(y));
+    });
+    let (titled, ..) = one_panel(|p, _, y| {
+        p.axis(axis::left(y).label("vibration RMS [m/s²]"));
+    });
+    let bare = resolve(&bare, &Held::default()).plot_areas()[0];
+    let titled = resolve(&titled, &Held::default()).plot_areas()[0];
+    let added = titled.x0 - bare.x0;
+    let ink = ink_height("vibration RMS [m/s²]", 16.0);
+    assert!((added - (16.0 / 3.0 + ink)).abs() < 1e-9, "{added} {ink}");
+}
+
+#[test]
+fn an_unlabelled_axis_reaches_by_its_tick_and_an_outward_one_by_its_offset() {
+    let (fig, ..) = one_panel(|p, _, y| {
+        p.axis(axis::left(y).labels(false).label("ignored"));
+    });
+    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    assert!((area.x0 - (PAD + 8.0)).abs() < 1e-9, "{area:?}");
+    let (fig, ..) = one_panel(|p, _, y| {
+        p.axis(axis::left(y).labels(false).outward(10.0));
+    });
+    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    assert!((area.x0 - (PAD + 18.0)).abs() < 1e-9, "{area:?}");
+}
+
+#[test]
+fn a_panel_title_adds_the_title_pad_and_its_ink_height_on_top() {
+    let (fig, ..) = one_panel(|p, _, _| {
+        p.title("Wheel: RL");
+    });
+    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let ink = ink_height("Wheel: RL", 16.0);
+    assert!((area.y0 - (PAD + 8.0 + ink)).abs() < 1e-9, "{area:?}");
+}
+
+#[test]
+fn tick_labels_at_the_ends_widen_the_sides_they_cross() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 10.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 3.0]));
+    fig.panel(0, 0).axis(axis::bottom(x)).axis(axis::right(y));
+    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    // "0" overhangs the left end by half its advance, "3.0" the top by
+    // half its ink; the right axis's own reach is wider than "10"'s half.
+    let digit = 9.3314;
+    assert!((area.x0 - PAD - digit / 2.0).abs() < 1e-3, "{area:?}");
+    assert!(
+        (area.y0 - PAD - ink_height("3.0", 14.6667) / 2.0).abs() < 1e-9,
+        "{area:?}"
+    );
+    let right = 640.0 - PAD - area.x1;
+    assert!(
+        (right - (8.0 + 14.0 / 3.0 + 23.3249)).abs() < 1e-3,
+        "{right}"
+    );
+}
+
+#[test]
+fn attached_panels_with_axes_and_titles_share_pixel_ranges_exactly() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let wide = fig.fit(scale::linear());
+    let cells = [(0, 0), (0, 1), (1, 0), (1, 1)];
+    for (r, c) in cells {
+        let panel = fig.panel(r, c);
+        panel
+            .mark(line(x, [0.0, 10.0]))
+            .mark(line(y, [0.0, 3.0]))
+            .mark(line(wide, [0.0, 30_000.0]))
+            .axis(axis::left(y))
+            .axis(axis::bottom(x));
+        if c == 1 {
+            panel.axis(axis::right(wide).label("count"));
+        }
+        if r == 0 {
+            panel.title(format!("panel {c}"));
+        }
+    }
+    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    assert_attached(&areas, &cells);
+    assert!(areas[0].x0 < areas[1].x0 && areas[0].y0 < areas[2].y0);
 }
