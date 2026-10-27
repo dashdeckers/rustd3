@@ -482,17 +482,23 @@ fn begin_runs_often_without_typst_failing() {
 fn one_document_per_batch_costs_less_than_one_per_label() {
     use std::time::Instant;
 
-    let labels: Vec<Text> = (0..40)
-        .map(|i| format!("{:.1}", 1000.0 + 37.0 * f64::from(i)).into())
-        .collect();
-    let ticks = keys(&labels);
+    // Tick labels from `base` on; each arm shapes its own strings, so
+    // neither reuses what typst memoized for the other.
+    let ticks = |base: f64| {
+        let labels: Vec<Text> = (0..40)
+            .map(|i| format!("{:.1}", base + 37.0 * f64::from(i)).into())
+            .collect();
+        keys(&labels)
+    };
+    Cache::new(fonts()).prepare([&Key::new(&"warm".into(), &style())]);
+    let (together, apart) = (ticks(1000.0), ticks(5000.0));
     let mut batched = Cache::new(fonts());
     let start = Instant::now();
-    batched.prepare(&ticks);
+    batched.prepare(&together);
     let one = start.elapsed();
     let mut single = Cache::new(fonts());
     let start = Instant::now();
-    for key in &ticks {
+    for key in &apart {
         single.prepare([key]);
     }
     let each = start.elapsed();
