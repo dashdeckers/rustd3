@@ -509,8 +509,8 @@ fn t77() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-day ticks
 }
 
 fn t78() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 2-day ticks
-    let mut x = time::utc().domain([utc(&[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0])]);
-    check("d3-scale/test/utcTime-test.js:283:3", Kind::Strict, &tss(&x.ticks(4_usize)), &tss(&vec![utc(&[2011.0, 0.0, 3.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 5.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 7.0, 0.0, 0.0]), utc(&[2011.0, 0.0, 9.0, 0.0, 0.0])]));
+    let mut _x = time::utc().domain([utc(&[2011.0, 0.0, 2.0, 16.0, 28.0, 27.0]), utc(&[2011.0, 0.0, 9.0, 21.0, 34.0, 12.0])]);
+    skip("d3-scale/test/utcTime-test.js:283:3", "upstream: d3-scale 4.0.2's test expects utcDay; d3-time 3.1.0, which d3 7.9.0 vendors, ticks by unixDay; d3 fails it");
 }
 
 fn t79() {   // utcTime-test.js: scaleUtc.ticks(count) can generate 1-week ticks
@@ -838,7 +838,7 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/utcTime-test.js:253:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 6-hour ticks", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:263:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 12-hour ticks", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:273:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-day ticks", skip: None },
-    Assertion { id: "d3-scale/test/utcTime-test.js:283:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 2-day ticks", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:283:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 2-day ticks", skip: Some("upstream: d3-scale 4.0.2's test expects utcDay; d3-time 3.1.0, which d3 7.9.0 vendors, ticks by unixDay; d3 fails it") },
     Assertion { id: "d3-scale/test/utcTime-test.js:293:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-week ticks", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:303:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-month ticks", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:313:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 3-month ticks", skip: None },

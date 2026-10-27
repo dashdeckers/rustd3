@@ -43,7 +43,10 @@
 // (JavaScript semantics), types: (ruled out by the Rust types), api: (left
 // out of the Rust API by design), gap: (not ported or translated yet;
 // names the phase when one is planned), helpers: (a file-level helper the
-// translator cannot express).
+// translator cannot express), upstream: (an assertion the vendored d3
+// itself fails when its test file runs in Node, and only that: each is
+// listed in UPSTREAM with the versions, and the commit that lists it cites
+// the Node run).
 import * as acorn from "./vendor/acorn/acorn.mjs";
 
 /** Abandons the assertion, or the test's setup, being translated. */
@@ -52,7 +55,12 @@ export class Skip extends Error {}
 export const skip = (reason, effect) => {
   throw Object.assign(new Skip(reason), { effect });
 };
-export const CATEGORIES = ["js", "types", "api", "gap", "helpers"];
+export const CATEGORIES = ["js", "types", "api", "gap", "helpers", "upstream"];
+/** The assertions the vendored d3 fails in Node, by id: stale tests, not porting gaps. */
+const UPSTREAM = new Map([
+  ["d3-scale/test/utcTime-test.js:283:3",
+    "upstream: d3-scale 4.0.2's test expects utcDay; d3-time 3.1.0, which d3 7.9.0 vendors, ticks by unixDay; d3 fails it"],
+]);
 
 /** One rule set from several: lists and maps merged, each hook answered by the first rules that answer it. */
 export function combine(...sets) {
@@ -401,6 +409,7 @@ function assertion(kind, node, ctx, out) {
     if (!prior) ctx.asserts.push({ id, skip });
   };
   try {
+    if (UPSTREAM.has(id)) skip(UPSTREAM.get(id));
     out.push(check(kind, node.arguments, rustStr(id), ctx));
     record(null);
   } catch (err) {
