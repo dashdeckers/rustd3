@@ -165,6 +165,26 @@ fn with_range_keeps_the_interpolator_clamp_and_unknown_value() {
 }
 
 #[test]
+fn admits_follows_the_transform_for_the_current_domain() {
+    let log = scale::log();
+    assert!(log.admits(1e-300) && !log.admits(0.0) && !log.admits(-5.0));
+    let negative = scale::log().domain([-100.0, -1.0]);
+    assert!(negative.admits(-5.0) && !negative.admits(5.0));
+    let logit = scale::logit().domain([0.01, 0.99]);
+    assert!(logit.admits(0.5) && !logit.admits(0.0) && !logit.admits(1.0));
+    assert!(scale::sqrt().admits(-4.0));
+    assert!(!scale::linear().admits(f64::NAN));
+}
+
+#[test]
+fn admits_ignores_clamping() {
+    let clamped = scale::log().domain([1.0, 10.0]).clamp(true);
+    assert!(clamped.apply(-5.0).is_finite());
+    assert!(!clamped.admits(-5.0));
+    assert!(clamped.admits(1000.0));
+}
+
+#[test]
 fn range_resets_the_interpolator_and_the_unknown_value() {
     let x = scale::linear()
         .unknown(-1.0)

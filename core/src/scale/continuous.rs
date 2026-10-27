@@ -208,6 +208,24 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         })
     }
 
+    /// Whether `x` is finite and the transform, as set for the current
+    /// domain, maps it to a finite value: the data a domain can be fitted
+    /// to. Clamping plays no part, where [`apply`](Continuous::apply) would
+    /// clamp first.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    ///
+    /// let y = scale::log().clamp(true);
+    /// assert!(y.admits(1e-3));
+    /// assert!(!y.admits(0.0) && !y.admits(-1.0));
+    /// assert!(y.apply(-1.0).is_finite());
+    /// assert!(scale::linear().admits(-1.0) && !scale::linear().admits(f64::INFINITY));
+    /// ```
+    pub fn admits(&self, x: f64) -> bool {
+        x.is_finite() && self.transform.forward(x).is_finite()
+    }
+
     /// Replaces the transform's tick rule with `rule` (not `.ticks(…)`,
     /// which is d3's and takes a count).
     ///
