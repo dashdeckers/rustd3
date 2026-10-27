@@ -88,9 +88,10 @@ impl Transform for Symlog {
     /// When every nonzero major is ±c·10ᵏ, or every one but the first and
     /// last is and at least two of those share a sign (an axis's majors
     /// extended by one step past each end), m·c·10ᵏ for m = 2 … 9 strictly
-    /// between neighbouring majors of one sign (none next to 0), at most
-    /// 10,000. Otherwise five equal steps in data space between majors:
-    /// evenly spaced majors never hold two decades of one sign.
+    /// between neighbouring majors of one sign at most a decade apart (none
+    /// next to 0, none across thinned decades, as matplotlib's log minors),
+    /// at most 10,000. Otherwise five equal steps in data space between
+    /// majors: evenly spaced majors never hold two decades of one sign.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         let tied = |v: &f64| *v == 0.0 || self.decade(*v);
         let inner = major
@@ -111,7 +112,8 @@ impl Transform for Symlog {
         let mut minor = Vec::new();
         for pair in major.windows(2) {
             let (p, q) = (pair[0], pair[1]);
-            if p != 0.0 && q != 0.0 && p.signum() == q.signum() {
+            let one_sign = p != 0.0 && q != 0.0 && p.signum() == q.signum();
+            if one_sign && !ticks::thinned((q / p).log10()) {
                 minor.extend(self.between(p, q));
             }
             if minor.len() >= MAX_MINOR {

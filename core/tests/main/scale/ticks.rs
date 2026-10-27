@@ -438,3 +438,43 @@ fn a_rule_with_fewer_than_two_ticks_keeps_the_transforms_labels() {
         .tick_rule(TickRule::custom(|_, _| vec![70.0]));
     assert_eq!(labels(&blank, 10, &Locale::EN_US), [""]);
 }
+
+/// matplotlib 3.11.2's `LogLocator(subs='auto', numticks=5).tick_values`
+/// over [1, 1e12], [1e-4, 1e4] and [1, 1e9] is empty: under a major stride
+/// above one decade it draws no minor ticks.
+#[test]
+fn log_minor_ticks_leave_thinned_decades_empty() {
+    let wide = scale::log().domain([1.0, 1e12]);
+    let set = wide.tick_set(5);
+    assert_eq!(
+        set.values(),
+        [1.0, 100.0, 1e4, 1e6, 1e8, 1e10, 1e12],
+        "every other decade"
+    );
+    assert!(Ticks::minor(&wide, &set).is_empty());
+    assert!(wide.minor(5).is_empty());
+    let around_one = scale::log().domain([1e-4, 1e4]);
+    let set = around_one.tick_set(5);
+    assert_eq!(set.values(), [1e-4, 1e-2, 1.0, 100.0, 1e4]);
+    assert!(Ticks::minor(&around_one, &set).is_empty());
+    assert!(around_one.minor(5).is_empty());
+}
+
+#[test]
+fn symlog_minor_ticks_leave_thinned_decades_empty() {
+    let x = scale::symlog().domain([0.0, 1e9]);
+    let set = x.tick_set(5);
+    assert_eq!(set.values(), [0.0, 1.0, 100.0, 1e4, 1e6, 1e8]);
+    assert!(Ticks::minor(&x, &set).is_empty());
+    assert!(x.minor(5).is_empty());
+}
+
+#[test]
+fn log_minor_ticks_fill_only_gaps_of_at_most_one_decade() {
+    let x = scale::log()
+        .domain([1.0, 1000.0])
+        .tick_rule(TickRule::custom(|_, _| vec![1.0, 10.0, 1000.0]));
+    let ones: Vec<f64> = (2..10).map(f64::from).collect();
+    assert_eq!(x.minor(10), ones);
+    assert_eq!(Ticks::minor(&x, &x.tick_set(10)), ones);
+}

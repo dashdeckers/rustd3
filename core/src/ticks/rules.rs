@@ -178,6 +178,15 @@ pub(crate) fn pow10(k: f64) -> f64 {
     }
 }
 
+/// Whether two majors `decades` apart, in their transform's base, skip a
+/// decade: matplotlib's `LogLocator` (3.11.2, `subs='auto'`) draws no minor
+/// ticks under a major stride above one decade, so the log and symlog
+/// minor rules leave such gaps empty. Majors extended by one step carry
+/// float noise, hence the tolerance.
+pub(crate) fn thinned(decades: f64) -> bool {
+    decades.abs() > 1.0 + 1e-9
+}
+
 /// c·10ᵏ, through an exact power of ten, and split where 10ᵏ alone would
 /// overflow a constant small enough to keep the product finite.
 pub(crate) fn decade(c: f64, k: i32) -> f64 {

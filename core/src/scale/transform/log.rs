@@ -58,6 +58,49 @@ impl Log {
             power(self.base, x)
         }
     }
+
+    /// m · base^e for m = 2 … base − 1 strictly between the magnitudes
+    /// `a` < `b`, ascending, appended to `minor` until it holds 10,000;
+    /// nothing when the log of either is not finite.
+    fn multiples(&self, a: f64, b: f64, minor: &mut Vec<f64>) {
+        let (from, to) = (self.logs(a).floor(), self.logs(b).ceil());
+        if !from.is_finite() || !to.is_finite() {
+            return;
+        }
+        for e in (from as i32)..=(to as i32) {
+            let e = f64::from(e);
+            let decade = |m: f64| {
+                if e < 0.0 {
+                    m / self.pows(-e)
+                } else {
+                    m * self.pows(e)
+                }
+            };
+            // Start just below `a`, so that a large base skips its empty multiples.
+            let below = if e < 0.0 {
+                a * self.pows(-e)
+            } else {
+                a / self.pows(e)
+            };
+            let start = (below.floor() - 1.0).max(2.0);
+            for m in (0_u32..)
+                .map(|i| start + f64::from(i))
+                .take_while(|&m| m < self.base)
+            {
+                let t = decade(m);
+                if t <= a {
+                    continue;
+                }
+                if t >= b {
+                    break;
+                }
+                minor.push(t);
+                if minor.len() == MAX_MINOR {
+                    return;
+                }
+            }
+        }
+    }
 }
 
 impl Transform for Log {
@@ -74,7 +117,9 @@ impl Transform for Log {
     }
 
     /// For an integer base, m · base^k for m = 2 … base − 1 between the
-    /// first and last major, the majors excluded; otherwise the default.
+    /// first and last major, the majors excluded, and none between
+    /// neighbouring majors more than one decade of the base apart (d3's
+    /// thinned decades, where matplotlib draws none); otherwise the default.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         let (Some(&first), Some(&last)) = (major.first(), major.last()) else {
             return Vec::new();
@@ -86,47 +131,25 @@ impl Transform for Log {
         // domain, so that a minor tick equal to a major is equal bit for bit.
         let unsigned = Log::new(self.base);
         let (a, b) = (first.abs().min(last.abs()), first.abs().max(last.abs()));
-        let (from, to) = (unsigned.logs(a).floor(), unsigned.logs(b).ceil());
-        if !from.is_finite() || !to.is_finite() {
-            return Vec::new();
-        }
-        let sign = if first < 0.0 || last < 0.0 { -1.0 } else { 1.0 };
+        let mut magnitudes: Vec<f64> = major
+            .iter()
+            .map(|v| v.abs())
+            .filter(|m| (a..=b).contains(m))
+            .collect();
+        magnitudes.sort_by(f64::total_cmp);
+        magnitudes.dedup();
         let mut minor = Vec::new();
-        'decades: for e in (from as i32)..=(to as i32) {
-            let e = f64::from(e);
-            let decade = |m: f64| {
-                if e < 0.0 {
-                    m / unsigned.pows(-e)
-                } else {
-                    m * unsigned.pows(e)
-                }
-            };
-            // Start just below `a`, so that a large base skips its empty multiples.
-            let below = if e < 0.0 {
-                a * unsigned.pows(-e)
-            } else {
-                a / unsigned.pows(e)
-            };
-            let start = (below.floor() - 1.0).max(2.0);
-            for m in (0_u32..)
-                .map(|i| start + f64::from(i))
-                .take_while(|&m| m < self.base)
-            {
-                let t = decade(m);
-                if t <= a {
-                    continue;
-                }
-                if t >= b {
-                    break;
-                }
-                if !major.contains(&(sign * t)) {
-                    minor.push(sign * t);
-                    if minor.len() == MAX_MINOR {
-                        break 'decades;
-                    }
-                }
+        for pair in magnitudes.windows(2) {
+            let (low, high) = (pair[0], pair[1]);
+            if minor.len() == MAX_MINOR {
+                break;
+            }
+            if !ticks::thinned(unsigned.logs(high) - unsigned.logs(low)) {
+                unsigned.multiples(low, high, &mut minor);
             }
         }
+        let sign = if first < 0.0 || last < 0.0 { -1.0 } else { 1.0 };
+        let mut minor: Vec<f64> = minor.into_iter().map(|t| sign * t).collect();
         // Magnitudes ascend; the majors' order decides the output's.
         if (sign > 0.0) != (first < last) {
             minor.reverse();

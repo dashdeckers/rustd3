@@ -20,7 +20,7 @@
 mod rules;
 mod set;
 
-pub(crate) use rules::{decade, pow10};
+pub(crate) use rules::{decade, pow10, thinned};
 pub use rules::{decades, linear, log, subdivide, transformed};
 pub use set::Set;
 
