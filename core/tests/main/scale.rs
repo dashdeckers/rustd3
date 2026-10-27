@@ -2,6 +2,7 @@
 //! the neutral locale's labels where they differ from d3's `EN_US`.
 
 mod identity;
+mod sequential;
 mod ticks;
 
 use rustd3_core::format::{InvalidFormat, Locale};

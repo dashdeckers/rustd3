@@ -20,9 +20,17 @@ const MAKE = {
   scaleLinear: ["linear", "linear"], scalePow: ["pow", "pow"], scaleSqrt: ["sqrt", "pow"], scaleLog: ["log", "log"],
   scaleSymlog: ["symlog", "symlog"], scaleIdentity: ["identity", "identity"],
 };
+// d3's sequential and diverging scales: the Rust root with d3's default domain and the identity interpolator.
+const SEQ = {};
+for (const [kind, n, ends, logEnds] of [["Sequential", 2, "[0.0, 1.0]", "[1.0, 10.0]"], ["Diverging", 3, "[0.0, 0.5, 1.0]", "[0.1, 1.0, 10.0]"]]) {
+  for (const [suffix, tr, made] of [["", "linear"], ["Log", "log", "Log::new(10.0)"], ["Pow", "pow", "Pow::new(1.0)"], ["Sqrt", "pow", "Pow::new(0.5)"], ["Symlog", "symlog", "Symlog::new(1.0)"]]) {
+    const root = `scale::${kind.toLowerCase()}(${suffix === "Log" ? logEnds : ends}, |t: f64| t)${made ? `.transform(scale::transform::${made})` : ""}`;
+    SEQ[`scale${kind}${suffix}`] = { c: root, t: "scale", tr, n, seq: kind.toLowerCase() };
+  }
+}
 const SETTERS = { domain: "domain", range: "range", rangeRound: "range_round" };
 const BUILDERS = ["exponent", "base", "constant"];
-const METHODS = new Set([...Object.keys(SETTERS), ...BUILDERS, "clamp", "unknown", "interpolate", "nice", "ticks", "tickFormat", "copy", "invert"]);
+const METHODS = new Set([...Object.keys(SETTERS), ...BUILDERS, "clamp", "unknown", "interpolate", "interpolator", "nice", "ticks", "tickFormat", "copy", "invert"]);
 const INTERPOLATORS = { interpolateNumber: "number", interpolateRound: "round" };
 
 /** A tick count as a usize literal; d3's 10 when absent. */
@@ -73,6 +81,9 @@ function chain(root, steps, ctx) {
   const current = () => (retyped() ? skip(SHADOW) : muts ? `({ ${name} = ${name}${muts}; ${name}.clone() })` : code);
   const settled = () => {
     const [d, r] = [sizes.domain, sizes.range];
+    if (root.seq && (d.reason || r.reason)) skip(d.reason ?? r.reason);
+    if (root.seq && (d.n !== n || r.n !== n)) skip(`types: a ${root.seq} scale of other than ${n} stops (d3 ignores the rest)`);
+    if (root.seq) return;
     if (d.n !== r.n) skip("types: a domain and range of different lengths (the type sets the count)");
     if (d.reason || r.reason) skip(d.reason ?? r.reason);
     if (d.n === n) return;
@@ -100,7 +111,7 @@ function chain(root, steps, ctx) {
       continue;
     }
     settled();
-    if (!args.length && ["clamp", "unknown", "interpolate", ...BUILDERS].includes(prop)) skip(`api: d3's ${prop}() getter (only domain and range have get_)`);
+    if (!args.length && ["clamp", "unknown", "interpolate", "interpolator", ...BUILDERS].includes(prop)) skip(`api: d3's ${prop}() getter (only domain and range have get_)`);
     if (r !== "num" && ["range", "unknown"].includes(prop)) skip(`gap: the ${prop} of a color range`);
     if (prop === "domain" || prop === "range") return read(`.get_${prop}().to_vec()`, "vec");
     if (prop === "ticks") return read(`.ticks(${count(arg(0))})`, "vec");
@@ -117,10 +128,14 @@ function chain(root, steps, ctx) {
       build(`.clamp(${flag.t === "bool" ? flag.c : skip("js: a clamp flag other than a boolean (truthiness)")})`);
     } else if (prop === "unknown") build(`.unknown(${needNum(arg(0), "unknown value")})`);
     else if (BUILDERS.includes(prop)) build(`.${prop}(${needNum(arg(0), prop)})`);
+    else if (prop === "interpolator") {
+      const f = arg(0);
+      build(`.interpolator(${f.t === "fn" && f.arity === 1 && !f.ret ? f.c : skip("types: an interpolator of other values than numbers")})`);
+    }
     else build(interpolator(args[0], r, ctx));
   }
   settled();
-  if (!retyped()) return { c: current(), t: "scale", tr: root.tr, n, r, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
+  if (!retyped()) return { c: current(), t: "scale", tr: root.tr, n, r, seq: root.seq, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
   // Only a statement can shadow the variable with the new type.
   return {
     get c() {
@@ -155,6 +170,12 @@ export default {
     if (node.type === "NewExpression") skip(`js: new ${name} (coercion)`);
     if (node.callee.property?.name === "filter") skip("js: filter(String) keeps the non-empty labels (truthiness)");
     if (name === "scaleRadial") skip("api: d3's scaleRadial is not part of the design");
+    if (SEQ[name]) {
+      // d3's initInterpolator: (interpolator or range), or (domain, interpolator or range).
+      const [d, f] = node.arguments.length > 1 ? node.arguments : [undefined, node.arguments[0]];
+      const steps = [d && { prop: "domain", args: [d] }, f && { prop: f.type === "ArrayExpression" ? "range" : "interpolator", args: [f] }];
+      return chain({ ...SEQ[name] }, steps.filter(Boolean), ctx);
+    }
     if (MAKE[name]) {
       const [make, tr] = MAKE[name];
       const [d, r] = node.arguments;
@@ -177,6 +198,8 @@ export default {
     const value = val(ex(root, ctx));
     return value.t === "scale" ? chain(value, steps, ctx) : undefined;
   },
+  // `assert.strictEqual(s.setter(v), s)`: d3 returns the scale itself; the setter still runs.
+  equal: (a, b) => (a.t === "scale" && b.t === "scale" ? skip("js: a setter returns its scale (identity)", a.stmt) : undefined),
   apply(target, args) {
     if (args.length !== 1) skip(`js: ${args.length} arguments to a ${target.t} (undefined)`);
     if (target.t === "scale") return { c: `${target.c}.apply(${needNum(args[0], "scale argument")})`, t: target.r === "rgb" ? "rgb" : "num" };

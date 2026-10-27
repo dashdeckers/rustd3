@@ -25,8 +25,17 @@ pub struct Symlog {
 }
 
 impl Symlog {
-    /// The transform with constant `constant`.
-    pub(crate) fn new(constant: f64) -> Symlog {
+    /// The transform with constant `constant`, for a scale's
+    /// [`transform`](crate::scale::Sequential::transform); `scale::symlog()`
+    /// and the `constant` builders make it too.
+    ///
+    /// ```
+    /// use rustd3_core::scale::{self, transform};
+    ///
+    /// let s = scale::sequential([0.0, 100.0], |t| t).transform(transform::Symlog::new(1.0));
+    /// assert_eq!(s.apply(10.0), 0.5195737064824407);
+    /// ```
+    pub fn new(constant: f64) -> Symlog {
         Symlog {
             constant,
             crowded: false,

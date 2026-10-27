@@ -583,3 +583,25 @@ fn log_minor_ticks_fill_only_gaps_of_at_most_one_decade() {
     assert_eq!(x.minor(10), ones);
     assert_eq!(Ticks::minor(&x, &x.tick_set(10)), ones);
 }
+
+#[test]
+fn a_color_range_ticks_as_its_f64_twin_with_positions_in_0_to_1() {
+    use rustd3_core::color::Rgb;
+    let colors = [Rgb::hex(0xffffff), Rgb::hex(0x4682b4)];
+    let heat = scale::log().domain([1.0, 1000.0]).range(colors);
+    let twin = scale::log().domain([1.0, 1000.0]).range([0.0, 300.0]);
+    let set = heat.tick_set(10);
+    assert_eq!(set, twin.tick_set(10));
+    assert_eq!(
+        heat.labels(&set, &Locale::EN_US),
+        twin.labels(&set, &Locale::EN_US)
+    );
+    assert_eq!(Ticks::minor(&heat, &set), Ticks::minor(&twin, &set));
+    let third = heat.position(&10.0, 0.0).expect("a position");
+    assert!((third - 1.0 / 3.0).abs() < 1e-15, "{third}");
+    assert_eq!(heat.position(&f64::NAN, 0.0), None);
+    assert_eq!(heat.position(&-1.0, 0.0), None);
+    assert_eq!(heat.extent(), [0.0, 1.0]);
+    let flat = scale::linear().domain([2.0, 2.0]).range(colors);
+    assert_eq!(flat.position(&5.0, 0.0), Some(0.5));
+}

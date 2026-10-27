@@ -24,8 +24,19 @@ pub struct Log {
 }
 
 impl Log {
-    /// The transform of base `base` over a positive domain.
-    pub(crate) fn new(base: f64) -> Log {
+    /// The transform of base `base`, for a scale's
+    /// [`transform`](crate::scale::Sequential::transform); the scale sets it
+    /// for its domain, reflected below zero. `scale::log()` and the `base`
+    /// builders make it too.
+    ///
+    /// ```
+    /// use rustd3_core::scale::{self, transform};
+    /// use rustd3_core::scheme;
+    ///
+    /// let s = scale::sequential([1.0, 1000.0], scheme::viridis).transform(transform::Log::new(10.0));
+    /// assert_eq!(s.apply(10.0).format_hex(), "#31688e");
+    /// ```
+    pub fn new(base: f64) -> Log {
         Log {
             base,
             negative: false,

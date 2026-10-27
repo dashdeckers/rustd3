@@ -44,8 +44,9 @@ import * as acorn from "./vendor/acorn/acorn.mjs";
 
 /** Abandons the assertion, or the test's setup, being translated. */
 export class Skip extends Error {}
-export const skip = (reason) => {
-  throw new Skip(reason);
+/** Skips with `reason`; a skipped assertion still runs `effect`, a statement d3 runs inside it (a setter). */
+export const skip = (reason, effect) => {
+  throw Object.assign(new Skip(reason), { effect });
 };
 export const CATEGORIES = ["js", "types", "api", "gap", "helpers"];
 
@@ -158,8 +159,27 @@ export function ex(node, ctx) {
     case "CallExpression":
     case "NewExpression":
       return call(node, ctx);
+    case "ArrowFunctionExpression":
+    case "FunctionExpression":
+      return closure(node, ctx);
     default:
       return skip(`gap: ${node.type}`);
+  }
+}
+
+/** A function of one number whose body is an expression or one `return`: a Rust closure over f64. */
+function closure(node, ctx) {
+  const [param, ...rest] = node.params;
+  const [only, ...more] = node.body.body ?? [{ type: "ReturnStatement", argument: node.body }];
+  if (rest.length || more.length || param?.type !== "Identifier" || only?.type !== "ReturnStatement" || node.async || node.generator) {
+    skip("gap: a function other than of one number returning an expression");
+  }
+  const vars = ctx.vars;
+  ctx.vars = new Map(vars).set(param.name, { c: snake(param.name), t: "num" });
+  try {
+    return { c: `(|${snake(param.name)}: f64| ${needNum(val(ex(only.argument, ctx)), "a function's result")})`, t: "fn", arity: 1 };
+  } finally {
+    ctx.vars = vars;
   }
 }
 
@@ -378,7 +398,8 @@ function assertion(kind, node, ctx, out) {
     record(null);
   } catch (err) {
     if (!(err instanceof Skip)) throw err;
-    Object.assign(ctx, saved);
+    Object.assign(ctx, saved, err.effect ? { used: ctx.used } : {});
+    if (err.effect) out.push(err.effect);
     out.push(`skip(${rustStr(id)}, ${rustStr(err.message)});`);
     record(err.message);
   }

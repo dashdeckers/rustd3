@@ -68,6 +68,7 @@
 #floor d3-scale/test/point-test.js 14
 #floor d3-scale/test/pow-test.js 161
 #floor d3-scale/test/radial-test.js 0
+#floor d3-scale/test/sequential-test.js 31
 #floor d3-scale/test/sqrt-test.js 3
 #floor d3-scale/test/symlog-test.js 39
 #floor d3-scale/test/tickFormat-test.js 25
@@ -2735,6 +2736,37 @@ d3-scale/test/pow-test.js:438:3
 d3-scale/test/pow-test.js:439:3
 d3-scale/test/pow-test.js:445:3
 d3-scale/test/pow-test.js:446:3
+d3-scale/test/sequential-test.js:6:3
+d3-scale/test/sequential-test.js:10:3
+d3-scale/test/sequential-test.js:11:3
+d3-scale/test/sequential-test.js:12:3
+d3-scale/test/sequential-test.js:13:3
+d3-scale/test/sequential-test.js:14:3
+d3-scale/test/sequential-test.js:20:3
+d3-scale/test/sequential-test.js:21:3
+d3-scale/test/sequential-test.js:22:3
+d3-scale/test/sequential-test.js:23:3
+d3-scale/test/sequential-test.js:24:3
+d3-scale/test/sequential-test.js:31:3
+d3-scale/test/sequential-test.js:33:3
+d3-scale/test/sequential-test.js:51:3
+d3-scale/test/sequential-test.js:52:3
+d3-scale/test/sequential-test.js:53:3
+d3-scale/test/sequential-test.js:54:3
+d3-scale/test/sequential-test.js:59:3
+d3-scale/test/sequential-test.js:60:3
+d3-scale/test/sequential-test.js:61:3
+d3-scale/test/sequential-test.js:62:3
+d3-scale/test/sequential-test.js:63:3
+d3-scale/test/sequential-test.js:74:3
+d3-scale/test/sequential-test.js:77:3
+d3-scale/test/sequential-test.js:81:3
+d3-scale/test/sequential-test.js:93:3
+d3-scale/test/sequential-test.js:94:3
+d3-scale/test/sequential-test.js:95:3
+d3-scale/test/sequential-test.js:100:3
+d3-scale/test/sequential-test.js:106:3
+d3-scale/test/sequential-test.js:118:3
 d3-scale/test/sqrt-test.js:6:3
 d3-scale/test/sqrt-test.js:7:3
 d3-scale/test/sqrt-test.js:14:3

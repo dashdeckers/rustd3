@@ -4,8 +4,9 @@
 mod continuous;
 mod identity;
 
+use crate::format::InvalidFormat;
 use crate::locale::Locale;
-use crate::scale::Transform;
+use crate::scale::{TickFormat, Transform};
 use crate::ticks;
 
 /// What an axis needs from a scale: d3 duck-types it (`scale.ticks`,
@@ -57,6 +58,23 @@ pub trait Ticks {
     fn extent(&self) -> [f64; 2];
 }
 
+/// The labels of `ticks` under `locale` by a scale's default tick format
+/// `format` (its `tick_format_in` with no specifier).
+///
+/// # Panics
+///
+/// When `format` is an error: a transform's default specifier must parse,
+/// as [`Transform::tick_format`] requires.
+pub(super) fn labels(
+    format: Result<TickFormat, InvalidFormat>,
+    ticks: &ticks::Set<f64, f64>,
+    locale: &Locale,
+) -> Vec<String> {
+    format
+        .expect("invariant: a transform's default tick format specifier parses")
+        .labels(ticks, locale)
+}
+
 /// The minor ticks of a scale under `transform` whose end stops are
 /// `ends`: the majors extended by one step on each side in transformed
 /// space (u₋₁ = 2u₀ − u₁, uₙ₊₁ = 2uₙ − uₙ₋₁), the transform's minor ticks
@@ -64,7 +82,7 @@ pub trait Ticks {
 /// that maps back to no finite value, or not past its end (a transform
 /// undefined there, such as a square root's negatives), is left out. None
 /// for fewer than two majors.
-fn minor<T: Transform>(transform: &T, ends: [f64; 2], majors: &[f64]) -> Vec<f64> {
+pub(super) fn minor<T: Transform>(transform: &T, ends: [f64; 2], majors: &[f64]) -> Vec<f64> {
     let ([first, second, ..], [.., before, last]) = (majors, majors) else {
         return Vec::new();
     };

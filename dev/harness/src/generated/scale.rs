@@ -2260,6 +2260,120 @@ fn t266() {   // ordinal-test.js: ordinal.copy() changes to the range are isolat
     check("d3-scale/test/ordinal-test.js:222:3", Kind::Strict, &s2.get_range().to_vec(), &vec!["foo", "baz"]);
 }
 
+fn t267() {   // sequential-test.js: scaleSequential() has the expected defaults
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t);
+    check("d3-scale/test/sequential-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    skip("d3-scale/test/sequential-test.js:7:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    skip("d3-scale/test/sequential-test.js:8:3", "api: d3's clamp() getter (only domain and range have get_)");
+    skip("d3-scale/test/sequential-test.js:9:3", "api: d3's unknown() getter (only domain and range have get_)");
+    check("d3-scale/test/sequential-test.js:10:3", Kind::Strict, &s.apply(-0.5), &-0.5);
+    check("d3-scale/test/sequential-test.js:11:3", Kind::Strict, &s.apply(0.0), &0.0);
+    check("d3-scale/test/sequential-test.js:12:3", Kind::Strict, &s.apply(0.5), &0.5);
+    check("d3-scale/test/sequential-test.js:13:3", Kind::Strict, &s.apply(1.0), &1.0);
+    check("d3-scale/test/sequential-test.js:14:3", Kind::Strict, &s.apply(1.5), &1.5);
+}
+
+fn t268() {   // sequential-test.js: sequential.clamp(true) enables clamping
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).clamp(true);
+    skip("d3-scale/test/sequential-test.js:19:3", "api: d3's clamp() getter (only domain and range have get_)");
+    check("d3-scale/test/sequential-test.js:20:3", Kind::Strict, &s.apply(-0.5), &0.0);
+    check("d3-scale/test/sequential-test.js:21:3", Kind::Strict, &s.apply(0.0), &0.0);
+    check("d3-scale/test/sequential-test.js:22:3", Kind::Strict, &s.apply(0.5), &0.5);
+    check("d3-scale/test/sequential-test.js:23:3", Kind::Strict, &s.apply(1.0), &1.0);
+    check("d3-scale/test/sequential-test.js:24:3", Kind::Strict, &s.apply(1.5), &1.0);
+}
+
+fn t269() {   // sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).unknown(-1.0);
+    skip("d3-scale/test/sequential-test.js:29:3", "api: d3's unknown() getter (only domain and range have get_)");
+    skip("d3-scale/test/sequential-test.js:30:3", "js: scale argument is not a number (coercion)");
+    check("d3-scale/test/sequential-test.js:31:3", Kind::Strict, &s.apply(f64::NAN), &-1.0);
+    skip("d3-scale/test/sequential-test.js:32:3", "js: scale argument is not a number (coercion)");
+    check("d3-scale/test/sequential-test.js:33:3", Kind::Strict, &s.apply(0.4), &0.4);
+}
+
+fn t270() {   // sequential-test.js: sequential.domain() coerces domain values to numbers
+    skip("d3-scale/test/sequential-test.js:38:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/sequential-test.js:39:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/sequential-test.js:40:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/sequential-test.js:41:3", "js: strings as domain values (coercion)");
+}
+
+fn t271() {   // sequential-test.js: sequential.domain() accepts an iterable
+    skip("d3-scale/test/sequential-test.js:46:3", "js: a domain from an iterable");
+}
+
+fn t272() {   // sequential-test.js: sequential.domain() handles a degenerate domain
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).domain([2.0, 2.0]);
+    check("d3-scale/test/sequential-test.js:51:3", Kind::Strict, &s.get_domain().to_vec(), &vec![2.0, 2.0]);
+    check("d3-scale/test/sequential-test.js:52:3", Kind::Strict, &s.apply(-1.2), &0.5);
+    check("d3-scale/test/sequential-test.js:53:3", Kind::Strict, &s.apply(0.6), &0.5);
+    check("d3-scale/test/sequential-test.js:54:3", Kind::Strict, &s.apply(2.4), &0.5);
+}
+
+fn t273() {   // sequential-test.js: sequential.domain() handles a non-numeric domain
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).domain([f64::NAN, 2.0]);
+    check("d3-scale/test/sequential-test.js:59:3", Kind::Strict, &(s.get_domain().to_vec()[(0.0) as usize]).is_nan(), &true);
+    check("d3-scale/test/sequential-test.js:60:3", Kind::Strict, &s.get_domain().to_vec()[(1.0) as usize], &2.0);
+    check("d3-scale/test/sequential-test.js:61:3", Kind::Strict, &(s.apply(-1.2)).is_nan(), &true);
+    check("d3-scale/test/sequential-test.js:62:3", Kind::Strict, &(s.apply(0.6)).is_nan(), &true);
+    check("d3-scale/test/sequential-test.js:63:3", Kind::Strict, &(s.apply(2.4)).is_nan(), &true);
+}
+
+fn t274() {   // sequential-test.js: sequential.domain() only considers the first and second element of the domain
+    skip("d3-scale/test/sequential-test.js:68:3", "types: a sequential scale of other than 2 stops (d3 ignores the rest)");
+}
+
+fn t275() {   // sequential-test.js: sequential.copy() returns an isolated copy of the scale
+    let mut s1 = scale::sequential([0.0, 1.0], |t: f64| t).domain([1.0, 3.0]).clamp(true);
+    let mut s2 = s1.clone();
+    check("d3-scale/test/sequential-test.js:74:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![1.0, 3.0]);
+    skip("d3-scale/test/sequential-test.js:75:3", "api: d3's clamp() getter (only domain and range have get_)");
+    s1 = s1.domain([-1.0, 2.0]);
+    check("d3-scale/test/sequential-test.js:77:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![1.0, 3.0]);
+    s1 = s1.clamp(false);
+    skip("d3-scale/test/sequential-test.js:79:3", "api: d3's clamp() getter (only domain and range have get_)");
+    s2 = s2.domain([3.0, 4.0]);
+    check("d3-scale/test/sequential-test.js:81:3", Kind::Strict, &s1.get_domain().to_vec(), &vec![-1.0, 2.0]);
+    s2 = s2.clamp(true);
+    skip("d3-scale/test/sequential-test.js:83:3", "api: d3's clamp() getter (only domain and range have get_)");
+}
+
+fn t276() {   // sequential-test.js: sequential.interpolator(interpolator) sets the interpolator
+    let mut i0 = (|t: f64| t);
+    let mut i1 = (|t: f64| (t * 2.0));
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).interpolator(i0);
+    skip("d3-scale/test/sequential-test.js:90:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    s = s.interpolator(i1);
+    skip("d3-scale/test/sequential-test.js:91:3", "js: a setter returns its scale (identity)");
+    skip("d3-scale/test/sequential-test.js:92:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    check("d3-scale/test/sequential-test.js:93:3", Kind::Strict, &s.apply(-0.5), &-1.0);
+    check("d3-scale/test/sequential-test.js:94:3", Kind::Strict, &s.apply(0.0), &0.0);
+    check("d3-scale/test/sequential-test.js:95:3", Kind::Strict, &s.apply(0.5), &1.0);
+}
+
+fn t277() {   // sequential-test.js: sequential.range() returns the computed range
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).interpolator((|t: f64| ((t * 2.0) + 1.0)));
+    check("d3-scale/test/sequential-test.js:100:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0]);
+}
+
+fn t278() {   // sequential-test.js: sequential.range(range) sets the interpolator
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).range([1.0, 3.0]);
+    skip("d3-scale/test/sequential-test.js:105:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    check("d3-scale/test/sequential-test.js:106:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0]);
+}
+
+fn t279() {   // sequential-test.js: sequential.range(range) ignores additional values
+    skip("d3-scale/test/sequential-test.js:111:3", "types: a sequential scale of other than 2 stops (d3 ignores the rest)");
+    skip("d3-scale/test/sequential-test.js:112:3", "types: a sequential scale of other than 2 stops (d3 ignores the rest)");
+}
+
+fn t280() {   // sequential-test.js: scaleSequential(range) sets the interpolator
+    let mut s = scale::sequential([0.0, 1.0], |t: f64| t).range([1.0, 3.0]);
+    skip("d3-scale/test/sequential-test.js:117:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    check("d3-scale/test/sequential-test.js:118:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0]);
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "linear-test.js: scaleLinear() has the expected defaults", run: t0 },
     Test { name: "linear-test.js: scaleLinear(range) sets the range", run: t1 },
@@ -2528,6 +2642,20 @@ pub const TESTS: &[Test] = &[
     Test { name: "ordinal-test.js: ordinal.copy() copies all fields", run: t264 },
     Test { name: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", run: t265 },
     Test { name: "ordinal-test.js: ordinal.copy() changes to the range are isolated", run: t266 },
+    Test { name: "sequential-test.js: scaleSequential() has the expected defaults", run: t267 },
+    Test { name: "sequential-test.js: sequential.clamp(true) enables clamping", run: t268 },
+    Test { name: "sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input", run: t269 },
+    Test { name: "sequential-test.js: sequential.domain() coerces domain values to numbers", run: t270 },
+    Test { name: "sequential-test.js: sequential.domain() accepts an iterable", run: t271 },
+    Test { name: "sequential-test.js: sequential.domain() handles a degenerate domain", run: t272 },
+    Test { name: "sequential-test.js: sequential.domain() handles a non-numeric domain", run: t273 },
+    Test { name: "sequential-test.js: sequential.domain() only considers the first and second element of the domain", run: t274 },
+    Test { name: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", run: t275 },
+    Test { name: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", run: t276 },
+    Test { name: "sequential-test.js: sequential.range() returns the computed range", run: t277 },
+    Test { name: "sequential-test.js: sequential.range(range) sets the interpolator", run: t278 },
+    Test { name: "sequential-test.js: sequential.range(range) ignores additional values", run: t279 },
+    Test { name: "sequential-test.js: scaleSequential(range) sets the interpolator", run: t280 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -3635,4 +3763,58 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/ordinal-test.js:220:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
     Assertion { id: "d3-scale/test/ordinal-test.js:221:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
     Assertion { id: "d3-scale/test/ordinal-test.js:222:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:6:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:7:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:8:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:9:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: Some("api: d3's unknown() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:10:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:11:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:12:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:13:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:14:3", test: "sequential-test.js: scaleSequential() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:19:3", test: "sequential-test.js: sequential.clamp(true) enables clamping", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:20:3", test: "sequential-test.js: sequential.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:21:3", test: "sequential-test.js: sequential.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:22:3", test: "sequential-test.js: sequential.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:23:3", test: "sequential-test.js: sequential.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:24:3", test: "sequential-test.js: sequential.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:29:3", test: "sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input", skip: Some("api: d3's unknown() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:30:3", test: "sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input", skip: Some("js: scale argument is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:31:3", test: "sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:32:3", test: "sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input", skip: Some("js: scale argument is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:33:3", test: "sequential-test.js: sequential.unknown(value) sets the return value for undefined and NaN input", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:38:3", test: "sequential-test.js: sequential.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:39:3", test: "sequential-test.js: sequential.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:40:3", test: "sequential-test.js: sequential.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:41:3", test: "sequential-test.js: sequential.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:46:3", test: "sequential-test.js: sequential.domain() accepts an iterable", skip: Some("js: a domain from an iterable") },
+    Assertion { id: "d3-scale/test/sequential-test.js:51:3", test: "sequential-test.js: sequential.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:52:3", test: "sequential-test.js: sequential.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:53:3", test: "sequential-test.js: sequential.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:54:3", test: "sequential-test.js: sequential.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:59:3", test: "sequential-test.js: sequential.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:60:3", test: "sequential-test.js: sequential.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:61:3", test: "sequential-test.js: sequential.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:62:3", test: "sequential-test.js: sequential.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:63:3", test: "sequential-test.js: sequential.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:68:3", test: "sequential-test.js: sequential.domain() only considers the first and second element of the domain", skip: Some("types: a sequential scale of other than 2 stops (d3 ignores the rest)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:74:3", test: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:75:3", test: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:77:3", test: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:79:3", test: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:81:3", test: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:83:3", test: "sequential-test.js: sequential.copy() returns an isolated copy of the scale", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:90:3", test: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:91:3", test: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", skip: Some("js: a setter returns its scale (identity)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:92:3", test: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:93:3", test: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:94:3", test: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:95:3", test: "sequential-test.js: sequential.interpolator(interpolator) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:100:3", test: "sequential-test.js: sequential.range() returns the computed range", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:105:3", test: "sequential-test.js: sequential.range(range) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:106:3", test: "sequential-test.js: sequential.range(range) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/sequential-test.js:111:3", test: "sequential-test.js: sequential.range(range) ignores additional values", skip: Some("types: a sequential scale of other than 2 stops (d3 ignores the rest)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:112:3", test: "sequential-test.js: sequential.range(range) ignores additional values", skip: Some("types: a sequential scale of other than 2 stops (d3 ignores the rest)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:117:3", test: "sequential-test.js: scaleSequential(range) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/sequential-test.js:118:3", test: "sequential-test.js: scaleSequential(range) sets the interpolator", skip: None },
 ];

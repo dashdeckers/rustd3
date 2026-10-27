@@ -102,6 +102,20 @@ impl<T, R, const N: usize> Continuous<T, R, N> {
     pub(crate) fn forward(&self) -> &[f64; N] {
         &self.forward
     }
+
+    /// Where `x` lies between the end stops in transformed space, 0 at the
+    /// first and 1 at the last (d3's normalize): unclamped, 0.5 for ends
+    /// that transform alike.
+    pub(crate) fn fraction(&self, x: f64) -> f64
+    where
+        T: Transform,
+    {
+        normalize(
+            self.forward[0],
+            self.forward[N - 1],
+            self.transform.forward(x),
+        )
+    }
 }
 
 impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
