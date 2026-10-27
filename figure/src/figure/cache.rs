@@ -59,19 +59,19 @@ impl Cache {
     }
 
     /// The text cache, for resolving.
-    pub(super) fn text(&mut self) -> &mut text::Cache {
+    pub(crate) fn text(&mut self) -> &mut text::Cache {
         &mut self.text
     }
 
     /// The text cache, and a frame for one draw's thinning over the memo,
     /// which [`end`](Cache::end) takes back.
-    pub(super) fn start(&mut self) -> (&text::Cache, thin::Frame) {
+    pub(crate) fn start(&mut self) -> (&text::Cache, thin::Frame) {
         let memo = std::mem::take(&mut self.memo);
         (&self.text, thin::Frame::new(memo))
     }
 
     /// Keeps the memo of a draw's `frame` for the next draw.
-    pub(super) fn end(&mut self, frame: thin::Frame) {
+    pub(crate) fn end(&mut self, frame: thin::Frame) {
         self.memo = frame.into_memo();
     }
 }

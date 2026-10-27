@@ -80,6 +80,18 @@ impl Labels {
         }
     }
 
+    /// The side of the panel the axis is on.
+    #[cfg(feature = "fonts")]
+    pub(crate) fn orient(&self) -> Orient {
+        self.orient
+    }
+
+    /// The title's key, when labelled with one.
+    #[cfg(feature = "fonts")]
+    pub(crate) fn title(&self) -> Option<&Key> {
+        self.title.as_ref()
+    }
+
     /// Each tick label's tick's absolute index.
     pub(crate) fn indices(&self) -> &[i64] {
         &self.indices

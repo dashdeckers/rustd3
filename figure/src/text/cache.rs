@@ -125,6 +125,14 @@ impl Cache {
             .map(|entry| entry.shaped.as_ref().map(|shaped| &**shaped))
     }
 
+    /// Every cached label: shaped, or typst's error.
+    #[cfg(feature = "fonts")]
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (&Key, Result<&Shaped, &Error>)> {
+        self.entries
+            .iter()
+            .map(|(key, entry)| (key, entry.shaped.as_ref().map(|shaped| &**shaped)))
+    }
+
     /// The faces labels are shaped with.
     pub(crate) fn fonts(&self) -> &Fonts {
         &self.fonts

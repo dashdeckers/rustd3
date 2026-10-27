@@ -24,12 +24,15 @@ mod rule;
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 
-use kurbo::{Cap, Join};
+use kurbo::{Cap, Join, Point, Rect};
 use rustd3_core::series::Points;
 
+use crate::check::{self, Issue};
 use crate::figure::{Fits, Resolved};
+use crate::hit;
 use crate::layout::Snap;
 use crate::list::List;
+use crate::mark::color::Color;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{self, Key, Shaped};
 use crate::theme::Theme;
@@ -51,16 +54,29 @@ pub trait Mark<'a>: 'a {
     /// Appends the mark's commands to `list`, in the panel's coordinates:
     /// the plot area spans `[0, w] × [0, h]`, and the figure clips to it.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List);
+
+    /// Reports the points the mark draws, each with its datum's index, in
+    /// the panel's coordinates, for hit testing
+    /// ([`Figure::hits`](crate::Figure::hits)); none by default.
+    fn hits(&self, _ctx: &Ctx<'_>, _sink: &mut hit::Sink) {}
+
+    /// Reports what [`Figure::check`](crate::Figure::check) should know of
+    /// the mark, under [`Ctx::panel`] and [`Ctx::mark`]; nothing by
+    /// default.
+    fn issues(&self, _ctx: &Ctx<'_>, _issues: &mut Vec<Issue>) {}
 }
 
 /// What a mark sees while it draws one panel: the resolved scales over the
-/// panel's pixel ranges, its plot area, the theme and the device scale.
+/// panel's pixel ranges, its plot area, the theme and the device scale,
+/// and which panel and mark it is.
 pub struct Ctx<'r> {
     resolved: &'r Resolved,
     theme: &'r Theme,
     rect: kurbo::Rect,
     text: &'r text::Cache,
     frame: &'r RefCell<thin::Frame>,
+    panel: usize,
+    mark: usize,
 }
 
 impl<'r> Ctx<'r> {
@@ -79,6 +95,17 @@ impl<'r> Ctx<'r> {
             rect,
             text,
             frame,
+            panel: 0,
+            mark: 0,
+        }
+    }
+
+    /// The same view for mark `mark` of panel `panel`.
+    pub(crate) fn at(&self, panel: usize, mark: usize) -> Ctx<'r> {
+        Ctx {
+            panel,
+            mark,
+            ..*self
         }
     }
 }
@@ -108,6 +135,16 @@ impl Ctx<'_> {
     /// The figure's theme.
     pub fn theme(&self) -> &Theme {
         self.theme
+    }
+
+    /// The panel's index, in the order of first use.
+    pub fn panel(&self) -> usize {
+        self.panel
+    }
+
+    /// The mark's index in its panel, in insertion order.
+    pub fn mark(&self) -> usize {
+        self.mark
     }
 
     /// Device pixels per list px of the target drawn for: 1 for vector
@@ -205,6 +242,27 @@ fn fit<'a, X: Position, Y: Position>(
             }
         }
     }
+}
+
+/// The issues every mark over `points` in `color` may have: collected data
+/// over 100,000 points, and a key its palette lacks.
+fn issues<X, Y>(points: &Points<'_, X, Y>, color: &Color, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
+    let (panel, mark) = (ctx.panel(), ctx.mark());
+    if points.is_collected() && points.len() > check::LARGE {
+        issues.push(Issue::LargeOwned {
+            panel,
+            mark,
+            points: points.len(),
+        });
+    }
+    if !color.known(ctx) {
+        issues.push(Issue::UnknownKey { panel, mark });
+    }
+}
+
+/// Whether `p` lies in `bounds`, edges included.
+fn within(bounds: Rect, p: Point) -> bool {
+    (bounds.x0..=bounds.x1).contains(&p.x) && (bounds.y0..=bounds.y1).contains(&p.y)
 }
 
 /// A mark's stroke: `width` px, butt caps, round joins (matplotlib's

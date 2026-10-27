@@ -35,6 +35,13 @@ pub(crate) use protrusion::Reach;
 pub(crate) use snap::Snap;
 pub(crate) use tracks::tracks;
 
+/// The canvas's padding, em.
+pub(crate) const PAD: f64 = 0.8;
+
+/// From a panel's corner to an inset legend, em: matplotlib's
+/// `legend.borderaxespad`.
+pub(crate) const INSET: f64 = 0.5;
+
 /// A length in px, or in multiples of the theme's tick-label size, so gaps
 /// scale with the text. Plain data.
 #[derive(Debug, Clone, Copy, PartialEq)]

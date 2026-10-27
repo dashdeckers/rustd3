@@ -4,10 +4,12 @@ use kurbo::{Point, Shape};
 use rustd3_core::color::Rgb;
 use rustd3_core::series::{Data, Points};
 
+use crate::check::Issue;
 use crate::figure::Fits;
+use crate::hit;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, at, positive};
+use crate::mark::{Ctx, Mark, at, positive, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// How closely a dot's circle follows the true circle, in px.
@@ -106,15 +108,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     /// scales, finite, and at most a radius outside the plot area; nothing
     /// when no point is.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let r = self.r.unwrap_or(ctx.theme().marker() / 2.0);
-        let bounds = ctx.rect().with_origin(Point::ORIGIN).inflate(r, r);
-        let at: Vec<Point> = self
-            .points
-            .iter()
-            .filter_map(|(a, b)| Some(Point::new(at(&sx, &a)?, at(&sy, &b)?)))
-            .filter(|p| within(bounds, *p))
-            .collect();
+        let r = self.radius(ctx);
+        let at: Vec<Point> = self.placed(ctx).map(|(_, p)| p).collect();
         if at.is_empty() {
             return;
         }
@@ -127,9 +122,37 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
             paints: None,
         });
     }
+
+    /// Every point drawn, with its index in the data.
+    fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
+        for (i, p) in self.placed(ctx) {
+            sink.push(i, p);
+        }
+    }
+
+    /// Collected data over 100,000 points; a fill key the palette lacks.
+    fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
+        super::issues(&self.points, &self.color, ctx, issues);
+    }
 }
 
-/// Whether `p` lies in `bounds`, edges included.
-fn within(bounds: kurbo::Rect, p: Point) -> bool {
-    (bounds.x0..=bounds.x1).contains(&p.x) && (bounds.y0..=bounds.y1).contains(&p.y)
+impl<X: Position, Y: Position> Dots<'_, X, Y> {
+    /// Each dot's radius in px.
+    fn radius(&self, ctx: &Ctx<'_>) -> f64 {
+        self.r.unwrap_or(ctx.theme().marker() / 2.0)
+    }
+
+    /// Each point placed on both scales, finite, and at most a radius
+    /// outside the plot area, with its index in the data, in the panel's
+    /// coordinates.
+    fn placed<'c>(&'c self, ctx: &Ctx<'_>) -> impl Iterator<Item = (usize, Point)> + 'c {
+        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let r = self.radius(ctx);
+        let bounds = ctx.rect().with_origin(Point::ORIGIN).inflate(r, r);
+        self.points
+            .iter()
+            .enumerate()
+            .filter_map(move |(i, (a, b))| Some((i, Point::new(at(&sx, &a)?, at(&sy, &b)?))))
+            .filter(move |(_, p)| within(bounds, *p))
+    }
 }

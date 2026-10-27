@@ -22,6 +22,7 @@ pub struct Resolved {
     areas: Vec<kurbo::Rect>,
     panels: Vec<Laid>,
     legends: Vec<(Block, Point)>,
+    room: [[f64; 2]; 2],
     title: Option<Key>,
     passes: usize,
     held: bool,
@@ -46,6 +47,7 @@ impl Resolved {
             areas: Vec::new(),
             panels: Vec::new(),
             legends: Vec::new(),
+            room: [[0.0; 2]; 2],
             title: None,
             passes: 0,
             held: false,
@@ -118,6 +120,20 @@ impl Resolved {
         self.held
     }
 
+    /// What the last placement of the tracks needed and had, px: reaches
+    /// and gaps, and the length the tracks fill, across the columns, then
+    /// down the rows. Held layouts place nothing: 0 and 0.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(
+            dead_code,
+            reason = "fig.check reads it, and checks with the bundled fonts"
+        )
+    )]
+    pub(crate) fn room(&self) -> [[f64; 2]; 2] {
+        self.room
+    }
+
     /// The size the figure was resolved for.
     pub(crate) fn size(&self) -> kurbo::Size {
         self.size
@@ -134,17 +150,17 @@ impl Resolved {
     }
 
     /// The panels as laid out, in panel order.
-    pub(super) fn panels(&self) -> &[Laid] {
+    pub(crate) fn panels(&self) -> &[Laid] {
         &self.panels
     }
 
     /// The legends in figure slots and their top-left corners.
-    pub(super) fn legends(&self) -> &[(Block, Point)] {
+    pub(crate) fn legends(&self) -> &[(Block, Point)] {
         &self.legends
     }
 
     /// The figure title's key.
-    pub(super) fn title(&self) -> Option<&Key> {
+    pub(crate) fn title(&self) -> Option<&Key> {
         self.title.as_ref()
     }
 
@@ -154,6 +170,7 @@ impl Resolved {
         self.areas = layout.areas;
         self.panels = layout.panels;
         self.legends = layout.legends;
+        self.room = layout.room;
         self.passes = layout.passes;
         self.title = title;
         self.held = held;

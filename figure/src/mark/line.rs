@@ -5,10 +5,12 @@ use rustd3_core::color::Rgb;
 use rustd3_core::series::{Data, Points, m4};
 use rustd3_core::shape::{self, Curve};
 
+use crate::check::Issue;
 use crate::figure::Fits;
+use crate::hit;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, admits, at, dashes, guard, positive, stroke};
+use crate::mark::{Ctx, Mark, admits, at, dashes, guard, positive, stroke, within};
 use crate::path;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::thin::{self, Thin};
@@ -148,6 +150,38 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
             style: stroke(width, &self.dash),
             paint: list::brush(self.color.resolve(ctx)),
         });
+    }
+
+    /// The points the line passes through inside the plot area, with their
+    /// indices in the data: M4's kept samples of a thinned line (read
+    /// through the draw's memo, so no second query), every placed point
+    /// otherwise.
+    fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
+        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let place = |(a, b)| Some(Point::new(at(&sx, &a)?, at(&sy, &b)?));
+        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let mut push = |i: usize, p: Option<Point>| {
+            if let Some(p) = p.filter(|p| within(area, *p)) {
+                sink.push(i, p);
+            }
+        };
+        match self.thinned(ctx, &sx, &sy) {
+            Some(lines) => {
+                for &i in lines.iter().flatten() {
+                    push(i, self.points.get(i).and_then(place));
+                }
+            }
+            None => {
+                for (i, p) in self.points.iter().enumerate() {
+                    push(i, place(p));
+                }
+            }
+        }
+    }
+
+    /// Collected data over 100,000 points; a stroke key the palette lacks.
+    fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
+        super::issues(&self.points, &self.color, ctx, issues);
     }
 }
 

@@ -62,6 +62,17 @@ impl Key {
         &self.snippet
     }
 
+    /// The label's own markup, as [`Text::typst`] wrote it: the snippet
+    /// inside its style.
+    #[cfg(feature = "fonts")]
+    pub(crate) fn markup(&self) -> &str {
+        // The snippet is `#align(…, box(text(…, fill: rgb(…))[markup]))`:
+        // the first ")[" closes the style.
+        let start = self.snippet.find(")[").map_or(0, |i| i + 2);
+        let end = self.snippet.len().saturating_sub(3).max(start);
+        &self.snippet[start..end]
+    }
+
     /// The style's fill.
     pub(crate) fn fill(&self) -> Color {
         let [r, g, b, a] = self.fill;

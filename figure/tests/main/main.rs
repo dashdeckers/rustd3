@@ -1,9 +1,12 @@
 //! rustd3-figure's tests: the figure model, fitting and layout; marks and
 //! thinning; drawing; the drawing list, its checks and its outputs; text.
 
+#[cfg(feature = "fonts")]
+mod check;
 mod draw;
 mod figure;
 mod fit;
+mod hit;
 mod layout;
 mod legend;
 mod list;

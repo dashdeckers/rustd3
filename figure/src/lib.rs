@@ -10,7 +10,9 @@ pub use kurbo;
 pub use peniko;
 
 pub mod axis;
+pub mod check;
 mod figure;
+pub mod hit;
 pub mod layout;
 pub mod legend;
 pub mod list;

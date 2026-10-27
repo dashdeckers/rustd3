@@ -1,0 +1,113 @@
+//! Checking a figure before drawing it:
+//! [`Figure::check`](crate::Figure::check) lays it out for
+//! a size without drawing and lists what does not fit or will not draw
+//! well, so a test can assert that a figure fits.
+//!
+//! ```
+//! use rustd3_core::scale;
+//! use rustd3_figure::check::{self, size};
+//! use rustd3_figure::{Figure, axis};
+//!
+//! let mut fig = Figure::new();
+//! let y = fig.scale(scale::linear().domain([0.0, 3.0]));
+//! fig.panel(0, 0).axis(axis::left(y).label("vibration RMS [m/s²]"));
+//! # #[cfg(feature = "fonts")] {
+//! assert!(fig.check(size(640.0, 480.0)).is_empty());
+//! let issues = fig.check(size(640.0, 120.0));
+//! assert!(matches!(
+//!     issues[..],
+//!     [check::Issue::Overflow { what: check::Element::AxisTitle, .. }]
+//! ));
+//! # }
+//! ```
+
+#[cfg(feature = "fonts")]
+mod find;
+
+/// Collected data larger than this belongs in a recording.
+pub(crate) const LARGE: usize = 100_000;
+
+/// Something [`Figure::check`](crate::Figure::check) found.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub enum Issue {
+    /// Text longer than the space it labels (it overflows centered).
+    Overflow {
+        /// What overflows.
+        what: Element,
+        /// The panel it labels or sits in; `None` for the figure's.
+        panel: Option<usize>,
+        /// Its length, px.
+        needed: f64,
+        /// The room it has, px.
+        available: f64,
+    },
+    /// No room left for plot areas after reaches and gaps.
+    NoRoom {
+        /// Across the grid's columns (`Horizontal`) or rows (`Vertical`).
+        axis: Direction,
+        /// The px reaches and gaps take.
+        needed: f64,
+        /// The px the tracks have.
+        available: f64,
+    },
+    /// Owned data over 100,000 points: use a Series.
+    LargeOwned {
+        /// The mark's panel.
+        panel: usize,
+        /// The mark's index in its panel.
+        mark: usize,
+        /// Its number of points.
+        points: usize,
+    },
+    /// Glyphs the fonts lack.
+    MissingGlyphs {
+        /// The label: its text when it is plain, its typst markup
+        /// otherwise.
+        text: String,
+        /// The glyphs typst drew as .notdef.
+        count: usize,
+    },
+    /// Markup that typst rejected.
+    Markup {
+        /// The label's typst markup.
+        text: String,
+        /// typst's message.
+        message: String,
+    },
+    /// A palette key not in the palette's domain.
+    UnknownKey {
+        /// The mark's panel.
+        panel: usize,
+        /// The mark's index in its panel.
+        mark: usize,
+    },
+}
+
+/// What text overflows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Element {
+    /// An axis title, longer than its axis.
+    AxisTitle,
+    /// A panel title, wider than its plot area.
+    PanelTitle,
+    /// The figure title, wider than the canvas inside its padding.
+    FigureTitle,
+    /// A legend: in a slot, larger than the canvas inside its padding; in
+    /// a panel corner, than the plot area 0.5 em inside its edges.
+    Legend,
+}
+
+/// An axis of the grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    /// Across the columns.
+    Horizontal,
+    /// Down the rows.
+    Vertical,
+}
+
+/// A figure size in px: `size(1600.0, 1200.0)`.
+pub fn size(width: f64, height: f64) -> kurbo::Size {
+    kurbo::Size::new(width, height)
+}

@@ -119,7 +119,7 @@ fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
     });
     for (j, mark) in panel.marks().iter().enumerate() {
         part(list, part::id(Role::Mark, index, j), |list| {
-            mark.draw(ctx, list)
+            mark.draw(&ctx.at(index, j), list)
         });
     }
     if list.commands.len() == start + 1 {

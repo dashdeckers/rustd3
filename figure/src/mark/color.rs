@@ -42,6 +42,14 @@ impl Color {
         Color::Keyed(Box::new(Keyed { palette, key }))
     }
 
+    /// Whether the color is known: false for a key its palette lacks.
+    pub(crate) fn known(&self, ctx: &Ctx<'_>) -> bool {
+        match self {
+            Color::Theme | Color::Fixed(_) => true,
+            Color::Keyed(lookup) => lookup.paint(ctx).is_some(),
+        }
+    }
+
     /// The color to draw in: a key the palette lacks draws the theme's
     /// gray.
     pub(crate) fn resolve(&self, ctx: &Ctx<'_>) -> Rgb {

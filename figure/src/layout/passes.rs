@@ -8,7 +8,7 @@ use rustd3_core::axis::Orient;
 use crate::axis::{self, Labels, Placed};
 use crate::figure::{Figure, Resolved};
 use crate::layout::slots::Slots;
-use crate::layout::{self, Plan, Reach, Snap, collide, plan};
+use crate::layout::{self, INSET, PAD, Plan, Reach, Snap, collide, plan};
 use crate::legend::{Block, Content, Inset, Slot};
 use crate::panel::Panel;
 use crate::text::{self, Key, Shaped, Text, anchor};
@@ -16,13 +16,6 @@ use crate::theme::Theme;
 
 /// Passes at most; counts that have not settled by then are kept.
 const PASSES: usize = 4;
-
-/// The canvas's padding, em.
-const PAD: f64 = 0.8;
-
-/// From a panel's corner to an inset legend, em: matplotlib's
-/// `legend.borderaxespad`.
-const INSET: f64 = 0.5;
 
 /// A figure laid out for one size: every panel's plot area and, per panel,
 /// its axes as placed, its title and its inset legends; and the legends in
@@ -37,6 +30,10 @@ pub(crate) struct Layout {
     pub(crate) legends: Vec<(Block, Point)>,
     /// Passes run: 1 to 4.
     pub(crate) passes: usize,
+    /// What the last placement's tracks needed (reaches and gaps) and had
+    /// (the length they fill), px, across the columns and down the rows;
+    /// 0 and 0 for held areas.
+    pub(crate) room: [[f64; 2]; 2],
 }
 
 /// One panel as laid out.
@@ -54,6 +51,10 @@ pub(crate) struct Laid {
 
 /// One pass's axes: per panel, per axis, its labels and plan.
 type Axes = Vec<Vec<(Labels, Plan)>>;
+
+/// A placement: the plot areas, and what the tracks needed and had across
+/// the columns and down the rows ([`Layout::room`]).
+type Placement = (Vec<Rect>, [[f64; 2]; 2]);
 
 impl Layout {
     /// `figure` laid out for `size` over the scales of `resolved`, its
@@ -119,8 +120,8 @@ impl Layout {
             .cloned()
             .collect();
         let snap = Snap::of(resolved.target());
-        let mut areas = match held {
-            Some(rects) => rects.to_vec(),
+        let (mut areas, mut room) = match held {
+            Some(rects) => (rects.to_vec(), [[0.0; 2]; 2]),
             None => {
                 let inner = inner(size, theme.em(), [0.0; 4]);
                 place(figure, inner, &bare(figure, &roles), snap)
@@ -206,7 +207,7 @@ impl Layout {
                 })
                 .collect();
             let reserve = reserve(&slots(&slotted, text, theme), title.as_ref(), text, theme);
-            areas = place(figure, inner(size, theme.em(), reserve), &titled, snap);
+            (areas, room) = place(figure, inner(size, theme.em(), reserve), &titled, snap);
             if last.as_ref() == Some(&counts) {
                 break;
             }
@@ -259,6 +260,7 @@ impl Layout {
             panels,
             legends,
             passes,
+            room,
         }
     }
 }
@@ -403,7 +405,7 @@ fn inner(size: Size, em: f64, [top, right, bottom, left]: [f64; 4]) -> Rect {
 /// reach against its last, and likewise for rows; its plot area runs from
 /// its first track's start to its last track's end. Edges are snapped one
 /// by one, so panels that share an edge still share it.
-fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach], snap: Snap) -> Vec<Rect> {
+fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach], snap: Snap) -> Placement {
     let theme = figure.style();
     let grid = figure.grid();
     let panels = figure.panels();
@@ -425,30 +427,39 @@ fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach], snap: Snap) -> Vec
         col_reach[c.start][0] = col_reach[c.start][0].max(reach.left);
         col_reach[c.end - 1][1] = col_reach[c.end - 1][1].max(reach.right);
     }
+    let (row_gaps, col_gaps) = (grid.row_gaps_px(rows, em), grid.col_gaps_px(cols, em));
     let ys = layout::tracks(
         grid.row_weights(),
-        &grid.row_gaps_px(rows, em),
+        &row_gaps,
         &row_reach,
         [inner.y0, inner.height()],
     );
     let xs = layout::tracks(
         grid.col_weights(),
-        &grid.col_gaps_px(cols, em),
+        &col_gaps,
         &col_reach,
         [inner.x0, inner.width()],
     );
+    let fixed = |reach: &[[f64; 2]], gaps: &[f64]| {
+        reach.iter().map(|[low, high]| low + high).sum::<f64>() + gaps.iter().sum::<f64>()
+    };
+    let room = [
+        [fixed(&col_reach, &col_gaps), inner.width()],
+        [fixed(&row_reach, &row_gaps), inner.height()],
+    ];
     let span = |tracks: &[[f64; 2]], range: std::ops::Range<usize>| {
         let ([start, _], [last, length]) = (tracks[range.start], tracks[range.end - 1]);
         [start, last + length]
     };
-    panels
+    let areas = panels
         .iter()
         .map(|p| {
             let [y0, y1] = span(&ys, p.cell().rows());
             let [x0, x1] = span(&xs, p.cell().cols());
             snap.rect(Rect::new(x0, y0, x1, y1))
         })
-        .collect()
+        .collect();
+    (areas, room)
 }
 
 /// The number of tracks along one axis: as many as there are weights, or
