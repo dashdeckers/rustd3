@@ -11,7 +11,7 @@ fn t0() {   // count-test.js: count() accepts an iterable
 }
 
 fn t1() {   // count-test.js: count() ignores NaN, null
-    check("d3-array/test/count-test.js:11:3", Kind::Strict, &(array::count(vec![f64::NAN, f64::NAN, 0.0, 1.0]) as f64), &2.0);
+    check("d3-array/test/count-test.js:11:3", Kind::Strict, &(array::count([Some(f64::NAN), Option::<f64>::None, Some(0.0), Some(1.0)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()) as f64), &2.0);
 }
 
 fn t2() {   // count-test.js: count() coerces to a number
@@ -19,8 +19,8 @@ fn t2() {   // count-test.js: count() coerces to a number
 }
 
 fn t3() {   // count-test.js: count() accepts an accessor
-    check("d3-array/test/count-test.js:19:3", Kind::Strict, &(array::count(vec![f64::NAN, f64::NAN, 0.0, 1.0]) as f64), &2.0);
-    check("d3-array/test/count-test.js:20:3", Kind::Strict, &(array::count(vec![f64::NAN, 18.0, f64::NAN]) as f64), &1.0);
+    check("d3-array/test/count-test.js:19:3", Kind::Strict, &(array::count([Some(f64::NAN), Option::<f64>::None, Some(0.0), Some(1.0)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()) as f64), &2.0);
+    check("d3-array/test/count-test.js:20:3", Kind::Strict, &(array::count([Some(f64::NAN), Some(18.0), Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()) as f64), &1.0);
 }
 
 fn t4() {   // min-test.js: min(array) returns the least numeric value for numbers
@@ -41,8 +41,8 @@ fn t6() {   // min-test.js: min(array) ignores null, undefined and NaN
     skip("d3-array/test/min-test.js:20:3", "js: an object compared by identity or valueOf");
     check("d3-array/test/min-test.js:21:3", Kind::Strict, &array::min(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &1.0);
     skip("d3-array/test/min-test.js:22:3", "js: an object compared by identity or valueOf");
-    check("d3-array/test/min-test.js:23:3", Kind::Strict, &array::min(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &3.0);
-    check("d3-array/test/min-test.js:24:3", Kind::Strict, &array::min(vec![-1.0, f64::NAN, -3.0, f64::NAN, -5.0, f64::NAN]), &-5.0);
+    check("d3-array/test/min-test.js:23:3", Kind::Strict, &array::min([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &3.0);
+    check("d3-array/test/min-test.js:24:3", Kind::Strict, &array::min([Some(-1.0), Option::<f64>::None, Some(-3.0), Option::<f64>::None, Some(-5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &-5.0);
 }
 
 fn t7() {   // min-test.js: min(array) compares heterogenous types as numbers
@@ -54,8 +54,8 @@ fn t7() {   // min-test.js: min(array) compares heterogenous types as numbers
 
 fn t8() {   // min-test.js: min(array) returns undefined if the array contains no numbers
     check("d3-array/test/min-test.js:35:3", Kind::Strict, &array::min(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/min-test.js:36:3", Kind::Strict, &array::min(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/min-test.js:37:3", Kind::Strict, &array::min(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/min-test.js:36:3", Kind::Strict, &array::min([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/min-test.js:37:3", Kind::Strict, &array::min([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/min-test.js:38:3", Kind::Strict, &array::min(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/min-test.js:39:3", Kind::Strict, &array::min(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -78,8 +78,8 @@ fn t11() {   // min-test.js: min(array, f) ignores null, undefined and NaN
     skip("d3-array/test/min-test.js:58:3", "js: an object compared by identity or valueOf");
     check("d3-array/test/min-test.js:59:3", Kind::Strict, &array::min(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &1.0);
     skip("d3-array/test/min-test.js:60:3", "js: an object compared by identity or valueOf");
-    check("d3-array/test/min-test.js:61:3", Kind::Strict, &array::min(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &3.0);
-    check("d3-array/test/min-test.js:62:3", Kind::Strict, &array::min(vec![-1.0, f64::NAN, -3.0, f64::NAN, -5.0, f64::NAN]), &-5.0);
+    check("d3-array/test/min-test.js:61:3", Kind::Strict, &array::min([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &3.0);
+    check("d3-array/test/min-test.js:62:3", Kind::Strict, &array::min([Some(-1.0), Option::<f64>::None, Some(-3.0), Option::<f64>::None, Some(-5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &-5.0);
 }
 
 fn t12() {   // min-test.js: min(array, f) compares heterogenous types as numbers
@@ -91,8 +91,8 @@ fn t12() {   // min-test.js: min(array, f) compares heterogenous types as number
 
 fn t13() {   // min-test.js: min(array, f) returns undefined if the array contains no observed values
     check("d3-array/test/min-test.js:73:3", Kind::Strict, &array::min(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/min-test.js:74:3", Kind::Strict, &array::min(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/min-test.js:75:3", Kind::Strict, &array::min(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/min-test.js:74:3", Kind::Strict, &array::min([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/min-test.js:75:3", Kind::Strict, &array::min([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/min-test.js:76:3", Kind::Strict, &array::min(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/min-test.js:77:3", Kind::Strict, &array::min(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -123,8 +123,8 @@ fn t18() {   // max-test.js: max(array) ignores null, undefined and NaN
     skip("d3-array/test/max-test.js:20:3", "js: an object compared by identity or valueOf");
     check("d3-array/test/max-test.js:21:3", Kind::Strict, &array::max(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &5.0);
     skip("d3-array/test/max-test.js:22:3", "js: an object compared by identity or valueOf");
-    check("d3-array/test/max-test.js:23:3", Kind::Strict, &array::max(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &10.0);
-    check("d3-array/test/max-test.js:24:3", Kind::Strict, &array::max(vec![-1.0, f64::NAN, -3.0, f64::NAN, -5.0, f64::NAN]), &-1.0);
+    check("d3-array/test/max-test.js:23:3", Kind::Strict, &array::max([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &10.0);
+    check("d3-array/test/max-test.js:24:3", Kind::Strict, &array::max([Some(-1.0), Option::<f64>::None, Some(-3.0), Option::<f64>::None, Some(-5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &-1.0);
 }
 
 fn t19() {   // max-test.js: max(array) compares heterogenous types as numbers
@@ -136,8 +136,8 @@ fn t19() {   // max-test.js: max(array) compares heterogenous types as numbers
 
 fn t20() {   // max-test.js: max(array) returns undefined if the array contains no numbers
     check("d3-array/test/max-test.js:35:3", Kind::Strict, &array::max(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/max-test.js:36:3", Kind::Strict, &array::max(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/max-test.js:37:3", Kind::Strict, &array::max(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/max-test.js:36:3", Kind::Strict, &array::max([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/max-test.js:37:3", Kind::Strict, &array::max([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/max-test.js:38:3", Kind::Strict, &array::max(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/max-test.js:39:3", Kind::Strict, &array::max(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -160,8 +160,8 @@ fn t23() {   // max-test.js: max(array, f) ignores null, undefined and NaN
     skip("d3-array/test/max-test.js:58:3", "js: an object compared by identity or valueOf");
     check("d3-array/test/max-test.js:59:3", Kind::Strict, &array::max(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &5.0);
     skip("d3-array/test/max-test.js:60:3", "js: an object compared by identity or valueOf");
-    check("d3-array/test/max-test.js:61:3", Kind::Strict, &array::max(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &10.0);
-    check("d3-array/test/max-test.js:62:3", Kind::Strict, &array::max(vec![-1.0, f64::NAN, -3.0, f64::NAN, -5.0, f64::NAN]), &-1.0);
+    check("d3-array/test/max-test.js:61:3", Kind::Strict, &array::max([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &10.0);
+    check("d3-array/test/max-test.js:62:3", Kind::Strict, &array::max([Some(-1.0), Option::<f64>::None, Some(-3.0), Option::<f64>::None, Some(-5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &-1.0);
 }
 
 fn t24() {   // max-test.js: max(array, f) compares heterogenous types as numbers
@@ -173,8 +173,8 @@ fn t24() {   // max-test.js: max(array, f) compares heterogenous types as number
 
 fn t25() {   // max-test.js: max(array, f) returns undefined if the array contains no observed values
     check("d3-array/test/max-test.js:73:3", Kind::Strict, &array::max(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/max-test.js:74:3", Kind::Strict, &array::max(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/max-test.js:75:3", Kind::Strict, &array::max(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/max-test.js:74:3", Kind::Strict, &array::max([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/max-test.js:75:3", Kind::Strict, &array::max([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/max-test.js:76:3", Kind::Strict, &array::max(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/max-test.js:77:3", Kind::Strict, &array::max(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -205,8 +205,8 @@ fn t30() {   // extent-test.js: extent(array) ignores null, undefined and NaN
     skip("d3-array/test/extent-test.js:20:3", "js: an object compared by identity or valueOf");
     check("d3-array/test/extent-test.js:21:3", Kind::Strict, &{ let e_ = array::extent(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![1.0, 5.0]);
     skip("d3-array/test/extent-test.js:22:3", "js: an object compared by identity or valueOf");
-    check("d3-array/test/extent-test.js:23:3", Kind::Strict, &{ let e_ = array::extent(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![3.0, 10.0]);
-    check("d3-array/test/extent-test.js:24:3", Kind::Strict, &{ let e_ = array::extent(vec![-1.0, f64::NAN, -3.0, f64::NAN, -5.0, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![-5.0, -1.0]);
+    check("d3-array/test/extent-test.js:23:3", Kind::Strict, &{ let e_ = array::extent([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![3.0, 10.0]);
+    check("d3-array/test/extent-test.js:24:3", Kind::Strict, &{ let e_ = array::extent([Some(-1.0), Option::<f64>::None, Some(-3.0), Option::<f64>::None, Some(-5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![-5.0, -1.0]);
 }
 
 fn t31() {   // extent-test.js: extent(array) compares heterogenous types as numbers
@@ -218,8 +218,8 @@ fn t31() {   // extent-test.js: extent(array) compares heterogenous types as num
 
 fn t32() {   // extent-test.js: extent(array) returns undefined if the array contains no numbers
     check("d3-array/test/extent-test.js:35:3", Kind::Strict, &{ let e_ = array::extent(Vec::<f64>::new()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
-    check("d3-array/test/extent-test.js:36:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
-    check("d3-array/test/extent-test.js:37:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
+    check("d3-array/test/extent-test.js:36:3", Kind::Strict, &{ let e_ = array::extent([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
+    check("d3-array/test/extent-test.js:37:3", Kind::Strict, &{ let e_ = array::extent([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
     check("d3-array/test/extent-test.js:38:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
     check("d3-array/test/extent-test.js:39:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
 }
@@ -242,8 +242,8 @@ fn t35() {   // extent-test.js: extent(array, f) ignores null, undefined and NaN
     skip("d3-array/test/extent-test.js:58:3", "js: an object compared by identity or valueOf");
     check("d3-array/test/extent-test.js:59:3", Kind::Strict, &{ let e_ = array::extent(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![1.0, 5.0]);
     skip("d3-array/test/extent-test.js:60:3", "js: an object compared by identity or valueOf");
-    check("d3-array/test/extent-test.js:61:3", Kind::Strict, &{ let e_ = array::extent(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![3.0, 10.0]);
-    check("d3-array/test/extent-test.js:62:3", Kind::Strict, &{ let e_ = array::extent(vec![-1.0, f64::NAN, -3.0, f64::NAN, -5.0, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![-5.0, -1.0]);
+    check("d3-array/test/extent-test.js:61:3", Kind::Strict, &{ let e_ = array::extent([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![3.0, 10.0]);
+    check("d3-array/test/extent-test.js:62:3", Kind::Strict, &{ let e_ = array::extent([Some(-1.0), Option::<f64>::None, Some(-3.0), Option::<f64>::None, Some(-5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &vec![-5.0, -1.0]);
 }
 
 fn t36() {   // extent-test.js: extent(array, f) compares heterogenous types as numbers
@@ -255,8 +255,8 @@ fn t36() {   // extent-test.js: extent(array, f) compares heterogenous types as 
 
 fn t37() {   // extent-test.js: extent(array, f) returns undefined if the array contains no observed values
     check("d3-array/test/extent-test.js:73:3", Kind::Strict, &{ let e_ = array::extent(Vec::<f64>::new()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
-    check("d3-array/test/extent-test.js:74:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
-    check("d3-array/test/extent-test.js:75:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
+    check("d3-array/test/extent-test.js:74:3", Kind::Strict, &{ let e_ = array::extent([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
+    check("d3-array/test/extent-test.js:75:3", Kind::Strict, &{ let e_ = array::extent([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
     check("d3-array/test/extent-test.js:76:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
     check("d3-array/test/extent-test.js:77:3", Kind::Strict, &{ let e_ = array::extent(vec![f64::NAN, f64::NAN]); [e_.map(|e| e[0]), e_.map(|e| e[1])] }, &[Option::<f64>::None, Option::<f64>::None]);
 }
@@ -293,14 +293,14 @@ fn t42() {   // sum-test.js: sum(array) ignores non-numeric values
 fn t43() {   // sum-test.js: sum(array) ignores null, undefined and NaN
     check("d3-array/test/sum-test.js:26:3", Kind::Strict, &array::sum(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &15.0);
     check("d3-array/test/sum-test.js:27:3", Kind::Strict, &array::sum(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &15.0);
-    check("d3-array/test/sum-test.js:28:3", Kind::Strict, &array::sum(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &18.0);
+    check("d3-array/test/sum-test.js:28:3", Kind::Strict, &array::sum([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &18.0);
 }
 
 fn t44() {   // sum-test.js: sum(array) returns zero if there are no numbers
     check("d3-array/test/sum-test.js:32:3", Kind::Strict, &array::sum(Vec::<f64>::new()), &0.0);
     check("d3-array/test/sum-test.js:33:3", Kind::Strict, &array::sum(vec![f64::NAN]), &0.0);
-    check("d3-array/test/sum-test.js:34:3", Kind::Strict, &array::sum(vec![f64::NAN]), &0.0);
-    check("d3-array/test/sum-test.js:35:3", Kind::Strict, &array::sum(vec![f64::NAN, f64::NAN]), &0.0);
+    check("d3-array/test/sum-test.js:34:3", Kind::Strict, &array::sum([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &0.0);
+    check("d3-array/test/sum-test.js:35:3", Kind::Strict, &array::sum([Option::<f64>::None, Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &0.0);
     skip("d3-array/test/sum-test.js:36:3", "js: object argument (valueOf coercion)");
 }
 
@@ -328,14 +328,14 @@ fn t47() {   // sum-test.js: sum(array, f) ignores non-numeric values
 fn t48() {   // sum-test.js: sum(array, f) ignores null, undefined and NaN
     check("d3-array/test/sum-test.js:61:3", Kind::Strict, &array::sum(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &15.0);
     check("d3-array/test/sum-test.js:62:3", Kind::Strict, &array::sum(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &15.0);
-    check("d3-array/test/sum-test.js:63:3", Kind::Strict, &array::sum(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &18.0);
+    check("d3-array/test/sum-test.js:63:3", Kind::Strict, &array::sum([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &18.0);
 }
 
 fn t49() {   // sum-test.js: sum(array, f) returns zero if there are no numbers
     check("d3-array/test/sum-test.js:67:3", Kind::Strict, &array::sum(Vec::<f64>::new()), &0.0);
     check("d3-array/test/sum-test.js:68:3", Kind::Strict, &array::sum(vec![f64::NAN]), &0.0);
-    check("d3-array/test/sum-test.js:69:3", Kind::Strict, &array::sum(vec![f64::NAN]), &0.0);
-    check("d3-array/test/sum-test.js:70:3", Kind::Strict, &array::sum(vec![f64::NAN, f64::NAN]), &0.0);
+    check("d3-array/test/sum-test.js:69:3", Kind::Strict, &array::sum([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &0.0);
+    check("d3-array/test/sum-test.js:70:3", Kind::Strict, &array::sum([Option::<f64>::None, Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &0.0);
     skip("d3-array/test/sum-test.js:71:3", "js: object argument (valueOf coercion)");
 }
 
@@ -357,13 +357,13 @@ fn t52() {   // mean-test.js: mean(array) returns the mean value for numbers
 fn t53() {   // mean-test.js: mean(array) ignores null, undefined and NaN
     check("d3-array/test/mean-test.js:13:3", Kind::Strict, &array::mean(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &3.0);
     check("d3-array/test/mean-test.js:14:3", Kind::Strict, &array::mean(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &3.0);
-    check("d3-array/test/mean-test.js:15:3", Kind::Strict, &array::mean(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &6.0);
+    check("d3-array/test/mean-test.js:15:3", Kind::Strict, &array::mean([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &6.0);
 }
 
 fn t54() {   // mean-test.js: mean(array) returns undefined if the array contains no observed values
     check("d3-array/test/mean-test.js:19:3", Kind::Strict, &array::mean(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/mean-test.js:20:3", Kind::Strict, &array::mean(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/mean-test.js:21:3", Kind::Strict, &array::mean(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/mean-test.js:20:3", Kind::Strict, &array::mean([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/mean-test.js:21:3", Kind::Strict, &array::mean([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/mean-test.js:22:3", Kind::Strict, &array::mean(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/mean-test.js:23:3", Kind::Strict, &array::mean(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -390,13 +390,13 @@ fn t57() {   // mean-test.js: mean(array, f) returns the mean value for numbers
 fn t58() {   // mean-test.js: mean(array, f) ignores null, undefined and NaN
     check("d3-array/test/mean-test.js:47:3", Kind::Strict, &array::mean(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &3.0);
     check("d3-array/test/mean-test.js:48:3", Kind::Strict, &array::mean(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &3.0);
-    check("d3-array/test/mean-test.js:49:3", Kind::Strict, &array::mean(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &6.0);
+    check("d3-array/test/mean-test.js:49:3", Kind::Strict, &array::mean([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &6.0);
 }
 
 fn t59() {   // mean-test.js: mean(array, f) returns undefined if the array contains no observed values
     check("d3-array/test/mean-test.js:53:3", Kind::Strict, &array::mean(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/mean-test.js:54:3", Kind::Strict, &array::mean(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/mean-test.js:55:3", Kind::Strict, &array::mean(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/mean-test.js:54:3", Kind::Strict, &array::mean([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/mean-test.js:55:3", Kind::Strict, &array::mean([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/mean-test.js:56:3", Kind::Strict, &array::mean(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/mean-test.js:57:3", Kind::Strict, &array::mean(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -430,7 +430,7 @@ fn t64() {   // variance-test.js: variance(array) returns the variance of the sp
 fn t65() {   // variance-test.js: variance(array) ignores null, undefined and NaN
     check("d3-array/test/variance-test.js:11:3", Kind::Strict, &array::variance(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &2.5);
     check("d3-array/test/variance-test.js:12:3", Kind::Strict, &array::variance(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &2.5);
-    check("d3-array/test/variance-test.js:13:3", Kind::Strict, &array::variance(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &13.0);
+    check("d3-array/test/variance-test.js:13:3", Kind::Strict, &array::variance([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &13.0);
 }
 
 fn t66() {   // variance-test.js: variance(array) can handle large numbers without overflowing
@@ -441,8 +441,8 @@ fn t66() {   // variance-test.js: variance(array) can handle large numbers witho
 fn t67() {   // variance-test.js: variance(array) returns undefined if the array has fewer than two numbers
     check("d3-array/test/variance-test.js:22:3", Kind::Strict, &array::variance(vec![1.0]), &Option::<f64>::None);
     check("d3-array/test/variance-test.js:23:3", Kind::Strict, &array::variance(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/variance-test.js:24:3", Kind::Strict, &array::variance(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/variance-test.js:25:3", Kind::Strict, &array::variance(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/variance-test.js:24:3", Kind::Strict, &array::variance([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/variance-test.js:25:3", Kind::Strict, &array::variance([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/variance-test.js:26:3", Kind::Strict, &array::variance(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/variance-test.js:27:3", Kind::Strict, &array::variance(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -456,7 +456,7 @@ fn t68() {   // variance-test.js: variance(array, f) returns the variance of the
 fn t69() {   // variance-test.js: variance(array, f) ignores null, undefined and NaN
     check("d3-array/test/variance-test.js:37:3", Kind::Strict, &array::variance(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &2.5);
     check("d3-array/test/variance-test.js:38:3", Kind::Strict, &array::variance(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &2.5);
-    check("d3-array/test/variance-test.js:39:3", Kind::Strict, &array::variance(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &13.0);
+    check("d3-array/test/variance-test.js:39:3", Kind::Strict, &array::variance([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &13.0);
 }
 
 fn t70() {   // variance-test.js: variance(array, f) can handle large numbers without overflowing
@@ -467,8 +467,8 @@ fn t70() {   // variance-test.js: variance(array, f) can handle large numbers wi
 fn t71() {   // variance-test.js: variance(array, f) returns undefined if the array has fewer than two numbers
     check("d3-array/test/variance-test.js:48:3", Kind::Strict, &array::variance(vec![1.0]), &Option::<f64>::None);
     check("d3-array/test/variance-test.js:49:3", Kind::Strict, &array::variance(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/variance-test.js:50:3", Kind::Strict, &array::variance(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/variance-test.js:51:3", Kind::Strict, &array::variance(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/variance-test.js:50:3", Kind::Strict, &array::variance([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/variance-test.js:51:3", Kind::Strict, &array::variance([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/variance-test.js:52:3", Kind::Strict, &array::variance(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/variance-test.js:53:3", Kind::Strict, &array::variance(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -491,7 +491,7 @@ fn t74() {   // deviation-test.js: deviation(array) returns the standard deviati
 fn t75() {   // deviation-test.js: deviation(array) ignores null, undefined and NaN
     check("d3-array/test/deviation-test.js:12:3", Kind::Strict, &array::deviation(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &f64::sqrt(2.5));
     check("d3-array/test/deviation-test.js:13:3", Kind::Strict, &array::deviation(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &f64::sqrt(2.5));
-    check("d3-array/test/deviation-test.js:14:3", Kind::Strict, &array::deviation(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &f64::sqrt(13.0));
+    check("d3-array/test/deviation-test.js:14:3", Kind::Strict, &array::deviation([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &f64::sqrt(13.0));
 }
 
 fn t76() {   // deviation-test.js: deviation(array) can handle large numbers without overflowing
@@ -502,8 +502,8 @@ fn t76() {   // deviation-test.js: deviation(array) can handle large numbers wit
 fn t77() {   // deviation-test.js: deviation(array) returns undefined if the array has fewer than two numbers
     check("d3-array/test/deviation-test.js:23:3", Kind::Strict, &array::deviation(vec![1.0]), &Option::<f64>::None);
     check("d3-array/test/deviation-test.js:24:3", Kind::Strict, &array::deviation(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/deviation-test.js:25:3", Kind::Strict, &array::deviation(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/deviation-test.js:26:3", Kind::Strict, &array::deviation(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/deviation-test.js:25:3", Kind::Strict, &array::deviation([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/deviation-test.js:26:3", Kind::Strict, &array::deviation([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/deviation-test.js:27:3", Kind::Strict, &array::deviation(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/deviation-test.js:28:3", Kind::Strict, &array::deviation(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
 }
@@ -517,7 +517,7 @@ fn t78() {   // deviation-test.js: deviation(array, f) returns the deviation of 
 fn t79() {   // deviation-test.js: deviation(array, f) ignores null, undefined and NaN
     check("d3-array/test/deviation-test.js:38:3", Kind::Strict, &array::deviation(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &f64::sqrt(2.5));
     check("d3-array/test/deviation-test.js:39:3", Kind::Strict, &array::deviation(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &f64::sqrt(2.5));
-    check("d3-array/test/deviation-test.js:40:3", Kind::Strict, &array::deviation(vec![10.0, f64::NAN, 3.0, f64::NAN, 5.0, f64::NAN]), &f64::sqrt(13.0));
+    check("d3-array/test/deviation-test.js:40:3", Kind::Strict, &array::deviation([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &f64::sqrt(13.0));
 }
 
 fn t80() {   // deviation-test.js: deviation(array, f) can handle large numbers without overflowing
@@ -528,10 +528,500 @@ fn t80() {   // deviation-test.js: deviation(array, f) can handle large numbers 
 fn t81() {   // deviation-test.js: deviation(array, f) returns undefined if the array has fewer than two numbers
     check("d3-array/test/deviation-test.js:49:3", Kind::Strict, &array::deviation(vec![1.0]), &Option::<f64>::None);
     check("d3-array/test/deviation-test.js:50:3", Kind::Strict, &array::deviation(Vec::<f64>::new()), &Option::<f64>::None);
-    check("d3-array/test/deviation-test.js:51:3", Kind::Strict, &array::deviation(vec![f64::NAN]), &Option::<f64>::None);
-    check("d3-array/test/deviation-test.js:52:3", Kind::Strict, &array::deviation(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/deviation-test.js:51:3", Kind::Strict, &array::deviation([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/deviation-test.js:52:3", Kind::Strict, &array::deviation([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
     check("d3-array/test/deviation-test.js:53:3", Kind::Strict, &array::deviation(vec![f64::NAN]), &Option::<f64>::None);
     check("d3-array/test/deviation-test.js:54:3", Kind::Strict, &array::deviation(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
+}
+
+fn t82() {   // median-test.js: median(array) returns the median value for numbers
+    check("d3-array/test/median-test.js:6:3", Kind::Strict, &array::median(vec![1.0]), &1.0);
+    check("d3-array/test/median-test.js:7:3", Kind::Strict, &array::median(vec![5.0, 1.0, 2.0, 3.0]), &2.5);
+    check("d3-array/test/median-test.js:8:3", Kind::Strict, &array::median(vec![5.0, 1.0, 2.0, 3.0, 4.0]), &3.0);
+    check("d3-array/test/median-test.js:9:3", Kind::Strict, &array::median(vec![20.0, 3.0]), &11.5);
+    check("d3-array/test/median-test.js:10:3", Kind::Strict, &array::median(vec![3.0, 20.0]), &11.5);
+}
+
+fn t83() {   // median-test.js: median(array) ignores null, undefined and NaN
+    check("d3-array/test/median-test.js:14:3", Kind::Strict, &array::median(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &3.0);
+    check("d3-array/test/median-test.js:15:3", Kind::Strict, &array::median(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &3.0);
+    check("d3-array/test/median-test.js:16:3", Kind::Strict, &array::median([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &5.0);
+}
+
+fn t84() {   // median-test.js: median(array) can handle large numbers without overflowing
+    check("d3-array/test/median-test.js:20:3", Kind::Strict, &array::median(vec![f64::MAX, f64::MAX]), &f64::MAX);
+    check("d3-array/test/median-test.js:21:3", Kind::Strict, &array::median(vec![-f64::MAX, -f64::MAX]), &-f64::MAX);
+}
+
+fn t85() {   // median-test.js: median(array) returns undefined if the array contains no observed values
+    check("d3-array/test/median-test.js:25:3", Kind::Strict, &array::median(Vec::<f64>::new()), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:26:3", Kind::Strict, &array::median([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:27:3", Kind::Strict, &array::median([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:28:3", Kind::Strict, &array::median(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:29:3", Kind::Strict, &array::median(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
+}
+
+fn t86() {   // median-test.js: median(array) coerces strings to numbers
+    skip("d3-array/test/median-test.js:33:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:34:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:35:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:36:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:37:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:38:3", "js: strs values (coercion)");
+}
+
+fn t87() {   // median-test.js: median(array) coerces values exactly once
+    skip("d3-array/test/median-test.js:43:3", "js: new OneTimeNumber (coercion)");
+    skip("d3-array/test/median-test.js:44:3", "js: new OneTimeNumber (coercion)");
+}
+
+fn t88() {   // median-test.js: median(array, f) returns the median value for numbers
+    check("d3-array/test/median-test.js:48:3", Kind::Strict, &array::median(vec![1.0]), &1.0);
+    check("d3-array/test/median-test.js:49:3", Kind::Strict, &array::median(vec![5.0, 1.0, 2.0, 3.0, 4.0]), &3.0);
+    check("d3-array/test/median-test.js:50:3", Kind::Strict, &array::median(vec![20.0, 3.0]), &11.5);
+    check("d3-array/test/median-test.js:51:3", Kind::Strict, &array::median(vec![3.0, 20.0]), &11.5);
+}
+
+fn t89() {   // median-test.js: median(array, f) ignores null, undefined and NaN
+    check("d3-array/test/median-test.js:55:3", Kind::Strict, &array::median(vec![f64::NAN, 1.0, 2.0, 3.0, 4.0, 5.0]), &3.0);
+    check("d3-array/test/median-test.js:56:3", Kind::Strict, &array::median(vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::NAN]), &3.0);
+    check("d3-array/test/median-test.js:57:3", Kind::Strict, &array::median([Some(10.0), Option::<f64>::None, Some(3.0), Option::<f64>::None, Some(5.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &5.0);
+}
+
+fn t90() {   // median-test.js: median(array, f) can handle large numbers without overflowing
+    check("d3-array/test/median-test.js:61:3", Kind::Strict, &array::median(vec![f64::MAX, f64::MAX]), &f64::MAX);
+    check("d3-array/test/median-test.js:62:3", Kind::Strict, &array::median(vec![-f64::MAX, -f64::MAX]), &-f64::MAX);
+}
+
+fn t91() {   // median-test.js: median(array, f) returns undefined if the array contains no observed values
+    check("d3-array/test/median-test.js:66:3", Kind::Strict, &array::median(Vec::<f64>::new()), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:67:3", Kind::Strict, &array::median([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:68:3", Kind::Strict, &array::median([Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:69:3", Kind::Strict, &array::median(vec![f64::NAN]), &Option::<f64>::None);
+    check("d3-array/test/median-test.js:70:3", Kind::Strict, &array::median(vec![f64::NAN, f64::NAN]), &Option::<f64>::None);
+}
+
+fn t92() {   // median-test.js: median(array, f) coerces strings to numbers
+    skip("d3-array/test/median-test.js:74:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:75:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:76:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:77:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:78:3", "js: strs values (coercion)");
+    skip("d3-array/test/median-test.js:79:3", "js: strs values (coercion)");
+}
+
+fn t93() {   // median-test.js: median(array, f) coerces values exactly once
+    skip("d3-array/test/median-test.js:84:3", "js: object argument (valueOf coercion) (in box)");
+    skip("d3-array/test/median-test.js:85:3", "js: object argument (valueOf coercion) (in box)");
+}
+
+fn t94() {   // median-test.js: median(array, f) passes the accessor d, i, and array
+    skip("d3-array/test/median-test.js:92:3", "js: an accessor other than one property read (coercion)");
+}
+
+fn t95() {   // median-test.js: median(array, f) uses the undefined context
+    skip("d3-array/test/median-test.js:98:3", "js: an accessor other than one property read (coercion)");
+}
+
+fn t96() {   // median-test.js: medianIndex(array) returns the index
+    skip("d3-array/test/median-test.js:102:3", "api: medianIndex (not in v0.1)");
+    skip("d3-array/test/median-test.js:103:3", "api: medianIndex (not in v0.1)");
+    skip("d3-array/test/median-test.js:104:3", "api: medianIndex (not in v0.1)");
+    skip("d3-array/test/median-test.js:105:3", "api: medianIndex (not in v0.1)");
+    skip("d3-array/test/median-test.js:106:3", "api: medianIndex (not in v0.1)");
+    skip("d3-array/test/median-test.js:107:3", "api: medianIndex (not in v0.1)");
+}
+
+fn t97() {   // quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't
+    check("d3-array/test/quantile-test.js:5:3", Kind::Strict, &array::quantile_sorted(&vec![1.0, 2.0, 3.0, 4.0], 0.0), &1.0);
+    check("d3-array/test/quantile-test.js:6:3", Kind::Strict, &array::quantile_sorted(&vec![1.0, 2.0, 3.0, 4.0], 1.0), &4.0);
+    check("d3-array/test/quantile-test.js:7:3", Kind::Strict, &array::quantile_sorted(&vec![4.0, 3.0, 2.0, 1.0], 0.0), &4.0);
+    check("d3-array/test/quantile-test.js:8:3", Kind::Strict, &array::quantile_sorted(&vec![4.0, 3.0, 2.0, 1.0], 1.0), &1.0);
+    check("d3-array/test/quantile-test.js:9:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0, 4.0], 0.0), &1.0);
+    check("d3-array/test/quantile-test.js:10:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0, 4.0], 1.0), &4.0);
+    check("d3-array/test/quantile-test.js:11:3", Kind::Strict, &array::quantile(vec![4.0, 3.0, 2.0, 1.0], 0.0), &1.0);
+    check("d3-array/test/quantile-test.js:12:3", Kind::Strict, &array::quantile(vec![4.0, 3.0, 2.0, 1.0], 1.0), &4.0);
+}
+
+fn t98() {   // quantile-test.js: quantile() accepts an iterable
+    skip("d3-array/test/quantile-test.js:16:3", "js: new Set (coercion)");
+}
+
+fn t99() {   // quantile-test.js: quantile(array, p) uses the R-7 method
+    let mut even = vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0];
+    check("d3-array/test/quantile-test.js:21:3", Kind::Strict, &array::quantile(even.clone(), 0.0), &3.0);
+    check("d3-array/test/quantile-test.js:22:3", Kind::Strict, &array::quantile(even.clone(), 0.25), &7.25);
+    check("d3-array/test/quantile-test.js:23:3", Kind::Strict, &array::quantile(even.clone(), 0.5), &9.0);
+    check("d3-array/test/quantile-test.js:24:3", Kind::Strict, &array::quantile(even.clone(), 0.75), &14.5);
+    check("d3-array/test/quantile-test.js:25:3", Kind::Strict, &array::quantile(even.clone(), 1.0), &20.0);
+    let mut odd = vec![3.0, 6.0, 7.0, 8.0, 8.0, 9.0, 10.0, 13.0, 15.0, 16.0, 20.0];
+    check("d3-array/test/quantile-test.js:27:3", Kind::Strict, &array::quantile(odd.clone(), 0.0), &3.0);
+    check("d3-array/test/quantile-test.js:28:3", Kind::Strict, &array::quantile(odd.clone(), 0.25), &7.5);
+    check("d3-array/test/quantile-test.js:29:3", Kind::Strict, &array::quantile(odd.clone(), 0.5), &9.0);
+    check("d3-array/test/quantile-test.js:30:3", Kind::Strict, &array::quantile(odd.clone(), 0.75), &14.0);
+    check("d3-array/test/quantile-test.js:31:3", Kind::Strict, &array::quantile(odd.clone(), 1.0), &20.0);
+}
+
+fn t100() {   // quantile-test.js: quantile(array, p) coerces values to numbers
+    skip("d3-array/test/quantile-test.js:36:3", "js: new Date (coercion)");
+    skip("d3-array/test/quantile-test.js:37:3", "js: new Date (coercion)");
+    skip("d3-array/test/quantile-test.js:38:3", "js: new Date (coercion)");
+    skip("d3-array/test/quantile-test.js:40:3", "js: new Date (coercion)");
+    skip("d3-array/test/quantile-test.js:41:3", "js: new Date (coercion)");
+    skip("d3-array/test/quantile-test.js:42:3", "js: new Date (coercion)");
+}
+
+fn t101() {   // quantile-test.js: quantile(array, p) returns an exact value for integer p-values
+    let mut data = vec![1.0, 2.0, 3.0, 4.0];
+    check("d3-array/test/quantile-test.js:47:3", Kind::Strict, &array::quantile(data.clone(), (1.0 / 3.0)), &2.0);
+    check("d3-array/test/quantile-test.js:48:3", Kind::Strict, &array::quantile(data.clone(), (2.0 / 3.0)), &3.0);
+}
+
+fn t102() {   // quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p
+    let mut data = vec![3.0, 1.0, 2.0, 4.0, 0.0];
+    check("d3-array/test/quantile-test.js:53:3", Kind::Strict, &array::quantile(data.clone(), (0.0 / 4.0)), &0.0);
+    check("d3-array/test/quantile-test.js:54:3", Kind::Strict, &array::quantile(data.clone(), (0.1 / 4.0)), &0.1);
+    check("d3-array/test/quantile-test.js:55:3", Kind::Strict, &array::quantile(data.clone(), (1.0 / 4.0)), &1.0);
+    check("d3-array/test/quantile-test.js:56:3", Kind::Strict, &array::quantile(data.clone(), (1.5 / 4.0)), &1.5);
+    check("d3-array/test/quantile-test.js:57:3", Kind::Strict, &array::quantile(data.clone(), (2.0 / 4.0)), &2.0);
+    check("d3-array/test/quantile-test.js:58:3", Kind::Strict, &array::quantile(data.clone(), (2.5 / 4.0)), &2.5);
+    check("d3-array/test/quantile-test.js:59:3", Kind::Strict, &array::quantile(data.clone(), (3.0 / 4.0)), &3.0);
+    check("d3-array/test/quantile-test.js:60:3", Kind::Strict, &array::quantile(data.clone(), (3.2 / 4.0)), &3.2);
+    check("d3-array/test/quantile-test.js:61:3", Kind::Strict, &array::quantile(data.clone(), (4.0 / 4.0)), &4.0);
+}
+
+fn t103() {   // quantile-test.js: quantile(array, p) returns the first value for p = 0
+    let mut data = vec![1.0, 2.0, 3.0, 4.0];
+    check("d3-array/test/quantile-test.js:66:3", Kind::Strict, &array::quantile(data.clone(), 0.0), &1.0);
+}
+
+fn t104() {   // quantile-test.js: quantile(array, p) returns the last value for p = 1
+    let mut data = vec![1.0, 2.0, 3.0, 4.0];
+    check("d3-array/test/quantile-test.js:71:3", Kind::Strict, &array::quantile(data.clone(), 1.0), &4.0);
+}
+
+fn t105() {   // quantile-test.js: quantile(array, p) returns undefined if p is not a number
+    check("d3-array/test/quantile-test.js:75:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0], f64::NAN), &Option::<f64>::None);
+    skip("d3-array/test/quantile-test.js:76:3", "js: argument is not a number (coercion)");
+    check("d3-array/test/quantile-test.js:77:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0], f64::NAN), &Option::<f64>::None);
+    skip("d3-array/test/quantile-test.js:78:3", "js: null (coercion)");
+}
+
+fn t106() {   // quantile-test.js: quantile(array, p, f) observes the specified accessor
+    check("d3-array/test/quantile-test.js:82:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0, 4.0], 0.5), &2.5);
+    check("d3-array/test/quantile-test.js:83:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0, 4.0], 0.0), &1.0);
+    check("d3-array/test/quantile-test.js:84:3", Kind::Strict, &array::quantile(vec![1.0, 2.0, 3.0, 4.0], 1.0), &4.0);
+    check("d3-array/test/quantile-test.js:85:3", Kind::Strict, &array::quantile(vec![2.0], 0.0), &2.0);
+    check("d3-array/test/quantile-test.js:86:3", Kind::Strict, &array::quantile(vec![2.0], 0.5), &2.0);
+    check("d3-array/test/quantile-test.js:87:3", Kind::Strict, &array::quantile(vec![2.0], 1.0), &2.0);
+    check("d3-array/test/quantile-test.js:88:3", Kind::Strict, &array::quantile(Vec::<f64>::new(), 0.0), &Option::<f64>::None);
+    check("d3-array/test/quantile-test.js:89:3", Kind::Strict, &array::quantile(Vec::<f64>::new(), 0.5), &Option::<f64>::None);
+    check("d3-array/test/quantile-test.js:90:3", Kind::Strict, &array::quantile(Vec::<f64>::new(), 1.0), &Option::<f64>::None);
+}
+
+fn t107() {   // quantile-test.js: quantileIndex(array, p) returns the index
+    skip("d3-array/test/quantile-test.js:94:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:95:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:96:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:97:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:98:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:99:3", "api: quantileIndex (not in v0.1)");
+}
+
+fn t108() {   // quantile-test.js: quantileIndex(array, 0) returns the minimum index
+    skip("d3-array/test/quantile-test.js:103:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:104:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:105:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:106:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:107:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:108:3", "api: quantileIndex (not in v0.1)");
+}
+
+fn t109() {   // quantile-test.js: quantileIndex(array, 1) returns the maximum index
+    skip("d3-array/test/quantile-test.js:112:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:113:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:114:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:115:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:116:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:117:3", "api: quantileIndex (not in v0.1)");
+}
+
+fn t110() {   // quantile-test.js: quantileIndex(array, 0.5) handles undefined values
+    skip("d3-array/test/quantile-test.js:121:3", "api: quantileIndex (not in v0.1)");
+    skip("d3-array/test/quantile-test.js:122:3", "api: quantileIndex (not in v0.1)");
+}
+
+fn t111() {   // quantile-test.js: quantileIndex(array, 0.5) returns the first of equivalent values
+    skip("d3-array/test/quantile-test.js:126:3", "api: quantileIndex (not in v0.1)");
+}
+
+fn t112() {   // range-test.js: range(stop) returns [0, 1, 2, … stop - 1]
+    check("d3-array/test/range-test.js:5:3", Kind::Strict, &array::range(0.0, 5.0, 1.0), &vec![0.0, 1.0, 2.0, 3.0, 4.0]);
+    check("d3-array/test/range-test.js:6:3", Kind::Strict, &array::range(0.0, 2.01, 1.0), &vec![0.0, 1.0, 2.0]);
+    check("d3-array/test/range-test.js:7:3", Kind::Strict, &array::range(0.0, 1.0, 1.0), &vec![0.0]);
+    check("d3-array/test/range-test.js:8:3", Kind::Strict, &array::range(0.0, 0.5, 1.0), &vec![0.0]);
+}
+
+fn t113() {   // range-test.js: range(stop) returns an empty array if stop <= 0
+    check("d3-array/test/range-test.js:12:3", Kind::Strict, &array::range(0.0, 0.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:13:3", Kind::Strict, &array::range(0.0, -0.5, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:14:3", Kind::Strict, &array::range(0.0, -1.0, 1.0), &Vec::<f64>::new());
+}
+
+fn t114() {   // range-test.js: range(stop) returns an empty array if stop is NaN
+    check("d3-array/test/range-test.js:18:3", Kind::Strict, &array::range(0.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:19:3", Kind::Strict, &array::range(0.0, f64::NAN, 1.0), &Vec::<f64>::new());
+}
+
+fn t115() {   // range-test.js: range(start, stop) returns [start, start + 1, … stop - 1]
+    check("d3-array/test/range-test.js:23:3", Kind::Strict, &array::range(0.0, 5.0, 1.0), &vec![0.0, 1.0, 2.0, 3.0, 4.0]);
+    check("d3-array/test/range-test.js:24:3", Kind::Strict, &array::range(2.0, 5.0, 1.0), &vec![2.0, 3.0, 4.0]);
+    check("d3-array/test/range-test.js:25:3", Kind::Strict, &array::range(2.5, 5.0, 1.0), &vec![2.5, 3.5, 4.5]);
+    check("d3-array/test/range-test.js:26:3", Kind::Strict, &array::range(-1.0, 3.0, 1.0), &vec![-1.0, 0.0, 1.0, 2.0]);
+}
+
+fn t116() {   // range-test.js: range(start, stop) returns an empty array if start or stop is NaN
+    check("d3-array/test/range-test.js:30:3", Kind::Strict, &array::range(0.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:31:3", Kind::Strict, &array::range(1.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:32:3", Kind::Strict, &array::range(-1.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:33:3", Kind::Strict, &array::range(0.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:34:3", Kind::Strict, &array::range(1.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:35:3", Kind::Strict, &array::range(-1.0, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:36:3", Kind::Strict, &array::range(f64::NAN, 0.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:37:3", Kind::Strict, &array::range(f64::NAN, 1.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:38:3", Kind::Strict, &array::range(f64::NAN, -1.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:39:3", Kind::Strict, &array::range(f64::NAN, 0.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:40:3", Kind::Strict, &array::range(f64::NAN, 1.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:41:3", Kind::Strict, &array::range(f64::NAN, -1.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:42:3", Kind::Strict, &array::range(f64::NAN, f64::NAN, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:43:3", Kind::Strict, &array::range(f64::NAN, f64::NAN, 1.0), &Vec::<f64>::new());
+}
+
+fn t117() {   // range-test.js: range(start, stop) returns an empty array if start >= stop
+    check("d3-array/test/range-test.js:47:3", Kind::Strict, &array::range(0.0, 0.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:48:3", Kind::Strict, &array::range(5.0, 5.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:49:3", Kind::Strict, &array::range(6.0, 5.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:50:3", Kind::Strict, &array::range(10.0, 10.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:51:3", Kind::Strict, &array::range(20.0, 10.0, 1.0), &Vec::<f64>::new());
+}
+
+fn t118() {   // range-test.js: range(start, stop, step) returns [start, start + step, start + 2 * step, … stop - step]
+    check("d3-array/test/range-test.js:55:3", Kind::Strict, &array::range(0.0, 5.0, 1.0), &vec![0.0, 1.0, 2.0, 3.0, 4.0]);
+    check("d3-array/test/range-test.js:56:3", Kind::Strict, &array::range(0.0, 5.0, 2.0), &vec![0.0, 2.0, 4.0]);
+    check("d3-array/test/range-test.js:57:3", Kind::Strict, &array::range(2.0, 5.0, 2.0), &vec![2.0, 4.0]);
+    check("d3-array/test/range-test.js:58:3", Kind::Strict, &array::range(-1.0, 3.0, 2.0), &vec![-1.0, 1.0]);
+}
+
+fn t119() {   // range-test.js: range(start, stop, step) allows a negative step
+    check("d3-array/test/range-test.js:62:3", Kind::Strict, &array::range(5.0, 0.0, -1.0), &vec![5.0, 4.0, 3.0, 2.0, 1.0]);
+    check("d3-array/test/range-test.js:63:3", Kind::Strict, &array::range(5.0, 0.0, -2.0), &vec![5.0, 3.0, 1.0]);
+    check("d3-array/test/range-test.js:64:3", Kind::Strict, &array::range(5.0, 2.0, -2.0), &vec![5.0, 3.0]);
+    check("d3-array/test/range-test.js:65:3", Kind::Strict, &array::range(3.0, -1.0, -2.0), &vec![3.0, 1.0]);
+}
+
+fn t120() {   // range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0
+    check("d3-array/test/range-test.js:69:3", Kind::Strict, &array::range(5.0, 5.0, 2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:70:3", Kind::Strict, &array::range(6.0, 5.0, 2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:71:3", Kind::Strict, &array::range(10.0, 10.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:72:3", Kind::Strict, &array::range(10.0, 10.0, 0.5), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:73:3", Kind::Strict, &array::range(0.0, 0.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:74:3", Kind::Strict, &array::range(0.0, 0.0, 0.5), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:75:3", Kind::Strict, &array::range(20.0, 10.0, 2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:76:3", Kind::Strict, &array::range(20.0, 10.0, 1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:77:3", Kind::Strict, &array::range(20.0, 10.0, 0.5), &Vec::<f64>::new());
+}
+
+fn t121() {   // range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0
+    check("d3-array/test/range-test.js:81:3", Kind::Strict, &array::range(5.0, 5.0, -2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:82:3", Kind::Strict, &array::range(5.0, 6.0, -2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:83:3", Kind::Strict, &array::range(10.0, 10.0, -1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:84:3", Kind::Strict, &array::range(10.0, 10.0, -0.5), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:85:3", Kind::Strict, &array::range(0.0, 0.0, -1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:86:3", Kind::Strict, &array::range(0.0, 0.0, -0.5), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:87:3", Kind::Strict, &array::range(10.0, 20.0, -2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:88:3", Kind::Strict, &array::range(10.0, 20.0, -1.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:89:3", Kind::Strict, &array::range(10.0, 20.0, -0.5), &Vec::<f64>::new());
+}
+
+fn t122() {   // range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN
+    check("d3-array/test/range-test.js:93:3", Kind::Strict, &array::range(f64::NAN, 3.0, 2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:94:3", Kind::Strict, &array::range(3.0, f64::NAN, 2.0), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:95:3", Kind::Strict, &array::range(0.0, 5.0, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:96:3", Kind::Strict, &array::range(f64::NAN, f64::NAN, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:97:3", Kind::Strict, &array::range(f64::NAN, f64::NAN, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:98:3", Kind::Strict, &array::range(f64::NAN, f64::NAN, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:99:3", Kind::Strict, &array::range(0.0, 10.0, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:100:3", Kind::Strict, &array::range(10.0, 0.0, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:101:3", Kind::Strict, &array::range(0.0, 10.0, f64::NAN), &Vec::<f64>::new());
+    check("d3-array/test/range-test.js:102:3", Kind::Strict, &array::range(10.0, 0.0, f64::NAN), &Vec::<f64>::new());
+}
+
+fn t123() {   // range-test.js: range(start, stop, step) returns an empty array if step is zero
+    check("d3-array/test/range-test.js:106:3", Kind::Strict, &array::range(0.0, 5.0, 0.0), &Vec::<f64>::new());
+}
+
+fn t124() {   // range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for fractional steps
+    check("d3-array/test/range-test.js:110:3", Kind::Strict, &array::range(0.0, 0.5, 0.1), &vec![(0.0 + (0.1 * 0.0)), (0.0 + (0.1 * 1.0)), (0.0 + (0.1 * 2.0)), (0.0 + (0.1 * 3.0)), (0.0 + (0.1 * 4.0))]);
+    check("d3-array/test/range-test.js:111:3", Kind::Strict, &array::range(0.5, 0.0, -0.1), &vec![(0.5 - (0.1 * 0.0)), (0.5 - (0.1 * 1.0)), (0.5 - (0.1 * 2.0)), (0.5 - (0.1 * 3.0)), (0.5 - (0.1 * 4.0))]);
+    check("d3-array/test/range-test.js:112:3", Kind::Strict, &array::range(-2.0, -1.2, 0.1), &vec![(-2.0 + (0.1 * 0.0)), (-2.0 + (0.1 * 1.0)), (-2.0 + (0.1 * 2.0)), (-2.0 + (0.1 * 3.0)), (-2.0 + (0.1 * 4.0)), (-2.0 + (0.1 * 5.0)), (-2.0 + (0.1 * 6.0)), (-2.0 + (0.1 * 7.0))]);
+    check("d3-array/test/range-test.js:113:3", Kind::Strict, &array::range(-1.2, -2.0, -0.1), &vec![(-1.2 - (0.1 * 0.0)), (-1.2 - (0.1 * 1.0)), (-1.2 - (0.1 * 2.0)), (-1.2 - (0.1 * 3.0)), (-1.2 - (0.1 * 4.0)), (-1.2 - (0.1 * 5.0)), (-1.2 - (0.1 * 6.0)), (-1.2 - (0.1 * 7.0))]);
+}
+
+fn t125() {   // range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very small fractional steps
+    check("d3-array/test/range-test.js:117:3", Kind::Strict, &array::range(2.1e-31, 5e-31, 1.1e-31), &vec![(2.1e-31 + (1.1e-31 * 0.0)), (2.1e-31 + (1.1e-31 * 1.0)), (2.1e-31 + (1.1e-31 * 2.0))]);
+    check("d3-array/test/range-test.js:118:3", Kind::Strict, &array::range(5e-31, 2.1e-31, -1.1e-31), &vec![(5e-31 - (1.1e-31 * 0.0)), (5e-31 - (1.1e-31 * 1.0)), (5e-31 - (1.1e-31 * 2.0))]);
+}
+
+fn t126() {   // range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very large fractional steps
+    check("d3-array/test/range-test.js:122:3", Kind::Strict, &array::range(1e300, 2e300, 0.3e300), &vec![(1e300 + (0.3e300 * 0.0)), (1e300 + (0.3e300 * 1.0)), (1e300 + (0.3e300 * 2.0)), (1e300 + (0.3e300 * 3.0))]);
+    check("d3-array/test/range-test.js:123:3", Kind::Strict, &array::range(2e300, 1e300, -0.3e300), &vec![(2e300 - (0.3e300 * 0.0)), (2e300 - (0.3e300 * 1.0)), (2e300 - (0.3e300 * 2.0)), (2e300 - (0.3e300 * 3.0))]);
+}
+
+fn t127() {   // bisect-test.js: bisect is an alias for bisectRight
+    skip("d3-array/test/bisect-test.js:5:3", "api: d3's aliases and default accessors (one name per function)");
+}
+
+fn t128() {   // bisect-test.js: bisectLeft(array, value) returns the index of an exact match
+    let mut numbers = vec![1.0, 2.0, 3.0];
+    check("d3-array/test/bisect-test.js:10:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.0)) as f64 }, &0.0);
+    check("d3-array/test/bisect-test.js:11:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 2.0)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:12:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 3.0)) as f64 }, &2.0);
+}
+
+fn t129() {   // bisect-test.js: bisectLeft(array, value) returns the index of the first match
+    let mut numbers = vec![1.0, 2.0, 2.0, 3.0];
+    check("d3-array/test/bisect-test.js:17:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.0)) as f64 }, &0.0);
+    check("d3-array/test/bisect-test.js:18:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 2.0)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:19:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 3.0)) as f64 }, &3.0);
+}
+
+fn t130() {   // bisect-test.js: bisectLeft(empty, value) returns zero
+    check("d3-array/test/bisect-test.js:23:3", Kind::Strict, &{ let v_ = Vec::<f64>::new(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.0)) as f64 }, &0.0);
+}
+
+fn t131() {   // bisect-test.js: bisectLeft(array, value) returns the insertion point of a non-exact match
+    let mut numbers = vec![1.0, 2.0, 3.0];
+    check("d3-array/test/bisect-test.js:28:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 0.5)) as f64 }, &0.0);
+    check("d3-array/test/bisect-test.js:29:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.5)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:30:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 2.5)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:31:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 3.5)) as f64 }, &3.0);
+}
+
+fn t132() {   // bisect-test.js: bisectLeft(array, value) has undefined behavior if the search value is unorderable
+}
+
+fn t133() {   // bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound
+    let mut numbers = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+    check("d3-array/test/bisect-test.js:43:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 0.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:44:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:45:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 2.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:46:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 3.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:47:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 4.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:48:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 5.0)) as f64 }, &4.0);
+    check("d3-array/test/bisect-test.js:49:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 6.0)) as f64 }, &5.0);
+}
+
+fn t134() {   // bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds
+    let mut numbers = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+    check("d3-array/test/bisect-test.js:54:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 0.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:55:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 1.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:56:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 2.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:57:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 3.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:58:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 4.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:59:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 5.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:60:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_left(&v_[lo_..(3.0) as usize], 6.0)) as f64 }, &3.0);
+}
+
+fn t135() {   // bisect-test.js: bisectLeft(array, value) handles large sparse d3
+    skip("d3-array/test/bisect-test.js:71:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:72:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:73:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:74:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:75:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:76:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:77:3", "js: a sparse array");
+}
+
+fn t136() {   // bisect-test.js: bisectRight(array, value) returns the index after an exact match
+    let mut numbers = vec![1.0, 2.0, 3.0];
+    check("d3-array/test/bisect-test.js:82:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 1.0)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:83:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 2.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:84:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 3.0)) as f64 }, &3.0);
+}
+
+fn t137() {   // bisect-test.js: bisectRight(array, value) returns the index after the last match
+    let mut numbers = vec![1.0, 2.0, 2.0, 3.0];
+    check("d3-array/test/bisect-test.js:89:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 1.0)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:90:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 2.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:91:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 3.0)) as f64 }, &4.0);
+}
+
+fn t138() {   // bisect-test.js: bisectRight(empty, value) returns zero
+    check("d3-array/test/bisect-test.js:95:3", Kind::Strict, &{ let v_ = Vec::<f64>::new(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 1.0)) as f64 }, &0.0);
+}
+
+fn t139() {   // bisect-test.js: bisectRight(array, value) returns the insertion point of a non-exact match
+    let mut numbers = vec![1.0, 2.0, 3.0];
+    check("d3-array/test/bisect-test.js:100:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 0.5)) as f64 }, &0.0);
+    check("d3-array/test/bisect-test.js:101:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 1.5)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:102:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 2.5)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:103:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 3.5)) as f64 }, &3.0);
+}
+
+fn t140() {   // bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound
+    let mut numbers = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+    check("d3-array/test/bisect-test.js:108:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 0.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:109:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 1.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:110:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 2.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:111:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 3.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:112:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 4.0)) as f64 }, &4.0);
+    check("d3-array/test/bisect-test.js:113:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 5.0)) as f64 }, &5.0);
+    check("d3-array/test/bisect-test.js:114:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 6.0)) as f64 }, &5.0);
+}
+
+fn t141() {   // bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds
+    let mut numbers = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+    check("d3-array/test/bisect-test.js:119:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 0.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:120:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 1.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:121:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 2.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:122:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 3.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:123:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 4.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:124:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 5.0)) as f64 }, &3.0);
+    check("d3-array/test/bisect-test.js:125:3", Kind::Strict, &{ let v_ = numbers.clone(); let lo_ = (2.0) as usize; (lo_ + array::bisect_right(&v_[lo_..(3.0) as usize], 6.0)) as f64 }, &3.0);
+}
+
+fn t142() {   // bisect-test.js: bisectRight(array, value) handles large sparse d3
+    skip("d3-array/test/bisect-test.js:136:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:137:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:138:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:139:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:140:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:141:3", "js: a sparse array");
+    skip("d3-array/test/bisect-test.js:142:3", "js: a sparse array");
+}
+
+fn t143() {   // bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right
+    let mut values = [Some(1.0), Some(2.0), Option::<f64>::None, Option::<f64>::None, Some(f64::NAN)];
+    check("d3-array/test/bisect-test.js:147:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.0)) as f64 }, &0.0);
+    check("d3-array/test/bisect-test.js:148:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 2.0)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:149:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &5.0);
+    check("d3-array/test/bisect-test.js:150:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &5.0);
+    check("d3-array/test/bisect-test.js:151:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &5.0);
+}
+
+fn t144() {   // bisect-test.js: bisectLeft(array, value, lo, hi) keeps comparable values to the left
+    let mut values = [Option::<f64>::None, Option::<f64>::None, Some(f64::NAN)];
+    check("d3-array/test/bisect-test.js:156:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 1.0)) as f64 }, &0.0);
+    check("d3-array/test/bisect-test.js:157:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_left(&v_[lo_..v_.len()], 2.0)) as f64 }, &0.0);
+}
+
+fn t145() {   // bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right
+    let mut values = [Some(1.0), Some(2.0), Option::<f64>::None, Option::<f64>::None];
+    check("d3-array/test/bisect-test.js:162:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 1.0)) as f64 }, &1.0);
+    check("d3-array/test/bisect-test.js:163:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], 2.0)) as f64 }, &2.0);
+    check("d3-array/test/bisect-test.js:164:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &4.0);
+    check("d3-array/test/bisect-test.js:165:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &4.0);
+    check("d3-array/test/bisect-test.js:166:3", Kind::Strict, &{ let v_ = values.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(); let lo_ = 0; (lo_ + array::bisect_right(&v_[lo_..v_.len()], f64::NAN)) as f64 }, &4.0);
 }
 
 pub const TESTS: &[Test] = &[
@@ -617,6 +1107,70 @@ pub const TESTS: &[Test] = &[
     Test { name: "deviation-test.js: deviation(array, f) ignores null, undefined and NaN", run: t79 },
     Test { name: "deviation-test.js: deviation(array, f) can handle large numbers without overflowing", run: t80 },
     Test { name: "deviation-test.js: deviation(array, f) returns undefined if the array has fewer than two numbers", run: t81 },
+    Test { name: "median-test.js: median(array) returns the median value for numbers", run: t82 },
+    Test { name: "median-test.js: median(array) ignores null, undefined and NaN", run: t83 },
+    Test { name: "median-test.js: median(array) can handle large numbers without overflowing", run: t84 },
+    Test { name: "median-test.js: median(array) returns undefined if the array contains no observed values", run: t85 },
+    Test { name: "median-test.js: median(array) coerces strings to numbers", run: t86 },
+    Test { name: "median-test.js: median(array) coerces values exactly once", run: t87 },
+    Test { name: "median-test.js: median(array, f) returns the median value for numbers", run: t88 },
+    Test { name: "median-test.js: median(array, f) ignores null, undefined and NaN", run: t89 },
+    Test { name: "median-test.js: median(array, f) can handle large numbers without overflowing", run: t90 },
+    Test { name: "median-test.js: median(array, f) returns undefined if the array contains no observed values", run: t91 },
+    Test { name: "median-test.js: median(array, f) coerces strings to numbers", run: t92 },
+    Test { name: "median-test.js: median(array, f) coerces values exactly once", run: t93 },
+    Test { name: "median-test.js: median(array, f) passes the accessor d, i, and array", run: t94 },
+    Test { name: "median-test.js: median(array, f) uses the undefined context", run: t95 },
+    Test { name: "median-test.js: medianIndex(array) returns the index", run: t96 },
+    Test { name: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", run: t97 },
+    Test { name: "quantile-test.js: quantile() accepts an iterable", run: t98 },
+    Test { name: "quantile-test.js: quantile(array, p) uses the R-7 method", run: t99 },
+    Test { name: "quantile-test.js: quantile(array, p) coerces values to numbers", run: t100 },
+    Test { name: "quantile-test.js: quantile(array, p) returns an exact value for integer p-values", run: t101 },
+    Test { name: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", run: t102 },
+    Test { name: "quantile-test.js: quantile(array, p) returns the first value for p = 0", run: t103 },
+    Test { name: "quantile-test.js: quantile(array, p) returns the last value for p = 1", run: t104 },
+    Test { name: "quantile-test.js: quantile(array, p) returns undefined if p is not a number", run: t105 },
+    Test { name: "quantile-test.js: quantile(array, p, f) observes the specified accessor", run: t106 },
+    Test { name: "quantile-test.js: quantileIndex(array, p) returns the index", run: t107 },
+    Test { name: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", run: t108 },
+    Test { name: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", run: t109 },
+    Test { name: "quantile-test.js: quantileIndex(array, 0.5) handles undefined values", run: t110 },
+    Test { name: "quantile-test.js: quantileIndex(array, 0.5) returns the first of equivalent values", run: t111 },
+    Test { name: "range-test.js: range(stop) returns [0, 1, 2, … stop - 1]", run: t112 },
+    Test { name: "range-test.js: range(stop) returns an empty array if stop <= 0", run: t113 },
+    Test { name: "range-test.js: range(stop) returns an empty array if stop is NaN", run: t114 },
+    Test { name: "range-test.js: range(start, stop) returns [start, start + 1, … stop - 1]", run: t115 },
+    Test { name: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", run: t116 },
+    Test { name: "range-test.js: range(start, stop) returns an empty array if start >= stop", run: t117 },
+    Test { name: "range-test.js: range(start, stop, step) returns [start, start + step, start + 2 * step, … stop - step]", run: t118 },
+    Test { name: "range-test.js: range(start, stop, step) allows a negative step", run: t119 },
+    Test { name: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", run: t120 },
+    Test { name: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", run: t121 },
+    Test { name: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", run: t122 },
+    Test { name: "range-test.js: range(start, stop, step) returns an empty array if step is zero", run: t123 },
+    Test { name: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for fractional steps", run: t124 },
+    Test { name: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very small fractional steps", run: t125 },
+    Test { name: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very large fractional steps", run: t126 },
+    Test { name: "bisect-test.js: bisect is an alias for bisectRight", run: t127 },
+    Test { name: "bisect-test.js: bisectLeft(array, value) returns the index of an exact match", run: t128 },
+    Test { name: "bisect-test.js: bisectLeft(array, value) returns the index of the first match", run: t129 },
+    Test { name: "bisect-test.js: bisectLeft(empty, value) returns zero", run: t130 },
+    Test { name: "bisect-test.js: bisectLeft(array, value) returns the insertion point of a non-exact match", run: t131 },
+    Test { name: "bisect-test.js: bisectLeft(array, value) has undefined behavior if the search value is unorderable", run: t132 },
+    Test { name: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", run: t133 },
+    Test { name: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", run: t134 },
+    Test { name: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", run: t135 },
+    Test { name: "bisect-test.js: bisectRight(array, value) returns the index after an exact match", run: t136 },
+    Test { name: "bisect-test.js: bisectRight(array, value) returns the index after the last match", run: t137 },
+    Test { name: "bisect-test.js: bisectRight(empty, value) returns zero", run: t138 },
+    Test { name: "bisect-test.js: bisectRight(array, value) returns the insertion point of a non-exact match", run: t139 },
+    Test { name: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", run: t140 },
+    Test { name: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", run: t141 },
+    Test { name: "bisect-test.js: bisectRight(array, value) handles large sparse d3", run: t142 },
+    Test { name: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", run: t143 },
+    Test { name: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps comparable values to the left", run: t144 },
+    Test { name: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", run: t145 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -904,4 +1458,283 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-array/test/deviation-test.js:52:3", test: "deviation-test.js: deviation(array, f) returns undefined if the array has fewer than two numbers", skip: None },
     Assertion { id: "d3-array/test/deviation-test.js:53:3", test: "deviation-test.js: deviation(array, f) returns undefined if the array has fewer than two numbers", skip: None },
     Assertion { id: "d3-array/test/deviation-test.js:54:3", test: "deviation-test.js: deviation(array, f) returns undefined if the array has fewer than two numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:6:3", test: "median-test.js: median(array) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:7:3", test: "median-test.js: median(array) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:8:3", test: "median-test.js: median(array) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:9:3", test: "median-test.js: median(array) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:10:3", test: "median-test.js: median(array) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:14:3", test: "median-test.js: median(array) ignores null, undefined and NaN", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:15:3", test: "median-test.js: median(array) ignores null, undefined and NaN", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:16:3", test: "median-test.js: median(array) ignores null, undefined and NaN", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:20:3", test: "median-test.js: median(array) can handle large numbers without overflowing", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:21:3", test: "median-test.js: median(array) can handle large numbers without overflowing", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:25:3", test: "median-test.js: median(array) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:26:3", test: "median-test.js: median(array) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:27:3", test: "median-test.js: median(array) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:28:3", test: "median-test.js: median(array) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:29:3", test: "median-test.js: median(array) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:33:3", test: "median-test.js: median(array) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:34:3", test: "median-test.js: median(array) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:35:3", test: "median-test.js: median(array) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:36:3", test: "median-test.js: median(array) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:37:3", test: "median-test.js: median(array) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:38:3", test: "median-test.js: median(array) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:43:3", test: "median-test.js: median(array) coerces values exactly once", skip: Some("js: new OneTimeNumber (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:44:3", test: "median-test.js: median(array) coerces values exactly once", skip: Some("js: new OneTimeNumber (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:48:3", test: "median-test.js: median(array, f) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:49:3", test: "median-test.js: median(array, f) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:50:3", test: "median-test.js: median(array, f) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:51:3", test: "median-test.js: median(array, f) returns the median value for numbers", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:55:3", test: "median-test.js: median(array, f) ignores null, undefined and NaN", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:56:3", test: "median-test.js: median(array, f) ignores null, undefined and NaN", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:57:3", test: "median-test.js: median(array, f) ignores null, undefined and NaN", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:61:3", test: "median-test.js: median(array, f) can handle large numbers without overflowing", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:62:3", test: "median-test.js: median(array, f) can handle large numbers without overflowing", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:66:3", test: "median-test.js: median(array, f) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:67:3", test: "median-test.js: median(array, f) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:68:3", test: "median-test.js: median(array, f) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:69:3", test: "median-test.js: median(array, f) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:70:3", test: "median-test.js: median(array, f) returns undefined if the array contains no observed values", skip: None },
+    Assertion { id: "d3-array/test/median-test.js:74:3", test: "median-test.js: median(array, f) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:75:3", test: "median-test.js: median(array, f) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:76:3", test: "median-test.js: median(array, f) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:77:3", test: "median-test.js: median(array, f) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:78:3", test: "median-test.js: median(array, f) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:79:3", test: "median-test.js: median(array, f) coerces strings to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:84:3", test: "median-test.js: median(array, f) coerces values exactly once", skip: Some("js: object argument (valueOf coercion) (in box)") },
+    Assertion { id: "d3-array/test/median-test.js:85:3", test: "median-test.js: median(array, f) coerces values exactly once", skip: Some("js: object argument (valueOf coercion) (in box)") },
+    Assertion { id: "d3-array/test/median-test.js:92:3", test: "median-test.js: median(array, f) passes the accessor d, i, and array", skip: Some("js: an accessor other than one property read (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:98:3", test: "median-test.js: median(array, f) uses the undefined context", skip: Some("js: an accessor other than one property read (coercion)") },
+    Assertion { id: "d3-array/test/median-test.js:102:3", test: "median-test.js: medianIndex(array) returns the index", skip: Some("api: medianIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/median-test.js:103:3", test: "median-test.js: medianIndex(array) returns the index", skip: Some("api: medianIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/median-test.js:104:3", test: "median-test.js: medianIndex(array) returns the index", skip: Some("api: medianIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/median-test.js:105:3", test: "median-test.js: medianIndex(array) returns the index", skip: Some("api: medianIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/median-test.js:106:3", test: "median-test.js: medianIndex(array) returns the index", skip: Some("api: medianIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/median-test.js:107:3", test: "median-test.js: medianIndex(array) returns the index", skip: Some("api: medianIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:5:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:6:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:7:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:8:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:9:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:10:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:11:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:12:3", test: "quantile-test.js: quantileSorted(array, p) requires sorted numeric input, quantile doesn't", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:16:3", test: "quantile-test.js: quantile() accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:21:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:22:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:23:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:24:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:25:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:27:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:28:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:29:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:30:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:31:3", test: "quantile-test.js: quantile(array, p) uses the R-7 method", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:36:3", test: "quantile-test.js: quantile(array, p) coerces values to numbers", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:37:3", test: "quantile-test.js: quantile(array, p) coerces values to numbers", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:38:3", test: "quantile-test.js: quantile(array, p) coerces values to numbers", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:40:3", test: "quantile-test.js: quantile(array, p) coerces values to numbers", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:41:3", test: "quantile-test.js: quantile(array, p) coerces values to numbers", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:42:3", test: "quantile-test.js: quantile(array, p) coerces values to numbers", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:47:3", test: "quantile-test.js: quantile(array, p) returns an exact value for integer p-values", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:48:3", test: "quantile-test.js: quantile(array, p) returns an exact value for integer p-values", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:53:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:54:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:55:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:56:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:57:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:58:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:59:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:60:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:61:3", test: "quantile-test.js: quantile(array, p) returns the expected value for integer or fractional p", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:66:3", test: "quantile-test.js: quantile(array, p) returns the first value for p = 0", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:71:3", test: "quantile-test.js: quantile(array, p) returns the last value for p = 1", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:75:3", test: "quantile-test.js: quantile(array, p) returns undefined if p is not a number", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:76:3", test: "quantile-test.js: quantile(array, p) returns undefined if p is not a number", skip: Some("js: argument is not a number (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:77:3", test: "quantile-test.js: quantile(array, p) returns undefined if p is not a number", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:78:3", test: "quantile-test.js: quantile(array, p) returns undefined if p is not a number", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-array/test/quantile-test.js:82:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:83:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:84:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:85:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:86:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:87:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:88:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:89:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:90:3", test: "quantile-test.js: quantile(array, p, f) observes the specified accessor", skip: None },
+    Assertion { id: "d3-array/test/quantile-test.js:94:3", test: "quantile-test.js: quantileIndex(array, p) returns the index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:95:3", test: "quantile-test.js: quantileIndex(array, p) returns the index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:96:3", test: "quantile-test.js: quantileIndex(array, p) returns the index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:97:3", test: "quantile-test.js: quantileIndex(array, p) returns the index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:98:3", test: "quantile-test.js: quantileIndex(array, p) returns the index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:99:3", test: "quantile-test.js: quantileIndex(array, p) returns the index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:103:3", test: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:104:3", test: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:105:3", test: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:106:3", test: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:107:3", test: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:108:3", test: "quantile-test.js: quantileIndex(array, 0) returns the minimum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:112:3", test: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:113:3", test: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:114:3", test: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:115:3", test: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:116:3", test: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:117:3", test: "quantile-test.js: quantileIndex(array, 1) returns the maximum index", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:121:3", test: "quantile-test.js: quantileIndex(array, 0.5) handles undefined values", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:122:3", test: "quantile-test.js: quantileIndex(array, 0.5) handles undefined values", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/quantile-test.js:126:3", test: "quantile-test.js: quantileIndex(array, 0.5) returns the first of equivalent values", skip: Some("api: quantileIndex (not in v0.1)") },
+    Assertion { id: "d3-array/test/range-test.js:5:3", test: "range-test.js: range(stop) returns [0, 1, 2, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:6:3", test: "range-test.js: range(stop) returns [0, 1, 2, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:7:3", test: "range-test.js: range(stop) returns [0, 1, 2, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:8:3", test: "range-test.js: range(stop) returns [0, 1, 2, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:12:3", test: "range-test.js: range(stop) returns an empty array if stop <= 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:13:3", test: "range-test.js: range(stop) returns an empty array if stop <= 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:14:3", test: "range-test.js: range(stop) returns an empty array if stop <= 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:18:3", test: "range-test.js: range(stop) returns an empty array if stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:19:3", test: "range-test.js: range(stop) returns an empty array if stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:23:3", test: "range-test.js: range(start, stop) returns [start, start + 1, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:24:3", test: "range-test.js: range(start, stop) returns [start, start + 1, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:25:3", test: "range-test.js: range(start, stop) returns [start, start + 1, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:26:3", test: "range-test.js: range(start, stop) returns [start, start + 1, … stop - 1]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:30:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:31:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:32:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:33:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:34:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:35:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:36:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:37:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:38:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:39:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:40:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:41:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:42:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:43:3", test: "range-test.js: range(start, stop) returns an empty array if start or stop is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:47:3", test: "range-test.js: range(start, stop) returns an empty array if start >= stop", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:48:3", test: "range-test.js: range(start, stop) returns an empty array if start >= stop", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:49:3", test: "range-test.js: range(start, stop) returns an empty array if start >= stop", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:50:3", test: "range-test.js: range(start, stop) returns an empty array if start >= stop", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:51:3", test: "range-test.js: range(start, stop) returns an empty array if start >= stop", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:55:3", test: "range-test.js: range(start, stop, step) returns [start, start + step, start + 2 * step, … stop - step]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:56:3", test: "range-test.js: range(start, stop, step) returns [start, start + step, start + 2 * step, … stop - step]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:57:3", test: "range-test.js: range(start, stop, step) returns [start, start + step, start + 2 * step, … stop - step]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:58:3", test: "range-test.js: range(start, stop, step) returns [start, start + step, start + 2 * step, … stop - step]", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:62:3", test: "range-test.js: range(start, stop, step) allows a negative step", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:63:3", test: "range-test.js: range(start, stop, step) allows a negative step", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:64:3", test: "range-test.js: range(start, stop, step) allows a negative step", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:65:3", test: "range-test.js: range(start, stop, step) allows a negative step", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:69:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:70:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:71:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:72:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:73:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:74:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:75:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:76:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:77:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step > 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:81:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:82:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:83:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:84:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:85:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:86:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:87:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:88:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:89:3", test: "range-test.js: range(start, stop, step) returns an empty array if start >= stop and step < 0", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:93:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:94:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:95:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:96:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:97:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:98:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:99:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:100:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:101:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:102:3", test: "range-test.js: range(start, stop, step) returns an empty array if start, stop or step is NaN", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:106:3", test: "range-test.js: range(start, stop, step) returns an empty array if step is zero", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:110:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:111:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:112:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:113:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:117:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very small fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:118:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very small fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:122:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very large fractional steps", skip: None },
+    Assertion { id: "d3-array/test/range-test.js:123:3", test: "range-test.js: range(start, stop, step) returns exactly [start + step * i, …] for very large fractional steps", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:5:3", test: "bisect-test.js: bisect is an alias for bisectRight", skip: Some("api: d3's aliases and default accessors (one name per function)") },
+    Assertion { id: "d3-array/test/bisect-test.js:10:3", test: "bisect-test.js: bisectLeft(array, value) returns the index of an exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:11:3", test: "bisect-test.js: bisectLeft(array, value) returns the index of an exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:12:3", test: "bisect-test.js: bisectLeft(array, value) returns the index of an exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:17:3", test: "bisect-test.js: bisectLeft(array, value) returns the index of the first match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:18:3", test: "bisect-test.js: bisectLeft(array, value) returns the index of the first match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:19:3", test: "bisect-test.js: bisectLeft(array, value) returns the index of the first match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:23:3", test: "bisect-test.js: bisectLeft(empty, value) returns zero", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:28:3", test: "bisect-test.js: bisectLeft(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:29:3", test: "bisect-test.js: bisectLeft(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:30:3", test: "bisect-test.js: bisectLeft(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:31:3", test: "bisect-test.js: bisectLeft(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:43:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:44:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:45:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:46:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:47:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:48:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:49:3", test: "bisect-test.js: bisectLeft(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:54:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:55:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:56:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:57:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:58:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:59:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:60:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:71:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:72:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:73:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:74:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:75:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:76:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:77:3", test: "bisect-test.js: bisectLeft(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:82:3", test: "bisect-test.js: bisectRight(array, value) returns the index after an exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:83:3", test: "bisect-test.js: bisectRight(array, value) returns the index after an exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:84:3", test: "bisect-test.js: bisectRight(array, value) returns the index after an exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:89:3", test: "bisect-test.js: bisectRight(array, value) returns the index after the last match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:90:3", test: "bisect-test.js: bisectRight(array, value) returns the index after the last match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:91:3", test: "bisect-test.js: bisectRight(array, value) returns the index after the last match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:95:3", test: "bisect-test.js: bisectRight(empty, value) returns zero", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:100:3", test: "bisect-test.js: bisectRight(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:101:3", test: "bisect-test.js: bisectRight(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:102:3", test: "bisect-test.js: bisectRight(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:103:3", test: "bisect-test.js: bisectRight(array, value) returns the insertion point of a non-exact match", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:108:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:109:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:110:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:111:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:112:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:113:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:114:3", test: "bisect-test.js: bisectRight(array, value, lo) observes the specified lower bound", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:119:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:120:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:121:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:122:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:123:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:124:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:125:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) observes the specified bounds", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:136:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:137:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:138:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:139:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:140:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:141:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:142:3", test: "bisect-test.js: bisectRight(array, value) handles large sparse d3", skip: Some("js: a sparse array") },
+    Assertion { id: "d3-array/test/bisect-test.js:147:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:148:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:149:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:150:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:151:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:156:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps comparable values to the left", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:157:3", test: "bisect-test.js: bisectLeft(array, value, lo, hi) keeps comparable values to the left", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:162:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:163:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:164:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:165:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
+    Assertion { id: "d3-array/test/bisect-test.js:166:3", test: "bisect-test.js: bisectRight(array, value, lo, hi) keeps non-comparable values to the right", skip: None },
 ];

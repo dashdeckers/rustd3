@@ -1,7 +1,7 @@
 // d3-array's statistics, range, bisect, bin and threshold rules over arrays
 // of numbers. An array argument is a Vec<f64> whose null and undefined
-// elements are NaN, which d3 skips as it skips NaN; elsewhere such an array
-// is [Option<f64>; N] (t "maybes", NaN-filled `items`), d3's undefined. An
+// elements are NaN, which d3 skips as it skips NaN; written as a literal,
+// such an array is [Option<f64>; N] (t "maybes"), d3's undefined. An
 // accessor reading one property, `(d) => d.x` or a file-level `function
 // unbox(b) { return b.value; }`, is applied at translation time to object
 // literals or to `[…].map(box)` with box a function returning
@@ -30,8 +30,8 @@ function num(node, ctx, nullIsNaN = false) {
 /** An array of numbers as Vec<f64> code, projected through `accessor` first. */
 export function data(node, ctx, accessor) {
   const e = val(ex(accessor ? project(node, accessor, ctx) : node, ctx));
-  if (e.t === "vec") return e.c;
-  if (e.t === "maybes") return `vec![${e.items.join(", ")}]`;
+  if (e.t === "vec") return /^\w+$/.test(e.c) ? `${e.c}.clone()` : e.c; // a variable stays usable
+  if (e.t === "maybes") return `${e.c}.iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>()`;
   return skip(`js: ${e.t} values (coercion)`);
 }
 
@@ -109,8 +109,8 @@ export default {
       return { c: `vec![${elements.map((e) => ex(e, ctx).c).join(", ")}]`, t: "buckets" };
     }
     if (!elements.some((e) => e && missing(e))) return undefined;
-    const items = elements.map((e) => (!e ? skip("js: array hole") : missing(e) ? "f64::NAN" : needNum(val(ex(e, ctx)), "array element")));
-    return { c: `[${elements.map((e, i) => (missing(e) ? "Option::<f64>::None" : `Some(${items[i]})`)).join(", ")}]`, t: "maybes", items };
+    const items = elements.map((e) => (!e ? skip("js: array hole") : missing(e) ? "Option::<f64>::None" : `Some(${needNum(val(ex(e, ctx)), "array element")})`));
+    return { c: `[${items.join(", ")}]`, t: "maybes" };
   },
   call(node, ctx) {
     const name = calleeName(node, ctx);
@@ -150,7 +150,7 @@ export default {
   apply(target, args) {
     if (target.t !== "bin") return undefined;
     const [e] = args;
-    const values = e?.t === "maybes" ? `vec![${e.items.join(", ")}]` : e?.t === "vec" ? e.c : skip(`js: ${e?.t} data (coercion)`);
+    const values = e?.t === "maybes" ? `${e.c}.iter().map(|v| v.unwrap_or(f64::NAN)).collect()` : e?.t === "vec" ? e.c : skip(`js: ${e?.t} data (coercion)`);
     const bucket = "((b.x0, b.x1), b.indices.iter().map(|&i| d_[i]).collect::<Vec<f64>>())";
     return { c: `{ let d_: Vec<f64> = ${values}; ${target.c}.layout(&d_).iter().map(|b| ${bucket}).collect::<Vec<_>>() }`, t: "buckets" };
   },
