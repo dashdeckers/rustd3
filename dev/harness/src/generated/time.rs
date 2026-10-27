@@ -580,6 +580,1958 @@ fn t98() {   // utcHour-test.js: utcHour.every(step) returns every stepth hour, 
     check("d3-time/test/utcHour-test.js:125:3", Kind::Strict, &tss(&Interval::Hour(1).every(12_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 12.0, 47.0]), utc(&[2008.0, 11.0, 31.0, 13.0, 57.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2008.0, 11.0, 31.0, 0.0]), utc(&[2008.0, 11.0, 31.0, 12.0])]));
 }
 
+fn t99() {   // day-test.js: timeDays in an alias for timeDay.range
+    skip("d3-time/test/day-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t100() {   // day-test.js: timeDay() is equivalent to timeDay.floor(new Date)
+    skip("d3-time/test/day-test.js:11:3", "api: ambient clock (new Date)");
+}
+
+fn t101() {   // day-test.js: timeDay(date) is equivalent to timeDay.floor(date)
+    skip("d3-time/test/day-test.js:16:3", "api: ambient clock (new Date)");
+}
+
+fn t102() {   // day-test.js: timeDay.floor(date) returns days
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:20:3", Kind::Strict, &ts(Interval::Day(1).floor(local(&la, &[2010.0, 11.0, 31.0, 23.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/day-test.js:21:3", Kind::Strict, &ts(Interval::Day(1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/day-test.js:22:3", Kind::Strict, &ts(Interval::Day(1).floor(local(&la, &[2011.0, 0.0, 1.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t103() {   // day-test.js: timeDay.floor(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:26:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 12.0])));
+    check("d3-time/test/day-test.js:27:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:28:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:29:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:30:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:31:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:32:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:33:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+}
+
+fn t104() {   // day-test.js: timeDay.floor(date) handles years in the first century
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:37:3", Kind::Strict, &ts(Interval::Day(1).floor(local(&la, &[9.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[9.0, 10.0, 6.0])));
+}
+
+fn t105() {   // day-test.js: timeDay.round(date) returns days
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:41:3", Kind::Strict, &ts(Interval::Day(1).round(local(&la, &[2010.0, 11.0, 30.0, 13.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/day-test.js:42:3", Kind::Strict, &ts(Interval::Day(1).round(local(&la, &[2010.0, 11.0, 30.0, 11.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+}
+
+fn t106() {   // day-test.js: timeDay.round(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:46:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 2.0, 13.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:47:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 2.0, 13.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:48:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 2.0, 13.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:49:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 2.0, 13.0, 20.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 14.0])));
+    check("d3-time/test/day-test.js:50:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:51:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 10.0, 6.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:52:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 10.0, 6.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:53:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2011.0, 10.0, 6.0, 20.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 7.0])));
+}
+
+fn t107() {   // day-test.js: timeDay.round(date) handles midnight in leap years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:57:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+    check("d3-time/test/day-test.js:58:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+}
+
+fn t108() {   // day-test.js: timeDay.ceil(date) returns days
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:62:3", Kind::Strict, &ts(Interval::Day(1).ceil(local(&la, &[2010.0, 11.0, 30.0, 23.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/day-test.js:63:3", Kind::Strict, &ts(Interval::Day(1).ceil(local(&la, &[2010.0, 11.0, 31.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/day-test.js:64:3", Kind::Strict, &ts(Interval::Day(1).ceil(local(&la, &[2010.0, 11.0, 31.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t109() {   // day-test.js: timeDay.ceil(date) observes start of daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:68:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:69:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/day-test.js:70:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 14.0])));
+    check("d3-time/test/day-test.js:71:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 14.0])));
+}
+
+fn t110() {   // day-test.js: timeDay.ceil(date) observes end of daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:75:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+    check("d3-time/test/day-test.js:76:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 7.0])));
+    check("d3-time/test/day-test.js:77:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 7.0])));
+    check("d3-time/test/day-test.js:78:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 7.0])));
+}
+
+fn t111() {   // day-test.js: timeDay.ceil(date) handles midnight for leap years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:82:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+    check("d3-time/test/day-test.js:83:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+}
+
+fn t112() {   // day-test.js: timeDay.offset(date) is an alias for timeDay.offset(date, 1)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:87:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t113() {   // day-test.js: timeDay.offset(date, step) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Day(1).offset(d, 1_i64, &la);
+    check("d3-time/test/day-test.js:93:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t114() {   // day-test.js: timeDay.offset(date, step) does not round the passed-in date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:97:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/day-test.js:98:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 29.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t115() {   // day-test.js: timeDay.offset(date, step) allows step to be negative
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:102:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+    check("d3-time/test/day-test.js:103:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+    check("d3-time/test/day-test.js:104:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+}
+
+fn t116() {   // day-test.js: timeDay.offset(date, step) allows step to be positive
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:108:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/day-test.js:109:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 30.0]), 2_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/day-test.js:110:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 30.0]), 1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+}
+
+fn t117() {   // day-test.js: timeDay.offset(date, step) allows step to be zero
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:114:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/day-test.js:115:3", Kind::Strict, &ts(Interval::Day(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t118() {   // day-test.js: timeDay.range(start, stop) returns days between start (inclusive) and stop (exclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:119:3", Kind::Strict, &tss(&Interval::Day(1).range(local(&la, &[2011.0, 10.0, 4.0]), local(&la, &[2011.0, 10.0, 10.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 10.0, 4.0]), local(&la, &[2011.0, 10.0, 5.0]), local(&la, &[2011.0, 10.0, 6.0]), local(&la, &[2011.0, 10.0, 7.0]), local(&la, &[2011.0, 10.0, 8.0]), local(&la, &[2011.0, 10.0, 9.0])]));
+}
+
+fn t119() {   // day-test.js: timeDay.range(start, stop) returns days
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:130:3", Kind::Strict, &tss(&Interval::Day(1).range(local(&la, &[2011.0, 10.0, 4.0, 2.0]), local(&la, &[2011.0, 10.0, 10.0, 13.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 10.0, 5.0]), local(&la, &[2011.0, 10.0, 6.0]), local(&la, &[2011.0, 10.0, 7.0]), local(&la, &[2011.0, 10.0, 8.0]), local(&la, &[2011.0, 10.0, 9.0]), local(&la, &[2011.0, 10.0, 10.0])]));
+}
+
+fn t120() {   // day-test.js: timeDay.range(start, stop) coerces start and stop to dates
+    skip("d3-time/test/day-test.js:141:3", "js: a number as a date (coercion)");
+}
+
+fn t121() {   // day-test.js: timeDay.range(start, stop) returns the empty array for invalid dates
+    skip("d3-time/test/day-test.js:149:3", "js: an invalid date (new Date(NaN))");
+}
+
+fn t122() {   // day-test.js: timeDay.range(start, stop) returns the empty array if start >= stop
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:153:3", Kind::Strict, &tss(&Interval::Day(1).range(local(&la, &[2011.0, 10.0, 10.0]), local(&la, &[2011.0, 10.0, 4.0]), &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+    check("d3-time/test/day-test.js:154:3", Kind::Strict, &tss(&Interval::Day(1).range(local(&la, &[2011.0, 10.0, 10.0]), local(&la, &[2011.0, 10.0, 10.0]), &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+}
+
+fn t123() {   // day-test.js: timeDay.range(start, stop, step) returns every step day
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:158:3", Kind::Strict, &tss(&Interval::Day(1).range_step(local(&la, &[2011.0, 10.0, 4.0, 2.0]), local(&la, &[2011.0, 10.0, 14.0, 13.0]), 3_u32, &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 10.0, 5.0]), local(&la, &[2011.0, 10.0, 8.0]), local(&la, &[2011.0, 10.0, 11.0]), local(&la, &[2011.0, 10.0, 14.0])]));
+}
+
+fn t124() {   // day-test.js: timeDay.range(start, stop, step) returns the empty array if step is zero, negative or NaN
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:167:3", Kind::Strict, &tss(&Interval::Day(1).range_step(local(&la, &[2011.0, 0.0, 1.0, 0.0]), local(&la, &[2011.0, 4.0, 9.0, 0.0]), 0_u32, &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+    skip("d3-time/test/day-test.js:168:3", "types: a range step below 0 (u32)");
+    skip("d3-time/test/day-test.js:169:3", "js: a range step that is not a whole number (Math.floor)");
+    skip("d3-time/test/day-test.js:170:3", "js: a NaN range step (coercion)");
+}
+
+fn t125() {   // day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:174:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0, 0.0]), local(&la, &[2011.0, 4.0, 9.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &128.0);
+    check("d3-time/test/day-test.js:175:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0, 1.0]), local(&la, &[2011.0, 4.0, 9.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &128.0);
+    check("d3-time/test/day-test.js:176:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2010.0, 11.0, 31.0, 23.0]), local(&la, &[2011.0, 4.0, 9.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &129.0);
+    check("d3-time/test/day-test.js:177:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0, 0.0]), local(&la, &[2011.0, 4.0, 8.0, 23.0]), &la).map_or(f64::NAN, |n| n as f64), &127.0);
+    check("d3-time/test/day-test.js:178:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0, 0.0]), local(&la, &[2011.0, 4.0, 9.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &128.0);
+}
+
+fn t126() {   // day-test.js: timeDay.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:182:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/day-test.js:183:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/day-test.js:184:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/day-test.js:185:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &309.0);
+    check("d3-time/test/day-test.js:186:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &309.0);
+    check("d3-time/test/day-test.js:187:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &309.0);
+}
+
+fn t127() {   // day-test.js: timeDay.count(start, stop) does not exhibit floating-point rounding error
+    let la = zone("America/Los_Angeles");
+    let mut date = local(&la, &[2011.0, 4.0, 9.0]);
+    check("d3-time/test/day-test.js:192:3", Kind::Strict, &Interval::Day(1).count(Interval::Year(1).floor(date, &la).expect("d3 test: a valid date"), date, &la).map_or(f64::NAN, |n| n as f64), &128.0);
+}
+
+fn t128() {   // day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:196:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[1999.0, 0.0, 1.0]), local(&la, &[1999.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:197:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2000.0, 0.0, 1.0]), local(&la, &[2000.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/day-test.js:198:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2001.0, 0.0, 1.0]), local(&la, &[2001.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:199:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2002.0, 0.0, 1.0]), local(&la, &[2002.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:200:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2003.0, 0.0, 1.0]), local(&la, &[2003.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:201:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2004.0, 0.0, 1.0]), local(&la, &[2004.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/day-test.js:202:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2005.0, 0.0, 1.0]), local(&la, &[2005.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:203:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2006.0, 0.0, 1.0]), local(&la, &[2006.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:204:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2007.0, 0.0, 1.0]), local(&la, &[2007.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:205:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2008.0, 0.0, 1.0]), local(&la, &[2008.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/day-test.js:206:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:207:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2010.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/day-test.js:208:3", Kind::Strict, &Interval::Day(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &364.0);
+}
+
+fn t129() {   // day-test.js: timeDay.every(step) returns every stepth day, starting with the first day of the month
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/day-test.js:212:3", Kind::Strict, &tss(&Interval::Day(1).every(3_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2008.0, 11.0, 30.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 5.0, 23.0, 48.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2008.0, 11.0, 31.0]), local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 4.0])]));
+    check("d3-time/test/day-test.js:213:3", Kind::Strict, &tss(&Interval::Day(1).every(5_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2008.0, 11.0, 30.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 6.0, 23.0, 48.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2008.0, 11.0, 31.0]), local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 6.0])]));
+    check("d3-time/test/day-test.js:214:3", Kind::Strict, &tss(&Interval::Day(1).every(7_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2008.0, 11.0, 30.0, 0.0, 12.0]), local(&la, &[2009.0, 0.0, 8.0, 23.0, 48.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 0.0, 8.0])]));
+}
+
+fn t130() {   // utcDay-test.js: utcDays in an alias for utcDay.range
+    skip("d3-time/test/utcDay-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t131() {   // utcDay-test.js: utcDay.floor(date) returns days
+    check("d3-time/test/utcDay-test.js:10:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2010.0, 11.0, 31.0, 23.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcDay-test.js:11:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 0.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcDay-test.js:12:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 0.0, 1.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t132() {   // utcDay-test.js: utcDay.floor(date) does not observe daylight saving
+    check("d3-time/test/utcDay-test.js:16:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/utcDay-test.js:17:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/utcDay-test.js:18:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/utcDay-test.js:19:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 2.0, 13.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/utcDay-test.js:20:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 5.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+    check("d3-time/test/utcDay-test.js:21:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 6.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+    check("d3-time/test/utcDay-test.js:22:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+    check("d3-time/test/utcDay-test.js:23:3", Kind::Strict, &ts(Interval::Day(1).floor(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+}
+
+fn t133() {   // utcDay-test.js: utcDay.round(date) returns days
+    check("d3-time/test/utcDay-test.js:27:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2010.0, 11.0, 30.0, 13.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcDay-test.js:28:3", Kind::Strict, &ts(Interval::Day(1).round(utc(&[2010.0, 11.0, 30.0, 11.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+}
+
+fn t134() {   // utcDay-test.js: utcDay.ceil(date) returns days
+    check("d3-time/test/utcDay-test.js:32:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2010.0, 11.0, 30.0, 23.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcDay-test.js:33:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2010.0, 11.0, 31.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcDay-test.js:34:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2010.0, 11.0, 31.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t135() {   // utcDay-test.js: utcDay.ceil(date) does not observe daylight saving
+    check("d3-time/test/utcDay-test.js:38:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/utcDay-test.js:39:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/utcDay-test.js:40:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/utcDay-test.js:41:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 2.0, 13.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/utcDay-test.js:42:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 5.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+    check("d3-time/test/utcDay-test.js:43:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 6.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+    check("d3-time/test/utcDay-test.js:44:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+    check("d3-time/test/utcDay-test.js:45:3", Kind::Strict, &ts(Interval::Day(1).ceil(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+}
+
+fn t136() {   // utcDay-test.js: utcDay.offset(date) is an alias for utcDay.offset(date, 1)
+    check("d3-time/test/utcDay-test.js:49:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t137() {   // utcDay-test.js: utcDay.offset(date, step) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Day(1).offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/utcDay-test.js:55:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t138() {   // utcDay-test.js: utcDay.offset(date, step) does not round the passed-in date
+    check("d3-time/test/utcDay-test.js:59:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcDay-test.js:60:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 29.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t139() {   // utcDay-test.js: utcDay.offset(date, step) allows step to be negative
+    check("d3-time/test/utcDay-test.js:64:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/utcDay-test.js:65:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2011.0, 0.0, 1.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/utcDay-test.js:66:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2011.0, 0.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+}
+
+fn t140() {   // utcDay-test.js: utcDay.offset(date, step) allows step to be positive
+    check("d3-time/test/utcDay-test.js:70:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcDay-test.js:71:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 30.0]), 2_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcDay-test.js:72:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 30.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+}
+
+fn t141() {   // utcDay-test.js: utcDay.offset(date, step) allows step to be zero
+    check("d3-time/test/utcDay-test.js:76:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcDay-test.js:77:3", Kind::Strict, &ts(Interval::Day(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t142() {   // utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcDay-test.js:81:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0, 0.0]), utc(&[2011.0, 4.0, 9.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &128.0);
+    check("d3-time/test/utcDay-test.js:82:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0, 1.0]), utc(&[2011.0, 4.0, 9.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &128.0);
+    check("d3-time/test/utcDay-test.js:83:3", Kind::Strict, &Interval::Day(1).count(utc(&[2010.0, 11.0, 31.0, 23.0]), utc(&[2011.0, 4.0, 9.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &129.0);
+    check("d3-time/test/utcDay-test.js:84:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0, 0.0]), utc(&[2011.0, 4.0, 8.0, 23.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &127.0);
+    check("d3-time/test/utcDay-test.js:85:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0, 0.0]), utc(&[2011.0, 4.0, 9.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &128.0);
+}
+
+fn t143() {   // utcDay-test.js: utcDay.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcDay-test.js:89:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/utcDay-test.js:90:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/utcDay-test.js:91:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/utcDay-test.js:92:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &309.0);
+    check("d3-time/test/utcDay-test.js:93:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &309.0);
+    check("d3-time/test/utcDay-test.js:94:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &309.0);
+}
+
+fn t144() {   // utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year
+    check("d3-time/test/utcDay-test.js:98:3", Kind::Strict, &Interval::Day(1).count(utc(&[1999.0, 0.0, 1.0]), utc(&[1999.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:99:3", Kind::Strict, &Interval::Day(1).count(utc(&[2000.0, 0.0, 1.0]), utc(&[2000.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/utcDay-test.js:100:3", Kind::Strict, &Interval::Day(1).count(utc(&[2001.0, 0.0, 1.0]), utc(&[2001.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:101:3", Kind::Strict, &Interval::Day(1).count(utc(&[2002.0, 0.0, 1.0]), utc(&[2002.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:102:3", Kind::Strict, &Interval::Day(1).count(utc(&[2003.0, 0.0, 1.0]), utc(&[2003.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:103:3", Kind::Strict, &Interval::Day(1).count(utc(&[2004.0, 0.0, 1.0]), utc(&[2004.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/utcDay-test.js:104:3", Kind::Strict, &Interval::Day(1).count(utc(&[2005.0, 0.0, 1.0]), utc(&[2005.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:105:3", Kind::Strict, &Interval::Day(1).count(utc(&[2006.0, 0.0, 1.0]), utc(&[2006.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:106:3", Kind::Strict, &Interval::Day(1).count(utc(&[2007.0, 0.0, 1.0]), utc(&[2007.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:107:3", Kind::Strict, &Interval::Day(1).count(utc(&[2008.0, 0.0, 1.0]), utc(&[2008.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/utcDay-test.js:108:3", Kind::Strict, &Interval::Day(1).count(utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:109:3", Kind::Strict, &Interval::Day(1).count(utc(&[2010.0, 0.0, 1.0]), utc(&[2010.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/utcDay-test.js:110:3", Kind::Strict, &Interval::Day(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+}
+
+fn t145() {   // utcDay-test.js: utcDay.every(step) returns every stepth day, starting with the first day of the month
+    check("d3-time/test/utcDay-test.js:114:3", Kind::Strict, &tss(&Interval::Day(1).every(3_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 5.0, 23.0, 48.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2008.0, 11.0, 31.0]), utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 4.0])]));
+    check("d3-time/test/utcDay-test.js:115:3", Kind::Strict, &tss(&Interval::Day(1).every(5_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 6.0, 23.0, 48.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2008.0, 11.0, 31.0]), utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 6.0])]));
+    check("d3-time/test/utcDay-test.js:116:3", Kind::Strict, &tss(&Interval::Day(1).every(7_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 8.0, 23.0, 48.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 8.0])]));
+}
+
+fn t146() {   // unixDay-test.js: unixDays in an alias for unixDay.range
+    skip("d3-time/test/unixDay-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t147() {   // unixDay-test.js: unixDay.floor(date) returns days
+    check("d3-time/test/unixDay-test.js:10:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2010.0, 11.0, 31.0, 23.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/unixDay-test.js:11:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 0.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/unixDay-test.js:12:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 0.0, 1.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t148() {   // unixDay-test.js: unixDay.floor(date) does not observe daylight saving
+    check("d3-time/test/unixDay-test.js:16:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/unixDay-test.js:17:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/unixDay-test.js:18:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/unixDay-test.js:19:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 2.0, 13.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/unixDay-test.js:20:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 10.0, 6.0, 5.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+    check("d3-time/test/unixDay-test.js:21:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 10.0, 6.0, 6.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+    check("d3-time/test/unixDay-test.js:22:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+    check("d3-time/test/unixDay-test.js:23:3", Kind::Strict, &ts(Interval::UnixDay(1).floor(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+}
+
+fn t149() {   // unixDay-test.js: unixDay.round(date) returns days
+    check("d3-time/test/unixDay-test.js:27:3", Kind::Strict, &ts(Interval::UnixDay(1).round(utc(&[2010.0, 11.0, 30.0, 13.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/unixDay-test.js:28:3", Kind::Strict, &ts(Interval::UnixDay(1).round(utc(&[2010.0, 11.0, 30.0, 11.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+}
+
+fn t150() {   // unixDay-test.js: unixDay.ceil(date) returns days
+    check("d3-time/test/unixDay-test.js:32:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2010.0, 11.0, 30.0, 23.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/unixDay-test.js:33:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2010.0, 11.0, 31.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/unixDay-test.js:34:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2010.0, 11.0, 31.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t151() {   // unixDay-test.js: unixDay.ceil(date) does not observe daylight saving
+    check("d3-time/test/unixDay-test.js:38:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/unixDay-test.js:39:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/unixDay-test.js:40:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/unixDay-test.js:41:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 2.0, 13.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 14.0])));
+    check("d3-time/test/unixDay-test.js:42:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 10.0, 6.0, 5.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+    check("d3-time/test/unixDay-test.js:43:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 10.0, 6.0, 6.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+    check("d3-time/test/unixDay-test.js:44:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+    check("d3-time/test/unixDay-test.js:45:3", Kind::Strict, &ts(Interval::UnixDay(1).ceil(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 7.0])));
+}
+
+fn t152() {   // unixDay-test.js: unixDay.offset(date) is an alias for unixDay.offset(date, 1)
+    check("d3-time/test/unixDay-test.js:49:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t153() {   // unixDay-test.js: unixDay.offset(date, step) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::UnixDay(1).offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/unixDay-test.js:55:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t154() {   // unixDay-test.js: unixDay.offset(date, step) does not round the passed-in date
+    check("d3-time/test/unixDay-test.js:59:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/unixDay-test.js:60:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 29.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t155() {   // unixDay-test.js: unixDay.offset(date, step) allows step to be negative
+    check("d3-time/test/unixDay-test.js:64:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/unixDay-test.js:65:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2011.0, 0.0, 1.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/unixDay-test.js:66:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2011.0, 0.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+}
+
+fn t156() {   // unixDay-test.js: unixDay.offset(date, step) allows step to be positive
+    check("d3-time/test/unixDay-test.js:70:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/unixDay-test.js:71:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 30.0]), 2_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/unixDay-test.js:72:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 30.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+}
+
+fn t157() {   // unixDay-test.js: unixDay.offset(date, step) allows step to be zero
+    check("d3-time/test/unixDay-test.js:76:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/unixDay-test.js:77:3", Kind::Strict, &ts(Interval::UnixDay(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t158() {   // unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)
+    check("d3-time/test/unixDay-test.js:81:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0, 0.0]), utc(&[2011.0, 4.0, 9.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &128.0);
+    check("d3-time/test/unixDay-test.js:82:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0, 1.0]), utc(&[2011.0, 4.0, 9.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &128.0);
+    check("d3-time/test/unixDay-test.js:83:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2010.0, 11.0, 31.0, 23.0]), utc(&[2011.0, 4.0, 9.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &129.0);
+    check("d3-time/test/unixDay-test.js:84:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0, 0.0]), utc(&[2011.0, 4.0, 8.0, 23.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &127.0);
+    check("d3-time/test/unixDay-test.js:85:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0, 0.0]), utc(&[2011.0, 4.0, 9.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &128.0);
+}
+
+fn t159() {   // unixDay-test.js: unixDay.count(start, end) does not observe daylight saving
+    check("d3-time/test/unixDay-test.js:89:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/unixDay-test.js:90:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/unixDay-test.js:91:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &71.0);
+    check("d3-time/test/unixDay-test.js:92:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &309.0);
+    check("d3-time/test/unixDay-test.js:93:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &309.0);
+    check("d3-time/test/unixDay-test.js:94:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &309.0);
+}
+
+fn t160() {   // unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year
+    check("d3-time/test/unixDay-test.js:98:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[1999.0, 0.0, 1.0]), utc(&[1999.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:99:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2000.0, 0.0, 1.0]), utc(&[2000.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/unixDay-test.js:100:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2001.0, 0.0, 1.0]), utc(&[2001.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:101:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2002.0, 0.0, 1.0]), utc(&[2002.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:102:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2003.0, 0.0, 1.0]), utc(&[2003.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:103:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2004.0, 0.0, 1.0]), utc(&[2004.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/unixDay-test.js:104:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2005.0, 0.0, 1.0]), utc(&[2005.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:105:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2006.0, 0.0, 1.0]), utc(&[2006.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:106:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2007.0, 0.0, 1.0]), utc(&[2007.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:107:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2008.0, 0.0, 1.0]), utc(&[2008.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &365.0);
+    check("d3-time/test/unixDay-test.js:108:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:109:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2010.0, 0.0, 1.0]), utc(&[2010.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+    check("d3-time/test/unixDay-test.js:110:3", Kind::Strict, &Interval::UnixDay(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &364.0);
+}
+
+fn t161() {   // unixDay-test.js: unixDay.every(step) returns every stepth day
+    check("d3-time/test/unixDay-test.js:114:3", Kind::Strict, &tss(&Interval::UnixDay(1).every(3_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 5.0, 23.0, 48.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2008.0, 11.0, 31.0]), utc(&[2009.0, 0.0, 3.0])]));
+    check("d3-time/test/unixDay-test.js:115:3", Kind::Strict, &tss(&Interval::UnixDay(1).every(5_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 6.0, 23.0, 48.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 6.0])]));
+    check("d3-time/test/unixDay-test.js:116:3", Kind::Strict, &tss(&Interval::UnixDay(1).every(7_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 30.0, 0.0, 12.0]), utc(&[2009.0, 0.0, 8.0, 23.0, 48.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 0.0, 8.0])]));
+}
+
+fn t162() {   // week-test.js: timeWeek.floor(date) returns sundays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:6:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/week-test.js:7:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/week-test.js:8:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/week-test.js:9:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/week-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/week-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+}
+
+fn t163() {   // week-test.js: timeWeek.floor(date) observes the start of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+}
+
+fn t164() {   // week-test.js: timeWeek.floor(date) observes the end of the daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:19:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+}
+
+fn t165() {   // week-test.js: timeWeek.floor(date) correctly handles years in the first century
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:23:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[9.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[9.0, 10.0, 1.0])));
+}
+
+fn t166() {   // week-test.js: timeWeek.ceil(date) returns sundays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:27:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/week-test.js:28:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/week-test.js:29:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/week-test.js:30:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/week-test.js:31:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/week-test.js:32:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 9.0])));
+}
+
+fn t167() {   // week-test.js: timeWeek.ceil(date) observes the start of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:36:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 20.0])));
+}
+
+fn t168() {   // week-test.js: timeWeek.ceil(date) observes the end of the daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:40:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 13.0])));
+}
+
+fn t169() {   // week-test.js: timeWeek.offset(date, step) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Week(Weekday::Sunday, 1).offset(d, 1_i64, &la);
+    check("d3-time/test/week-test.js:46:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t170() {   // week-test.js: timeWeek.offset(date, step) does not round the passed-in-date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:50:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/week-test.js:51:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 17.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t171() {   // week-test.js: timeWeek.offset(date, step) allows negative offsets
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:55:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 10.0, 24.0])));
+    check("d3-time/test/week-test.js:56:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2011.0, 0.0, 1.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 18.0])));
+    check("d3-time/test/week-test.js:57:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2011.0, 0.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 25.0])));
+}
+
+fn t172() {   // week-test.js: timeWeek.offset(date, step) allows positive offsets
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:61:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 10.0, 24.0]), 1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/week-test.js:62:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 18.0]), 2_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/week-test.js:63:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 25.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t173() {   // week-test.js: timeWeek.offset(date, step) allows zero offset
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:67:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/week-test.js:68:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t174() {   // week-test.js: timeWeek.range(start, stop) returns sundays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:72:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2010.0, 11.0, 21.0]), local(&la, &[2011.0, 0.0, 12.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2010.0, 11.0, 26.0]), local(&la, &[2011.0, 0.0, 2.0]), local(&la, &[2011.0, 0.0, 9.0])]));
+}
+
+fn t175() {   // week-test.js: timeWeek.range(start, stop) has an inclusive lower bound
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:80:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2010.0, 11.0, 21.0]), local(&la, &[2011.0, 0.0, 12.0]), &la).collect::<Vec<_>>()[0_usize]), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+}
+
+fn t176() {   // week-test.js: timeWeek.range(start, stop) has an exclusive upper bound
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:84:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2010.0, 11.0, 21.0]), local(&la, &[2011.0, 0.0, 12.0]), &la).collect::<Vec<_>>()[2_usize]), &ts(local(&la, &[2011.0, 0.0, 9.0])));
+}
+
+fn t177() {   // week-test.js: timeWeek.range(start, stop) can skip weeks
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:88:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range_step(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 3.0, 1.0]), 4_u32, &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 0.0, 2.0]), local(&la, &[2011.0, 0.0, 30.0]), local(&la, &[2011.0, 1.0, 27.0]), local(&la, &[2011.0, 2.0, 27.0])]));
+}
+
+fn t178() {   // week-test.js: timeWeek.range(start, stop) observes start of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:97:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2011.0, 2.0, 1.0]), local(&la, &[2011.0, 2.0, 28.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 2.0, 6.0]), local(&la, &[2011.0, 2.0, 13.0]), local(&la, &[2011.0, 2.0, 20.0]), local(&la, &[2011.0, 2.0, 27.0])]));
+}
+
+fn t179() {   // week-test.js: timeWeek.range(start, stop) observes end of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:106:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2011.0, 10.0, 1.0]), local(&la, &[2011.0, 10.0, 30.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 10.0, 6.0]), local(&la, &[2011.0, 10.0, 13.0]), local(&la, &[2011.0, 10.0, 20.0]), local(&la, &[2011.0, 10.0, 27.0])]));
+}
+
+fn t180() {   // week-test.js: timeWeek is an alias for timeSunday
+    check("d3-time/test/week-test.js:115:3", Kind::Strict, &(Interval::Week(Weekday::Sunday, 1) == Interval::Week(Weekday::Sunday, 1)), &true);
+}
+
+fn t181() {   // week-test.js: timeWeek.every(step) returns every stepth Sunday, starting with the first Sunday of the month
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/week-test.js:119:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).every(2_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2008.0, 11.0, 3.0]), local(&la, &[2009.0, 1.0, 5.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2008.0, 11.0, 7.0]), local(&la, &[2008.0, 11.0, 21.0]), local(&la, &[2009.0, 0.0, 4.0]), local(&la, &[2009.0, 0.0, 18.0]), local(&la, &[2009.0, 1.0, 1.0])]));
+}
+
+fn t182() {   // utcWeek-test.js: utcWeek.floor(date) returns sundays
+    check("d3-time/test/utcWeek-test.js:6:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcWeek-test.js:7:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcWeek-test.js:8:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcWeek-test.js:9:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcWeek-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcWeek-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+}
+
+fn t183() {   // utcWeek-test.js: utcWeek.floor(date) observes the start of daylight savings time
+    check("d3-time/test/utcWeek-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+}
+
+fn t184() {   // utcWeek-test.js: utcWeek.floor(date) observes the end of the daylight savings time
+    check("d3-time/test/utcWeek-test.js:19:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+}
+
+fn t185() {   // utcWeek-test.js: utcWeek.floor(date) correctly handles years in the first century
+    check("d3-time/test/utcWeek-test.js:23:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[9.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[9.0, 10.0, 1.0])));
+}
+
+fn t186() {   // utcWeek-test.js: utcWeek.ceil(date) returns sundays
+    check("d3-time/test/utcWeek-test.js:27:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcWeek-test.js:28:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcWeek-test.js:29:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcWeek-test.js:30:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcWeek-test.js:31:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcWeek-test.js:32:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 9.0])));
+}
+
+fn t187() {   // utcWeek-test.js: utcWeek.ceil(date) does not observe the start of daylight savings time
+    check("d3-time/test/utcWeek-test.js:36:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 20.0])));
+}
+
+fn t188() {   // utcWeek-test.js: utcWeek.ceil(date) does not observe the end of the daylight savings time
+    check("d3-time/test/utcWeek-test.js:40:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 13.0])));
+}
+
+fn t189() {   // utcWeek-test.js: utcWeek.offset(date, step) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Week(Weekday::Sunday, 1).offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/utcWeek-test.js:46:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t190() {   // utcWeek-test.js: utcWeek.offset(date, step) does not round the passed-in-date
+    check("d3-time/test/utcWeek-test.js:50:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcWeek-test.js:51:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 17.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t191() {   // utcWeek-test.js: utcWeek.offset(date, step) allows negative offsets
+    check("d3-time/test/utcWeek-test.js:55:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 10.0, 24.0])));
+    check("d3-time/test/utcWeek-test.js:56:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2011.0, 0.0, 1.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 18.0])));
+    check("d3-time/test/utcWeek-test.js:57:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2011.0, 0.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 25.0])));
+}
+
+fn t192() {   // utcWeek-test.js: utcWeek.offset(date, step) allows positive offsets
+    check("d3-time/test/utcWeek-test.js:61:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 10.0, 24.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+    check("d3-time/test/utcWeek-test.js:62:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 18.0]), 2_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcWeek-test.js:63:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 25.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t193() {   // utcWeek-test.js: utcWeek.offset(date, step) allows zero offset
+    check("d3-time/test/utcWeek-test.js:67:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcWeek-test.js:68:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t194() {   // utcWeek-test.js: utcWeek.range(start, stop) returns sundays
+    check("d3-time/test/utcWeek-test.js:72:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2010.0, 11.0, 21.0]), utc(&[2011.0, 0.0, 12.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2010.0, 11.0, 26.0]), utc(&[2011.0, 0.0, 2.0]), utc(&[2011.0, 0.0, 9.0])]));
+}
+
+fn t195() {   // utcWeek-test.js: utcWeek.range(start, stop) has an inclusive lower bound
+    check("d3-time/test/utcWeek-test.js:80:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).range(utc(&[2010.0, 11.0, 21.0]), utc(&[2011.0, 0.0, 12.0]), &TimeZone::UTC).collect::<Vec<_>>()[0_usize]), &ts(utc(&[2010.0, 11.0, 26.0])));
+}
+
+fn t196() {   // utcWeek-test.js: utcWeek.range(start, stop) has an exclusive upper bound
+    check("d3-time/test/utcWeek-test.js:84:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).range(utc(&[2010.0, 11.0, 21.0]), utc(&[2011.0, 0.0, 12.0]), &TimeZone::UTC).collect::<Vec<_>>()[2_usize]), &ts(utc(&[2011.0, 0.0, 9.0])));
+}
+
+fn t197() {   // utcWeek-test.js: utcWeek.range(start, stop) can skip weeks
+    check("d3-time/test/utcWeek-test.js:88:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range_step(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 3.0, 1.0]), 4_u32, &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 0.0, 2.0]), utc(&[2011.0, 0.0, 30.0]), utc(&[2011.0, 1.0, 27.0]), utc(&[2011.0, 2.0, 27.0])]));
+}
+
+fn t198() {   // utcWeek-test.js: utcWeek.range(start, stop) does not observe start of daylight savings time
+    check("d3-time/test/utcWeek-test.js:97:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2011.0, 2.0, 1.0]), utc(&[2011.0, 2.0, 28.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 2.0, 6.0]), utc(&[2011.0, 2.0, 13.0]), utc(&[2011.0, 2.0, 20.0]), utc(&[2011.0, 2.0, 27.0])]));
+}
+
+fn t199() {   // utcWeek-test.js: utcWeek.range(start, stop) does not observe end of daylight savings time
+    check("d3-time/test/utcWeek-test.js:106:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2011.0, 10.0, 1.0]), utc(&[2011.0, 10.0, 30.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 10.0, 6.0]), utc(&[2011.0, 10.0, 13.0]), utc(&[2011.0, 10.0, 20.0]), utc(&[2011.0, 10.0, 27.0])]));
+}
+
+fn t200() {   // utcWeek-test.js: utcWeek is an alias for utcSunday
+    check("d3-time/test/utcWeek-test.js:115:3", Kind::Strict, &(Interval::Week(Weekday::Sunday, 1) == Interval::Week(Weekday::Sunday, 1)), &true);
+}
+
+fn t201() {   // utcWeek-test.js: utcWeek.every(step) returns every stepth Sunday, starting with the first Sunday of the month
+    check("d3-time/test/utcWeek-test.js:119:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).every(2_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 3.0]), utc(&[2009.0, 1.0, 5.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2008.0, 11.0, 7.0]), utc(&[2008.0, 11.0, 21.0]), utc(&[2009.0, 0.0, 4.0]), utc(&[2009.0, 0.0, 18.0]), utc(&[2009.0, 1.0, 1.0])]));
+}
+
+fn t202() {   // sunday-test.js: timeSundays in an alias for timeSunday.range
+    skip("d3-time/test/sunday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t203() {   // sunday-test.js: timeSunday.floor(date) returns Sundays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/sunday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/sunday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/sunday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 26.0])));
+    check("d3-time/test/sunday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/sunday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+}
+
+fn t204() {   // sunday-test.js: timeSunday.floor(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:19:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 13.0])));
+    check("d3-time/test/sunday-test.js:20:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 6.0])));
+}
+
+fn t205() {   // sunday-test.js: timeSunday.floor(date) handles years in the first century
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:24:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(local(&la, &[9.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[9.0, 10.0, 1.0])));
+}
+
+fn t206() {   // sunday-test.js: timeSunday.ceil(date) returns Sundays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:28:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/sunday-test.js:29:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/sunday-test.js:30:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/sunday-test.js:31:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/sunday-test.js:32:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 2.0])));
+    check("d3-time/test/sunday-test.js:33:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 9.0])));
+}
+
+fn t207() {   // sunday-test.js: timeSunday.ceil(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:37:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 20.0])));
+    check("d3-time/test/sunday-test.js:38:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 13.0])));
+}
+
+fn t208() {   // sunday-test.js: timeSunday.offset(date) is an alias for timeSunday.offset(date, 1)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:42:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t209() {   // sunday-test.js: timeSunday.offset(date, step) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Week(Weekday::Sunday, 1).offset(d, 1_i64, &la);
+    check("d3-time/test/sunday-test.js:48:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t210() {   // sunday-test.js: timeSunday.offset(date, step) does not round the passed-in date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:52:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/sunday-test.js:53:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 17.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t211() {   // sunday-test.js: timeSunday.offset(date, step) allows step to be negative
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:57:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 10.0, 24.0])));
+    check("d3-time/test/sunday-test.js:58:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2011.0, 0.0, 1.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 18.0])));
+    check("d3-time/test/sunday-test.js:59:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2011.0, 0.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 25.0])));
+}
+
+fn t212() {   // sunday-test.js: timeSunday.offset(date, step) allows step to be positive
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:63:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 10.0, 24.0]), 1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/sunday-test.js:64:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 18.0]), 2_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/sunday-test.js:65:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 25.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t213() {   // sunday-test.js: timeSunday.offset(date, step) allows step to be zero
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:69:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/sunday-test.js:70:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t214() {   // sunday-test.js: timeSunday.range(start, stop) returns Sundays between start (inclusive) and stop (exclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:74:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 0.0, 15.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 11.0, 4.0]), local(&la, &[2011.0, 11.0, 11.0]), local(&la, &[2011.0, 11.0, 18.0]), local(&la, &[2011.0, 11.0, 25.0]), local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 8.0])]));
+}
+
+fn t215() {   // sunday-test.js: timeSunday.range(start, stop) returns Sundays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:85:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2011.0, 11.0, 1.0, 12.0, 23.0]), local(&la, &[2012.0, 0.0, 14.0, 12.0, 23.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 11.0, 4.0]), local(&la, &[2011.0, 11.0, 11.0]), local(&la, &[2011.0, 11.0, 18.0]), local(&la, &[2011.0, 11.0, 25.0]), local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 8.0])]));
+}
+
+fn t216() {   // sunday-test.js: timeSunday.range(start, stop) coerces start and stop to dates
+    skip("d3-time/test/sunday-test.js:96:3", "js: a number as a date (coercion)");
+}
+
+fn t217() {   // sunday-test.js: timeSunday.range(start, stop) returns the empty array for invalid dates
+    skip("d3-time/test/sunday-test.js:107:3", "js: an invalid date (new Date(NaN))");
+}
+
+fn t218() {   // sunday-test.js: timeSunday.range(start, stop) returns the empty array if start >= stop
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:111:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2011.0, 11.0, 10.0]), local(&la, &[2011.0, 10.0, 4.0]), &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+    check("d3-time/test/sunday-test.js:112:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(local(&la, &[2011.0, 10.0, 1.0]), local(&la, &[2011.0, 10.0, 1.0]), &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+}
+
+fn t219() {   // sunday-test.js: timeSunday.range(start, stop, step) returns every step Sunday
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:116:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range_step(local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 0.0, 15.0]), 2_u32, &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 11.0, 4.0]), local(&la, &[2011.0, 11.0, 18.0]), local(&la, &[2012.0, 0.0, 1.0])]));
+}
+
+fn t220() {   // sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:131:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/sunday-test.js:132:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 5.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/sunday-test.js:133:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 6.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/sunday-test.js:134:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 12.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/sunday-test.js:143:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/sunday-test.js:144:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/sunday-test.js:145:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t221() {   // sunday-test.js: timeSunday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/sunday-test.js:149:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &11.0);
+    check("d3-time/test/sunday-test.js:150:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &11.0);
+    check("d3-time/test/sunday-test.js:151:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &11.0);
+    check("d3-time/test/sunday-test.js:152:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &45.0);
+    check("d3-time/test/sunday-test.js:153:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &45.0);
+    check("d3-time/test/sunday-test.js:154:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &45.0);
+}
+
+fn t222() {   // utcSunday-test.js: utcSundays in an alias for utcSunday.range
+    skip("d3-time/test/utcSunday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t223() {   // utcSunday-test.js: utcSunday.floor(date) returns Sundays
+    check("d3-time/test/utcSunday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcSunday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcSunday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcSunday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 26.0])));
+    check("d3-time/test/utcSunday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcSunday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+}
+
+fn t224() {   // utcSunday-test.js: utcSunday.floor(date) observes daylight saving
+    check("d3-time/test/utcSunday-test.js:19:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 13.0])));
+    check("d3-time/test/utcSunday-test.js:20:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 6.0])));
+}
+
+fn t225() {   // utcSunday-test.js: utcSunday.floor(date) handles years in the first century
+    check("d3-time/test/utcSunday-test.js:24:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).floor(utc(&[9.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[9.0, 10.0, 1.0])));
+}
+
+fn t226() {   // utcSunday-test.js: utcSunday.ceil(date) returns Sundays
+    check("d3-time/test/utcSunday-test.js:28:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcSunday-test.js:29:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcSunday-test.js:30:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcSunday-test.js:31:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcSunday-test.js:32:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 2.0])));
+    check("d3-time/test/utcSunday-test.js:33:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 9.0])));
+}
+
+fn t227() {   // utcSunday-test.js: utcSunday.ceil(date) observes daylight saving
+    check("d3-time/test/utcSunday-test.js:37:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 20.0])));
+    check("d3-time/test/utcSunday-test.js:38:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).ceil(utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 13.0])));
+}
+
+fn t228() {   // utcSunday-test.js: utcSunday.offset(date) is an alias for utcSunday.offset(date, 1)
+    check("d3-time/test/utcSunday-test.js:42:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t229() {   // utcSunday-test.js: utcSunday.offset(date, step) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Week(Weekday::Sunday, 1).offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/utcSunday-test.js:48:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t230() {   // utcSunday-test.js: utcSunday.offset(date, step) does not round the passed-in date
+    check("d3-time/test/utcSunday-test.js:52:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcSunday-test.js:53:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 17.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t231() {   // utcSunday-test.js: utcSunday.offset(date, step) allows step to be negative
+    check("d3-time/test/utcSunday-test.js:57:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 10.0, 24.0])));
+    check("d3-time/test/utcSunday-test.js:58:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2011.0, 0.0, 1.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 18.0])));
+    check("d3-time/test/utcSunday-test.js:59:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2011.0, 0.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 25.0])));
+}
+
+fn t232() {   // utcSunday-test.js: utcSunday.offset(date, step) allows step to be positive
+    check("d3-time/test/utcSunday-test.js:63:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 10.0, 24.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+    check("d3-time/test/utcSunday-test.js:64:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 18.0]), 2_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcSunday-test.js:65:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 25.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t233() {   // utcSunday-test.js: utcSunday.offset(date, step) allows step to be zero
+    check("d3-time/test/utcSunday-test.js:69:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcSunday-test.js:70:3", Kind::Strict, &ts(Interval::Week(Weekday::Sunday, 1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t234() {   // utcSunday-test.js: utcSunday.range(start, stop) returns Sundays between start (inclusive) and stop (exclusive)
+    check("d3-time/test/utcSunday-test.js:74:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 0.0, 15.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 11.0, 4.0]), utc(&[2011.0, 11.0, 11.0]), utc(&[2011.0, 11.0, 18.0]), utc(&[2011.0, 11.0, 25.0]), utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 8.0])]));
+}
+
+fn t235() {   // utcSunday-test.js: utcSunday.range(start, stop) returns Sundays
+    check("d3-time/test/utcSunday-test.js:85:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2011.0, 11.0, 1.0, 12.0, 23.0]), utc(&[2012.0, 0.0, 14.0, 12.0, 23.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 11.0, 4.0]), utc(&[2011.0, 11.0, 11.0]), utc(&[2011.0, 11.0, 18.0]), utc(&[2011.0, 11.0, 25.0]), utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 8.0])]));
+}
+
+fn t236() {   // utcSunday-test.js: utcSunday.range(start, stop) coerces start and stop to dates
+    skip("d3-time/test/utcSunday-test.js:96:3", "js: a number as a date (coercion)");
+}
+
+fn t237() {   // utcSunday-test.js: utcSunday.range(start, stop) returns the empty array for invalid dates
+    skip("d3-time/test/utcSunday-test.js:107:3", "js: an invalid date (new Date(NaN))");
+}
+
+fn t238() {   // utcSunday-test.js: utcSunday.range(start, stop) returns the empty array if start >= stop
+    check("d3-time/test/utcSunday-test.js:111:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2011.0, 11.0, 10.0]), utc(&[2011.0, 10.0, 4.0]), &TimeZone::UTC).collect::<Vec<_>>()), &Vec::<f64>::new());
+    check("d3-time/test/utcSunday-test.js:112:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range(utc(&[2011.0, 10.0, 1.0]), utc(&[2011.0, 10.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &Vec::<f64>::new());
+}
+
+fn t239() {   // utcSunday-test.js: utcSunday.range(start, stop, step) returns every step Sunday
+    check("d3-time/test/utcSunday-test.js:116:3", Kind::Strict, &tss(&Interval::Week(Weekday::Sunday, 1).range_step(utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 0.0, 15.0]), 2_u32, &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 11.0, 4.0]), utc(&[2011.0, 11.0, 18.0]), utc(&[2012.0, 0.0, 1.0])]));
+}
+
+fn t240() {   // utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcSunday-test.js:131:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcSunday-test.js:132:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 5.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcSunday-test.js:133:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 6.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcSunday-test.js:134:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 12.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcSunday-test.js:143:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcSunday-test.js:144:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcSunday-test.js:145:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t241() {   // utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcSunday-test.js:149:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &11.0);
+    check("d3-time/test/utcSunday-test.js:150:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &11.0);
+    check("d3-time/test/utcSunday-test.js:151:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &11.0);
+    check("d3-time/test/utcSunday-test.js:152:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &45.0);
+    check("d3-time/test/utcSunday-test.js:153:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &45.0);
+    check("d3-time/test/utcSunday-test.js:154:3", Kind::Strict, &Interval::Week(Weekday::Sunday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &45.0);
+}
+
+fn t242() {   // monday-test.js: timeMondays in an alias for timeMonday.range
+    skip("d3-time/test/monday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t243() {   // monday-test.js: timeMonday.floor(date) returns Mondays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/monday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(local(&la, &[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 27.0])));
+    check("d3-time/test/monday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 27.0])));
+    check("d3-time/test/monday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 27.0])));
+    check("d3-time/test/monday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 27.0])));
+    check("d3-time/test/monday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 3.0])));
+    check("d3-time/test/monday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 3.0])));
+}
+
+fn t244() {   // monday-test.js: timeMonday.range(start, stop, step) returns every step Monday
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/monday-test.js:19:3", Kind::Strict, &tss(&Interval::Week(Weekday::Monday, 1).range_step(local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 0.0, 15.0]), 2_u32, &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 11.0, 5.0]), local(&la, &[2011.0, 11.0, 19.0]), local(&la, &[2012.0, 0.0, 2.0])]));
+}
+
+fn t245() {   // monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/monday-test.js:34:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 5.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/monday-test.js:35:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 6.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/monday-test.js:36:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/monday-test.js:37:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 13.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/monday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2018.0, 0.0, 1.0]), local(&la, &[2018.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/monday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2018.0, 0.0, 1.0]), local(&la, &[2018.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/monday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2018.0, 0.0, 1.0]), local(&la, &[2018.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t246() {   // monday-test.js: timeMonday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/monday-test.js:52:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/monday-test.js:53:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/monday-test.js:54:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/monday-test.js:55:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/monday-test.js:56:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/monday-test.js:57:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t247() {   // utcMonday-test.js: utcMondays in an alias for utcMonday.range
+    skip("d3-time/test/utcMonday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t248() {   // utcMonday-test.js: utcMonday.floor(date) returns Mondays
+    check("d3-time/test/utcMonday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(utc(&[2011.0, 0.0, 1.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 27.0])));
+    check("d3-time/test/utcMonday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 27.0])));
+    check("d3-time/test/utcMonday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(utc(&[2011.0, 0.0, 2.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 27.0])));
+    check("d3-time/test/utcMonday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(utc(&[2011.0, 0.0, 2.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 27.0])));
+    check("d3-time/test/utcMonday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(utc(&[2011.0, 0.0, 3.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 3.0])));
+    check("d3-time/test/utcMonday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Monday, 1).floor(utc(&[2011.0, 0.0, 3.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 3.0])));
+}
+
+fn t249() {   // utcMonday-test.js: utcMonday.range(start, stop, step) returns every step Monday
+    check("d3-time/test/utcMonday-test.js:19:3", Kind::Strict, &tss(&Interval::Week(Weekday::Monday, 1).range_step(utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 0.0, 15.0]), 2_u32, &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 11.0, 5.0]), utc(&[2011.0, 11.0, 19.0]), utc(&[2012.0, 0.0, 2.0])]));
+}
+
+fn t250() {   // utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcMonday-test.js:34:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 5.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcMonday-test.js:35:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 6.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcMonday-test.js:36:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcMonday-test.js:37:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 13.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcMonday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2018.0, 0.0, 1.0]), utc(&[2018.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcMonday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2018.0, 0.0, 1.0]), utc(&[2018.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcMonday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2018.0, 0.0, 1.0]), utc(&[2018.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t251() {   // utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcMonday-test.js:52:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcMonday-test.js:53:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcMonday-test.js:54:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcMonday-test.js:55:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcMonday-test.js:56:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcMonday-test.js:57:3", Kind::Strict, &Interval::Week(Weekday::Monday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t252() {   // tuesday-test.js: timeTuesdays in an alias for timeTuesday.range
+    skip("d3-time/test/tuesday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t253() {   // tuesday-test.js: timeTuesday.floor(date) returns Tuesdays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/tuesday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(local(&la, &[2011.0, 0.0, 2.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 28.0])));
+    check("d3-time/test/tuesday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 28.0])));
+    check("d3-time/test/tuesday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(local(&la, &[2011.0, 0.0, 3.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 28.0])));
+    check("d3-time/test/tuesday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(local(&la, &[2011.0, 0.0, 3.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 28.0])));
+    check("d3-time/test/tuesday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(local(&la, &[2011.0, 0.0, 4.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 4.0])));
+    check("d3-time/test/tuesday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(local(&la, &[2011.0, 0.0, 4.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 4.0])));
+}
+
+fn t254() {   // tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/tuesday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 6.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/tuesday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/tuesday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/tuesday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 14.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/tuesday-test.js:38:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2013.0, 0.0, 1.0]), local(&la, &[2013.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/tuesday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2013.0, 0.0, 1.0]), local(&la, &[2013.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/tuesday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2013.0, 0.0, 1.0]), local(&la, &[2013.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t255() {   // tuesday-test.js: timeTuesday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/tuesday-test.js:44:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/tuesday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/tuesday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/tuesday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/tuesday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/tuesday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t256() {   // utcTuesday-test.js: utcTuesdays in an alias for utcTuesday.range
+    skip("d3-time/test/utcTuesday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t257() {   // utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays
+    check("d3-time/test/utcTuesday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(utc(&[2011.0, 0.0, 2.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 28.0])));
+    check("d3-time/test/utcTuesday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(utc(&[2011.0, 0.0, 3.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 28.0])));
+    check("d3-time/test/utcTuesday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(utc(&[2011.0, 0.0, 3.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 28.0])));
+    check("d3-time/test/utcTuesday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(utc(&[2011.0, 0.0, 3.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 28.0])));
+    check("d3-time/test/utcTuesday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(utc(&[2011.0, 0.0, 4.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 4.0])));
+    check("d3-time/test/utcTuesday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Tuesday, 1).floor(utc(&[2011.0, 0.0, 4.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 4.0])));
+}
+
+fn t258() {   // utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcTuesday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 6.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcTuesday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcTuesday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcTuesday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 14.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcTuesday-test.js:38:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2013.0, 0.0, 1.0]), utc(&[2013.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcTuesday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2013.0, 0.0, 1.0]), utc(&[2013.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcTuesday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2013.0, 0.0, 1.0]), utc(&[2013.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t259() {   // utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcTuesday-test.js:44:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcTuesday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcTuesday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcTuesday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcTuesday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcTuesday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Tuesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t260() {   // wednesday-test.js: timeWednesdays in an alias for timeWednesday.range
+    skip("d3-time/test/wednesday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t261() {   // wednesday-test.js: timeWednesday.floor(date) returns Wednesdays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/wednesday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(local(&la, &[2011.0, 0.0, 3.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 29.0])));
+    check("d3-time/test/wednesday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(local(&la, &[2011.0, 0.0, 4.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 29.0])));
+    check("d3-time/test/wednesday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(local(&la, &[2011.0, 0.0, 4.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 29.0])));
+    check("d3-time/test/wednesday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(local(&la, &[2011.0, 0.0, 4.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 29.0])));
+    check("d3-time/test/wednesday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 5.0])));
+    check("d3-time/test/wednesday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 5.0])));
+}
+
+fn t262() {   // wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/wednesday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/wednesday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/wednesday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 5.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/wednesday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 11.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/wednesday-test.js:38:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/wednesday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/wednesday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t263() {   // wednesday-test.js: timeWednesday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/wednesday-test.js:44:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/wednesday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/wednesday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/wednesday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/wednesday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/wednesday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t264() {   // utcWednesday-test.js: utcWednesdays in an alias for utcWednesday.range
+    skip("d3-time/test/utcWednesday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t265() {   // utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays
+    check("d3-time/test/utcWednesday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(utc(&[2011.0, 0.0, 3.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 29.0])));
+    check("d3-time/test/utcWednesday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(utc(&[2011.0, 0.0, 4.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 29.0])));
+    check("d3-time/test/utcWednesday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(utc(&[2011.0, 0.0, 4.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 29.0])));
+    check("d3-time/test/utcWednesday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(utc(&[2011.0, 0.0, 4.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 29.0])));
+    check("d3-time/test/utcWednesday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(utc(&[2011.0, 0.0, 5.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 5.0])));
+    check("d3-time/test/utcWednesday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Wednesday, 1).floor(utc(&[2011.0, 0.0, 5.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 5.0])));
+}
+
+fn t266() {   // utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcWednesday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcWednesday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcWednesday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 5.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcWednesday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 11.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcWednesday-test.js:38:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcWednesday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcWednesday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2014.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t267() {   // utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcWednesday-test.js:44:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcWednesday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcWednesday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcWednesday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcWednesday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcWednesday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Wednesday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t268() {   // thursday-test.js: timeThursdays in an alias for timeThursday.range
+    skip("d3-time/test/thursday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t269() {   // thursday-test.js: timeThursday.floor(date) returns Thursdays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/thursday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(local(&la, &[2011.0, 0.0, 4.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+    check("d3-time/test/thursday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+    check("d3-time/test/thursday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(local(&la, &[2011.0, 0.0, 5.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+    check("d3-time/test/thursday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(local(&la, &[2011.0, 0.0, 5.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 30.0])));
+    check("d3-time/test/thursday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(local(&la, &[2011.0, 0.0, 6.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 6.0])));
+    check("d3-time/test/thursday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(local(&la, &[2011.0, 0.0, 6.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 6.0])));
+}
+
+fn t270() {   // thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/thursday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/thursday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 5.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/thursday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 6.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/thursday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 12.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/thursday-test.js:38:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2015.0, 0.0, 1.0]), local(&la, &[2015.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/thursday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2015.0, 0.0, 1.0]), local(&la, &[2015.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/thursday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2015.0, 0.0, 1.0]), local(&la, &[2015.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t271() {   // thursday-test.js: timeThursday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/thursday-test.js:44:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/thursday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/thursday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/thursday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/thursday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/thursday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t272() {   // utcThursday-test.js: utcThursdays in an alias for utcThursday.range
+    skip("d3-time/test/utcThursday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t273() {   // utcThursday-test.js: utcThursday.floor(date) returns Thursdays
+    check("d3-time/test/utcThursday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(utc(&[2011.0, 0.0, 4.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/utcThursday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(utc(&[2011.0, 0.0, 5.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/utcThursday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(utc(&[2011.0, 0.0, 5.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/utcThursday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(utc(&[2011.0, 0.0, 5.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 30.0])));
+    check("d3-time/test/utcThursday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(utc(&[2011.0, 0.0, 6.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 6.0])));
+    check("d3-time/test/utcThursday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Thursday, 1).floor(utc(&[2011.0, 0.0, 6.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 6.0])));
+}
+
+fn t274() {   // utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcThursday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcThursday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 5.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcThursday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 6.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcThursday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 12.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcThursday-test.js:38:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2015.0, 0.0, 1.0]), utc(&[2015.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcThursday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2015.0, 0.0, 1.0]), utc(&[2015.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcThursday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2015.0, 0.0, 1.0]), utc(&[2015.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t275() {   // utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcThursday-test.js:44:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcThursday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcThursday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcThursday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcThursday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcThursday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Thursday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t276() {   // friday-test.js: timeFridays in an alias for timeFriday.range
+    skip("d3-time/test/friday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t277() {   // friday-test.js: timeFriday.floor(date) returns Fridays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/friday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(local(&la, &[2011.0, 0.0, 5.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/friday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(local(&la, &[2011.0, 0.0, 6.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/friday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(local(&la, &[2011.0, 0.0, 6.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/friday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(local(&la, &[2011.0, 0.0, 6.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 31.0])));
+    check("d3-time/test/friday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(local(&la, &[2011.0, 0.0, 7.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 7.0])));
+    check("d3-time/test/friday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(local(&la, &[2011.0, 0.0, 7.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 7.0])));
+}
+
+fn t278() {   // friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/friday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 5.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/friday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 6.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/friday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/friday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 13.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/friday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2010.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/friday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2010.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/friday-test.js:41:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2010.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t279() {   // friday-test.js: timeFriday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/friday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/friday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/friday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/friday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/friday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/friday-test.js:50:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t280() {   // utcFriday-test.js: utcFridays in an alias for utcFriday.range
+    skip("d3-time/test/utcFriday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t281() {   // utcFriday-test.js: utcFriday.floor(date) returns Fridays
+    check("d3-time/test/utcFriday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(utc(&[2011.0, 0.0, 5.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcFriday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(utc(&[2011.0, 0.0, 6.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcFriday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(utc(&[2011.0, 0.0, 6.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcFriday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(utc(&[2011.0, 0.0, 6.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0])));
+    check("d3-time/test/utcFriday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(utc(&[2011.0, 0.0, 7.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 7.0])));
+    check("d3-time/test/utcFriday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Friday, 1).floor(utc(&[2011.0, 0.0, 7.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 7.0])));
+}
+
+fn t282() {   // utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcFriday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 5.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcFriday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 6.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcFriday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcFriday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 13.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcFriday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2010.0, 0.0, 1.0]), utc(&[2010.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcFriday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2010.0, 0.0, 1.0]), utc(&[2010.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcFriday-test.js:41:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2010.0, 0.0, 1.0]), utc(&[2010.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t283() {   // utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcFriday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcFriday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcFriday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcFriday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcFriday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcFriday-test.js:50:3", Kind::Strict, &Interval::Week(Weekday::Friday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t284() {   // saturday-test.js: timeSaturdays in an alias for timeSaturday.range
+    skip("d3-time/test/saturday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t285() {   // saturday-test.js: timeSaturday.floor(date) returns Saturdays
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/saturday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(local(&la, &[2011.0, 0.0, 6.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/saturday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(local(&la, &[2011.0, 0.0, 7.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/saturday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(local(&la, &[2011.0, 0.0, 7.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/saturday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(local(&la, &[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/saturday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(local(&la, &[2011.0, 0.0, 8.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 8.0])));
+    check("d3-time/test/saturday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(local(&la, &[2011.0, 0.0, 8.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 8.0])));
+}
+
+fn t286() {   // saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/saturday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 6.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/saturday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/saturday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/saturday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 14.0]), &la).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/saturday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 0.0, 7.0]), &la).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/saturday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 0.0, 8.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/saturday-test.js:41:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 0.0, 9.0]), &la).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t287() {   // saturday-test.js: timeSaturday.count(start, end) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/saturday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/saturday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 3.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/saturday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 2.0, 13.0, 4.0]), &la).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/saturday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 0.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/saturday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/saturday-test.js:50:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 10.0, 6.0, 2.0]), &la).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t288() {   // utcSaturday-test.js: utcSaturdays in an alias for utcSaturday.range
+    skip("d3-time/test/utcSaturday-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t289() {   // utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays
+    check("d3-time/test/utcSaturday-test.js:10:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(utc(&[2011.0, 0.0, 6.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcSaturday-test.js:11:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(utc(&[2011.0, 0.0, 7.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcSaturday-test.js:12:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(utc(&[2011.0, 0.0, 7.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcSaturday-test.js:13:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(utc(&[2011.0, 0.0, 7.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcSaturday-test.js:14:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(utc(&[2011.0, 0.0, 8.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 8.0])));
+    check("d3-time/test/utcSaturday-test.js:15:3", Kind::Strict, &ts(Interval::Week(Weekday::Saturday, 1).floor(utc(&[2011.0, 0.0, 8.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 8.0])));
+}
+
+fn t290() {   // utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcSaturday-test.js:26:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 6.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcSaturday-test.js:27:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcSaturday-test.js:28:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcSaturday-test.js:29:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 14.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &2.0);
+    check("d3-time/test/utcSaturday-test.js:39:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 0.0, 7.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &0.0);
+    check("d3-time/test/utcSaturday-test.js:40:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 0.0, 8.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+    check("d3-time/test/utcSaturday-test.js:41:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 0.0, 9.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &1.0);
+}
+
+fn t291() {   // utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving
+    check("d3-time/test/utcSaturday-test.js:45:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcSaturday-test.js:46:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 3.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcSaturday-test.js:47:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 2.0, 13.0, 4.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &10.0);
+    check("d3-time/test/utcSaturday-test.js:48:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 0.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcSaturday-test.js:49:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+    check("d3-time/test/utcSaturday-test.js:50:3", Kind::Strict, &Interval::Week(Weekday::Saturday, 1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 10.0, 6.0, 2.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &44.0);
+}
+
+fn t292() {   // month-test.js: timeMonths in an alias for timeMonth.range
+    skip("d3-time/test/month-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t293() {   // month-test.js: timeMonth.floor(date) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:10:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:11:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:12:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t294() {   // month-test.js: timeMonth.floor(date) observes the start of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:16:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+}
+
+fn t295() {   // month-test.js: timeMonth.floor(date) observes the end of the daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:20:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+}
+
+fn t296() {   // month-test.js: timeMonth.floor(date) correctly handles years in the first century
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:24:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[9.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[9.0, 10.0, 1.0])));
+}
+
+fn t297() {   // month-test.js: timeMonth.ceil(date) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:28:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:29:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:30:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 1.0, 1.0])));
+}
+
+fn t298() {   // month-test.js: timeMonth.ceil(date) observes the start of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:34:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 2.0, 13.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 3.0, 1.0])));
+}
+
+fn t299() {   // month-test.js: timeMonth.ceil(date) observes the end of the daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:38:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 10.0, 6.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 11.0, 1.0])));
+}
+
+fn t300() {   // month-test.js: timeMonth.offset(date) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Month(1).offset(d, 1_i64, &la);
+    check("d3-time/test/month-test.js:44:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t301() {   // month-test.js: timeMonth.offset(date) does not round the passed-in-date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:48:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/month-test.js:49:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 9.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t302() {   // month-test.js: timeMonth.offset(date) allows negative offsets
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:53:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:54:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:55:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+}
+
+fn t303() {   // month-test.js: timeMonth.offset(date) allows positive offsets
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:59:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 10.0, 1.0]), 1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:60:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 10.0, 1.0]), 2_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:61:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 1.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t304() {   // month-test.js: timeMonth.offset(date) allows zero offset
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:65:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/month-test.js:66:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t305() {   // month-test.js: timeMonths in an alias for timeMonth.range
+    skip("d3-time/test/month-test.js:70:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t306() {   // month-test.js: timeMonth.floor(date) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:74:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2010.0, 11.0, 31.0, 23.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:75:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:76:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[2011.0, 0.0, 1.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t307() {   // month-test.js: timeMonth.floor(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:80:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:81:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:82:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:83:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:84:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:85:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:86:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:87:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+}
+
+fn t308() {   // month-test.js: timeMonth.floor(date) handles years in the first century
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:91:3", Kind::Strict, &ts(Interval::Month(1).floor(local(&la, &[9.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[9.0, 10.0, 1.0])));
+}
+
+fn t309() {   // month-test.js: timeMonth.round(date) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:95:3", Kind::Strict, &ts(Interval::Month(1).round(local(&la, &[2010.0, 11.0, 16.0, 12.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:96:3", Kind::Strict, &ts(Interval::Month(1).round(local(&la, &[2010.0, 11.0, 16.0, 11.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+}
+
+fn t310() {   // month-test.js: timeMonth.round(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:100:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:101:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:102:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:103:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 20.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:104:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:105:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:106:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:107:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 20.0]), &la)), &ts(local(&la, &[2011.0, 10.0, 1.0])));
+}
+
+fn t311() {   // month-test.js: timeMonth.round(date) handles midnight for leap years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:111:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:112:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+}
+
+fn t312() {   // month-test.js: timeMonth.ceil(date) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:116:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2010.0, 10.0, 30.0, 23.0]), &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:117:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2010.0, 11.0, 1.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/month-test.js:118:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 1.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 1.0, 1.0])));
+    check("d3-time/test/month-test.js:119:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 2.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:120:3", Kind::Strict, &ts(Interval::Month(1).ceil(local(&la, &[2011.0, 3.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 3.0, 1.0])));
+}
+
+fn t313() {   // month-test.js: timeMonth.ceil(date) observes daylight saving
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:124:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 3.0, 1.0])));
+    check("d3-time/test/month-test.js:125:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 3.0, 1.0])));
+    check("d3-time/test/month-test.js:126:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 3.0, 1.0])));
+    check("d3-time/test/month-test.js:127:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 3.0, 1.0])));
+    check("d3-time/test/month-test.js:128:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[2011.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:129:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 8.0]), &la)), &ts(local(&la, &[2011.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:130:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 9.0]), &la)), &ts(local(&la, &[2011.0, 11.0, 1.0])));
+    check("d3-time/test/month-test.js:131:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 10.0]), &la)), &ts(local(&la, &[2011.0, 11.0, 1.0])));
+}
+
+fn t314() {   // month-test.js: timeMonth.ceil(date) handles midnight for leap years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:135:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+    check("d3-time/test/month-test.js:136:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2012.0, 2.0, 1.0, 0.0]), &la)), &ts(local(&la, &[2012.0, 2.0, 1.0])));
+}
+
+fn t315() {   // month-test.js: timeMonth.offset(date) is an alias for timeMonth.offset(date, 1)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:140:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t316() {   // month-test.js: timeMonth.offset(date, step) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Month(1).offset(d, 1_i64, &la);
+    check("d3-time/test/month-test.js:146:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t317() {   // month-test.js: timeMonth.offset(date, step) does not round the passed-in date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:150:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/month-test.js:151:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 9.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t318() {   // month-test.js: timeMonth.offset(date, step) allows step to be negative
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:155:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 10.0, 31.0])));
+    check("d3-time/test/month-test.js:156:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -2_i64, &la)), &ts(local(&la, &[2010.0, 10.0, 1.0])));
+    check("d3-time/test/month-test.js:157:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+}
+
+fn t319() {   // month-test.js: timeMonth.offset(date, step) allows step to be positive
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:161:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 31.0])));
+    check("d3-time/test/month-test.js:162:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 30.0]), 2_i64, &la)), &ts(local(&la, &[2011.0, 1.0, 30.0])));
+    check("d3-time/test/month-test.js:163:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 30.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 30.0])));
+}
+
+fn t320() {   // month-test.js: timeMonth.offset(date, step) allows step to be zero
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:167:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/month-test.js:168:3", Kind::Strict, &ts(Interval::Month(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t321() {   // month-test.js: timeMonth.range(start, stop) returns months between start (inclusive) and stop (exclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:172:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 5.0, 1.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 1.0, 1.0]), local(&la, &[2012.0, 2.0, 1.0]), local(&la, &[2012.0, 3.0, 1.0]), local(&la, &[2012.0, 4.0, 1.0])]));
+}
+
+fn t322() {   // month-test.js: timeMonth.range(start, stop) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:183:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2011.0, 10.0, 4.0, 2.0]), local(&la, &[2012.0, 4.0, 10.0, 13.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 0.0, 1.0]), local(&la, &[2012.0, 1.0, 1.0]), local(&la, &[2012.0, 2.0, 1.0]), local(&la, &[2012.0, 3.0, 1.0]), local(&la, &[2012.0, 4.0, 1.0])]));
+}
+
+fn t323() {   // month-test.js: timeMonth.range(start, stop) coerces start and stop to dates
+    skip("d3-time/test/month-test.js:194:3", "js: a number as a date (coercion)");
+}
+
+fn t324() {   // month-test.js: timeMonth.range(start, stop) returns the empty array for invalid dates
+    skip("d3-time/test/month-test.js:202:3", "js: an invalid date (new Date(NaN))");
+}
+
+fn t325() {   // month-test.js: timeMonth.range(start, stop) returns the empty array if start >= stop
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:206:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2011.0, 11.0, 10.0]), local(&la, &[2011.0, 10.0, 4.0]), &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+    check("d3-time/test/month-test.js:207:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2011.0, 10.0, 1.0]), local(&la, &[2011.0, 10.0, 1.0]), &la).collect::<Vec<_>>()), &Vec::<f64>::new());
+}
+
+fn t326() {   // month-test.js: timeMonth.range(start, stop) returns months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:211:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2010.0, 10.0, 31.0]), local(&la, &[2011.0, 2.0, 1.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2010.0, 11.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 1.0, 1.0])]));
+}
+
+fn t327() {   // month-test.js: timeMonth.range(start, stop) has an inclusive lower bound
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:219:3", Kind::Strict, &ts(Interval::Month(1).range(local(&la, &[2010.0, 10.0, 31.0]), local(&la, &[2011.0, 2.0, 1.0]), &la).collect::<Vec<_>>()[0_usize]), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+}
+
+fn t328() {   // month-test.js: timeMonth.range(start, stop) has an exclusive upper bound
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:223:3", Kind::Strict, &ts(Interval::Month(1).range(local(&la, &[2010.0, 10.0, 31.0]), local(&la, &[2011.0, 2.0, 1.0]), &la).collect::<Vec<_>>()[2_usize]), &ts(local(&la, &[2011.0, 1.0, 1.0])));
+}
+
+fn t329() {   // month-test.js: timeMonth.range(start, stop) can skip months
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:227:3", Kind::Strict, &tss(&Interval::Month(1).range_step(local(&la, &[2011.0, 1.0, 1.0]), local(&la, &[2012.0, 1.0, 1.0]), 3_u32, &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 1.0, 1.0]), local(&la, &[2011.0, 4.0, 1.0]), local(&la, &[2011.0, 7.0, 1.0]), local(&la, &[2011.0, 10.0, 1.0])]));
+}
+
+fn t330() {   // month-test.js: timeMonth.range(start, stop) observes start of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:236:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 4.0, 1.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 1.0, 1.0]), local(&la, &[2011.0, 2.0, 1.0]), local(&la, &[2011.0, 3.0, 1.0])]));
+}
+
+fn t331() {   // month-test.js: timeMonth.range(start, stop) observes end of daylight savings time
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:245:3", Kind::Strict, &tss(&Interval::Month(1).range(local(&la, &[2011.0, 9.0, 1.0]), local(&la, &[2012.0, 1.0, 1.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2011.0, 9.0, 1.0]), local(&la, &[2011.0, 10.0, 1.0]), local(&la, &[2011.0, 11.0, 1.0]), local(&la, &[2012.0, 0.0, 1.0])]));
+}
+
+fn t332() {   // month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:254:3", Kind::Strict, &Interval::Month(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 4.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &4.0);
+    check("d3-time/test/month-test.js:255:3", Kind::Strict, &Interval::Month(1).count(local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2011.0, 3.0, 30.0]), &la).map_or(f64::NAN, |n| n as f64), &3.0);
+    check("d3-time/test/month-test.js:256:3", Kind::Strict, &Interval::Month(1).count(local(&la, &[2010.0, 11.0, 31.0]), local(&la, &[2011.0, 3.0, 30.0]), &la).map_or(f64::NAN, |n| n as f64), &4.0);
+    check("d3-time/test/month-test.js:257:3", Kind::Strict, &Interval::Month(1).count(local(&la, &[2010.0, 11.0, 31.0]), local(&la, &[2011.0, 4.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &5.0);
+    check("d3-time/test/month-test.js:258:3", Kind::Strict, &Interval::Month(1).count(local(&la, &[2009.0, 11.0, 31.0]), local(&la, &[2012.0, 4.0, 1.0]), &la).map_or(f64::NAN, |n| n as f64), &29.0);
+    check("d3-time/test/month-test.js:259:3", Kind::Strict, &Interval::Month(1).count(local(&la, &[2012.0, 4.0, 1.0]), local(&la, &[2009.0, 11.0, 31.0]), &la).map_or(f64::NAN, |n| n as f64), &-29.0);
+}
+
+fn t333() {   // month-test.js: timeMonth.every(step) returns every stepth month, starting with the first month of the year
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/month-test.js:263:3", Kind::Strict, &tss(&Interval::Month(1).every(3_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2008.0, 11.0, 3.0]), local(&la, &[2010.0, 6.0, 5.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2009.0, 3.0, 1.0]), local(&la, &[2009.0, 6.0, 1.0]), local(&la, &[2009.0, 9.0, 1.0]), local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2010.0, 3.0, 1.0]), local(&la, &[2010.0, 6.0, 1.0])]));
+}
+
+fn t334() {   // utcMonth-test.js: utcMonths in an alias for utcMonth.range
+    skip("d3-time/test/utcMonth-test.js:6:3", "api: d3's plural aliases of range (one name per function)");
+}
+
+fn t335() {   // utcMonth-test.js: utcMonth.floor(date) returns months
+    check("d3-time/test/utcMonth-test.js:10:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2010.0, 11.0, 31.0, 23.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:11:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 0.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:12:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 0.0, 1.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t336() {   // utcMonth-test.js: utcMonth.floor(date) observes daylight saving
+    check("d3-time/test/utcMonth-test.js:16:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:17:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:18:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:19:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 2.0, 13.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:20:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:21:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:22:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:23:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[2011.0, 10.0, 6.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+}
+
+fn t337() {   // utcMonth-test.js: utcMonth.floor(date) handles years in the first century
+    check("d3-time/test/utcMonth-test.js:27:3", Kind::Strict, &ts(Interval::Month(1).floor(utc(&[9.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[9.0, 10.0, 1.0])));
+}
+
+fn t338() {   // utcMonth-test.js: utcMonth.round(date) returns months
+    check("d3-time/test/utcMonth-test.js:31:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2010.0, 11.0, 16.0, 12.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:32:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2010.0, 11.0, 16.0, 11.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+}
+
+fn t339() {   // utcMonth-test.js: utcMonth.round(date) observes daylight saving
+    check("d3-time/test/utcMonth-test.js:36:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:37:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:38:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:39:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 2.0, 13.0, 20.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:40:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:41:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:42:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:43:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2011.0, 10.0, 6.0, 20.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 10.0, 1.0])));
+}
+
+fn t340() {   // utcMonth-test.js: utcMonth.round(date) handles midnight for leap years
+    check("d3-time/test/utcMonth-test.js:47:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2012.0, 2.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2012.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:48:3", Kind::Strict, &ts(Interval::Month(1).round(utc(&[2012.0, 2.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2012.0, 2.0, 1.0])));
+}
+
+fn t341() {   // utcMonth-test.js: utcMonth.ceil(date) returns months
+    check("d3-time/test/utcMonth-test.js:52:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2010.0, 10.0, 30.0, 23.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:53:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2010.0, 11.0, 1.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t342() {   // utcMonth-test.js: utcMonth.ceil(date) observes daylight saving
+    check("d3-time/test/utcMonth-test.js:57:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 3.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:58:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 3.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:59:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 3.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:60:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 2.0, 13.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 3.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:61:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 11.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:62:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 8.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 11.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:63:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 9.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 11.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:64:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2011.0, 10.0, 6.0, 10.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 11.0, 1.0])));
+}
+
+fn t343() {   // utcMonth-test.js: utcMonth.ceil(date) handles midnight for leap years
+    check("d3-time/test/utcMonth-test.js:68:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2012.0, 2.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2012.0, 2.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:69:3", Kind::Strict, &ts(Interval::Month(1).ceil(utc(&[2012.0, 2.0, 1.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2012.0, 2.0, 1.0])));
+}
+
+fn t344() {   // utcMonth-test.js: utcMonth.offset(date) is an alias for utcMonth.offset(date, 1)
+    check("d3-time/test/utcMonth-test.js:73:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t345() {   // utcMonth-test.js: utcMonth.offset(date, step) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Month(1).offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/utcMonth-test.js:79:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t346() {   // utcMonth-test.js: utcMonth.offset(date, step) does not round the passed-in date
+    check("d3-time/test/utcMonth-test.js:83:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcMonth-test.js:84:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 9.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t347() {   // utcMonth-test.js: utcMonth.offset(date, step) allows step to be negative
+    check("d3-time/test/utcMonth-test.js:88:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 10.0, 31.0])));
+    check("d3-time/test/utcMonth-test.js:89:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2011.0, 0.0, 1.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 10.0, 1.0])));
+    check("d3-time/test/utcMonth-test.js:90:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2011.0, 0.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+}
+
+fn t348() {   // utcMonth-test.js: utcMonth.offset(date, step) allows step to be positive
+    check("d3-time/test/utcMonth-test.js:94:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 31.0])));
+    check("d3-time/test/utcMonth-test.js:95:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 30.0]), 2_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 1.0, 30.0])));
+    check("d3-time/test/utcMonth-test.js:96:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 30.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 30.0])));
+}
+
+fn t349() {   // utcMonth-test.js: utcMonth.offset(date, step) allows step to be zero
+    check("d3-time/test/utcMonth-test.js:100:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcMonth-test.js:101:3", Kind::Strict, &ts(Interval::Month(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t350() {   // utcMonth-test.js: utcMonth.range(start, stop) returns months between start (inclusive) and stop (exclusive)
+    check("d3-time/test/utcMonth-test.js:105:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 5.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 1.0, 1.0]), utc(&[2012.0, 2.0, 1.0]), utc(&[2012.0, 3.0, 1.0]), utc(&[2012.0, 4.0, 1.0])]));
+}
+
+fn t351() {   // utcMonth-test.js: utcMonth.range(start, stop) returns months
+    check("d3-time/test/utcMonth-test.js:116:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2011.0, 10.0, 4.0, 2.0]), utc(&[2012.0, 4.0, 10.0, 13.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 0.0, 1.0]), utc(&[2012.0, 1.0, 1.0]), utc(&[2012.0, 2.0, 1.0]), utc(&[2012.0, 3.0, 1.0]), utc(&[2012.0, 4.0, 1.0])]));
+}
+
+fn t352() {   // utcMonth-test.js: utcMonth.range(start, stop) coerces start and stop to dates
+    skip("d3-time/test/utcMonth-test.js:127:3", "js: a number as a date (coercion)");
+}
+
+fn t353() {   // utcMonth-test.js: utcMonth.range(start, stop) returns the empty array for invalid dates
+    skip("d3-time/test/utcMonth-test.js:135:3", "js: an invalid date (new Date(NaN))");
+}
+
+fn t354() {   // utcMonth-test.js: utcMonth.range(start, stop) returns the empty array if start >= stop
+    check("d3-time/test/utcMonth-test.js:139:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2011.0, 11.0, 10.0]), utc(&[2011.0, 10.0, 4.0]), &TimeZone::UTC).collect::<Vec<_>>()), &Vec::<f64>::new());
+    check("d3-time/test/utcMonth-test.js:140:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2011.0, 10.0, 1.0]), utc(&[2011.0, 10.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &Vec::<f64>::new());
+}
+
+fn t355() {   // utcMonth-test.js: utcMonth.range(start, stop) returns months
+    check("d3-time/test/utcMonth-test.js:144:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2010.0, 10.0, 31.0]), utc(&[2011.0, 2.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2010.0, 11.0, 1.0]), utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 1.0, 1.0])]));
+}
+
+fn t356() {   // utcMonth-test.js: utcMonth.range(start, stop) has an inclusive lower bound
+    check("d3-time/test/utcMonth-test.js:152:3", Kind::Strict, &ts(Interval::Month(1).range(utc(&[2010.0, 10.0, 31.0]), utc(&[2011.0, 2.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()[0_usize]), &ts(utc(&[2010.0, 11.0, 1.0])));
+}
+
+fn t357() {   // utcMonth-test.js: utcMonth.range(start, stop) has an exclusive upper bound
+    check("d3-time/test/utcMonth-test.js:156:3", Kind::Strict, &ts(Interval::Month(1).range(utc(&[2010.0, 10.0, 31.0]), utc(&[2011.0, 2.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()[2_usize]), &ts(utc(&[2011.0, 1.0, 1.0])));
+}
+
+fn t358() {   // utcMonth-test.js: utcMonth.range(start, stop) can skip months
+    check("d3-time/test/utcMonth-test.js:160:3", Kind::Strict, &tss(&Interval::Month(1).range_step(utc(&[2011.0, 1.0, 1.0]), utc(&[2012.0, 1.0, 1.0]), 3_u32, &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 1.0, 1.0]), utc(&[2011.0, 4.0, 1.0]), utc(&[2011.0, 7.0, 1.0]), utc(&[2011.0, 10.0, 1.0])]));
+}
+
+fn t359() {   // utcMonth-test.js: utcMonth.range(start, stop) observes start of daylight savings time
+    check("d3-time/test/utcMonth-test.js:169:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 4.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 1.0, 1.0]), utc(&[2011.0, 2.0, 1.0]), utc(&[2011.0, 3.0, 1.0])]));
+}
+
+fn t360() {   // utcMonth-test.js: utcMonth.range(start, stop) observes end of daylight savings time
+    check("d3-time/test/utcMonth-test.js:178:3", Kind::Strict, &tss(&Interval::Month(1).range(utc(&[2011.0, 9.0, 1.0]), utc(&[2012.0, 1.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2011.0, 9.0, 1.0]), utc(&[2011.0, 10.0, 1.0]), utc(&[2011.0, 11.0, 1.0]), utc(&[2012.0, 0.0, 1.0])]));
+}
+
+fn t361() {   // utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)
+    check("d3-time/test/utcMonth-test.js:187:3", Kind::Strict, &Interval::Month(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 4.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &4.0);
+    check("d3-time/test/utcMonth-test.js:188:3", Kind::Strict, &Interval::Month(1).count(utc(&[2011.0, 0.0, 1.0]), utc(&[2011.0, 3.0, 30.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &3.0);
+    check("d3-time/test/utcMonth-test.js:189:3", Kind::Strict, &Interval::Month(1).count(utc(&[2010.0, 11.0, 31.0]), utc(&[2011.0, 3.0, 30.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &4.0);
+    check("d3-time/test/utcMonth-test.js:190:3", Kind::Strict, &Interval::Month(1).count(utc(&[2010.0, 11.0, 31.0]), utc(&[2011.0, 4.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &5.0);
+    check("d3-time/test/utcMonth-test.js:191:3", Kind::Strict, &Interval::Month(1).count(utc(&[2009.0, 11.0, 31.0]), utc(&[2012.0, 4.0, 1.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &29.0);
+    check("d3-time/test/utcMonth-test.js:192:3", Kind::Strict, &Interval::Month(1).count(utc(&[2012.0, 4.0, 1.0]), utc(&[2009.0, 11.0, 31.0]), &TimeZone::UTC).map_or(f64::NAN, |n| n as f64), &-29.0);
+}
+
+fn t362() {   // utcMonth-test.js: utcMonth.every(step) returns every stepth month, starting with the first month of the year
+    check("d3-time/test/utcMonth-test.js:196:3", Kind::Strict, &tss(&Interval::Month(1).every(3_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0, 11.0, 3.0]), utc(&[2010.0, 6.0, 5.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2009.0, 3.0, 1.0]), utc(&[2009.0, 6.0, 1.0]), utc(&[2009.0, 9.0, 1.0]), utc(&[2010.0, 0.0, 1.0]), utc(&[2010.0, 3.0, 1.0]), utc(&[2010.0, 6.0, 1.0])]));
+}
+
+fn t363() {   // year-test.js: timeYear.floor(date) returns years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:6:3", Kind::Strict, &ts(Interval::Year(1).floor(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2010.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:7:3", Kind::Strict, &ts(Interval::Year(1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:8:3", Kind::Strict, &ts(Interval::Year(1).floor(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t364() {   // year-test.js: timeYear.floor(date) does not modify the specified date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]);
+    check("d3-time/test/year-test.js:13:3", Kind::Strict, &ts(Interval::Year(1).floor(d, &la)), &ts(local(&la, &[2010.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:14:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0])));
+}
+
+fn t365() {   // year-test.js: timeYear.floor(date) correctly handles years in the first century
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:18:3", Kind::Strict, &ts(Interval::Year(1).floor(local(&la, &[9.0, 10.0, 6.0, 7.0]), &la)), &ts(local(&la, &[9.0, 0.0, 1.0])));
+}
+
+fn t366() {   // year-test.js: timeYear.ceil(date) returns years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:22:3", Kind::Strict, &ts(Interval::Year(1).ceil(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:23:3", Kind::Strict, &ts(Interval::Year(1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:24:3", Kind::Strict, &ts(Interval::Year(1).ceil(local(&la, &[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2012.0, 0.0, 1.0])));
+}
+
+fn t367() {   // year-test.js: timeYear.offset(date, count) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Year(1).offset(d, 1_i64, &la);
+    check("d3-time/test/year-test.js:30:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t368() {   // year-test.js: timeYear.offset(date, count) does not round the passed-in-date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:34:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/year-test.js:35:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2008.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t369() {   // year-test.js: timeYear.offset(date, count) allows negative offsets
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:39:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2010.0, 11.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2009.0, 11.0, 1.0])));
+    check("d3-time/test/year-test.js:40:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -2_i64, &la)), &ts(local(&la, &[2009.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:41:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2011.0, 0.0, 1.0]), -1_i64, &la)), &ts(local(&la, &[2010.0, 0.0, 1.0])));
+}
+
+fn t370() {   // year-test.js: timeYear.offset(date, count) allows positive offsets
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:45:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2009.0, 11.0, 1.0]), 1_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 1.0])));
+    check("d3-time/test/year-test.js:46:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2009.0, 0.0, 1.0]), 2_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+    check("d3-time/test/year-test.js:47:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2010.0, 0.0, 1.0]), 1_i64, &la)), &ts(local(&la, &[2011.0, 0.0, 1.0])));
+}
+
+fn t371() {   // year-test.js: timeYear.offset(date, count) allows zero offset
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:51:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/year-test.js:52:3", Kind::Strict, &ts(Interval::Year(1).offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &la)), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t372() {   // year-test.js: timeYear.every(step) returns every stepth year, starting with year zero
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:56:3", Kind::Strict, &tss(&Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2008.0]), local(&la, &[2023.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2010.0]), local(&la, &[2015.0]), local(&la, &[2020.0])]));
+}
+
+fn t373() {   // year-test.js: timeYear.range(start, stop) returns years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:60:3", Kind::Strict, &tss(&Interval::Year(1).range(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2013.0, 0.0, 1.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2011.0, 0.0, 1.0]), local(&la, &[2012.0, 0.0, 1.0])]));
+}
+
+fn t374() {   // year-test.js: timeYear.range(start, stop) has an inclusive lower bound
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:68:3", Kind::Strict, &ts(Interval::Year(1).range(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2013.0, 0.0, 1.0]), &la).collect::<Vec<_>>()[0_usize]), &ts(local(&la, &[2010.0, 0.0, 1.0])));
+}
+
+fn t375() {   // year-test.js: timeYear.range(start, stop) has an exclusive upper bound
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:72:3", Kind::Strict, &ts(Interval::Year(1).range(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2013.0, 0.0, 1.0]), &la).collect::<Vec<_>>()[2_usize]), &ts(local(&la, &[2012.0, 0.0, 1.0])));
+}
+
+fn t376() {   // year-test.js: timeYear.range(start, stop, step) can skip years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/year-test.js:76:3", Kind::Strict, &tss(&Interval::Year(1).range_step(local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2029.0, 0.0, 1.0]), 5_u32, &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2009.0, 0.0, 1.0]), local(&la, &[2014.0, 0.0, 1.0]), local(&la, &[2019.0, 0.0, 1.0]), local(&la, &[2024.0, 0.0, 1.0])]));
+}
+
+fn t377() {   // utcYear-test.js: utcYear.floor(date) returns years
+    check("d3-time/test/utcYear-test.js:6:3", Kind::Strict, &ts(Interval::Year(1).floor(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:7:3", Kind::Strict, &ts(Interval::Year(1).floor(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:8:3", Kind::Strict, &ts(Interval::Year(1).floor(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t378() {   // utcYear-test.js: utcYear.floor(date) does not modify the specified date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]);
+    check("d3-time/test/utcYear-test.js:13:3", Kind::Strict, &ts(Interval::Year(1).floor(d, &TimeZone::UTC)), &ts(utc(&[2010.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:14:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0])));
+}
+
+fn t379() {   // utcYear-test.js: utcYear.floor(date) correctly handles years in the first century
+    check("d3-time/test/utcYear-test.js:18:3", Kind::Strict, &ts(Interval::Year(1).floor(utc(&[9.0, 10.0, 6.0, 7.0]), &TimeZone::UTC)), &ts(utc(&[9.0, 0.0, 1.0])));
+}
+
+fn t380() {   // utcYear-test.js: utcYear.ceil(date) returns years
+    check("d3-time/test/utcYear-test.js:22:3", Kind::Strict, &ts(Interval::Year(1).ceil(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:23:3", Kind::Strict, &ts(Interval::Year(1).ceil(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:24:3", Kind::Strict, &ts(Interval::Year(1).ceil(utc(&[2011.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2012.0, 0.0, 1.0])));
+}
+
+fn t381() {   // utcYear-test.js: utcYear.offset(date, count) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Year(1).offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/utcYear-test.js:30:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t382() {   // utcYear-test.js: utcYear.offset(date, count) does not round the passed-in-date
+    check("d3-time/test/utcYear-test.js:34:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcYear-test.js:35:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2008.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t383() {   // utcYear-test.js: utcYear.offset(date, count) allows negative offsets
+    check("d3-time/test/utcYear-test.js:39:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2010.0, 11.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2009.0, 11.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:40:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2011.0, 0.0, 1.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2009.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:41:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2011.0, 0.0, 1.0]), -1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 0.0, 1.0])));
+}
+
+fn t384() {   // utcYear-test.js: utcYear.offset(date, count) allows positive offsets
+    check("d3-time/test/utcYear-test.js:45:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2009.0, 11.0, 1.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:46:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2009.0, 0.0, 1.0]), 2_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+    check("d3-time/test/utcYear-test.js:47:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2010.0, 0.0, 1.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2011.0, 0.0, 1.0])));
+}
+
+fn t385() {   // utcYear-test.js: utcYear.offset(date, count) allows zero offset
+    check("d3-time/test/utcYear-test.js:51:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcYear-test.js:52:3", Kind::Strict, &ts(Interval::Year(1).offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0]), 0_i64, &TimeZone::UTC)), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 58.0, 0.0])));
+}
+
+fn t386() {   // utcYear-test.js: utcYear.every(step) returns every stepth year, starting with year zero
+    check("d3-time/test/utcYear-test.js:56:3", Kind::Strict, &tss(&Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").range(utc(&[2008.0]), utc(&[2023.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2010.0]), utc(&[2015.0]), utc(&[2020.0])]));
+}
+
+fn t387() {   // utcYear-test.js: utcYear.range(start, stop) returns years
+    check("d3-time/test/utcYear-test.js:60:3", Kind::Strict, &tss(&Interval::Year(1).range(utc(&[2010.0, 0.0, 1.0]), utc(&[2013.0, 0.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2010.0, 0.0, 1.0]), utc(&[2011.0, 0.0, 1.0]), utc(&[2012.0, 0.0, 1.0])]));
+}
+
+fn t388() {   // utcYear-test.js: utcYear.range(start, stop) has an inclusive lower bound
+    check("d3-time/test/utcYear-test.js:68:3", Kind::Strict, &ts(Interval::Year(1).range(utc(&[2010.0, 0.0, 1.0]), utc(&[2013.0, 0.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()[0_usize]), &ts(utc(&[2010.0, 0.0, 1.0])));
+}
+
+fn t389() {   // utcYear-test.js: utcYear.range(start, stop) has an exclusive upper bound
+    check("d3-time/test/utcYear-test.js:72:3", Kind::Strict, &ts(Interval::Year(1).range(utc(&[2010.0, 0.0, 1.0]), utc(&[2013.0, 0.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()[2_usize]), &ts(utc(&[2012.0, 0.0, 1.0])));
+}
+
+fn t390() {   // utcYear-test.js: utcYear.range(start, stop, step) can skip years
+    check("d3-time/test/utcYear-test.js:76:3", Kind::Strict, &tss(&Interval::Year(1).range_step(utc(&[2009.0, 0.0, 1.0]), utc(&[2029.0, 0.0, 1.0]), 5_u32, &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2009.0, 0.0, 1.0]), utc(&[2014.0, 0.0, 1.0]), utc(&[2019.0, 0.0, 1.0]), utc(&[2024.0, 0.0, 1.0])]));
+}
+
+fn t391() {   // multiYear-test.js: timeYear.every(n).floor(date) returns integer multiples of n years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/multiYear-test.js:6:3", Kind::Strict, &ts(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").floor(local(&la, &[2009.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2000.0, 0.0, 1.0])));
+    check("d3-time/test/multiYear-test.js:7:3", Kind::Strict, &ts(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").floor(local(&la, &[2010.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2010.0, 0.0, 1.0])));
+    check("d3-time/test/multiYear-test.js:8:3", Kind::Strict, &ts(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").floor(local(&la, &[2010.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2010.0, 0.0, 1.0])));
+}
+
+fn t392() {   // multiYear-test.js: timeYear.every(n).ceil(date) returns integer multiples of n years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/multiYear-test.js:12:3", Kind::Strict, &ts(Interval::Year(1).every(100_u32).expect("d3 test: a step of 1 or more").ceil(local(&la, &[1999.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &la)), &ts(local(&la, &[2000.0, 0.0, 1.0])));
+    check("d3-time/test/multiYear-test.js:13:3", Kind::Strict, &ts(Interval::Year(1).every(100_u32).expect("d3 test: a step of 1 or more").ceil(local(&la, &[2000.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &la)), &ts(local(&la, &[2000.0, 0.0, 1.0])));
+    check("d3-time/test/multiYear-test.js:14:3", Kind::Strict, &ts(Interval::Year(1).every(100_u32).expect("d3 test: a step of 1 or more").ceil(local(&la, &[2000.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &la)), &ts(local(&la, &[2100.0, 0.0, 1.0])));
+}
+
+fn t393() {   // multiYear-test.js: timeYear.every(n).offset(date, count) does not modify the passed-in date
+    let la = zone("America/Los_Angeles");
+    let mut d = local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").offset(d, 1_i64, &la);
+    check("d3-time/test/multiYear-test.js:20:3", Kind::Strict, &ts(d), &ts(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t394() {   // multiYear-test.js: timeYear.every(n).offset(date, count) does not round the passed-in-date
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/multiYear-test.js:24:3", Kind::Strict, &ts(Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &la)), &ts(local(&la, &[2015.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/multiYear-test.js:25:3", Kind::Strict, &ts(Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").offset(local(&la, &[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &la)), &ts(local(&la, &[2000.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t395() {   // multiYear-test.js: timeYear.every(n) does not define interval.count or interval.every
+    let mut _decade = Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more");
+    skip("d3-time/test/multiYear-test.js:30:3", "api: interval.count as a value (d3's every intervals lack count and every; an Interval has both)");
+    skip("d3-time/test/multiYear-test.js:31:3", "api: interval.every as a value (d3's every intervals lack count and every; an Interval has both)");
+}
+
+fn t396() {   // multiYear-test.js: timeYear.every(n).range(start, stop) returns multiples of n years
+    let la = zone("America/Los_Angeles");
+    check("d3-time/test/multiYear-test.js:35:3", Kind::Strict, &tss(&Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").range(local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2031.0, 0.0, 1.0]), &la).collect::<Vec<_>>()), &tss(&vec![local(&la, &[2010.0, 0.0, 1.0]), local(&la, &[2020.0, 0.0, 1.0]), local(&la, &[2030.0, 0.0, 1.0])]));
+}
+
+fn t397() {   // utcMultiYear-test.js: utcYear.every(n).floor(date) returns integer multiples of n years
+    check("d3-time/test/utcMultiYear-test.js:6:3", Kind::Strict, &ts(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").floor(utc(&[2009.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2000.0, 0.0, 1.0])));
+    check("d3-time/test/utcMultiYear-test.js:7:3", Kind::Strict, &ts(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").floor(utc(&[2010.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 0.0, 1.0])));
+    check("d3-time/test/utcMultiYear-test.js:8:3", Kind::Strict, &ts(Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").floor(utc(&[2010.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2010.0, 0.0, 1.0])));
+}
+
+fn t398() {   // utcMultiYear-test.js: utcYear.every(n).ceil(date) returns integer multiples of n years
+    check("d3-time/test/utcMultiYear-test.js:12:3", Kind::Strict, &ts(Interval::Year(1).every(100_u32).expect("d3 test: a step of 1 or more").ceil(utc(&[1999.0, 11.0, 31.0, 23.0, 59.0, 59.0]), &TimeZone::UTC)), &ts(utc(&[2000.0, 0.0, 1.0])));
+    check("d3-time/test/utcMultiYear-test.js:13:3", Kind::Strict, &ts(Interval::Year(1).every(100_u32).expect("d3 test: a step of 1 or more").ceil(utc(&[2000.0, 0.0, 1.0, 0.0, 0.0, 0.0]), &TimeZone::UTC)), &ts(utc(&[2000.0, 0.0, 1.0])));
+    check("d3-time/test/utcMultiYear-test.js:14:3", Kind::Strict, &ts(Interval::Year(1).every(100_u32).expect("d3 test: a step of 1 or more").ceil(utc(&[2000.0, 0.0, 1.0, 0.0, 0.0, 1.0]), &TimeZone::UTC)), &ts(utc(&[2100.0, 0.0, 1.0])));
+}
+
+fn t399() {   // utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not modify the passed-in date
+    let mut d = utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]);
+    Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").offset(d, 1_i64, &TimeZone::UTC);
+    check("d3-time/test/utcMultiYear-test.js:20:3", Kind::Strict, &ts(d), &ts(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+}
+
+fn t400() {   // utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not round the passed-in-date
+    check("d3-time/test/utcMultiYear-test.js:24:3", Kind::Strict, &ts(Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0]), 1_i64, &TimeZone::UTC)), &ts(utc(&[2015.0, 11.0, 31.0, 23.0, 59.0, 59.0, 999.0])));
+    check("d3-time/test/utcMultiYear-test.js:25:3", Kind::Strict, &ts(Interval::Year(1).every(5_u32).expect("d3 test: a step of 1 or more").offset(utc(&[2010.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0]), -2_i64, &TimeZone::UTC)), &ts(utc(&[2000.0, 11.0, 31.0, 23.0, 59.0, 59.0, 456.0])));
+}
+
+fn t401() {   // utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every
+    let mut _decade = Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more");
+    skip("d3-time/test/utcMultiYear-test.js:30:3", "api: interval.count as a value (d3's every intervals lack count and every; an Interval has both)");
+    skip("d3-time/test/utcMultiYear-test.js:31:3", "api: interval.every as a value (d3's every intervals lack count and every; an Interval has both)");
+}
+
+fn t402() {   // utcMultiYear-test.js: utcYear.every(n).range(start, stop) returns multiples of n years
+    check("d3-time/test/utcMultiYear-test.js:35:3", Kind::Strict, &tss(&Interval::Year(1).every(10_u32).expect("d3 test: a step of 1 or more").range(utc(&[2010.0, 0.0, 1.0]), utc(&[2031.0, 0.0, 1.0]), &TimeZone::UTC).collect::<Vec<_>>()), &tss(&vec![utc(&[2010.0, 0.0, 1.0]), utc(&[2020.0, 0.0, 1.0]), utc(&[2030.0, 0.0, 1.0])]));
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "millisecond-test.js: timeMillisecond.every(step) returns every stepth millisecond, starting with the first millisecond of the second", run: t0 },
     Test { name: "utcMillisecond-test.js: utcMillisecond is an alias for timeMillisecond", run: t1 },
@@ -680,6 +2632,310 @@ pub const TESTS: &[Test] = &[
     Test { name: "utcHour-test.js: utcHour.range(start, stop) does not observe the start of daylight savings time", run: t96 },
     Test { name: "utcHour-test.js: utcHour.range(start, stop) does not observe the end of daylight savings time", run: t97 },
     Test { name: "utcHour-test.js: utcHour.every(step) returns every stepth hour, starting with the first hour of the day", run: t98 },
+    Test { name: "day-test.js: timeDays in an alias for timeDay.range", run: t99 },
+    Test { name: "day-test.js: timeDay() is equivalent to timeDay.floor(new Date)", run: t100 },
+    Test { name: "day-test.js: timeDay(date) is equivalent to timeDay.floor(date)", run: t101 },
+    Test { name: "day-test.js: timeDay.floor(date) returns days", run: t102 },
+    Test { name: "day-test.js: timeDay.floor(date) observes daylight saving", run: t103 },
+    Test { name: "day-test.js: timeDay.floor(date) handles years in the first century", run: t104 },
+    Test { name: "day-test.js: timeDay.round(date) returns days", run: t105 },
+    Test { name: "day-test.js: timeDay.round(date) observes daylight saving", run: t106 },
+    Test { name: "day-test.js: timeDay.round(date) handles midnight in leap years", run: t107 },
+    Test { name: "day-test.js: timeDay.ceil(date) returns days", run: t108 },
+    Test { name: "day-test.js: timeDay.ceil(date) observes start of daylight saving", run: t109 },
+    Test { name: "day-test.js: timeDay.ceil(date) observes end of daylight saving", run: t110 },
+    Test { name: "day-test.js: timeDay.ceil(date) handles midnight for leap years", run: t111 },
+    Test { name: "day-test.js: timeDay.offset(date) is an alias for timeDay.offset(date, 1)", run: t112 },
+    Test { name: "day-test.js: timeDay.offset(date, step) does not modify the passed-in date", run: t113 },
+    Test { name: "day-test.js: timeDay.offset(date, step) does not round the passed-in date", run: t114 },
+    Test { name: "day-test.js: timeDay.offset(date, step) allows step to be negative", run: t115 },
+    Test { name: "day-test.js: timeDay.offset(date, step) allows step to be positive", run: t116 },
+    Test { name: "day-test.js: timeDay.offset(date, step) allows step to be zero", run: t117 },
+    Test { name: "day-test.js: timeDay.range(start, stop) returns days between start (inclusive) and stop (exclusive)", run: t118 },
+    Test { name: "day-test.js: timeDay.range(start, stop) returns days", run: t119 },
+    Test { name: "day-test.js: timeDay.range(start, stop) coerces start and stop to dates", run: t120 },
+    Test { name: "day-test.js: timeDay.range(start, stop) returns the empty array for invalid dates", run: t121 },
+    Test { name: "day-test.js: timeDay.range(start, stop) returns the empty array if start >= stop", run: t122 },
+    Test { name: "day-test.js: timeDay.range(start, stop, step) returns every step day", run: t123 },
+    Test { name: "day-test.js: timeDay.range(start, stop, step) returns the empty array if step is zero, negative or NaN", run: t124 },
+    Test { name: "day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", run: t125 },
+    Test { name: "day-test.js: timeDay.count(start, end) observes daylight saving", run: t126 },
+    Test { name: "day-test.js: timeDay.count(start, stop) does not exhibit floating-point rounding error", run: t127 },
+    Test { name: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", run: t128 },
+    Test { name: "day-test.js: timeDay.every(step) returns every stepth day, starting with the first day of the month", run: t129 },
+    Test { name: "utcDay-test.js: utcDays in an alias for utcDay.range", run: t130 },
+    Test { name: "utcDay-test.js: utcDay.floor(date) returns days", run: t131 },
+    Test { name: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", run: t132 },
+    Test { name: "utcDay-test.js: utcDay.round(date) returns days", run: t133 },
+    Test { name: "utcDay-test.js: utcDay.ceil(date) returns days", run: t134 },
+    Test { name: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", run: t135 },
+    Test { name: "utcDay-test.js: utcDay.offset(date) is an alias for utcDay.offset(date, 1)", run: t136 },
+    Test { name: "utcDay-test.js: utcDay.offset(date, step) does not modify the passed-in date", run: t137 },
+    Test { name: "utcDay-test.js: utcDay.offset(date, step) does not round the passed-in date", run: t138 },
+    Test { name: "utcDay-test.js: utcDay.offset(date, step) allows step to be negative", run: t139 },
+    Test { name: "utcDay-test.js: utcDay.offset(date, step) allows step to be positive", run: t140 },
+    Test { name: "utcDay-test.js: utcDay.offset(date, step) allows step to be zero", run: t141 },
+    Test { name: "utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", run: t142 },
+    Test { name: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", run: t143 },
+    Test { name: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", run: t144 },
+    Test { name: "utcDay-test.js: utcDay.every(step) returns every stepth day, starting with the first day of the month", run: t145 },
+    Test { name: "unixDay-test.js: unixDays in an alias for unixDay.range", run: t146 },
+    Test { name: "unixDay-test.js: unixDay.floor(date) returns days", run: t147 },
+    Test { name: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", run: t148 },
+    Test { name: "unixDay-test.js: unixDay.round(date) returns days", run: t149 },
+    Test { name: "unixDay-test.js: unixDay.ceil(date) returns days", run: t150 },
+    Test { name: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", run: t151 },
+    Test { name: "unixDay-test.js: unixDay.offset(date) is an alias for unixDay.offset(date, 1)", run: t152 },
+    Test { name: "unixDay-test.js: unixDay.offset(date, step) does not modify the passed-in date", run: t153 },
+    Test { name: "unixDay-test.js: unixDay.offset(date, step) does not round the passed-in date", run: t154 },
+    Test { name: "unixDay-test.js: unixDay.offset(date, step) allows step to be negative", run: t155 },
+    Test { name: "unixDay-test.js: unixDay.offset(date, step) allows step to be positive", run: t156 },
+    Test { name: "unixDay-test.js: unixDay.offset(date, step) allows step to be zero", run: t157 },
+    Test { name: "unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", run: t158 },
+    Test { name: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", run: t159 },
+    Test { name: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", run: t160 },
+    Test { name: "unixDay-test.js: unixDay.every(step) returns every stepth day", run: t161 },
+    Test { name: "week-test.js: timeWeek.floor(date) returns sundays", run: t162 },
+    Test { name: "week-test.js: timeWeek.floor(date) observes the start of daylight savings time", run: t163 },
+    Test { name: "week-test.js: timeWeek.floor(date) observes the end of the daylight savings time", run: t164 },
+    Test { name: "week-test.js: timeWeek.floor(date) correctly handles years in the first century", run: t165 },
+    Test { name: "week-test.js: timeWeek.ceil(date) returns sundays", run: t166 },
+    Test { name: "week-test.js: timeWeek.ceil(date) observes the start of daylight savings time", run: t167 },
+    Test { name: "week-test.js: timeWeek.ceil(date) observes the end of the daylight savings time", run: t168 },
+    Test { name: "week-test.js: timeWeek.offset(date, step) does not modify the passed-in date", run: t169 },
+    Test { name: "week-test.js: timeWeek.offset(date, step) does not round the passed-in-date", run: t170 },
+    Test { name: "week-test.js: timeWeek.offset(date, step) allows negative offsets", run: t171 },
+    Test { name: "week-test.js: timeWeek.offset(date, step) allows positive offsets", run: t172 },
+    Test { name: "week-test.js: timeWeek.offset(date, step) allows zero offset", run: t173 },
+    Test { name: "week-test.js: timeWeek.range(start, stop) returns sundays", run: t174 },
+    Test { name: "week-test.js: timeWeek.range(start, stop) has an inclusive lower bound", run: t175 },
+    Test { name: "week-test.js: timeWeek.range(start, stop) has an exclusive upper bound", run: t176 },
+    Test { name: "week-test.js: timeWeek.range(start, stop) can skip weeks", run: t177 },
+    Test { name: "week-test.js: timeWeek.range(start, stop) observes start of daylight savings time", run: t178 },
+    Test { name: "week-test.js: timeWeek.range(start, stop) observes end of daylight savings time", run: t179 },
+    Test { name: "week-test.js: timeWeek is an alias for timeSunday", run: t180 },
+    Test { name: "week-test.js: timeWeek.every(step) returns every stepth Sunday, starting with the first Sunday of the month", run: t181 },
+    Test { name: "utcWeek-test.js: utcWeek.floor(date) returns sundays", run: t182 },
+    Test { name: "utcWeek-test.js: utcWeek.floor(date) observes the start of daylight savings time", run: t183 },
+    Test { name: "utcWeek-test.js: utcWeek.floor(date) observes the end of the daylight savings time", run: t184 },
+    Test { name: "utcWeek-test.js: utcWeek.floor(date) correctly handles years in the first century", run: t185 },
+    Test { name: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", run: t186 },
+    Test { name: "utcWeek-test.js: utcWeek.ceil(date) does not observe the start of daylight savings time", run: t187 },
+    Test { name: "utcWeek-test.js: utcWeek.ceil(date) does not observe the end of the daylight savings time", run: t188 },
+    Test { name: "utcWeek-test.js: utcWeek.offset(date, step) does not modify the passed-in date", run: t189 },
+    Test { name: "utcWeek-test.js: utcWeek.offset(date, step) does not round the passed-in-date", run: t190 },
+    Test { name: "utcWeek-test.js: utcWeek.offset(date, step) allows negative offsets", run: t191 },
+    Test { name: "utcWeek-test.js: utcWeek.offset(date, step) allows positive offsets", run: t192 },
+    Test { name: "utcWeek-test.js: utcWeek.offset(date, step) allows zero offset", run: t193 },
+    Test { name: "utcWeek-test.js: utcWeek.range(start, stop) returns sundays", run: t194 },
+    Test { name: "utcWeek-test.js: utcWeek.range(start, stop) has an inclusive lower bound", run: t195 },
+    Test { name: "utcWeek-test.js: utcWeek.range(start, stop) has an exclusive upper bound", run: t196 },
+    Test { name: "utcWeek-test.js: utcWeek.range(start, stop) can skip weeks", run: t197 },
+    Test { name: "utcWeek-test.js: utcWeek.range(start, stop) does not observe start of daylight savings time", run: t198 },
+    Test { name: "utcWeek-test.js: utcWeek.range(start, stop) does not observe end of daylight savings time", run: t199 },
+    Test { name: "utcWeek-test.js: utcWeek is an alias for utcSunday", run: t200 },
+    Test { name: "utcWeek-test.js: utcWeek.every(step) returns every stepth Sunday, starting with the first Sunday of the month", run: t201 },
+    Test { name: "sunday-test.js: timeSundays in an alias for timeSunday.range", run: t202 },
+    Test { name: "sunday-test.js: timeSunday.floor(date) returns Sundays", run: t203 },
+    Test { name: "sunday-test.js: timeSunday.floor(date) observes daylight saving", run: t204 },
+    Test { name: "sunday-test.js: timeSunday.floor(date) handles years in the first century", run: t205 },
+    Test { name: "sunday-test.js: timeSunday.ceil(date) returns Sundays", run: t206 },
+    Test { name: "sunday-test.js: timeSunday.ceil(date) observes daylight saving", run: t207 },
+    Test { name: "sunday-test.js: timeSunday.offset(date) is an alias for timeSunday.offset(date, 1)", run: t208 },
+    Test { name: "sunday-test.js: timeSunday.offset(date, step) does not modify the passed-in date", run: t209 },
+    Test { name: "sunday-test.js: timeSunday.offset(date, step) does not round the passed-in date", run: t210 },
+    Test { name: "sunday-test.js: timeSunday.offset(date, step) allows step to be negative", run: t211 },
+    Test { name: "sunday-test.js: timeSunday.offset(date, step) allows step to be positive", run: t212 },
+    Test { name: "sunday-test.js: timeSunday.offset(date, step) allows step to be zero", run: t213 },
+    Test { name: "sunday-test.js: timeSunday.range(start, stop) returns Sundays between start (inclusive) and stop (exclusive)", run: t214 },
+    Test { name: "sunday-test.js: timeSunday.range(start, stop) returns Sundays", run: t215 },
+    Test { name: "sunday-test.js: timeSunday.range(start, stop) coerces start and stop to dates", run: t216 },
+    Test { name: "sunday-test.js: timeSunday.range(start, stop) returns the empty array for invalid dates", run: t217 },
+    Test { name: "sunday-test.js: timeSunday.range(start, stop) returns the empty array if start >= stop", run: t218 },
+    Test { name: "sunday-test.js: timeSunday.range(start, stop, step) returns every step Sunday", run: t219 },
+    Test { name: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", run: t220 },
+    Test { name: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", run: t221 },
+    Test { name: "utcSunday-test.js: utcSundays in an alias for utcSunday.range", run: t222 },
+    Test { name: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", run: t223 },
+    Test { name: "utcSunday-test.js: utcSunday.floor(date) observes daylight saving", run: t224 },
+    Test { name: "utcSunday-test.js: utcSunday.floor(date) handles years in the first century", run: t225 },
+    Test { name: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", run: t226 },
+    Test { name: "utcSunday-test.js: utcSunday.ceil(date) observes daylight saving", run: t227 },
+    Test { name: "utcSunday-test.js: utcSunday.offset(date) is an alias for utcSunday.offset(date, 1)", run: t228 },
+    Test { name: "utcSunday-test.js: utcSunday.offset(date, step) does not modify the passed-in date", run: t229 },
+    Test { name: "utcSunday-test.js: utcSunday.offset(date, step) does not round the passed-in date", run: t230 },
+    Test { name: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be negative", run: t231 },
+    Test { name: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be positive", run: t232 },
+    Test { name: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be zero", run: t233 },
+    Test { name: "utcSunday-test.js: utcSunday.range(start, stop) returns Sundays between start (inclusive) and stop (exclusive)", run: t234 },
+    Test { name: "utcSunday-test.js: utcSunday.range(start, stop) returns Sundays", run: t235 },
+    Test { name: "utcSunday-test.js: utcSunday.range(start, stop) coerces start and stop to dates", run: t236 },
+    Test { name: "utcSunday-test.js: utcSunday.range(start, stop) returns the empty array for invalid dates", run: t237 },
+    Test { name: "utcSunday-test.js: utcSunday.range(start, stop) returns the empty array if start >= stop", run: t238 },
+    Test { name: "utcSunday-test.js: utcSunday.range(start, stop, step) returns every step Sunday", run: t239 },
+    Test { name: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", run: t240 },
+    Test { name: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", run: t241 },
+    Test { name: "monday-test.js: timeMondays in an alias for timeMonday.range", run: t242 },
+    Test { name: "monday-test.js: timeMonday.floor(date) returns Mondays", run: t243 },
+    Test { name: "monday-test.js: timeMonday.range(start, stop, step) returns every step Monday", run: t244 },
+    Test { name: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", run: t245 },
+    Test { name: "monday-test.js: timeMonday.count(start, end) observes daylight saving", run: t246 },
+    Test { name: "utcMonday-test.js: utcMondays in an alias for utcMonday.range", run: t247 },
+    Test { name: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", run: t248 },
+    Test { name: "utcMonday-test.js: utcMonday.range(start, stop, step) returns every step Monday", run: t249 },
+    Test { name: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", run: t250 },
+    Test { name: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", run: t251 },
+    Test { name: "tuesday-test.js: timeTuesdays in an alias for timeTuesday.range", run: t252 },
+    Test { name: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", run: t253 },
+    Test { name: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", run: t254 },
+    Test { name: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", run: t255 },
+    Test { name: "utcTuesday-test.js: utcTuesdays in an alias for utcTuesday.range", run: t256 },
+    Test { name: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", run: t257 },
+    Test { name: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", run: t258 },
+    Test { name: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", run: t259 },
+    Test { name: "wednesday-test.js: timeWednesdays in an alias for timeWednesday.range", run: t260 },
+    Test { name: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", run: t261 },
+    Test { name: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", run: t262 },
+    Test { name: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", run: t263 },
+    Test { name: "utcWednesday-test.js: utcWednesdays in an alias for utcWednesday.range", run: t264 },
+    Test { name: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", run: t265 },
+    Test { name: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", run: t266 },
+    Test { name: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", run: t267 },
+    Test { name: "thursday-test.js: timeThursdays in an alias for timeThursday.range", run: t268 },
+    Test { name: "thursday-test.js: timeThursday.floor(date) returns Thursdays", run: t269 },
+    Test { name: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", run: t270 },
+    Test { name: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", run: t271 },
+    Test { name: "utcThursday-test.js: utcThursdays in an alias for utcThursday.range", run: t272 },
+    Test { name: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", run: t273 },
+    Test { name: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", run: t274 },
+    Test { name: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", run: t275 },
+    Test { name: "friday-test.js: timeFridays in an alias for timeFriday.range", run: t276 },
+    Test { name: "friday-test.js: timeFriday.floor(date) returns Fridays", run: t277 },
+    Test { name: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", run: t278 },
+    Test { name: "friday-test.js: timeFriday.count(start, end) observes daylight saving", run: t279 },
+    Test { name: "utcFriday-test.js: utcFridays in an alias for utcFriday.range", run: t280 },
+    Test { name: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", run: t281 },
+    Test { name: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", run: t282 },
+    Test { name: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", run: t283 },
+    Test { name: "saturday-test.js: timeSaturdays in an alias for timeSaturday.range", run: t284 },
+    Test { name: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", run: t285 },
+    Test { name: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", run: t286 },
+    Test { name: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", run: t287 },
+    Test { name: "utcSaturday-test.js: utcSaturdays in an alias for utcSaturday.range", run: t288 },
+    Test { name: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", run: t289 },
+    Test { name: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", run: t290 },
+    Test { name: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", run: t291 },
+    Test { name: "month-test.js: timeMonths in an alias for timeMonth.range", run: t292 },
+    Test { name: "month-test.js: timeMonth.floor(date) returns months", run: t293 },
+    Test { name: "month-test.js: timeMonth.floor(date) observes the start of daylight savings time", run: t294 },
+    Test { name: "month-test.js: timeMonth.floor(date) observes the end of the daylight savings time", run: t295 },
+    Test { name: "month-test.js: timeMonth.floor(date) correctly handles years in the first century", run: t296 },
+    Test { name: "month-test.js: timeMonth.ceil(date) returns months", run: t297 },
+    Test { name: "month-test.js: timeMonth.ceil(date) observes the start of daylight savings time", run: t298 },
+    Test { name: "month-test.js: timeMonth.ceil(date) observes the end of the daylight savings time", run: t299 },
+    Test { name: "month-test.js: timeMonth.offset(date) does not modify the passed-in date", run: t300 },
+    Test { name: "month-test.js: timeMonth.offset(date) does not round the passed-in-date", run: t301 },
+    Test { name: "month-test.js: timeMonth.offset(date) allows negative offsets", run: t302 },
+    Test { name: "month-test.js: timeMonth.offset(date) allows positive offsets", run: t303 },
+    Test { name: "month-test.js: timeMonth.offset(date) allows zero offset", run: t304 },
+    Test { name: "month-test.js: timeMonths in an alias for timeMonth.range", run: t305 },
+    Test { name: "month-test.js: timeMonth.floor(date) returns months", run: t306 },
+    Test { name: "month-test.js: timeMonth.floor(date) observes daylight saving", run: t307 },
+    Test { name: "month-test.js: timeMonth.floor(date) handles years in the first century", run: t308 },
+    Test { name: "month-test.js: timeMonth.round(date) returns months", run: t309 },
+    Test { name: "month-test.js: timeMonth.round(date) observes daylight saving", run: t310 },
+    Test { name: "month-test.js: timeMonth.round(date) handles midnight for leap years", run: t311 },
+    Test { name: "month-test.js: timeMonth.ceil(date) returns months", run: t312 },
+    Test { name: "month-test.js: timeMonth.ceil(date) observes daylight saving", run: t313 },
+    Test { name: "month-test.js: timeMonth.ceil(date) handles midnight for leap years", run: t314 },
+    Test { name: "month-test.js: timeMonth.offset(date) is an alias for timeMonth.offset(date, 1)", run: t315 },
+    Test { name: "month-test.js: timeMonth.offset(date, step) does not modify the passed-in date", run: t316 },
+    Test { name: "month-test.js: timeMonth.offset(date, step) does not round the passed-in date", run: t317 },
+    Test { name: "month-test.js: timeMonth.offset(date, step) allows step to be negative", run: t318 },
+    Test { name: "month-test.js: timeMonth.offset(date, step) allows step to be positive", run: t319 },
+    Test { name: "month-test.js: timeMonth.offset(date, step) allows step to be zero", run: t320 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) returns months between start (inclusive) and stop (exclusive)", run: t321 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) returns months", run: t322 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) coerces start and stop to dates", run: t323 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) returns the empty array for invalid dates", run: t324 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) returns the empty array if start >= stop", run: t325 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) returns months", run: t326 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) has an inclusive lower bound", run: t327 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) has an exclusive upper bound", run: t328 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) can skip months", run: t329 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) observes start of daylight savings time", run: t330 },
+    Test { name: "month-test.js: timeMonth.range(start, stop) observes end of daylight savings time", run: t331 },
+    Test { name: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", run: t332 },
+    Test { name: "month-test.js: timeMonth.every(step) returns every stepth month, starting with the first month of the year", run: t333 },
+    Test { name: "utcMonth-test.js: utcMonths in an alias for utcMonth.range", run: t334 },
+    Test { name: "utcMonth-test.js: utcMonth.floor(date) returns months", run: t335 },
+    Test { name: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", run: t336 },
+    Test { name: "utcMonth-test.js: utcMonth.floor(date) handles years in the first century", run: t337 },
+    Test { name: "utcMonth-test.js: utcMonth.round(date) returns months", run: t338 },
+    Test { name: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", run: t339 },
+    Test { name: "utcMonth-test.js: utcMonth.round(date) handles midnight for leap years", run: t340 },
+    Test { name: "utcMonth-test.js: utcMonth.ceil(date) returns months", run: t341 },
+    Test { name: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", run: t342 },
+    Test { name: "utcMonth-test.js: utcMonth.ceil(date) handles midnight for leap years", run: t343 },
+    Test { name: "utcMonth-test.js: utcMonth.offset(date) is an alias for utcMonth.offset(date, 1)", run: t344 },
+    Test { name: "utcMonth-test.js: utcMonth.offset(date, step) does not modify the passed-in date", run: t345 },
+    Test { name: "utcMonth-test.js: utcMonth.offset(date, step) does not round the passed-in date", run: t346 },
+    Test { name: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be negative", run: t347 },
+    Test { name: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be positive", run: t348 },
+    Test { name: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be zero", run: t349 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) returns months between start (inclusive) and stop (exclusive)", run: t350 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) returns months", run: t351 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) coerces start and stop to dates", run: t352 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) returns the empty array for invalid dates", run: t353 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) returns the empty array if start >= stop", run: t354 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) returns months", run: t355 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) has an inclusive lower bound", run: t356 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) has an exclusive upper bound", run: t357 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) can skip months", run: t358 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) observes start of daylight savings time", run: t359 },
+    Test { name: "utcMonth-test.js: utcMonth.range(start, stop) observes end of daylight savings time", run: t360 },
+    Test { name: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", run: t361 },
+    Test { name: "utcMonth-test.js: utcMonth.every(step) returns every stepth month, starting with the first month of the year", run: t362 },
+    Test { name: "year-test.js: timeYear.floor(date) returns years", run: t363 },
+    Test { name: "year-test.js: timeYear.floor(date) does not modify the specified date", run: t364 },
+    Test { name: "year-test.js: timeYear.floor(date) correctly handles years in the first century", run: t365 },
+    Test { name: "year-test.js: timeYear.ceil(date) returns years", run: t366 },
+    Test { name: "year-test.js: timeYear.offset(date, count) does not modify the passed-in date", run: t367 },
+    Test { name: "year-test.js: timeYear.offset(date, count) does not round the passed-in-date", run: t368 },
+    Test { name: "year-test.js: timeYear.offset(date, count) allows negative offsets", run: t369 },
+    Test { name: "year-test.js: timeYear.offset(date, count) allows positive offsets", run: t370 },
+    Test { name: "year-test.js: timeYear.offset(date, count) allows zero offset", run: t371 },
+    Test { name: "year-test.js: timeYear.every(step) returns every stepth year, starting with year zero", run: t372 },
+    Test { name: "year-test.js: timeYear.range(start, stop) returns years", run: t373 },
+    Test { name: "year-test.js: timeYear.range(start, stop) has an inclusive lower bound", run: t374 },
+    Test { name: "year-test.js: timeYear.range(start, stop) has an exclusive upper bound", run: t375 },
+    Test { name: "year-test.js: timeYear.range(start, stop, step) can skip years", run: t376 },
+    Test { name: "utcYear-test.js: utcYear.floor(date) returns years", run: t377 },
+    Test { name: "utcYear-test.js: utcYear.floor(date) does not modify the specified date", run: t378 },
+    Test { name: "utcYear-test.js: utcYear.floor(date) correctly handles years in the first century", run: t379 },
+    Test { name: "utcYear-test.js: utcYear.ceil(date) returns years", run: t380 },
+    Test { name: "utcYear-test.js: utcYear.offset(date, count) does not modify the passed-in date", run: t381 },
+    Test { name: "utcYear-test.js: utcYear.offset(date, count) does not round the passed-in-date", run: t382 },
+    Test { name: "utcYear-test.js: utcYear.offset(date, count) allows negative offsets", run: t383 },
+    Test { name: "utcYear-test.js: utcYear.offset(date, count) allows positive offsets", run: t384 },
+    Test { name: "utcYear-test.js: utcYear.offset(date, count) allows zero offset", run: t385 },
+    Test { name: "utcYear-test.js: utcYear.every(step) returns every stepth year, starting with year zero", run: t386 },
+    Test { name: "utcYear-test.js: utcYear.range(start, stop) returns years", run: t387 },
+    Test { name: "utcYear-test.js: utcYear.range(start, stop) has an inclusive lower bound", run: t388 },
+    Test { name: "utcYear-test.js: utcYear.range(start, stop) has an exclusive upper bound", run: t389 },
+    Test { name: "utcYear-test.js: utcYear.range(start, stop, step) can skip years", run: t390 },
+    Test { name: "multiYear-test.js: timeYear.every(n).floor(date) returns integer multiples of n years", run: t391 },
+    Test { name: "multiYear-test.js: timeYear.every(n).ceil(date) returns integer multiples of n years", run: t392 },
+    Test { name: "multiYear-test.js: timeYear.every(n).offset(date, count) does not modify the passed-in date", run: t393 },
+    Test { name: "multiYear-test.js: timeYear.every(n).offset(date, count) does not round the passed-in-date", run: t394 },
+    Test { name: "multiYear-test.js: timeYear.every(n) does not define interval.count or interval.every", run: t395 },
+    Test { name: "multiYear-test.js: timeYear.every(n).range(start, stop) returns multiples of n years", run: t396 },
+    Test { name: "utcMultiYear-test.js: utcYear.every(n).floor(date) returns integer multiples of n years", run: t397 },
+    Test { name: "utcMultiYear-test.js: utcYear.every(n).ceil(date) returns integer multiples of n years", run: t398 },
+    Test { name: "utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not modify the passed-in date", run: t399 },
+    Test { name: "utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not round the passed-in-date", run: t400 },
+    Test { name: "utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every", run: t401 },
+    Test { name: "utcMultiYear-test.js: utcYear.every(n).range(start, stop) returns multiples of n years", run: t402 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -899,4 +3155,873 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-time/test/utcHour-test.js:117:3", test: "utcHour-test.js: utcHour.range(start, stop) does not observe the end of daylight savings time", skip: None },
     Assertion { id: "d3-time/test/utcHour-test.js:124:3", test: "utcHour-test.js: utcHour.every(step) returns every stepth hour, starting with the first hour of the day", skip: None },
     Assertion { id: "d3-time/test/utcHour-test.js:125:3", test: "utcHour-test.js: utcHour.every(step) returns every stepth hour, starting with the first hour of the day", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:6:3", test: "day-test.js: timeDays in an alias for timeDay.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/day-test.js:11:3", test: "day-test.js: timeDay() is equivalent to timeDay.floor(new Date)", skip: Some("api: ambient clock (new Date)") },
+    Assertion { id: "d3-time/test/day-test.js:16:3", test: "day-test.js: timeDay(date) is equivalent to timeDay.floor(date)", skip: Some("api: ambient clock (new Date)") },
+    Assertion { id: "d3-time/test/day-test.js:20:3", test: "day-test.js: timeDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:21:3", test: "day-test.js: timeDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:22:3", test: "day-test.js: timeDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:26:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:27:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:28:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:29:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:30:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:31:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:32:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:33:3", test: "day-test.js: timeDay.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:37:3", test: "day-test.js: timeDay.floor(date) handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:41:3", test: "day-test.js: timeDay.round(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:42:3", test: "day-test.js: timeDay.round(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:46:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:47:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:48:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:49:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:50:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:51:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:52:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:53:3", test: "day-test.js: timeDay.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:57:3", test: "day-test.js: timeDay.round(date) handles midnight in leap years", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:58:3", test: "day-test.js: timeDay.round(date) handles midnight in leap years", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:62:3", test: "day-test.js: timeDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:63:3", test: "day-test.js: timeDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:64:3", test: "day-test.js: timeDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:68:3", test: "day-test.js: timeDay.ceil(date) observes start of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:69:3", test: "day-test.js: timeDay.ceil(date) observes start of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:70:3", test: "day-test.js: timeDay.ceil(date) observes start of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:71:3", test: "day-test.js: timeDay.ceil(date) observes start of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:75:3", test: "day-test.js: timeDay.ceil(date) observes end of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:76:3", test: "day-test.js: timeDay.ceil(date) observes end of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:77:3", test: "day-test.js: timeDay.ceil(date) observes end of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:78:3", test: "day-test.js: timeDay.ceil(date) observes end of daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:82:3", test: "day-test.js: timeDay.ceil(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:83:3", test: "day-test.js: timeDay.ceil(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:87:3", test: "day-test.js: timeDay.offset(date) is an alias for timeDay.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:93:3", test: "day-test.js: timeDay.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:97:3", test: "day-test.js: timeDay.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:98:3", test: "day-test.js: timeDay.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:102:3", test: "day-test.js: timeDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:103:3", test: "day-test.js: timeDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:104:3", test: "day-test.js: timeDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:108:3", test: "day-test.js: timeDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:109:3", test: "day-test.js: timeDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:110:3", test: "day-test.js: timeDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:114:3", test: "day-test.js: timeDay.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:115:3", test: "day-test.js: timeDay.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:119:3", test: "day-test.js: timeDay.range(start, stop) returns days between start (inclusive) and stop (exclusive)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:130:3", test: "day-test.js: timeDay.range(start, stop) returns days", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:141:3", test: "day-test.js: timeDay.range(start, stop) coerces start and stop to dates", skip: Some("js: a number as a date (coercion)") },
+    Assertion { id: "d3-time/test/day-test.js:149:3", test: "day-test.js: timeDay.range(start, stop) returns the empty array for invalid dates", skip: Some("js: an invalid date (new Date(NaN))") },
+    Assertion { id: "d3-time/test/day-test.js:153:3", test: "day-test.js: timeDay.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:154:3", test: "day-test.js: timeDay.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:158:3", test: "day-test.js: timeDay.range(start, stop, step) returns every step day", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:167:3", test: "day-test.js: timeDay.range(start, stop, step) returns the empty array if step is zero, negative or NaN", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:168:3", test: "day-test.js: timeDay.range(start, stop, step) returns the empty array if step is zero, negative or NaN", skip: Some("types: a range step below 0 (u32)") },
+    Assertion { id: "d3-time/test/day-test.js:169:3", test: "day-test.js: timeDay.range(start, stop, step) returns the empty array if step is zero, negative or NaN", skip: Some("js: a range step that is not a whole number (Math.floor)") },
+    Assertion { id: "d3-time/test/day-test.js:170:3", test: "day-test.js: timeDay.range(start, stop, step) returns the empty array if step is zero, negative or NaN", skip: Some("js: a NaN range step (coercion)") },
+    Assertion { id: "d3-time/test/day-test.js:174:3", test: "day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:175:3", test: "day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:176:3", test: "day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:177:3", test: "day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:178:3", test: "day-test.js: timeDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:182:3", test: "day-test.js: timeDay.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:183:3", test: "day-test.js: timeDay.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:184:3", test: "day-test.js: timeDay.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:185:3", test: "day-test.js: timeDay.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:186:3", test: "day-test.js: timeDay.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:187:3", test: "day-test.js: timeDay.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:192:3", test: "day-test.js: timeDay.count(start, stop) does not exhibit floating-point rounding error", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:196:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:197:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:198:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:199:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:200:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:201:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:202:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:203:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:204:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:205:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:206:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:207:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:208:3", test: "day-test.js: timeDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:212:3", test: "day-test.js: timeDay.every(step) returns every stepth day, starting with the first day of the month", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:213:3", test: "day-test.js: timeDay.every(step) returns every stepth day, starting with the first day of the month", skip: None },
+    Assertion { id: "d3-time/test/day-test.js:214:3", test: "day-test.js: timeDay.every(step) returns every stepth day, starting with the first day of the month", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:6:3", test: "utcDay-test.js: utcDays in an alias for utcDay.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcDay-test.js:10:3", test: "utcDay-test.js: utcDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:11:3", test: "utcDay-test.js: utcDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:12:3", test: "utcDay-test.js: utcDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:16:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:17:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:18:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:19:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:20:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:21:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:22:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:23:3", test: "utcDay-test.js: utcDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:27:3", test: "utcDay-test.js: utcDay.round(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:28:3", test: "utcDay-test.js: utcDay.round(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:32:3", test: "utcDay-test.js: utcDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:33:3", test: "utcDay-test.js: utcDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:34:3", test: "utcDay-test.js: utcDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:38:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:39:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:40:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:41:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:42:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:43:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:44:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:45:3", test: "utcDay-test.js: utcDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:49:3", test: "utcDay-test.js: utcDay.offset(date) is an alias for utcDay.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:55:3", test: "utcDay-test.js: utcDay.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:59:3", test: "utcDay-test.js: utcDay.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:60:3", test: "utcDay-test.js: utcDay.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:64:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:65:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:66:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:70:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:71:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:72:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:76:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:77:3", test: "utcDay-test.js: utcDay.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:81:3", test: "utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:82:3", test: "utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:83:3", test: "utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:84:3", test: "utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:85:3", test: "utcDay-test.js: utcDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:89:3", test: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:90:3", test: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:91:3", test: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:92:3", test: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:93:3", test: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:94:3", test: "utcDay-test.js: utcDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:98:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:99:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:100:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:101:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:102:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:103:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:104:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:105:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:106:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:107:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:108:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:109:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:110:3", test: "utcDay-test.js: utcDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:114:3", test: "utcDay-test.js: utcDay.every(step) returns every stepth day, starting with the first day of the month", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:115:3", test: "utcDay-test.js: utcDay.every(step) returns every stepth day, starting with the first day of the month", skip: None },
+    Assertion { id: "d3-time/test/utcDay-test.js:116:3", test: "utcDay-test.js: utcDay.every(step) returns every stepth day, starting with the first day of the month", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:6:3", test: "unixDay-test.js: unixDays in an alias for unixDay.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/unixDay-test.js:10:3", test: "unixDay-test.js: unixDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:11:3", test: "unixDay-test.js: unixDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:12:3", test: "unixDay-test.js: unixDay.floor(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:16:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:17:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:18:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:19:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:20:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:21:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:22:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:23:3", test: "unixDay-test.js: unixDay.floor(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:27:3", test: "unixDay-test.js: unixDay.round(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:28:3", test: "unixDay-test.js: unixDay.round(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:32:3", test: "unixDay-test.js: unixDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:33:3", test: "unixDay-test.js: unixDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:34:3", test: "unixDay-test.js: unixDay.ceil(date) returns days", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:38:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:39:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:40:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:41:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:42:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:43:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:44:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:45:3", test: "unixDay-test.js: unixDay.ceil(date) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:49:3", test: "unixDay-test.js: unixDay.offset(date) is an alias for unixDay.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:55:3", test: "unixDay-test.js: unixDay.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:59:3", test: "unixDay-test.js: unixDay.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:60:3", test: "unixDay-test.js: unixDay.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:64:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:65:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:66:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:70:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:71:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:72:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:76:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:77:3", test: "unixDay-test.js: unixDay.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:81:3", test: "unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:82:3", test: "unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:83:3", test: "unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:84:3", test: "unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:85:3", test: "unixDay-test.js: unixDay.count(start, end) counts days after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:89:3", test: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:90:3", test: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:91:3", test: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:92:3", test: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:93:3", test: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:94:3", test: "unixDay-test.js: unixDay.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:98:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:99:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:100:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:101:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:102:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:103:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:104:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:105:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:106:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:107:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:108:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:109:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:110:3", test: "unixDay-test.js: unixDay.count(start, end) returns 364 or 365 for a full year", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:114:3", test: "unixDay-test.js: unixDay.every(step) returns every stepth day", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:115:3", test: "unixDay-test.js: unixDay.every(step) returns every stepth day", skip: None },
+    Assertion { id: "d3-time/test/unixDay-test.js:116:3", test: "unixDay-test.js: unixDay.every(step) returns every stepth day", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:6:3", test: "week-test.js: timeWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:7:3", test: "week-test.js: timeWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:8:3", test: "week-test.js: timeWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:9:3", test: "week-test.js: timeWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:10:3", test: "week-test.js: timeWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:11:3", test: "week-test.js: timeWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:15:3", test: "week-test.js: timeWeek.floor(date) observes the start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:19:3", test: "week-test.js: timeWeek.floor(date) observes the end of the daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:23:3", test: "week-test.js: timeWeek.floor(date) correctly handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:27:3", test: "week-test.js: timeWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:28:3", test: "week-test.js: timeWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:29:3", test: "week-test.js: timeWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:30:3", test: "week-test.js: timeWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:31:3", test: "week-test.js: timeWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:32:3", test: "week-test.js: timeWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:36:3", test: "week-test.js: timeWeek.ceil(date) observes the start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:40:3", test: "week-test.js: timeWeek.ceil(date) observes the end of the daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:46:3", test: "week-test.js: timeWeek.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:50:3", test: "week-test.js: timeWeek.offset(date, step) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:51:3", test: "week-test.js: timeWeek.offset(date, step) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:55:3", test: "week-test.js: timeWeek.offset(date, step) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:56:3", test: "week-test.js: timeWeek.offset(date, step) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:57:3", test: "week-test.js: timeWeek.offset(date, step) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:61:3", test: "week-test.js: timeWeek.offset(date, step) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:62:3", test: "week-test.js: timeWeek.offset(date, step) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:63:3", test: "week-test.js: timeWeek.offset(date, step) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:67:3", test: "week-test.js: timeWeek.offset(date, step) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:68:3", test: "week-test.js: timeWeek.offset(date, step) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:72:3", test: "week-test.js: timeWeek.range(start, stop) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:80:3", test: "week-test.js: timeWeek.range(start, stop) has an inclusive lower bound", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:84:3", test: "week-test.js: timeWeek.range(start, stop) has an exclusive upper bound", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:88:3", test: "week-test.js: timeWeek.range(start, stop) can skip weeks", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:97:3", test: "week-test.js: timeWeek.range(start, stop) observes start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:106:3", test: "week-test.js: timeWeek.range(start, stop) observes end of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:115:3", test: "week-test.js: timeWeek is an alias for timeSunday", skip: None },
+    Assertion { id: "d3-time/test/week-test.js:119:3", test: "week-test.js: timeWeek.every(step) returns every stepth Sunday, starting with the first Sunday of the month", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:6:3", test: "utcWeek-test.js: utcWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:7:3", test: "utcWeek-test.js: utcWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:8:3", test: "utcWeek-test.js: utcWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:9:3", test: "utcWeek-test.js: utcWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:10:3", test: "utcWeek-test.js: utcWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:11:3", test: "utcWeek-test.js: utcWeek.floor(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:15:3", test: "utcWeek-test.js: utcWeek.floor(date) observes the start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:19:3", test: "utcWeek-test.js: utcWeek.floor(date) observes the end of the daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:23:3", test: "utcWeek-test.js: utcWeek.floor(date) correctly handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:27:3", test: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:28:3", test: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:29:3", test: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:30:3", test: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:31:3", test: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:32:3", test: "utcWeek-test.js: utcWeek.ceil(date) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:36:3", test: "utcWeek-test.js: utcWeek.ceil(date) does not observe the start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:40:3", test: "utcWeek-test.js: utcWeek.ceil(date) does not observe the end of the daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:46:3", test: "utcWeek-test.js: utcWeek.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:50:3", test: "utcWeek-test.js: utcWeek.offset(date, step) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:51:3", test: "utcWeek-test.js: utcWeek.offset(date, step) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:55:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:56:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:57:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:61:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:62:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:63:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:67:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:68:3", test: "utcWeek-test.js: utcWeek.offset(date, step) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:72:3", test: "utcWeek-test.js: utcWeek.range(start, stop) returns sundays", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:80:3", test: "utcWeek-test.js: utcWeek.range(start, stop) has an inclusive lower bound", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:84:3", test: "utcWeek-test.js: utcWeek.range(start, stop) has an exclusive upper bound", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:88:3", test: "utcWeek-test.js: utcWeek.range(start, stop) can skip weeks", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:97:3", test: "utcWeek-test.js: utcWeek.range(start, stop) does not observe start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:106:3", test: "utcWeek-test.js: utcWeek.range(start, stop) does not observe end of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:115:3", test: "utcWeek-test.js: utcWeek is an alias for utcSunday", skip: None },
+    Assertion { id: "d3-time/test/utcWeek-test.js:119:3", test: "utcWeek-test.js: utcWeek.every(step) returns every stepth Sunday, starting with the first Sunday of the month", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:6:3", test: "sunday-test.js: timeSundays in an alias for timeSunday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/sunday-test.js:10:3", test: "sunday-test.js: timeSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:11:3", test: "sunday-test.js: timeSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:12:3", test: "sunday-test.js: timeSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:13:3", test: "sunday-test.js: timeSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:14:3", test: "sunday-test.js: timeSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:15:3", test: "sunday-test.js: timeSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:19:3", test: "sunday-test.js: timeSunday.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:20:3", test: "sunday-test.js: timeSunday.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:24:3", test: "sunday-test.js: timeSunday.floor(date) handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:28:3", test: "sunday-test.js: timeSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:29:3", test: "sunday-test.js: timeSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:30:3", test: "sunday-test.js: timeSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:31:3", test: "sunday-test.js: timeSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:32:3", test: "sunday-test.js: timeSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:33:3", test: "sunday-test.js: timeSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:37:3", test: "sunday-test.js: timeSunday.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:38:3", test: "sunday-test.js: timeSunday.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:42:3", test: "sunday-test.js: timeSunday.offset(date) is an alias for timeSunday.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:48:3", test: "sunday-test.js: timeSunday.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:52:3", test: "sunday-test.js: timeSunday.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:53:3", test: "sunday-test.js: timeSunday.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:57:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:58:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:59:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:63:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:64:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:65:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:69:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:70:3", test: "sunday-test.js: timeSunday.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:74:3", test: "sunday-test.js: timeSunday.range(start, stop) returns Sundays between start (inclusive) and stop (exclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:85:3", test: "sunday-test.js: timeSunday.range(start, stop) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:96:3", test: "sunday-test.js: timeSunday.range(start, stop) coerces start and stop to dates", skip: Some("js: a number as a date (coercion)") },
+    Assertion { id: "d3-time/test/sunday-test.js:107:3", test: "sunday-test.js: timeSunday.range(start, stop) returns the empty array for invalid dates", skip: Some("js: an invalid date (new Date(NaN))") },
+    Assertion { id: "d3-time/test/sunday-test.js:111:3", test: "sunday-test.js: timeSunday.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:112:3", test: "sunday-test.js: timeSunday.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:116:3", test: "sunday-test.js: timeSunday.range(start, stop, step) returns every step Sunday", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:131:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:132:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:133:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:134:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:143:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:144:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:145:3", test: "sunday-test.js: timeSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:149:3", test: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:150:3", test: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:151:3", test: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:152:3", test: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:153:3", test: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/sunday-test.js:154:3", test: "sunday-test.js: timeSunday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:6:3", test: "utcSunday-test.js: utcSundays in an alias for utcSunday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcSunday-test.js:10:3", test: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:11:3", test: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:12:3", test: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:13:3", test: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:14:3", test: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:15:3", test: "utcSunday-test.js: utcSunday.floor(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:19:3", test: "utcSunday-test.js: utcSunday.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:20:3", test: "utcSunday-test.js: utcSunday.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:24:3", test: "utcSunday-test.js: utcSunday.floor(date) handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:28:3", test: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:29:3", test: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:30:3", test: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:31:3", test: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:32:3", test: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:33:3", test: "utcSunday-test.js: utcSunday.ceil(date) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:37:3", test: "utcSunday-test.js: utcSunday.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:38:3", test: "utcSunday-test.js: utcSunday.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:42:3", test: "utcSunday-test.js: utcSunday.offset(date) is an alias for utcSunday.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:48:3", test: "utcSunday-test.js: utcSunday.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:52:3", test: "utcSunday-test.js: utcSunday.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:53:3", test: "utcSunday-test.js: utcSunday.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:57:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:58:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:59:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:63:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:64:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:65:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:69:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:70:3", test: "utcSunday-test.js: utcSunday.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:74:3", test: "utcSunday-test.js: utcSunday.range(start, stop) returns Sundays between start (inclusive) and stop (exclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:85:3", test: "utcSunday-test.js: utcSunday.range(start, stop) returns Sundays", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:96:3", test: "utcSunday-test.js: utcSunday.range(start, stop) coerces start and stop to dates", skip: Some("js: a number as a date (coercion)") },
+    Assertion { id: "d3-time/test/utcSunday-test.js:107:3", test: "utcSunday-test.js: utcSunday.range(start, stop) returns the empty array for invalid dates", skip: Some("js: an invalid date (new Date(NaN))") },
+    Assertion { id: "d3-time/test/utcSunday-test.js:111:3", test: "utcSunday-test.js: utcSunday.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:112:3", test: "utcSunday-test.js: utcSunday.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:116:3", test: "utcSunday-test.js: utcSunday.range(start, stop, step) returns every step Sunday", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:131:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:132:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:133:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:134:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:143:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:144:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:145:3", test: "utcSunday-test.js: utcSunday.count(start, end) counts Sundays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:149:3", test: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:150:3", test: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:151:3", test: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:152:3", test: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:153:3", test: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSunday-test.js:154:3", test: "utcSunday-test.js: utcSunday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:6:3", test: "monday-test.js: timeMondays in an alias for timeMonday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/monday-test.js:10:3", test: "monday-test.js: timeMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:11:3", test: "monday-test.js: timeMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:12:3", test: "monday-test.js: timeMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:13:3", test: "monday-test.js: timeMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:14:3", test: "monday-test.js: timeMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:15:3", test: "monday-test.js: timeMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:19:3", test: "monday-test.js: timeMonday.range(start, stop, step) returns every step Monday", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:34:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:35:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:36:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:37:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:46:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:47:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:48:3", test: "monday-test.js: timeMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:52:3", test: "monday-test.js: timeMonday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:53:3", test: "monday-test.js: timeMonday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:54:3", test: "monday-test.js: timeMonday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:55:3", test: "monday-test.js: timeMonday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:56:3", test: "monday-test.js: timeMonday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/monday-test.js:57:3", test: "monday-test.js: timeMonday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:6:3", test: "utcMonday-test.js: utcMondays in an alias for utcMonday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcMonday-test.js:10:3", test: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:11:3", test: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:12:3", test: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:13:3", test: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:14:3", test: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:15:3", test: "utcMonday-test.js: utcMonday.floor(date) returns Mondays", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:19:3", test: "utcMonday-test.js: utcMonday.range(start, stop, step) returns every step Monday", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:34:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:35:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:36:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:37:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:46:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:47:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:48:3", test: "utcMonday-test.js: utcMonday.count(start, end) counts Mondays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:52:3", test: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:53:3", test: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:54:3", test: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:55:3", test: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:56:3", test: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonday-test.js:57:3", test: "utcMonday-test.js: utcMonday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:6:3", test: "tuesday-test.js: timeTuesdays in an alias for timeTuesday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/tuesday-test.js:10:3", test: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:11:3", test: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:12:3", test: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:13:3", test: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:14:3", test: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:15:3", test: "tuesday-test.js: timeTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:26:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:27:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:28:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:29:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:38:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:39:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:40:3", test: "tuesday-test.js: timeTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:44:3", test: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:45:3", test: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:46:3", test: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:47:3", test: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:48:3", test: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/tuesday-test.js:49:3", test: "tuesday-test.js: timeTuesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:6:3", test: "utcTuesday-test.js: utcTuesdays in an alias for utcTuesday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:10:3", test: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:11:3", test: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:12:3", test: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:13:3", test: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:14:3", test: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:15:3", test: "utcTuesday-test.js: utcTuesday.floor(date) returns Tuesdays", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:26:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:27:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:28:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:29:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:38:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:39:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:40:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) counts Tuesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:44:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:45:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:46:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:47:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:48:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcTuesday-test.js:49:3", test: "utcTuesday-test.js: utcTuesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:6:3", test: "wednesday-test.js: timeWednesdays in an alias for timeWednesday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/wednesday-test.js:10:3", test: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:11:3", test: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:12:3", test: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:13:3", test: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:14:3", test: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:15:3", test: "wednesday-test.js: timeWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:26:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:27:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:28:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:29:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:38:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:39:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:40:3", test: "wednesday-test.js: timeWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:44:3", test: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:45:3", test: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:46:3", test: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:47:3", test: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:48:3", test: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/wednesday-test.js:49:3", test: "wednesday-test.js: timeWednesday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:6:3", test: "utcWednesday-test.js: utcWednesdays in an alias for utcWednesday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:10:3", test: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:11:3", test: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:12:3", test: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:13:3", test: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:14:3", test: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:15:3", test: "utcWednesday-test.js: utcWednesday.floor(date) returns Wednesdays", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:26:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:27:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:28:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:29:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:38:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:39:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:40:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) counts Wednesdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:44:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:45:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:46:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:47:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:48:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcWednesday-test.js:49:3", test: "utcWednesday-test.js: utcWednesday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:6:3", test: "thursday-test.js: timeThursdays in an alias for timeThursday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/thursday-test.js:10:3", test: "thursday-test.js: timeThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:11:3", test: "thursday-test.js: timeThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:12:3", test: "thursday-test.js: timeThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:13:3", test: "thursday-test.js: timeThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:14:3", test: "thursday-test.js: timeThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:15:3", test: "thursday-test.js: timeThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:26:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:27:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:28:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:29:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:38:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:39:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:40:3", test: "thursday-test.js: timeThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:44:3", test: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:45:3", test: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:46:3", test: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:47:3", test: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:48:3", test: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/thursday-test.js:49:3", test: "thursday-test.js: timeThursday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:6:3", test: "utcThursday-test.js: utcThursdays in an alias for utcThursday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcThursday-test.js:10:3", test: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:11:3", test: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:12:3", test: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:13:3", test: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:14:3", test: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:15:3", test: "utcThursday-test.js: utcThursday.floor(date) returns Thursdays", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:26:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:27:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:28:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:29:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:38:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:39:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:40:3", test: "utcThursday-test.js: utcThursday.count(start, end) counts Thursdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:44:3", test: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:45:3", test: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:46:3", test: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:47:3", test: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:48:3", test: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcThursday-test.js:49:3", test: "utcThursday-test.js: utcThursday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:6:3", test: "friday-test.js: timeFridays in an alias for timeFriday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/friday-test.js:10:3", test: "friday-test.js: timeFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:11:3", test: "friday-test.js: timeFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:12:3", test: "friday-test.js: timeFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:13:3", test: "friday-test.js: timeFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:14:3", test: "friday-test.js: timeFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:15:3", test: "friday-test.js: timeFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:26:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:27:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:28:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:29:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:39:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:40:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:41:3", test: "friday-test.js: timeFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:45:3", test: "friday-test.js: timeFriday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:46:3", test: "friday-test.js: timeFriday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:47:3", test: "friday-test.js: timeFriday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:48:3", test: "friday-test.js: timeFriday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:49:3", test: "friday-test.js: timeFriday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/friday-test.js:50:3", test: "friday-test.js: timeFriday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:6:3", test: "utcFriday-test.js: utcFridays in an alias for utcFriday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcFriday-test.js:10:3", test: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:11:3", test: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:12:3", test: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:13:3", test: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:14:3", test: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:15:3", test: "utcFriday-test.js: utcFriday.floor(date) returns Fridays", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:26:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:27:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:28:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:29:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:39:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:40:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:41:3", test: "utcFriday-test.js: utcFriday.count(start, end) counts Fridays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:45:3", test: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:46:3", test: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:47:3", test: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:48:3", test: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:49:3", test: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcFriday-test.js:50:3", test: "utcFriday-test.js: utcFriday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:6:3", test: "saturday-test.js: timeSaturdays in an alias for timeSaturday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/saturday-test.js:10:3", test: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:11:3", test: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:12:3", test: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:13:3", test: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:14:3", test: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:15:3", test: "saturday-test.js: timeSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:26:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:27:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:28:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:29:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:39:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:40:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:41:3", test: "saturday-test.js: timeSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:45:3", test: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:46:3", test: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:47:3", test: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:48:3", test: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:49:3", test: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/saturday-test.js:50:3", test: "saturday-test.js: timeSaturday.count(start, end) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:6:3", test: "utcSaturday-test.js: utcSaturdays in an alias for utcSaturday.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:10:3", test: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:11:3", test: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:12:3", test: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:13:3", test: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:14:3", test: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:15:3", test: "utcSaturday-test.js: utcSaturday.floor(date) returns Saturdays", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:26:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:27:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:28:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:29:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:39:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:40:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:41:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) counts Saturdays after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:45:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:46:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:47:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:48:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:49:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcSaturday-test.js:50:3", test: "utcSaturday-test.js: utcSaturday.count(start, end) does not observe daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:6:3", test: "month-test.js: timeMonths in an alias for timeMonth.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/month-test.js:10:3", test: "month-test.js: timeMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:11:3", test: "month-test.js: timeMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:12:3", test: "month-test.js: timeMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:16:3", test: "month-test.js: timeMonth.floor(date) observes the start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:20:3", test: "month-test.js: timeMonth.floor(date) observes the end of the daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:24:3", test: "month-test.js: timeMonth.floor(date) correctly handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:28:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:29:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:30:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:34:3", test: "month-test.js: timeMonth.ceil(date) observes the start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:38:3", test: "month-test.js: timeMonth.ceil(date) observes the end of the daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:44:3", test: "month-test.js: timeMonth.offset(date) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:48:3", test: "month-test.js: timeMonth.offset(date) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:49:3", test: "month-test.js: timeMonth.offset(date) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:53:3", test: "month-test.js: timeMonth.offset(date) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:54:3", test: "month-test.js: timeMonth.offset(date) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:55:3", test: "month-test.js: timeMonth.offset(date) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:59:3", test: "month-test.js: timeMonth.offset(date) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:60:3", test: "month-test.js: timeMonth.offset(date) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:61:3", test: "month-test.js: timeMonth.offset(date) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:65:3", test: "month-test.js: timeMonth.offset(date) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:66:3", test: "month-test.js: timeMonth.offset(date) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:70:3", test: "month-test.js: timeMonths in an alias for timeMonth.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/month-test.js:74:3", test: "month-test.js: timeMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:75:3", test: "month-test.js: timeMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:76:3", test: "month-test.js: timeMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:80:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:81:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:82:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:83:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:84:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:85:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:86:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:87:3", test: "month-test.js: timeMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:91:3", test: "month-test.js: timeMonth.floor(date) handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:95:3", test: "month-test.js: timeMonth.round(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:96:3", test: "month-test.js: timeMonth.round(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:100:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:101:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:102:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:103:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:104:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:105:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:106:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:107:3", test: "month-test.js: timeMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:111:3", test: "month-test.js: timeMonth.round(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:112:3", test: "month-test.js: timeMonth.round(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:116:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:117:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:118:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:119:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:120:3", test: "month-test.js: timeMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:124:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:125:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:126:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:127:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:128:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:129:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:130:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:131:3", test: "month-test.js: timeMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:135:3", test: "month-test.js: timeMonth.ceil(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:136:3", test: "month-test.js: timeMonth.ceil(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:140:3", test: "month-test.js: timeMonth.offset(date) is an alias for timeMonth.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:146:3", test: "month-test.js: timeMonth.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:150:3", test: "month-test.js: timeMonth.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:151:3", test: "month-test.js: timeMonth.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:155:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:156:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:157:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:161:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:162:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:163:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:167:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:168:3", test: "month-test.js: timeMonth.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:172:3", test: "month-test.js: timeMonth.range(start, stop) returns months between start (inclusive) and stop (exclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:183:3", test: "month-test.js: timeMonth.range(start, stop) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:194:3", test: "month-test.js: timeMonth.range(start, stop) coerces start and stop to dates", skip: Some("js: a number as a date (coercion)") },
+    Assertion { id: "d3-time/test/month-test.js:202:3", test: "month-test.js: timeMonth.range(start, stop) returns the empty array for invalid dates", skip: Some("js: an invalid date (new Date(NaN))") },
+    Assertion { id: "d3-time/test/month-test.js:206:3", test: "month-test.js: timeMonth.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:207:3", test: "month-test.js: timeMonth.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:211:3", test: "month-test.js: timeMonth.range(start, stop) returns months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:219:3", test: "month-test.js: timeMonth.range(start, stop) has an inclusive lower bound", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:223:3", test: "month-test.js: timeMonth.range(start, stop) has an exclusive upper bound", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:227:3", test: "month-test.js: timeMonth.range(start, stop) can skip months", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:236:3", test: "month-test.js: timeMonth.range(start, stop) observes start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:245:3", test: "month-test.js: timeMonth.range(start, stop) observes end of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:254:3", test: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:255:3", test: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:256:3", test: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:257:3", test: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:258:3", test: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:259:3", test: "month-test.js: timeMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/month-test.js:263:3", test: "month-test.js: timeMonth.every(step) returns every stepth month, starting with the first month of the year", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:6:3", test: "utcMonth-test.js: utcMonths in an alias for utcMonth.range", skip: Some("api: d3's plural aliases of range (one name per function)") },
+    Assertion { id: "d3-time/test/utcMonth-test.js:10:3", test: "utcMonth-test.js: utcMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:11:3", test: "utcMonth-test.js: utcMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:12:3", test: "utcMonth-test.js: utcMonth.floor(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:16:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:17:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:18:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:19:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:20:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:21:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:22:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:23:3", test: "utcMonth-test.js: utcMonth.floor(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:27:3", test: "utcMonth-test.js: utcMonth.floor(date) handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:31:3", test: "utcMonth-test.js: utcMonth.round(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:32:3", test: "utcMonth-test.js: utcMonth.round(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:36:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:37:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:38:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:39:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:40:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:41:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:42:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:43:3", test: "utcMonth-test.js: utcMonth.round(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:47:3", test: "utcMonth-test.js: utcMonth.round(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:48:3", test: "utcMonth-test.js: utcMonth.round(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:52:3", test: "utcMonth-test.js: utcMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:53:3", test: "utcMonth-test.js: utcMonth.ceil(date) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:57:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:58:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:59:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:60:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:61:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:62:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:63:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:64:3", test: "utcMonth-test.js: utcMonth.ceil(date) observes daylight saving", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:68:3", test: "utcMonth-test.js: utcMonth.ceil(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:69:3", test: "utcMonth-test.js: utcMonth.ceil(date) handles midnight for leap years", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:73:3", test: "utcMonth-test.js: utcMonth.offset(date) is an alias for utcMonth.offset(date, 1)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:79:3", test: "utcMonth-test.js: utcMonth.offset(date, step) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:83:3", test: "utcMonth-test.js: utcMonth.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:84:3", test: "utcMonth-test.js: utcMonth.offset(date, step) does not round the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:88:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:89:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:90:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be negative", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:94:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:95:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:96:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be positive", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:100:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:101:3", test: "utcMonth-test.js: utcMonth.offset(date, step) allows step to be zero", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:105:3", test: "utcMonth-test.js: utcMonth.range(start, stop) returns months between start (inclusive) and stop (exclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:116:3", test: "utcMonth-test.js: utcMonth.range(start, stop) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:127:3", test: "utcMonth-test.js: utcMonth.range(start, stop) coerces start and stop to dates", skip: Some("js: a number as a date (coercion)") },
+    Assertion { id: "d3-time/test/utcMonth-test.js:135:3", test: "utcMonth-test.js: utcMonth.range(start, stop) returns the empty array for invalid dates", skip: Some("js: an invalid date (new Date(NaN))") },
+    Assertion { id: "d3-time/test/utcMonth-test.js:139:3", test: "utcMonth-test.js: utcMonth.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:140:3", test: "utcMonth-test.js: utcMonth.range(start, stop) returns the empty array if start >= stop", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:144:3", test: "utcMonth-test.js: utcMonth.range(start, stop) returns months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:152:3", test: "utcMonth-test.js: utcMonth.range(start, stop) has an inclusive lower bound", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:156:3", test: "utcMonth-test.js: utcMonth.range(start, stop) has an exclusive upper bound", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:160:3", test: "utcMonth-test.js: utcMonth.range(start, stop) can skip months", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:169:3", test: "utcMonth-test.js: utcMonth.range(start, stop) observes start of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:178:3", test: "utcMonth-test.js: utcMonth.range(start, stop) observes end of daylight savings time", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:187:3", test: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:188:3", test: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:189:3", test: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:190:3", test: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:191:3", test: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:192:3", test: "utcMonth-test.js: utcMonth.count(start, end) counts months after start (exclusive) and before end (inclusive)", skip: None },
+    Assertion { id: "d3-time/test/utcMonth-test.js:196:3", test: "utcMonth-test.js: utcMonth.every(step) returns every stepth month, starting with the first month of the year", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:6:3", test: "year-test.js: timeYear.floor(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:7:3", test: "year-test.js: timeYear.floor(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:8:3", test: "year-test.js: timeYear.floor(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:13:3", test: "year-test.js: timeYear.floor(date) does not modify the specified date", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:14:3", test: "year-test.js: timeYear.floor(date) does not modify the specified date", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:18:3", test: "year-test.js: timeYear.floor(date) correctly handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:22:3", test: "year-test.js: timeYear.ceil(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:23:3", test: "year-test.js: timeYear.ceil(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:24:3", test: "year-test.js: timeYear.ceil(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:30:3", test: "year-test.js: timeYear.offset(date, count) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:34:3", test: "year-test.js: timeYear.offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:35:3", test: "year-test.js: timeYear.offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:39:3", test: "year-test.js: timeYear.offset(date, count) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:40:3", test: "year-test.js: timeYear.offset(date, count) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:41:3", test: "year-test.js: timeYear.offset(date, count) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:45:3", test: "year-test.js: timeYear.offset(date, count) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:46:3", test: "year-test.js: timeYear.offset(date, count) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:47:3", test: "year-test.js: timeYear.offset(date, count) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:51:3", test: "year-test.js: timeYear.offset(date, count) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:52:3", test: "year-test.js: timeYear.offset(date, count) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:56:3", test: "year-test.js: timeYear.every(step) returns every stepth year, starting with year zero", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:60:3", test: "year-test.js: timeYear.range(start, stop) returns years", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:68:3", test: "year-test.js: timeYear.range(start, stop) has an inclusive lower bound", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:72:3", test: "year-test.js: timeYear.range(start, stop) has an exclusive upper bound", skip: None },
+    Assertion { id: "d3-time/test/year-test.js:76:3", test: "year-test.js: timeYear.range(start, stop, step) can skip years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:6:3", test: "utcYear-test.js: utcYear.floor(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:7:3", test: "utcYear-test.js: utcYear.floor(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:8:3", test: "utcYear-test.js: utcYear.floor(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:13:3", test: "utcYear-test.js: utcYear.floor(date) does not modify the specified date", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:14:3", test: "utcYear-test.js: utcYear.floor(date) does not modify the specified date", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:18:3", test: "utcYear-test.js: utcYear.floor(date) correctly handles years in the first century", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:22:3", test: "utcYear-test.js: utcYear.ceil(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:23:3", test: "utcYear-test.js: utcYear.ceil(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:24:3", test: "utcYear-test.js: utcYear.ceil(date) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:30:3", test: "utcYear-test.js: utcYear.offset(date, count) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:34:3", test: "utcYear-test.js: utcYear.offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:35:3", test: "utcYear-test.js: utcYear.offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:39:3", test: "utcYear-test.js: utcYear.offset(date, count) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:40:3", test: "utcYear-test.js: utcYear.offset(date, count) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:41:3", test: "utcYear-test.js: utcYear.offset(date, count) allows negative offsets", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:45:3", test: "utcYear-test.js: utcYear.offset(date, count) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:46:3", test: "utcYear-test.js: utcYear.offset(date, count) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:47:3", test: "utcYear-test.js: utcYear.offset(date, count) allows positive offsets", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:51:3", test: "utcYear-test.js: utcYear.offset(date, count) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:52:3", test: "utcYear-test.js: utcYear.offset(date, count) allows zero offset", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:56:3", test: "utcYear-test.js: utcYear.every(step) returns every stepth year, starting with year zero", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:60:3", test: "utcYear-test.js: utcYear.range(start, stop) returns years", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:68:3", test: "utcYear-test.js: utcYear.range(start, stop) has an inclusive lower bound", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:72:3", test: "utcYear-test.js: utcYear.range(start, stop) has an exclusive upper bound", skip: None },
+    Assertion { id: "d3-time/test/utcYear-test.js:76:3", test: "utcYear-test.js: utcYear.range(start, stop, step) can skip years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:6:3", test: "multiYear-test.js: timeYear.every(n).floor(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:7:3", test: "multiYear-test.js: timeYear.every(n).floor(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:8:3", test: "multiYear-test.js: timeYear.every(n).floor(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:12:3", test: "multiYear-test.js: timeYear.every(n).ceil(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:13:3", test: "multiYear-test.js: timeYear.every(n).ceil(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:14:3", test: "multiYear-test.js: timeYear.every(n).ceil(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:20:3", test: "multiYear-test.js: timeYear.every(n).offset(date, count) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:24:3", test: "multiYear-test.js: timeYear.every(n).offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:25:3", test: "multiYear-test.js: timeYear.every(n).offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/multiYear-test.js:30:3", test: "multiYear-test.js: timeYear.every(n) does not define interval.count or interval.every", skip: Some("api: interval.count as a value (d3's every intervals lack count and every; an Interval has both)") },
+    Assertion { id: "d3-time/test/multiYear-test.js:31:3", test: "multiYear-test.js: timeYear.every(n) does not define interval.count or interval.every", skip: Some("api: interval.every as a value (d3's every intervals lack count and every; an Interval has both)") },
+    Assertion { id: "d3-time/test/multiYear-test.js:35:3", test: "multiYear-test.js: timeYear.every(n).range(start, stop) returns multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:6:3", test: "utcMultiYear-test.js: utcYear.every(n).floor(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:7:3", test: "utcMultiYear-test.js: utcYear.every(n).floor(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:8:3", test: "utcMultiYear-test.js: utcYear.every(n).floor(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:12:3", test: "utcMultiYear-test.js: utcYear.every(n).ceil(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:13:3", test: "utcMultiYear-test.js: utcYear.every(n).ceil(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:14:3", test: "utcMultiYear-test.js: utcYear.every(n).ceil(date) returns integer multiples of n years", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:20:3", test: "utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not modify the passed-in date", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:24:3", test: "utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:25:3", test: "utcMultiYear-test.js: utcYear.every(n).offset(date, count) does not round the passed-in-date", skip: None },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:30:3", test: "utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every", skip: Some("api: interval.count as a value (d3's every intervals lack count and every; an Interval has both)") },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:31:3", test: "utcMultiYear-test.js: utcYear.every(n) does not define interval.count or interval.every", skip: Some("api: interval.every as a value (d3's every intervals lack count and every; an Interval has both)") },
+    Assertion { id: "d3-time/test/utcMultiYear-test.js:35:3", test: "utcMultiYear-test.js: utcYear.every(n).range(start, stop) returns multiples of n years", skip: None },
 ];

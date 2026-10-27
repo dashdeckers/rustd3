@@ -12,6 +12,7 @@ use crate::record::{self, Mark, Record};
 
 pub(crate) use rustd3_core::color::{Cubehelix, Hcl, Hsl, Lab, Rgb};
 pub(crate) use rustd3_core::ease::{Ease, Mode};
+pub(crate) use rustd3_core::jiff::civil::Weekday;
 pub(crate) use rustd3_core::jiff::tz::TimeZone;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
 pub(crate) use rustd3_core::shape::{self, Curve};
