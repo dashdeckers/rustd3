@@ -25,10 +25,10 @@ pub use rgb::Rgb;
 use crate::js;
 
 /// d3's `darker`: one step of `darker(1)` scales by this.
-pub const DARKER: f64 = 0.7;
+const DARKER: f64 = 0.7;
 
 /// d3's `brighter`, 1/0.7: one step of `brighter(1)` scales by this.
-pub const BRIGHTER: f64 = 1.0 / DARKER;
+const BRIGHTER: f64 = 1.0 / DARKER;
 
 /// d3's `clampa`: the opacity clamped to [0, 1], NaN as 1 and −0 as 0.
 fn clamp_opacity(a: f64) -> f64 {
