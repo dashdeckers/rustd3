@@ -28,8 +28,9 @@ use std::sync::mpsc;
 
 use iced_core::time::{Duration, Instant};
 
-/// Stage timings from an app-supplied clock, sent to `sink` as
-/// [`Sample`]s.
+/// Where a `Plot` reports its frames: stage timings, raster times and
+/// what each frame showed, timed by an app-supplied clock and sent to
+/// `sink` as [`Sample`]s. The benchmark attributes frame time with it.
 #[derive(Debug, Clone)]
 pub struct Probe {
     clock: fn() -> Instant,

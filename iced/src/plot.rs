@@ -51,6 +51,17 @@
 //! first draws it. Hovering renders no cell: the crosshair and the
 //! highlight are quads in a layer clipped to the hovered plot area, in the
 //! figure theme's ink.
+//!
+//! Changed cells render inline when the [`cost`] model predicts they take
+//! at most half the frame budget, and otherwise on one thread the widget
+//! owns, with vello_cpu's own pool; [`Plot::render`] forces either path.
+//! Until a cell's new image arrives it keeps its previous one, a preview
+//! of outdated content, and a cell that never had one shows the theme's
+//! background. Results wake the runtime through its waker and land on
+//! `Event::Waken`, newest generation first: an older result never
+//! replaces a newer image. Dropping the widget's state joins the thread.
+//! [`Plot::probe`] reports what each frame cost and what it showed, timed
+//! by a clock the app supplies: the library reads none.
 
 mod budget;
 pub mod cost;
@@ -178,6 +189,31 @@ impl<'a, Message> Plot<'a, Message> {
     /// Reports per-stage durations, per-cell raster times and what each
     /// frame showed to `probe`, timed by its clock (see [`probe`]).
     /// Without a probe nothing is sent and no clock is read.
+    ///
+    /// ```no_run
+    /// use std::sync::mpsc;
+    ///
+    /// use iced_core::time::Instant;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_iced::Plot;
+    /// use rustd3_iced::plot::Probe;
+    /// use rustd3_iced::plot::probe::Sample;
+    ///
+    /// /// The app's clock.
+    /// fn clock() -> Instant {
+    ///     Instant::now()
+    /// }
+    ///
+    /// let (tx, rx) = mpsc::channel();
+    /// let plot = Plot::<()>::new(Figure::new()).probe(Probe::new(clock, tx));
+    /// # let _ = plot;
+    /// // After some frames: how many showed an outdated cell.
+    /// let previews = rx
+    ///     .try_iter()
+    ///     .filter(|sample| matches!(sample, Sample::Frame { previews, .. } if *previews > 0))
+    ///     .count();
+    /// # let _ = previews;
+    /// ```
     pub fn probe(self, probe: Probe) -> Self {
         Plot {
             probe: Some(probe),
