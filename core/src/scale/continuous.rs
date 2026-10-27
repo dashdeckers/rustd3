@@ -241,6 +241,11 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         &self.range
     }
 
+    /// The transform, as set for the current domain.
+    pub(crate) fn transform(&self) -> &T {
+        &self.transform
+    }
+
     /// The first and last stop, which ticks, nice and formats act on.
     fn ends(&self) -> [f64; 2] {
         [self.domain[0], self.domain[N - 1]]

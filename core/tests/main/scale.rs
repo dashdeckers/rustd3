@@ -1,6 +1,8 @@
 //! Continuous scales and `scale::tick_format` against d3-scale 4.0.2, and
 //! the neutral locale's labels where they differ from d3's `EN_US`.
 
+mod ticks;
+
 use rustd3_core::format::{InvalidFormat, Locale};
 use rustd3_core::scale;
 use rustd3_testkit::obs::{ToObs, Tolerance};

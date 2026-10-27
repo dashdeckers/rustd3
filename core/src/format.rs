@@ -49,8 +49,8 @@ pub struct Format {
     prefix: String,
     /// Written after the digits: currency, percent, a fixed SI symbol.
     suffix: String,
-    /// formatPrefix's factor to the fixed SI prefix.
-    scale: Option<f64>,
+    /// formatPrefix's factor to the fixed SI prefix, and its symbol.
+    si: Option<(f64, &'static str)>,
 }
 
 /// A [`Kind`] as d3 normalizes it: `n` is `,g`, and none or an unknown
@@ -113,6 +113,12 @@ impl Format {
         &self.locale
     }
 
+    /// This format under `locale`: the same specifier and fixed SI prefix,
+    /// with the separators, currency and numerals `locale` gives them.
+    pub(crate) fn with_locale(&self, locale: &Locale) -> Format {
+        Format::with_scale(locale, self.specifier.clone(), self.si)
+    }
+
     /// `value` formatted. With `,`, it is grouped when its integer digits
     /// as printed reach the locale's threshold (`NEUTRAL`: 5).
     pub fn format(&self, value: f64) -> String {
@@ -150,7 +156,7 @@ impl Format {
 
     /// The parts of `value` as printed, before grouping and padding.
     fn parts(&self, value: f64) -> Parts {
-        let value = self.scale.map_or(value, |k| k * value);
+        let value = self.si.map_or(value, |(k, _)| k * value);
         match self.kind {
             Type::Char => Parts {
                 prefix: self.prefix.clone(),
@@ -219,7 +225,11 @@ impl Format {
 
     /// d3's newFormat: the specifier normalized, with the prefix and suffix
     /// `locale` gives it, and formatPrefix's scale and symbol.
-    fn with_scale(locale: &Locale, specifier: Specifier, si: Option<(f64, &str)>) -> Format {
+    fn with_scale(
+        locale: &Locale,
+        specifier: Specifier,
+        si: Option<(f64, &'static str)>,
+    ) -> Format {
         let (mut comma, mut trim, mut precision) =
             (specifier.comma(), specifier.trim(), specifier.precision());
         let kind = match specifier.kind() {
@@ -263,8 +273,7 @@ impl Format {
             Some(Symbol::Base) | None if kind.percent() => locale.percent.to_string(),
             Some(Symbol::Base) | None => String::new(),
         };
-        let (scale, symbol) = si.map_or((None, ""), |(k, symbol)| (Some(k), symbol));
-        suffix.push_str(symbol);
+        suffix.push_str(si.map_or("", |(_, symbol)| symbol));
         let precision = match precision {
             None => 6,
             Some(p) if kind.significant() => p.clamp(1, 21),
@@ -282,7 +291,7 @@ impl Format {
             align,
             prefix,
             suffix,
-            scale,
+            si,
         }
     }
 

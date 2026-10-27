@@ -25,26 +25,28 @@ impl Symlog {
         Symlog { constant }
     }
 
-    /// The decade k of a major `v` when |v| is exactly c·10ᵏ.
-    fn exponent(&self, v: f64) -> Option<i32> {
+    /// Whether |v| is exactly c·10ᵏ for some k.
+    fn decade(&self, v: f64) -> bool {
         let k = (v.abs() / self.constant).log10().round();
-        if !k.is_finite() || k.abs() > 1000.0 {
-            return None;
-        }
-        // In range by the check above.
-        let k = k as i32;
-        (ticks::decade(self.constant, k) == v.abs()).then_some(k)
+        // In range of i32 once finite and within ±1000.
+        k.is_finite() && k.abs() <= 1000.0 && ticks::decade(self.constant, k as i32) == v.abs()
     }
 
-    /// m·c·10ᵏ for m = 2 … 9 and the decades from `from`'s to `to`'s,
-    /// between two decade majors of one sign, in the order from → to.
-    fn between(&self, from: (f64, i32), to: (f64, i32)) -> Vec<f64> {
-        let ((p, i), (q, j)) = (from, to);
-        let (low, high) = (i.min(j), i.max(j));
+    /// m·c·10ᵏ for m = 2 … 9 strictly between `p` and `q`, nonzero and of
+    /// one sign, in the order p → q.
+    fn between(&self, p: f64, q: f64) -> Vec<f64> {
+        let (low, high) = (p.abs().min(q.abs()), p.abs().max(q.abs()));
+        let k = |v: f64| (v / self.constant).log10().floor();
+        let (i, j) = (k(low), k(high));
+        if !i.is_finite() || !j.is_finite() || i < -1000.0 || j > 1000.0 {
+            return Vec::new();
+        }
         let sign = p.signum();
-        let mut values: Vec<f64> = (low..high)
-            .flat_map(|k| (2..10).map(move |m| (m, k)))
-            .map(|(m, k)| sign * f64::from(m) * ticks::decade(self.constant, k))
+        // In range of i32 by the check above.
+        let mut values: Vec<f64> = ((i as i32)..=(j as i32))
+            .flat_map(|k| (2..10).map(move |m| f64::from(m) * ticks::decade(self.constant, k)))
+            .filter(|&t| low < t && t < high)
+            .map(|t| sign * t)
             .collect();
         if (q < p) != (sign < 0.0) {
             values.reverse();
@@ -78,29 +80,30 @@ impl Transform for Symlog {
         }
     }
 
-    /// When every nonzero major is ±c·10ᵏ, m·c·10ᵏ for m = 2 … 9 between
-    /// neighbouring majors of one sign (none next to 0), at most 10,000;
-    /// otherwise five equal steps in data space between majors.
+    /// When every nonzero major is ±c·10ᵏ, m·c·10ᵏ for m = 2 … 9 strictly
+    /// between neighbouring majors of one sign (none next to 0), at most
+    /// 10,000. The first and last major may lie anywhere past their
+    /// neighbours when at least two majors are decades, as an axis's
+    /// majors extended by one step are. Otherwise five equal steps in data
+    /// space between majors.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
-        let exponents: Option<Vec<Option<i32>>> = major
-            .iter()
-            .map(|&v| {
-                if v == 0.0 {
-                    Some(None)
-                } else {
-                    self.exponent(v).map(Some)
-                }
-            })
-            .collect();
-        let Some(exponents) = exponents else {
+        let tied = |v: f64| v == 0.0 || self.decade(v);
+        let inner = major
+            .get(1..major.len().saturating_sub(1))
+            .unwrap_or_default();
+        let ends = [major.first(), major.last()]
+            .into_iter()
+            .flatten()
+            .all(|&v| tied(v));
+        let decades = major.iter().filter(|&&v| self.decade(v)).count();
+        if !inner.iter().all(|&v| tied(v)) || !(ends || decades >= 2) {
             return ticks::subdivide(&transform::Identity, major, 5);
-        };
+        }
         let mut minor = Vec::new();
-        for (pair, k) in major.windows(2).zip(exponents.windows(2)) {
-            if let [Some(i), Some(j)] = *k
-                && pair[0].signum() == pair[1].signum()
-            {
-                minor.extend(self.between((pair[0], i), (pair[1], j)));
+        for pair in major.windows(2) {
+            let (p, q) = (pair[0], pair[1]);
+            if p != 0.0 && q != 0.0 && p.signum() == q.signum() {
+                minor.extend(self.between(p, q));
             }
             if minor.len() >= MAX_MINOR {
                 minor.truncate(MAX_MINOR);

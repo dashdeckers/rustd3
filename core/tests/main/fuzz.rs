@@ -1,13 +1,15 @@
 //! The built-in tick rules over hostile domains and counts: every built-in
 //! transform with its own rule and with the `Data` and `Transformed` rules,
-//! from a fixed seed, under a 60 s timeout. 2,000 cases by default and
+//! with the axis's minor ticks and labels of each tick set, from a fixed
+//! seed, under a 60 s timeout. 2,000 cases by default and
 //! 20,000 with `RUSTD3_FUZZ=1` (run in release by `scripts/check.sh`).
 
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use rustd3_core::scale::{self, AnyContinuous, TickRule};
+use rustd3_core::locale::Locale;
+use rustd3_core::scale::{self, AnyContinuous, TickRule, Ticks};
 
 /// How long the cases may take together.
 const BUDGET: Duration = Duration::from_secs(60);
@@ -146,9 +148,19 @@ fn run(cases: usize) -> Result<usize, String> {
         let bound = CAP.min(count.max(1).saturating_mul(10));
         let ticks = s.ticks(count);
         let minor = s.minor(count);
+        let set = s.tick_set(count);
+        let axis_minor = Ticks::minor(&s, &set);
+        let labels = s.labels(&set, &Locale::NEUTRAL);
         let found = violation(&ticks, domain, bound, true)
             .map(|v| format!("ticks: {v}"))
-            .or_else(|| violation(&minor, domain, CAP, false).map(|v| format!("minor: {v}")));
+            .or_else(|| violation(&minor, domain, CAP, false).map(|v| format!("minor: {v}")))
+            .or_else(|| {
+                violation(&axis_minor, domain, CAP, true).map(|v| format!("axis minor: {v}"))
+            })
+            .or_else(|| {
+                (labels.len() != ticks.len())
+                    .then(|| format!("{} labels for {} ticks", labels.len(), ticks.len()))
+            });
         if let Some(found) = found {
             return Err(format!(
                 "case {case}: {name}, rule {rule:?}, domain {domain:?}, count {count}: {found}"

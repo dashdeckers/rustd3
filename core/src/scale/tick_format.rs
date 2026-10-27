@@ -3,7 +3,7 @@
 
 use crate::format::{self, Format, InvalidFormat, Kind, Locale, Specifier};
 use crate::scale::transform;
-use crate::{js, ticks};
+use crate::{js, locale, ticks};
 
 /// Labels for one scale's ticks: d3's `scale.tickFormat(count, specifier)`
 /// as a value, a number format and, for log scales, which ticks get one.
@@ -60,6 +60,33 @@ impl TickFormat {
             }
         }
         labels
+    }
+
+    /// Labels a whole tick set as one axis under `locale`: the same
+    /// specifier and fixed SI prefix, written in `locale`'s number half,
+    /// with [`format_all`](TickFormat::format_all)'s batch rule and log
+    /// blanking.
+    ///
+    /// ```
+    /// use rustd3_core::locale::Locale;
+    /// use rustd3_core::scale::{self, Ticks};
+    ///
+    /// let x = scale::linear().domain([0.0, 12000.0]);
+    /// let set = x.tick_set(5);
+    /// let neutral = x.tick_format(5, None)?;
+    /// assert_eq!(neutral.labels(&set, &Locale::EN_US)[6], "12,000");
+    /// assert_eq!(neutral.labels(&set, &Locale::NEUTRAL)[6], "12\u{202f}000");
+    /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
+    /// ```
+    pub fn labels(&self, set: &ticks::Set<f64, f64>, locale: &locale::Locale) -> Vec<String> {
+        if self.format.locale() == locale.number() {
+            return self.format_all(set.values());
+        }
+        TickFormat {
+            format: self.format.with_locale(locale.number()),
+            keep: self.keep,
+        }
+        .format_all(set.values())
     }
 }
 

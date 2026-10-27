@@ -15,12 +15,14 @@
 //!
 //! The tick rules that scale transforms state as their own are building
 //! blocks here too: [`linear`], [`transformed`], [`log`], [`decades`] and
-//! [`subdivide`].
+//! [`subdivide`]; a scale's chosen ticks travel as a [`Set`].
 
 mod rules;
+mod set;
 
 pub(crate) use rules::{decade, pow10};
 pub use rules::{decades, linear, log, subdivide, transformed};
+pub use set::Set;
 
 use crate::js;
 

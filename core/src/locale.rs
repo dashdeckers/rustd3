@@ -3,15 +3,12 @@
 //!
 //! ```
 //! use rustd3_core::locale::Locale;
-//! use rustd3_core::scale;
+//! use rustd3_core::scale::{self, Ticks};
 //!
 //! let a = scale::linear().domain([0.0, 12000.0]);
-//! let labels = |locale: &Locale| -> Result<Vec<String>, _> {
-//!     Ok(a.tick_format_in(locale.number(), 5, None)?.format_all(&a.ticks(5)))
-//! };
-//! assert_eq!(labels(&Locale::NEUTRAL)?[1], "2\u{202f}000");
-//! assert_eq!(labels(&Locale::EN_US)?[1], "2,000");
-//! # Ok::<(), rustd3_core::format::InvalidFormat>(())
+//! let set = a.tick_set(5);
+//! assert_eq!(a.labels(&set, &Locale::NEUTRAL)[1], "2\u{202f}000");
+//! assert_eq!(a.labels(&set, &Locale::EN_US)[1], "2,000");
 //! ```
 
 use crate::format;

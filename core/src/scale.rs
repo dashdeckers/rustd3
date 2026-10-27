@@ -30,6 +30,7 @@ mod continuous;
 mod piecewise;
 mod tick_format;
 mod tick_rule;
+mod ticks;
 pub mod transform;
 
 pub use any::AnyContinuous;
@@ -37,9 +38,8 @@ pub use continuous::Continuous;
 pub use piecewise::piecewise;
 pub use tick_format::{TickFormat, tick_format};
 pub use tick_rule::TickRule;
+pub use ticks::Ticks;
 pub use transform::Transform;
-
-use crate::ticks;
 
 /// d3's scaleLinear: a continuous scale under the identity transform.
 pub type Linear<R = f64, const N: usize = 2> = Continuous<transform::Identity, R, N>;
@@ -152,7 +152,7 @@ pub(crate) fn nice_linear(domain: [f64; 2], count: usize) -> [f64; 2] {
     let count = count as f64;
     let mut previous = None;
     for _ in 0..10 {
-        let step = ticks::tick_increment(start, stop, count);
+        let step = crate::ticks::tick_increment(start, stop, count);
         if previous == Some(step) {
             return if reverse {
                 [stop, start]
