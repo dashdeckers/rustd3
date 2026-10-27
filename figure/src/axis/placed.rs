@@ -78,7 +78,9 @@ impl Placed {
     /// Appends the axis beside plot area `area` to `list`: its line in the
     /// theme's edge color (its own when tinted) with square caps, so two
     /// axes meet at a closed corner as matplotlib's projecting spines do,
-    /// its ticks, its kept tick labels a tick pad past the ticks on the
+    /// its ticks (those whose label the scale's format blanks at the minor
+    /// size and width, d3's log ticks between labelled ones), its kept tick
+    /// labels a tick pad past the ticks on the
     /// baselines their line box gives ([`Labels::baseline`]), its
     /// offset or multiplier label (at the right end of a horizontal axis, a
     /// tick pad beyond the labels; above the top end of a vertical one), and
@@ -104,15 +106,29 @@ impl Placed {
             paint: list::brush(edge),
         });
         let mut ticks = BezPath::new();
-        for p in self.positions.iter().flatten() {
-            ticks.move_to(spine.at(*p, 0.0));
-            ticks.line_to(spine.at(*p, theme.tick()));
+        let mut minor = BezPath::new();
+        for (i, p) in self.positions.iter().enumerate() {
+            let Some(p) = p else { continue };
+            let (path, length) = if labels.minor.get(i).copied().unwrap_or(false) {
+                (&mut minor, theme.minor_tick())
+            } else {
+                (&mut ticks, theme.tick())
+            };
+            path.move_to(spine.at(*p, 0.0));
+            path.line_to(spine.at(*p, length));
         }
         list.commands.push(Command::Stroke {
             path: ticks,
             style: stroke,
             paint: list::brush(labels.ink),
         });
+        if !minor.elements().is_empty() {
+            list.commands.push(Command::Stroke {
+                path: minor,
+                style: list::stroke(theme.minor_width()),
+                paint: list::brush(labels.ink),
+            });
+        }
         let gap = theme.tick() + theme.tick_pad();
         let baseline = Anchor {
             h: align(orient),

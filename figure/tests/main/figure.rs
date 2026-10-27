@@ -280,6 +280,87 @@ fn figure_axis_ticks_follow_core_axis_positions() {
     assert_eq!(labels, digits);
 }
 
+/// The strokes of the axis part of panel 0, axis `axis`, in `list`: each
+/// path's tick lengths (its segments') and its width.
+fn tick_strokes(list: &List, axis: u64) -> Vec<(Vec<f64>, f64)> {
+    let part = list
+        .parts
+        .iter()
+        .find(|p| p.id == id(4, 0, axis))
+        .expect("an axis part");
+    list.commands[part.commands.clone()]
+        .iter()
+        .filter_map(|c| {
+            if let Command::Stroke { path, style, .. } = c {
+                let mut lengths = Vec::new();
+                let mut from = None;
+                for e in path.elements() {
+                    match e {
+                        PathEl::MoveTo(p) => from = Some(*p),
+                        PathEl::LineTo(p) => {
+                            lengths.push(from.map_or(0.0, |f| f.distance(*p)));
+                        }
+                        PathEl::QuadTo(..) | PathEl::CurveTo(..) | PathEl::ClosePath => {}
+                    }
+                }
+                Some((lengths, style.width))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn ticks_the_scale_blanks_draw_at_the_minor_size_and_width() {
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::log().domain([1.0, 1e5]));
+    fig.panel(0, 0).axis(axis::left(y).ticks(10));
+    let list = draw(&fig);
+    let log = scale::log().domain([1.0, 1e5]);
+    let labels = log.labels(&log.tick_set(10), &rustd3_core::locale::Locale::default());
+    let blank = labels.iter().filter(|l| l.is_empty()).count();
+    // d3 labels mantissas 1 and 2 of each decade at 10 ticks, and 1e5.
+    assert_eq!((labels.len(), blank), (46, 35));
+    let strokes = tick_strokes(&list, 0);
+    assert_eq!(strokes.len(), 3, "line, major and minor ticks");
+    let (major, width) = &strokes[1];
+    assert_eq!(major.len(), 11);
+    assert!(major.iter().all(|l| (l - 8.0).abs() < 1e-9), "{major:?}");
+    assert!((width - 5.0 / 3.0).abs() < 1e-9);
+    let (minor, width) = &strokes[2];
+    assert_eq!(minor.len(), 35);
+    assert!(
+        minor.iter().all(|l| (l - 16.0 / 3.0).abs() < 1e-9),
+        "{minor:?}"
+    );
+    assert!((width - 4.0 / 3.0).abs() < 1e-9);
+}
+
+#[test]
+fn ticks_whose_labels_collide_or_a_format_blanks_keep_the_major_size() {
+    // Labels this long collide on a 640 px axis: some are dropped.
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([1e9, 1e9 + 1.0]));
+    fig.panel(0, 0)
+        .axis(axis::bottom(x).ticks(10).offset(false))
+        .axis(axis::top(x).ticks(10).format(|_| String::new()));
+    let list = draw(&fig);
+    let bottom = list
+        .parts
+        .iter()
+        .find(|p| p.id == id(4, 0, 0))
+        .expect("an axis");
+    let labelled = runs(&list.commands[bottom.commands.clone()]).len();
+    assert!((1..11).contains(&labelled), "{labelled} labels kept");
+    for axis in [0, 1] {
+        let strokes = tick_strokes(&list, axis);
+        assert_eq!(strokes.len(), 2, "line and major ticks");
+        assert_eq!(strokes[1].0.len(), 11);
+        assert!(strokes[1].0.iter().all(|l| (l - 8.0).abs() < 1e-9));
+    }
+}
+
 #[test]
 fn decorations_are_parts_in_drawing_order_bounded_by_their_commands() {
     let (mut fig, _, y) = one_panel();

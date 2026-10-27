@@ -97,6 +97,17 @@ impl Theme {
         self.pt(6.0)
     }
 
+    /// Minor ticks, and ticks whose label the scale's format leaves empty:
+    /// 4 pt.
+    pub(crate) fn minor_tick(&self) -> f64 {
+        self.pt(4.0)
+    }
+
+    /// Minor ticks' width: 1 pt.
+    pub(crate) fn minor_width(&self) -> f64 {
+        self.pt(1.0)
+    }
+
     /// Between a tick and its label: 3.5 pt.
     pub(crate) fn tick_pad(&self) -> f64 {
         self.pt(3.5)
@@ -222,6 +233,8 @@ mod tests {
         assert!(close(theme.figure_title_text(), 19.2));
         let pads = [theme.tick(), theme.tick_pad(), theme.label_pad()];
         assert_eq!(pads.map(|v| format!("{v:.3}")), ["8.000", "4.667", "5.333"]);
+        let minor = [theme.minor_tick(), theme.minor_width()];
+        assert_eq!(minor.map(|v| format!("{v:.3}")), ["5.333", "1.333"]);
         assert!(close(theme.title_pad(), 8.0));
         assert_eq!(format!("{:.3}", theme.axis_width()), "1.667");
         assert_eq!(theme.ink(), Rgb::hex(0x262626));

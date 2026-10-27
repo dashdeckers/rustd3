@@ -35,6 +35,10 @@ pub(crate) trait Draw<'a>: 'a {
     /// The tick labels of the resolved scale's about `count` ticks.
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String>;
 
+    /// Whether `.format` sets its labels, so an empty one is the user's,
+    /// not the scale's blanking.
+    fn formats(&self) -> bool;
+
     /// Each of about `count` ticks' position along a panel `length` px
     /// long, aligned with [`texts`](Draw::texts): across [0, length] for a
     /// horizontal axis, up [length, 0] for a vertical one; `None` for a key
@@ -86,6 +90,10 @@ where
 
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String> {
         Axis::texts(self, resolved.scale(self.scale), count)
+    }
+
+    fn formats(&self) -> bool {
+        self.format.is_some()
     }
 
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>> {

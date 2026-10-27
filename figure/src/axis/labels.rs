@@ -12,15 +12,19 @@ use crate::theme::Theme;
 
 /// One axis's labels for a layout pass: its side and color, the keys of its
 /// tick labels (none when it is not labelled; `None` for an empty label)
-/// with their ticks' absolute indices, the line box its tick labels share,
-/// and the keys of its offset or multiplier label and of its title, set in
-/// that color.
+/// with their ticks' absolute indices, which ticks the scale's format
+/// blanks, the line box its tick labels share, and the keys of its offset
+/// or multiplier label and of its title, set in that color.
 pub(crate) struct Labels {
     pub(super) orient: Orient,
     pub(super) ink: Rgb,
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Option<Key>>,
     pub(super) indices: Vec<i64>,
+    /// Ticks whose label the scale's own format leaves empty (d3's log
+    /// blanking), in tick order whether labelled or not: drawn as minor
+    /// ticks.
+    pub(super) minor: Vec<bool>,
     /// The text face's ascender and descender at the tick-label size.
     line: [f64; 2],
     pub(super) notation: Option<Key>,
@@ -43,8 +47,10 @@ impl Labels {
         let tint = axis.tint(resolved);
         let ink = tint.unwrap_or(theme.ink());
         let style = theme.tick_label(align(orient), ink);
+        let texts = axis.texts(resolved, count);
+        let blanking = !axis.formats();
+        let minor = texts.iter().map(|t| blanking && t.is_empty()).collect();
         let (ticks, indices) = if labeled {
-            let texts = axis.texts(resolved, count);
             let keys = texts
                 .into_iter()
                 .map(|t| (!t.is_empty()).then(|| Key::new(&Text::from(t), &style)))
@@ -67,6 +73,7 @@ impl Labels {
             tinted: tint.is_some(),
             ticks,
             indices,
+            minor,
             line: text.fonts().line(theme.tick_text()),
             notation,
             title,
