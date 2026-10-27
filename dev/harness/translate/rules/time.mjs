@@ -83,7 +83,7 @@ export default {
     if (name !== "timeTickInterval" && name !== "utcTickInterval") return undefined;
     const [a, b, n] = args();
     const [start, stop, count, utc] = [date(a), date(b), whole(n, "tick count", "usize"), name === "utcTickInterval"];
-    return { c: utc ? `time::utc_tick_interval(${start}, ${stop}, ${count})` : `time::tick_interval(${start}, ${stop}, ${count}, ${zone(false, ctx)})`, t: "interval", utc };
+    return { c: utc ? `time::utc_tick_interval(${start}, ${stop}, ${count})` : `time::tick_interval(${start}, ${stop}, ${count})`, t: "interval", utc };
   },
   method(obj, prop, args, ctx) {
     if (DATES.has(obj.t) && prop === "getTime" && !args.length) return number(obj);

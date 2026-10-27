@@ -52,60 +52,9 @@ const TABLE: [(Interval, i128); 18] = [
 /// count` by ratio; beyond a year, years stepped by d3-array's tick step;
 /// below a second, milliseconds, microseconds or nanoseconds stepped by it
 /// (d3 stops at whole milliseconds). The choice depends on the span alone;
-/// `zone` is the one [`ticks`] lays the interval out in.
+/// a zone applies where the interval floors and steps, as in [`ticks`].
 #[doc(alias = "timeTickInterval")]
-pub fn tick_interval(
-    start: Timestamp,
-    stop: Timestamp,
-    count: usize,
-    _zone: &TimeZone,
-) -> Interval {
-    choose(start, stop, count)
-}
-
-/// d3.timeTicks: about `count` boundaries of [`tick_interval`] in `zone`
-/// from `start` to `stop`, both included, in the order of `start → stop`;
-/// at most `min(10·count, 10_000)`, so a count of 0 gives none. Equal
-/// ends give one tick.
-#[doc(alias = "timeTicks")]
-pub fn ticks(start: Timestamp, stop: Timestamp, count: usize, zone: &TimeZone) -> Vec<Timestamp> {
-    let interval = tick_interval(start, stop, count, zone);
-    lay_out(start, stop, interval, zone, cap(count))
-}
-
-/// d3.timeTicks with an interval: its boundaries in `zone` from `start` to
-/// `stop`, both included, in the order of `start → stop`; at most 10,000.
-#[doc(alias = "timeTicks")]
-pub fn ticks_with(
-    start: Timestamp,
-    stop: Timestamp,
-    interval: Interval,
-    zone: &TimeZone,
-) -> Vec<Timestamp> {
-    lay_out(start, stop, interval, zone, MAX_TICKS)
-}
-
-/// d3.utcTickInterval: [`tick_interval`] with days counted from
-/// 1970-01-01 (`UnixDay`) where it would take days of the month.
-#[doc(alias = "utcTickInterval")]
-pub fn utc_tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
-    let interval = choose(start, stop, count);
-    if let Interval::Day(k) = interval {
-        Interval::UnixDay(k)
-    } else {
-        interval
-    }
-}
-
-/// d3.utcTicks: [`ticks`] in UTC over [`utc_tick_interval`].
-#[doc(alias = "utcTicks")]
-pub fn utc_ticks(start: Timestamp, stop: Timestamp, count: usize) -> Vec<Timestamp> {
-    let interval = utc_tick_interval(start, stop, count);
-    lay_out(start, stop, interval, &TimeZone::UTC, cap(count))
-}
-
-/// d3's `tickInterval` on the span in `i128` nanoseconds.
-fn choose(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
+pub fn tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
     let span = (stop.as_nanosecond() - start.as_nanosecond()).abs();
     let count = count as f64;
     let target = span as f64 / count;
@@ -131,6 +80,47 @@ fn choose(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
     } else {
         above
     }
+}
+
+/// d3.timeTicks: about `count` boundaries of [`tick_interval`] in `zone`
+/// from `start` to `stop`, both included, in the order of `start → stop`;
+/// at most `min(10·count, 10_000)`, so a count of 0 gives none. Equal
+/// ends give one tick.
+#[doc(alias = "timeTicks")]
+pub fn ticks(start: Timestamp, stop: Timestamp, count: usize, zone: &TimeZone) -> Vec<Timestamp> {
+    let interval = tick_interval(start, stop, count);
+    lay_out(start, stop, interval, zone, cap(count))
+}
+
+/// d3.timeTicks with an interval: its boundaries in `zone` from `start` to
+/// `stop`, both included, in the order of `start → stop`; at most 10,000.
+#[doc(alias = "timeTicks")]
+pub fn ticks_with(
+    start: Timestamp,
+    stop: Timestamp,
+    interval: Interval,
+    zone: &TimeZone,
+) -> Vec<Timestamp> {
+    lay_out(start, stop, interval, zone, MAX_TICKS)
+}
+
+/// d3.utcTickInterval: [`tick_interval`] with days counted from
+/// 1970-01-01 (`UnixDay`) where it would take days of the month.
+#[doc(alias = "utcTickInterval")]
+pub fn utc_tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
+    let interval = tick_interval(start, stop, count);
+    if let Interval::Day(k) = interval {
+        Interval::UnixDay(k)
+    } else {
+        interval
+    }
+}
+
+/// d3.utcTicks: [`ticks`] in UTC over [`utc_tick_interval`].
+#[doc(alias = "utcTicks")]
+pub fn utc_ticks(start: Timestamp, stop: Timestamp, count: usize) -> Vec<Timestamp> {
+    let interval = utc_tick_interval(start, stop, count);
+    lay_out(start, stop, interval, &TimeZone::UTC, cap(count))
 }
 
 /// The boundaries of `interval` from the earlier end to the later, both

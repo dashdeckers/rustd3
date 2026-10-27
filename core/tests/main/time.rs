@@ -442,10 +442,7 @@ fn instants<const N: usize>(rfc3339: [&str; N]) -> [Timestamp; N] {
 fn ticks_follow_d3s_table_in_the_zone() {
     let berlin = zone("Europe/Berlin");
     let (start, stop) = (at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z"));
-    assert_eq!(
-        time::tick_interval(start, stop, 8, &berlin),
-        Interval::Hour(3)
-    );
+    assert_eq!(time::tick_interval(start, stop, 8), Interval::Hour(3));
     let expected = instants([
         "2026-10-24T22:00:00Z",
         "2026-10-25T02:00:00Z",
@@ -504,7 +501,7 @@ fn ticks_go_below_a_millisecond() {
     let t0 = at("2026-10-25T12:00:00Z");
     let plus = |ns: i128| Timestamp::from_nanosecond(t0.as_nanosecond() + ns).expect("in 2026");
     assert_eq!(
-        time::tick_interval(t0, plus(10_000), 5, &utc),
+        time::tick_interval(t0, plus(10_000), 5),
         Interval::Microsecond(2)
     );
     assert_eq!(
@@ -512,12 +509,12 @@ fn ticks_go_below_a_millisecond() {
         [0, 2_000, 4_000, 6_000, 8_000, 10_000].map(plus)
     );
     assert_eq!(
-        time::tick_interval(t0, plus(100), 10, &utc),
+        time::tick_interval(t0, plus(100), 10),
         Interval::Nanosecond(10)
     );
     assert_eq!(time::ticks(t0, plus(100), 10, &utc).len(), 11);
     assert_eq!(
-        time::tick_interval(t0, plus(1_000_000_000), 4, &utc),
+        time::tick_interval(t0, plus(1_000_000_000), 4),
         Interval::Millisecond(200)
     );
 }
@@ -527,7 +524,7 @@ fn degenerate_tick_requests_follow_d3() {
     let utc = TimeZone::UTC;
     let t = at("2026-10-25T12:00:00.5Z");
     assert_eq!(time::ticks(t, t, 10, &utc), [t]);
-    assert_eq!(time::tick_interval(t, t, 10, &utc), Interval::Nanosecond(1));
+    assert_eq!(time::tick_interval(t, t, 10), Interval::Nanosecond(1));
     assert_eq!(time::ticks(t, at("2027-10-25T12:00:00Z"), 0, &utc), []);
     let (a, b) = (at("2014-03-02T00:00:00Z"), at("2010-12-18T00:00:00Z"));
     let descending = instants([
@@ -549,7 +546,7 @@ fn ticks_are_capped() {
     );
     let span = (Timestamp::MIN, Timestamp::MAX);
     assert_eq!(
-        time::tick_interval(span.0, span.1, 1, &utc),
+        time::tick_interval(span.0, span.1, 1),
         Interval::Year(20_000)
     );
     let ad1 = at("0001-01-01T00:00:00Z");
