@@ -15,12 +15,14 @@
 //! assert_eq!(d, "M0,4L1,2L2,5L2,10L1,10L0,10Z");
 //! ```
 
+mod arc;
 mod area;
 mod curve;
 mod line;
 pub mod pie;
 mod slice;
 
+pub use arc::Arc;
 pub use area::{Area, Span};
 pub use curve::Curve;
 pub use line::{Line, Vertex};
@@ -51,4 +53,9 @@ pub fn area() -> Area {
 /// d3.pie(): descending, from 0 to τ, unpadded.
 pub fn pie() -> Pie {
     Pie::default()
+}
+
+/// d3.arc(): radii 0, no corners, padded as each slice says.
+pub fn arc() -> Arc {
+    Arc::default()
 }

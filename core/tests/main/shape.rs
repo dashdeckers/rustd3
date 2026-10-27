@@ -2,6 +2,7 @@
 //! normalization of d3's `assertPathEqual`; pies, arcs, stacks, symbols
 //! and radial shapes in the modules below.
 
+mod arc;
 mod pie;
 
 use rustd3_core::path::{self, PathContext};
