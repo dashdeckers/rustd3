@@ -155,7 +155,7 @@ impl Directive {
 
 /// A weekday or month number from 0 as an index into a locale's names.
 fn index(n: i8) -> usize {
-    usize::try_from(n).expect("invariant: jiff's weekdays and months count from 0 or 1")
+    usize::try_from(n).expect("invariant: weekday and month indices are 0 to 11")
 }
 
 /// The hour of a 12-hour clock: 12, then 1 to 11.
