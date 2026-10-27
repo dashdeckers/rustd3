@@ -403,3 +403,140 @@ fn catmull_rom_at_alpha_zero_is_the_cardinal_spline_of_tension_zero() {
         assert_eq!(area(a, &TOPS), area(b, &TOPS));
     }
 }
+
+#[test]
+fn monotone_x_passes_through_every_point() {
+    assert_path(
+        &line(Curve::MonotoneX, &PTS),
+        "M0,0C0.333,1,0.667,2,1,2C1.333,2,1.667,1,2,1C2.333,1,2.667,2,3,3",
+    );
+}
+
+#[test]
+fn monotone_x_keeps_flat_runs_flat() {
+    let points = [
+        (0.0, 200.0),
+        (100.0, 100.0),
+        (200.0, 100.0),
+        (300.0, 300.0),
+        (400.0, 300.0),
+    ];
+    assert_path(
+        &line(Curve::MonotoneX, &points),
+        "M0,200C33.333333,150,66.666667,100,100,100C133.333333,100,166.666667,100,200,100\
+         C233.333333,100,266.666667,300,300,300C333.333333,300,366.666667,300,400,300",
+    );
+}
+
+#[test]
+fn monotone_x_handles_duplicate_x_values() {
+    let first = [(0.0, 200.0), (0.0, 100.0), (100.0, 100.0), (200.0, 0.0)];
+    assert_path(
+        &line(Curve::MonotoneX, &first),
+        "M0,200C0,200,0,100,0,100C33.333333,100,66.666667,100,100,100\
+         C133.333333,100,166.666667,50,200,0",
+    );
+    let middle = [(0.0, 200.0), (100.0, 100.0), (100.0, 0.0), (200.0, 0.0)];
+    assert_path(
+        &line(Curve::MonotoneX, &middle),
+        "M0,200C33.333333,183.333333,66.666667,166.666667,100,100C100,100,100,0,100,0\
+         C133.333333,0,166.666667,0,200,0",
+    );
+    let last = [(0.0, 200.0), (100.0, 100.0), (200.0, 100.0), (200.0, 0.0)];
+    assert_path(
+        &line(Curve::MonotoneX, &last),
+        "M0,200C33.333333,150,66.666667,100,100,100C133.333333,100,166.666667,100,200,100\
+         C200,100,200,0,200,0",
+    );
+}
+
+#[test]
+fn monotone_x_handles_segments_of_infinite_slope() {
+    let down = [(0.0, 200.0), (100.0, 150.0), (100.0, 50.0), (200.0, 0.0)];
+    assert_path(
+        &line(Curve::MonotoneX, &down),
+        "M0,200C33.333333,191.666667,66.666667,183.333333,100,150C100,150,100,50,100,50\
+         C133.333333,16.666667,166.666667,8.333333,200,0",
+    );
+    let back = [(200.0, 0.0), (100.0, 50.0), (100.0, 150.0), (0.0, 200.0)];
+    assert_path(
+        &line(Curve::MonotoneX, &back),
+        "M200,0C166.666667,8.333333,133.333333,16.666667,100,50C100,50,100,150,100,150\
+         C66.666667,183.333333,33.333333,191.666667,0,200",
+    );
+}
+
+#[test]
+fn monotone_x_ignores_coincident_points() {
+    let points = [
+        (0.0, 200.0),
+        (50.0, 200.0),
+        (100.0, 100.0),
+        (150.0, 0.0),
+        (200.0, 0.0),
+    ];
+    let expected = line(Curve::MonotoneX, &points);
+    for i in 0..points.len() {
+        let mut doubled = points.to_vec();
+        doubled.insert(i, points[i]);
+        assert_eq!(line(Curve::MonotoneX, &doubled), expected);
+    }
+}
+
+#[test]
+fn monotone_y_passes_through_every_point() {
+    assert_path(
+        &line(Curve::MonotoneY, &PTS),
+        "M0,0C0.5,0.667,1,1.333,1,2C1,1.667,2,1.333,2,1C2,1.667,2.5,2.333,3,3",
+    );
+}
+
+#[test]
+fn monotone_y_is_monotone_x_of_the_swapped_points_swapped_back() {
+    let numbers = |d: &str| -> Vec<f64> {
+        tokenize(d)
+            .into_iter()
+            .filter_map(|token| match token {
+                Token::Num { value, .. } => Some(value),
+                Token::Text(_) => None,
+            })
+            .collect()
+    };
+    let letters = |d: &str| -> String { d.chars().filter(char::is_ascii_alphabetic).collect() };
+    let swapped: Vec<_> = PTS.iter().map(|&(x, y)| (y, x)).collect();
+    let x = line(Curve::MonotoneX, &swapped);
+    let y = line(Curve::MonotoneY, &PTS);
+    let mut back = numbers(&x);
+    back.chunks_mut(2).for_each(|pair| pair.swap(0, 1));
+    assert_eq!(numbers(&y), back);
+    assert_eq!(letters(&y), letters(&x));
+}
+
+#[test]
+fn a_monotone_x_area_runs_back_along_its_baseline() {
+    assert_path(
+        &area(Curve::MonotoneX, &TOPS),
+        "M0,4C0.333,3,0.667,2,1,2C1.333,2,1.667,3.5,2,5L2,0C1.667,0,1.333,0,1,0\
+         C0.667,0,0.333,0,0,0Z",
+    );
+}
+
+#[test]
+fn natural_passes_through_every_point() {
+    assert_path(
+        &line(Curve::Natural, &PTS),
+        "M0,0C0.333,1,0.667,2,1,2C1.333,2,1.667,1,2,1C2.333,1,2.667,2,3,3",
+    );
+    assert_path(
+        &line(Curve::Natural, &ZIGZAG),
+        "M0,1C0.333333,2.111111,0.666667,3.222222,1,3C1.333333,2.777778,1.666667,1.222222,2,1\
+         C2.333333,0.777778,2.666667,1.888889,3,3",
+    );
+}
+
+#[test]
+fn natural_draws_one_or_two_points_as_a_closed_move_or_a_segment() {
+    assert_path(&line(Curve::Natural, &ZIGZAG[..1]), "M0,1Z");
+    assert_path(&line(Curve::Natural, &ZIGZAG[..2]), "M0,1L1,3");
+    assert_path(&area(Curve::Natural, &ZIGZAG[..1]), "M0,1L0,0Z");
+}

@@ -8,6 +8,8 @@ mod bundle;
 mod cardinal;
 mod catmull_rom;
 mod linear;
+mod monotone;
+mod natural;
 mod step;
 
 use crate::js;
@@ -83,6 +85,15 @@ pub enum Curve {
         /// The chord-length exponent in [0, 1]: 0.5 centripetal, 1 chordal.
         alpha: f64,
     },
+    /// d3.curveMonotoneX: a cubic spline that stays monotone in y between
+    /// points, for points monotone in x.
+    MonotoneX,
+    /// d3.curveMonotoneY: a cubic spline that stays monotone in x between
+    /// points, for points monotone in y.
+    MonotoneY,
+    /// d3.curveNatural: the natural cubic spline, its second derivative zero
+    /// at both ends.
+    Natural,
 }
 
 /// d3's `_line`, a curve's place in an area: unset for a plain line (d3's
@@ -113,6 +124,8 @@ pub(crate) enum State {
     CatmullRom(catmull_rom::CatmullRom),
     CatmullRomClosed(catmull_rom::CatmullRomClosed),
     CatmullRomOpen(catmull_rom::CatmullRomOpen),
+    Monotone(monotone::Monotone),
+    Natural(natural::Natural),
 }
 
 /// `$body` with `$family` bound to the family `$state` holds.
@@ -133,6 +146,8 @@ macro_rules! each {
             State::CatmullRom($family) => $body,
             State::CatmullRomClosed($family) => $body,
             State::CatmullRomOpen($family) => $body,
+            State::Monotone($family) => $body,
+            State::Natural($family) => $body,
         }
     };
 }
@@ -202,6 +217,9 @@ impl State {
                 State::CatmullRomOpen(catmull_rom::CatmullRomOpen::new(alpha))
             }
             Curve::CatmullRomOpen { .. } => State::CardinalOpen(cardinal::CardinalOpen::new(0.0)),
+            Curve::MonotoneX => State::Monotone(monotone::Monotone::new(false)),
+            Curve::MonotoneY => State::Monotone(monotone::Monotone::new(true)),
+            Curve::Natural => State::Natural(natural::Natural::new()),
         }
     }
 
@@ -227,6 +245,8 @@ impl State {
             State::CardinalOpen(s) => s.area_start(),
             State::CatmullRom(s) => s.area_start(),
             State::CatmullRomOpen(s) => s.area_start(),
+            State::Monotone(s) => s.area_start(),
+            State::Natural(s) => s.area_start(),
             // d3's closed curves ignore areaStart and areaEnd; `State::area`
             // holds no bundle.
             State::LinearClosed(_)
@@ -249,6 +269,8 @@ impl State {
             State::CardinalOpen(s) => s.area_end(),
             State::CatmullRom(s) => s.area_end(),
             State::CatmullRomOpen(s) => s.area_end(),
+            State::Monotone(s) => s.area_end(),
+            State::Natural(s) => s.area_end(),
             State::LinearClosed(_)
             | State::BasisClosed(_)
             | State::CardinalClosed(_)
