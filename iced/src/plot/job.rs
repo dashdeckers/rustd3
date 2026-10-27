@@ -9,6 +9,7 @@ use rustd3_figure::kurbo::Rect;
 use rustd3_figure::list::{Bounds, List};
 use rustd3_figure::raster;
 
+use crate::plot::preview::Basis;
 use crate::plot::{probe, slot};
 
 /// One cell of one refresh to render, inline or on the worker.
@@ -29,6 +30,9 @@ pub(crate) struct Job {
     pub(super) work: u64,
     /// The probe's clock and its reading at planning time.
     pub(super) enqueued: Option<Stamp>,
+    /// For a plot-area cell, the view of the handle leading each axis at
+    /// planning time, for previews of its image.
+    pub(super) view: [Option<Basis>; 2],
 }
 
 /// A probe clock and one reading of it.
@@ -50,6 +54,7 @@ pub(crate) struct Done {
     pub(super) work: u64,
     pub(super) queued: Option<Duration>,
     pub(super) duration: Option<Duration>,
+    pub(super) view: [Option<Basis>; 2],
 }
 
 impl Stamp {
@@ -92,6 +97,7 @@ impl Job {
             duration: start
                 .zip(end)
                 .map(|(start, end)| end.at.saturating_duration_since(start.at)),
+            view: self.view,
         }
     }
 }
@@ -162,6 +168,7 @@ mod tests {
             scale: 2.0,
             work: 0,
             enqueued: None,
+            view: [None; 2],
         };
         let done = job.run(&mut raster);
         assert_eq!(done.rows, [0..545, 545..640]);

@@ -1,7 +1,7 @@
 //! [`Domains`]: the scales gestures changed, keyed by handle position and
 //! scale type ([`Key`]): those the widget owns, those it published during
 //! the active gesture, which handles a gesture touched, and each handle's
-//! core `Zoom`.
+//! core `Zoom` and preview view.
 //!
 //! Core's `Zoom` keeps d3's scale extent [0, ∞], which does not bound a
 //! gesture's k; each handle's zoom here is built with the extent [1e-6,
@@ -16,6 +16,8 @@ use rustd3_core::interact::Zoom;
 use rustd3_figure::scale::Scale;
 use rustd3_figure::{Held, Resolved};
 
+use crate::plot::preview::{Affine1, View};
+
 /// The scale extent of each handle's zoom: k of one gesture.
 const SCALE_EXTENT: [f64; 2] = [1e-6, 1e6];
 
@@ -28,7 +30,7 @@ pub(crate) struct Key {
 }
 
 /// Widget-owned and published domains, the touched set, and each handle's
-/// zoom.
+/// zoom and preview view.
 #[derive(Default)]
 pub(crate) struct Domains {
     /// Handles nobody listens to: the widget owns them.
@@ -39,6 +41,10 @@ pub(crate) struct Domains {
     touched: HashSet<Key>,
     /// One core zoom per handle, persistent.
     zooms: HashMap<Key, Zoom>,
+    /// Each handle's preview view.
+    views: HashMap<Key, View>,
+    /// Preview epochs started.
+    epochs: u64,
 }
 
 impl Key {
@@ -121,6 +127,31 @@ impl Domains {
         self.pending.retain(|key, _| key.names(resolved));
         self.touched.retain(|key| key.names(resolved));
         self.zooms.retain(|key, _| key.names(resolved));
+        self.views.retain(|key, _| key.names(resolved));
+    }
+
+    /// The preview view of `key`, started (the identity, a new epoch)
+    /// when it has none.
+    pub(crate) fn view(&mut self, key: Key) -> View {
+        let epochs = &mut self.epochs;
+        *self.views.entry(key).or_insert_with(|| {
+            *epochs += 1;
+            View {
+                epoch: *epochs,
+                map: Affine1::IDENTITY,
+            }
+        })
+    }
+
+    /// The preview view of `key`, if it has one.
+    pub(crate) fn peek(&self, key: Key) -> Option<View> {
+        self.views.get(&key).copied()
+    }
+
+    /// Sets the map of `key`'s preview view, in its current epoch.
+    pub(crate) fn move_view(&mut self, key: Key, map: Affine1) {
+        let view = self.view(key);
+        self.views.insert(key, View { map, ..view });
     }
 
     /// The scale the widget owns for `key`.

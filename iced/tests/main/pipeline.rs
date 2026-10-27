@@ -49,7 +49,7 @@ const SMALL: Size = Size::new(320.0, 200.0);
 
 /// The lock [`WORKERS`] holds; a test that failed holding it poisons
 /// nothing the others read.
-fn workers() -> MutexGuard<'static, ()> {
+pub fn workers() -> MutexGuard<'static, ()> {
     WORKERS.lock().unwrap_or_else(PoisonError::into_inner)
 }
 

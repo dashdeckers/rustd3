@@ -8,6 +8,7 @@ use iced_core::renderer::Quad;
 use iced_core::{Color, Rectangle};
 use rustd3_figure::kurbo::Rect;
 
+use crate::plot::preview::{Affine1, Basis};
 use crate::plot::{BAND_BYTES, NUDGE};
 
 /// One cell of the partition: its device rect and current content hash,
@@ -32,6 +33,9 @@ struct Shown {
     hash: u64,
     /// Not yet reported as drawn for the first time.
     fresh: bool,
+    /// For a plot-area cell, the view of the handle leading each axis when
+    /// the image was planned.
+    view: [Option<Basis>; 2],
 }
 
 /// Whole device rows of a cell, rendered as one image under `BAND_BYTES`.
@@ -89,11 +93,18 @@ impl Slot {
         }
     }
 
-    /// A render of content `hash` for `generation` finished; `bands` is
-    /// `None` when it failed. The pending render clears when it is this
-    /// one; the bands are shown iff `generation` is newer than the image
-    /// on screen, or there is none. True when they are.
-    pub(crate) fn land(&mut self, generation: u64, hash: u64, bands: Option<Vec<Band>>) -> bool {
+    /// A render of content `hash` for `generation`, planned at `view`,
+    /// finished; `bands` is `None` when it failed. The pending render
+    /// clears when it is this one; the bands are shown iff `generation` is
+    /// newer than the image on screen, or there is none. True when they
+    /// are.
+    pub(crate) fn land(
+        &mut self,
+        generation: u64,
+        hash: u64,
+        bands: Option<Vec<Band>>,
+        view: [Option<Basis>; 2],
+    ) -> bool {
         if self.pending == Some(generation) {
             self.pending = None;
         }
@@ -112,8 +123,16 @@ impl Slot {
             generation,
             hash,
             fresh: true,
+            view,
         });
         true
+    }
+
+    /// While the image shows outdated content and its sharp render is
+    /// pending: the views it was planned at, from which a preview maps it.
+    pub(crate) fn previewing(&self) -> Option<[Option<Basis>; 2]> {
+        let shown = self.shown.as_ref()?;
+        (shown.hash != self.hash && self.pending.is_some()).then_some(shown.view)
     }
 
     /// No image at all: the theme background shows.
@@ -176,6 +195,49 @@ impl Slot {
             let bounds = self.bounds(&band.rows, origin, factor);
             let image = image::Image::new(band.handle.clone()).filter_method(FilterMethod::Nearest);
             renderer.draw_image(image, bounds, bounds);
+        }
+    }
+
+    /// Draws the image as a preview: the cell filled with `background`,
+    /// then each band with linear filtering at its device rect mapped by
+    /// `maps` (x, then y; device px from the widget's device origin
+    /// `origin`), clipped to the cell.
+    pub(crate) fn draw_mapped<Renderer>(
+        &self,
+        renderer: &mut Renderer,
+        origin: [i32; 2],
+        factor: f32,
+        maps: [Affine1; 2],
+        background: Color,
+    ) where
+        Renderer: image::Renderer<Handle = image::Handle>,
+    {
+        let Some(shown) = &self.shown else {
+            return;
+        };
+        let [x0, y0, x1, y1] = self.rect;
+        let cell = self.bounds(&(0..y1 - y0), origin, factor);
+        renderer.fill_quad(
+            Quad {
+                bounds: cell,
+                ..Quad::default()
+            },
+            background,
+        );
+        let [mx, my] = maps;
+        let logical = |device: f64, at: i32| (f64::from(at) + device) as f32 / factor;
+        for band in &shown.bands {
+            let (left, right) = (mx.apply(f64::from(x0)), mx.apply(f64::from(x1)));
+            let top = my.apply(f64::from(y0 + band.rows.start));
+            let bottom = my.apply(f64::from(y0 + band.rows.end));
+            let bounds = Rectangle {
+                x: logical(left, origin[0]),
+                y: logical(top, origin[1]),
+                width: ((right - left) as f32) / factor,
+                height: ((bottom - top) as f32) / factor,
+            };
+            let image = image::Image::new(band.handle.clone()).filter_method(FilterMethod::Linear);
+            renderer.draw_image(image, bounds, cell);
         }
     }
 
@@ -255,6 +317,7 @@ mod tests {
     use rustd3_figure::kurbo::Rect;
 
     use super::{Band, Slot, bands};
+    use crate::plot::preview::{Affine1, Basis, View};
     use crate::plot::{BAND_BYTES, NUDGE};
 
     /// A slot of `rect` showing nothing, its content hashed 0.
@@ -353,13 +416,16 @@ mod tests {
         // Shown g = 3, pending g = 5, the result for g = 4 arrives.
         let mut slot = slot([0, 0, 4, 2]);
         slot.change(30, 3);
-        assert!(slot.land(3, 30, Some(image())));
+        assert!(slot.land(3, 30, Some(image()), [None; 2]));
         slot.change(40, 4);
         slot.change(50, 5);
-        assert!(slot.land(4, 40, Some(image())), "4 > 3: promoted");
+        assert!(
+            slot.land(4, 40, Some(image()), [None; 2]),
+            "4 > 3: promoted"
+        );
         assert_eq!((slot.generation(), slot.pending()), (Some(4), Some(5)));
         assert!(slot.is_preview(), "content 40 is not the current 50");
-        assert!(slot.land(5, 50, Some(image())));
+        assert!(slot.land(5, 50, Some(image()), [None; 2]));
         assert_eq!((slot.generation(), slot.pending()), (Some(5), None));
         assert!(!slot.is_preview());
     }
@@ -369,9 +435,15 @@ mod tests {
         let mut slot = slot([0, 0, 4, 2]);
         slot.change(10, 1);
         slot.change(20, 2);
-        assert!(slot.land(2, 20, Some(image())));
-        assert!(!slot.land(1, 10, Some(image())), "1 < 2: dropped");
-        assert!(!slot.land(2, 20, Some(image())), "2 is shown already");
+        assert!(slot.land(2, 20, Some(image()), [None; 2]));
+        assert!(
+            !slot.land(1, 10, Some(image()), [None; 2]),
+            "1 < 2: dropped"
+        );
+        assert!(
+            !slot.land(2, 20, Some(image()), [None; 2]),
+            "2 is shown already"
+        );
         assert_eq!(slot.generation(), Some(2));
         assert!(!slot.is_preview());
     }
@@ -381,7 +453,7 @@ mod tests {
         // Panel 0's slot keeps its g = 6 image while g = 7 changes panel 1.
         let mut slot = slot([0, 0, 4, 2]);
         slot.change(60, 6);
-        assert!(slot.land(6, 60, Some(image())));
+        assert!(slot.land(6, 60, Some(image()), [None; 2]));
         assert_eq!(slot.generation(), Some(6));
         assert!(!slot.is_preview() && !slot.is_missing());
     }
@@ -399,9 +471,9 @@ mod tests {
     fn a_failed_render_keeps_the_image_and_clears_its_pending_generation() {
         let mut slot = slot([0, 0, 4, 2]);
         slot.change(10, 1);
-        assert!(slot.land(1, 10, Some(image())));
+        assert!(slot.land(1, 10, Some(image()), [None; 2]));
         slot.change(20, 2);
-        assert!(!slot.land(2, 20, None));
+        assert!(!slot.land(2, 20, None, [None; 2]));
         assert_eq!((slot.generation(), slot.pending()), (Some(1), None));
         assert!(slot.is_preview());
     }
@@ -412,11 +484,11 @@ mod tests {
         slot.change(10, 1);
         slot.requeue(3);
         assert!(
-            slot.land(1, 10, Some(image())),
+            slot.land(1, 10, Some(image()), [None; 2]),
             "the old set's result shows"
         );
         assert_eq!(slot.pending(), Some(3));
-        assert!(slot.land(3, 10, Some(image())));
+        assert!(slot.land(3, 10, Some(image()), [None; 2]));
         assert_eq!(slot.pending(), None);
         // Nothing pending, nothing to requeue.
         slot.requeue(4);
@@ -424,11 +496,38 @@ mod tests {
     }
 
     #[test]
+    fn preview_dropped_when_the_cell_is_sharp() {
+        let key = crate::plot::domains::Key::of::<rustd3_core::scale::Linear>(0);
+        let planned = Basis {
+            key,
+            view: View {
+                epoch: 1,
+                map: Affine1::IDENTITY,
+            },
+        };
+        let mut slot = slot([0, 0, 4, 2]);
+        slot.change(10, 1);
+        assert!(slot.land(1, 10, Some(image()), [Some(planned), None]));
+        assert_eq!(slot.previewing(), None, "current content");
+        // The content changes; its render is pending: the old image is a
+        // preview, mapped from the view it was planned at.
+        slot.change(20, 2);
+        assert_eq!(slot.previewing(), Some([Some(planned), None]));
+        // The sharp image lands: no preview.
+        assert!(slot.land(2, 20, Some(image()), [None; 2]));
+        assert_eq!(slot.previewing(), None);
+        // An outdated image whose render failed is not a mapped preview.
+        slot.change(30, 3);
+        assert!(!slot.land(3, 30, None, [None; 2]));
+        assert!(slot.is_preview() && slot.previewing().is_none());
+    }
+
+    #[test]
     fn fresh_bytes_are_reported_once() {
         let mut slot = slot([0, 0, 4, 2]);
         assert_eq!(slot.take_fresh(), 0);
         slot.change(10, 1);
-        assert!(slot.land(1, 10, Some(image())));
+        assert!(slot.land(1, 10, Some(image()), [None; 2]));
         assert_eq!(slot.take_fresh(), 32);
         assert_eq!(slot.take_fresh(), 0);
     }

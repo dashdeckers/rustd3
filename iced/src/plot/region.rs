@@ -153,6 +153,25 @@ impl Map {
     pub(crate) fn area(&self, panel: usize) -> Option<Rect> {
         self.areas.get(panel).copied()
     }
+
+    /// The handle whose view a preview of `panel` follows along `along`:
+    /// the first it zooms that way, else the first of its axes that way.
+    pub(crate) fn lead(&self, panel: usize, along: Along) -> Option<Key> {
+        let zoomed = self
+            .zooms
+            .get(panel)
+            .and_then(|zooms| zooms[along.index()].first().copied());
+        zoomed.or_else(|| {
+            self.axes.iter().find_map(|&(_, region)| match region {
+                Region::Axis {
+                    panel: p,
+                    key,
+                    along: a,
+                } if p == panel && a == along => Some(key),
+                Region::Area { .. } | Region::Axis { .. } | Region::Outside => None,
+            })
+        })
+    }
 }
 
 /// The strip an axis on side `orient` of `area` draws in: from `offset`
@@ -250,5 +269,9 @@ mod tests {
         assert!(map.tracks(map.at(left)).is_empty());
         assert!(map.tracks(Region::Outside).is_empty());
         assert_eq!(map.area(0), Some(area));
+        // Previews of the panel follow x, which it zooms, and y, its axis.
+        assert_eq!(map.lead(0, Along::X), Some(kx));
+        assert_eq!(map.lead(0, Along::Y), Some(ky));
+        assert_eq!(map.lead(1, Along::X), None);
     }
 }

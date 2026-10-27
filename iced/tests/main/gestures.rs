@@ -3,6 +3,7 @@
 //! message per handle per frame, twin handles, and steps the scale
 //! rejects.
 
+use std::sync::mpsc;
 use std::time::Duration;
 
 use iced::time::Instant;
@@ -13,7 +14,8 @@ use rustd3_figure::mark::dots;
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Cache, Figure, Held, Target, axis};
 use rustd3_iced::Plot;
-use rustd3_iced::plot::Render;
+use rustd3_iced::plot::probe::Sample;
+use rustd3_iced::plot::{Probe, Render};
 
 use crate::headless::{self, Harness, Shot};
 
@@ -753,6 +755,156 @@ fn the_cursor_shows_what_a_gesture_would_do() {
             over(&mut harness, x, y),
             expected,
             "{backend}: at ({x}, {y})"
+        );
+    }
+}
+
+/// The clock a test's probe times stages with.
+#[expect(clippy::disallowed_methods, reason = "test clock")]
+fn clock() -> Instant {
+    Instant::now()
+}
+
+/// What the last `Frame` sample among `samples` reported: (missing,
+/// previews).
+fn last_frame(samples: &[Sample]) -> Option<(u32, u32)> {
+    samples.iter().rev().find_map(|sample| match sample {
+        Sample::Frame {
+            missing, previews, ..
+        } => Some((*missing, *previews)),
+        Sample::Stage { .. } | Sample::Raster { .. } => None,
+    })
+}
+
+/// Frames of `harness` after each wake, the `Waken` injected before each
+/// and the frames `t` + 16 ms apart, until one shows every slot current.
+fn settle(
+    harness: &mut Harness<'static, Message>,
+    probe: &mpsc::Receiver<Sample>,
+    mut t: Instant,
+) -> (Shot, Instant) {
+    for _ in 0..1000 {
+        assert!(
+            harness.wait_for_wake(Duration::from_secs(10)),
+            "no wake within ten seconds"
+        );
+        let _ = harness.events(&[Event::Waken]);
+        t += FRAME;
+        let shot = harness.frame(t);
+        let samples: Vec<Sample> = probe.try_iter().collect();
+        if last_frame(&samples) == Some((0, 0)) {
+            return (shot, t);
+        }
+    }
+    panic!("a thousand wakes without a current frame")
+}
+
+/// Pixels of the device rect `[x0, y0, x1, y1]` that differ between `a`
+/// and `b`, and those outside it.
+fn changed_in(a: &Shot, b: &Shot, [x0, y0, x1, y1]: [u32; 4]) -> (usize, usize) {
+    let mut inside = (0, 0);
+    for (i, (p, q)) in a
+        .rgba
+        .chunks_exact(4)
+        .zip(b.rgba.chunks_exact(4))
+        .enumerate()
+    {
+        if p != q {
+            let (x, y) = (i as u32 % a.width, i as u32 / a.width);
+            if (x0..x1).contains(&x) && (y0..y1).contains(&y) {
+                inside.0 += 1;
+            } else {
+                inside.1 += 1;
+            }
+        }
+    }
+    inside
+}
+
+/// The mean absolute channel difference of `a` and `b` inside the device
+/// rect `[x0, y0, x1, y1]`.
+fn mean_in(a: &Shot, b: &Shot, [x0, y0, x1, y1]: [u32; 4]) -> f64 {
+    let (mut sum, mut n) = (0.0, 0.0);
+    for y in y0..y1 {
+        for x in x0..x1 {
+            let (p, q) = (a.pixel(x, y), b.pixel(x, y));
+            for c in 0..3 {
+                sum += f64::from(p[c].abs_diff(q[c]));
+                n += 1.0;
+            }
+        }
+    }
+    sum / n
+}
+
+#[test]
+fn zoom_shows_a_scaled_preview_at_once() {
+    let _workers = crate::pipeline::workers();
+    for k in [1.0, 2.0] {
+        let t0 = headless::epoch();
+        let (fig, _, _) = figure([0.0, 100.0], [0.0, 10.0]);
+        let area = areas(&fig, k)[0];
+        let device =
+            [area.x0, area.y0, area.x1, area.y1].map(|e| (e * f64::from(k)).round() as u32);
+        let (tx, rx) = mpsc::channel();
+        let plot = Plot::<Message>::new(fig)
+            .scale_factor(k)
+            .render(Render::Worker)
+            .crosshair(false)
+            .highlight(false)
+            .probe(Probe::new(clock, tx));
+        let Some(mut harness) = Harness::new(plot, SIZE, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let _ = harness.frame(t0);
+        let (before, t) = settle(&mut harness, &rx, t0);
+        // One wheel step of two lines over the plot area.
+        let cursor = Point::new(
+            (area.x0 + 0.3 * area.width()) as f32,
+            (area.y0 + 0.6 * area.height()) as f32,
+        );
+        harness.point_at(cursor);
+        let _ = harness.events(&[lines(2.0)]);
+        let preview = harness.frame(t + FRAME);
+        let samples: Vec<Sample> = rx.try_iter().collect();
+        let (missing, previews) = last_frame(&samples).expect("a frame sample");
+        assert_eq!(missing, 0, "{backend}, k = {k}");
+        assert!(previews > 0, "{backend}, k = {k}: previews {previews}");
+        let (sharp, _) = settle(&mut harness, &rx, t + FRAME);
+        // The same input rendered inline.
+        let (fig, _, _) = figure([0.0, 100.0], [0.0, 10.0]);
+        let inline = Plot::<Message>::new(fig)
+            .scale_factor(k)
+            .render(Render::Inline)
+            .crosshair(false)
+            .highlight(false);
+        let mut reference = Harness::new(inline, SIZE, k).expect("the backend found above");
+        let _ = reference.frame(t0);
+        reference.point_at(cursor);
+        let _ = reference.events(&[lines(2.0)]);
+        let expected = reference.frame(t + FRAME);
+        let diff = rustd3_testkit::pixels::Diff::between(&sharp.image(), &expected.image(), 16)
+            .expect("invariant: both shots have the widget's size");
+        // The preview moved the plot area's content and nothing else, and
+        // is nearer the sharp frame there than the frame before the zoom.
+        let (inside, outside) = changed_in(&before, &preview, device);
+        let (near, far) = (
+            mean_in(&preview, &sharp, device),
+            mean_in(&before, &sharp, device),
+        );
+        println!(
+            "zoom preview, {backend}, k = {k}: {previews} previews, {inside} px moved in the plot \
+             area, {outside} outside; mean difference from the sharp frame {near:.2} (before: \
+             {far:.2}); sharp against inline max {}/255",
+            diff.max()
+        );
+        assert!(inside > 0 && outside == 0, "{backend}, k = {k}");
+        assert!(near < far / 2.0, "{backend}, k = {k}: {near} against {far}");
+        assert!(
+            diff.max() <= 1,
+            "{backend}, k = {k}: max {}/255",
+            diff.max()
         );
     }
 }

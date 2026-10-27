@@ -19,6 +19,7 @@ use rustd3_figure::layout;
 use rustd3_figure::scale::Scale;
 
 use crate::plot::domains::{Domains, Key};
+use crate::plot::preview::Affine1;
 use crate::plot::region::{Along, Region};
 
 /// How long after its last step a wheel gesture ends: d3's own wheel idle
@@ -53,16 +54,28 @@ pub(crate) struct Track {
     along: Along,
     transform: interact::Transform,
     start: Box<dyn Scale>,
+    /// The handle's preview map at the start, range shares.
+    base: Affine1,
+}
+
+/// An accepted step of one track: the handle, its new scale, and its
+/// preview map (range shares since its epoch began).
+pub(crate) struct Step {
+    pub(crate) key: Key,
+    pub(crate) scale: Box<dyn Scale>,
+    pub(crate) view: Affine1,
 }
 
 impl Track {
-    /// A track of `key` along `along` that starts from `start`.
-    pub(crate) fn new(key: Key, along: Along, start: Box<dyn Scale>) -> Track {
+    /// A track of `key` along `along` that starts from `start`, whose
+    /// preview map is `base` then.
+    pub(crate) fn new(key: Key, along: Along, start: Box<dyn Scale>, base: Affine1) -> Track {
         Track {
             key,
             along,
             transform: interact::Transform::IDENTITY,
             start,
+            base,
         }
     }
 }
@@ -117,12 +130,8 @@ impl Gesture {
     }
 
     /// Feeds `pointer` (list px) to every track's zoom in `domains`; the
-    /// new scale of each track whose step was accepted.
-    pub(crate) fn feed(
-        &mut self,
-        pointer: Pointer,
-        domains: &mut Domains,
-    ) -> Vec<(Key, Box<dyn Scale>)> {
+    /// steps accepted.
+    pub(crate) fn feed(&mut self, pointer: Pointer, domains: &mut Domains) -> Vec<Step> {
         let local = local(pointer, self.area.origin());
         let (width, height) = (self.area.width(), self.area.height());
         let mut changed = Vec::new();
@@ -147,7 +156,17 @@ impl Gesture {
                 anchor.and_then(|anchor| rescale(&*track.start, range, k, offset, anchor));
             if let Some(scale) = rescaled {
                 track.transform = t;
-                changed.push((track.key, scale));
+                // The transform in shares of the range: x runs from 0 to
+                // the width, y from the height to 0.
+                let shares = match track.along {
+                    Along::X => Affine1::new(k, offset / width),
+                    Along::Y => Affine1::new(k, 1.0 - k - offset / height),
+                };
+                changed.push(Step {
+                    key: track.key,
+                    scale,
+                    view: shares.after(track.base),
+                });
             }
         }
         changed
@@ -240,8 +259,9 @@ mod tests {
     use rustd3_figure::kurbo::Rect;
     use rustd3_figure::scale::Scale;
 
-    use super::{Gesture, Kind, Track, rescale};
+    use super::{Gesture, Kind, Step, Track, rescale};
     use crate::plot::domains::{Domains, Key};
+    use crate::plot::preview::Affine1;
     use crate::plot::region::{Along, Region};
 
     /// A wheel of `lines` (iced's sign: positive scrolls up) at `x`, `y`.
@@ -261,15 +281,15 @@ mod tests {
         Gesture::new(
             Region::Area { panel: 0 },
             Kind::Drag,
-            vec![Track::new(key, along, start)],
+            vec![Track::new(key, along, start, Affine1::IDENTITY)],
             None,
             Rect::new(50.0, 20.0, 450.0, 320.0),
         )
     }
 
     /// The domain of a linear scale among `changed`.
-    fn domain(changed: &[(Key, Box<dyn Scale>)]) -> [f64; 2] {
-        let [(_, scale)] = changed else {
+    fn domain(changed: &[Step]) -> [f64; 2] {
+        let [Step { scale, .. }] = changed else {
             panic!("one change, got {}", changed.len());
         };
         scale
@@ -367,7 +387,7 @@ mod tests {
         let mut g = Gesture::new(
             Region::Area { panel: 0 },
             Kind::Drag,
-            vec![Track::new(key, Along::Y, start)],
+            vec![Track::new(key, Along::Y, start, Affine1::IDENTITY)],
             None,
             Rect::new(0.0, 0.0, 400.0, 300.0),
         );

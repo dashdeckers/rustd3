@@ -74,6 +74,7 @@ mod input;
 mod job;
 mod listener;
 mod overlay;
+mod preview;
 pub mod probe;
 mod region;
 mod render;

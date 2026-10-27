@@ -18,6 +18,7 @@ use crate::plot::input::Input;
 use crate::plot::job::{Done, Job, Stamp};
 use crate::plot::listener::Listener;
 use crate::plot::overlay::{self, Overlay};
+use crate::plot::preview::{Affine1, Basis};
 use crate::plot::probe::{self, Probe, Sample, Stage};
 use crate::plot::region::{self, Along, Region};
 use crate::plot::slot::{self, Band, Slot};
@@ -350,7 +351,8 @@ impl State {
                 Pointer::Modifiers(self.modifiers),
                 interact::Transform::IDENTITY,
             );
-            tracks.push(Track::new(key, along, start));
+            let base = self.domains.view(key).map;
+            tracks.push(Track::new(key, along, start, base));
         }
         if !tracks.is_empty() {
             let held = Some(resolved.areas());
@@ -373,9 +375,11 @@ impl State {
         };
         let steps = gesture.feed(pointer, &mut self.domains);
         let accepted = !steps.is_empty();
-        for (key, scale) in steps {
+        for step in steps {
+            let key = step.key;
             let listened = listeners.iter().any(|listener| listener.key() == key);
-            self.domains.store(key, scale, listened);
+            self.domains.store(key, step.scale, listened);
+            self.domains.move_view(key, step.view);
             if !fresh.contains(&key) {
                 fresh.push(key);
             }
@@ -507,6 +511,9 @@ impl State {
         let list = Arc::new(list);
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
         let generation = self.generation;
+        let views: Vec<[Option<Basis>; 2]> = (0..self.slots.len())
+            .map(|index| self.planned(self.slots[index].rect()))
+            .collect();
         let job = |index: usize, rect: [i32; 4]| {
             let cell = &cells.cells[index];
             Job {
@@ -522,6 +529,7 @@ impl State {
                 scale: k,
                 work: cell.work,
                 enqueued,
+                view: views[index],
             }
         };
         let model: f64 = changed
@@ -556,7 +564,7 @@ impl State {
             for &index in &order {
                 self.slots[index].requeue(generation);
             }
-            order.sort_by_key(|&index| !self.is_area(self.slots[index].rect()));
+            order.sort_by_key(|&index| self.panel_of(self.slots[index].rect()).is_none());
             let jobs = order
                 .into_iter()
                 .map(|index| job(index, self.slots[index].rect()))
@@ -577,11 +585,55 @@ impl State {
         self.worker.is_some()
     }
 
-    /// Whether a device rect lies inside a plot area.
-    fn is_area(&self, [x0, y0, x1, y1]: [i32; 4]) -> bool {
+    /// The panel whose plot area holds a device rect.
+    fn panel_of(&self, [x0, y0, x1, y1]: [i32; 4]) -> Option<usize> {
         self.areas
             .iter()
-            .any(|&[ax0, ay0, ax1, ay1]| ax0 <= x0 && ay0 <= y0 && x1 <= ax1 && y1 <= ay1)
+            .position(|&[ax0, ay0, ax1, ay1]| ax0 <= x0 && ay0 <= y0 && x1 <= ax1 && y1 <= ay1)
+    }
+
+    /// For a cell of a plot area at device rect `rect`, the view of the
+    /// handle leading each of its panel's axes now; none for gutters.
+    fn planned(&mut self, rect: [i32; 4]) -> [Option<Basis>; 2] {
+        let Some(panel) = self.panel_of(rect) else {
+            return [None; 2];
+        };
+        [Along::X, Along::Y].map(|along| {
+            let key = self.map.lead(panel, along)?;
+            Some(Basis {
+                key,
+                view: self.domains.view(key),
+            })
+        })
+    }
+
+    /// For a slot showing a preview of a plot-area cell, the device maps
+    /// (x, then y) from the views its image was planned at to the views
+    /// now; `None` when they move nothing, or the slot shows no preview.
+    fn preview(&self, slot: &Slot) -> Option<[Affine1; 2]> {
+        let planned = slot.previewing()?;
+        let rect = slot.rect();
+        let panel = self.panel_of(rect)?;
+        let area = self.map.area(panel)?;
+        let factor = f64::from(self.factor?);
+        let maps = [Along::X, Along::Y].map(|along| {
+            let now = self.map.lead(panel, along).and_then(|key| {
+                Some(Basis {
+                    key,
+                    view: self.domains.peek(key)?,
+                })
+            });
+            let edges = match along {
+                Along::X => [rect[0], rect[2]],
+                Along::Y => [rect[1], rect[3]],
+            };
+            planned[along.index()]
+                .zip(now)
+                .and_then(|(planned, now)| planned.to(now))
+                .and_then(|shares| Affine1::device(shares, along, area, factor, edges))
+                .unwrap_or(Affine1::IDENTITY)
+        });
+        (!maps.iter().all(|map| map.is_identity())).then_some(maps)
     }
 
     /// Applies the worker's results in arrival order, each reported to
@@ -671,7 +723,7 @@ impl State {
             "a cell failed to render: {:?}",
             bands.as_ref().err()
         );
-        slot.land(done.generation, done.hash, bands.ok())
+        slot.land(done.generation, done.hash, bands.ok(), done.view)
     }
 
     /// What the following draw shows; reports each newly shown image's
@@ -715,8 +767,9 @@ impl State {
     }
 
     /// Draws every slot's image (the theme background where a slot has
-    /// none), then the overlay in the theme's ink, for a widget laid out at
-    /// `bounds`.
+    /// none), a plot-area cell whose sharp render is pending as a preview
+    /// mapped from the views it was planned at to the views now, then the
+    /// overlay in the theme's ink, for a widget laid out at `bounds`.
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
@@ -727,7 +780,10 @@ impl State {
         let origin = origin(bounds, factor);
         let background = overlay::color(theme.get_background());
         for slot in &self.slots {
-            slot.draw(renderer, origin, factor, background);
+            match self.preview(slot) {
+                Some(maps) => slot.draw_mapped(renderer, origin, factor, maps, background),
+                None => slot.draw(renderer, origin, factor, background),
+            }
         }
         self.overlay.draw(renderer, origin, factor, theme.get_ink());
     }
