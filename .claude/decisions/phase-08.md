@@ -85,7 +85,7 @@ None.
 
 ## D8.2 — Statements of Phase 8 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 8, steps 1–5 (45b5633, 384cd01, 3c23047, 8dca618, 79e86da) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 8, steps 1–5 (45b5633, 384cd01, 3c23047, 8dca618, 79e86da) · **Status:** decided
 
 ### Issue
 
@@ -133,6 +133,14 @@ passes all 234 translated assertions.
 | (7) | Recorded | — |
 
 ### Decision
+
+A for all seven (architect, 2026-10-27), as built: `Line::closes`
+takes whether the point was alone; Catmull–Rom falls back to the
+cardinal state whenever alpha is not truthy, as d3's factory does;
+`State::new` and `State::area` stay, and Phase 29 builds on them;
+`Reflect` mirrors all six commands; no translator rule without a test
+that needs it; the extra curve argument is dropped as d3 drops it; the
+curve files hold 237 assertions.
 
 Recommended: A for all seven, already built.
 
