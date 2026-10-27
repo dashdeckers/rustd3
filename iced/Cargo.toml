@@ -27,5 +27,9 @@ iced_runtime.workspace = true
 rustd3-testkit.workspace = true
 png.workspace = true
 
+[[test]]
+name = "main"
+path = "tests/main/main.rs"
+
 [lints]
 workspace = true
