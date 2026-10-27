@@ -25,7 +25,12 @@ fn a_number_locale_makes_a_figure_locale() {
 
     use rustd3_core::format::{self, Definition};
 
-    assert_eq!(Locale::from(format::Locale::EN_US), Locale::EN_US);
+    // The number half only: the time half stays neutral (D11.2), where
+    // EN_US pairs d3's.
+    assert_eq!(
+        Locale::from(format::Locale::EN_US).number(),
+        Locale::EN_US.number()
+    );
     assert_eq!(Locale::from(format::Locale::NEUTRAL), Locale::default());
     let de = Locale::from(format::Locale::new(Definition {
         decimal: Cow::Borrowed(","),
@@ -164,4 +169,35 @@ fn bundled_tables_write_the_de_de_and_fr_fr_rows_of_part_i() -> Result<(), Inval
     assert_eq!(tick_labels(&fr, [0.0, 8000.0], 5)[1], "2\u{a0}000");
     assert_eq!(tick_labels(&fr, [0.0, 12000.0], 5)[6], "12\u{a0}000");
     Ok(())
+}
+
+#[test]
+fn the_constants_pair_the_number_and_time_tables_of_their_language() {
+    use rustd3_core::{format, time};
+
+    let pairs = [
+        (
+            Locale::NEUTRAL,
+            format::Locale::NEUTRAL,
+            time::Locale::NEUTRAL,
+        ),
+        (Locale::EN_US, format::Locale::EN_US, time::Locale::EN_US),
+        (Locale::DE_DE, format::Locale::DE_DE, time::Locale::DE_DE),
+        (Locale::FR_FR, format::Locale::FR_FR, time::Locale::FR_FR),
+        (Locale::ES_ES, format::Locale::ES_ES, time::Locale::ES_ES),
+        (Locale::IT_IT, format::Locale::IT_IT, time::Locale::IT_IT),
+        (Locale::PT_BR, format::Locale::PT_BR, time::Locale::PT_BR),
+        (Locale::NL_NL, format::Locale::NL_NL, time::Locale::NL_NL),
+        (Locale::PL_PL, format::Locale::PL_PL, time::Locale::PL_PL),
+        (Locale::RU_RU, format::Locale::RU_RU, time::Locale::RU_RU),
+        (Locale::JA_JP, format::Locale::JA_JP, time::Locale::JA_JP),
+        (Locale::ZH_CN, format::Locale::ZH_CN, time::Locale::ZH_CN),
+    ];
+    for (locale, number, time) in pairs {
+        assert_eq!((locale.number(), locale.time()), (&number, &time));
+    }
+    assert_eq!(Locale::default().time(), &time::Locale::default());
+    // A runtime number table keeps the neutral time half (D11.2).
+    let runtime = Locale::from(format::Locale::new(format::Definition::default()));
+    assert_eq!(runtime.time(), &time::Locale::NEUTRAL);
 }

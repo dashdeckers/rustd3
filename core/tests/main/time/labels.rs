@@ -4,7 +4,9 @@
 
 use rustd3_core::jiff::Timestamp;
 use rustd3_core::jiff::tz::TimeZone;
-use rustd3_core::time::{self, Locale};
+use rustd3_core::locale as figure;
+use rustd3_core::scale::Ticks;
+use rustd3_core::time::{self, Interval, Locale};
 use rustd3_testkit::zone;
 
 use super::{at, local, local_hour};
@@ -57,4 +59,157 @@ fn labels_read_the_scales_zone() {
         time::time(TimeZone::UTC).tick_label(t, &Locale::EN_US),
         "10 PM"
     );
+}
+
+/// Part I's Berlin day: the end of daylight saving time on 800 px.
+fn berlin_day() -> time::Time {
+    time::time(zone("Europe/Berlin"))
+        .domain([at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z")])
+        .range([0.0, 800.0])
+}
+
+#[test]
+fn berlin_example() {
+    let st = berlin_day();
+    assert_eq!(st.tick_interval(8), Interval::Hour(3));
+    let set = st.tick_set(8);
+    assert_eq!(set.step(), &Interval::Hour(3));
+    assert_eq!(set.count(), 8);
+    assert_eq!(
+        st.labels(&set, &figure::Locale::default()),
+        [
+            "10-25", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00", "10-26"
+        ]
+    );
+    // d3-scale 4.0.2's tickFormat in Node under TZ=Europe/Berlin.
+    assert_eq!(
+        st.labels(&set, &figure::Locale::EN_US),
+        [
+            "Oct 25", "03 AM", "06 AM", "09 AM", "12 PM", "03 PM", "06 PM", "09 PM", "Mon 26"
+        ]
+    );
+    let positions: Vec<f64> = set
+        .values()
+        .iter()
+        .map(|t| st.position(t, 0.5).unwrap())
+        .collect();
+    let hours = [0.0, 4.0, 7.0, 10.0, 13.0, 16.0, 19.0, 22.0, 25.0];
+    for (x, h) in positions.iter().zip(hours) {
+        assert!((x - 800.0 * h / 25.0).abs() < 1e-9, "{x} for hour {h}");
+    }
+    assert_eq!(st.extent(), [0.0, 800.0]);
+    assert!(st.minor(&set).is_empty());
+}
+
+#[test]
+fn sub_second_labels() {
+    let t0 = at("2026-10-25T12:00:00Z");
+    let micro = time::utc().domain([t0, plus(t0, 10_000)]);
+    let set = micro.tick_set(5);
+    assert_eq!(set.step(), &Interval::Microsecond(2));
+    assert_eq!(
+        micro.labels(&set, &figure::Locale::default()),
+        [
+            "12:00",
+            "00.000002",
+            "00.000004",
+            "00.000006",
+            "00.000008",
+            "00.000010"
+        ]
+    );
+    // A microsecond tick on an exact millisecond takes the millisecond rung.
+    let across = time::utc().domain([plus(t0, 600_000), plus(t0, 1_400_000)]);
+    let set = across.tick_set(4);
+    assert_eq!(set.step(), &Interval::Microsecond(200));
+    assert_eq!(
+        across.labels(&set, &figure::Locale::default()),
+        ["00.000600", "00.000800", "00.001", "00.001200", "00.001400"]
+    );
+    let nano = time::utc().domain([plus(t0, 1_000), plus(t0, 1_010)]);
+    let set = nano.tick_set(5);
+    assert_eq!(set.step(), &Interval::Nanosecond(2));
+    assert_eq!(
+        nano.labels(&set, &figure::Locale::default()),
+        [
+            "00.000001",
+            "00.000001002",
+            "00.000001004",
+            "00.000001006",
+            "00.000001008",
+            "00.000001010"
+        ]
+    );
+    assert_eq!(
+        nano.labels(&set, &figure::Locale::EN_US),
+        [
+            ".000001",
+            ".000001002",
+            ".000001004",
+            ".000001006",
+            ".000001008",
+            ".000001010"
+        ]
+    );
+}
+
+#[test]
+fn spans_tick_and_label_as_d3s_scale_time() {
+    // d3-scale 4.0.2 in Node under each zone; de-DE as d3's default locale.
+    let de = super::locales::from_json(
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../dev/harness/d3/d3-time-format/locale/de-DE.json"
+        )),
+        rustd3_core::time::Ladder::D3,
+    );
+    // A zone, a domain, the locale when not EN_US through `labels`, d3's labels.
+    type Row<'a> = (&'a str, [&'a str; 2], Option<&'a Locale>, &'a [&'a str]);
+    let rows: [Row; 5] = [
+        (
+            "America/Los_Angeles",
+            ["2019-06-01T07:00:00Z", "2031-03-01T08:00:00Z"],
+            None,
+            &["2020", "2022", "2024", "2026", "2028", "2030"],
+        ),
+        (
+            "America/Los_Angeles",
+            ["2026-03-08T07:59:59.950Z", "2026-03-08T08:00:00.040Z"],
+            None,
+            &[".960", ".980", "Mar 08", ".020", ".040"],
+        ),
+        (
+            "Europe/Berlin",
+            ["2026-03-07T22:58:30Z", "2026-03-07T23:01:30Z"],
+            None,
+            &[":30", "11:59", ":30", "Mar 08", ":30", "12:01", ":30"],
+        ),
+        (
+            "Europe/Berlin",
+            ["2026-02-03T04:00:00Z", "2026-03-29T10:00:00Z"],
+            Some(&de),
+            &[
+                "Feb 08", "Feb 15", "Feb 22", "März", "Mrz 08", "Mrz 15", "Mrz 22", "Mrz 29",
+            ],
+        ),
+        (
+            "Europe/Berlin",
+            ["2025-11-19T23:00:00Z", "2027-02-09T23:00:00Z"],
+            Some(&de),
+            &["2026", "April", "Juli", "Oktober", "2027"],
+        ),
+    ];
+    for (name, [a, b], locale, d3) in rows {
+        let x = time::time(zone(name)).domain([at(a), at(b)]);
+        let set = x.tick_set(5);
+        let labels: Vec<String> = match locale {
+            Some(locale) => set
+                .values()
+                .iter()
+                .map(|&t| x.tick_label(t, locale))
+                .collect(),
+            None => x.labels(&set, &figure::Locale::EN_US),
+        };
+        assert_eq!(labels, d3, "{name} {a}");
+    }
 }

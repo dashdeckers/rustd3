@@ -1,11 +1,74 @@
 //! [`Time`]'s tick labels: d3's multi-scale tick format (`time.js:29–36`)
-//! through the locale's ladder, in the scale's zone.
+//! through the locale's ladder, in the scale's zone, and [`Ticks`] for the
+//! time scale.
 
 use jiff::Timestamp;
 use jiff::civil::Weekday;
 
+use crate::locale::Locale;
+use crate::scale::Ticks;
+use crate::ticks;
 use crate::time::locale::Rung;
 use crate::time::{self, Interval, Time};
+
+/// The time scale's ticks: d3's `ticks(count)` with the interval they
+/// were chosen with, positioned by `apply` and labelled tick by tick
+/// through the locale's time half.
+///
+/// Part I's Berlin day across the end of daylight saving time, with d3's
+/// 3-hour interval, under the neutral locale's ISO ladder and d3's:
+///
+/// ```
+/// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+/// use rustd3_core::locale::Locale;
+/// use rustd3_core::scale::Ticks;
+/// use rustd3_core::time::{self, Interval};
+///
+/// let berlin = TimeZone::posix("CET-1CEST,M3.5.0,M10.5.0/3")?;
+/// let day: [Timestamp; 2] = ["2026-10-24T22:00:00Z".parse()?, "2026-10-25T23:00:00Z".parse()?];
+/// let st = time::time(berlin).domain(day).range([0.0, 800.0]);
+/// assert_eq!(st.tick_interval(8), Interval::Hour(3));
+/// let set = st.tick_set(8);
+/// assert_eq!(
+///     st.labels(&set, &Locale::default()),
+///     ["10-25", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00", "10-26"]
+/// );
+/// assert_eq!(
+///     st.labels(&set, &Locale::EN_US),
+///     ["Oct 25", "03 AM", "06 AM", "09 AM", "12 PM", "03 PM", "06 PM", "09 PM", "Mon 26"]
+/// );
+/// let x = st.position(&set.values()[1], 0.0).expect("a position");
+/// assert!((x - 800.0 * 4.0 / 25.0).abs() < 1e-9);
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
+impl Ticks for Time {
+    type Domain = Timestamp;
+    type Step = Interval;
+
+    /// `ticks(count)`, chosen with `tick_interval(count)`.
+    fn tick_set(&self, count: usize) -> ticks::Set<Timestamp, Interval> {
+        ticks::Set::new(self.ticks(count), self.tick_interval(count), count)
+    }
+
+    /// `apply(value)`; the offset is unused.
+    fn position(&self, value: &Timestamp, _offset: f64) -> Option<f64> {
+        Some(self.apply(*value))
+    }
+
+    /// [`tick_label`](Time::tick_label) of each tick, independently, under
+    /// `locale`'s time half; the set's step is not consulted.
+    fn labels(&self, ticks: &ticks::Set<Timestamp, Interval>, locale: &Locale) -> Vec<String> {
+        ticks
+            .values()
+            .iter()
+            .map(|&t| self.tick_label(t, locale.time()))
+            .collect()
+    }
+
+    fn extent(&self) -> [f64; 2] {
+        self.get_range()
+    }
+}
 
 impl Time {
     /// d3's multi-scale tick format through `locale`'s ladder, in the
