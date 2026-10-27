@@ -73,8 +73,8 @@ impl State {
     }
 
     /// Rebuilds the list when the figure was rebuilt, the widget resized or
-    /// the factor changed: resolves and draws `figure` at the widget's size
-    /// for the screen at `factor`, cuts the list into cells at every
+    /// the factor changed: resolves `figure` once at the widget's size for
+    /// the screen at `factor` and draws it, cuts the list into cells at every
     /// plot-area edge and, unless every cell's device rect and hash is the
     /// stored one, renders every band of every cell and keeps the plot
     /// areas. Returns the number of cells rendered.
@@ -92,9 +92,9 @@ impl State {
             return 0;
         }
         let target = Target::Screen { scale: k };
-        let held = Held::default();
-        let list = figure.draw_with(&mut self.cache, size, target, &held);
-        let resolved = figure.resolve(size, &mut self.cache, &held, target);
+        self.cache.begin();
+        let resolved = figure.resolve(size, &mut self.cache, &Held::default(), target);
+        let list = figure.draw_resolved(&mut self.cache, &resolved);
         let (xs, ys) = resolved.edges();
         let cells = list::cells(&list, &xs, &ys, k);
         let unchanged = self.cells.len() == cells.cells.len()
@@ -169,6 +169,7 @@ pub(super) fn cache() -> Cache {
 #[cfg(test)]
 mod tests {
     use iced_core::Size;
+    use rustd3_figure::{Held, Target, kurbo};
 
     use super::State;
     use crate::plot::fixture;
@@ -235,6 +236,30 @@ mod tests {
         // A new size renders every cell again.
         state.resize(Size::new(600.0, 480.0));
         assert!(state.refresh(&fixture::grid(), 1.25) > 0);
+    }
+
+    #[test]
+    fn a_refresh_resolves_the_figure_once() {
+        // One resolve of the grid over a warm cache: every label a hit.
+        let fig = fixture::grid();
+        let mut cache = super::cache();
+        let (size, target) = (
+            kurbo::Size::new(640.0, 480.0),
+            Target::Screen { scale: 1.5 },
+        );
+        cache.begin();
+        let _ = fig.resolve(size, &mut cache, &Held::default(), target);
+        let warm = cache.stats().text.hits;
+        cache.begin();
+        let _ = fig.resolve(size, &mut cache, &Held::default(), target);
+        let one = cache.stats().text.hits - warm;
+        assert!(one > 0);
+        let mut state = state(640.0, 480.0);
+        state.refresh(&fig, 1.5);
+        let before = state.cache.stats().text.hits;
+        state.rebuilt();
+        assert_eq!(state.refresh(&fixture::grid(), 1.5), 0);
+        assert_eq!(state.cache.stats().text.hits - before, one);
     }
 
     #[test]
