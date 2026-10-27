@@ -9,6 +9,7 @@ mod brush;
 mod color;
 #[cfg(feature = "derive")]
 mod derive;
+mod drag;
 mod ease;
 mod examples;
 mod fixtures;
