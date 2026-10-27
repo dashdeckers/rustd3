@@ -9,6 +9,7 @@
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(all(feature = "figure", feature = "fonts"))]
 use std::time::Duration;
 
 use iced::advanced::Renderer as _;
@@ -31,6 +32,7 @@ pub struct Harness<'a, Message> {
     bus: shell::Bus<Message>,
     wakes: Arc<AtomicUsize>,
     /// Wakes [`Harness::wait_for_wake`] has seen.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
     waited: usize,
     redraw: window::RedrawRequest,
 }
@@ -85,6 +87,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             cursor: mouse::Cursor::Unavailable,
             bus: shell::Bus::new(),
             wakes: Arc::new(AtomicUsize::new(0)),
+            #[cfg(all(feature = "figure", feature = "fonts"))]
             waited: 0,
             redraw: window::RedrawRequest::Wait,
         })
@@ -98,6 +101,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
 
     /// Rebuilds the interface from `root`, as the runtime does after the
     /// app's `update`: widget state carries over where the tree matches.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
     pub fn rebuild(&mut self, root: impl iced::Widget<Message> + 'a) {
         let cache = self
             .ui
@@ -191,6 +195,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
 
     /// Waits up to `timeout`, polling [`Harness::wakes`] every millisecond,
     /// for a wake this method has not seen yet. True when one came.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
     pub fn wait_for_wake(&mut self, timeout: Duration) -> bool {
         let polls = timeout.as_millis();
         for _ in 0..=polls {
@@ -247,21 +252,4 @@ pub fn features() -> String {
 )]
 pub fn epoch() -> Instant {
     Instant::now()
-}
-
-/// The clock a test's probe times stages with.
-#[expect(clippy::disallowed_methods, reason = "test clock")]
-pub fn clock() -> Instant {
-    Instant::now()
-}
-
-/// Threads of this process named `name` (Linux: `/proc/self/task`).
-#[cfg(target_os = "linux")]
-pub fn threads(name: &str) -> usize {
-    std::fs::read_dir("/proc/self/task")
-        .expect("Linux lists a process's threads in /proc/self/task")
-        .filter_map(Result::ok)
-        .filter_map(|task| std::fs::read_to_string(task.path().join("comm")).ok())
-        .filter(|comm| comm.trim_end() == name)
-        .count()
 }

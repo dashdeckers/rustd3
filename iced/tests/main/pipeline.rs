@@ -8,6 +8,7 @@
 use std::sync::{Mutex, MutexGuard, PoisonError, mpsc};
 use std::time::Duration;
 
+use iced::time::Instant;
 use iced::window::RedrawRequest;
 use iced::{Color, Event, Size};
 use rustd3_core::color::Rgb;
@@ -50,6 +51,23 @@ const SMALL: Size = Size::new(320.0, 200.0);
 /// nothing the others read.
 fn workers() -> MutexGuard<'static, ()> {
     WORKERS.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// The clock a test's probe times stages with.
+#[expect(clippy::disallowed_methods, reason = "test clock")]
+fn clock() -> Instant {
+    Instant::now()
+}
+
+/// Threads of this process named `name` (Linux: `/proc/self/task`).
+#[cfg(target_os = "linux")]
+fn threads(name: &str) -> usize {
+    std::fs::read_dir("/proc/self/task")
+        .expect("Linux lists a process's threads in /proc/self/task")
+        .filter_map(Result::ok)
+        .filter_map(|task| std::fs::read_to_string(task.path().join("comm")).ok())
+        .filter(|comm| comm.trim_end() == name)
+        .count()
 }
 
 /// `n` dots of a sine with a deterministic wobble on fitted scales, with
@@ -227,9 +245,9 @@ struct Settled {
 fn settle<Message: 'static>(
     harness: &mut Harness<'_, Message>,
     probe: &mpsc::Receiver<Sample>,
-    mut t: iced::time::Instant,
+    mut t: Instant,
 ) -> Settled {
-    let start = headless::clock();
+    let start = clock();
     let mut first = None;
     let mut received = Vec::new();
     for wakes in 1..=1000 {
@@ -237,7 +255,7 @@ fn settle<Message: 'static>(
             harness.wait_for_wake(Duration::from_secs(10)),
             "no wake within ten seconds"
         );
-        let first = *first.get_or_insert_with(|| headless::clock().duration_since(start));
+        let first = *first.get_or_insert_with(|| clock().duration_since(start));
         harness.events(&[Event::Waken]);
         t += Duration::from_millis(16);
         let shot = harness.frame(t);
@@ -264,7 +282,7 @@ fn worker_mode_matches_inline_mode() {
     let plot = Plot::<()>::new(scatter(DOTS))
         .scale_factor(k)
         .render(Render::Worker)
-        .probe(Probe::new(headless::clock, tx));
+        .probe(Probe::new(clock, tx));
     let Some(mut harness) = Harness::new(plot, LARGE, k) else {
         return;
     };
@@ -303,17 +321,17 @@ fn worker_mode_matches_inline_mode() {
 #[test]
 fn worker_exits_on_drop() {
     let _workers = workers();
-    let before = headless::threads(WORKER);
+    let before = threads(WORKER);
     let plot = Plot::<()>::new(scatter(DOTS))
         .scale_factor(2.0)
         .render(Render::Worker);
     let Some(mut harness) = Harness::new(plot, LARGE, 2.0) else {
         return;
     };
-    assert_eq!(headless::threads(WORKER), before, "no job, no thread");
+    assert_eq!(threads(WORKER), before, "no job, no thread");
     let _ = harness.frame(headless::epoch());
     // The worker, and vello_cpu's pool threads, which take its name.
-    let during = headless::threads(WORKER);
+    let during = threads(WORKER);
     assert!(during > before, "{during} threads, {before} before");
     // The job set is pending: the drop closes the queue and joins the
     // thread after the cell in flight; the pool's threads end once the
@@ -321,7 +339,7 @@ fn worker_exits_on_drop() {
     drop(harness);
     let after = (0..10_000)
         .map(|_| {
-            let count = headless::threads(WORKER);
+            let count = threads(WORKER);
             if count > before {
                 std::thread::sleep(Duration::from_millis(1));
             }
@@ -338,7 +356,7 @@ fn newest_result_wins() {
     let (k, t0) = (2.0, headless::epoch());
     let frame = Duration::from_millis(16);
     let (tx, rx) = mpsc::channel();
-    let probe = Probe::new(headless::clock, tx);
+    let probe = Probe::new(clock, tx);
     let plot = |fig, render| {
         Plot::<()>::new(fig)
             .scale_factor(k)
@@ -381,7 +399,7 @@ fn newest_result_wins() {
     // drain is held until the worker sent one, then generation 2 renders
     // inline, then the `Waken` arrives.
     let (tx, rx) = mpsc::channel();
-    let probe = Probe::new(headless::clock, tx);
+    let probe = Probe::new(clock, tx);
     let plot = |fig, render| {
         Plot::<()>::new(fig)
             .scale_factor(k)
@@ -428,7 +446,7 @@ fn previous_image_stays_until_the_new_one_arrives() {
     for k in [1.0, 2.0] {
         let t0 = headless::epoch();
         let (tx, rx) = mpsc::channel();
-        let probe = Probe::new(headless::clock, tx);
+        let probe = Probe::new(clock, tx);
         let plot = |title| {
             Plot::<()>::new(legend(title))
                 .scale_factor(k)
@@ -497,7 +515,7 @@ fn cheap_refresh_renders_inline() {
     let (tx, rx) = mpsc::channel();
     let plot = Plot::<()>::new(tinted(0xffffff))
         .scale_factor(k)
-        .probe(Probe::new(headless::clock, tx));
+        .probe(Probe::new(clock, tx));
     let Some(mut harness) = Harness::new(plot, SMALL, k) else {
         return;
     };
@@ -525,7 +543,7 @@ fn expensive_refresh_uses_the_worker() {
     let (tx, rx) = mpsc::channel();
     let plot = Plot::<()>::new(scatter(DOTS))
         .scale_factor(k)
-        .probe(Probe::new(headless::clock, tx));
+        .probe(Probe::new(clock, tx));
     let Some(mut harness) = Harness::new(plot, LARGE, k) else {
         return;
     };
