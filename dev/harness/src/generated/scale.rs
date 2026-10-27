@@ -66,18 +66,21 @@ fn t7() {   // linear-test.js: linear(x) can map a bilinear domain with two valu
 }
 
 fn t8() {   // linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range
-    skip("d3-scale/test/linear-test.js:64:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:65:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:66:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:67:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:69:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:70:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:71:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:72:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:74:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:75:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:76:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:77:3", "gap: phase 7 (color ranges)");
+    let mut s = scale::piecewise([-10.0, 0.0, 100.0], ["red".parse::<Rgb>().expect("a CSS color"), "white".parse::<Rgb>().expect("a CSS color"), "green".parse::<Rgb>().expect("a CSS color")]).domain([-10.0, 0.0, 100.0]).range(["red".parse::<Rgb>().expect("a CSS color"), "white".parse::<Rgb>().expect("a CSS color"), "green".parse::<Rgb>().expect("a CSS color")]);
+    check("d3-scale/test/linear-test.js:64:3", Kind::Strict, &s.get_domain().to_vec(), &vec![-10.0, 0.0, 100.0]);
+    check("d3-scale/test/linear-test.js:65:3", Kind::Strict, &s.apply(-5.0).to_string(), &"rgb(255, 128, 128)");
+    check("d3-scale/test/linear-test.js:66:3", Kind::Strict, &s.apply(50.0).to_string(), &"rgb(128, 192, 128)");
+    check("d3-scale/test/linear-test.js:67:3", Kind::Strict, &s.apply(75.0).to_string(), &"rgb(64, 160, 64)");
+    let mut s = s.domain([4.0, 2.0, 1.0]).range([1.0, 2.0, 4.0]);
+    check("d3-scale/test/linear-test.js:69:3", Kind::Strict, &s.apply(1.5), &3.0);
+    check("d3-scale/test/linear-test.js:70:3", Kind::Strict, &s.apply(3.0), &1.5);
+    check("d3-scale/test/linear-test.js:71:3", Kind::Strict, &s.invert(1.5), &3.0);
+    check("d3-scale/test/linear-test.js:72:3", Kind::Strict, &s.invert(3.0), &1.5);
+    s = s.domain([1.0, 2.0, 4.0]).range([4.0, 2.0, 1.0]);
+    check("d3-scale/test/linear-test.js:74:3", Kind::Strict, &s.apply(1.5), &3.0);
+    check("d3-scale/test/linear-test.js:75:3", Kind::Strict, &s.apply(3.0), &1.5);
+    check("d3-scale/test/linear-test.js:76:3", Kind::Strict, &s.invert(1.5), &3.0);
+    check("d3-scale/test/linear-test.js:77:3", Kind::Strict, &s.invert(3.0), &1.5);
 }
 
 fn t9() {   // linear-test.js: linear.invert(y) maps a range value y to a domain value x
@@ -95,7 +98,7 @@ fn t11() {   // linear-test.js: linear.invert(y) coerces range values to numbers
 }
 
 fn t12() {   // linear-test.js: linear.invert(y) returns NaN if the range is not coercible to number
-    skip("d3-scale/test/linear-test.js:95:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/linear-test.js:95:3", "types: invert exists only for number ranges (E0599)");
     skip("d3-scale/test/linear-test.js:96:3", "js: strings as range values (coercion)");
 }
 
@@ -136,12 +139,12 @@ fn t19() {   // linear-test.js: linear.range(range) accepts an iterable
 }
 
 fn t20() {   // linear-test.js: linear.range(range) can accept range values as colors
-    skip("d3-scale/test/linear-test.js:141:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:142:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:143:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:144:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:145:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:146:3", "gap: phase 7 (color ranges)");
+    check("d3-scale/test/linear-test.js:141:3", Kind::Strict, &scale::linear().range(["red".parse::<Rgb>().expect("a CSS color"), "blue".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/linear-test.js:142:3", Kind::Strict, &scale::linear().range(["#ff0000".parse::<Rgb>().expect("a CSS color"), "#0000ff".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/linear-test.js:143:3", Kind::Strict, &scale::linear().range(["#f00".parse::<Rgb>().expect("a CSS color"), "#00f".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/linear-test.js:144:3", Kind::Strict, &scale::linear().range(["rgb(255,0,0)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/linear-test.js:145:3", Kind::Strict, &scale::linear().range(["rgb(100%,0%,0%)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/linear-test.js:146:3", Kind::Strict, &scale::linear().range(["hsl(0,100%,50%)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
 }
 
 fn t21() {   // linear-test.js: linear.range(range) can accept range values as arrays or objects
@@ -503,9 +506,9 @@ fn t51() {   // linear-test.js: linear.copy() returns a copy with changes to the
 }
 
 fn t52() {   // linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated
-    skip("d3-scale/test/linear-test.js:456:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:457:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/linear-test.js:458:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/linear-test.js:456:3", "api: d3's interpolate() getter (only domain and range have get_)");
+    skip("d3-scale/test/linear-test.js:457:3", "api: d3's interpolate() getter (only domain and range have get_)");
+    skip("d3-scale/test/linear-test.js:458:3", "api: d3's interpolate() getter (only domain and range have get_)");
 }
 
 fn t53() {   // linear-test.js: linear.copy() returns a copy with changes to clamping are isolated
@@ -578,18 +581,18 @@ fn t60() {   // pow-test.js: pow(x) can map a bipow domain with two values to th
 }
 
 fn t61() {   // pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range
-    skip("d3-scale/test/pow-test.js:51:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:52:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:53:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:54:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:56:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:57:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:58:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:59:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:61:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:62:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:63:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:64:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/pow-test.js:51:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:52:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:53:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:54:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:56:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:57:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:58:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:59:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:61:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:62:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:63:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/pow-test.js:64:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
 }
 
 fn t62() {   // pow-test.js: pow.invert(y) maps a range value y to a domain value x
@@ -607,7 +610,7 @@ fn t64() {   // pow-test.js: pow.invert(y) coerces range values to numbers
 }
 
 fn t65() {   // pow-test.js: pow.invert(y) returns NaN if the range is not coercible to number
-    skip("d3-scale/test/pow-test.js:82:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/pow-test.js:82:3", "types: invert exists only for number ranges (E0599)");
     skip("d3-scale/test/pow-test.js:83:3", "js: strings as range values (coercion)");
 }
 
@@ -671,12 +674,12 @@ fn t72() {   // pow-test.js: pow.range(range) does not coerce range to numbers
 }
 
 fn t73() {   // pow-test.js: pow.range(range) can accept range values as colors
-    skip("d3-scale/test/pow-test.js:151:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:152:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:153:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:154:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:155:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:156:3", "gap: phase 7 (color ranges)");
+    check("d3-scale/test/pow-test.js:151:3", Kind::Strict, &scale::pow().range(["red".parse::<Rgb>().expect("a CSS color"), "blue".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/pow-test.js:152:3", Kind::Strict, &scale::pow().range(["#ff0000".parse::<Rgb>().expect("a CSS color"), "#0000ff".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/pow-test.js:153:3", Kind::Strict, &scale::pow().range(["#f00".parse::<Rgb>().expect("a CSS color"), "#00f".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/pow-test.js:154:3", Kind::Strict, &scale::pow().range(["rgb(255,0,0)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/pow-test.js:155:3", Kind::Strict, &scale::pow().range(["rgb(100%,0%,0%)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
+    check("d3-scale/test/pow-test.js:156:3", Kind::Strict, &scale::pow().range(["hsl(0,100%,50%)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]).apply(0.5).to_string(), &"rgb(128, 0, 128)");
 }
 
 fn t74() {   // pow-test.js: pow.range(range) can accept range values as arrays or objects
@@ -928,9 +931,9 @@ fn t100() {   // pow-test.js: pow.copy() returns a copy with changes to the rang
 }
 
 fn t101() {   // pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated
-    skip("d3-scale/test/pow-test.js:419:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:420:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/pow-test.js:421:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/pow-test.js:419:3", "api: d3's interpolate() getter (only domain and range have get_)");
+    skip("d3-scale/test/pow-test.js:420:3", "api: d3's interpolate() getter (only domain and range have get_)");
+    skip("d3-scale/test/pow-test.js:421:3", "api: d3's interpolate() getter (only domain and range have get_)");
 }
 
 fn t102() {   // pow-test.js: pow.copy() returns a copy with changes to clamping are isolated
@@ -1010,9 +1013,9 @@ fn t109() {   // log-test.js: log.domain(…) can take negative values
 }
 
 fn t110() {   // log-test.js: log.domain(…).range(…) can take more than two values
-    skip("d3-scale/test/log-test.js:54:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:55:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:56:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/log-test.js:54:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/log-test.js:55:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
+    skip("d3-scale/test/log-test.js:56:3", "api: polylinear log, pow and symlog scales (piecewise is linear only)");
 }
 
 fn t111() {   // log-test.js: log.domain(…) preserves specified domain exactly, with no floating point error
@@ -1033,11 +1036,16 @@ fn t113() {   // log-test.js: log.range(…) does not coerce values to numbers
 }
 
 fn t114() {   // log-test.js: log.range(…) can take colors
-    skip("d3-scale/test/log-test.js:79:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:81:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:83:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:85:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:87:3", "gap: phase 7 (color ranges)");
+    let mut x = scale::log().range(["red".parse::<Rgb>().expect("a CSS color"), "blue".parse::<Rgb>().expect("a CSS color")]);
+    check("d3-scale/test/log-test.js:79:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(77, 0, 178)");
+    x = x.range(["#ff0000".parse::<Rgb>().expect("a CSS color"), "#0000ff".parse::<Rgb>().expect("a CSS color")]);
+    check("d3-scale/test/log-test.js:81:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(77, 0, 178)");
+    x = x.range(["#f00".parse::<Rgb>().expect("a CSS color"), "#00f".parse::<Rgb>().expect("a CSS color")]);
+    check("d3-scale/test/log-test.js:83:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(77, 0, 178)");
+    x = x.range([Rgb::new(255.0, 0.0, 0.0), Rgb::from(Hsl { h: 240.0, s: 1.0, l: 0.5, opacity: 1.0 })]);
+    check("d3-scale/test/log-test.js:85:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(77, 0, 178)");
+    x = x.range(["hsl(0,100%,50%)".parse::<Rgb>().expect("a CSS color"), "hsl(240,100%,50%)".parse::<Rgb>().expect("a CSS color")]);
+    check("d3-scale/test/log-test.js:87:3", Kind::Strict, &x.apply(5.0).to_string(), &"rgb(77, 0, 178)");
 }
 
 fn t115() {   // log-test.js: log.range(…) can take arrays or objects
@@ -1046,9 +1054,9 @@ fn t115() {   // log-test.js: log.range(…) can take arrays or objects
 }
 
 fn t116() {   // log-test.js: log.interpolate(f) sets the interpolator
-    skip("d3-scale/test/log-test.js:99:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:100:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:102:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/log-test.js:99:3", "gap: phase 23 (interpolate of a color range)");
+    skip("d3-scale/test/log-test.js:100:3", "gap: phase 23 (interpolate of a color range)");
+    skip("d3-scale/test/log-test.js:102:3", "gap: phase 23 (interpolate of a color range)");
 }
 
 fn t117() {   // log-test.js: log(x) does not clamp by default
@@ -1183,9 +1191,9 @@ fn t129() {   // log-test.js: log.copy() isolates changes to the range
 }
 
 fn t130() {   // log-test.js: log.copy() isolates changes to the interpolator
-    skip("d3-scale/test/log-test.js:241:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:242:3", "gap: phase 7 (color ranges)");
-    skip("d3-scale/test/log-test.js:243:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/log-test.js:241:3", "gap: phase 23 (interpolate of a color range)");
+    skip("d3-scale/test/log-test.js:242:3", "gap: phase 23 (interpolate of a color range)");
+    skip("d3-scale/test/log-test.js:243:3", "gap: phase 23 (interpolate of a color range)");
 }
 
 fn t131() {   // log-test.js: log.copy() isolates changes to clamping
@@ -1368,7 +1376,7 @@ fn t156() {   // symlog-test.js: symlog.invert(y) coerces range values to number
 }
 
 fn t157() {   // symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number
-    skip("d3-scale/test/symlog-test.js:31:3", "gap: phase 7 (color ranges)");
+    skip("d3-scale/test/symlog-test.js:31:3", "types: invert exists only for number ranges (E0599)");
     skip("d3-scale/test/symlog-test.js:32:3", "js: strings as range values (coercion)");
 }
 
@@ -1778,6 +1786,475 @@ fn t209() {   // identity-test.js: identity.copy() isolates changes to the domai
     check("d3-scale/test/identity-test.js:177:3", Kind::Strict, &s4.get_range().to_vec(), &vec![2.0, 3.0]);
 }
 
+fn t210() {   // band-test.js: scaleBand() has the expected defaults
+    let mut s = scale::band(Vec::<&str>::new());
+    check("d3-scale/test/band-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/band-test.js:7:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/band-test.js:8:3", Kind::Strict, &s.bandwidth(), &1.0);
+    check("d3-scale/test/band-test.js:9:3", Kind::Strict, &s.step(), &1.0);
+    skip("d3-scale/test/band-test.js:10:3", "api: d3's round() getter (only domain and range have get_)");
+    skip("d3-scale/test/band-test.js:11:3", "api: d3's paddingInner() getter (only domain and range have get_)");
+    skip("d3-scale/test/band-test.js:12:3", "api: d3's paddingOuter() getter (only domain and range have get_)");
+    skip("d3-scale/test/band-test.js:13:3", "api: d3's align() getter (only domain and range have get_)");
+}
+
+fn t211() {   // band-test.js: band(value) computes discrete bands in a continuous range
+    let mut s = scale::band(Vec::<&str>::new()).range([0.0, 960.0]);
+    check("d3-scale/test/band-test.js:18:3", Kind::Strict, &s.apply(&"foo"), &Option::<f64>::None);
+    s = s.domain(vec!["foo", "bar"]);
+    check("d3-scale/test/band-test.js:20:3", Kind::Strict, &s.apply(&"foo"), &0.0);
+    check("d3-scale/test/band-test.js:21:3", Kind::Strict, &s.apply(&"bar"), &480.0);
+    s = s.domain(vec!["a", "b", "c"]).range([0.0, 120.0]);
+    check("d3-scale/test/band-test.js:23:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![0.0, 40.0, 80.0]);
+    check("d3-scale/test/band-test.js:24:3", Kind::Strict, &s.bandwidth(), &40.0);
+    s = s.padding(0.2);
+    check("d3-scale/test/band-test.js:26:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![7.5, 45.0, 82.5]);
+    check("d3-scale/test/band-test.js:27:3", Kind::Strict, &s.bandwidth(), &30.0);
+}
+
+fn t212() {   // band-test.js: band(value) returns undefined for values outside the domain
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range([0.0, 1.0]);
+    check("d3-scale/test/band-test.js:32:3", Kind::Strict, &s.apply(&"d"), &Option::<f64>::None);
+    check("d3-scale/test/band-test.js:33:3", Kind::Strict, &s.apply(&"e"), &Option::<f64>::None);
+    check("d3-scale/test/band-test.js:34:3", Kind::Strict, &s.apply(&"f"), &Option::<f64>::None);
+}
+
+fn t213() {   // band-test.js: band(value) does not implicitly add values to the domain
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range([0.0, 1.0]);
+    s.apply(&"d");
+    s.apply(&"e");
+    check("d3-scale/test/band-test.js:41:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["a", "b", "c"]);
+}
+
+fn t214() {   // band-test.js: band.step() returns the distance between the starts of adjacent bands
+    let mut s = scale::band(Vec::<&str>::new()).range([0.0, 960.0]);
+    check("d3-scale/test/band-test.js:46:3", Kind::Strict, &({ s = s.domain(vec!["foo"]); s.step() }), &960.0);
+    check("d3-scale/test/band-test.js:47:3", Kind::Strict, &({ s = s.domain(vec!["foo", "bar"]); s.step() }), &480.0);
+    check("d3-scale/test/band-test.js:48:3", Kind::Strict, &({ s = s.domain(vec!["foo", "bar", "baz"]); s.step() }), &320.0);
+    s = s.padding(0.5);
+    check("d3-scale/test/band-test.js:50:3", Kind::Strict, &({ s = s.domain(vec!["foo"]); s.step() }), &640.0);
+    check("d3-scale/test/band-test.js:51:3", Kind::Strict, &({ s = s.domain(vec!["foo", "bar"]); s.step() }), &384.0);
+}
+
+fn t215() {   // band-test.js: band.bandwidth() returns the width of the band
+    let mut s = scale::band(Vec::<&str>::new()).range([0.0, 960.0]);
+    check("d3-scale/test/band-test.js:56:3", Kind::Strict, &({ s = s.domain(Vec::new()); s.bandwidth() }), &960.0);
+    check("d3-scale/test/band-test.js:57:3", Kind::Strict, &({ s = s.domain(vec!["foo"]); s.bandwidth() }), &960.0);
+    check("d3-scale/test/band-test.js:58:3", Kind::Strict, &({ s = s.domain(vec!["foo", "bar"]); s.bandwidth() }), &480.0);
+    check("d3-scale/test/band-test.js:59:3", Kind::Strict, &({ s = s.domain(vec!["foo", "bar", "baz"]); s.bandwidth() }), &320.0);
+    s = s.padding(0.5);
+    check("d3-scale/test/band-test.js:61:3", Kind::Strict, &({ s = s.domain(Vec::new()); s.bandwidth() }), &480.0);
+    check("d3-scale/test/band-test.js:62:3", Kind::Strict, &({ s = s.domain(vec!["foo"]); s.bandwidth() }), &320.0);
+    check("d3-scale/test/band-test.js:63:3", Kind::Strict, &({ s = s.domain(vec!["foo", "bar"]); s.bandwidth() }), &192.0);
+}
+
+fn t216() {   // band-test.js: band.domain([]) computes reasonable band and step values
+    let mut s = scale::band(Vec::<&str>::new()).range([0.0, 960.0]).domain(Vec::new());
+    check("d3-scale/test/band-test.js:68:3", Kind::Strict, &s.step(), &960.0);
+    check("d3-scale/test/band-test.js:69:3", Kind::Strict, &s.bandwidth(), &960.0);
+    s = s.padding(0.5);
+    check("d3-scale/test/band-test.js:71:3", Kind::Strict, &s.step(), &960.0);
+    check("d3-scale/test/band-test.js:72:3", Kind::Strict, &s.bandwidth(), &480.0);
+    s = s.padding(1.0);
+    check("d3-scale/test/band-test.js:74:3", Kind::Strict, &s.step(), &960.0);
+    check("d3-scale/test/band-test.js:75:3", Kind::Strict, &s.bandwidth(), &0.0);
+}
+
+fn t217() {   // band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding
+    let mut s = scale::band(Vec::<&str>::new()).range([0.0, 960.0]).domain(vec!["foo"]);
+    check("d3-scale/test/band-test.js:80:3", Kind::Strict, &s.apply(&"foo"), &0.0);
+    check("d3-scale/test/band-test.js:81:3", Kind::Strict, &s.step(), &960.0);
+    check("d3-scale/test/band-test.js:82:3", Kind::Strict, &s.bandwidth(), &960.0);
+    s = s.padding(0.5);
+    check("d3-scale/test/band-test.js:84:3", Kind::Strict, &s.apply(&"foo"), &320.0);
+    check("d3-scale/test/band-test.js:85:3", Kind::Strict, &s.step(), &640.0);
+    check("d3-scale/test/band-test.js:86:3", Kind::Strict, &s.bandwidth(), &320.0);
+    s = s.padding(1.0);
+    check("d3-scale/test/band-test.js:88:3", Kind::Strict, &s.apply(&"foo"), &480.0);
+    check("d3-scale/test/band-test.js:89:3", Kind::Strict, &s.step(), &480.0);
+    check("d3-scale/test/band-test.js:90:3", Kind::Strict, &s.bandwidth(), &0.0);
+}
+
+fn t218() {   // band-test.js: band.domain(values) recomputes the bands
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range_round([0.0, 100.0]);
+    check("d3-scale/test/band-test.js:95:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![1.0, 34.0, 67.0]);
+    check("d3-scale/test/band-test.js:96:3", Kind::Strict, &s.bandwidth(), &33.0);
+    s = s.domain(vec!["a", "b", "c", "d"]);
+    check("d3-scale/test/band-test.js:98:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![0.0, 25.0, 50.0, 75.0]);
+    check("d3-scale/test/band-test.js:99:3", Kind::Strict, &s.bandwidth(), &25.0);
+}
+
+fn t219() {   // band-test.js: band.domain(domain) accepts an iterable
+    skip("d3-scale/test/band-test.js:103:3", "js: new Set (coercion)");
+}
+
+fn t220() {   // band-test.js: band.domain(values) makes a copy of the specified domain values
+    skip("d3-scale/test/band-test.js:110:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t221() {   // band-test.js: band.domain() returns a copy of the domain
+    skip("d3-scale/test/band-test.js:116:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/band-test.js:118:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t222() {   // band-test.js: band.range(values) can be descending
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range([120.0, 0.0]);
+    check("d3-scale/test/band-test.js:123:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![80.0, 40.0, 0.0]);
+    check("d3-scale/test/band-test.js:124:3", Kind::Strict, &s.bandwidth(), &40.0);
+    s = s.padding(0.2);
+    check("d3-scale/test/band-test.js:126:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![82.5, 45.0, 7.5]);
+    check("d3-scale/test/band-test.js:127:3", Kind::Strict, &s.bandwidth(), &30.0);
+}
+
+fn t223() {   // band-test.js: band.range(values) makes a copy of the specified range values
+    skip("d3-scale/test/band-test.js:134:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t224() {   // band-test.js: band.range() returns a copy of the range
+    skip("d3-scale/test/band-test.js:140:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/band-test.js:142:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t225() {   // band-test.js: band.range(values) accepts an iterable
+    skip("d3-scale/test/band-test.js:147:3", "js: new Set (coercion)");
+}
+
+fn t226() {   // band-test.js: band.rangeRound(values) accepts an iterable
+    skip("d3-scale/test/band-test.js:152:3", "js: new Set (coercion)");
+}
+
+fn t227() {   // band-test.js: band.range(values) coerces values to numbers
+    skip("d3-scale/test/band-test.js:157:3", "js: strings as range values (coercion)");
+}
+
+fn t228() {   // band-test.js: band.rangeRound(values) coerces values to numbers
+    skip("d3-scale/test/band-test.js:162:3", "js: strings as range values (coercion)");
+}
+
+fn t229() {   // band-test.js: band.paddingInner(p) specifies the inner padding p
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range([120.0, 0.0]).padding_inner(0.1).round(true);
+    check("d3-scale/test/band-test.js:167:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![83.0, 42.0, 1.0]);
+    check("d3-scale/test/band-test.js:168:3", Kind::Strict, &s.bandwidth(), &37.0);
+    s = s.padding_inner(0.2);
+    check("d3-scale/test/band-test.js:170:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![85.0, 43.0, 1.0]);
+    check("d3-scale/test/band-test.js:171:3", Kind::Strict, &s.bandwidth(), &34.0);
+}
+
+fn t230() {   // band-test.js: band.paddingInner(p) coerces p to a number <= 1
+    let mut _s = scale::band(Vec::<&str>::new());
+    skip("d3-scale/test/band-test.js:176:3", "js: paddingInner is not a number (coercion)");
+    skip("d3-scale/test/band-test.js:177:3", "js: paddingInner is not a number (coercion)");
+    skip("d3-scale/test/band-test.js:178:3", "js: paddingInner is not a number (coercion)");
+    skip("d3-scale/test/band-test.js:179:3", "api: d3's paddingInner() getter (only domain and range have get_)");
+}
+
+fn t231() {   // band-test.js: band.paddingOuter(p) specifies the outer padding p
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range([120.0, 0.0]).padding_inner(0.2).padding_outer(0.1);
+    check("d3-scale/test/band-test.js:184:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![84.0, 44.0, 4.0]);
+    check("d3-scale/test/band-test.js:185:3", Kind::Strict, &s.bandwidth(), &32.0);
+    s = s.padding_outer(1.0);
+    check("d3-scale/test/band-test.js:187:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![75.0, 50.0, 25.0]);
+    check("d3-scale/test/band-test.js:188:3", Kind::Strict, &s.bandwidth(), &20.0);
+}
+
+fn t232() {   // band-test.js: band.paddingOuter(p) coerces p to a number
+    let mut _s = scale::band(Vec::<&str>::new());
+    skip("d3-scale/test/band-test.js:193:3", "js: paddingOuter is not a number (coercion)");
+    skip("d3-scale/test/band-test.js:194:3", "js: paddingOuter is not a number (coercion)");
+    skip("d3-scale/test/band-test.js:195:3", "js: paddingOuter is not a number (coercion)");
+    skip("d3-scale/test/band-test.js:196:3", "api: d3's paddingOuter() getter (only domain and range have get_)");
+}
+
+fn t233() {   // band-test.js: band.rangeRound(values) is an alias for band.range(values).round(true)
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range_round([0.0, 100.0]);
+    check("d3-scale/test/band-test.js:201:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 100.0]);
+    skip("d3-scale/test/band-test.js:202:3", "api: d3's round() getter (only domain and range have get_)");
+}
+
+fn t234() {   // band-test.js: band.round(true) computes discrete rounded bands in a continuous range
+    let mut s = scale::band(Vec::<&str>::new()).domain(vec!["a", "b", "c"]).range([0.0, 100.0]).round(true);
+    check("d3-scale/test/band-test.js:207:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![1.0, 34.0, 67.0]);
+    check("d3-scale/test/band-test.js:208:3", Kind::Strict, &s.bandwidth(), &33.0);
+    s = s.padding(0.2);
+    check("d3-scale/test/band-test.js:210:3", Kind::Strict, &s.get_domain().to_vec().iter().map(|k| s.apply(k)).collect::<Vec<_>>(), &vec![7.0, 38.0, 69.0]);
+    check("d3-scale/test/band-test.js:211:3", Kind::Strict, &s.bandwidth(), &25.0);
+}
+
+fn t235() {   // band-test.js: band.copy() copies all fields
+    let mut s1 = scale::band(Vec::<&str>::new()).domain(vec!["red", "green"]).range([1.0, 2.0]).round(true).padding_inner(0.1).padding_outer(0.2);
+    let mut s2 = s1.clone();
+    check("d3-scale/test/band-test.js:217:3", Kind::Strict, &s2.get_domain().to_vec(), &s1.get_domain().to_vec());
+    check("d3-scale/test/band-test.js:218:3", Kind::Strict, &s2.get_range().to_vec(), &s1.get_range().to_vec());
+    skip("d3-scale/test/band-test.js:219:3", "api: d3's round() getter (only domain and range have get_)");
+    skip("d3-scale/test/band-test.js:220:3", "api: d3's paddingInner() getter (only domain and range have get_)");
+    skip("d3-scale/test/band-test.js:221:3", "api: d3's paddingOuter() getter (only domain and range have get_)");
+}
+
+fn t236() {   // band-test.js: band.copy() isolates changes to the domain
+    let mut s1 = scale::band(Vec::<&str>::new()).domain(vec!["foo", "bar"]).range([0.0, 2.0]);
+    let mut s2 = s1.clone();
+    s1 = s1.domain(vec!["red", "blue"]);
+    check("d3-scale/test/band-test.js:228:3", Kind::Strict, &s2.get_domain().to_vec(), &vec!["foo", "bar"]);
+    check("d3-scale/test/band-test.js:229:3", Kind::Strict, &s1.get_domain().to_vec().iter().map(|k| s1.apply(k)).collect::<Vec<_>>(), &vec![0.0, 1.0]);
+    check("d3-scale/test/band-test.js:230:3", Kind::Strict, &s2.get_domain().to_vec().iter().map(|k| s2.apply(k)).collect::<Vec<_>>(), &vec![0.0, 1.0]);
+    s2 = s2.domain(vec!["red", "blue"]);
+    check("d3-scale/test/band-test.js:232:3", Kind::Strict, &s1.get_domain().to_vec(), &vec!["red", "blue"]);
+    check("d3-scale/test/band-test.js:233:3", Kind::Strict, &s1.get_domain().to_vec().iter().map(|k| s1.apply(k)).collect::<Vec<_>>(), &vec![0.0, 1.0]);
+    check("d3-scale/test/band-test.js:234:3", Kind::Strict, &s2.get_domain().to_vec().iter().map(|k| s2.apply(k)).collect::<Vec<_>>(), &vec![0.0, 1.0]);
+}
+
+fn t237() {   // band-test.js: band.copy() isolates changes to the range
+    let mut s1 = scale::band(Vec::<&str>::new()).domain(vec!["foo", "bar"]).range([0.0, 2.0]);
+    let mut s2 = s1.clone();
+    s1 = s1.range([3.0, 5.0]);
+    check("d3-scale/test/band-test.js:241:3", Kind::Strict, &s2.get_range().to_vec(), &vec![0.0, 2.0]);
+    check("d3-scale/test/band-test.js:242:3", Kind::Strict, &s1.get_domain().to_vec().iter().map(|k| s1.apply(k)).collect::<Vec<_>>(), &vec![3.0, 4.0]);
+    check("d3-scale/test/band-test.js:243:3", Kind::Strict, &s2.get_domain().to_vec().iter().map(|k| s2.apply(k)).collect::<Vec<_>>(), &vec![0.0, 1.0]);
+    s2 = s2.range([5.0, 7.0]);
+    check("d3-scale/test/band-test.js:245:3", Kind::Strict, &s1.get_range().to_vec(), &vec![3.0, 5.0]);
+    check("d3-scale/test/band-test.js:246:3", Kind::Strict, &s1.get_domain().to_vec().iter().map(|k| s1.apply(k)).collect::<Vec<_>>(), &vec![3.0, 4.0]);
+    check("d3-scale/test/band-test.js:247:3", Kind::Strict, &s2.get_domain().to_vec().iter().map(|k| s2.apply(k)).collect::<Vec<_>>(), &vec![5.0, 6.0]);
+}
+
+fn t238() {   // point-test.js: scalePoint() has the expected defaults
+    let mut s = scale::point(Vec::<&str>::new());
+    check("d3-scale/test/point-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/point-test.js:7:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/point-test.js:8:3", Kind::Strict, &s.bandwidth(), &0.0);
+    check("d3-scale/test/point-test.js:9:3", Kind::Strict, &s.step(), &1.0);
+    skip("d3-scale/test/point-test.js:10:3", "api: d3's round() getter (only domain and range have get_)");
+    skip("d3-scale/test/point-test.js:11:3", "api: d3's padding() getter (only domain and range have get_)");
+    skip("d3-scale/test/point-test.js:12:3", "api: d3's align() getter (only domain and range have get_)");
+}
+
+fn t239() {   // point-test.js: scalePoint() does not expose paddingInner and paddingOuter
+    let mut _s = scale::point(Vec::<&str>::new());
+    skip("d3-scale/test/point-test.js:17:3", "types: d3's point scale has no paddingInner");
+    skip("d3-scale/test/point-test.js:18:3", "types: d3's point scale has no paddingOuter");
+}
+
+fn t240() {   // point-test.js: scalePoint() is similar to scaleBand().paddingInner(1)
+    let mut p = scale::point(Vec::<&str>::new()).domain(vec!["foo", "bar"]).range([0.0, 960.0]);
+    let mut b = scale::band(Vec::<&str>::new()).domain(vec!["foo", "bar"]).range([0.0, 960.0]).padding_inner(1.0);
+    check("d3-scale/test/point-test.js:24:3", Kind::Strict, &p.get_domain().to_vec().iter().map(|k| p.apply(k)).collect::<Vec<_>>(), &b.get_domain().to_vec().iter().map(|k| b.apply(k)).collect::<Vec<_>>());
+    check("d3-scale/test/point-test.js:25:3", Kind::Strict, &p.bandwidth(), &b.bandwidth());
+    check("d3-scale/test/point-test.js:26:3", Kind::Strict, &p.step(), &b.step());
+}
+
+fn t241() {   // point-test.js: point.padding(p) sets the band outer padding to p
+    let mut p = scale::point(Vec::<&str>::new()).domain(vec!["foo", "bar"]).range([0.0, 960.0]).padding(0.5);
+    let mut b = scale::band(Vec::<&str>::new()).domain(vec!["foo", "bar"]).range([0.0, 960.0]).padding_inner(1.0).padding_outer(0.5);
+    check("d3-scale/test/point-test.js:32:3", Kind::Strict, &p.get_domain().to_vec().iter().map(|k| p.apply(k)).collect::<Vec<_>>(), &b.get_domain().to_vec().iter().map(|k| b.apply(k)).collect::<Vec<_>>());
+    check("d3-scale/test/point-test.js:33:3", Kind::Strict, &p.bandwidth(), &b.bandwidth());
+    check("d3-scale/test/point-test.js:34:3", Kind::Strict, &p.step(), &b.step());
+}
+
+fn t242() {   // point-test.js: point.copy() returns a copy
+    let mut s = scale::point(Vec::<&str>::new());
+    check("d3-scale/test/point-test.js:39:3", Kind::Strict, &s.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/point-test.js:40:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/point-test.js:41:3", Kind::Strict, &s.bandwidth(), &0.0);
+    check("d3-scale/test/point-test.js:42:3", Kind::Strict, &s.step(), &1.0);
+    skip("d3-scale/test/point-test.js:43:3", "api: d3's round() getter (only domain and range have get_)");
+    skip("d3-scale/test/point-test.js:44:3", "api: d3's padding() getter (only domain and range have get_)");
+    skip("d3-scale/test/point-test.js:45:3", "api: d3's align() getter (only domain and range have get_)");
+}
+
+fn t243() {   // ordinal-test.js: scaleOrdinal() has the expected defaults
+    let mut s = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new());
+    check("d3-scale/test/ordinal-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/ordinal-test.js:7:3", Kind::Strict, &s.get_range().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/ordinal-test.js:8:3", Kind::Strict, &s.apply_or_insert(0.0), &Option::<f64>::None);
+    skip("d3-scale/test/ordinal-test.js:9:3", "api: d3's unknown() getter (only domain and range have get_)");
+    check("d3-scale/test/ordinal-test.js:10:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0]);
+}
+
+fn t244() {   // ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range
+    let mut s = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).domain(vec![0.0, 1.0]).range(vec!["foo", "bar"]);
+    check("d3-scale/test/ordinal-test.js:15:3", Kind::Strict, &s.apply(&0.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:16:3", Kind::Strict, &s.apply(&1.0), &"bar");
+    s = s.range(vec!["a", "b", "c"]);
+    check("d3-scale/test/ordinal-test.js:18:3", Kind::Strict, &s.apply(&0.0), &"a");
+    skip("d3-scale/test/ordinal-test.js:19:3", "types: keys of two types on one scale");
+    skip("d3-scale/test/ordinal-test.js:20:3", "js: a vec as ordinal keys (coercion)");
+    check("d3-scale/test/ordinal-test.js:21:3", Kind::Strict, &s.apply(&1.0), &"b");
+    skip("d3-scale/test/ordinal-test.js:22:3", "js: new Number (coercion)");
+    check("d3-scale/test/ordinal-test.js:23:3", Kind::Strict, &s.apply(&2.0), &Option::<f64>::None);
+}
+
+fn t245() {   // ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified
+    let mut s = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).range(vec!["foo", "bar"]);
+    check("d3-scale/test/ordinal-test.js:28:3", Kind::Strict, &s.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/ordinal-test.js:29:3", Kind::Strict, &s.apply_or_insert(0.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:30:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0]);
+    check("d3-scale/test/ordinal-test.js:31:3", Kind::Strict, &s.apply_or_insert(1.0), &"bar");
+    check("d3-scale/test/ordinal-test.js:32:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/ordinal-test.js:33:3", Kind::Strict, &s.apply_or_insert(0.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:34:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+}
+
+fn t246() {   // ordinal-test.js: ordinal.domain(x) makes a copy of the domain
+    skip("d3-scale/test/ordinal-test.js:41:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t247() {   // ordinal-test.js: ordinal.domain() returns a copy of the domain
+    let mut s = scale::ordinal(Vec::<&str>::new(), Vec::<&str>::new()).domain(vec!["red", "green"]);
+    let mut domain = s.get_domain().to_vec();
+    s.apply_or_insert("blue");
+    check("d3-scale/test/ordinal-test.js:48:3", Kind::Strict, &domain, &vec!["red", "green"]);
+}
+
+fn t248() {   // ordinal-test.js: ordinal.domain() accepts an iterable
+    skip("d3-scale/test/ordinal-test.js:53:3", "js: new Set (coercion)");
+}
+
+fn t249() {   // ordinal-test.js: ordinal.domain() replaces previous domain values
+    skip("d3-scale/test/ordinal-test.js:58:3", "types: keys of two types on one scale");
+    skip("d3-scale/test/ordinal-test.js:59:3", "types: keys of two types on one scale");
+    skip("d3-scale/test/ordinal-test.js:60:3", "types: keys of two types on one scale");
+    skip("d3-scale/test/ordinal-test.js:62:3", "types: keys of two types on one scale");
+    skip("d3-scale/test/ordinal-test.js:63:3", "types: keys of two types on one scale");
+    skip("d3-scale/test/ordinal-test.js:64:3", "types: keys of two types on one scale");
+}
+
+fn t250() {   // ordinal-test.js: ordinal.domain() uniqueness is based on primitive coercion
+    let mut _s = scale::ordinal(Vec::<&str>::new(), Vec::<f64>::new()).domain(vec!["foo"]).range(vec![42.0, 43.0, 44.0]);
+    skip("d3-scale/test/ordinal-test.js:69:3", "js: new String (coercion)");
+    skip("d3-scale/test/ordinal-test.js:70:3", "js: object argument (valueOf coercion)");
+    skip("d3-scale/test/ordinal-test.js:71:3", "js: object argument (valueOf coercion)");
+}
+
+fn t251() {   // ordinal-test.js: ordinal.domain() does not coerce domain values to strings
+    let mut s = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).domain(vec![0.0, 1.0]);
+    check("d3-scale/test/ordinal-test.js:76:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    skip("d3-scale/test/ordinal-test.js:77:3", "js: unary typeof (coercion)");
+    skip("d3-scale/test/ordinal-test.js:78:3", "js: unary typeof (coercion)");
+}
+
+fn t252() {   // ordinal-test.js: ordinal.domain() does not barf on object built-ins
+    let mut s = scale::ordinal(Vec::<&str>::new(), Vec::<f64>::new()).domain(vec!["__proto__", "hasOwnProperty"]).range(vec![42.0, 43.0]);
+    check("d3-scale/test/ordinal-test.js:83:3", Kind::Strict, &s.apply_or_insert("__proto__"), &42.0);
+    check("d3-scale/test/ordinal-test.js:84:3", Kind::Strict, &s.apply_or_insert("hasOwnProperty"), &43.0);
+    check("d3-scale/test/ordinal-test.js:85:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["__proto__", "hasOwnProperty"]);
+}
+
+fn t253() {   // ordinal-test.js: ordinal() accepts dates
+    skip("d3-scale/test/ordinal-test.js:94:3", "js: new Date (coercion)");
+}
+
+fn t254() {   // ordinal-test.js: ordinal.domain() accepts dates
+    skip("d3-scale/test/ordinal-test.js:106:3", "js: new Date (coercion)");
+}
+
+fn t255() {   // ordinal-test.js: ordinal.domain() does not barf on object built-ins
+    let mut s = scale::ordinal(Vec::<&str>::new(), Vec::<f64>::new()).domain(vec!["__proto__", "hasOwnProperty"]).range(vec![42.0, 43.0]);
+    check("d3-scale/test/ordinal-test.js:111:3", Kind::Strict, &s.apply_or_insert("__proto__"), &42.0);
+    check("d3-scale/test/ordinal-test.js:112:3", Kind::Strict, &s.apply_or_insert("hasOwnProperty"), &43.0);
+    check("d3-scale/test/ordinal-test.js:113:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["__proto__", "hasOwnProperty"]);
+}
+
+fn t256() {   // ordinal-test.js: ordinal.domain() is ordered by appearance
+    let mut s = scale::ordinal(Vec::<&str>::new(), Vec::<&str>::new());
+    s.apply_or_insert("foo");
+    s.apply_or_insert("bar");
+    s.apply_or_insert("baz");
+    check("d3-scale/test/ordinal-test.js:121:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["foo", "bar", "baz"]);
+    s = s.domain(vec!["baz", "bar"]);
+    s.apply_or_insert("foo");
+    check("d3-scale/test/ordinal-test.js:124:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["baz", "bar", "foo"]);
+    s = s.domain(vec!["baz", "foo"]);
+    check("d3-scale/test/ordinal-test.js:126:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["baz", "foo"]);
+    s = s.domain(Vec::new());
+    s.apply_or_insert("foo");
+    s.apply_or_insert("bar");
+    check("d3-scale/test/ordinal-test.js:130:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["foo", "bar"]);
+}
+
+fn t257() {   // ordinal-test.js: ordinal.range(x) makes a copy of the range
+    skip("d3-scale/test/ordinal-test.js:137:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t258() {   // ordinal-test.js: ordinal.range() accepts an iterable
+    skip("d3-scale/test/ordinal-test.js:142:3", "js: new Set (coercion)");
+}
+
+fn t259() {   // ordinal-test.js: ordinal.range() returns a copy of the range
+    skip("d3-scale/test/ordinal-test.js:148:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+    skip("d3-scale/test/ordinal-test.js:150:3", "js: an array changed after a scale copied it (Rust copies arrays)");
+}
+
+fn t260() {   // ordinal-test.js: ordinal.range(values) does not discard implicit domain associations
+    let mut s = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new());
+    check("d3-scale/test/ordinal-test.js:155:3", Kind::Strict, &s.apply_or_insert(0.0), &Option::<f64>::None);
+    check("d3-scale/test/ordinal-test.js:156:3", Kind::Strict, &s.apply_or_insert(1.0), &Option::<f64>::None);
+    s = s.range(vec!["foo", "bar"]);
+    check("d3-scale/test/ordinal-test.js:158:3", Kind::Strict, &s.apply_or_insert(1.0), &"bar");
+    check("d3-scale/test/ordinal-test.js:159:3", Kind::Strict, &s.apply_or_insert(0.0), &"foo");
+}
+
+fn t261() {   // ordinal-test.js: ordinal(value) recycles values when exhausted
+    let mut s = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).range(vec!["a", "b", "c"]);
+    check("d3-scale/test/ordinal-test.js:164:3", Kind::Strict, &s.apply_or_insert(0.0), &"a");
+    check("d3-scale/test/ordinal-test.js:165:3", Kind::Strict, &s.apply_or_insert(1.0), &"b");
+    check("d3-scale/test/ordinal-test.js:166:3", Kind::Strict, &s.apply_or_insert(2.0), &"c");
+    check("d3-scale/test/ordinal-test.js:167:3", Kind::Strict, &s.apply_or_insert(3.0), &"a");
+    check("d3-scale/test/ordinal-test.js:168:3", Kind::Strict, &s.apply_or_insert(4.0), &"b");
+    check("d3-scale/test/ordinal-test.js:169:3", Kind::Strict, &s.apply_or_insert(5.0), &"c");
+    check("d3-scale/test/ordinal-test.js:170:3", Kind::Strict, &s.apply_or_insert(2.0), &"c");
+    check("d3-scale/test/ordinal-test.js:171:3", Kind::Strict, &s.apply_or_insert(1.0), &"b");
+    check("d3-scale/test/ordinal-test.js:172:3", Kind::Strict, &s.apply_or_insert(0.0), &"a");
+}
+
+fn t262() {   // ordinal-test.js: ordinal.unknown(x) sets the output value for unknown inputs
+    let mut s = scale::ordinal(Vec::<&str>::new(), Vec::<&str>::new()).domain(vec!["foo", "bar"]).unknown("gray").range(vec!["red", "blue"]);
+    check("d3-scale/test/ordinal-test.js:177:3", Kind::Strict, &s.apply(&"foo"), &"red");
+    check("d3-scale/test/ordinal-test.js:178:3", Kind::Strict, &s.apply(&"bar"), &"blue");
+    check("d3-scale/test/ordinal-test.js:179:3", Kind::Strict, &s.apply(&"baz"), &"gray");
+    check("d3-scale/test/ordinal-test.js:180:3", Kind::Strict, &s.apply(&"quux"), &"gray");
+}
+
+fn t263() {   // ordinal-test.js: ordinal.unknown(x) prevents implicit domain extension if x is not implicit
+    let mut s = scale::ordinal(Vec::<&str>::new(), Vec::<&str>::new()).domain(vec!["foo", "bar"]).range(vec!["red", "blue"]);
+    check("d3-scale/test/ordinal-test.js:185:3", Kind::Strict, &s.apply(&"baz"), &Option::<f64>::None);
+    check("d3-scale/test/ordinal-test.js:186:3", Kind::Strict, &s.get_domain().to_vec(), &vec!["foo", "bar"]);
+}
+
+fn t264() {   // ordinal-test.js: ordinal.copy() copies all fields
+    let mut s1 = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).domain(vec![1.0, 2.0]).range(vec!["red", "green"]).unknown("gray");
+    let mut s2 = s1.clone();
+    check("d3-scale/test/ordinal-test.js:192:3", Kind::Strict, &s2.get_domain().to_vec(), &s1.get_domain().to_vec());
+    check("d3-scale/test/ordinal-test.js:193:3", Kind::Strict, &s2.get_range().to_vec(), &s1.get_range().to_vec());
+    skip("d3-scale/test/ordinal-test.js:194:3", "api: d3's unknown() getter (only domain and range have get_)");
+}
+
+fn t265() {   // ordinal-test.js: ordinal.copy() changes to the domain are isolated
+    let mut s1 = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).range(vec!["foo", "bar"]);
+    let mut s2 = s1.clone();
+    s1 = s1.domain(vec![1.0, 2.0]);
+    check("d3-scale/test/ordinal-test.js:201:3", Kind::Strict, &s2.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/ordinal-test.js:202:3", Kind::Strict, &s1.apply_or_insert(1.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:203:3", Kind::Strict, &s2.apply_or_insert(1.0), &"foo");
+    s2 = s2.domain(vec![2.0, 3.0]);
+    check("d3-scale/test/ordinal-test.js:205:3", Kind::Strict, &s1.apply_or_insert(2.0), &"bar");
+    check("d3-scale/test/ordinal-test.js:206:3", Kind::Strict, &s2.apply_or_insert(2.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:207:3", Kind::Strict, &s1.get_domain().to_vec(), &vec![1.0, 2.0]);
+    check("d3-scale/test/ordinal-test.js:208:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![2.0, 3.0]);
+}
+
+fn t266() {   // ordinal-test.js: ordinal.copy() changes to the range are isolated
+    let mut s1 = scale::ordinal(Vec::<f64>::new(), Vec::<&str>::new()).range(vec!["foo", "bar"]);
+    let mut s2 = s1.clone();
+    s1 = s1.range(vec!["bar", "foo"]);
+    check("d3-scale/test/ordinal-test.js:215:3", Kind::Strict, &s1.apply_or_insert(1.0), &"bar");
+    check("d3-scale/test/ordinal-test.js:216:3", Kind::Strict, &s2.apply_or_insert(1.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:217:3", Kind::Strict, &s2.get_range().to_vec(), &vec!["foo", "bar"]);
+    s2 = s2.range(vec!["foo", "baz"]);
+    check("d3-scale/test/ordinal-test.js:219:3", Kind::Strict, &s1.apply_or_insert(2.0), &"foo");
+    check("d3-scale/test/ordinal-test.js:220:3", Kind::Strict, &s2.apply_or_insert(2.0), &"baz");
+    check("d3-scale/test/ordinal-test.js:221:3", Kind::Strict, &s1.get_range().to_vec(), &vec!["bar", "foo"]);
+    check("d3-scale/test/ordinal-test.js:222:3", Kind::Strict, &s2.get_range().to_vec(), &vec!["foo", "baz"]);
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "linear-test.js: scaleLinear() has the expected defaults", run: t0 },
     Test { name: "linear-test.js: scaleLinear(range) sets the range", run: t1 },
@@ -1989,6 +2466,63 @@ pub const TESTS: &[Test] = &[
     Test { name: "identity-test.js: identity.ticks(count) generates ticks of varying degree", run: t207 },
     Test { name: "identity-test.js: identity.tickFormat(count) formats ticks with the appropriate precision", run: t208 },
     Test { name: "identity-test.js: identity.copy() isolates changes to the domain or range", run: t209 },
+    Test { name: "band-test.js: scaleBand() has the expected defaults", run: t210 },
+    Test { name: "band-test.js: band(value) computes discrete bands in a continuous range", run: t211 },
+    Test { name: "band-test.js: band(value) returns undefined for values outside the domain", run: t212 },
+    Test { name: "band-test.js: band(value) does not implicitly add values to the domain", run: t213 },
+    Test { name: "band-test.js: band.step() returns the distance between the starts of adjacent bands", run: t214 },
+    Test { name: "band-test.js: band.bandwidth() returns the width of the band", run: t215 },
+    Test { name: "band-test.js: band.domain([]) computes reasonable band and step values", run: t216 },
+    Test { name: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", run: t217 },
+    Test { name: "band-test.js: band.domain(values) recomputes the bands", run: t218 },
+    Test { name: "band-test.js: band.domain(domain) accepts an iterable", run: t219 },
+    Test { name: "band-test.js: band.domain(values) makes a copy of the specified domain values", run: t220 },
+    Test { name: "band-test.js: band.domain() returns a copy of the domain", run: t221 },
+    Test { name: "band-test.js: band.range(values) can be descending", run: t222 },
+    Test { name: "band-test.js: band.range(values) makes a copy of the specified range values", run: t223 },
+    Test { name: "band-test.js: band.range() returns a copy of the range", run: t224 },
+    Test { name: "band-test.js: band.range(values) accepts an iterable", run: t225 },
+    Test { name: "band-test.js: band.rangeRound(values) accepts an iterable", run: t226 },
+    Test { name: "band-test.js: band.range(values) coerces values to numbers", run: t227 },
+    Test { name: "band-test.js: band.rangeRound(values) coerces values to numbers", run: t228 },
+    Test { name: "band-test.js: band.paddingInner(p) specifies the inner padding p", run: t229 },
+    Test { name: "band-test.js: band.paddingInner(p) coerces p to a number <= 1", run: t230 },
+    Test { name: "band-test.js: band.paddingOuter(p) specifies the outer padding p", run: t231 },
+    Test { name: "band-test.js: band.paddingOuter(p) coerces p to a number", run: t232 },
+    Test { name: "band-test.js: band.rangeRound(values) is an alias for band.range(values).round(true)", run: t233 },
+    Test { name: "band-test.js: band.round(true) computes discrete rounded bands in a continuous range", run: t234 },
+    Test { name: "band-test.js: band.copy() copies all fields", run: t235 },
+    Test { name: "band-test.js: band.copy() isolates changes to the domain", run: t236 },
+    Test { name: "band-test.js: band.copy() isolates changes to the range", run: t237 },
+    Test { name: "point-test.js: scalePoint() has the expected defaults", run: t238 },
+    Test { name: "point-test.js: scalePoint() does not expose paddingInner and paddingOuter", run: t239 },
+    Test { name: "point-test.js: scalePoint() is similar to scaleBand().paddingInner(1)", run: t240 },
+    Test { name: "point-test.js: point.padding(p) sets the band outer padding to p", run: t241 },
+    Test { name: "point-test.js: point.copy() returns a copy", run: t242 },
+    Test { name: "ordinal-test.js: scaleOrdinal() has the expected defaults", run: t243 },
+    Test { name: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", run: t244 },
+    Test { name: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", run: t245 },
+    Test { name: "ordinal-test.js: ordinal.domain(x) makes a copy of the domain", run: t246 },
+    Test { name: "ordinal-test.js: ordinal.domain() returns a copy of the domain", run: t247 },
+    Test { name: "ordinal-test.js: ordinal.domain() accepts an iterable", run: t248 },
+    Test { name: "ordinal-test.js: ordinal.domain() replaces previous domain values", run: t249 },
+    Test { name: "ordinal-test.js: ordinal.domain() uniqueness is based on primitive coercion", run: t250 },
+    Test { name: "ordinal-test.js: ordinal.domain() does not coerce domain values to strings", run: t251 },
+    Test { name: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", run: t252 },
+    Test { name: "ordinal-test.js: ordinal() accepts dates", run: t253 },
+    Test { name: "ordinal-test.js: ordinal.domain() accepts dates", run: t254 },
+    Test { name: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", run: t255 },
+    Test { name: "ordinal-test.js: ordinal.domain() is ordered by appearance", run: t256 },
+    Test { name: "ordinal-test.js: ordinal.range(x) makes a copy of the range", run: t257 },
+    Test { name: "ordinal-test.js: ordinal.range() accepts an iterable", run: t258 },
+    Test { name: "ordinal-test.js: ordinal.range() returns a copy of the range", run: t259 },
+    Test { name: "ordinal-test.js: ordinal.range(values) does not discard implicit domain associations", run: t260 },
+    Test { name: "ordinal-test.js: ordinal(value) recycles values when exhausted", run: t261 },
+    Test { name: "ordinal-test.js: ordinal.unknown(x) sets the output value for unknown inputs", run: t262 },
+    Test { name: "ordinal-test.js: ordinal.unknown(x) prevents implicit domain extension if x is not implicit", run: t263 },
+    Test { name: "ordinal-test.js: ordinal.copy() copies all fields", run: t264 },
+    Test { name: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", run: t265 },
+    Test { name: "ordinal-test.js: ordinal.copy() changes to the range are isolated", run: t266 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -2021,24 +2555,24 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/linear-test.js:57:3", test: "linear-test.js: linear(x) can map a bilinear domain with two values to the corresponding range", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:58:3", test: "linear-test.js: linear(x) can map a bilinear domain with two values to the corresponding range", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:59:3", test: "linear-test.js: linear(x) can map a bilinear domain with two values to the corresponding range", skip: None },
-    Assertion { id: "d3-scale/test/linear-test.js:64:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:65:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:66:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:67:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:69:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:70:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:71:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:72:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:74:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:75:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:76:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:77:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/linear-test.js:64:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:65:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:66:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:67:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:69:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:70:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:71:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:72:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:74:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:75:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:76:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:77:3", test: "linear-test.js: linear(x) can map a polylinear domain with more than two values to the corresponding range", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:81:3", test: "linear-test.js: linear.invert(y) maps a range value y to a domain value x", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:85:3", test: "linear-test.js: linear.invert(y) maps an empty range to the middle of the domain", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:86:3", test: "linear-test.js: linear.invert(y) maps an empty range to the middle of the domain", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:90:3", test: "linear-test.js: linear.invert(y) coerces range values to numbers", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/linear-test.js:91:3", test: "linear-test.js: linear.invert(y) coerces range values to numbers", skip: Some("js: Dates and Number objects in a range (coercion)") },
-    Assertion { id: "d3-scale/test/linear-test.js:95:3", test: "linear-test.js: linear.invert(y) returns NaN if the range is not coercible to number", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/linear-test.js:95:3", test: "linear-test.js: linear.invert(y) returns NaN if the range is not coercible to number", skip: Some("types: invert exists only for number ranges (E0599)") },
     Assertion { id: "d3-scale/test/linear-test.js:96:3", test: "linear-test.js: linear.invert(y) returns NaN if the range is not coercible to number", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/linear-test.js:100:3", test: "linear-test.js: linear.domain(domain) accepts an array of numbers", skip: Some("types: a domain and range of different lengths (the type sets the count)") },
     Assertion { id: "d3-scale/test/linear-test.js:101:3", test: "linear-test.js: linear.domain(domain) accepts an array of numbers", skip: None },
@@ -2055,12 +2589,12 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/linear-test.js:132:3", test: "linear-test.js: linear.range(range) does not coerce range to numbers", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/linear-test.js:133:3", test: "linear-test.js: linear.range(range) does not coerce range to numbers", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/linear-test.js:137:3", test: "linear-test.js: linear.range(range) accepts an iterable", skip: Some("js: a range from an iterable") },
-    Assertion { id: "d3-scale/test/linear-test.js:141:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:142:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:143:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:144:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:145:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:146:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/linear-test.js:141:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:142:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:143:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:144:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:145:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/linear-test.js:146:3", test: "linear-test.js: linear.range(range) can accept range values as colors", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:150:3", test: "linear-test.js: linear.range(range) can accept range values as arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
     Assertion { id: "d3-scale/test/linear-test.js:151:3", test: "linear-test.js: linear.range(range) can accept range values as arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
     Assertion { id: "d3-scale/test/linear-test.js:156:3", test: "linear-test.js: linear.range(range) makes a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
@@ -2224,9 +2758,9 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/linear-test.js:445:3", test: "linear-test.js: linear.copy() returns a copy with changes to the range are isolated", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:446:3", test: "linear-test.js: linear.copy() returns a copy with changes to the range are isolated", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:447:3", test: "linear-test.js: linear.copy() returns a copy with changes to the range are isolated", skip: None },
-    Assertion { id: "d3-scale/test/linear-test.js:456:3", test: "linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:457:3", test: "linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/linear-test.js:458:3", test: "linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/linear-test.js:456:3", test: "linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/linear-test.js:457:3", test: "linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/linear-test.js:458:3", test: "linear-test.js: linear.copy() returns a copy with changes to the interpolator are isolated", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/linear-test.js:464:3", test: "linear-test.js: linear.copy() returns a copy with changes to clamping are isolated", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:465:3", test: "linear-test.js: linear.copy() returns a copy with changes to clamping are isolated", skip: None },
     Assertion { id: "d3-scale/test/linear-test.js:466:3", test: "linear-test.js: linear.copy() returns a copy with changes to clamping are isolated", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
@@ -2262,24 +2796,24 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/pow-test.js:44:3", test: "pow-test.js: pow(x) can map a bipow domain with two values to the corresponding range", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:45:3", test: "pow-test.js: pow(x) can map a bipow domain with two values to the corresponding range", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:46:3", test: "pow-test.js: pow(x) can map a bipow domain with two values to the corresponding range", skip: None },
-    Assertion { id: "d3-scale/test/pow-test.js:51:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:52:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:53:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:54:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:56:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:57:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:58:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:59:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:61:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:62:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:63:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:64:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/pow-test.js:51:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:52:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:53:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:54:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:56:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:57:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:58:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:59:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:61:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:62:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:63:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/pow-test.js:64:3", test: "pow-test.js: pow(x) can map a polypow domain with more than two values to the corresponding range", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
     Assertion { id: "d3-scale/test/pow-test.js:68:3", test: "pow-test.js: pow.invert(y) maps a range value y to a domain value x", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:72:3", test: "pow-test.js: pow.invert(y) maps an empty range to the middle of the domain", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:73:3", test: "pow-test.js: pow.invert(y) maps an empty range to the middle of the domain", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:77:3", test: "pow-test.js: pow.invert(y) coerces range values to numbers", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/pow-test.js:78:3", test: "pow-test.js: pow.invert(y) coerces range values to numbers", skip: Some("js: Dates and Number objects in a range (coercion)") },
-    Assertion { id: "d3-scale/test/pow-test.js:82:3", test: "pow-test.js: pow.invert(y) returns NaN if the range is not coercible to number", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/pow-test.js:82:3", test: "pow-test.js: pow.invert(y) returns NaN if the range is not coercible to number", skip: Some("types: invert exists only for number ranges (E0599)") },
     Assertion { id: "d3-scale/test/pow-test.js:83:3", test: "pow-test.js: pow.invert(y) returns NaN if the range is not coercible to number", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/pow-test.js:88:3", test: "pow-test.js: pow.exponent(exponent) sets the exponent to the specified value", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:89:3", test: "pow-test.js: pow.exponent(exponent) sets the exponent to the specified value", skip: None },
@@ -2312,12 +2846,12 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/pow-test.js:141:3", test: "pow-test.js: pow.domain() returns a copy of domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
     Assertion { id: "d3-scale/test/pow-test.js:146:3", test: "pow-test.js: pow.range(range) does not coerce range to numbers", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/pow-test.js:147:3", test: "pow-test.js: pow.range(range) does not coerce range to numbers", skip: Some("js: strings as range values (coercion)") },
-    Assertion { id: "d3-scale/test/pow-test.js:151:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:152:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:153:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:154:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:155:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:156:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/pow-test.js:151:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/pow-test.js:152:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/pow-test.js:153:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/pow-test.js:154:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/pow-test.js:155:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: None },
+    Assertion { id: "d3-scale/test/pow-test.js:156:3", test: "pow-test.js: pow.range(range) can accept range values as colors", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:160:3", test: "pow-test.js: pow.range(range) can accept range values as arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
     Assertion { id: "d3-scale/test/pow-test.js:161:3", test: "pow-test.js: pow.range(range) can accept range values as arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
     Assertion { id: "d3-scale/test/pow-test.js:166:3", test: "pow-test.js: pow.range(range) makes a copy of range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
@@ -2469,9 +3003,9 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/pow-test.js:408:3", test: "pow-test.js: pow.copy() returns a copy with changes to the range are isolated", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:409:3", test: "pow-test.js: pow.copy() returns a copy with changes to the range are isolated", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:410:3", test: "pow-test.js: pow.copy() returns a copy with changes to the range are isolated", skip: None },
-    Assertion { id: "d3-scale/test/pow-test.js:419:3", test: "pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:420:3", test: "pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/pow-test.js:421:3", test: "pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/pow-test.js:419:3", test: "pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/pow-test.js:420:3", test: "pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/pow-test.js:421:3", test: "pow-test.js: pow.copy() returns a copy with changes to the interpolator are isolated", skip: Some("api: d3's interpolate() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/pow-test.js:427:3", test: "pow-test.js: pow.copy() returns a copy with changes to clamping are isolated", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:428:3", test: "pow-test.js: pow.copy() returns a copy with changes to clamping are isolated", skip: None },
     Assertion { id: "d3-scale/test/pow-test.js:429:3", test: "pow-test.js: pow.copy() returns a copy with changes to clamping are isolated", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
@@ -2515,9 +3049,9 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/log-test.js:39:3", test: "log-test.js: log.domain(…) coerces values to numbers", skip: Some("js: Dates and Number objects in a domain (coercion)") },
     Assertion { id: "d3-scale/test/log-test.js:44:3", test: "log-test.js: log.domain(…) can take negative values", skip: Some("types: a tick count other than a whole number (counts are usize)") },
     Assertion { id: "d3-scale/test/log-test.js:49:3", test: "log-test.js: log.domain(…) can take negative values", skip: None },
-    Assertion { id: "d3-scale/test/log-test.js:54:3", test: "log-test.js: log.domain(…).range(…) can take more than two values", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:55:3", test: "log-test.js: log.domain(…).range(…) can take more than two values", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:56:3", test: "log-test.js: log.domain(…).range(…) can take more than two values", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/log-test.js:54:3", test: "log-test.js: log.domain(…).range(…) can take more than two values", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/log-test.js:55:3", test: "log-test.js: log.domain(…).range(…) can take more than two values", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
+    Assertion { id: "d3-scale/test/log-test.js:56:3", test: "log-test.js: log.domain(…).range(…) can take more than two values", skip: Some("api: polylinear log, pow and symlog scales (piecewise is linear only)") },
     Assertion { id: "d3-scale/test/log-test.js:61:3", test: "log-test.js: log.domain(…) preserves specified domain exactly, with no floating point error", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:65:3", test: "log-test.js: log.ticks(…) returns exact ticks, with no floating point error", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:66:3", test: "log-test.js: log.ticks(…) returns exact ticks, with no floating point error", skip: None },
@@ -2525,16 +3059,16 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/log-test.js:68:3", test: "log-test.js: log.ticks(…) returns exact ticks, with no floating point error", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:73:3", test: "log-test.js: log.range(…) does not coerce values to numbers", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/log-test.js:74:3", test: "log-test.js: log.range(…) does not coerce values to numbers", skip: Some("js: strings as range values (coercion)") },
-    Assertion { id: "d3-scale/test/log-test.js:79:3", test: "log-test.js: log.range(…) can take colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:81:3", test: "log-test.js: log.range(…) can take colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:83:3", test: "log-test.js: log.range(…) can take colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:85:3", test: "log-test.js: log.range(…) can take colors", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:87:3", test: "log-test.js: log.range(…) can take colors", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/log-test.js:79:3", test: "log-test.js: log.range(…) can take colors", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:81:3", test: "log-test.js: log.range(…) can take colors", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:83:3", test: "log-test.js: log.range(…) can take colors", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:85:3", test: "log-test.js: log.range(…) can take colors", skip: None },
+    Assertion { id: "d3-scale/test/log-test.js:87:3", test: "log-test.js: log.range(…) can take colors", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:92:3", test: "log-test.js: log.range(…) can take arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
     Assertion { id: "d3-scale/test/log-test.js:94:3", test: "log-test.js: log.range(…) can take arrays or objects", skip: Some("js: objects and arrays as range values (d3's runtime interpolate)") },
-    Assertion { id: "d3-scale/test/log-test.js:99:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:100:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:102:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/log-test.js:99:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
+    Assertion { id: "d3-scale/test/log-test.js:100:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
+    Assertion { id: "d3-scale/test/log-test.js:102:3", test: "log-test.js: log.interpolate(f) sets the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
     Assertion { id: "d3-scale/test/log-test.js:107:3", test: "log-test.js: log(x) does not clamp by default", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/log-test.js:108:3", test: "log-test.js: log(x) does not clamp by default", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:109:3", test: "log-test.js: log(x) does not clamp by default", skip: None },
@@ -2601,9 +3135,9 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/log-test.js:233:3", test: "log-test.js: log.copy() isolates changes to the range", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:234:3", test: "log-test.js: log.copy() isolates changes to the range", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:235:3", test: "log-test.js: log.copy() isolates changes to the range", skip: None },
-    Assertion { id: "d3-scale/test/log-test.js:241:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:242:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 7 (color ranges)") },
-    Assertion { id: "d3-scale/test/log-test.js:243:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/log-test.js:241:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
+    Assertion { id: "d3-scale/test/log-test.js:242:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
+    Assertion { id: "d3-scale/test/log-test.js:243:3", test: "log-test.js: log.copy() isolates changes to the interpolator", skip: Some("gap: phase 23 (interpolate of a color range)") },
     Assertion { id: "d3-scale/test/log-test.js:249:3", test: "log-test.js: log.copy() isolates changes to clamping", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:250:3", test: "log-test.js: log.copy() isolates changes to clamping", skip: None },
     Assertion { id: "d3-scale/test/log-test.js:251:3", test: "log-test.js: log.copy() isolates changes to clamping", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
@@ -2669,7 +3203,7 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/symlog-test.js:17:3", test: "symlog-test.js: symlog(x) maps a domain value x to a range value y", skip: None },
     Assertion { id: "d3-scale/test/symlog-test.js:22:3", test: "symlog-test.js: symlog.invert(y) maps a range value y to a domain value x", skip: None },
     Assertion { id: "d3-scale/test/symlog-test.js:27:3", test: "symlog-test.js: symlog.invert(y) coerces range values to numbers", skip: Some("js: strings as range values (coercion)") },
-    Assertion { id: "d3-scale/test/symlog-test.js:31:3", test: "symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number", skip: Some("gap: phase 7 (color ranges)") },
+    Assertion { id: "d3-scale/test/symlog-test.js:31:3", test: "symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number", skip: Some("types: invert exists only for number ranges (E0599)") },
     Assertion { id: "d3-scale/test/symlog-test.js:32:3", test: "symlog-test.js: symlog.invert(y) returns NaN if the range is not coercible to number", skip: Some("js: strings as range values (coercion)") },
     Assertion { id: "d3-scale/test/symlog-test.js:37:3", test: "symlog-test.js: symlog.constant(constant) sets the constant to the specified value", skip: Some("api: d3's constant() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/symlog-test.js:42:3", test: "symlog-test.js: symlog.constant(constant) changing the constant does not change the domain or range", skip: None },
@@ -2883,4 +3417,217 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/identity-test.js:174:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
     Assertion { id: "d3-scale/test/identity-test.js:176:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
     Assertion { id: "d3-scale/test/identity-test.js:177:3", test: "identity-test.js: identity.copy() isolates changes to the domain or range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:6:3", test: "band-test.js: scaleBand() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:7:3", test: "band-test.js: scaleBand() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:8:3", test: "band-test.js: scaleBand() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:9:3", test: "band-test.js: scaleBand() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:10:3", test: "band-test.js: scaleBand() has the expected defaults", skip: Some("api: d3's round() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:11:3", test: "band-test.js: scaleBand() has the expected defaults", skip: Some("api: d3's paddingInner() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:12:3", test: "band-test.js: scaleBand() has the expected defaults", skip: Some("api: d3's paddingOuter() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:13:3", test: "band-test.js: scaleBand() has the expected defaults", skip: Some("api: d3's align() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:18:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:20:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:21:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:23:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:24:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:26:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:27:3", test: "band-test.js: band(value) computes discrete bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:32:3", test: "band-test.js: band(value) returns undefined for values outside the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:33:3", test: "band-test.js: band(value) returns undefined for values outside the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:34:3", test: "band-test.js: band(value) returns undefined for values outside the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:41:3", test: "band-test.js: band(value) does not implicitly add values to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:46:3", test: "band-test.js: band.step() returns the distance between the starts of adjacent bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:47:3", test: "band-test.js: band.step() returns the distance between the starts of adjacent bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:48:3", test: "band-test.js: band.step() returns the distance between the starts of adjacent bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:50:3", test: "band-test.js: band.step() returns the distance between the starts of adjacent bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:51:3", test: "band-test.js: band.step() returns the distance between the starts of adjacent bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:56:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:57:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:58:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:59:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:61:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:62:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:63:3", test: "band-test.js: band.bandwidth() returns the width of the band", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:68:3", test: "band-test.js: band.domain([]) computes reasonable band and step values", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:69:3", test: "band-test.js: band.domain([]) computes reasonable band and step values", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:71:3", test: "band-test.js: band.domain([]) computes reasonable band and step values", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:72:3", test: "band-test.js: band.domain([]) computes reasonable band and step values", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:74:3", test: "band-test.js: band.domain([]) computes reasonable band and step values", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:75:3", test: "band-test.js: band.domain([]) computes reasonable band and step values", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:80:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:81:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:82:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:84:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:85:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:86:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:88:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:89:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:90:3", test: "band-test.js: band.domain([value]) computes a reasonable singleton band, even with padding", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:95:3", test: "band-test.js: band.domain(values) recomputes the bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:96:3", test: "band-test.js: band.domain(values) recomputes the bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:98:3", test: "band-test.js: band.domain(values) recomputes the bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:99:3", test: "band-test.js: band.domain(values) recomputes the bands", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:103:3", test: "band-test.js: band.domain(domain) accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:110:3", test: "band-test.js: band.domain(values) makes a copy of the specified domain values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/band-test.js:116:3", test: "band-test.js: band.domain() returns a copy of the domain", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/band-test.js:118:3", test: "band-test.js: band.domain() returns a copy of the domain", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/band-test.js:123:3", test: "band-test.js: band.range(values) can be descending", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:124:3", test: "band-test.js: band.range(values) can be descending", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:126:3", test: "band-test.js: band.range(values) can be descending", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:127:3", test: "band-test.js: band.range(values) can be descending", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:134:3", test: "band-test.js: band.range(values) makes a copy of the specified range values", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/band-test.js:140:3", test: "band-test.js: band.range() returns a copy of the range", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/band-test.js:142:3", test: "band-test.js: band.range() returns a copy of the range", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/band-test.js:147:3", test: "band-test.js: band.range(values) accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:152:3", test: "band-test.js: band.rangeRound(values) accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:157:3", test: "band-test.js: band.range(values) coerces values to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:162:3", test: "band-test.js: band.rangeRound(values) coerces values to numbers", skip: Some("js: strings as range values (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:167:3", test: "band-test.js: band.paddingInner(p) specifies the inner padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:168:3", test: "band-test.js: band.paddingInner(p) specifies the inner padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:170:3", test: "band-test.js: band.paddingInner(p) specifies the inner padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:171:3", test: "band-test.js: band.paddingInner(p) specifies the inner padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:176:3", test: "band-test.js: band.paddingInner(p) coerces p to a number <= 1", skip: Some("js: paddingInner is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:177:3", test: "band-test.js: band.paddingInner(p) coerces p to a number <= 1", skip: Some("js: paddingInner is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:178:3", test: "band-test.js: band.paddingInner(p) coerces p to a number <= 1", skip: Some("js: paddingInner is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:179:3", test: "band-test.js: band.paddingInner(p) coerces p to a number <= 1", skip: Some("api: d3's paddingInner() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:184:3", test: "band-test.js: band.paddingOuter(p) specifies the outer padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:185:3", test: "band-test.js: band.paddingOuter(p) specifies the outer padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:187:3", test: "band-test.js: band.paddingOuter(p) specifies the outer padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:188:3", test: "band-test.js: band.paddingOuter(p) specifies the outer padding p", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:193:3", test: "band-test.js: band.paddingOuter(p) coerces p to a number", skip: Some("js: paddingOuter is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:194:3", test: "band-test.js: band.paddingOuter(p) coerces p to a number", skip: Some("js: paddingOuter is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:195:3", test: "band-test.js: band.paddingOuter(p) coerces p to a number", skip: Some("js: paddingOuter is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/band-test.js:196:3", test: "band-test.js: band.paddingOuter(p) coerces p to a number", skip: Some("api: d3's paddingOuter() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:201:3", test: "band-test.js: band.rangeRound(values) is an alias for band.range(values).round(true)", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:202:3", test: "band-test.js: band.rangeRound(values) is an alias for band.range(values).round(true)", skip: Some("api: d3's round() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:207:3", test: "band-test.js: band.round(true) computes discrete rounded bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:208:3", test: "band-test.js: band.round(true) computes discrete rounded bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:210:3", test: "band-test.js: band.round(true) computes discrete rounded bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:211:3", test: "band-test.js: band.round(true) computes discrete rounded bands in a continuous range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:217:3", test: "band-test.js: band.copy() copies all fields", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:218:3", test: "band-test.js: band.copy() copies all fields", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:219:3", test: "band-test.js: band.copy() copies all fields", skip: Some("api: d3's round() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:220:3", test: "band-test.js: band.copy() copies all fields", skip: Some("api: d3's paddingInner() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:221:3", test: "band-test.js: band.copy() copies all fields", skip: Some("api: d3's paddingOuter() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/band-test.js:228:3", test: "band-test.js: band.copy() isolates changes to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:229:3", test: "band-test.js: band.copy() isolates changes to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:230:3", test: "band-test.js: band.copy() isolates changes to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:232:3", test: "band-test.js: band.copy() isolates changes to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:233:3", test: "band-test.js: band.copy() isolates changes to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:234:3", test: "band-test.js: band.copy() isolates changes to the domain", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:241:3", test: "band-test.js: band.copy() isolates changes to the range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:242:3", test: "band-test.js: band.copy() isolates changes to the range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:243:3", test: "band-test.js: band.copy() isolates changes to the range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:245:3", test: "band-test.js: band.copy() isolates changes to the range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:246:3", test: "band-test.js: band.copy() isolates changes to the range", skip: None },
+    Assertion { id: "d3-scale/test/band-test.js:247:3", test: "band-test.js: band.copy() isolates changes to the range", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:6:3", test: "point-test.js: scalePoint() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:7:3", test: "point-test.js: scalePoint() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:8:3", test: "point-test.js: scalePoint() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:9:3", test: "point-test.js: scalePoint() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:10:3", test: "point-test.js: scalePoint() has the expected defaults", skip: Some("api: d3's round() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/point-test.js:11:3", test: "point-test.js: scalePoint() has the expected defaults", skip: Some("api: d3's padding() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/point-test.js:12:3", test: "point-test.js: scalePoint() has the expected defaults", skip: Some("api: d3's align() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/point-test.js:17:3", test: "point-test.js: scalePoint() does not expose paddingInner and paddingOuter", skip: Some("types: d3's point scale has no paddingInner") },
+    Assertion { id: "d3-scale/test/point-test.js:18:3", test: "point-test.js: scalePoint() does not expose paddingInner and paddingOuter", skip: Some("types: d3's point scale has no paddingOuter") },
+    Assertion { id: "d3-scale/test/point-test.js:24:3", test: "point-test.js: scalePoint() is similar to scaleBand().paddingInner(1)", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:25:3", test: "point-test.js: scalePoint() is similar to scaleBand().paddingInner(1)", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:26:3", test: "point-test.js: scalePoint() is similar to scaleBand().paddingInner(1)", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:32:3", test: "point-test.js: point.padding(p) sets the band outer padding to p", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:33:3", test: "point-test.js: point.padding(p) sets the band outer padding to p", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:34:3", test: "point-test.js: point.padding(p) sets the band outer padding to p", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:39:3", test: "point-test.js: point.copy() returns a copy", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:40:3", test: "point-test.js: point.copy() returns a copy", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:41:3", test: "point-test.js: point.copy() returns a copy", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:42:3", test: "point-test.js: point.copy() returns a copy", skip: None },
+    Assertion { id: "d3-scale/test/point-test.js:43:3", test: "point-test.js: point.copy() returns a copy", skip: Some("api: d3's round() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/point-test.js:44:3", test: "point-test.js: point.copy() returns a copy", skip: Some("api: d3's padding() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/point-test.js:45:3", test: "point-test.js: point.copy() returns a copy", skip: Some("api: d3's align() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:6:3", test: "ordinal-test.js: scaleOrdinal() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:7:3", test: "ordinal-test.js: scaleOrdinal() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:8:3", test: "ordinal-test.js: scaleOrdinal() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:9:3", test: "ordinal-test.js: scaleOrdinal() has the expected defaults", skip: Some("api: d3's unknown() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:10:3", test: "ordinal-test.js: scaleOrdinal() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:15:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:16:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:18:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:19:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:20:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: Some("js: a vec as ordinal keys (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:21:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:22:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: Some("js: new Number (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:23:3", test: "ordinal-test.js: ordinal(x) maps a unique name x in the domain to the corresponding value y in the range", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:28:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:29:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:30:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:31:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:32:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:33:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:34:3", test: "ordinal-test.js: ordinal(x) implicitly extends the domain when a range is explicitly specified", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:41:3", test: "ordinal-test.js: ordinal.domain(x) makes a copy of the domain", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:48:3", test: "ordinal-test.js: ordinal.domain() returns a copy of the domain", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:53:3", test: "ordinal-test.js: ordinal.domain() accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:58:3", test: "ordinal-test.js: ordinal.domain() replaces previous domain values", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:59:3", test: "ordinal-test.js: ordinal.domain() replaces previous domain values", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:60:3", test: "ordinal-test.js: ordinal.domain() replaces previous domain values", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:62:3", test: "ordinal-test.js: ordinal.domain() replaces previous domain values", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:63:3", test: "ordinal-test.js: ordinal.domain() replaces previous domain values", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:64:3", test: "ordinal-test.js: ordinal.domain() replaces previous domain values", skip: Some("types: keys of two types on one scale") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:69:3", test: "ordinal-test.js: ordinal.domain() uniqueness is based on primitive coercion", skip: Some("js: new String (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:70:3", test: "ordinal-test.js: ordinal.domain() uniqueness is based on primitive coercion", skip: Some("js: object argument (valueOf coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:71:3", test: "ordinal-test.js: ordinal.domain() uniqueness is based on primitive coercion", skip: Some("js: object argument (valueOf coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:76:3", test: "ordinal-test.js: ordinal.domain() does not coerce domain values to strings", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:77:3", test: "ordinal-test.js: ordinal.domain() does not coerce domain values to strings", skip: Some("js: unary typeof (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:78:3", test: "ordinal-test.js: ordinal.domain() does not coerce domain values to strings", skip: Some("js: unary typeof (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:83:3", test: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:84:3", test: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:85:3", test: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:94:3", test: "ordinal-test.js: ordinal() accepts dates", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:106:3", test: "ordinal-test.js: ordinal.domain() accepts dates", skip: Some("js: new Date (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:111:3", test: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:112:3", test: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:113:3", test: "ordinal-test.js: ordinal.domain() does not barf on object built-ins", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:121:3", test: "ordinal-test.js: ordinal.domain() is ordered by appearance", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:124:3", test: "ordinal-test.js: ordinal.domain() is ordered by appearance", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:126:3", test: "ordinal-test.js: ordinal.domain() is ordered by appearance", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:130:3", test: "ordinal-test.js: ordinal.domain() is ordered by appearance", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:137:3", test: "ordinal-test.js: ordinal.range(x) makes a copy of the range", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:142:3", test: "ordinal-test.js: ordinal.range() accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:148:3", test: "ordinal-test.js: ordinal.range() returns a copy of the range", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:150:3", test: "ordinal-test.js: ordinal.range() returns a copy of the range", skip: Some("js: an array changed after a scale copied it (Rust copies arrays)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:155:3", test: "ordinal-test.js: ordinal.range(values) does not discard implicit domain associations", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:156:3", test: "ordinal-test.js: ordinal.range(values) does not discard implicit domain associations", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:158:3", test: "ordinal-test.js: ordinal.range(values) does not discard implicit domain associations", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:159:3", test: "ordinal-test.js: ordinal.range(values) does not discard implicit domain associations", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:164:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:165:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:166:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:167:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:168:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:169:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:170:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:171:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:172:3", test: "ordinal-test.js: ordinal(value) recycles values when exhausted", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:177:3", test: "ordinal-test.js: ordinal.unknown(x) sets the output value for unknown inputs", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:178:3", test: "ordinal-test.js: ordinal.unknown(x) sets the output value for unknown inputs", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:179:3", test: "ordinal-test.js: ordinal.unknown(x) sets the output value for unknown inputs", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:180:3", test: "ordinal-test.js: ordinal.unknown(x) sets the output value for unknown inputs", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:185:3", test: "ordinal-test.js: ordinal.unknown(x) prevents implicit domain extension if x is not implicit", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:186:3", test: "ordinal-test.js: ordinal.unknown(x) prevents implicit domain extension if x is not implicit", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:192:3", test: "ordinal-test.js: ordinal.copy() copies all fields", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:193:3", test: "ordinal-test.js: ordinal.copy() copies all fields", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:194:3", test: "ordinal-test.js: ordinal.copy() copies all fields", skip: Some("api: d3's unknown() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/ordinal-test.js:201:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:202:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:203:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:205:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:206:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:207:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:208:3", test: "ordinal-test.js: ordinal.copy() changes to the domain are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:215:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:216:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:217:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:219:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:220:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:221:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
+    Assertion { id: "d3-scale/test/ordinal-test.js:222:3", test: "ordinal-test.js: ordinal.copy() changes to the range are isolated", skip: None },
 ];

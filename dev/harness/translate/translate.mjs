@@ -3,11 +3,14 @@
 //   node dev/harness/translate/translate.mjs --check   exits 1 if they differ from a fresh translation
 // Paths are relative to this file, so it runs from any directory.
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { CATEGORIES, rustStr, translateFile } from "./expr.mjs";
+import { CATEGORIES, combine, rustStr, translateFile } from "./expr.mjs";
 import array from "./rules/array.mjs";
+import band from "./rules/band.mjs";
+import color from "./rules/color.mjs";
 import ease from "./rules/ease.mjs";
 import format from "./rules/format.mjs";
 import interpolate from "./rules/interpolate.mjs";
+import ordinal from "./rules/ordinal.mjs";
 import path from "./rules/path.mjs";
 import scale from "./rules/scale.mjs";
 
@@ -37,10 +40,11 @@ const SUITES = [
   {
     suite: "scale",
     package: "d3-scale",
-    files: tests(["linear", "pow", "sqrt", "log", "symlog", "tickFormat", "radial", "identity"]),
-    rules: scale,
+    files: tests(["linear", "pow", "sqrt", "log", "symlog", "tickFormat", "radial", "identity", "band", "point", "ordinal"]),
+    rules: combine(band, ordinal, color, scale),
   },
-  { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round"]), rules: interpolate },
+  { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round", "rgb"]), rules: combine(color, interpolate) },
+  { suite: "color", package: "d3-color", files: tests(["color", "rgb", "hsl"]), rules: color },
 ];
 
 const D3 = new URL("../d3/", import.meta.url);

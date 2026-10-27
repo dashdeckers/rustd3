@@ -7,10 +7,13 @@
 // n} (its transform and stop count). A linear chain whose domain and range
 // both reach n > 2 stops becomes scale::piecewise(…) followed by its calls;
 // unequal lengths, a variable or chain changing n, and range values other
-// than numbers are skips decided at the first step that reads the scale.
+// than numbers or colors are skips decided at the first step that reads the
+// scale. Colors (CSS strings, rgb(…) and hsl(…)) make an Rgb range, r: "rgb",
+// whose apply is an Rgb; a variable whose range changes type is shadowed.
 import { color } from "../../d3/d3-color/src/index.js";
 import { calleeName, ex, needNum, rustStr, skip, val } from "../expr.mjs";
 import array from "./array.mjs";
+import { into } from "./color.mjs";
 
 const EN_US = "&format::Locale::EN_US";
 const MAKE = {
@@ -47,12 +50,11 @@ function stops(node, what, ctx) {
   const n = node.elements.length;
   const kinds = node.elements.map((el) => (el?.type === "Literal" ? typeof el.value : el?.type));
   if (kinds.includes("NewExpression")) return { n, reason: `js: Dates and Number objects in a ${what} (coercion)` };
-  if (kinds.includes("CallExpression")) return { n, reason: "gap: phase 7 (d3-color values)" };
+  const colors = node.elements.every((el) => el?.type === "CallExpression" || (typeof el?.value === "string" && color(el.value)));
+  if (what === "range" && colors) return { c: `[${node.elements.map((el) => into(val(ex(el, ctx)), "rgb").c).join(", ")}]`, n, r: "rgb" };
+  if (kinds.includes("CallExpression")) return { n, reason: `js: calls as ${what} values (d3's runtime interpolate)` };
   if (kinds.includes("ObjectExpression") || kinds.includes("ArrayExpression")) return { n, reason: "js: objects and arrays as range values (d3's runtime interpolate)" };
-  if (kinds.includes("string")) {
-    const colors = what === "range" && node.elements.every((el) => typeof el.value === "string" && color(el.value));
-    return { n, reason: colors ? "gap: phase 7 (color ranges)" : `js: strings as ${what} values (coercion)` };
-  }
+  if (kinds.includes("string")) return { n, reason: `js: strings as ${what} values (coercion)` };
   return { c: `[${node.elements.map((el) => needNum(ex(el, ctx), `a ${what} value`)).join(", ")}]`, n };
 }
 
@@ -64,8 +66,11 @@ function chain(root, steps, ctx) {
   let n = root.n ?? 2;
   const sizes = { domain: { n }, range: { n } };
   const emitted = []; // the lengths of the setters written so far
+  let r = root.r ?? "num"; // the range type
+  const retyped = () => muts && r !== (root.r ?? "num");
+  const SHADOW = "types: a variable whose range changes type (the range type is part of a scale's)";
   // Blocks are parenthesized, so that a method call may follow them in any position.
-  const current = () => (muts ? `({ ${name} = ${name}${muts}; ${name}.clone() })` : code);
+  const current = () => (retyped() ? skip(SHADOW) : muts ? `({ ${name} = ${name}${muts}; ${name}.clone() })` : code);
   const settled = () => {
     const [d, r] = [sizes.domain, sizes.range];
     if (d.n !== r.n) skip("types: a domain and range of different lengths (the type sets the count)");
@@ -79,13 +84,15 @@ function chain(root, steps, ctx) {
     n = d.n;
   };
   const build = (suffix) => (muts !== null ? (muts += suffix) : (code += suffix));
-  const read = (suffix, t) => ({ c: muts ? `({ ${name} = ${name}${muts}; ${name}${suffix} })` : `${code}${suffix}`, t });
+  const read = (suffix, t) => ({ c: retyped() ? skip(SHADOW) : muts ? `({ ${name} = ${name}${muts}; ${name}${suffix} })` : `${code}${suffix}`, t });
   for (const { prop, args } of steps) {
     const arg = (k) => (args[k] ? val(ex(args[k], ctx)) : undefined);
     if (SETTERS[prop] && args.length) {
       const what = prop === "domain" ? "domain" : "range";
       sizes[what] = stops(args[0], what, ctx);
       if (root.tr === "identity") sizes.domain = sizes.range = sizes[what];
+      if (prop === "rangeRound" && sizes.range.r) skip("js: rangeRound over colors (interpolateRound makes NaN)");
+      if (what === "range" && !sizes.range.reason) r = sizes.range.r ?? "num";
       if (!sizes[what].reason) {
         build(`.${SETTERS[prop]}(${sizes[what].c})`);
         emitted.push(sizes[what].n);
@@ -93,10 +100,12 @@ function chain(root, steps, ctx) {
       continue;
     }
     settled();
-    if (prop === "domain" || prop === "range") return read(`.get_${prop}().to_vec()`, "vec");
     if (!args.length && ["clamp", "unknown", "interpolate", ...BUILDERS].includes(prop)) skip(`api: d3's ${prop}() getter (only domain and range have get_)`);
+    if (r !== "num" && ["range", "unknown", "interpolate"].includes(prop)) skip(`gap: phase 23 (${prop} of a color range)`);
+    if (prop === "domain" || prop === "range") return read(`.get_${prop}().to_vec()`, "vec");
     if (prop === "ticks") return read(`.ticks(${count(arg(0))})`, "vec");
     if (prop === "tickFormat") return read(`.tick_format_in(${EN_US}, ${count(arg(0))}, ${specifier(args[1])})`, "result-tickfmt");
+    if (prop === "invert" && r !== "num") skip("types: invert exists only for number ranges (E0599)");
     if (prop === "invert") return read(`.invert(${needNum(arg(0), "inverted value")})`, "num");
     if (prop === "copy") {
       code = current();
@@ -111,7 +120,21 @@ function chain(root, steps, ctx) {
     else build(interpolator(args[0], ctx));
   }
   settled();
-  return { c: current(), t: "scale", tr: root.tr, n, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
+  if (!retyped()) return { c: current(), t: "scale", tr: root.tr, n, r, ...(muts ? { stmt: `${name} = ${name}${muts};` } : {}) };
+  // Only a statement can shadow the variable with the new type.
+  return {
+    get c() {
+      return skip(SHADOW);
+    },
+    t: "scale",
+    tr: root.tr,
+    n,
+    r,
+    get stmt() {
+      root.r = r;
+      return `let mut ${name} = ${name}${muts};`;
+    },
+  };
 }
 
 /** `.interpolate(f)` for d3's number interpolators. */
@@ -130,7 +153,6 @@ export default {
     if (node.type === "NewExpression") skip(`js: new ${name} (coercion)`);
     if (node.callee.property?.name === "filter") skip("js: filter(String) keeps the non-empty labels (truthiness)");
     if (name === "scaleRadial") skip("api: d3's scaleRadial is not part of the design");
-    if (name === "rgb" || name === "hsl") skip("gap: phase 7 (d3-color values)");
     if (MAKE[name]) {
       const [make, tr] = MAKE[name];
       const [d, r] = node.arguments;
@@ -155,7 +177,7 @@ export default {
   },
   apply(target, args) {
     if (args.length !== 1) skip(`js: ${args.length} arguments to a ${target.t} (undefined)`);
-    if (target.t === "scale") return { c: `${target.c}.apply(${needNum(args[0], "scale argument")})`, t: "num" };
+    if (target.t === "scale") return { c: `${target.c}.apply(${needNum(args[0], "scale argument")})`, t: target.r === "rgb" ? "rgb" : "num" };
     if (target.t === "tickfmt" || target.t === "fmt") return { c: `${target.c}.format(${needNum(args[0], "formatted value")})`, t: "str" };
     return undefined;
   },

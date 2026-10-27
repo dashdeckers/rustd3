@@ -4,7 +4,7 @@
 // file-level helpers. d3's own names come from the suite's rules.
 //
 // A translated expression is a typed value {c, t}: c is Rust code, t its
-// type: num (f64), str (&str or String), bool, vec (Vec<f64>; a literal
+// type: num (f64), str (&str or String; a literal keeps its text as `raw`), bool, vec (Vec<f64>; a literal
 // keeps its element code as `items`), strs (a Vec of strings), undef
 // (None), opt (an Option of a number whose None is d3's NaN), fn (a
 // callable taking `arity` f64s and returning `ret`, num by default),
@@ -22,6 +22,15 @@
 //   equal(a, b)                    strictEqual of two such values, as bool code
 //   statement(s, ctx)              a loop's skip reason, by throwing it
 //   display                        [t]: types observed through Display
+//   assertions                     {name: (args, id, ctx) => check code} for
+//                                  a test file's own assertion helpers
+//   assign(node, ctx)              a write to a field (`=`, `+=`, `++`), or
+//                                  undefined where fields are read-only
+//   finish(line)                   each line of a translated test, rewritten
+//                                  once the whole test is read
+// combine(...rules) merges rule sets: the first that answers a hook wins.
+//
+// `assert.strictEqual(x, null)` checks a fallible x for Err, d3's null.
 //
 // Every skip reason starts with the category the report groups by: js:
 // (JavaScript semantics), types: (ruled out by the Rust types), api: (left
@@ -36,6 +45,25 @@ export const skip = (reason) => {
   throw new Skip(reason);
 };
 export const CATEGORIES = ["js", "types", "api", "gap", "helpers"];
+
+/** One rule set from several: lists and maps merged, each hook answered by the first rules that answer it. */
+export function combine(...sets) {
+  const first = (hook) => (...a) => {
+    for (const r of sets) {
+      const out = r[hook]?.(...a);
+      if (out !== undefined) return out;
+    }
+    return undefined;
+  };
+  const hooks = ["call", "method", "field", "apply", "equal", "statement", "assign"];
+  return {
+    ...Object.fromEntries(hooks.map((h) => [h, first(h)])),
+    identifiers: Object.assign({}, ...sets.map((r) => r.identifiers)),
+    assertions: Object.assign({}, ...sets.map((r) => r.assertions)),
+    display: sets.flatMap((r) => r.display ?? []),
+    finish: (line) => sets.reduce((l, r) => r.finish?.(l) ?? l, line),
+  };
+}
 
 const MATH_FNS = { sqrt: "sqrt", abs: "abs", floor: "floor", ceil: "ceil", sin: "sin", cos: "cos", exp: "exp", log: "ln" };
 const MATH_CONSTS = {
@@ -92,11 +120,16 @@ export function ex(node, ctx) {
       const obj = val(ex(node.object, ctx));
       return ctx.rules.field?.(obj, name, ctx, node) ?? skip(`gap: property ${name} of ${obj.t}`);
     }
-    case "AssignmentExpression":
+    case "UpdateExpression":
+      return ctx.rules.assign?.(node, ctx) ?? skip(`gap: ${node.type}`);
+    case "AssignmentExpression": {
+      const assigned = ctx.rules.assign?.(node, ctx);
+      if (assigned) return assigned;
       if (node.left.type !== "MemberExpression") return skip(`gap: assignment`);
       // Later uses of the object see the write, which Rust's read-only fields cannot make.
       if (node.left.object.type === "Identifier") ctx.written.add(node.left.object.name);
       return skip("types: a field write (fields are read-only)");
+    }
     case "SequenceExpression":
       node.expressions.forEach((e) => ex(e, ctx));
       return skip("gap: a sequence expression");
@@ -130,7 +163,7 @@ function literal(node) {
   }
   if (typeof node.value === "string") {
     if (/\p{Surrogate}/u.test(node.value)) skip("js: lone surrogate in a string");
-    return { c: rustStr(node.value), t: "str" };
+    return { c: rustStr(node.value), t: "str", raw: node.value };
   }
   if (typeof node.value === "boolean") return { c: String(node.value), t: "bool" };
   if (typeof node.value === "bigint") return skip("js: BigInt");
@@ -253,10 +286,10 @@ function define(name, h, file) {
 
 const scope = (file) => ({ file, rules: file.rules, vars: new Map(), lets: new Map(), fns: new Map(), used: new Set(), written: new Set() });
 
-function assertionKind(e) {
+function assertionKind(e, rules) {
   if (e?.type !== "CallExpression") return null;
   const c = e.callee;
-  if (c.type === "Identifier" && ASSERTIONS.has(c.name)) return c.name;
+  if (c.type === "Identifier" && (ASSERTIONS.has(c.name) || rules.assertions?.[c.name])) return c.name;
   if (c.type === "MemberExpression" && !c.computed && c.object.type === "Identifier" && c.object.name === "assert") {
     return `assert.${c.property.name}`;
   }
@@ -264,12 +297,12 @@ function assertionKind(e) {
 }
 
 /** Every assertion call under `node`, in source order. */
-function assertionsIn(node) {
+function assertionsIn(node, rules) {
   const found = [];
   (function walk(x) {
     if (Array.isArray(x)) return x.forEach(walk);
     if (!x || typeof x.type !== "string") return;
-    if (assertionKind(x)) found.push(x);
+    if (assertionKind(x, rules)) found.push(x);
     for (const [k, v] of Object.entries(x)) if (k !== "loc" && typeof v === "object") walk(v);
   })(node);
   return found.sort((a, b) => a.start - b.start);
@@ -300,7 +333,7 @@ function statement(s, ctx, out) {
   if (s.type !== "ExpressionStatement") skip(`gap: ${s.type}`);
   const exprs = s.expression.type === "SequenceExpression" ? s.expression.expressions : [s.expression];
   for (const e of exprs) {
-    const kind = assertionKind(e);
+    const kind = assertionKind(e, ctx.rules);
     const local = e.type === "CallExpression" && e.callee.type === "Identifier" && ctx.vars.get(e.callee.name);
     if (kind) {
       assertion(kind, e, ctx, out);
@@ -352,10 +385,16 @@ function check(kind, args, id, ctx) {
     if (v.t === "fn") skip("js: function identity");
     return ctx.rules.display?.includes(v.t) ? `${v.c}.to_string()` : v.c;
   };
+  const custom = ctx.rules.assertions?.[kind];
+  if (custom) return custom(args.map((a) => val(ex(a, ctx))), id, ctx);
   switch (kind) {
     case "assert.strictEqual":
     case "assert.deepStrictEqual":
     case "assert.equal": {
+      if (args[1]?.type === "Literal" && args[1].value === null) {
+        const e = arg(0);
+        return fallible(e.t) ? `check(${id}, Kind::Strict, &${e.c}.is_err(), &true);` : skip("js: null (coercion)");
+      }
       const [a, b] = [val(arg(0)), val(arg(1))];
       const same = ctx.rules.equal?.(a, b);
       if (same) return `check(${id}, Kind::Strict, &${same}, &true);`;
@@ -407,11 +446,12 @@ function translateTest(node, file) {
   } catch (err) {
     if (!(err instanceof Skip)) throw err;
     Object.assign(ctx, scope(file));
-    ctx.asserts = assertionsIn(fn.body).map((a) => ({ id: idOf(a, file), skip: err.message }));
+    ctx.asserts = assertionsIn(fn.body, file.rules).map((a) => ({ id: idOf(a, file), skip: err.message }));
     body = ctx.asserts.map((a) => `skip(${rustStr(a.id)}, ${rustStr(a.skip)});`);
   }
   const line = (l) => (typeof l === "string" ? l : `let mut ${ctx.used.has(l.declares) ? "" : "_"}${l.declares} = ${l.c};`);
-  return { name, lines: [...ctx.lets.values(), ...body.map(line)], asserts: ctx.asserts, fns: ctx.fns };
+  const finish = file.rules.finish ?? ((l) => l);
+  return { name, lines: [...ctx.lets.values(), ...body.map(line)].map(finish), asserts: ctx.asserts, fns: ctx.fns };
 }
 
 const isTest = (node) =>

@@ -8,6 +8,7 @@ mod ticks;
 mod format;
 mod scale;
 mod interpolate;
+mod color;
 
 pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "path", tests: path::TESTS, asserts: path::ASSERTS },
@@ -16,4 +17,5 @@ pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "format", tests: format::TESTS, asserts: format::ASSERTS },
     registry::Suite { name: "scale", tests: scale::TESTS, asserts: scale::ASSERTS },
     registry::Suite { name: "interpolate", tests: interpolate::TESTS, asserts: interpolate::ASSERTS },
+    registry::Suite { name: "color", tests: color::TESTS, asserts: color::ASSERTS },
 ];

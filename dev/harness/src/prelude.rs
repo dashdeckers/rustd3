@@ -8,7 +8,9 @@ use rustd3_testkit::obs::{Obs, ToObs, Token, Tolerance, tokenize};
 
 use crate::record::{self, Mark, Record};
 
+pub(crate) use rustd3_core::color::{Hsl, Rgb};
 pub(crate) use rustd3_core::ease::{Ease, Mode};
+pub(crate) use rustd3_core::interpolate::Interpolate;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
 pub(crate) use rustd3_core::{format, interpolate, scale, ticks};
 
@@ -141,6 +143,47 @@ pub fn js_round(x: f64) -> f64 {
 /// d3-scale's test helper `roundEpsilon(x)`: `x` rounded to 12 decimals.
 pub fn round_epsilon(x: f64) -> f64 {
     js_round(x * 1e12) / 1e12
+}
+
+/// d3.interpolateRgb(a, b) at gamma 1, a closure of `t`.
+pub fn interpolate_rgb(a: Rgb, b: Rgb) -> impl Fn(f64) -> Rgb {
+    move |t| a.lerp(&b, t)
+}
+
+/// d3-color's test helper `assertRgbEqual(c, r, g, b, opacity)`: each
+/// channel equal, NaN matching NaN.
+pub fn rgb_equal(c: &Rgb, r: f64, g: f64, b: f64, opacity: f64) -> bool {
+    let same = |a: f64, e: f64| if e.is_nan() { a.is_nan() } else { a == e };
+    same(c.r, r) && same(c.g, g) && same(c.b, b) && same(c.opacity, opacity)
+}
+
+/// d3-color's test helper `assertRgbApproxEqual(c, r, g, b, opacity)`:
+/// channels equal after `Math.round`, the opacity exactly, NaN matching
+/// NaN.
+pub fn rgb_approx_equal(c: &Rgb, r: f64, g: f64, b: f64, opacity: f64) -> bool {
+    let near = |a: f64, e: f64| {
+        if e.is_nan() {
+            a.is_nan()
+        } else {
+            js_round(a) == js_round(e)
+        }
+    };
+    let same = |a: f64, e: f64| if e.is_nan() { a.is_nan() } else { a == e };
+    near(c.r, r) && near(c.g, g) && near(c.b, b) && same(c.opacity, opacity)
+}
+
+/// d3-color's test helper `assertHslEqual(c, h, s, l, opacity)`: each
+/// component within 1e-6, the opacity exactly, NaN matching NaN.
+pub fn hsl_equal(c: &Hsl, h: f64, s: f64, l: f64, opacity: f64) -> bool {
+    let near = |a: f64, e: f64| {
+        if e.is_nan() {
+            a.is_nan()
+        } else {
+            e - 1e-6 <= a && a <= e + 1e-6
+        }
+    };
+    let same = |a: f64, e: f64| if e.is_nan() { a.is_nan() } else { a == e };
+    near(c.h, h) && near(c.s, s) && near(c.l, l) && same(c.opacity, opacity)
 }
 
 /// d3-ease's test helper `out(easeIn)`: the easing reflected in time and value.
@@ -307,6 +350,28 @@ mod tests {
         assert_eq!(out(quad)(0.25), Ease::Quad(Mode::Out).apply(0.25));
         assert_eq!(in_out(quad)(0.25), 0.125);
         assert_eq!(in_out(quad)(0.75), 0.875);
+    }
+
+    #[test]
+    fn color_helpers_follow_d3_colors_asserts() {
+        let c = Rgb::new(10.4, f64::NAN, 3.0).with_opacity(0.5);
+        assert!(rgb_approx_equal(&c, 10.0, f64::NAN, 3.0, 0.5));
+        assert!(!rgb_approx_equal(&c, 11.0, f64::NAN, 3.0, 0.5));
+        assert!(!rgb_approx_equal(&c, 10.0, 0.0, 3.0, 0.5));
+        assert!(!rgb_equal(&c, 10.0, f64::NAN, 3.0, 0.5));
+        assert!(rgb_equal(&c, 10.4, f64::NAN, 3.0, 0.5));
+        let h = Hsl {
+            h: 120.0000005,
+            s: f64::NAN,
+            l: 0.5,
+            opacity: 1.0,
+        };
+        assert!(hsl_equal(&h, 120.0, f64::NAN, 0.5, 1.0));
+        assert!(!hsl_equal(&h, 120.0, f64::NAN, 0.5, 0.9));
+        assert_eq!(
+            interpolate_rgb(Rgb::new(0.0, 0.0, 0.0), Rgb::new(255.0, 0.0, 0.0))(0.5),
+            Rgb::new(127.5, 0.0, 0.0)
+        );
     }
 
     #[test]

@@ -53,12 +53,66 @@ fn t4() {   // round-test.js: interpolateRound(a, b) gives exact ends for t=0 an
     check("d3-interpolate/test/round-test.js:27:3", Kind::Strict, &interpolate::round(a, b)(0.0), &a);
 }
 
+fn t5() {   // rgb-test.js: interpolateRgb(a, b) converts a and b to RGB colors
+    check("d3-interpolate/test/rgb-test.js:6:3", Kind::Strict, &interpolate_rgb("steelblue".parse::<Rgb>().expect("a CSS color"), "brown".parse::<Rgb>().expect("a CSS color"))(0.0).to_string(), &"steelblue".parse::<Rgb>().expect("a CSS color").to_string());
+    check("d3-interpolate/test/rgb-test.js:7:3", Kind::Strict, &interpolate_rgb("steelblue".parse::<Rgb>().expect("a CSS color"), Rgb::from("brown".parse::<Hsl>().expect("a CSS color")))(1.0).to_string(), &"brown".parse::<Rgb>().expect("a CSS color").to_string());
+    check("d3-interpolate/test/rgb-test.js:8:3", Kind::Strict, &interpolate_rgb("steelblue".parse::<Rgb>().expect("a CSS color"), "brown".parse::<Rgb>().expect("a CSS color"))(1.0).to_string(), &"brown".parse::<Rgb>().expect("a CSS color").to_string());
+}
+
+fn t6() {   // rgb-test.js: interpolateRgb(a, b) interpolates in RGB and returns an RGB string
+    check("d3-interpolate/test/rgb-test.js:12:3", Kind::Strict, &interpolate_rgb("steelblue".parse::<Rgb>().expect("a CSS color"), "#f00".parse::<Rgb>().expect("a CSS color"))(0.2).to_string(), &"rgb(107, 104, 144)");
+    check("d3-interpolate/test/rgb-test.js:13:3", Kind::Strict, &interpolate_rgb("rgba(70, 130, 180, 1)".parse::<Rgb>().expect("a CSS color"), "rgba(255, 0, 0, 0.2)".parse::<Rgb>().expect("a CSS color"))(0.2).to_string(), &"rgba(107, 104, 144, 0.84)");
+}
+
+fn t7() {   // rgb-test.js: interpolateRgb(a, b) uses b’s channel value when a’s channel value is undefined
+    skip("d3-interpolate/test/rgb-test.js:17:3", "js: null (coercion)");
+    check("d3-interpolate/test/rgb-test.js:18:3", Kind::Strict, &interpolate_rgb(Rgb::new(f64::NAN, 20.0, 40.0), Rgb::new(60.0, 80.0, 100.0))(0.5).to_string(), &Rgb::new(60.0, 50.0, 70.0).to_string());
+    check("d3-interpolate/test/rgb-test.js:19:3", Kind::Strict, &interpolate_rgb(Rgb::new(20.0, f64::NAN, 40.0), Rgb::new(60.0, 80.0, 100.0))(0.5).to_string(), &Rgb::new(40.0, 80.0, 70.0).to_string());
+    check("d3-interpolate/test/rgb-test.js:20:3", Kind::Strict, &interpolate_rgb(Rgb::new(20.0, 40.0, f64::NAN), Rgb::new(60.0, 80.0, 100.0))(0.5).to_string(), &Rgb::new(40.0, 60.0, 100.0).to_string());
+}
+
+fn t8() {   // rgb-test.js: interpolateRgb(a, b) uses a’s channel value when b’s channel value is undefined
+    skip("d3-interpolate/test/rgb-test.js:24:3", "js: null (coercion)");
+    check("d3-interpolate/test/rgb-test.js:25:3", Kind::Strict, &interpolate_rgb(Rgb::new(60.0, 80.0, 100.0), Rgb::new(f64::NAN, 20.0, 40.0))(0.5).to_string(), &Rgb::new(60.0, 50.0, 70.0).to_string());
+    check("d3-interpolate/test/rgb-test.js:26:3", Kind::Strict, &interpolate_rgb(Rgb::new(60.0, 80.0, 100.0), Rgb::new(20.0, f64::NAN, 40.0))(0.5).to_string(), &Rgb::new(40.0, 80.0, 70.0).to_string());
+    check("d3-interpolate/test/rgb-test.js:27:3", Kind::Strict, &interpolate_rgb(Rgb::new(60.0, 80.0, 100.0), Rgb::new(20.0, 40.0, f64::NAN))(0.5).to_string(), &Rgb::new(40.0, 60.0, 100.0).to_string());
+}
+
+fn t9() {   // rgb-test.js: interpolateRgb.gamma(3)(a, b) returns the expected values
+    skip("d3-interpolate/test/rgb-test.js:31:3", "gap: phase 23 (interpolateRgb.gamma)");
+}
+
+fn t10() {   // rgb-test.js: interpolateRgb.gamma(3)(a, b) uses linear interpolation for opacity
+    skip("d3-interpolate/test/rgb-test.js:35:3", "gap: phase 23 (interpolateRgb.gamma)");
+}
+
+fn t11() {   // rgb-test.js: interpolateRgb.gamma(g) coerces the specified gamma to a number
+    skip("d3-interpolate/test/rgb-test.js:39:3", "js: object argument (valueOf coercion)");
+}
+
+fn t12() {   // rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)
+    skip("d3-interpolate/test/rgb-test.js:45:3", "gap: phase 23 (interpolateRgb.gamma)");
+    skip("d3-interpolate/test/rgb-test.js:46:3", "gap: phase 23 (interpolateRgb.gamma)");
+    skip("d3-interpolate/test/rgb-test.js:47:3", "gap: phase 23 (interpolateRgb.gamma)");
+    skip("d3-interpolate/test/rgb-test.js:48:3", "gap: phase 23 (interpolateRgb.gamma)");
+    skip("d3-interpolate/test/rgb-test.js:49:3", "gap: phase 23 (interpolateRgb.gamma)");
+    skip("d3-interpolate/test/rgb-test.js:50:3", "gap: phase 23 (interpolateRgb.gamma)");
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "number-test.js: interpolateNumber(a, b) interpolates between two numbers a and b", run: t0 },
     Test { name: "number-test.js: interpolateNumber(a, b) gives exact ends for t=0 and t=1", run: t1 },
     Test { name: "round-test.js: interpolateRound(a, b) interpolates between two numbers a and b, and then rounds", run: t2 },
     Test { name: "round-test.js: interpolateRound(a, b) does not pre-round a and b", run: t3 },
     Test { name: "round-test.js: interpolateRound(a, b) gives exact ends for t=0 and t=1", run: t4 },
+    Test { name: "rgb-test.js: interpolateRgb(a, b) converts a and b to RGB colors", run: t5 },
+    Test { name: "rgb-test.js: interpolateRgb(a, b) interpolates in RGB and returns an RGB string", run: t6 },
+    Test { name: "rgb-test.js: interpolateRgb(a, b) uses b’s channel value when a’s channel value is undefined", run: t7 },
+    Test { name: "rgb-test.js: interpolateRgb(a, b) uses a’s channel value when b’s channel value is undefined", run: t8 },
+    Test { name: "rgb-test.js: interpolateRgb.gamma(3)(a, b) returns the expected values", run: t9 },
+    Test { name: "rgb-test.js: interpolateRgb.gamma(3)(a, b) uses linear interpolation for opacity", run: t10 },
+    Test { name: "rgb-test.js: interpolateRgb.gamma(g) coerces the specified gamma to a number", run: t11 },
+    Test { name: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", run: t12 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -89,4 +143,26 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-interpolate/test/round-test.js:21:3", test: "round-test.js: interpolateRound(a, b) does not pre-round a and b", skip: None },
     Assertion { id: "d3-interpolate/test/round-test.js:26:3", test: "round-test.js: interpolateRound(a, b) gives exact ends for t=0 and t=1", skip: None },
     Assertion { id: "d3-interpolate/test/round-test.js:27:3", test: "round-test.js: interpolateRound(a, b) gives exact ends for t=0 and t=1", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:6:3", test: "rgb-test.js: interpolateRgb(a, b) converts a and b to RGB colors", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:7:3", test: "rgb-test.js: interpolateRgb(a, b) converts a and b to RGB colors", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:8:3", test: "rgb-test.js: interpolateRgb(a, b) converts a and b to RGB colors", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:12:3", test: "rgb-test.js: interpolateRgb(a, b) interpolates in RGB and returns an RGB string", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:13:3", test: "rgb-test.js: interpolateRgb(a, b) interpolates in RGB and returns an RGB string", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:17:3", test: "rgb-test.js: interpolateRgb(a, b) uses b’s channel value when a’s channel value is undefined", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:18:3", test: "rgb-test.js: interpolateRgb(a, b) uses b’s channel value when a’s channel value is undefined", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:19:3", test: "rgb-test.js: interpolateRgb(a, b) uses b’s channel value when a’s channel value is undefined", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:20:3", test: "rgb-test.js: interpolateRgb(a, b) uses b’s channel value when a’s channel value is undefined", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:24:3", test: "rgb-test.js: interpolateRgb(a, b) uses a’s channel value when b’s channel value is undefined", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:25:3", test: "rgb-test.js: interpolateRgb(a, b) uses a’s channel value when b’s channel value is undefined", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:26:3", test: "rgb-test.js: interpolateRgb(a, b) uses a’s channel value when b’s channel value is undefined", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:27:3", test: "rgb-test.js: interpolateRgb(a, b) uses a’s channel value when b’s channel value is undefined", skip: None },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:31:3", test: "rgb-test.js: interpolateRgb.gamma(3)(a, b) returns the expected values", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:35:3", test: "rgb-test.js: interpolateRgb.gamma(3)(a, b) uses linear interpolation for opacity", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:39:3", test: "rgb-test.js: interpolateRgb.gamma(g) coerces the specified gamma to a number", skip: Some("js: object argument (valueOf coercion)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:45:3", test: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:46:3", test: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:47:3", test: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:48:3", test: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:49:3", test: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
+    Assertion { id: "d3-interpolate/test/rgb-test.js:50:3", test: "rgb-test.js: interpolateRgb(a, b) is equivalent to interpolateRgb.gamma(1)(a, b)", skip: Some("gap: phase 23 (interpolateRgb.gamma)") },
 ];
