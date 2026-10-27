@@ -155,6 +155,8 @@ and d3; (11) is what matplotlib draws.
 
 ### Followups
 
+- D16.4 replaces the ink anchors of (13) for unrotated tick labels with the font's line metrics.
+
 - Phase 15: `Theme` gains `line_width` (2 px), `marker` (8 px) and
   `palette` (`scheme::COLORBLIND`, referenced); marks draw between the
   panel background and the border; `part::Role` gains `Mark` (6).

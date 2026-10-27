@@ -61,7 +61,7 @@ that the collision pass thins on narrow axes, where the multiplier keeps
 
 ## D16.1 — Details of Phase 16 that the section leaves open, or that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 16, 93e6c77 … bf5aa9f · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 16, 93e6c77 … bf5aa9f · **Status:** decided
 
 ### Issue
 
@@ -114,7 +114,8 @@ that the collision pass thins on narrow axes, where the multiplier keeps
 
 ### Decision
 
-Recommended: A for all seven, already built.
+A for all seven (architect, 2026-10-27), as built, including the public
+readers `Resolved::plan(panel, axis)` and `Resolved::label_boxes()`.
 
 ### Why
 
@@ -133,7 +134,7 @@ the prototype; (7) keeps the snapshot a separate, reviewable change.
 
 ## D16.2 — Which axes take offset and multiplier notation
 
-**Date:** 2026-10-27 · **Context:** Phase 16, step 5 (b3cc704) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 16, step 5 (b3cc704) · **Status:** decided
 
 ### Issue
 
@@ -166,8 +167,9 @@ checks of a closed list (missing piecewise scales and user transforms).
 
 ### Decision
 
-Recommended: A, built: notation is a property of linear ticks, which is
-what "a translated linear set with the same step" presupposes.
+A (architect, 2026-10-27): offset and multiplier notation applies only
+when the ticks lie evenly on d3's linear grid, so log axes keep d3's
+labels and blanking.
 
 ### Why
 
@@ -184,7 +186,7 @@ inherit this rule.
 
 ## D16.3 — The stacked-rows spot row cannot drop "100" under Phase 14's overhangs
 
-**Date:** 2026-10-27 · **Context:** Phase 16, step 3 (11abfc5) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 16, step 3 (11abfc5) · **Status:** decided
 
 ### Issue
 
@@ -220,7 +222,9 @@ held right panel's "−100 000" gives way to the larger left panel's
 
 ### Decision
 
-Recommended: A, built.
+A (architect, 2026-10-27): the larger-panel rule is tested at a gap of
+−12 px and in held layout; the stacked-rows row as written cannot hold
+under Phase 14's reserved overhangs.
 
 ### Why
 
@@ -233,3 +237,63 @@ wherever labels exceed their reaches.
 
 Phase 33's band check reads the band counts above (unchanged); Phase 20's
 gestures meet the held case this entry tests.
+
+## D16.4 — Tick labels share a baseline; blanked ticks draw at minor size
+
+**Date:** 2026-10-27 · **Context:** the architect's renders after Phase 16 (24ff2c7) · **Status:** decided
+
+### Issue
+
+1. **Labels of one axis do not share a baseline.** D14.1 (13) anchors
+   a bottom axis's labels at their ink top and a top axis's at their
+   ink bottom (left and right at the ink middle). On a 2×2 render at 2×
+   the band labels "alpha", "beta", "gamma" sit at three heights on
+   both the bottom and the top axis (ascenders and descenders move the
+   ink box), and months with descenders sit higher on a top axis.
+   matplotlib places tick labels by the font's line metrics, not ink:
+   `va='top'` (bottom axis), `'bottom'` (top axis) and
+   `'center_baseline'` (y axes), so a row of labels shares one baseline.
+2. **d3's log ticks draw as a dense comb.** A log axis over five decades
+   draws all 45 of d3's ticks (1–9 per decade) at the major size, of
+   which d3's format labels only 1 and 2 per decade. matplotlib draws
+   the unlabeled multiples as minor ticks (seaborn notebook: 4 px by
+   1.0 px against 6 by 1.25).
+
+### Options
+
+| | **A — metric anchors; blanked ticks at minor size** | B — as built |
+| --- | --- | --- |
+| Approach | Anchor tick labels by the font's line metrics at the label's size (typst's frame baseline plus the face's ascender and descender), as matplotlib does; a tick whose label the scale's format leaves `""` draws at the theme's minor tick size and width | Ink anchors, every tick at the major size |
+| Cost | Small: the anchor computation in axis drawing and layout's label boxes; one rule in tick drawing | — |
+| Correctness | One baseline per row; log axes read like matplotlib's with d3's values | Visibly ragged labels; a comb on every log axis |
+
+### Decision
+
+A (architect, 2026-10-27), done before Phase 17's own steps:
+
+1. **Metric anchors.** A bottom axis puts each label's first-line
+   baseline at tick end + pad + the face's ascender at the label size;
+   a top axis puts its last-line baseline at tick end − pad − the face's
+   descender; left and right axes center the line box (ascender to
+   descender) of a one-line label on the tick, so its baseline is at
+   tick + (ascender − descender) / 2 (y down). Multi-line and math
+   labels keep their first (bottom axis) or last (top axis) baseline on
+   the row's baseline; their ink may extend past the pad, and layout's
+   boxes are the metric boxes united with the ink. Rotated labels keep
+   D14.1's anchors. Titles keep theirs.
+2. **Blanked ticks.** On figure axes, a tick whose label the scale's
+   tick format leaves empty (d3's log blanking) is drawn at the theme's
+   minor tick size and width (seaborn notebook 4 px, 1.0 px; Phase 35
+   makes them themable). Labels dropped by collisions keep the major
+   size, so ticks do not change length while panning.
+
+### Why
+
+Both are what a reader of a matplotlib or seaborn figure expects, and
+both are cheap now and expensive after the widget's snapshots (Phases
+18–21) bless the current look.
+
+### Followups
+
+- Supersedes the ink anchors of D14.1 (13) for unrotated tick labels.
+- Phase 35: the minor tick size and width are theme values.
