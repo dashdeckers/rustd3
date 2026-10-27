@@ -3,8 +3,9 @@
 //! nanoseconds.
 
 use rustd3_core::jiff::Timestamp;
+use rustd3_core::jiff::civil::Weekday;
 use rustd3_core::jiff::tz::TimeZone;
-use rustd3_core::time;
+use rustd3_core::time::{self, Interval};
 use rustd3_testkit::zone;
 
 use super::{at, local, local_hour};
@@ -129,4 +130,126 @@ fn a_microsecond_in_2026_maps_to_the_nanosecond() {
         let t = plus(t0, ns);
         assert_eq!(x.invert(x.apply(t)), t, "{ns} ns");
     }
+}
+
+#[test]
+fn berlin_ticks() {
+    let x = berlin_day();
+    assert_eq!(x.tick_interval(8), Interval::Hour(3));
+    let ticks = [
+        "2026-10-24T22:00:00Z",
+        "2026-10-25T02:00:00Z",
+        "2026-10-25T05:00:00Z",
+        "2026-10-25T08:00:00Z",
+        "2026-10-25T11:00:00Z",
+        "2026-10-25T14:00:00Z",
+        "2026-10-25T17:00:00Z",
+        "2026-10-25T20:00:00Z",
+        "2026-10-25T23:00:00Z",
+    ];
+    assert_eq!(x.ticks(8), ticks.map(at));
+    let berlin = zone("Europe/Berlin");
+    let hours: Vec<i8> = x
+        .ticks(8)
+        .iter()
+        .map(|&t| berlin.to_datetime(t).hour())
+        .collect();
+    assert_eq!(hours, [0, 3, 6, 9, 12, 15, 18, 21, 0]);
+}
+
+#[test]
+fn ticks_lay_out_in_the_scales_zone_or_count_days_from_1970_in_utc() {
+    let la = zone("America/Los_Angeles");
+    let span = [local(&la, 2011, 1, 1), local(&la, 2011, 1, 9)];
+    let x = time::time(la.clone()).domain(span);
+    assert_eq!(x.tick_interval(4), Interval::Day(2));
+    assert_eq!(x.ticks(4), [1, 3, 5, 7, 9].map(|d| local(&la, 2011, 1, d)));
+    let u = time::utc().domain(span);
+    assert_eq!(u.tick_interval(4), Interval::UnixDay(2));
+    let utc_days = [2, 4, 6, 8].map(|d| at(&format!("2011-01-{d:02}T00:00:00Z")));
+    assert_eq!(u.ticks(4), utc_days);
+    let years = time::time(la.clone()).domain([local(&la, 2000, 1, 1), local(&la, 2100, 1, 1)]);
+    let every_20 = [2000, 2020, 2040, 2060, 2080, 2100].map(|y| local(&la, y, 1, 1));
+    assert_eq!(years.ticks(5), every_20);
+    let noon = local_hour(&la, 2011, 1, 1, 12);
+    let second = time::time(la.clone()).domain([noon, plus(noon, 1_000_000_000)]);
+    let fifths = [0, 200, 400, 600, 800, 1_000].map(|ms| plus(noon, ms * 1_000_000));
+    assert_eq!(second.ticks(4), fifths);
+    let minutes = second
+        .clone()
+        .domain([noon, plus(noon, 33 * 60_000_000_000 + 4_000_000_000)]);
+    let every_10 = minutes.ticks_with(Interval::Minute(10));
+    assert_eq!(
+        every_10,
+        [0, 10, 20, 30].map(|m| plus(noon, m * 60_000_000_000))
+    );
+}
+
+#[test]
+fn equal_ends_tick_once_and_reversed_domains_tick_backwards() {
+    let la = zone("America/Los_Angeles");
+    let t = at("2009-01-01T08:12:00Z");
+    let flat = time::time(la.clone()).domain([t, t]);
+    assert_eq!(flat.ticks(10), [t]);
+    assert_eq!(flat.clone().nice(10).get_domain(), [t, t]);
+    let back = time::time(la.clone()).domain([local(&la, 2014, 3, 2), local(&la, 2010, 12, 18)]);
+    let years = [2014, 2013, 2012, 2011].map(|y| local(&la, y, 1, 1));
+    assert_eq!(back.ticks(4), years);
+}
+
+#[test]
+fn ticks_go_below_a_millisecond_in_a_scale() {
+    let t0 = at("2026-10-25T12:00:00Z");
+    let micro = time::utc().domain([t0, plus(t0, 10_000)]);
+    assert_eq!(micro.tick_interval(5), Interval::Microsecond(2));
+    let expected = [0, 2_000, 4_000, 6_000, 8_000, 10_000].map(|ns| plus(t0, ns));
+    assert_eq!(micro.ticks(5), expected);
+    let nano = time::time(zone("Europe/Berlin")).domain([t0, plus(t0, 100)]);
+    assert_eq!(nano.tick_interval(10), Interval::Nanosecond(10));
+    assert_eq!(
+        nano.ticks(10),
+        (0..=10).map(|i| plus(t0, 10 * i)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn nice_extends_the_ends_to_the_tick_interval() {
+    let la = zone("America/Los_Angeles");
+    let day =
+        time::time(la.clone()).domain([at("2009-01-01T08:12:00Z"), at("2009-01-02T07:48:00Z")]);
+    assert_eq!(
+        day.clone().nice(10).get_domain(),
+        [at("2009-01-01T08:00:00Z"), at("2009-01-02T08:00:00Z")]
+    );
+    let centuries = time::time(la.clone()).domain([local(&la, 2001, 1, 1), local(&la, 2138, 1, 1)]);
+    assert_eq!(
+        centuries.nice(10).get_domain(),
+        [local(&la, 2000, 1, 1), local(&la, 2140, 1, 1)]
+    );
+    let weeks = day.clone().nice_with(Interval::Week(Weekday::Sunday, 2));
+    assert_eq!(
+        weeks.get_domain(),
+        [local(&la, 2008, 12, 21), local(&la, 2009, 1, 4)]
+    );
+    let back = time::time(la.clone())
+        .domain([
+            plus(local_hour(&la, 2011, 1, 3, 12), 7 * 60_000_000_000),
+            local_hour(&la, 2011, 1, 1, 13),
+        ])
+        .nice(10);
+    assert_eq!(
+        back.get_domain(),
+        [at("2011-01-04T02:00:00Z"), at("2011-01-01T20:00:00Z")]
+    );
+}
+
+#[test]
+fn nice_of_zero_and_past_jiffs_range_leave_the_domain() {
+    let la = zone("America/Los_Angeles");
+    let noon = local_hour(&la, 2011, 1, 1, 12);
+    let x = time::time(la.clone()).domain([plus(noon, 7), plus(noon, 1_000_000_000)]);
+    assert_eq!(x.clone().nice(0), x);
+    let edge = time::utc().domain([plus(Timestamp::MIN, 1), plus(Timestamp::MAX, -1)]);
+    assert_eq!(edge.clone().nice_with(Interval::Year(1)), edge);
+    assert_eq!(edge.clone().nice_with(Interval::Nanosecond(1)), edge);
 }

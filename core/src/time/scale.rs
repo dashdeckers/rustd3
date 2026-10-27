@@ -1,6 +1,8 @@
 //! [`Time`], d3's time scale with an explicit zone, computing in `i128`
 //! nanoseconds from the domain's start.
 
+mod ticks;
+
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
