@@ -3,9 +3,9 @@
 //! factor and composited onto the screenshot's background.
 
 use rustd3_figure::kurbo::{self, Rect};
-use rustd3_figure::list::{Bounds, Outlines};
+use rustd3_figure::list::{Bounds, List, Outlines};
 use rustd3_figure::raster::{self, Settings, Simd};
-use rustd3_figure::{Cache, Figure, Held, Target};
+use rustd3_figure::{Cache, Figure, Held, Target, layout};
 
 /// `fig` at `size` logical px and `scale` device px per px, as the PNG
 /// output renders it (single-threaded, baseline SIMD), composited
@@ -22,13 +22,42 @@ pub fn png_of(
         Target::Screen { scale },
         &Held::default(),
     );
+    png_of_list(&list, size, scale, background)
+}
+
+/// As [`png_of`], laid out in the plot areas `areas` a gesture holds.
+pub fn png_held(
+    fig: &Figure<'_>,
+    size: kurbo::Size,
+    scale: f64,
+    background: iced::Color,
+    areas: &layout::Areas,
+) -> raster::Image {
+    let list = fig.draw_held(
+        &mut Cache::default(),
+        size,
+        Target::Screen { scale },
+        &Held::default(),
+        areas,
+    );
+    png_of_list(&list, size, scale, background)
+}
+
+/// `list` rendered as the PNG output renders it, composited source-over
+/// onto `background`.
+fn png_of_list(
+    list: &List,
+    size: kurbo::Size,
+    scale: f64,
+    background: iced::Color,
+) -> raster::Image {
     let mut image = raster::Renderer::new(Settings {
         threads: 0,
         simd: Simd::Baseline,
     })
     .render(
-        &list,
-        &Bounds::of(&list, &mut Outlines::default()),
+        list,
+        &Bounds::of(list, &mut Outlines::default()),
         Rect::from_origin_size((0.0, 0.0), size),
         scale,
     )

@@ -64,6 +64,11 @@ impl Key {
         }
     }
 
+    /// The handle's position in the scale table.
+    pub(crate) fn index(self) -> usize {
+        self.index
+    }
+
     /// Whether `resolved` has a scale of this key's type at its position.
     fn names(self, resolved: &Resolved) -> bool {
         resolved
@@ -118,6 +123,22 @@ impl Domains {
     /// The gesture ended: published domains are the app's from now on.
     pub(crate) fn release(&mut self) {
         self.pending.clear();
+    }
+
+    /// Whether a gesture changed `key` since its last reset.
+    pub(crate) fn is_touched(&self, key: Key) -> bool {
+        self.touched.contains(&key)
+    }
+
+    /// Returns `key` to its fitted domain: the widget's own scale and the
+    /// published one go, so the figure resolves the handle as it is built;
+    /// it is no longer touched; its zoom and its preview view start afresh.
+    pub(crate) fn reset(&mut self, key: Key) {
+        self.owned.remove(&key);
+        self.pending.remove(&key);
+        self.touched.remove(&key);
+        self.zooms.remove(&key);
+        self.views.remove(&key);
     }
 
     /// Drops everything kept for handles whose position names a scale of

@@ -79,6 +79,9 @@ pub(crate) struct State {
     map: region::Map,
     /// The keyboard modifiers last reported.
     modifiers: Modifiers,
+    /// Published handles a double click reset: the next resolve publishes
+    /// their fitted domains.
+    resets: Vec<Key>,
 }
 
 /// What queuing a pointer asks of the shell.
@@ -126,6 +129,7 @@ impl Default for State {
             resolved: None,
             map: region::Map::default(),
             modifiers: Modifiers::NONE,
+            resets: Vec::new(),
         }
     }
 }
@@ -200,11 +204,10 @@ impl State {
             Pointer::Released {
                 button: Button::Left,
             } => Some(redraw),
-            Pointer::Modifiers(_) => Some(Queued::default()),
-            Pointer::Pressed { .. }
-            | Pointer::Released { .. }
-            | Pointer::DoubleClicked { .. }
-            | Pointer::Left => None,
+            // A double click comes from translating `RedrawRequested`,
+            // which applies it next.
+            Pointer::Modifiers(_) | Pointer::DoubleClicked { .. } => Some(Queued::default()),
+            Pointer::Pressed { .. } | Pointer::Released { .. } | Pointer::Left => None,
             _ => None,
         };
         if queued.is_some() {
@@ -232,9 +235,11 @@ impl State {
     ) -> (usize, Vec<Message>) {
         self.frame += 1;
         self.budget.frame(now);
-        let messages = self.apply(now, listeners);
+        let mut messages = self.apply(now, listeners);
         let changed = if messages.is_empty() {
-            self.refresh(figure, factor, pipeline)
+            let (changed, published) = self.refresh(figure, factor, pipeline, listeners);
+            messages = published;
+            changed
         } else {
             0
         };
@@ -268,7 +273,30 @@ impl State {
         let mut messages = Vec::new();
         let mut fresh = Vec::new();
         let mut changed = false;
-        for pointer in self.input.take() {
+        let queued = self.input.take();
+        let double = queued.iter().find_map(|pointer| match *pointer {
+            Pointer::DoubleClicked { x, y } => Some(kurbo::Point::new(x, y)),
+            Pointer::Pressed { .. }
+            | Pointer::Moved { .. }
+            | Pointer::Released { .. }
+            | Pointer::Wheel { .. }
+            | Pointer::Modifiers(_)
+            | Pointer::Left => None,
+            _ => None,
+        });
+        if let Some(at) = double {
+            // The rest of the queue belongs to the double click: the drag
+            // its second press would start ends without moving anything.
+            for pointer in &queued {
+                if let Pointer::Modifiers(modifiers) = *pointer {
+                    self.modifiers = modifiers;
+                }
+            }
+            self.end(&mut fresh, listeners, &mut messages);
+            changed |= self.reset(self.map.at(at), listeners);
+        }
+        let queued = if double.is_some() { Vec::new() } else { queued };
+        for pointer in queued {
             match pointer {
                 Pointer::Wheel { x, y, .. } => {
                     let region = self.map.at(kurbo::Point::new(x, y));
@@ -327,6 +355,32 @@ impl State {
             self.stale = true;
         }
         messages
+    }
+
+    /// Resets every handle the panel of `region` zooms that a gesture
+    /// touched: the widget's own scales go (the figure refits them and the
+    /// hold ends), published ones leave `pending` and the next resolve
+    /// publishes their fitted domains; their zooms and preview views start
+    /// afresh. True when any was reset.
+    fn reset<Message>(&mut self, region: Region, listeners: &[Listener<'_, Message>]) -> bool {
+        let Some(panel) = region.panel() else {
+            return false;
+        };
+        let mut reset = false;
+        for (key, _) in self.map.tracks(Region::Area { panel }) {
+            if !self.domains.is_touched(key) {
+                continue;
+            }
+            if listeners.iter().any(|listener| listener.key() == key) {
+                self.resets.push(key);
+            }
+            self.domains.reset(key);
+            reset = true;
+        }
+        if reset {
+            self.stale = true;
+        }
+        reset
     }
 
     /// Starts a gesture of `kind` over `region` when it has zoomable
@@ -432,15 +486,23 @@ impl State {
     /// Resolves `figure` once at the widget's size for the screen at
     /// `factor`, with the gestures' domains as overrides (pending winning
     /// over owned) and, during a gesture, in the plot areas it holds;
-    /// drops what the widget keeps for handles whose type changed; draws
-    /// the figure, cuts the list into cells at every plot-area edge, and
-    /// renders the cells whose content hash changed: inline, shown at
-    /// once, or as a job set that replaces the worker's pending one, as
-    /// `pipeline.render` asks or, for `Auto`, as the cost model predicts
-    /// against the frame budget. Returns how many changed.
-    fn refresh(&mut self, figure: &Figure<'_>, factor: f32, pipeline: &Pipeline<'_>) -> usize {
+    /// drops what the widget keeps for handles whose type changed. When a
+    /// double click reset published handles, returns their fitted domains
+    /// as messages for `listeners` and draws nothing in this pass.
+    /// Otherwise draws the figure, cuts the list into cells at every
+    /// plot-area edge, and renders the cells whose content hash changed:
+    /// inline, shown at once, or as a job set that replaces the worker's
+    /// pending one, as `pipeline.render` asks or, for `Auto`, as the cost
+    /// model predicts against the frame budget. Returns how many changed.
+    fn refresh<Message>(
+        &mut self,
+        figure: &Figure<'_>,
+        factor: f32,
+        pipeline: &Pipeline<'_>,
+        listeners: &[Listener<'_, Message>],
+    ) -> (usize, Vec<Message>) {
         if !self.stale && self.factor == Some(factor) {
-            return 0;
+            return (0, Vec::new());
         }
         self.stale = false;
         self.factor = Some(factor);
@@ -452,7 +514,7 @@ impl State {
             self.hits = hit::Index::default();
             self.map = region::Map::default();
             self.resolved = None;
-            return 0;
+            return (0, Vec::new());
         }
         let probe = pipeline.probe;
         let target = Target::Screen { scale: k };
@@ -465,9 +527,23 @@ impl State {
         };
         self.domains.prune(&resolved);
         self.map = region::Map::of(&resolved);
+        // A reset's published handles get their fitted domains; the app
+        // rebuilds the view with them, and the next pass draws.
+        let fitted: Vec<Message> = std::mem::take(&mut self.resets)
+            .into_iter()
+            .filter_map(|key| {
+                let listener = listeners.iter().find(|listener| listener.key() == key)?;
+                listener.publish(resolved.scale_at(key.index())?)
+            })
+            .collect();
+        if !fitted.is_empty() {
+            self.stale = true;
+            self.resolved = Some(resolved);
+            return (0, fitted);
+        }
         let changed = self.repaint(figure, &resolved, k, pipeline, start);
         self.resolved = Some(resolved);
-        changed
+        (changed, Vec::new())
     }
 
     /// Draws `resolved` (of `figure`, the probe's clock read at `start`

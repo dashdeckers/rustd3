@@ -1,7 +1,9 @@
 //! Gestures through the headless harness on the backend `ICED_TEST_BACKEND`
 //! names: wheel zooms around the cursor, over a plot area or an axis, one
-//! message per handle per frame, twin handles, and steps the scale
-//! rejects.
+//! message per handle per frame, twin handles, steps the scale rejects;
+//! drags and batched updates; the cursor; scaled previews; double clicks;
+//! the overlay when the pointer leaves; and the pixels against the PNG of
+//! the published domains.
 
 use std::sync::mpsc;
 use std::time::Duration;
@@ -904,6 +906,219 @@ fn zoom_shows_a_scaled_preview_at_once() {
         assert!(
             diff.max() <= 1,
             "{backend}, k = {k}: max {}/255",
+            diff.max()
+        );
+    }
+}
+
+/// x fitted to forty dots in [2.5, 100] and published,
+/// y fixed at [0, 10] and the widget's; the panel zooms both. The app
+/// hears x but builds it fitted whatever it heard.
+struct Fitted {
+    heard: Vec<[f64; 2]>,
+    k: f32,
+}
+
+impl Fitted {
+    fn figure() -> (Figure<'static>, ScaleRef<Linear>) {
+        let mut fig = Figure::new();
+        let x = fig.fit(scale::linear());
+        let y = fig.scale(scale::linear().domain([0.0, 10.0]));
+        let points: Vec<(f64, f64)> = (0..40)
+            .map(|i| {
+                let t = f64::from(i) / 40.0;
+                (100.0 * t + 2.5, 10.0 * (t * 9.0).sin().abs())
+            })
+            .collect();
+        fig.panel(0, 0)
+            .mark(dots(points, x, y))
+            .axis(axis::left(y))
+            .axis(axis::bottom(x))
+            .zoom_x(x)
+            .zoom_y(y);
+        (fig, x)
+    }
+}
+
+impl App for Fitted {
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::X(d) => self.heard.push(d),
+            Message::Y(_) | Message::Vib(_) | Message::Temp(_) => {}
+        }
+    }
+
+    fn view(&self) -> Plot<'static, Message> {
+        let (fig, x) = Fitted::figure();
+        Plot::new(fig)
+            .scale_factor(self.k)
+            .render(Render::Inline)
+            .crosshair(false)
+            .highlight(false)
+            .on_change(x, Message::X)
+    }
+}
+
+/// A wheel zoom over `Fitted`'s plot area, its end, then two left clicks
+/// `apart` and `away` px apart over it; the frame after the second click
+/// and what the app heard from it, and the frame before the clicks.
+fn clicks(apart: Duration, away: f32) -> Option<(Shot, Shot, Vec<Message>, Fitted, String)> {
+    let k = 1.0;
+    let mut app = Fitted {
+        heard: Vec::new(),
+        k,
+    };
+    let area = areas(&Fitted::figure().0, k)[0];
+    let mut harness = Harness::new(app.view(), SIZE, k)?;
+    let backend = harness.backend();
+    let t0 = headless::epoch();
+    let (fresh, _) = run_frame(&mut harness, &mut app, t0);
+    let at = Point::new(area.center().x as f32, area.center().y as f32);
+    harness.point_at(at);
+    let _ = harness.events(&[lines(3.0)]);
+    let _ = run_frame(&mut harness, &mut app, t0 + FRAME);
+    assert_eq!(app.heard.len(), 1, "{backend}: the zoom is published");
+    // The wheel gesture ends; the app built x fitted all along, y is the
+    // widget's zoomed domain.
+    let t1 = t0 + Duration::from_secs(1);
+    let (zoomed, _) = run_frame(&mut harness, &mut app, t1);
+    assert_ne!(zoomed.rgba, fresh.rgba, "{backend}: y is zoomed");
+    let click = |harness: &mut Harness<'static, Message>, at: Point| {
+        let _ = Step::Press(at).send(harness);
+        let _ = Step::Release.send(harness);
+    };
+    click(&mut harness, at);
+    let _ = run_frame(&mut harness, &mut app, t1 + FRAME);
+    click(&mut harness, Point::new(at.x + away, at.y));
+    let (shot, messages) = run_frame(&mut harness, &mut app, t1 + FRAME + apart);
+    Some((shot, zoomed, messages, app, backend))
+}
+
+#[test]
+fn double_click_resets_touched_handles() {
+    let Some((shot, zoomed, messages, app, backend)) = clicks(Duration::from_millis(200), 3.0)
+    else {
+        return;
+    };
+    // x, published, gets its fitted domain; y, the widget's, refits: the
+    // frame is the figure as built.
+    let [Message::X(x)] = messages[..] else {
+        panic!("{backend}: the fitted x once, {messages:?}");
+    };
+    println!(
+        "double click, {backend}: x {x:?} published; heard {:?}",
+        app.heard
+    );
+    // The dots span [2.5, 100]; 5% of that span pads each side.
+    let pad = 0.05 * 97.5;
+    assert!(
+        close(x[0], 2.5 - pad, 1e-12) && close(x[1], 100.0 + pad, 1e-12),
+        "{backend}: {x:?}"
+    );
+    let diff = against_png(&shot, &Fitted::figure().0, 1.0);
+    assert!(
+        diff.max() <= bound(&backend),
+        "{backend}: max {}/255",
+        diff.max()
+    );
+    assert_ne!(shot.rgba, zoomed.rgba, "{backend}");
+}
+
+#[test]
+fn slow_double_click_does_not_reset() {
+    for (apart, away) in [
+        (Duration::from_millis(400), 3.0),
+        (Duration::from_millis(200), 8.0),
+    ] {
+        let Some((shot, zoomed, messages, _, backend)) = clicks(apart, away) else {
+            return;
+        };
+        assert!(
+            messages.is_empty(),
+            "{backend}, {apart:?}, {away} px: {messages:?}"
+        );
+        assert_eq!(
+            shot.rgba, zoomed.rgba,
+            "{backend}, {apart:?}, {away} px: y stays zoomed"
+        );
+    }
+}
+
+#[test]
+fn cursor_left_clears_the_overlay() {
+    let k = 2.0;
+    let (fig, _, _) = figure([0.0, 100.0], [0.0, 10.0]);
+    let area = areas(&fig, k)[0];
+    let plot = Plot::<Message>::new(fig)
+        .scale_factor(k)
+        .render(Render::Inline);
+    let Some(mut harness) = Harness::new(plot, SIZE, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t0 = headless::epoch();
+    let bare = harness.frame(t0);
+    let at = Point::new(area.center().x as f32, area.center().y as f32);
+    harness.point_at(at);
+    let _ = harness.events(&[Event::Mouse(mouse::Event::CursorMoved { position: at })]);
+    let hovered = harness.frame(t0 + FRAME);
+    assert_ne!(hovered.rgba, bare.rgba, "{backend}: the crosshair shows");
+    let _ = harness.events(&[Event::Mouse(mouse::Event::CursorLeft)]);
+    let left = harness.frame(t0 + FRAME * 2);
+    assert!(left.rgba == bare.rgba, "{backend}: the overlay is gone");
+}
+
+#[test]
+fn zoomed_pixels_match_a_figure_built_with_the_published_domain() {
+    for k in [1.0, 2.0] {
+        let mut app = Controlled::new(k, true);
+        let (start, _, _) = figure(app.x, app.y);
+        let size = kurbo::Size::new(f64::from(SIZE.width), f64::from(SIZE.height));
+        let mut cache = Cache::default();
+        cache.begin();
+        let target = Target::Screen {
+            scale: f64::from(k),
+        };
+        let resolved = start.resolve(size, &mut cache, &Held::default(), target);
+        let (area, held) = (resolved.plot_areas()[0], resolved.areas());
+        let Some(mut harness) = Harness::new(app.view(), SIZE, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let t0 = headless::epoch();
+        let _ = run_frame(&mut harness, &mut app, t0);
+        harness.point_at(Point::new(
+            (area.x0 + 0.7 * area.width()) as f32,
+            (area.y0 + 0.2 * area.height()) as f32,
+        ));
+        let _ = harness.events(&[lines(5.0)]);
+        // During the gesture: the published domains in the held layout.
+        let (during, _) = run_frame(&mut harness, &mut app, t0 + FRAME);
+        let zoomed = figure(app.x, app.y).0;
+        let png =
+            crate::reference::png_held(&zoomed, size, f64::from(k), iced::Color::WHITE, &held);
+        let png = rustd3_testkit::pixels::Image::new(png.width, png.height, &png.rgba)
+            .expect("invariant: a render holds width × height pixels");
+        let held_diff = rustd3_testkit::pixels::Diff::between(&during.image(), &png, 16)
+            .expect("invariant: the shot has the PNG's size");
+        // Once it ended: the same domains laid out afresh.
+        let (after, _) = run_frame(&mut harness, &mut app, t0 + Duration::from_secs(1));
+        let diff = against_png(&after, &zoomed, k);
+        println!(
+            "zoomed pixels, {backend}, k = {k}: x {:?}, y {:?}; held max {}/255, settled max {}/255",
+            app.x,
+            app.y,
+            held_diff.max(),
+            diff.max()
+        );
+        assert!(
+            held_diff.max() <= bound(&backend),
+            "{backend}: max {}/255",
+            held_diff.max()
+        );
+        assert!(
+            diff.max() <= bound(&backend),
+            "{backend}: max {}/255",
             diff.max()
         );
     }
