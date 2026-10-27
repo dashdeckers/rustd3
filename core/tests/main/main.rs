@@ -4,6 +4,7 @@
 mod array;
 mod axis;
 mod band;
+mod binned;
 mod color;
 #[cfg(feature = "derive")]
 mod derive;

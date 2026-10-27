@@ -142,7 +142,18 @@ pub fn tick_format(
 ) -> Result<Format, InvalidFormat> {
     let [start, stop] = domain;
     let step = ticks::tick_step(start, stop, count as f64);
-    let largest = js::max(start.abs(), stop.abs());
+    stepped(locale, step, js::max(start.abs(), stop.abs()), specifier)
+}
+
+/// [`tick_format`] for ticks `step` apart whose largest magnitude is
+/// `largest`: the precision rules without the domain and count that d3
+/// derives the step from.
+pub(crate) fn stepped(
+    locale: &Locale,
+    step: f64,
+    largest: f64,
+    specifier: Option<&str>,
+) -> Result<Format, InvalidFormat> {
     let specifier: Specifier = specifier.unwrap_or(",f").parse()?;
     // A precision the specifier sets wins; d3's NaN precision is None.
     let precise = |precision: Option<usize>, less: usize| match precision {

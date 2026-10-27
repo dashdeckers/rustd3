@@ -6,7 +6,7 @@ mod identity;
 
 use crate::format::InvalidFormat;
 use crate::locale::Locale;
-use crate::scale::{TickFormat, Transform};
+use crate::scale::{TickFormat, Transform, tick_format};
 use crate::ticks;
 
 /// What an axis needs from a scale: d3 duck-types it (`scale.ticks`,
@@ -105,4 +105,28 @@ pub(super) fn minor<T: Transform>(transform: &T, ends: [f64; 2], majors: &[f64])
         .into_iter()
         .filter(|v| (low..=high).contains(v) && !majors.contains(v))
         .collect()
+}
+
+/// A binned scale's ticks: its bin edges `values`, in order, with the
+/// smallest positive gap between neighbours as the step (NaN for none),
+/// which sets the labels' precision as d3's `tickFormat` uses its tick
+/// step.
+pub(super) fn edges(values: Vec<f64>, count: usize) -> ticks::Set<f64, f64> {
+    let step = values
+        .windows(2)
+        .map(|pair| (pair[1] - pair[0]).abs())
+        .filter(|gap| gap.is_finite() && *gap > 0.0)
+        .min_by(f64::total_cmp)
+        .unwrap_or(f64::NAN);
+    ticks::Set::new(values, step, count)
+}
+
+/// The labels of a binned scale's edges: d3's linear tick format at the
+/// set's step (`,f` to [`precision_fixed`](crate::format::precision_fixed)
+/// of it) under `locale`, as one batch.
+pub(super) fn edge_labels(set: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
+    let largest = set.values().iter().fold(0.0, |m: f64, v| m.max(v.abs()));
+    tick_format::stepped(locale.number(), *set.step(), largest, None)
+        .expect("invariant: `,f` parses")
+        .format_all(set.values())
 }

@@ -25,7 +25,7 @@ function range(node, ctx) {
 
 /** A domain argument: two numbers for quantize, a Vec for the others. */
 function domain(kind, node, ctx) {
-  if (kind !== "quantize") return { c: data(node, ctx) };
+  if (kind !== "quantize" || node.type === "NewExpression") return { c: data(node, ctx) };
   if (node.type !== "ArrayExpression" || node.elements.length !== 2) skip("types: a quantize domain of other than two numbers ([f64; 2])");
   return { c: `[${node.elements.map((e) => needNum(val(ex(e, ctx)), "a domain value")).join(", ")}]` };
 }

@@ -2517,6 +2517,105 @@ fn t296() {   // diverging-test.js: scaleDiverging(range) sets the interpolator
     check("d3-scale/test/diverging-test.js:147:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0, 10.0]);
 }
 
+fn t297() {   // quantize-test.js: scaleQuantize() has the expected defaults
+    let mut s = scale::quantize([0.0, 1.0], vec![0.0, 1.0]);
+    check("d3-scale/test/quantize-test.js:8:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/quantize-test.js:9:3", Kind::Strict, &s.get_range().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/quantize-test.js:10:3", Kind::Strict, &s.thresholds().to_vec(), &vec![0.5]);
+    check("d3-scale/test/quantize-test.js:11:3", Kind::Strict, &s.apply(0.25).copied(), &0.0);
+    check("d3-scale/test/quantize-test.js:12:3", Kind::Strict, &s.apply(0.75).copied(), &1.0);
+}
+
+fn t298() {   // quantize-test.js: quantize(value) maps a number to a discrete value in the range
+    let mut s = scale::quantize([0.0, 1.0], vec![0.0, 1.0, 2.0]);
+    check("d3-scale/test/quantize-test.js:17:3", Kind::Strict, &s.thresholds().to_vec(), &vec![(1.0 / 3.0), (2.0 / 3.0)]);
+    check("d3-scale/test/quantize-test.js:18:3", Kind::Strict, &s.apply(0.0).copied(), &0.0);
+    check("d3-scale/test/quantize-test.js:19:3", Kind::Strict, &s.apply(0.2).copied(), &0.0);
+    check("d3-scale/test/quantize-test.js:20:3", Kind::Strict, &s.apply(0.4).copied(), &1.0);
+    check("d3-scale/test/quantize-test.js:21:3", Kind::Strict, &s.apply(0.6).copied(), &1.0);
+    check("d3-scale/test/quantize-test.js:22:3", Kind::Strict, &s.apply(0.8).copied(), &2.0);
+    check("d3-scale/test/quantize-test.js:23:3", Kind::Strict, &s.apply(1.0).copied(), &2.0);
+}
+
+fn t299() {   // quantize-test.js: quantize(value) clamps input values to the domain
+    skip("d3-scale/test/quantize-test.js:31:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:32:3", "js: an object compared by identity or valueOf");
+}
+
+fn t300() {   // quantize-test.js: quantize.unknown(value) sets the return value for undefined, null, and NaN input
+    skip("d3-scale/test/quantize-test.js:37:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantize-test.js:38:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantize-test.js:39:3", "api: unknown values (apply returns None)");
+}
+
+fn t301() {   // quantize-test.js: quantize.domain() coerces domain values to numbers
+    skip("d3-scale/test/quantize-test.js:44:3", "js: a domain value is not a number (coercion)");
+    skip("d3-scale/test/quantize-test.js:45:3", "js: a domain value is not a number (coercion)");
+    skip("d3-scale/test/quantize-test.js:46:3", "js: a domain value is not a number (coercion)");
+    skip("d3-scale/test/quantize-test.js:47:3", "js: a domain value is not a number (coercion)");
+    skip("d3-scale/test/quantize-test.js:48:3", "js: a domain value is not a number (coercion)");
+}
+
+fn t302() {   // quantize-test.js: quantize.domain() accepts an iterable
+    skip("d3-scale/test/quantize-test.js:53:3", "js: new Set (coercion)");
+}
+
+fn t303() {   // quantize-test.js: quantize.domain() only considers the first and second element of the domain
+    skip("d3-scale/test/quantize-test.js:58:3", "types: a quantize domain of other than two numbers ([f64; 2])");
+}
+
+fn t304() {   // quantize-test.js: quantize.range() cardinality determines the degree of quantization
+    let mut s = scale::quantize([0.0, 1.0], vec![0.0, 1.0]);
+    check("d3-scale/test/quantize-test.js:63:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.001, 0.001)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.333);
+    check("d3-scale/test/quantize-test.js:64:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.010, 0.010)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.330);
+    check("d3-scale/test/quantize-test.js:65:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.100, 0.100)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.300);
+    check("d3-scale/test/quantize-test.js:66:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.200, 0.200)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.400);
+    check("d3-scale/test/quantize-test.js:67:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.250, 0.250)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.250);
+    check("d3-scale/test/quantize-test.js:68:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.500, 0.500)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.500);
+    check("d3-scale/test/quantize-test.js:69:3", Kind::InDelta(1e-6), &({ s = s.range(array::range(0.0, 1.0, 1.0)); s.clone() }).apply((1.0 / 3.0)).copied(), &0.0);
+}
+
+fn t305() {   // quantize-test.js: quantize.range() values are arbitrary
+    skip("d3-scale/test/quantize-test.js:77:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:78:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:79:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:80:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:81:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:82:3", "js: an object compared by identity or valueOf");
+}
+
+fn t306() {   // quantize-test.js: quantize.invertExtent() maps a value in the range to a domain extent
+    let mut s = scale::quantize([0.0, 1.0], vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantize-test.js:87:3", Kind::Strict, &s.invert_extent(&0.0), &vec![0.00, 0.25]);
+    check("d3-scale/test/quantize-test.js:88:3", Kind::Strict, &s.invert_extent(&1.0), &vec![0.25, 0.50]);
+    check("d3-scale/test/quantize-test.js:89:3", Kind::Strict, &s.invert_extent(&2.0), &vec![0.50, 0.75]);
+    check("d3-scale/test/quantize-test.js:90:3", Kind::Strict, &s.invert_extent(&3.0), &vec![0.75, 1.00]);
+}
+
+fn t307() {   // quantize-test.js: quantize.invertExtent() allows arbitrary range values
+    skip("d3-scale/test/quantize-test.js:97:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantize-test.js:98:3", "js: an object compared by identity or valueOf");
+}
+
+fn t308() {   // quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range
+    let mut s = scale::quantize([0.0, 1.0], vec![0.0, 1.0]);
+    check("d3-scale/test/quantize-test.js:103:3", Kind::Strict, &s.invert_extent(&-1.0).is_none(), &true);
+    check("d3-scale/test/quantize-test.js:104:3", Kind::Strict, &s.invert_extent(&0.5).is_none(), &true);
+    check("d3-scale/test/quantize-test.js:105:3", Kind::Strict, &s.invert_extent(&2.0).is_none(), &true);
+    skip("d3-scale/test/quantize-test.js:106:3", "types: a value of another type than the range's");
+}
+
+fn t309() {   // quantize-test.js: quantize.invertExtent() returns the first match if duplicate values exist in the range
+    let mut s = scale::quantize([0.0, 1.0], vec![0.0, 1.0, 2.0, 0.0]);
+    check("d3-scale/test/quantize-test.js:111:3", Kind::Strict, &s.invert_extent(&0.0), &vec![0.00, 0.25]);
+    check("d3-scale/test/quantize-test.js:112:3", Kind::Strict, &s.invert_extent(&1.0), &vec![0.25, 0.50]);
+}
+
+fn t310() {   // quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)
+    skip("d3-scale/test/quantize-test.js:119:5", "gap: a function other than of one number returning an expression");
+    skip("d3-scale/test/quantize-test.js:120:5", "gap: a function other than of one number returning an expression");
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "linear-test.js: scaleLinear() has the expected defaults", run: t0 },
     Test { name: "linear-test.js: scaleLinear(range) sets the range", run: t1 },
@@ -2815,6 +2914,20 @@ pub const TESTS: &[Test] = &[
     Test { name: "diverging-test.js: diverging.range(range) sets the interpolator", run: t294 },
     Test { name: "diverging-test.js: diverging.range(range) ignores additional values", run: t295 },
     Test { name: "diverging-test.js: scaleDiverging(range) sets the interpolator", run: t296 },
+    Test { name: "quantize-test.js: scaleQuantize() has the expected defaults", run: t297 },
+    Test { name: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", run: t298 },
+    Test { name: "quantize-test.js: quantize(value) clamps input values to the domain", run: t299 },
+    Test { name: "quantize-test.js: quantize.unknown(value) sets the return value for undefined, null, and NaN input", run: t300 },
+    Test { name: "quantize-test.js: quantize.domain() coerces domain values to numbers", run: t301 },
+    Test { name: "quantize-test.js: quantize.domain() accepts an iterable", run: t302 },
+    Test { name: "quantize-test.js: quantize.domain() only considers the first and second element of the domain", run: t303 },
+    Test { name: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", run: t304 },
+    Test { name: "quantize-test.js: quantize.range() values are arbitrary", run: t305 },
+    Test { name: "quantize-test.js: quantize.invertExtent() maps a value in the range to a domain extent", run: t306 },
+    Test { name: "quantize-test.js: quantize.invertExtent() allows arbitrary range values", run: t307 },
+    Test { name: "quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range", run: t308 },
+    Test { name: "quantize-test.js: quantize.invertExtent() returns the first match if duplicate values exist in the range", run: t309 },
+    Test { name: "quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)", run: t310 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -4051,4 +4164,55 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/diverging-test.js:141:3", test: "diverging-test.js: diverging.range(range) ignores additional values", skip: Some("types: a diverging scale of other than 3 stops (d3 ignores the rest)") },
     Assertion { id: "d3-scale/test/diverging-test.js:146:3", test: "diverging-test.js: scaleDiverging(range) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/diverging-test.js:147:3", test: "diverging-test.js: scaleDiverging(range) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:8:3", test: "quantize-test.js: scaleQuantize() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:9:3", test: "quantize-test.js: scaleQuantize() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:10:3", test: "quantize-test.js: scaleQuantize() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:11:3", test: "quantize-test.js: scaleQuantize() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:12:3", test: "quantize-test.js: scaleQuantize() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:17:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:18:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:19:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:20:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:21:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:22:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:23:3", test: "quantize-test.js: quantize(value) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:31:3", test: "quantize-test.js: quantize(value) clamps input values to the domain", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:32:3", test: "quantize-test.js: quantize(value) clamps input values to the domain", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:37:3", test: "quantize-test.js: quantize.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:38:3", test: "quantize-test.js: quantize.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:39:3", test: "quantize-test.js: quantize.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:44:3", test: "quantize-test.js: quantize.domain() coerces domain values to numbers", skip: Some("js: a domain value is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:45:3", test: "quantize-test.js: quantize.domain() coerces domain values to numbers", skip: Some("js: a domain value is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:46:3", test: "quantize-test.js: quantize.domain() coerces domain values to numbers", skip: Some("js: a domain value is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:47:3", test: "quantize-test.js: quantize.domain() coerces domain values to numbers", skip: Some("js: a domain value is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:48:3", test: "quantize-test.js: quantize.domain() coerces domain values to numbers", skip: Some("js: a domain value is not a number (coercion)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:53:3", test: "quantize-test.js: quantize.domain() accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/quantize-test.js:58:3", test: "quantize-test.js: quantize.domain() only considers the first and second element of the domain", skip: Some("types: a quantize domain of other than two numbers ([f64; 2])") },
+    Assertion { id: "d3-scale/test/quantize-test.js:63:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:64:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:65:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:66:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:67:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:68:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:69:3", test: "quantize-test.js: quantize.range() cardinality determines the degree of quantization", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:77:3", test: "quantize-test.js: quantize.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:78:3", test: "quantize-test.js: quantize.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:79:3", test: "quantize-test.js: quantize.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:80:3", test: "quantize-test.js: quantize.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:81:3", test: "quantize-test.js: quantize.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:82:3", test: "quantize-test.js: quantize.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:87:3", test: "quantize-test.js: quantize.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:88:3", test: "quantize-test.js: quantize.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:89:3", test: "quantize-test.js: quantize.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:90:3", test: "quantize-test.js: quantize.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:97:3", test: "quantize-test.js: quantize.invertExtent() allows arbitrary range values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:98:3", test: "quantize-test.js: quantize.invertExtent() allows arbitrary range values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantize-test.js:103:3", test: "quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:104:3", test: "quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:105:3", test: "quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:106:3", test: "quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: Some("types: a value of another type than the range's") },
+    Assertion { id: "d3-scale/test/quantize-test.js:111:3", test: "quantize-test.js: quantize.invertExtent() returns the first match if duplicate values exist in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:112:3", test: "quantize-test.js: quantize.invertExtent() returns the first match if duplicate values exist in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantize-test.js:119:5", test: "quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)", skip: Some("gap: a function other than of one number returning an expression") },
+    Assertion { id: "d3-scale/test/quantize-test.js:120:5", test: "quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)", skip: Some("gap: a function other than of one number returning an expression") },
 ];
