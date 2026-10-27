@@ -158,3 +158,20 @@ fn a_composite_inside_its_own_expansion_writes_its_letter() {
     assert_eq!(looping.format("%c").format(t(), utc), "2026 x! c");
     assert_eq!(looping.format("%X").format(t(), utc), "2026 X!");
 }
+
+#[test]
+fn iso_format_writes_utc_to_the_millisecond_and_iso_parse_reads_it_back() {
+    assert_eq!(time::iso_format(t()), "2026-03-08T07:59:30.123Z");
+    let later = Timestamp::from_nanosecond(t().as_nanosecond() + 999_999).unwrap();
+    assert_eq!(time::iso_format(later), "2026-03-08T07:59:30.123Z");
+    assert_eq!(
+        time::iso_parse("2026-03-07T23:59:30.123Z").ok(),
+        Some(at("2026-03-07T23:59:30.123Z"))
+    );
+    assert_eq!(time::iso_parse("2026-03-08T07:59:30.123Z").ok(), Some(t()));
+    assert_eq!(
+        time::iso_parse("2026-03-07T23:59:30.123-08:00").ok(),
+        Some(t())
+    );
+    assert!(time::iso_parse("2026-03-07T23:59:30").is_err());
+}

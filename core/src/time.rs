@@ -5,7 +5,8 @@
 //! [`Time`], d3's time scale, made by [`time()`] and [`utc()`], and
 //! d3-time-format's formats: a [`Format`] compiled under a [`Locale`]
 //! (d3's timeFormatLocale plus the [`Ladder`] tick labels climb, built
-//! from a [`Definition`]), or under the neutral locale by [`format()`].
+//! from a [`Definition`]), or under the neutral locale by [`format()`], and
+//! d3's [`iso_format`] and [`iso_parse`].
 //!
 //! Every zone is a parameter: nothing here reads the system's clock or
 //! zone. Instants are jiff [`Timestamp`]s and arithmetic on them is in
@@ -40,7 +41,7 @@ use jiff::civil;
 use jiff::tz::TimeZone;
 
 pub use definition::Definition;
-pub use format::{Format, format};
+pub use format::{Format, format, iso_format, iso_parse};
 pub use locale::{Ladder, Locale};
 pub use scale::Time;
 pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};
