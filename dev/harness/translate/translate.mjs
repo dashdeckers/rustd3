@@ -13,6 +13,7 @@ import format from "./rules/format.mjs";
 import interpolate from "./rules/interpolate.mjs";
 import ordinal from "./rules/ordinal.mjs";
 import path from "./rules/path.mjs";
+import pie from "./rules/pie.mjs";
 import scale from "./rules/scale.mjs";
 import shape from "./rules/shape.mjs";
 import stats from "./rules/stats.mjs";
@@ -74,6 +75,7 @@ const SUITES = [
     ],
     rules: shape,
   },
+  { suite: "pie", package: "d3-shape", files: tests(["pie"]), rules: pie },
   { suite: "zoom", package: "d3-zoom", files: tests(["transform"]), rules: zoom },
   {
     suite: "time",

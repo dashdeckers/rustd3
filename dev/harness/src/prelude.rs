@@ -160,6 +160,19 @@ pub fn drawn(draw: impl FnOnce(&mut SvgPath)) -> Option<String> {
     (!data.is_empty()).then_some(data)
 }
 
+/// d3-shape's arcs as `deepStrictEqual` compares them: per slice, its datum
+/// (d3's `data`, as its position in the input), index, value and angles.
+pub fn slices(slices: &[shape::Slice]) -> Obs {
+    let fields = |s: &shape::Slice| {
+        let angles = [s.value, s.start_angle, s.end_angle, s.pad_angle];
+        [s.datum.to_obs(), s.index.to_obs()]
+            .into_iter()
+            .chain(angles.iter().map(ToObs::to_obs))
+            .collect()
+    };
+    Obs::List(slices.iter().map(|s| Obs::List(fields(s))).collect())
+}
+
 /// d3-color's test helper `assertRgbEqual(c, r, g, b, opacity)`: each
 /// channel equal, NaN matching NaN.
 pub fn rgb_equal(c: &Rgb, r: f64, g: f64, b: f64, opacity: f64) -> bool {
