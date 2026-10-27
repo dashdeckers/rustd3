@@ -2,7 +2,7 @@
 
 ## D5.1 — Statements of Phase 5 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 5, steps 3 and 5 (d925391, 7c917f2, a6e278d) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 5, steps 3 and 5 (d925391, 7c917f2, a6e278d) · **Status:** decided
 
 ### Issue
 
@@ -91,6 +91,14 @@
 
 ### Decision
 
+A for all six (architect, 2026-10-27): asinh rounds as matplotlib does
+(⌊ln|x| / ln 10⌋); the `[-1e9, 1e9]` row asserts the portable ±1e8 and
+the fixture script pins numpy's CPU features; logit's linear branch uses
+d3's ticks as the spec says, and the fixture keeps only the cases where
+matplotlib agrees, with the two skip reasons the spec allows and no
+third tag; the asinh fallback is capped at 10,000; the fuzz bail-outs
+stay.
+
 Recommended: A for all six, already built (7ceaacc, d925391, 7c917f2,
 a6e278d). The changes to Phase 4's `ticks::linear`, `ticks::log` and
 `ticks::subdivide` only add bail-outs at edges no d3 test reaches (the
@@ -116,7 +124,7 @@ on Linux.
 
 ## D5.2 — `symlog-test.js` passes under 70 %
 
-**Date:** 2026-10-27 · **Context:** Phase 5, step 6 (f16ea99) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 5, step 6 (f16ea99) · **Status:** decided
 
 ### Issue
 
@@ -147,6 +155,10 @@ whose `invert` of a color string stays NaN in d3 (60 %).
 | Correctness | Counts stay visible in the report and the floor | Tests of behaviour Rust does not have | Hides 71 assertions |
 
 ### Decision
+
+A (architect, 2026-10-27). Phase 5's skip table gains `symlog-test.js`
+(71 assertions; coercion `js:`, the `clamp()` and `constant()` getters
+`api:`), floor 39.
 
 Recommended: A. The floor is blessed at 39 (f16ea99), so the ratchet
 holds every passing assertion either way; the spec's count of 73 reads

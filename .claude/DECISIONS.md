@@ -81,4 +81,4 @@ then `decided`.
 - `decisions/phase-01.md` — Phase 1: build measurements; D1.1 d3-ease's licence; D1.2 the font licence texts
 - `decisions/phase-03.md` — Phase 3: D3.1 two d3-format files under 70 %; D3.2 three statements that do not hold as written (both decided A)
 - `decisions/phase-04.md` — Phase 4: D4.1 four statements of Phase 4 that do not hold as written (the log tick cap, the crate-visible readers, a spot check one ulp off Node, transform constructors); D4.2 three d3-scale files under 70 % (both decided A)
-- `decisions/phase-05.md` — Phase 5: D5.1 six statements of Phase 5 that do not hold as written (asinh's rounding and its machine-dependent ±1e9 row, logit's linear branch, the thinned-symlog tag, asinh's fallback past the cap, bail-outs the fuzz needs); D5.2 `symlog-test.js` under 70 % (both open, recommending A)
+- `decisions/phase-05.md` — Phase 5: D5.1 six statements of Phase 5 that do not hold as written (asinh's rounding and its machine-dependent ±1e9 row, logit's linear branch, the thinned-symlog tag, asinh's fallback past the cap, bail-outs the fuzz needs); D5.2 `symlog-test.js` under 70 % (both decided A)
