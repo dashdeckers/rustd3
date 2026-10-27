@@ -46,6 +46,24 @@ pub(crate) fn two_panels() -> Figure<'static> {
     fig
 }
 
+/// Two panels side by side on fixed [0, 10] scales: a line of 200
+/// samples, and dots at `points`, each with left and bottom axes.
+pub(crate) fn pair(points: Vec<(f64, f64)>) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let (x0, y0) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    let x1 = fig.scale(scale::linear().domain([0.0, 10.0]));
+    let y1 = fig.scale(scale::linear().domain([0.0, 10.0]));
+    fig.panel(0, 0)
+        .mark(line(sine(200, 0), x0, y0))
+        .axis(axis::left(y0))
+        .axis(axis::bottom(x0));
+    fig.panel(0, 1)
+        .mark(dots(points, x1, y1))
+        .axis(axis::left(y1))
+        .axis(axis::bottom(x1));
+    fig
+}
+
 /// `n` samples of a sine with a little deterministic wobble, phase `seed`.
 fn sine(n: usize, seed: usize) -> Vec<(f64, f64)> {
     (0..n)

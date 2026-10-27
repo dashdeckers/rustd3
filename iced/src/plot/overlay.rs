@@ -149,7 +149,7 @@ impl Overlay {
 }
 
 /// A figure color as iced's, channels clamped to 8 bits.
-fn color(c: Rgb) -> Color {
+pub(crate) fn color(c: Rgb) -> Color {
     let c = c.clamp();
     let [r, g, b] = [c.r, c.g, c.b].map(|v| v as u8);
     Color::from_rgba8(r, g, b, c.opacity as f32)

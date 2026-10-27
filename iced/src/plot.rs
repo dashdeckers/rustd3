@@ -41,23 +41,25 @@
 //! The widget resolves and draws its figure once per `RedrawRequested`,
 //! for the screen at the effective scale factor (`Plot::scale_factor`,
 //! else the renderer's hint, else the window's factor, else 1), and only
-//! when the figure was rebuilt, the widget resized or the factor changed;
-//! it keeps every image when no cell's device rect or content hash
-//! changed. It cuts the list into the cells of the canvas's partition by
-//! every plot-area edge, renders every cell, and draws each as images
-//! placed on whole device pixels. A cell whose RGBA would reach
+//! when the figure was rebuilt, the widget resized or the factor changed.
+//! It cuts the list into the cells of the canvas's partition by every
+//! plot-area edge, renders only the cells whose content hash changed
+//! (every cell when the partition's rects change), and draws each as
+//! images placed on whole device pixels. A cell whose RGBA would reach
 //! [`BAND_BYTES`] is rendered and drawn as horizontal bands below that
 //! size, so the GPU renderer uploads every image inside the frame that
 //! first draws it. Hovering renders no cell: the crosshair and the
 //! highlight are quads in a layer clipped to the hovered plot area, in the
 //! figure theme's ink.
 
-mod cell;
 #[cfg(test)]
 mod fixture;
 mod handle;
+mod job;
 mod overlay;
+pub mod probe;
 mod scale_factor;
+mod slot;
 mod state;
 
 use std::marker::PhantomData;
@@ -71,7 +73,8 @@ use iced_core::{Element, Event, Length, Rectangle, Shell, Size, Widget, window};
 use rustd3_figure::Figure;
 
 use overlay::Shown;
-use state::State;
+pub use probe::Probe;
+use state::{Pipeline, State};
 
 /// RGBA bytes at which a cell is split into bands: wgpu uploads images
 /// under 2 MiB inside the frame (`wgpu/src/image/cache.rs:223-246`)
@@ -96,6 +99,7 @@ pub struct Plot<'a, Message> {
     scale_factor: Option<f32>,
     crosshair: bool,
     highlight: bool,
+    probe: Option<Probe>,
     _message: PhantomData<Message>,
 }
 
@@ -109,6 +113,7 @@ impl<'a, Message> Plot<'a, Message> {
             scale_factor: None,
             crosshair: true,
             highlight: true,
+            probe: None,
             _message: PhantomData,
         }
     }
@@ -154,6 +159,16 @@ impl<'a, Message> Plot<'a, Message> {
     pub fn highlight(self, on: bool) -> Self {
         Plot {
             highlight: on,
+            ..self
+        }
+    }
+
+    /// Reports per-stage durations, per-cell raster times and what each
+    /// frame showed to `probe`, timed by its clock (see [`probe`]).
+    /// Without a probe nothing is sent and no clock is read.
+    pub fn probe(self, probe: Probe) -> Self {
+        Plot {
+            probe: Some(probe),
             ..self
         }
     }
@@ -214,15 +229,18 @@ where
                 state.rescale(*scale_factor);
                 shell.request_redraw();
             }
-            Event::Window(window::Event::RedrawRequested(_)) => {
+            Event::Window(window::Event::RedrawRequested(now)) => {
                 let factor = scale_factor::resolve(
                     self.scale_factor,
                     renderer.scale(),
                     state.window_factor(),
                 );
+                let pipeline = Pipeline {
+                    probe: self.probe.as_ref(),
+                };
                 // New cells may move the plot areas or the points under
                 // the pointer.
-                if state.refresh(&self.figure, factor) > 0 {
+                if state.redraw(&self.figure, factor, *now, &pipeline) > 0 {
                     state.hover(cursor.position(), layout.bounds(), self.shown());
                 }
             }
@@ -256,10 +274,9 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let ink = self.figure.get_theme().get_ink();
         tree.state
             .downcast_ref::<State>()
-            .draw(renderer, layout.bounds(), ink);
+            .draw(renderer, layout.bounds(), self.figure.get_theme());
     }
 
     fn mouse_interaction(
