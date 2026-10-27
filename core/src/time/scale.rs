@@ -1,0 +1,143 @@
+//! [`Time`], d3's time scale with an explicit zone, computing in `i128`
+//! nanoseconds from the domain's start.
+
+use jiff::Timestamp;
+use jiff::tz::TimeZone;
+
+use crate::interpolate::Interpolate;
+use crate::time;
+
+/// d3's scaleTime and scaleUtc: instants mapped linearly onto a range of
+/// numbers, with ticks and nice in the scale's zone. Builders consume and
+/// return the value. Made by [`time::time`] and [`time::utc`].
+///
+/// Offsets from the domain's start are `i128` nanoseconds; only their
+/// ratios pass through `f64`, so instants in 2026 keep their nanoseconds,
+/// where an `f64` of epoch nanoseconds resolves 256 ns.
+///
+/// ```
+/// use rustd3_core::jiff::Timestamp;
+/// use rustd3_core::time;
+///
+/// let t0: Timestamp = "2026-10-25T12:00:00Z".parse()?;
+/// let t1: Timestamp = "2026-10-25T12:00:00.000001Z".parse()?;
+/// let x = time::utc().domain([t0, t1]).range([0.0, 1000.0]);
+/// assert_eq!(x.apply("2026-10-25T12:00:00.000000001Z".parse()?), 1.0);
+/// assert_eq!(x.invert(500.0), "2026-10-25T12:00:00.0000005Z".parse()?);
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub struct Time {
+    domain: [Timestamp; 2],
+    range: [f64; 2],
+    zone: TimeZone,
+    clamp: bool,
+    /// d3's utc tick intervals (`UnixDay` for days), as `scaleUtc` takes.
+    utc_ticks: bool,
+}
+
+impl Time {
+    /// `domain` onto [0, 1], unclamped, with ticks in `zone`.
+    pub(super) fn new(domain: [Timestamp; 2], zone: TimeZone, utc_ticks: bool) -> Time {
+        Time {
+            domain,
+            range: [0.0, 1.0],
+            zone,
+            clamp: false,
+            utc_ticks,
+        }
+    }
+
+    /// d3's `domain(d)`: the instants the range's ends map from; either
+    /// order, equal ends included.
+    pub fn domain(self, domain: [Timestamp; 2]) -> Self {
+        Time { domain, ..self }
+    }
+
+    /// d3's `domain()`.
+    pub fn get_domain(&self) -> [Timestamp; 2] {
+        self.domain
+    }
+
+    /// d3's `range(r)`: the values the domain's ends map to.
+    pub fn range(self, range: [f64; 2]) -> Self {
+        Time { range, ..self }
+    }
+
+    /// d3's `range()`.
+    pub fn get_range(&self) -> [f64; 2] {
+        self.range
+    }
+
+    /// d3's `clamp(b)`: whether `apply` and `invert` keep to the domain.
+    pub fn clamp(self, clamp: bool) -> Self {
+        Time { clamp, ..self }
+    }
+
+    /// The zone ticks and nice lay intervals out in.
+    pub fn get_zone(&self) -> &TimeZone {
+        &self.zone
+    }
+
+    /// The range value of `t` (d3's `scale(t)`): its offset from the
+    /// domain's start over the domain's span, blended between the range's
+    /// ends as d3's `interpolateNumber`; the middle of the range for equal
+    /// ends, as d3's `normalize`. When clamping, the fraction is kept to
+    /// [0, 1] first.
+    pub fn apply(&self, t: Timestamp) -> f64 {
+        let span = self.span();
+        let fraction = if span == 0 {
+            0.5
+        } else {
+            (t.as_nanosecond() - self.start()) as f64 / span as f64
+        };
+        let [r0, r1] = self.range;
+        r0.lerp(&r1, self.kept(fraction))
+    }
+
+    /// d3's `invert(y)`: the instant that maps to `y`, rounded to the
+    /// nanosecond, the domain's middle for a flat range (d3's `normalize`),
+    /// within the domain when clamping. It saturates at jiff's first and
+    /// last instants; a NaN `y`, where d3 has an Invalid Date, gives the
+    /// domain's start.
+    pub fn invert(&self, y: f64) -> Timestamp {
+        let [r0, r1] = self.range;
+        let extent = r1 - r0;
+        let fraction = if extent == 0.0 {
+            0.5
+        } else {
+            (y - r0) / extent
+        };
+        time::saturating(
+            self.start()
+                .saturating_add(self.offset(self.kept(fraction))),
+        )
+    }
+
+    /// The domain's start in nanoseconds from the epoch.
+    fn start(&self) -> i128 {
+        self.domain[0].as_nanosecond()
+    }
+
+    /// The domain's end less its start, in nanoseconds; negative for a
+    /// descending domain.
+    fn span(&self) -> i128 {
+        self.domain[1].as_nanosecond() - self.start()
+    }
+
+    /// The nanoseconds from the domain's start at `fraction` of its span,
+    /// rounded; a NaN fraction gives 0 and an infinite one saturates.
+    fn offset(&self, fraction: f64) -> i128 {
+        // A float to integer cast saturates, and NaN casts to 0.
+        (fraction * self.span() as f64).round() as i128
+    }
+
+    /// `fraction` kept to [0, 1] when clamping (NaN stays NaN).
+    fn kept(&self, fraction: f64) -> f64 {
+        if self.clamp {
+            fraction.clamp(0.0, 1.0)
+        } else {
+            fraction
+        }
+    }
+}

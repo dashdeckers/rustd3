@@ -1,14 +1,14 @@
 //! Time with explicit zones, on jiff: [`Interval`], d3-time's calendar
 //! intervals with microseconds and nanoseconds beside them, the lazy
-//! [`interval::Range`] of an interval's boundaries, and d3's tick
-//! functions, [`ticks`], [`ticks_with`], [`tick_interval`] and their `utc_`
-//! twins.
+//! [`interval::Range`] of an interval's boundaries, d3's tick functions,
+//! [`ticks`], [`ticks_with`], [`tick_interval`] and their `utc_` twins, and
+//! [`Time`], d3's time scale, made by [`time()`] and [`utc()`].
 //!
 //! Every zone is a parameter: nothing here reads the system's clock or
-//! zone. Instants are jiff [`Timestamp`](jiff::Timestamp)s and arithmetic
-//! on them is in `i128` nanoseconds, never through an `f64` epoch value
-//! (in 2026 one of those resolves 256 ns). The zone is consulted only where
-//! the calendar needs it, from minutes up.
+//! zone. Instants are jiff [`Timestamp`]s and arithmetic on them is in
+//! `i128` nanoseconds, never through an `f64` epoch value (in 2026 one of
+//! those resolves 256 ns). The zone is consulted only where the calendar
+//! needs it, from minutes up.
 //!
 //! ```
 //! use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -26,8 +26,14 @@
 
 pub mod interval;
 
+mod scale;
 mod ticks;
 
+use jiff::Timestamp;
+use jiff::civil;
+use jiff::tz::TimeZone;
+
+pub use scale::Time;
 pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};
 
 /// A unit of time and a step: d3-time's intervals (`timeSecond` …
@@ -73,4 +79,51 @@ pub enum Interval {
     /// Local years, starting on January 1; with a step `k`, the years that
     /// are multiples of `k` (d3's `timeYear.every`).
     Year(u32),
+}
+
+/// d3.scaleTime with an explicit zone: domain from local midnight on
+/// 2000-01-01 to 2000-01-02 in `zone`, range [0, 1], ticks laid out in
+/// `zone` (days of the month).
+#[doc(alias = "scaleTime")]
+pub fn time(zone: TimeZone) -> Time {
+    Time::new(default_domain(&zone), zone, false)
+}
+
+/// d3.scaleUtc: domain 2000-01-01T00:00Z to 2000-01-02T00:00Z, range
+/// [0, 1], ticks laid out in UTC with d3's utc intervals (days counted from
+/// 1970-01-01, `UnixDay`).
+#[doc(alias = "scaleUtc")]
+pub fn utc() -> Time {
+    Time::new(default_domain(&TimeZone::UTC), TimeZone::UTC, true)
+}
+
+/// d3's default time domain: local midnight on 2000-01-01 and 2000-01-02
+/// in `zone`.
+fn default_domain(zone: &TimeZone) -> [Timestamp; 2] {
+    [1, 2].map(|day| {
+        zone.to_timestamp(civil::date(2000, 1, day).at(0, 0, 0, 0))
+            .expect("invariant: January 2000 is within jiff's range in every zone")
+    })
+}
+
+/// The instant `ns` nanoseconds from the epoch, if jiff can hold it.
+pub(crate) fn at(ns: i128) -> Option<Timestamp> {
+    // jiff-core 0.1.1's from_nanosecond checks only that the seconds fit
+    // i64 (timestamp.rs:171–185): out of jiff's range it debug-asserts.
+    let range = Timestamp::MIN.as_nanosecond()..=Timestamp::MAX.as_nanosecond();
+    if range.contains(&ns) {
+        Timestamp::from_nanosecond(ns).ok()
+    } else {
+        None
+    }
+}
+
+/// The instant `ns` nanoseconds from the epoch, or jiff's first or last
+/// instant past them.
+pub(crate) fn saturating(ns: i128) -> Timestamp {
+    let ns = ns.clamp(
+        Timestamp::MIN.as_nanosecond(),
+        Timestamp::MAX.as_nanosecond(),
+    );
+    Timestamp::from_nanosecond(ns).expect("invariant: clamped to jiff's range")
 }

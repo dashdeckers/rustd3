@@ -5,8 +5,8 @@
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
-use super::at;
 use super::fine::{self, SECOND};
+use crate::time::at;
 
 /// One minute, in nanoseconds.
 pub(super) const MINUTE: i128 = 60 * SECOND;

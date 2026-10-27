@@ -4,7 +4,7 @@
 
 use jiff::Timestamp;
 
-use super::at;
+use crate::time::at;
 
 /// One nanosecond.
 pub(super) const NANOSECOND: i128 = 1;

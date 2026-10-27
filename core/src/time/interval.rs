@@ -17,7 +17,7 @@ mod range;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
-use crate::time::Interval;
+use crate::time::{Interval, at};
 
 pub use range::Range;
 
@@ -198,18 +198,6 @@ impl Interval {
 /// The factor a step scales a fixed unit by: 0 reads as 1.
 fn scale(k: u32) -> i128 {
     i128::from(k.max(1))
-}
-
-/// The instant `ns` nanoseconds from the epoch, if jiff can hold it.
-fn at(ns: i128) -> Option<Timestamp> {
-    // jiff-core 0.1.1's from_nanosecond checks only that the seconds fit
-    // i64 (timestamp.rs:171–185): out of jiff's range it debug-asserts.
-    let range = Timestamp::MIN.as_nanosecond()..=Timestamp::MAX.as_nanosecond();
-    if range.contains(&ns) {
-        Timestamp::from_nanosecond(ns).ok()
-    } else {
-        None
-    }
 }
 
 /// The instant 1 ns before `t`.
