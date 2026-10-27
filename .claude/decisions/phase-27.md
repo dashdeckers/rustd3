@@ -50,7 +50,7 @@ disambiguation and V8 agree on every test date.
 
 ## D27.1 — `tick_interval` takes a zone it does not use
 
-**Date:** 2026-10-27 · **Context:** Phase 27, step 5 (786b402) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 27, step 5 (786b402) · **Status:** decided
 
 ### Issue
 
@@ -81,7 +81,11 @@ as the zone [`ticks`] lays the interval out in; 27b's
 
 ### Decision
 
-Recommended: A, as built; B is cheap until 27b's `Time` calls it.
+B (architect, 2026-10-27): `time::tick_interval(start, stop, count)`
+takes no zone, as `utc_tick_interval` and d3's `timeTickInterval`: the
+interval is chosen from the span alone, and the zone applies where the
+interval floors and steps. The 27b session changes the signature, its
+tests and the translator line before Step 7 calls it.
 
 ### Why
 
@@ -97,7 +101,7 @@ symmetry is the architect's call, and now is the cheapest moment for B.
 
 ## D27.2 — Details of Phase 27a as built
 
-**Date:** 2026-10-27 · **Context:** Phase 27, steps 0–5 (81367ba … 19604c8) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 27, steps 0–5 (81367ba … 19604c8) · **Status:** decided
 
 ### Issue
 
@@ -183,7 +187,7 @@ Dec 25, Jan 15, which the port gives.
 
 ### Decision
 
-Recommended: A for all thirteen, as built.
+A for all thirteen (architect, 2026-10-27), as built.
 
 ### Why
 
