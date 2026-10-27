@@ -1,4 +1,4 @@
-// d3-shape's line() and area() over [[x, y], …] data, and its curves. A
+// d3-shape's line(), area(), lineRadial() and areaRadial() over [[x, y], …] data, and its curves. A
 // generator is {t: "line"} or {t: "area"}; calling one draws its data into
 // a fresh SvgPath (the prelude's `drawn`, None for d3's null path). A curve
 // is {t: "curve"} whose `param` (tension, alpha or beta) has a builder.
@@ -11,7 +11,9 @@ const NAMES = ["Basis", "BasisClosed", "BasisOpen", "BumpX", "BumpY", "Bundle", 
   "CatmullRom", "CatmullRomClosed", "CatmullRomOpen", "Linear", "LinearClosed", "MonotoneX", "MonotoneY", "Natural", "Step",
   "StepAfter", "StepBefore"];
 const PARAMS = { Bundle: ["beta", "0.85"], Cardinal: ["tension", "0.0"], CatmullRom: ["alpha", "0.5"] };
-const ACCESSORS = ["x", "y", "x0", "x1", "y0", "y1", "defined", "context", "digits", "lineX0", "lineX1", "lineY0", "lineY1"];
+const ACCESSORS = ["x", "y", "x0", "x1", "y0", "y1", "defined", "context", "digits", "lineX0", "lineX1", "lineY0", "lineY1", "angle", "radius",
+  "startAngle", "endAngle", "innerRadius", "outerRadius", "lineStartAngle", "lineEndAngle", "lineInnerRadius", "lineOuterRadius"];
+const RADIAL = { lineRadial: ["shape::line::radial()", "line"], areaRadial: ["shape::area::radial()", "area"] };
 const METHODS = new Set([...ACCESSORS, "curve", "tension", "alpha", "beta"]);
 const ACCESSOR = "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)";
 const generator = (e) => e.t === "line" || e.t === "area";
@@ -65,9 +67,9 @@ export default {
   call(node, ctx) {
     const { callee } = node;
     const name = calleeName(node, ctx);
-    if (name === "line" || name === "area") {
-      if (node.arguments.length) skip(ACCESSOR);
-      return { c: `shape::${name}()`, t: name };
+    if (name === "line" || name === "area" || RADIAL[name]) {
+      const [c, t] = RADIAL[name] ?? [`shape::${name}()`, name];
+      return node.arguments.length ? skip(ACCESSOR) : { c, t };
     }
     if (callee.type === "MemberExpression" && !callee.computed) {
       const prop = callee.property.name;
