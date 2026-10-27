@@ -321,3 +321,73 @@ Items 5–6 are cheapest before anything outside core names them.
 - Phase 26: the width bound in the `const` specifier checker.
 - Phase 28: `locale::Locale`'s time half defaults to neutral in the
   `From<format::Locale>` impl.
+
+## D11.3 — Details of the D11.2 fixes that the entry leaves open
+
+**Date:** 2026-10-27 · **Context:** the D11.2 fix session (78ef1ca … 7d6f91b, 98d49c7) · **Status:** open
+
+### Issue
+
+1. **Float noise in the gap.** D11.2 (1): "`,f` with
+   `format::precision_fixed` of the smallest positive gap between
+   consecutive ticks". A gap is a difference of two doubles: d3's
+   `precisionFixed(0.3 - 0.2)` is 2 (0.09999999999999998), so read
+   literally, `linear().domain([0, 1]).tick_rule(TickRule::Data)` labels
+   "0.00", "0.10", … where d3, and the scale without the rule, write
+   "0.0", "0.1", …; far from zero the noise is larger: `[1e9, 1e9 + 1]`
+   has the gap 1e9 + 0.3 − (1e9 + 0.2) = 0.09999990463256836.
+2. **`func` with a rule other than `Data`.** D11.2 (1) covers a scale
+   whose `tick_rule` is not the default. A `func` scale's rule belongs to
+   its transform (`transform::Func`, Phase 5: "other methods default"),
+   so the rule does not reach it, and it keeps the defect of the issue's
+   third row: `func(f64::sqrt, |y| y * y, TickRule::Transformed).domain([0,
+   1])`, count 5, ticks `[0, 0.04, 0.16, 0.36, 0.64, 1]`, labels "0.0",
+   "0.0", "0.2", "0.4", "0.6", "1.0".
+3. **matplotlib's second minor cut.** D11.2 (3) follows `LogLocator`
+   where the major stride is above one decade. The same code
+   (`ticker.py`, `tick_values`, `if n_avail >= 10 or b < 3: … return
+   np.array([])` for `subs='auto'`) draws no minor ticks at all once ten
+   or more decades are in view, at any stride.
+   `log().domain([1, 1e12])` at count 10 has 13 majors a decade apart and
+   96 minor ticks here; matplotlib draws none.
+4. **The private module's name.** D11.2 (6) names no module for the
+   trait.
+
+### Investigation
+
+- (1) Node 22 with the vendored d3: `precisionFixed(0.09999999999999998)`
+  is 2. Ticks k/10 near 1e9 alternate gaps 0.10000002384185791 and
+  0.09999990463256836.
+- (2), (3) measured on the built code (throwaway test, not committed);
+  matplotlib 3.11.2 `ticker.py` read in the installed source.
+
+### Options
+
+| | **A — as built** | B |
+| --- | --- | --- |
+| (1) | The gap is read to 12 significant digits of the largest tick (`format::precision_fixed_between`, crate-private) before `precision_fixed`; a gap below that resolution keeps the transform's format. Under a `Data` rule, linear labels equal d3's at [0, 1] and [1e9, 1e9 + 1] (tested) | The literal rule: one place too many wherever a gap falls just below a power of ten |
+| (2) | Not built: `func` labels with d3's linear tick format whatever its rule | `Func::tick_format` uses the gap format (`TickFormat::spaced`) when no specifier is given; for d3's linear ticks (`Data`) that is the same format, so it can apply to every rule; about 15 lines and a test |
+| (3) | Not built: 2–9 in every decade whenever majors are a decade apart | Log and symlog minors empty when the domain spans ten or more decades, as matplotlib |
+| (4) | `scale::mapping` (private); the trait's only path is `scale::Transform` | — |
+
+### Decision
+
+Open. Recommended: A for (1) and (4), already built (78ef1ca, 98d49c7,
+20e1f3a); B for (2), which completes D11.2's "labels follow the ticks"
+for the one scale whose rule is its transform's; for (3), B if the
+figure's minor ticks (Phase 39) should match matplotlib's density, A
+to keep this session's scope.
+
+### Why
+
+(1) is the reading of D11.2 (1) that keeps d3's labels where the rule
+gives d3's ticks; without it a `Data` rule would change labels it was
+meant to leave alone. (2) and (3) change behaviour beyond what D11.2
+decided, so they wait for an answer.
+
+### Followups
+
+- (2), if B: `transform::Func` overrides `tick_format`; test with the
+  row above.
+- (3), if B: `ticks::thinned` gains the decade count; Phase 39's minor
+  ticks inherit it.
