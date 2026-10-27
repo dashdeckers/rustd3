@@ -4,7 +4,7 @@
 
 use crate::figure::fits::Fits;
 use crate::figure::{Cache, Figure, Held, Resolved};
-use crate::layout::Layout;
+use crate::layout::{self, Layout};
 use crate::panel::Panel;
 use crate::scale::Scale;
 use crate::target::Target;
@@ -34,14 +34,67 @@ impl Figure<'_> {
         held: &Held,
         target: Target,
     ) -> Resolved {
+        self.resolve_in(size, cache, held, target, None)
+    }
+
+    /// As [`resolve`](Figure::resolve), keeping the plot areas `areas`
+    /// that a gesture took at its start ([`Resolved::areas`]), so the plot
+    /// does not shift under the pointer: tick counts come from their
+    /// lengths in one pass, labels and collisions are recomputed, and
+    /// labels may reach past the old reaches. Areas made for another size
+    /// or panel count are ignored: the layout is fresh, and
+    /// [`Resolved::held`] is false.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::kurbo::Size;
+    /// use rustd3_figure::{Figure, Held, Target, axis};
+    ///
+    /// let mut fig = Figure::new();
+    /// let y = fig.scale(scale::linear().domain([0.0, 3.0]));
+    /// fig.panel(0, 0).axis(axis::left(y));
+    /// # #[cfg(feature = "fonts")] {
+    /// let mut cache = rustd3_figure::Cache::default();
+    /// let size = Size::new(640.0, 480.0);
+    /// let target = Target::Screen { scale: 1.0 };
+    /// let start = fig.resolve(size, &mut cache, &Held::default(), target);
+    /// let mut held = Held::default();
+    /// held.hold(y, scale::linear().domain([0.0, 30_000.0]));
+    /// let areas = start.areas();
+    /// let during = fig.resolve_held(size, &mut cache, &held, target, &areas);
+    /// assert!(during.held());
+    /// assert_eq!(during.plot_areas(), start.plot_areas());
+    /// # }
+    /// ```
+    pub fn resolve_held(
+        &self,
+        size: kurbo::Size,
+        cache: &mut Cache,
+        held: &Held,
+        target: Target,
+        areas: &layout::Areas,
+    ) -> Resolved {
+        self.resolve_in(size, cache, held, target, Some(areas))
+    }
+
+    /// Resolves for `size`, in `areas` when they fit it.
+    fn resolve_in(
+        &self,
+        size: kurbo::Size,
+        cache: &mut Cache,
+        held: &Held,
+        target: Target,
+        areas: Option<&layout::Areas>,
+    ) -> Resolved {
         let (scales, marked) = self.fitted(held);
-        let mut resolved = Resolved::new(self.id, scales, target);
-        let layout = Layout::new(self, &resolved, cache.text(), &marked, size);
+        let mut resolved = Resolved::new(self.id, scales, target, size);
+        let rects = areas.and_then(|a| a.fit(size, self.panels.len()));
+        let layout = Layout::new(self, &resolved, cache.text(), &marked, size, rects);
         let title = self
             .title
             .as_ref()
             .map(|t| Key::new(t, &self.theme.figure_title()));
-        resolved.place(layout, title);
+        resolved.place(layout, title, rects.is_some());
         resolved
     }
 

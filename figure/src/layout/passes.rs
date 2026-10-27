@@ -9,7 +9,7 @@ use crate::axis::{self, Labels, Placed};
 use crate::figure::{Figure, Resolved};
 use crate::layout::{self, Plan, Reach, collide, plan};
 use crate::panel::Panel;
-use crate::text::{self, Key, Shaped};
+use crate::text::{self, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
 /// Passes at most; counts that have not settled by then are kept.
@@ -42,7 +42,7 @@ type Axes = Vec<Vec<(Labels, Plan)>>;
 impl Layout {
     /// `figure` laid out for `size` over the scales of `resolved`, its
     /// labels measured through `text` with `extra` (the marks' labels) in
-    /// each pass's batch.
+    /// each pass's batch; with `held` plot areas, laid out in those.
     ///
     /// The first placement has every axis at its offset and tick alone.
     /// Each pass then takes each axis's tick count from its length in the
@@ -54,13 +54,19 @@ impl Layout {
     /// column takes the largest reach of its panels per side and each row
     /// likewise, and the rest is split by weight inside 0.8 em of padding,
     /// below the figure title's ink height and 8 px. Passes stop when the
-    /// counts equal the last pass's.
+    /// counts equal the last pass's. Held areas are kept as they are: one
+    /// pass takes the counts from their lengths and measures the labels,
+    /// which may then reach past the old reaches. Every labelled vertical
+    /// axis of a figure drawn for the screen reserves twice the width of
+    /// "0" at tick-label size past its decorations, so labels can grow
+    /// during a gesture.
     pub(crate) fn new(
         figure: &Figure<'_>,
         resolved: &Resolved,
         text: &mut text::Cache,
         extra: &[Key],
         size: Size,
+        held: Option<&[Rect]>,
     ) -> Layout {
         let theme = figure.style();
         let panels = figure.panels();
@@ -69,22 +75,15 @@ impl Layout {
             .map(|p| p.heading().map(|t| Key::new(t, &theme.title())))
             .collect();
         let title = figure.heading().map(|t| Key::new(t, &theme.figure_title()));
+        let zero = resolved.target().interactive().then(|| {
+            let style = theme.tick_label(anchor::Horizontal::Middle, theme.ink());
+            Key::new(&Text::from("0"), &style)
+        });
         let roles = plan::roles(panels);
-        let bare: Vec<Reach> = panels
-            .iter()
-            .zip(&roles)
-            .map(|(p, roles)| {
-                let counts = vec![2; roles.len()];
-                let thicknesses = vec![theme.tick(); roles.len()];
-                let plans = plan::stack(p.axes(), roles, &counts, &thicknesses);
-                let mut reach = Reach::default();
-                for (a, plan) in p.axes().iter().zip(plans).filter(|(_, plan)| plan.shown) {
-                    reach.widen(a.orient(), plan.offset + plan.thickness);
-                }
-                reach
-            })
-            .collect();
-        let mut areas = place(figure, size, 0.0, &bare);
+        let mut areas = match held {
+            Some(rects) => rects.to_vec(),
+            None => place(figure, size, 0.0, &bare(figure, &roles)),
+        };
         let mut last: Option<Vec<Vec<usize>>> = None;
         let mut axes: Axes = Vec::new();
         let mut reaches: Vec<(Reach, f64)> = Vec::new();
@@ -115,16 +114,30 @@ impl Layout {
                     .flat_map(Labels::keys)
                     .chain(titles.iter().flatten())
                     .chain(&title)
+                    .chain(&zero)
                     .chain(extra),
             );
             let text = &*text;
+            let slack = zero
+                .as_ref()
+                .and_then(|key| get(text, key))
+                .map_or(0.0, |s| 2.0 * s.width());
             axes = panels
                 .iter()
                 .zip(labels)
                 .zip(roles.iter().zip(&counts))
                 .map(|((p, labels), (roles, counts))| {
-                    let thicknesses: Vec<f64> =
-                        labels.iter().map(|l| l.thickness(text, theme)).collect();
+                    let thicknesses: Vec<f64> = p
+                        .axes()
+                        .iter()
+                        .zip(&labels)
+                        .zip(roles)
+                        .map(|((a, l), role)| {
+                            let vertical = !axis::across(a.orient());
+                            let roomy = role.shown && role.labeled && vertical;
+                            l.thickness(text, theme) + if roomy { slack } else { 0.0 }
+                        })
+                        .collect();
                     let plans = plan::stack(p.axes(), roles, counts, &thicknesses);
                     labels.into_iter().zip(plans).collect()
                 })
@@ -135,6 +148,9 @@ impl Layout {
                 .zip(&areas)
                 .map(|((p, axes), area)| reach(p, axes, *area, resolved, text, theme))
                 .collect();
+            if held.is_some() {
+                break;
+            }
             let reserve = title
                 .as_ref()
                 .and_then(|key| get(text, key))
@@ -188,6 +204,27 @@ impl Layout {
             passes,
         }
     }
+}
+
+/// How far each panel of `figure` reaches with every drawn axis at its
+/// offset and tick alone, nothing measured: the first placement's reaches.
+fn bare(figure: &Figure<'_>, roles: &[Vec<plan::Role>]) -> Vec<Reach> {
+    let tick = figure.style().tick();
+    figure
+        .panels()
+        .iter()
+        .zip(roles)
+        .map(|(p, roles)| {
+            let counts = vec![2; roles.len()];
+            let thicknesses = vec![tick; roles.len()];
+            let plans = plan::stack(p.axes(), roles, &counts, &thicknesses);
+            let mut reach = Reach::default();
+            for (a, plan) in p.axes().iter().zip(plans).filter(|(_, plan)| plan.shown) {
+                reach.widen(a.orient(), plan.offset + plan.thickness);
+            }
+            reach
+        })
+        .collect()
 }
 
 /// Runs the collision passes over the tick labels of `panels`, laid out in

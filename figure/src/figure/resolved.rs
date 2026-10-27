@@ -1,7 +1,7 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
 use crate::figure;
-use crate::layout::{Laid, Layout, Plan};
+use crate::layout::{self, Laid, Layout, Plan};
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
 use crate::text::Key;
@@ -13,23 +13,33 @@ pub struct Resolved {
     figure: figure::Id,
     scales: Vec<Box<dyn Scale>>,
     target: Target,
+    size: kurbo::Size,
     areas: Vec<kurbo::Rect>,
     panels: Vec<Laid>,
     title: Option<Key>,
     passes: usize,
+    held: bool,
 }
 
 impl Resolved {
-    /// The resolved scales of figure `figure`, before layout.
-    pub(super) fn new(figure: figure::Id, scales: Vec<Box<dyn Scale>>, target: Target) -> Resolved {
+    /// The resolved scales of figure `figure` for `target` and `size`,
+    /// before layout.
+    pub(super) fn new(
+        figure: figure::Id,
+        scales: Vec<Box<dyn Scale>>,
+        target: Target,
+        size: kurbo::Size,
+    ) -> Resolved {
         Resolved {
             figure,
             scales,
             target,
+            size,
             areas: Vec::new(),
             panels: Vec::new(),
             title: None,
             passes: 0,
+            held: false,
         }
     }
 
@@ -69,6 +79,22 @@ impl Resolved {
         self.passes
     }
 
+    /// The plot areas with the size they were laid out for, for a gesture
+    /// to hold ([`Figure::resolve_held`](crate::Figure::resolve_held)).
+    pub fn areas(&self) -> layout::Areas {
+        layout::Areas::new(self.areas.clone(), self.size)
+    }
+
+    /// True when this resolve used held areas.
+    pub fn held(&self) -> bool {
+        self.held
+    }
+
+    /// The size the figure was resolved for.
+    pub(crate) fn size(&self) -> kurbo::Size {
+        self.size
+    }
+
     /// The target the figure was resolved for.
     pub(crate) fn target(&self) -> Target {
         self.target
@@ -84,11 +110,13 @@ impl Resolved {
         self.title.as_ref()
     }
 
-    /// Sets the layout and the figure title's key.
-    pub(super) fn place(&mut self, layout: Layout, title: Option<Key>) {
+    /// Sets the layout, the figure title's key and whether the layout
+    /// kept held areas.
+    pub(super) fn place(&mut self, layout: Layout, title: Option<Key>, held: bool) {
         self.areas = layout.areas;
         self.panels = layout.panels;
         self.passes = layout.passes;
         self.title = title;
+        self.held = held;
     }
 }

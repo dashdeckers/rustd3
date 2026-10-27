@@ -28,6 +28,14 @@ impl Target {
         }
     }
 
+    /// Whether the figure is drawn for the screen, where gestures change it.
+    pub(crate) fn interactive(self) -> bool {
+        match self {
+            Target::Vector | Target::File { .. } => false,
+            Target::Screen { .. } => true,
+        }
+    }
+
     /// Thinning columns per list px: four per list pixel for vector
     /// output, four per device pixel for files, one per device pixel on
     /// screen. Files are thinned finer than the screen because M4's zigzag

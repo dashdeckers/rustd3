@@ -4,7 +4,8 @@ use std::cell::RefCell;
 
 use kurbo::Rect;
 
-use crate::figure::{Cache, Figure, Held};
+use crate::figure::{Cache, Figure, Held, Resolved};
+use crate::layout;
 use crate::list::{Bounds, List, Outlines};
 use crate::target::Target;
 
@@ -41,13 +42,36 @@ impl Figure<'_> {
     ) -> List {
         cache.begin();
         let resolved = self.resolve(size, cache, held, target);
+        self.emit(cache, &resolved)
+    }
+
+    /// As [`draw_with`](Figure::draw_with), laid out in the plot areas
+    /// `areas` a gesture holds ([`Figure::resolve_held`]): areas made for
+    /// another size or panel count are ignored.
+    pub fn draw_held(
+        &self,
+        cache: &mut Cache,
+        size: kurbo::Size,
+        target: Target,
+        held: &Held,
+        areas: &layout::Areas,
+    ) -> List {
+        cache.begin();
+        let resolved = self.resolve_held(size, cache, held, target, areas);
+        self.emit(cache, &resolved)
+    }
+
+    /// The list of `resolved`: decorations and marks, each part bounded by
+    /// its commands.
+    fn emit(&self, cache: &mut Cache, resolved: &Resolved) -> List {
+        let size = resolved.size();
         let mut list = List {
             size,
             ..List::default()
         };
         let (text, frame) = cache.start();
         let frame = RefCell::new(frame);
-        self.decorate(&resolved, text, &frame, &mut list);
+        self.decorate(resolved, text, &frame, &mut list);
         cache.end(frame.into_inner());
         let bounds = Bounds::of(&list, &mut Outlines::default());
         for part in &mut list.parts {

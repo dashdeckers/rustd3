@@ -7,7 +7,7 @@ use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_figure::axis::Axis;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::layout::{Cell, Grid, em, px};
-use rustd3_figure::list::{Command, part};
+use rustd3_figure::list::{Command, List, part};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{self, Key, Style, Text, anchor};
 use rustd3_figure::{Figure, Held, Panel, Target, axis};
@@ -520,6 +520,11 @@ fn drawn_with(
     cache: &mut rustd3_figure::Cache,
 ) -> Vec<String> {
     let list = fig.draw_with(cache, size, Target::Vector, &Held::default());
+    texts(&list, panel, axis)
+}
+
+/// The texts of the glyph runs of axis `axis` of panel `panel` in `list`.
+fn texts(list: &List, panel: u64, axis: u64) -> Vec<String> {
     let id = part::Id::new(4 << 56 | panel << 32 | axis);
     let Some(part) = list.parts.iter().find(|p| p.id == id) else {
         return Vec::new();
@@ -888,4 +893,128 @@ fn log_axes_keep_their_labels_whatever_their_magnitude() {
     let kept = drawn(&fig, size, 0, 0);
     assert!(kept.iter().all(|l| own.contains(l)), "{kept:?} of {own:?}");
     assert!(kept.contains(&"10M".to_string()), "{kept:?}");
+}
+
+/// One 640 × 480 panel with a left axis over `y`, fixed to [0, 3].
+fn held_left() -> (Figure<'static>, ScaleRef<Linear>) {
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::linear().domain([0.0, 3.0]));
+    fig.panel(0, 0).axis(axis::left(y));
+    (fig, y)
+}
+
+#[test]
+fn held_areas_keep_the_plot_while_labels_grow_outward() {
+    let size = Size::new(640.0, 480.0);
+    let (fig, y) = held_left();
+    let mut cache = cache();
+    let start = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
+    assert!(!start.held());
+    let mut held = Held::default();
+    held.hold(y, scale::linear().domain([0.0, 30_000.0]));
+    let areas = start.areas();
+    let during = fig.resolve_held(size, &mut cache, &held, Target::Vector, &areas);
+    assert!(during.held() && during.passes() == 1);
+    let (a, b) = (start.plot_areas()[0], during.plot_areas()[0]);
+    assert!(
+        [(a.x0, b.x0), (a.y0, b.y0), (a.x1, b.x1), (a.y1, b.y1)]
+            .iter()
+            .all(|(p, q)| same(*p, *q)),
+        "{a:?} {b:?}"
+    );
+    let grown = during.plan(0, 0).expect("an axis").thickness
+        - start.plan(0, 0).expect("an axis").thickness;
+    let widths = measure("30\u{202f}000", 44.0 / 3.0).0 - measure("3.0", 44.0 / 3.0).0;
+    assert!((grown - widths).abs() < 1e-9, "{grown} {widths}");
+    // Released, the layout is fresh and the plot area narrower by as much.
+    let fresh = fig.resolve(size, &mut cache, &held, Target::Vector);
+    assert!((fresh.plot_areas()[0].x0 - a.x0 - grown).abs() < 1e-9);
+    let list = fig.draw_held(&mut cache, size, Target::Vector, &held, &areas);
+    let labels = texts(&list, 0, 0);
+    assert!(labels.contains(&"30\u{202f}000".to_string()), "{labels:?}");
+}
+
+#[test]
+fn areas_for_another_size_or_panel_count_are_ignored() {
+    fn data<T: Clone + std::fmt::Debug + PartialEq>(_: &T) {}
+    let (fig, _) = held_left();
+    let mut cache = cache();
+    let size = Size::new(640.0, 480.0);
+    let areas = fig
+        .resolve(size, &mut cache, &Held::default(), Target::Vector)
+        .areas();
+    data(&areas);
+    assert_eq!(areas.clone(), areas);
+    let other = Size::new(800.0, 480.0);
+    let r = fig.resolve_held(other, &mut cache, &Held::default(), Target::Vector, &areas);
+    assert!(!r.held());
+    let fresh = fig.resolve(other, &mut cache, &Held::default(), Target::Vector);
+    assert_eq!(r.plot_areas(), fresh.plot_areas());
+    let (mut more, _) = held_left();
+    more.panel(0, 1);
+    let r = more.resolve_held(size, &mut cache, &Held::default(), Target::Vector, &areas);
+    assert!(!r.held());
+}
+
+#[test]
+fn a_labelled_vertical_axis_on_screen_reserves_two_characters_of_slack() {
+    let zero = measure("0", 44.0 / 3.0).0;
+    assert!((zero - 9.3315).abs() < 1e-4, "{zero}");
+    let size = Size::new(640.0, 480.0);
+    let (fig, _) = held_left();
+    let thickness = |target| {
+        fig.resolve(size, &mut cache(), &Held::default(), target)
+            .plan(0, 0)
+            .expect("an axis")
+            .thickness
+    };
+    let slack = thickness(Target::Screen { scale: 1.0 }) - thickness(Target::Vector);
+    assert_eq!(format!("{slack:.3}"), "18.663");
+    assert_eq!(
+        thickness(Target::File { scale: 2.0 }),
+        thickness(Target::Vector)
+    );
+    let (fig, ..) = one_panel(|p, x, _| {
+        p.axis(axis::bottom(x));
+    });
+    let bottom = |target| {
+        fig.resolve(size, &mut cache(), &Held::default(), target)
+            .plan(0, 0)
+            .expect("an axis")
+            .thickness
+    };
+    assert_eq!(
+        bottom(Target::Screen { scale: 1.0 }),
+        bottom(Target::Vector)
+    );
+}
+
+#[test]
+fn labels_that_grow_past_held_reaches_give_way_to_a_larger_panels() {
+    let size = Size::new(640.0, 480.0);
+    let mut fig = Figure::new();
+    fig.layout(Grid::new().cols([2.0, 1.0]).col_gaps([px(4.0)]));
+    let left = fig.scale(scale::linear().domain([0.0, 3.0]));
+    let right = fig.scale(scale::linear().domain([0.0, 100.0]));
+    fig.panel(0, 0).axis(axis::bottom(left));
+    fig.panel(0, 1).axis(axis::bottom(right));
+    let mut cache = cache();
+    let start = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
+    let mut held = Held::default();
+    held.hold(right, scale::linear().domain([-100_000.0, 0.0]));
+    let areas = start.areas();
+    let r = fig.resolve_held(size, &mut cache, &held, Target::Vector, &areas);
+    let boxes = r.label_boxes();
+    for (i, a) in boxes.iter().enumerate() {
+        for b in &boxes[i + 1..] {
+            assert!(!(a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1));
+        }
+    }
+    let list = fig.draw_held(&mut cache, size, Target::Vector, &held, &areas);
+    assert_eq!(texts(&list, 0, 0).last().map(String::as_str), Some("3.0"));
+    let right = texts(&list, 1, 0);
+    assert!(
+        !right.is_empty() && !right.contains(&"−100\u{202f}000".to_string()),
+        "{right:?}"
+    );
 }
