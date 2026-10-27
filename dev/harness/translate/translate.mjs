@@ -78,13 +78,8 @@ const SUITES = [
     rules: shape,
   },
   { suite: "pie", package: "d3-shape", files: tests(["pie", "arc"]), rules: pie },
-  {
-    suite: "stack",
-    package: "d3-shape",
-    files: tests(["stack", ...["diverging", "expand", "none", "silhouette", "wiggle"].map((n) => `offset/${n}`),
-      ...["appearance", "ascending", "descending", "insideOut", "none", "reverse"].map((n) => `order/${n}`)]),
-    rules: stack,
-  },
+  { suite: "stack", package: "d3-shape", rules: stack, files: tests(["stack", ...["diverging", "expand", "none", "silhouette", "wiggle"]
+    .map((n) => `offset/${n}`), ...["appearance", "ascending", "descending", "insideOut", "none", "reverse"].map((n) => `order/${n}`)]) },
   { suite: "symbol", package: "d3-shape", files: tests(["symbol", "symbols"]), rules: symbol },
   { suite: "zoom", package: "d3-zoom", files: tests(["transform"]), rules: zoom },
   {

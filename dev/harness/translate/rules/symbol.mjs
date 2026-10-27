@@ -36,12 +36,6 @@ export default {
     const p = node.callee.property?.name === "area" && val(ex(node.callee.object, ctx));
     return p?.t === "polygon" ? { c: `${p.c}.area()`, t: "num" } : gen.call(node, ctx);
   },
-  array(node) {
-    const all = node.elements.length && node.elements.every((e) => /^symbol[A-Z]/.test(e?.name));
-    return all ? { c: `[${node.elements.map(kind).join(", ")}]`, t: "symbols" } : undefined;
-  },
-  equal(a, b) {
-    if (a.t === "alias") skip("js: object identity (symbols === symbolsFill)");
-    return a.t === "symbols" && b.t === "symbols" ? `(${a.c} == ${b.c})` : undefined;
-  },
+  array: (node) => (node.elements.length && node.elements.every((e) => /^symbol[A-Z]/.test(e?.name)) ? { c: `[${node.elements.map(kind).join(", ")}]`, t: "symbols" } : undefined),
+  equal: (a, b) => (a.t === "alias" ? skip("js: object identity (symbols === symbolsFill)") : a.t === "symbols" && b.t === "symbols" ? `(${a.c} == ${b.c})` : undefined),
 };
