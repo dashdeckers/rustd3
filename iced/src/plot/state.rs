@@ -5,18 +5,25 @@ use std::sync::Arc;
 
 use iced_core::shell::Waker;
 use iced_core::time::Instant;
-use iced_core::{Point, Rectangle, Size, image};
+use iced_core::{Event, Point, Rectangle, Size, image, mouse};
+use rustd3_core::interact::{self, Modifiers, Pointer};
 use rustd3_figure::list::{self, Bounds, Outlines};
-use rustd3_figure::{Cache, Figure, Held, Target, Theme, hit, kurbo, raster};
+use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster};
 
 use crate::plot::budget::Budget;
 use crate::plot::cost;
+use crate::plot::domains::{Domains, Key};
+use crate::plot::gesture::{self, Gesture, Track};
+use crate::plot::input::Input;
 use crate::plot::job::{Done, Job, Stamp};
+use crate::plot::listener::Listener;
 use crate::plot::overlay::{self, Overlay};
 use crate::plot::probe::{self, Probe, Sample, Stage};
+use crate::plot::region::{self, Along, Region};
 use crate::plot::slot::{self, Band, Slot};
 use crate::plot::worker::Worker;
 use crate::plot::{Render, handle};
+use crate::pointer::Tracker;
 
 /// The widget's tree state: the figure's cache, the rasterizer, and the
 /// slots of the partition's cells. It borrows nothing of the figure.
@@ -57,6 +64,29 @@ pub(crate) struct State {
     overlay: Overlay,
     /// The render thread, started with the first job set it gets.
     worker: Option<Worker>,
+    /// Turns iced events into pointer input in the widget's logical px.
+    tracker: Tracker,
+    /// Pointer input waiting for the next `RedrawRequested`.
+    input: Input,
+    /// The scales gestures changed, and each handle's zoom.
+    domains: Domains,
+    /// The gesture in progress.
+    gesture: Option<Gesture>,
+    /// The last resolve: the scales a gesture starts from.
+    resolved: Option<Resolved>,
+    /// Its plot areas and axis strips, and the handles each panel zooms.
+    map: region::Map,
+    /// The keyboard modifiers last reported.
+    modifiers: Modifiers,
+}
+
+/// What queuing a pointer asks of the shell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct Queued {
+    /// Capture the event: the widget handles it.
+    pub(crate) capture: bool,
+    /// Request a redraw, which applies the queue.
+    pub(crate) redraw: bool,
 }
 
 /// How a `RedrawRequested` renders and reports what it did.
@@ -88,6 +118,13 @@ impl Default for State {
             hits: hit::Index::default(),
             overlay: Overlay::default(),
             worker: None,
+            tracker: Tracker::default(),
+            input: Input::default(),
+            domains: Domains::default(),
+            gesture: None,
+            resolved: None,
+            map: region::Map::default(),
+            modifiers: Modifiers::NONE,
         }
     }
 }
@@ -116,33 +153,244 @@ impl State {
         self.window
     }
 
-    /// Handles one `RedrawRequested(now)`: counts the frame, refreshes
-    /// `figure` at `factor` when it was rebuilt, the widget resized or the
-    /// factor changed, and reports what the following draw shows to the
-    /// pipeline's probe. Returns the number of cells whose content changed.
-    pub(crate) fn redraw(
+    /// The pointer input `event` makes over a widget laid out at `bounds`
+    /// at `factor`, in the widget's logical px.
+    pub(crate) fn translate(
+        &mut self,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+        factor: f32,
+    ) -> Option<Pointer> {
+        self.tracker = std::mem::take(&mut self.tracker).scale_factor(factor);
+        self.tracker.translate(event, bounds, cursor)
+    }
+
+    /// A press waits for the next `RedrawRequested` to be timed.
+    pub(crate) fn wants_redraw(&self) -> bool {
+        self.tracker.wants_redraw()
+    }
+
+    /// Queues `pointer` for the next `RedrawRequested` when a gesture
+    /// reads it: a wheel over a region with zoomable handles (or during a
+    /// drag) and a modifier change.
+    pub(crate) fn queue(&mut self, pointer: Pointer) -> Queued {
+        let capture = Queued {
+            capture: true,
+            redraw: true,
+        };
+        let queued = match pointer {
+            Pointer::Wheel { x, y, .. } => {
+                let dragging = self.gesture.as_ref().is_some_and(Gesture::is_drag);
+                (dragging || self.zoomable(kurbo::Point::new(x, y))).then_some(capture)
+            }
+            Pointer::Modifiers(_) => Some(Queued::default()),
+            Pointer::Pressed { .. }
+            | Pointer::Moved { .. }
+            | Pointer::Released { .. }
+            | Pointer::DoubleClicked { .. }
+            | Pointer::Left => None,
+            _ => None,
+        };
+        if queued.is_some() {
+            self.input.push(pointer);
+        }
+        queued.unwrap_or_default()
+    }
+
+    /// Handles one `RedrawRequested(now)`: counts the frame, applies the
+    /// queued input, refreshes `figure` at `factor` when it was rebuilt,
+    /// the widget resized, the factor changed or input changed a domain,
+    /// and reports what the following draw shows to the pipeline's probe.
+    /// Returns the number of cells whose content changed and the messages
+    /// for `listeners`. When applying the input published a message, the
+    /// list is not built in this pass: the runtime runs the app's `update`,
+    /// rebuilds the view and sends `RedrawRequested` again
+    /// (`winit/src/lib.rs:788-830`).
+    pub(crate) fn redraw<Message>(
         &mut self,
         figure: &Figure<'_>,
         factor: f32,
         now: Instant,
         pipeline: &Pipeline<'_>,
-    ) -> usize {
+        listeners: &[Listener<'_, Message>],
+    ) -> (usize, Vec<Message>) {
         self.frame += 1;
         self.budget.frame(now);
-        let changed = self.refresh(figure, factor, pipeline);
+        let messages = self.apply(now, listeners);
+        let changed = if messages.is_empty() {
+            self.refresh(figure, factor, pipeline)
+        } else {
+            0
+        };
         let report = self.report(now);
         if let Some(probe) = pipeline.probe {
             probe.send(report);
         }
-        changed
+        (changed, messages)
+    }
+
+    /// When the wheel gesture in progress ends, if one is: the widget
+    /// asks for a redraw then.
+    pub(crate) fn wheel_end(&self) -> Option<Instant> {
+        self.gesture.as_ref().and_then(Gesture::ends_at)
+    }
+
+    /// Applies the queued input at `now`, once per `RedrawRequested`:
+    /// gesture boundaries, then each pointer fed to the gesture's tracks;
+    /// accepted steps are stored, pending for `listeners`' handles and
+    /// owned otherwise. A wheel gesture ends at the first redraw
+    /// `gesture::WHEEL_END` after its last step. Returns one message per
+    /// listened handle that changed (the latest domain).
+    fn apply<Message>(
+        &mut self,
+        now: Instant,
+        listeners: &[Listener<'_, Message>],
+    ) -> Vec<Message> {
+        let mut messages = Vec::new();
+        let mut fresh = Vec::new();
+        let mut changed = false;
+        for pointer in self.input.take() {
+            match pointer {
+                Pointer::Wheel { x, y, .. } => {
+                    let region = self.map.at(kurbo::Point::new(x, y));
+                    let feeds = self
+                        .gesture
+                        .as_ref()
+                        .is_some_and(|g| g.is_drag() || g.region() == region);
+                    if !feeds {
+                        self.end(&mut fresh, listeners, &mut messages);
+                        self.begin(region, gesture::Kind::Wheel { last: now });
+                    }
+                    if let Some(gesture) = &mut self.gesture {
+                        gesture.wheeled(now);
+                    }
+                    changed |= self.feed(pointer, &mut fresh, listeners);
+                }
+                Pointer::Modifiers(modifiers) => {
+                    self.modifiers = modifiers;
+                    self.feed(pointer, &mut fresh, listeners);
+                }
+                Pointer::Pressed { .. }
+                | Pointer::Moved { .. }
+                | Pointer::Released { .. }
+                | Pointer::DoubleClicked { .. }
+                | Pointer::Left => {}
+                _ => {}
+            }
+        }
+        if self.wheel_end().is_some_and(|end| now >= end) {
+            self.end(&mut fresh, listeners, &mut messages);
+        }
+        self.flush(&mut fresh, listeners, &mut messages);
+        if changed {
+            self.generation += 1;
+            self.stale = true;
+        }
+        messages
+    }
+
+    /// Starts a gesture of `kind` over `region` when it has zoomable
+    /// handles: each track starts from its handle's current scale (owned,
+    /// else pending, else as last resolved), and the plot areas of the
+    /// last resolve are held.
+    fn begin(&mut self, region: Region, kind: gesture::Kind) {
+        let (Some(resolved), Some(area)) = (
+            &self.resolved,
+            region.panel().and_then(|panel| self.map.area(panel)),
+        ) else {
+            return;
+        };
+        let mut tracks = Vec::new();
+        for (key, along) in self.map.tracks(region) {
+            let Some(start) = self.domains.current(key, resolved) else {
+                continue;
+            };
+            // Ends a wheel burst of an earlier gesture, whose anchor would
+            // be in another gesture's frame.
+            let _ = self.domains.zoom(key).handle(
+                Pointer::Modifiers(self.modifiers),
+                interact::Transform::IDENTITY,
+            );
+            tracks.push(Track::new(key, along, start));
+        }
+        if !tracks.is_empty() {
+            let held = Some(resolved.areas());
+            self.gesture = Some(Gesture::new(region, kind, tracks, held, area));
+        }
+    }
+
+    /// Feeds `pointer` to the gesture's tracks and stores each accepted
+    /// step, published (pending) for a handle one of `listeners` listens
+    /// to, else owned; the keys go to `fresh`. True when a step was
+    /// accepted.
+    fn feed<Message>(
+        &mut self,
+        pointer: Pointer,
+        fresh: &mut Vec<Key>,
+        listeners: &[Listener<'_, Message>],
+    ) -> bool {
+        let Some(gesture) = &mut self.gesture else {
+            return false;
+        };
+        let steps = gesture.feed(pointer, &mut self.domains);
+        let accepted = !steps.is_empty();
+        for (key, scale) in steps {
+            let listened = listeners.iter().any(|listener| listener.key() == key);
+            self.domains.store(key, scale, listened);
+            if !fresh.contains(&key) {
+                fresh.push(key);
+            }
+        }
+        accepted
+    }
+
+    /// One message per key in `fresh` that one of `listeners` listens to:
+    /// its published domain.
+    fn flush<Message>(
+        &self,
+        fresh: &mut Vec<Key>,
+        listeners: &[Listener<'_, Message>],
+        messages: &mut Vec<Message>,
+    ) {
+        for key in fresh.drain(..) {
+            let listener = listeners.iter().find(|listener| listener.key() == key);
+            if let (Some(listener), Some(scale)) = (listener, self.domains.published(key)) {
+                messages.extend(listener.publish(scale));
+            }
+        }
+    }
+
+    /// Ends the gesture in progress, if any: what it published goes out,
+    /// published domains are the app's from now on, the layout is held no
+    /// more and settles at the next refresh.
+    fn end<Message>(
+        &mut self,
+        fresh: &mut Vec<Key>,
+        listeners: &[Listener<'_, Message>],
+        messages: &mut Vec<Message>,
+    ) {
+        if self.gesture.take().is_some() {
+            self.flush(fresh, listeners, messages);
+            self.domains.release();
+            self.stale = true;
+        }
+    }
+
+    /// Whether the region at `at` (list px) has zoomable handles.
+    fn zoomable(&self, at: kurbo::Point) -> bool {
+        !self.map.tracks(self.map.at(at)).is_empty()
     }
 
     /// Resolves `figure` once at the widget's size for the screen at
-    /// `factor` and draws it, cuts the list into cells at every plot-area
-    /// edge, and renders the cells whose content hash changed: inline,
-    /// shown at once, or as a job set that replaces the worker's pending
-    /// one, as `pipeline.render` asks or, for `Auto`, as the cost model
-    /// predicts against the frame budget. Returns how many changed.
+    /// `factor`, with the gestures' domains as overrides (pending winning
+    /// over owned) and, during a gesture, in the plot areas it holds;
+    /// drops what the widget keeps for handles whose type changed; draws
+    /// the figure, cuts the list into cells at every plot-area edge, and
+    /// renders the cells whose content hash changed: inline, shown at
+    /// once, or as a job set that replaces the worker's pending one, as
+    /// `pipeline.render` asks or, for `Auto`, as the cost model predicts
+    /// against the frame budget. Returns how many changed.
     fn refresh(&mut self, figure: &Figure<'_>, factor: f32, pipeline: &Pipeline<'_>) -> usize {
         if !self.stale && self.factor == Some(factor) {
             return 0;
@@ -155,15 +403,41 @@ impl State {
             self.slots.clear();
             self.areas.clear();
             self.hits = hit::Index::default();
+            self.map = region::Map::default();
+            self.resolved = None;
             return 0;
         }
         let probe = pipeline.probe;
         let target = Target::Screen { scale: k };
         let start = probe.map(Probe::now);
         self.cache.begin();
-        let resolved = figure.resolve(size, &mut self.cache, &Held::default(), target);
+        let held = self.domains.held();
+        let resolved = match self.gesture.as_ref().and_then(Gesture::held) {
+            Some(areas) => figure.resolve_held(size, &mut self.cache, &held, target, areas),
+            None => figure.resolve(size, &mut self.cache, &held, target),
+        };
+        self.domains.prune(&resolved);
+        self.map = region::Map::of(&resolved);
+        let changed = self.repaint(figure, &resolved, k, pipeline, start);
+        self.resolved = Some(resolved);
+        changed
+    }
+
+    /// Draws `resolved` (of `figure`, the probe's clock read at `start`
+    /// before resolving) into a list, cuts it into cells at every plot-area
+    /// edge and renders the cells whose content hash changed, as
+    /// [`refresh`](State::refresh) describes. Returns how many changed.
+    fn repaint(
+        &mut self,
+        figure: &Figure<'_>,
+        resolved: &Resolved,
+        k: f64,
+        pipeline: &Pipeline<'_>,
+        start: Option<Instant>,
+    ) -> usize {
+        let probe = pipeline.probe;
         let middle = probe.map(Probe::now);
-        let list = figure.draw_resolved(&mut self.cache, &resolved);
+        let list = figure.draw_resolved(&mut self.cache, resolved);
         if let (Some(probe), Some(start), Some(middle)) = (probe, start, middle) {
             let end = probe.now();
             for (stage, from, to) in [(Stage::Resolve, start, middle), (Stage::List, middle, end)] {
@@ -185,7 +459,7 @@ impl State {
             .iter()
             .map(|area| [area.x0, area.y0, area.x1, area.y1].map(|edge| (edge * k).round() as i32))
             .collect();
-        self.hits = figure.hits(&resolved, &mut self.cache);
+        self.hits = figure.hits(resolved, &mut self.cache);
         let bounds = Arc::new(Bounds::of(&list, &mut self.outlines));
         let list = Arc::new(list);
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
@@ -415,17 +689,28 @@ impl State {
         self.overlay.draw(renderer, origin, factor, theme.get_ink());
     }
 
-    /// Whether `at` (logical, in the window) lies over a plot area of a
-    /// widget laid out at `bounds`.
-    pub(crate) fn is_over_area(&self, at: Point, bounds: Rectangle) -> bool {
-        let Some(factor) = self.factor else {
-            return false;
+    /// The cursor over a widget laid out at `bounds` with the pointer at
+    /// `at` (logical, in the window): a grab hand over a plot area with
+    /// zoomable handles, the resize arrow of the axis's direction over a
+    /// zoomable axis, a crosshair over other plot areas, none elsewhere.
+    pub(crate) fn interaction(&self, at: Option<Point>, bounds: Rectangle) -> mouse::Interaction {
+        let Some(at) = at else {
+            return mouse::Interaction::None;
         };
-        let [x0, y0] = origin(bounds, factor);
-        let (x, y) = (at.x * factor - x0 as f32, at.y * factor - y0 as f32);
-        self.areas.iter().any(|&[ax0, ay0, ax1, ay1]| {
-            (ax0 as f32..ax1 as f32).contains(&x) && (ay0 as f32..ay1 as f32).contains(&y)
-        })
+        let at = kurbo::Point::new(f64::from(at.x - bounds.x), f64::from(at.y - bounds.y));
+        let region = self.map.at(at);
+        let zoomable = !self.map.tracks(region).is_empty();
+        match region {
+            Region::Area { .. } if zoomable => mouse::Interaction::Grab,
+            Region::Area { .. } => mouse::Interaction::Crosshair,
+            Region::Axis {
+                along: Along::X, ..
+            } if zoomable => mouse::Interaction::ResizingHorizontally,
+            Region::Axis {
+                along: Along::Y, ..
+            } if zoomable => mouse::Interaction::ResizingVertically,
+            Region::Axis { .. } | Region::Outside => mouse::Interaction::None,
+        }
     }
 }
 
@@ -450,6 +735,9 @@ pub(super) fn cache() -> Cache {
         .expect("invariant: no font files, no font error");
     Cache::new(std::sync::Arc::new(fonts))
 }
+
+#[cfg(test)]
+mod gestures;
 
 #[cfg(test)]
 mod tests {
@@ -489,7 +777,7 @@ mod tests {
             probe: None,
             waker: &Waker::noop(),
         };
-        state.redraw(fig, k, clock(), &pipeline)
+        state.redraw::<()>(fig, k, clock(), &pipeline, &[]).0
     }
 
     /// One inline `RedrawRequested` reported to a fresh probe; its
@@ -502,7 +790,7 @@ mod tests {
             probe: Some(&probe),
             waker: &Waker::noop(),
         };
-        state.redraw(fig, k, clock(), &pipeline);
+        state.redraw::<()>(fig, k, clock(), &pipeline, &[]);
         rx.try_iter().collect()
     }
 
@@ -717,7 +1005,7 @@ mod tests {
             waker: &waker,
         };
         let mut state = self::state(640.0, 480.0);
-        state.redraw(&fixture::grid(), 2.0, clock(), &pipeline);
+        state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, &[]);
         let planned: Vec<Sample> = rx.try_iter().collect();
         let stages = planned
             .iter()
@@ -759,7 +1047,7 @@ mod tests {
             wakes.load(Ordering::SeqCst),
             pixels as f64 / ms
         );
-        state.redraw(&fixture::grid(), 2.0, clock(), &pipeline);
+        state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, &[]);
         let shown: Vec<Sample> = rx.try_iter().collect();
         assert!(
             matches!(
@@ -785,9 +1073,9 @@ mod tests {
             waker: &waker,
         };
         let mut state = state(480.0, 320.0);
-        state.redraw(&fixture::pair(dots), 2.0, clock(), &pipeline);
+        state.redraw::<()>(&fixture::pair(dots), 2.0, clock(), &pipeline, &[]);
         state.rebuilt();
-        state.redraw(&fixture::pair(moved), 2.0, clock(), &pipeline);
+        state.redraw::<()>(&fixture::pair(moved), 2.0, clock(), &pipeline, &[]);
         assert_eq!(state.generation, 2);
         settle(&mut state, &wakes, None);
         assert!(

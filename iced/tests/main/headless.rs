@@ -148,6 +148,12 @@ impl<'a, Message: 'a> Harness<'a, Message> {
     pub fn frame(&mut self, now: Instant) -> Shot {
         self.tick();
         let _ = self.events(&[Event::Window(window::Event::RedrawRequested(now))]);
+        self.shoot()
+    }
+
+    /// Draws the interface as it is and takes a screenshot on a white
+    /// background.
+    pub fn shoot(&mut self) -> Shot {
         let ui = self
             .ui
             .as_mut()

@@ -65,19 +65,22 @@
 
 mod budget;
 pub mod cost;
+mod domains;
 #[cfg(test)]
 mod fixture;
+mod gesture;
 mod handle;
+mod input;
 mod job;
+mod listener;
 mod overlay;
 pub mod probe;
+mod region;
 mod render;
 mod scale_factor;
 mod slot;
 mod state;
 mod worker;
-
-use std::marker::PhantomData;
 
 use iced_core::image;
 use iced_core::layout::{self, Layout};
@@ -86,7 +89,9 @@ use iced_core::renderer;
 use iced_core::widget::{Meta, Tree, tree};
 use iced_core::{Element, Event, Length, Rectangle, Shell, Size, Widget, window};
 use rustd3_figure::Figure;
+use rustd3_figure::scale::{Kind, ScaleRef};
 
+use listener::Listener;
 use overlay::Shown;
 pub use probe::Probe;
 pub use render::Render;
@@ -117,7 +122,7 @@ pub struct Plot<'a, Message> {
     highlight: bool,
     render: Render,
     probe: Option<Probe>,
-    _message: PhantomData<Message>,
+    listeners: Vec<Listener<'a, Message>>,
 }
 
 impl<'a, Message> Plot<'a, Message> {
@@ -132,7 +137,7 @@ impl<'a, Message> Plot<'a, Message> {
             highlight: true,
             render: Render::default(),
             probe: None,
-            _message: PhantomData,
+            listeners: Vec::new(),
         }
     }
 
@@ -221,6 +226,28 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
+    /// Changes to `handle`'s domain become messages; the app owns the
+    /// domain from then on. Without this, the widget keeps it.
+    ///
+    /// A gesture publishes one message per handle per frame, the domain's
+    /// end stops in the scale's own type, and continues from the domain it
+    /// last published until it ends, so updates the app applies late lose
+    /// no distance. Only continuous handles change. A later `on_change`
+    /// for the same handle replaces this one.
+    pub fn on_change<S>(
+        mut self,
+        handle: ScaleRef<S>,
+        f: impl Fn([S::Domain; 2]) -> Message + 'a,
+    ) -> Self
+    where
+        S: Kind + 'static,
+    {
+        let listener = Listener::new(handle, f);
+        self.listeners.retain(|other| other.key() != listener.key());
+        self.listeners.push(listener);
+        self
+    }
+
     /// The overlay parts this widget shows.
     fn shown(&self) -> Shown {
         Shown {
@@ -270,28 +297,50 @@ where
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_mut::<State>();
+        if let Event::Window(
+            window::Event::Opened { scale_factor, .. } | window::Event::Rescaled(scale_factor),
+        ) = event
+        {
+            state.rescale(*scale_factor);
+        }
+        let factor =
+            scale_factor::resolve(self.scale_factor, renderer.scale(), state.window_factor());
+        // Gesture input is queued for the next `RedrawRequested`, which the
+        // tracker translates first (a double click comes from it).
+        if let Some(pointer) = state.translate(event, layout.bounds(), cursor, factor) {
+            let queued = state.queue(pointer);
+            if queued.capture {
+                shell.capture_event();
+            }
+            if queued.redraw {
+                shell.request_redraw();
+            }
+        }
+        if state.wants_redraw() {
+            shell.request_redraw();
+        }
         match event {
-            Event::Window(
-                window::Event::Opened { scale_factor, .. } | window::Event::Rescaled(scale_factor),
-            ) => {
-                state.rescale(*scale_factor);
+            Event::Window(window::Event::Opened { .. } | window::Event::Rescaled(_)) => {
                 shell.request_redraw();
             }
             Event::Window(window::Event::RedrawRequested(now)) => {
-                let factor = scale_factor::resolve(
-                    self.scale_factor,
-                    renderer.scale(),
-                    state.window_factor(),
-                );
                 let pipeline = Pipeline {
                     render: self.render,
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
                 };
+                let (changed, messages) =
+                    state.redraw(&self.figure, factor, *now, &pipeline, &self.listeners);
                 // New cells may move the plot areas or the points under
                 // the pointer.
-                if state.redraw(&self.figure, factor, *now, &pipeline) > 0 {
+                if changed > 0 {
                     state.hover(cursor.position(), layout.bounds(), self.shown());
+                }
+                for message in messages {
+                    shell.publish(message);
+                }
+                if let Some(end) = state.wheel_end() {
+                    shell.request_redraw_at(window::RedrawRequest::At(end));
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -341,16 +390,9 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let over = cursor.position().is_some_and(|at| {
-            tree.state
-                .downcast_ref::<State>()
-                .is_over_area(at, layout.bounds())
-        });
-        if over {
-            mouse::Interaction::Crosshair
-        } else {
-            mouse::Interaction::None
-        }
+        tree.state
+            .downcast_ref::<State>()
+            .interaction(cursor.position(), layout.bounds())
     }
 }
 

@@ -1,6 +1,8 @@
 //! rustd3-iced's integration tests.
 
 mod canvas;
+#[cfg(all(feature = "figure", feature = "fonts"))]
+mod gestures;
 mod headless;
 mod path;
 #[cfg(all(feature = "figure", feature = "fonts"))]

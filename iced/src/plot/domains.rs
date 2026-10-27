@@ -1,0 +1,136 @@
+//! [`Domains`]: the scales gestures changed, keyed by handle position and
+//! scale type ([`Key`]): those the widget owns, those it published during
+//! the active gesture, which handles a gesture touched, and each handle's
+//! core `Zoom`.
+//!
+//! Core's `Zoom` keeps d3's scale extent [0, ∞], which does not bound a
+//! gesture's k; each handle's zoom here is built with the extent [1e-6,
+//! 1e6], so k stays finite across a long wheel burst, while the figure's
+//! pixel operations still reject degenerate spans (a step they reject
+//! leaves the gesture where it was).
+
+use std::any::TypeId;
+use std::collections::{HashMap, HashSet};
+
+use rustd3_core::interact::Zoom;
+use rustd3_figure::scale::Scale;
+use rustd3_figure::{Held, Resolved};
+
+/// The scale extent of each handle's zoom: k of one gesture.
+const SCALE_EXTENT: [f64; 2] = [1e-6, 1e6];
+
+/// A handle as the widget knows it across rebuilds of the figure: its
+/// position in the scale table and its scale's type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Key {
+    index: usize,
+    scale: TypeId,
+}
+
+/// Widget-owned and published domains, the touched set, and each handle's
+/// zoom.
+#[derive(Default)]
+pub(crate) struct Domains {
+    /// Handles nobody listens to: the widget owns them.
+    owned: HashMap<Key, Box<dyn Scale>>,
+    /// Published during the active gesture, until it ends.
+    pending: HashMap<Key, Box<dyn Scale>>,
+    /// Changed since the last reset.
+    touched: HashSet<Key>,
+    /// One core zoom per handle, persistent.
+    zooms: HashMap<Key, Zoom>,
+}
+
+impl Key {
+    /// The handle at table position `index` whose scale is `scale`.
+    pub(crate) fn new(index: usize, scale: &dyn Scale) -> Key {
+        Key {
+            index,
+            scale: scale.as_any().type_id(),
+        }
+    }
+
+    /// The handle at table position `index` whose scale has type `S`.
+    pub(crate) fn of<S: Scale>(index: usize) -> Key {
+        Key {
+            index,
+            scale: TypeId::of::<S>(),
+        }
+    }
+
+    /// Whether `resolved` has a scale of this key's type at its position.
+    fn names(self, resolved: &Resolved) -> bool {
+        resolved
+            .scale_at(self.index)
+            .is_some_and(|scale| scale.as_any().type_id() == self.scale)
+    }
+}
+
+impl Domains {
+    /// The overrides a refresh resolves with: every owned and pending
+    /// scale, pending winning.
+    pub(crate) fn held(&self) -> Held {
+        let mut held = Held::default();
+        for (key, scale) in self.owned.iter().chain(&self.pending) {
+            held.hold_erased(key.index, scale.boxed());
+        }
+        held
+    }
+
+    /// The scale `key` shows now: owned, else pending, else as `resolved`
+    /// has it; `None` when `resolved` has no scale of the key's type there.
+    pub(crate) fn current(&self, key: Key, resolved: &Resolved) -> Option<Box<dyn Scale>> {
+        let kept = self.owned.get(&key).or_else(|| self.pending.get(&key));
+        match kept {
+            Some(scale) => Some(scale.boxed()),
+            None => key
+                .names(resolved)
+                .then(|| resolved.scale_at(key.index))
+                .flatten()
+                .map(Scale::boxed),
+        }
+    }
+
+    /// Stores what a gesture made of `key`: published (`listened`) scales
+    /// as pending until the gesture ends, others as the widget's own.
+    pub(crate) fn store(&mut self, key: Key, scale: Box<dyn Scale>, listened: bool) {
+        if listened {
+            self.pending.insert(key, scale);
+        } else {
+            self.owned.insert(key, scale);
+        }
+        self.touched.insert(key);
+    }
+
+    /// The zoom of `key`, made on first use.
+    pub(crate) fn zoom(&mut self, key: Key) -> &mut Zoom {
+        self.zooms
+            .entry(key)
+            .or_insert_with(|| Zoom::default().scale_extent(SCALE_EXTENT))
+    }
+
+    /// The gesture ended: published domains are the app's from now on.
+    pub(crate) fn release(&mut self) {
+        self.pending.clear();
+    }
+
+    /// Drops everything kept for handles whose position names a scale of
+    /// another type in `resolved`, or none: the app reordered its handles.
+    pub(crate) fn prune(&mut self, resolved: &Resolved) {
+        self.owned.retain(|key, _| key.names(resolved));
+        self.pending.retain(|key, _| key.names(resolved));
+        self.touched.retain(|key| key.names(resolved));
+        self.zooms.retain(|key, _| key.names(resolved));
+    }
+
+    /// The scale the widget owns for `key`.
+    #[cfg(test)]
+    pub(crate) fn owned(&self, key: Key) -> Option<&dyn Scale> {
+        self.owned.get(&key).map(|scale| &**scale)
+    }
+
+    /// The scale published for `key` during the active gesture.
+    pub(crate) fn published(&self, key: Key) -> Option<&dyn Scale> {
+        self.pending.get(&key).map(|scale| &**scale)
+    }
+}
