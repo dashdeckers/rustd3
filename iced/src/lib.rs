@@ -15,6 +15,10 @@
 //! ```
 
 mod path;
+#[cfg(feature = "figure")]
+pub mod plot;
 pub mod pointer;
 
 pub use path::{IcedPath, path};
+#[cfg(feature = "figure")]
+pub use plot::Plot;
