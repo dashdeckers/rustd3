@@ -8,11 +8,15 @@ mod app;
 mod cli;
 mod driver;
 mod headless;
+mod metrics;
 mod plan;
 mod record;
 mod recorder;
 mod replay;
+mod report;
+mod rule;
 mod scenario;
+mod stats;
 mod system;
 mod workload;
 
@@ -54,6 +58,9 @@ fn main() -> ExitCode {
         Command::Record { out } => recorder::record(out).map_err(Into::into),
         Command::Run(options) => run(&options, &args),
         Command::Child(child) => run_child(child, epoch),
+        Command::Report { dir } => report::build(&dir).map(|summary| {
+            println!("{summary}");
+        }),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -66,6 +73,7 @@ fn main() -> ExitCode {
 
 /// Prints scenarios, workloads, plans and the cells `options` select.
 fn list(options: &Options) -> Result<(), Box<dyn Error>> {
+    println!("{}", rule::READINGS);
     println!("Scenarios (full duration):");
     for scenario in Scenario::ALL {
         println!(
@@ -182,6 +190,9 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
             }
         }
     }
+    let summary = report::build(&dir)?;
+    println!("{summary}");
+    println!("report: {}", dir.join("report.md").display());
     if failed.is_empty() {
         Ok(())
     } else {

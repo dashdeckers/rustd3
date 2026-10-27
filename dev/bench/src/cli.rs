@@ -13,7 +13,7 @@ use crate::workload::Workload;
 /// What the process does.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    /// Run a plan: replays, one child process per cell and run.
+    /// Run a plan: replays, one child process per cell and run, report.
     Run(Options),
     /// One scenario × workload × factor × run (internal).
     Child(Child),
@@ -26,6 +26,11 @@ pub enum Command {
     Record {
         /// The file.
         out: PathBuf,
+    },
+    /// Rebuild the CSVs and `report.md` of a run's directory.
+    Report {
+        /// The run's directory.
+        dir: PathBuf,
     },
     /// Print scenarios, workloads and plans.
     List(Options),
@@ -171,6 +176,7 @@ Commands:
   replay  --out DIR       write the generated replays
   record  --out FILE      record your own input in the trace window as a
                           replay (relative to the first event; Escape stops)
+  report  DIR             rebuild the CSVs and report.md of a run
   list    [run's flags]   scenarios, workloads, plans and a plan's cells
 ";
 
@@ -197,6 +203,13 @@ impl Command {
             "record" => Ok(Command::Record {
                 out: single_out(rest)?,
             }),
+            "report" => match rest {
+                [dir] if !dir.starts_with("--") => Ok(Command::Report {
+                    dir: PathBuf::from(dir),
+                }),
+                [first, ..] => Err(Error::Stray(first.clone())),
+                [] => Err(Error::Missing("report DIR".to_owned())),
+            },
             other => Err(Error::Stray(other.to_owned())),
         }
     }
@@ -608,7 +621,13 @@ mod tests {
             panic!("a run");
         };
         assert_eq!(options.plan(), Plan::Smoke);
-        for line in ["replay --out d", "record --out f.jsonl", "list", "--help"] {
+        for line in [
+            "replay --out d",
+            "record --out f.jsonl",
+            "report d",
+            "list",
+            "--help",
+        ] {
             assert!(Command::parse(&args(line)).is_ok(), "{line}");
         }
         // A child round-trips through the flags `run` gives it.

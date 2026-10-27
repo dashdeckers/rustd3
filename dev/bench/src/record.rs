@@ -138,7 +138,7 @@ pub struct Run {
     pub clk_tck: u64,
 }
 
-/// Why a raw file cannot be written.
+/// Why a raw file cannot be read or written.
 #[derive(Debug)]
 pub enum Error {
     /// The file.
@@ -148,12 +148,22 @@ pub enum Error {
         /// What failed.
         source: io::Error,
     },
+    /// A line that is not a record.
+    Line {
+        /// Its path.
+        path: String,
+        /// 1-based.
+        line: usize,
+        /// What serde said.
+        source: serde_json::Error,
+    },
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Io { path, source } => write!(f, "{path}: {source}"),
+            Error::Line { path, line, source } => write!(f, "{path}:{line}: {source}"),
         }
     }
 }
@@ -171,4 +181,23 @@ pub fn write(path: &Path, records: &[Record]) -> Result<(), Error> {
         path: path.display().to_string(),
         source,
     })
+}
+
+/// Reads a raw file.
+pub fn read(path: &Path) -> Result<Vec<Record>, Error> {
+    let text = fs::read_to_string(path).map_err(|source| Error::Io {
+        path: path.display().to_string(),
+        source,
+    })?;
+    text.lines()
+        .enumerate()
+        .filter(|(_, line)| !line.trim().is_empty())
+        .map(|(index, line)| {
+            serde_json::from_str(line).map_err(|source| Error::Line {
+                path: path.display().to_string(),
+                line: index + 1,
+                source,
+            })
+        })
+        .collect()
 }
