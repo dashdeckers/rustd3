@@ -324,7 +324,7 @@ Items 5–6 are cheapest before anything outside core names them.
 
 ## D11.3 — Details of the D11.2 fixes that the entry leaves open
 
-**Date:** 2026-10-27 · **Context:** the D11.2 fix session (78ef1ca … 7d6f91b, 98d49c7) · **Status:** open
+**Date:** 2026-10-27 · **Context:** the D11.2 fix session (78ef1ca … 7d6f91b, 98d49c7) · **Status:** decided
 
 ### Issue
 
@@ -372,11 +372,14 @@ Items 5–6 are cheapest before anything outside core names them.
 
 ### Decision
 
-Open. Recommended: A for (1) and (4), already built (78ef1ca, 98d49c7,
-20e1f3a); B for (2), which completes D11.2's "labels follow the ticks"
-for the one scale whose rule is its transform's; for (3), B if the
-figure's minor ticks (Phase 39) should match matplotlib's density, A
-to keep this session's scope.
+(architect, 2026-10-27) A for (1) and (4), as built. B for (2):
+`transform::Func` labels with the gap format when no specifier is
+given. B for (3): log minors, and symlog's decade-branch minors, are
+empty when ten or more decade ticks are in view (`n_avail >= 10`, the
+count of integer powers of the base inside the domain), and for a base
+below 3, as matplotlib 3.11.2's `LogLocator(subs='auto')`; this applies
+to `Ticks::minor` and the inherent `minor(count)`. Both are done before
+Phase 12, one commit each.
 
 ### Why
 
