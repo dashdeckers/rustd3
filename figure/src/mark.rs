@@ -1,6 +1,6 @@
 //! Marks: the [`Mark`] trait every mark implements, [`Ctx`], what a mark
 //! sees while it draws one panel, and the figure's marks: [`dots`],
-//! [`rule_x`] and [`rule_y`].
+//! [`line`], [`rule_x`] and [`rule_y`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -17,6 +17,8 @@
 
 mod color;
 mod dots;
+mod guard;
+mod line;
 mod rule;
 
 use std::any::Any;
@@ -31,6 +33,7 @@ use crate::text::{self, Key, Shaped};
 use crate::theme::Theme;
 
 pub use dots::{Dots, dots};
+pub use line::{Line, line};
 pub use rule::{Rule, rule_x, rule_y};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data

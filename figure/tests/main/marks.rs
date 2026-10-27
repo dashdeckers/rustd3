@@ -4,9 +4,10 @@
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_figure::kurbo::{Affine, PathEl, Point, Rect, Size};
+use rustd3_core::shape::Curve;
+use rustd3_figure::kurbo::{Affine, BezPath, Cap, Join, PathEl, Point, Rect, Size};
 use rustd3_figure::list::{self, Clip, Command, List, part};
-use rustd3_figure::mark::{dots, rule_x, rule_y};
+use rustd3_figure::mark::{dots, line, rule_x, rule_y};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Figure, Held, Target};
@@ -349,5 +350,115 @@ fn a_rule_outside_the_plot_area_draws_nothing() {
     fig.panel(0, 0)
         .mark(rule_y(11.0, y).label("off"))
         .mark(rule_y(f64::NAN, y));
+    assert!(marked(&draw(&fig)).is_empty());
+}
+
+/// The single stroke a figure's marks drew, and the plot area.
+fn stroked(fig: &Figure<'_>) -> (BezPath, rustd3_figure::kurbo::Stroke, Brush, Rect) {
+    let list = draw(fig);
+    let area = crate::figure::resolve(fig, &Held::default()).plot_areas()[0];
+    let marked = marked(&list);
+    assert_eq!(marked.len(), 1, "{marked:?}");
+    let Command::Stroke { path, style, paint } = marked[0] else {
+        panic!("not a stroke: {:?}", marked[0]);
+    };
+    (path.clone(), style.clone(), paint.clone(), area)
+}
+
+/// Every point of `path`'s elements.
+fn vertices(path: &BezPath) -> Vec<Point> {
+    path.elements()
+        .iter()
+        .flat_map(|e| match e {
+            PathEl::MoveTo(p) | PathEl::LineTo(p) => vec![*p],
+            PathEl::QuadTo(a, b) => vec![*a, *b],
+            PathEl::CurveTo(a, b, c) => vec![*a, *b, *c],
+            PathEl::ClosePath => vec![],
+        })
+        .collect()
+}
+
+#[test]
+fn a_line_far_outside_its_domain_stays_within_three_panel_sizes() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let y = fig.fit(scale::linear());
+    fig.panel(0, 0).mark(line([(-1e9, 0.0), (1e9, 1.0)], x, y));
+    let (path, ..) = stroked(&fig);
+    let area = crate::figure::resolve(&fig, &Held::default()).plot_areas()[0];
+    let (w, h) = (area.width(), area.height());
+    let points = vertices(&path);
+    assert_eq!(points.len(), 2);
+    for p in points {
+        assert!(p.is_finite(), "{p:?}");
+        assert!(
+            (-w..=2.0 * w).contains(&p.x) && (-h..=2.0 * h).contains(&p.y),
+            "{p:?} outside the guard band of {w} × {h}"
+        );
+    }
+}
+
+#[test]
+fn a_line_breaks_where_a_point_cannot_be_placed() {
+    let (mut fig, x, y) = fitted();
+    fig.panel(0, 0).mark(line(
+        [(0.0, 0.0), (1.0, f64::NAN), (2.0, 1.0), (3.0, 2.0)],
+        x,
+        y,
+    ));
+    let (path, ..) = stroked(&fig);
+    let moves = path
+        .elements()
+        .iter()
+        .filter(|e| matches!(e, PathEl::MoveTo(_)))
+        .count();
+    let lines = path
+        .elements()
+        .iter()
+        .filter(|e| matches!(e, PathEl::LineTo(_)))
+        .count();
+    assert_eq!((moves, lines), (2, 1));
+}
+
+#[test]
+fn a_line_joins_its_points_with_its_curve() {
+    let (mut fig, x, y) = fitted();
+    fig.panel(0, 0)
+        .mark(line([(0.0, 0.0), (1.0, 2.0), (2.0, 1.0)], x, y).curve(Curve::StepAfter));
+    let (path, ..) = stroked(&fig);
+    let p = vertices(&path);
+    assert_eq!(p.len(), 5);
+    assert_eq!((p[1].y, p[2].x), (p[0].y, p[1].x));
+}
+
+#[test]
+fn a_line_takes_its_palette_color_width_and_dashes() {
+    let (mut fig, x, y) = fitted();
+    let color = fig.scale(scale::ordinal(["a", "b"], COLORBLIND));
+    fig.panel(0, 0).mark(
+        line([(0.0, 0.0), (1.0, 2.0)], x, y)
+            .stroke(color, "b")
+            .width(3.0)
+            .width(-1.0)
+            .dash([2.0, 1.0])
+            .dash([f64::NAN]),
+    );
+    let (_, style, paint, _) = stroked(&fig);
+    assert_eq!(paint, solid(COLORBLIND[1]));
+    assert_eq!(style.width, 3.0);
+    assert_eq!(style.dash_pattern.as_slice(), [2.0, 1.0]);
+    assert_eq!(style.dash_offset, 0.0);
+    assert_eq!(
+        (style.start_cap, style.end_cap, style.join),
+        (Cap::Butt, Cap::Butt, Join::Round)
+    );
+}
+
+#[test]
+fn a_line_wholly_outside_the_guard_band_draws_nothing() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0).mark(line([(5.0, 0.0), (6.0, 1.0)], x, y));
     assert!(marked(&draw(&fig)).is_empty());
 }
