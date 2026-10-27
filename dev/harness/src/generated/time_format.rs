@@ -588,7 +588,18 @@ fn t68() {   // utcFormat-test.js: utcFormat(…) can be used to create a condit
     skip("d3-time-format/test/utcFormat-test.js:306:3", "helpers: multi(), a file-level function choosing among file-level formats (Time::tick_label ports it)");
 }
 
-fn t69() {   // locale-test.js: locale data is valid
+fn t69() {   // isoFormat-test.js: isoFormat(date) returns an ISO 8601 UTC string
+    check("d3-time-format/test/isoFormat-test.js:6:3", Kind::Strict, &time::iso_format(utc(&[1990.0, 0.0, 1.0, 0.0, 0.0, 0.0])), &"1990-01-01T00:00:00.000Z");
+    check("d3-time-format/test/isoFormat-test.js:7:3", Kind::Strict, &time::iso_format(utc(&[2011.0, 11.0, 31.0, 23.0, 59.0, 59.0])), &"2011-12-31T23:59:59.000Z");
+}
+
+fn t70() {   // isoParse-test.js: isoParse as ISO 8601
+    check("d3-time-format/test/isoParse-test.js:6:3", Kind::Strict, &ts(time::iso_parse("1990-01-01T00:00:00.000Z").expect("d3 test")), &ts(utc(&[1990.0, 0.0, 1.0, 0.0, 0.0, 0.0])));
+    check("d3-time-format/test/isoParse-test.js:7:3", Kind::Strict, &ts(time::iso_parse("2011-12-31T23:59:59.000Z").expect("d3 test")), &ts(utc(&[2011.0, 11.0, 31.0, 23.0, 59.0, 59.0])));
+    check("d3-time-format/test/isoParse-test.js:8:3", Kind::Strict, &time::iso_parse("1990-01-01T00:00:00.000X").is_err(), &true);
+}
+
+fn t71() {   // locale-test.js: locale data is valid
     let tables: [(&[&str], time::Definition); 35] = [
         (&["date", "dateTime", "days", "months", "periods", "shortDays", "shortMonths", "time"], time::Definition { date_time: "%x, %X".into(), date: "%-d/%-m/%Y".into(), time: "%-I:%M:%S %p".into(), periods: ["ص".into(), "م".into()], days: ["الأحد".into(), "الإثنين".into(), "الثلاثاء".into(), "الأربعاء".into(), "الخميس".into(), "الجمعة".into(), "السبت".into()], short_days: ["أحد".into(), "إثنين".into(), "ثلاثاء".into(), "أربعاء".into(), "خميس".into(), "جمعة".into(), "سبت".into()], months: ["يناير".into(), "فبراير".into(), "مارس".into(), "أبريل".into(), "مايو".into(), "يونيو".into(), "يوليو".into(), "أغسطس".into(), "سبتمبر".into(), "أكتوبر".into(), "نوفمبر".into(), "ديسمبر".into()], short_months: ["يناير".into(), "فبراير".into(), "مارس".into(), "أبريل".into(), "مايو".into(), "يونيو".into(), "يوليو".into(), "أغسطس".into(), "سبتمبر".into(), "أكتوبر".into(), "نوفمبر".into(), "ديسمبر".into()], ladder: time::Ladder::D3 }),
         (&["date", "dateTime", "days", "months", "periods", "shortDays", "shortMonths", "time"], time::Definition { date_time: "%x, %X".into(), date: "%-d/%-m/%Y".into(), time: "%-I:%M:%S %p".into(), periods: ["ص".into(), "م".into()], days: ["الأحد".into(), "الإثنين".into(), "الثلاثاء".into(), "الأربعاء".into(), "الخميس".into(), "الجمعة".into(), "السبت".into()], short_days: ["أحد".into(), "إثنين".into(), "ثلاثاء".into(), "أربعاء".into(), "خميس".into(), "جمعة".into(), "سبت".into()], months: ["كانون الثاني".into(), "شباط".into(), "آذار".into(), "نيسان".into(), "أيار".into(), "حزيران".into(), "تموز".into(), "آب".into(), "أيلول".into(), "تشرين الأول".into(), "تشرين الثاني".into(), "كانون الأول".into()], short_months: ["ك٢".into(), "شباط".into(), "آذار".into(), "نيسان".into(), "أيار".into(), "حزيران".into(), "تموز".into(), "آب".into(), "أيلول".into(), "ت١".into(), "ت٢".into(), "ك١".into()], ladder: time::Ladder::D3 }),
@@ -632,48 +643,48 @@ fn t69() {   // locale-test.js: locale data is valid
     }
 }
 
-fn t70() {   // defaultLocale-test.js: timeFormat(specifier) defaults to en-US
+fn t72() {   // defaultLocale-test.js: timeFormat(specifier) defaults to en-US
     let la = zone("America/Los_Angeles");
     check("d3-time-format/test/defaultLocale-test.js:9:3", Kind::Strict, &time::Locale::EN_US.format("%c").format(local(&la, &[2000.0, 0.0, 1.0]), &la), &"1/1/2000, 12:00:00 AM");
 }
 
-fn t71() {   // defaultLocale-test.js: timeParse(specifier) defaults to en-US
+fn t73() {   // defaultLocale-test.js: timeParse(specifier) defaults to en-US
     skip("d3-time-format/test/defaultLocale-test.js:13:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t72() {   // defaultLocale-test.js: utcFormat(specifier) defaults to en-US
+fn t74() {   // defaultLocale-test.js: utcFormat(specifier) defaults to en-US
     check("d3-time-format/test/defaultLocale-test.js:17:3", Kind::Strict, &time::Locale::EN_US.format("%c").format(millis((utc(&[2000.0, 0.0, 1.0]).as_millisecond() as f64)), &TimeZone::UTC), &"1/1/2000, 12:00:00 AM");
 }
 
-fn t73() {   // defaultLocale-test.js: utcParse(specifier) defaults to en-US
+fn t75() {   // defaultLocale-test.js: utcParse(specifier) defaults to en-US
     skip("d3-time-format/test/defaultLocale-test.js:21:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t74() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) returns the new default locale
+fn t76() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) returns the new default locale
     skip("d3-time-format/test/defaultLocale-test.js:27:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
 }
 
-fn t75() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeFormat
+fn t77() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeFormat
     skip("d3-time-format/test/defaultLocale-test.js:36:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
     skip("d3-time-format/test/defaultLocale-test.js:37:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
 }
 
-fn t76() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeParse
+fn t78() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeParse
     skip("d3-time-format/test/defaultLocale-test.js:46:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
     skip("d3-time-format/test/defaultLocale-test.js:47:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
 }
 
-fn t77() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcFormat
+fn t79() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcFormat
     skip("d3-time-format/test/defaultLocale-test.js:56:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
     skip("d3-time-format/test/defaultLocale-test.js:57:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
 }
 
-fn t78() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcParse
+fn t80() {   // defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcParse
     skip("d3-time-format/test/defaultLocale-test.js:66:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
     skip("d3-time-format/test/defaultLocale-test.js:67:5", "api: timeFormatDefaultLocale rebinds d3's global default locale (no mutable default)");
 }
 
-fn t79() {   // parse-test.js: parse(string) coerces the specified string to a string
+fn t81() {   // parse-test.js: parse(string) coerces the specified string to a string
     skip("d3-time-format/test/parse-test.js:10:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:11:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:12:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -683,50 +694,50 @@ fn t79() {   // parse-test.js: parse(string) coerces the specified string to a s
     skip("d3-time-format/test/parse-test.js:16:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t80() {   // parse-test.js: timeParse(specifier) coerces the specified specifier to a string
+fn t82() {   // parse-test.js: timeParse(specifier) coerces the specified specifier to a string
     skip("d3-time-format/test/parse-test.js:21:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t81() {   // parse-test.js: timeParse("%a %m/%d/%Y")(date) parses abbreviated weekday and date
+fn t83() {   // parse-test.js: timeParse("%a %m/%d/%Y")(date) parses abbreviated weekday and date
     skip("d3-time-format/test/parse-test.js:26:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:27:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:28:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t82() {   // parse-test.js: timeParse("%A %m/%d/%Y")(date) parses weekday and date
+fn t84() {   // parse-test.js: timeParse("%A %m/%d/%Y")(date) parses weekday and date
     skip("d3-time-format/test/parse-test.js:33:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:34:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:35:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t83() {   // parse-test.js: timeParse("%U %Y")(date) parses week number (Sunday) and year
+fn t85() {   // parse-test.js: timeParse("%U %Y")(date) parses week number (Sunday) and year
     skip("d3-time-format/test/parse-test.js:40:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:41:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:42:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t84() {   // parse-test.js: timeParse("%a %U %Y")(date) parses abbreviated weekday, week number (Sunday) and year
+fn t86() {   // parse-test.js: timeParse("%a %U %Y")(date) parses abbreviated weekday, week number (Sunday) and year
     skip("d3-time-format/test/parse-test.js:47:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:48:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:49:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:50:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t85() {   // parse-test.js: timeParse("%A %U %Y")(date) parses weekday, week number (Sunday) and year
+fn t87() {   // parse-test.js: timeParse("%A %U %Y")(date) parses weekday, week number (Sunday) and year
     skip("d3-time-format/test/parse-test.js:55:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:56:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:57:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:58:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t86() {   // parse-test.js: timeParse("%w %U %Y")(date) parses numeric weekday (Sunday), week number (Sunday) and year
+fn t88() {   // parse-test.js: timeParse("%w %U %Y")(date) parses numeric weekday (Sunday), week number (Sunday) and year
     skip("d3-time-format/test/parse-test.js:63:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:64:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:65:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:66:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t87() {   // parse-test.js: timeParse("%w %V %G")(date) parses numeric weekday, week number (ISO) and corresponding year
+fn t89() {   // parse-test.js: timeParse("%w %V %G")(date) parses numeric weekday, week number (ISO) and corresponding year
     skip("d3-time-format/test/parse-test.js:71:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:72:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:73:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -736,7 +747,7 @@ fn t87() {   // parse-test.js: timeParse("%w %V %G")(date) parses numeric weekda
     skip("d3-time-format/test/parse-test.js:77:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t88() {   // parse-test.js: timeParse("%w %V %g")(date) parses numeric weekday, week number (ISO) and corresponding two-digits year
+fn t90() {   // parse-test.js: timeParse("%w %V %g")(date) parses numeric weekday, week number (ISO) and corresponding two-digits year
     skip("d3-time-format/test/parse-test.js:82:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:83:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:84:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -746,7 +757,7 @@ fn t88() {   // parse-test.js: timeParse("%w %V %g")(date) parses numeric weekda
     skip("d3-time-format/test/parse-test.js:88:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t89() {   // parse-test.js: timeParse("%V %g")(date) parses week number (ISO) and corresponding two-digits year
+fn t91() {   // parse-test.js: timeParse("%V %g")(date) parses week number (ISO) and corresponding two-digits year
     skip("d3-time-format/test/parse-test.js:93:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:94:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:95:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -756,7 +767,7 @@ fn t89() {   // parse-test.js: timeParse("%V %g")(date) parses week number (ISO)
     skip("d3-time-format/test/parse-test.js:99:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t90() {   // parse-test.js: timeParse("%u %U %Y")(date) parses numeric weekday (Monday), week number (Monday) and year
+fn t92() {   // parse-test.js: timeParse("%u %U %Y")(date) parses numeric weekday (Monday), week number (Monday) and year
     skip("d3-time-format/test/parse-test.js:104:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:105:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:106:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -765,41 +776,41 @@ fn t90() {   // parse-test.js: timeParse("%u %U %Y")(date) parses numeric weekda
     skip("d3-time-format/test/parse-test.js:109:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t91() {   // parse-test.js: timeParse("%W %Y")(date) parses week number (Monday) and year
+fn t93() {   // parse-test.js: timeParse("%W %Y")(date) parses week number (Monday) and year
     skip("d3-time-format/test/parse-test.js:114:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:115:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:116:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t92() {   // parse-test.js: timeParse("%a %W %Y")(date) parses abbreviated weekday, week number (Monday) and year
+fn t94() {   // parse-test.js: timeParse("%a %W %Y")(date) parses abbreviated weekday, week number (Monday) and year
     skip("d3-time-format/test/parse-test.js:121:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:122:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:123:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:124:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t93() {   // parse-test.js: timeParse("%A %W %Y")(date) parses weekday, week number (Monday) and year
+fn t95() {   // parse-test.js: timeParse("%A %W %Y")(date) parses weekday, week number (Monday) and year
     skip("d3-time-format/test/parse-test.js:129:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:130:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:131:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:132:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t94() {   // parse-test.js: timeParse("%w %W %Y")(date) parses numeric weekday (Sunday), week number (Monday) and year
+fn t96() {   // parse-test.js: timeParse("%w %W %Y")(date) parses numeric weekday (Sunday), week number (Monday) and year
     skip("d3-time-format/test/parse-test.js:137:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:138:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:139:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:140:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t95() {   // parse-test.js: timeParse("%u %W %Y")(date) parses numeric weekday (Monday), week number (Monday) and year
+fn t97() {   // parse-test.js: timeParse("%u %W %Y")(date) parses numeric weekday (Monday), week number (Monday) and year
     skip("d3-time-format/test/parse-test.js:145:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:146:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:147:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:148:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t96() {   // parse-test.js: timeParse("%m/%d/%y")(date) parses month, date and two-digit year
+fn t98() {   // parse-test.js: timeParse("%m/%d/%y")(date) parses month, date and two-digit year
     skip("d3-time-format/test/parse-test.js:153:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:154:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:155:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -807,35 +818,35 @@ fn t96() {   // parse-test.js: timeParse("%m/%d/%y")(date) parses month, date an
     skip("d3-time-format/test/parse-test.js:157:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t97() {   // parse-test.js: timeParse("%x")(date) parses locale date
+fn t99() {   // parse-test.js: timeParse("%x")(date) parses locale date
     skip("d3-time-format/test/parse-test.js:162:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:163:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:164:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t98() {   // parse-test.js: timeParse("%b %d, %Y")(date) parses abbreviated month, date and year
+fn t100() {   // parse-test.js: timeParse("%b %d, %Y")(date) parses abbreviated month, date and year
     skip("d3-time-format/test/parse-test.js:169:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:170:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:171:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t99() {   // parse-test.js: timeParse("%B %d, %Y")(date) parses month, date and year
+fn t101() {   // parse-test.js: timeParse("%B %d, %Y")(date) parses month, date and year
     skip("d3-time-format/test/parse-test.js:176:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:177:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:178:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t100() {   // parse-test.js: timeParse("%j %m/%d/%Y")(date) parses day of year and date
+fn t102() {   // parse-test.js: timeParse("%j %m/%d/%Y")(date) parses day of year and date
     skip("d3-time-format/test/parse-test.js:183:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:184:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:185:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t101() {   // parse-test.js: timeParse("%c")(date) parses locale date and time
+fn t103() {   // parse-test.js: timeParse("%c")(date) parses locale date and time
     skip("d3-time-format/test/parse-test.js:190:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t102() {   // parse-test.js: timeParse("%H:%M:%S")(date) parses twenty-four hour, minute and second
+fn t104() {   // parse-test.js: timeParse("%H:%M:%S")(date) parses twenty-four hour, minute and second
     skip("d3-time-format/test/parse-test.js:195:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:196:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:197:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -843,7 +854,7 @@ fn t102() {   // parse-test.js: timeParse("%H:%M:%S")(date) parses twenty-four h
     skip("d3-time-format/test/parse-test.js:199:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t103() {   // parse-test.js: timeParse("%X")(date) parses locale time
+fn t105() {   // parse-test.js: timeParse("%X")(date) parses locale time
     skip("d3-time-format/test/parse-test.js:204:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:205:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:206:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -851,15 +862,15 @@ fn t103() {   // parse-test.js: timeParse("%X")(date) parses locale time
     skip("d3-time-format/test/parse-test.js:208:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t104() {   // parse-test.js: timeParse("%L")(date) parses milliseconds
+fn t106() {   // parse-test.js: timeParse("%L")(date) parses milliseconds
     skip("d3-time-format/test/parse-test.js:213:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t105() {   // parse-test.js: timeParse("%f")(date) parses microseconds
+fn t107() {   // parse-test.js: timeParse("%f")(date) parses microseconds
     skip("d3-time-format/test/parse-test.js:218:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t106() {   // parse-test.js: timeParse("%I:%M:%S %p")(date) parses twelve hour, minute and second
+fn t108() {   // parse-test.js: timeParse("%I:%M:%S %p")(date) parses twelve hour, minute and second
     skip("d3-time-format/test/parse-test.js:223:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:224:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:225:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -867,7 +878,7 @@ fn t106() {   // parse-test.js: timeParse("%I:%M:%S %p")(date) parses twelve hou
     skip("d3-time-format/test/parse-test.js:227:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t107() {   // parse-test.js: timeParse("%I %p")(date) parses period in non-English locales
+fn t109() {   // parse-test.js: timeParse("%I %p")(date) parses period in non-English locales
     skip("d3-time-format/test/parse-test.js:232:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:233:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:234:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -875,27 +886,27 @@ fn t107() {   // parse-test.js: timeParse("%I %p")(date) parses period in non-En
     skip("d3-time-format/test/parse-test.js:236:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t108() {   // parse-test.js: timeParse("%Y %q")(date) parses quarters
+fn t110() {   // parse-test.js: timeParse("%Y %q")(date) parses quarters
     skip("d3-time-format/test/parse-test.js:241:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:242:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:243:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:244:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t109() {   // parse-test.js: timeParse("%Y %q %m")(date) gives the month number priority
+fn t111() {   // parse-test.js: timeParse("%Y %q %m")(date) gives the month number priority
     skip("d3-time-format/test/parse-test.js:249:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:250:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:251:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:252:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t110() {   // parse-test.js: timeParse("%% %m/%d/%Y")(date) parses literal %
+fn t112() {   // parse-test.js: timeParse("%% %m/%d/%Y")(date) parses literal %
     skip("d3-time-format/test/parse-test.js:257:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:258:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:259:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t111() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset
+fn t113() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset
     skip("d3-time-format/test/parse-test.js:264:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:265:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:266:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -904,73 +915,73 @@ fn t111() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone o
     skip("d3-time-format/test/parse-test.js:269:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t112() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset in the form '+-hh:mm'
+fn t114() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset in the form '+-hh:mm'
     skip("d3-time-format/test/parse-test.js:274:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:275:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t113() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset in the form '+-hh'
+fn t115() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset in the form '+-hh'
     skip("d3-time-format/test/parse-test.js:280:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/parse-test.js:281:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t114() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset in the form 'Z'
+fn t116() {   // parse-test.js: timeParse("%m/%d/%Y %Z")(date) parses timezone offset in the form 'Z'
     skip("d3-time-format/test/parse-test.js:286:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t115() {   // parse-test.js: timeParse("%-m/%0d/%_Y")(date) ignores optional padding modifier, skipping zeroes and spaces
+fn t117() {   // parse-test.js: timeParse("%-m/%0d/%_Y")(date) ignores optional padding modifier, skipping zeroes and spaces
     skip("d3-time-format/test/parse-test.js:291:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t116() {   // parse-test.js: timeParse("%b %d, %Y")(date) doesn't crash when given weird strings
+fn t118() {   // parse-test.js: timeParse("%b %d, %Y")(date) doesn't crash when given weird strings
     skip("d3-time-format/test/parse-test.js:298:5", "types: a field write (fields are read-only)");
 }
 
-fn t117() {   // utcParse-test.js: utcParse(specifier) coerces the specified specifier to a string
+fn t119() {   // utcParse-test.js: utcParse(specifier) coerces the specified specifier to a string
     skip("d3-time-format/test/utcParse-test.js:7:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t118() {   // utcParse-test.js: utcParse("")(date) parses abbreviated weekday and numeric date
+fn t120() {   // utcParse-test.js: utcParse("")(date) parses abbreviated weekday and numeric date
     skip("d3-time-format/test/utcParse-test.js:12:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:13:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:14:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t119() {   // utcParse-test.js: utcParse("")(date) parses weekday and numeric date
+fn t121() {   // utcParse-test.js: utcParse("")(date) parses weekday and numeric date
     skip("d3-time-format/test/utcParse-test.js:19:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:20:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:21:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t120() {   // utcParse-test.js: utcParse("")(date) parses numeric date
+fn t122() {   // utcParse-test.js: utcParse("")(date) parses numeric date
     skip("d3-time-format/test/utcParse-test.js:26:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:27:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:28:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t121() {   // utcParse-test.js: utcParse("")(date) parses locale date
+fn t123() {   // utcParse-test.js: utcParse("")(date) parses locale date
     skip("d3-time-format/test/utcParse-test.js:33:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:34:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:35:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t122() {   // utcParse-test.js: utcParse("")(date) parses abbreviated month, date and year
+fn t124() {   // utcParse-test.js: utcParse("")(date) parses abbreviated month, date and year
     skip("d3-time-format/test/utcParse-test.js:40:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:41:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:42:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t123() {   // utcParse-test.js: utcParse("")(date) parses month, date and year
+fn t125() {   // utcParse-test.js: utcParse("")(date) parses month, date and year
     skip("d3-time-format/test/utcParse-test.js:47:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:48:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:49:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t124() {   // utcParse-test.js: utcParse("")(date) parses locale date and time
+fn t126() {   // utcParse-test.js: utcParse("")(date) parses locale date and time
     skip("d3-time-format/test/utcParse-test.js:54:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t125() {   // utcParse-test.js: utcParse("")(date) parses twenty-four hour, minute and second
+fn t127() {   // utcParse-test.js: utcParse("")(date) parses twenty-four hour, minute and second
     skip("d3-time-format/test/utcParse-test.js:59:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:60:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:61:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -978,7 +989,7 @@ fn t125() {   // utcParse-test.js: utcParse("")(date) parses twenty-four hour, m
     skip("d3-time-format/test/utcParse-test.js:63:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t126() {   // utcParse-test.js: utcParse("")(date) parses locale time
+fn t128() {   // utcParse-test.js: utcParse("")(date) parses locale time
     skip("d3-time-format/test/utcParse-test.js:68:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:69:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:70:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -986,15 +997,15 @@ fn t126() {   // utcParse-test.js: utcParse("")(date) parses locale time
     skip("d3-time-format/test/utcParse-test.js:72:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t127() {   // utcParse-test.js: utcParse("%L")(date) parses milliseconds
+fn t129() {   // utcParse-test.js: utcParse("%L")(date) parses milliseconds
     skip("d3-time-format/test/utcParse-test.js:77:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t128() {   // utcParse-test.js: utcParse("%f")(date) parses microseconds
+fn t130() {   // utcParse-test.js: utcParse("%f")(date) parses microseconds
     skip("d3-time-format/test/utcParse-test.js:82:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t129() {   // utcParse-test.js: utcParse("")(date) parses twelve hour, minute and second
+fn t131() {   // utcParse-test.js: utcParse("")(date) parses twelve hour, minute and second
     skip("d3-time-format/test/utcParse-test.js:87:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:88:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:89:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -1002,32 +1013,32 @@ fn t129() {   // utcParse-test.js: utcParse("")(date) parses twelve hour, minute
     skip("d3-time-format/test/utcParse-test.js:91:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t130() {   // utcParse-test.js: utcParse("")(date) parses timezone offset
+fn t132() {   // utcParse-test.js: utcParse("")(date) parses timezone offset
     skip("d3-time-format/test/utcParse-test.js:96:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:97:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:98:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:99:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t131() {   // utcParse-test.js: utcParse("")(date) parses timezone offset (in the form '+-hh:mm')
+fn t133() {   // utcParse-test.js: utcParse("")(date) parses timezone offset (in the form '+-hh:mm')
     skip("d3-time-format/test/utcParse-test.js:104:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:105:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t132() {   // utcParse-test.js: utcParse("")(date) parses timezone offset (in the form '+-hh')
+fn t134() {   // utcParse-test.js: utcParse("")(date) parses timezone offset (in the form '+-hh')
     skip("d3-time-format/test/utcParse-test.js:110:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:111:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t133() {   // utcParse-test.js: utcParse("")(date) parses timezone offset (in the form 'Z')
+fn t135() {   // utcParse-test.js: utcParse("")(date) parses timezone offset (in the form 'Z')
     skip("d3-time-format/test/utcParse-test.js:116:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t134() {   // utcParse-test.js: utcParse("%Y %U %w")(date) handles a year that starts on Sunday
+fn t136() {   // utcParse-test.js: utcParse("%Y %U %w")(date) handles a year that starts on Sunday
     skip("d3-time-format/test/utcParse-test.js:121:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t135() {   // utcParse-test.js: utcParse("%w %V %Y")(date) parses numeric weekday, week number (ISO) and year
+fn t137() {   // utcParse-test.js: utcParse("%w %V %Y")(date) parses numeric weekday, week number (ISO) and year
     skip("d3-time-format/test/utcParse-test.js:126:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:127:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:128:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -1036,7 +1047,7 @@ fn t135() {   // utcParse-test.js: utcParse("%w %V %Y")(date) parses numeric wee
     skip("d3-time-format/test/utcParse-test.js:131:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t136() {   // utcParse-test.js: utcParse("%w %V %G")(date) parses numeric weekday, week number (ISO) and corresponding year
+fn t138() {   // utcParse-test.js: utcParse("%w %V %G")(date) parses numeric weekday, week number (ISO) and corresponding year
     skip("d3-time-format/test/utcParse-test.js:136:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:137:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:138:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -1047,7 +1058,7 @@ fn t136() {   // utcParse-test.js: utcParse("%w %V %G")(date) parses numeric wee
     skip("d3-time-format/test/utcParse-test.js:143:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t137() {   // utcParse-test.js: utcParse("%V %Y")(date) week number (ISO) and year
+fn t139() {   // utcParse-test.js: utcParse("%V %Y")(date) week number (ISO) and year
     skip("d3-time-format/test/utcParse-test.js:148:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:149:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:150:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -1058,7 +1069,7 @@ fn t137() {   // utcParse-test.js: utcParse("%V %Y")(date) week number (ISO) and
     skip("d3-time-format/test/utcParse-test.js:155:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t138() {   // utcParse-test.js: utcParse("%V %g")(date) week number (ISO) and corresponding two-digits year
+fn t140() {   // utcParse-test.js: utcParse("%V %g")(date) week number (ISO) and corresponding two-digits year
     skip("d3-time-format/test/utcParse-test.js:160:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:161:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:162:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -1071,7 +1082,7 @@ fn t138() {   // utcParse-test.js: utcParse("%V %g")(date) week number (ISO) and
     skip("d3-time-format/test/utcParse-test.js:169:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t139() {   // utcParse-test.js: utcParse("%V %G")(date) week number (ISO) and corresponding year
+fn t141() {   // utcParse-test.js: utcParse("%V %G")(date) week number (ISO) and corresponding year
     skip("d3-time-format/test/utcParse-test.js:174:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:175:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:176:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
@@ -1084,22 +1095,22 @@ fn t139() {   // utcParse-test.js: utcParse("%V %G")(date) week number (ISO) and
     skip("d3-time-format/test/utcParse-test.js:183:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t140() {   // utcParse-test.js: utcParse("%Q")(date) parses UNIX timestamps
+fn t142() {   // utcParse-test.js: utcParse("%Q")(date) parses UNIX timestamps
     skip("d3-time-format/test/utcParse-test.js:188:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:189:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t141() {   // utcParse-test.js: utcParse("%s")(date) parses UNIX timestamps in seconds
+fn t143() {   // utcParse-test.js: utcParse("%s")(date) parses UNIX timestamps in seconds
     skip("d3-time-format/test/utcParse-test.js:194:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:195:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t142() {   // utcParse-test.js: utcParse("%s.%L")(date) parses UNIX timetamps in seconds and milliseconds
+fn t144() {   // utcParse-test.js: utcParse("%s.%L")(date) parses UNIX timetamps in seconds and milliseconds
     skip("d3-time-format/test/utcParse-test.js:200:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:201:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
 
-fn t143() {   // utcParse-test.js: utcParse("%s.%f")(date) parses UNIX timetamps in seconds and microseconds
+fn t145() {   // utcParse-test.js: utcParse("%s.%f")(date) parses UNIX timetamps in seconds and microseconds
     skip("d3-time-format/test/utcParse-test.js:206:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
     skip("d3-time-format/test/utcParse-test.js:207:3", "api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)");
 }
@@ -1174,81 +1185,83 @@ pub const TESTS: &[Test] = &[
     Test { name: "utcFormat-test.js: utcFormat(\"%Z\")(date) formats time zones", run: t66 },
     Test { name: "utcFormat-test.js: utcFormat(\"%%\")(date) formats literal percent signs", run: t67 },
     Test { name: "utcFormat-test.js: utcFormat(…) can be used to create a conditional multi-format", run: t68 },
-    Test { name: "locale-test.js: locale data is valid", run: t69 },
-    Test { name: "defaultLocale-test.js: timeFormat(specifier) defaults to en-US", run: t70 },
-    Test { name: "defaultLocale-test.js: timeParse(specifier) defaults to en-US", run: t71 },
-    Test { name: "defaultLocale-test.js: utcFormat(specifier) defaults to en-US", run: t72 },
-    Test { name: "defaultLocale-test.js: utcParse(specifier) defaults to en-US", run: t73 },
-    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) returns the new default locale", run: t74 },
-    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeFormat", run: t75 },
-    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeParse", run: t76 },
-    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcFormat", run: t77 },
-    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcParse", run: t78 },
-    Test { name: "parse-test.js: parse(string) coerces the specified string to a string", run: t79 },
-    Test { name: "parse-test.js: timeParse(specifier) coerces the specified specifier to a string", run: t80 },
-    Test { name: "parse-test.js: timeParse(\"%a %m/%d/%Y\")(date) parses abbreviated weekday and date", run: t81 },
-    Test { name: "parse-test.js: timeParse(\"%A %m/%d/%Y\")(date) parses weekday and date", run: t82 },
-    Test { name: "parse-test.js: timeParse(\"%U %Y\")(date) parses week number (Sunday) and year", run: t83 },
-    Test { name: "parse-test.js: timeParse(\"%a %U %Y\")(date) parses abbreviated weekday, week number (Sunday) and year", run: t84 },
-    Test { name: "parse-test.js: timeParse(\"%A %U %Y\")(date) parses weekday, week number (Sunday) and year", run: t85 },
-    Test { name: "parse-test.js: timeParse(\"%w %U %Y\")(date) parses numeric weekday (Sunday), week number (Sunday) and year", run: t86 },
-    Test { name: "parse-test.js: timeParse(\"%w %V %G\")(date) parses numeric weekday, week number (ISO) and corresponding year", run: t87 },
-    Test { name: "parse-test.js: timeParse(\"%w %V %g\")(date) parses numeric weekday, week number (ISO) and corresponding two-digits year", run: t88 },
-    Test { name: "parse-test.js: timeParse(\"%V %g\")(date) parses week number (ISO) and corresponding two-digits year", run: t89 },
-    Test { name: "parse-test.js: timeParse(\"%u %U %Y\")(date) parses numeric weekday (Monday), week number (Monday) and year", run: t90 },
-    Test { name: "parse-test.js: timeParse(\"%W %Y\")(date) parses week number (Monday) and year", run: t91 },
-    Test { name: "parse-test.js: timeParse(\"%a %W %Y\")(date) parses abbreviated weekday, week number (Monday) and year", run: t92 },
-    Test { name: "parse-test.js: timeParse(\"%A %W %Y\")(date) parses weekday, week number (Monday) and year", run: t93 },
-    Test { name: "parse-test.js: timeParse(\"%w %W %Y\")(date) parses numeric weekday (Sunday), week number (Monday) and year", run: t94 },
-    Test { name: "parse-test.js: timeParse(\"%u %W %Y\")(date) parses numeric weekday (Monday), week number (Monday) and year", run: t95 },
-    Test { name: "parse-test.js: timeParse(\"%m/%d/%y\")(date) parses month, date and two-digit year", run: t96 },
-    Test { name: "parse-test.js: timeParse(\"%x\")(date) parses locale date", run: t97 },
-    Test { name: "parse-test.js: timeParse(\"%b %d, %Y\")(date) parses abbreviated month, date and year", run: t98 },
-    Test { name: "parse-test.js: timeParse(\"%B %d, %Y\")(date) parses month, date and year", run: t99 },
-    Test { name: "parse-test.js: timeParse(\"%j %m/%d/%Y\")(date) parses day of year and date", run: t100 },
-    Test { name: "parse-test.js: timeParse(\"%c\")(date) parses locale date and time", run: t101 },
-    Test { name: "parse-test.js: timeParse(\"%H:%M:%S\")(date) parses twenty-four hour, minute and second", run: t102 },
-    Test { name: "parse-test.js: timeParse(\"%X\")(date) parses locale time", run: t103 },
-    Test { name: "parse-test.js: timeParse(\"%L\")(date) parses milliseconds", run: t104 },
-    Test { name: "parse-test.js: timeParse(\"%f\")(date) parses microseconds", run: t105 },
-    Test { name: "parse-test.js: timeParse(\"%I:%M:%S %p\")(date) parses twelve hour, minute and second", run: t106 },
-    Test { name: "parse-test.js: timeParse(\"%I %p\")(date) parses period in non-English locales", run: t107 },
-    Test { name: "parse-test.js: timeParse(\"%Y %q\")(date) parses quarters", run: t108 },
-    Test { name: "parse-test.js: timeParse(\"%Y %q %m\")(date) gives the month number priority", run: t109 },
-    Test { name: "parse-test.js: timeParse(\"%% %m/%d/%Y\")(date) parses literal %", run: t110 },
-    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset", run: t111 },
-    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset in the form '+-hh:mm'", run: t112 },
-    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset in the form '+-hh'", run: t113 },
-    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset in the form 'Z'", run: t114 },
-    Test { name: "parse-test.js: timeParse(\"%-m/%0d/%_Y\")(date) ignores optional padding modifier, skipping zeroes and spaces", run: t115 },
-    Test { name: "parse-test.js: timeParse(\"%b %d, %Y\")(date) doesn't crash when given weird strings", run: t116 },
-    Test { name: "utcParse-test.js: utcParse(specifier) coerces the specified specifier to a string", run: t117 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses abbreviated weekday and numeric date", run: t118 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses weekday and numeric date", run: t119 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses numeric date", run: t120 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses locale date", run: t121 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses abbreviated month, date and year", run: t122 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses month, date and year", run: t123 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses locale date and time", run: t124 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses twenty-four hour, minute and second", run: t125 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses locale time", run: t126 },
-    Test { name: "utcParse-test.js: utcParse(\"%L\")(date) parses milliseconds", run: t127 },
-    Test { name: "utcParse-test.js: utcParse(\"%f\")(date) parses microseconds", run: t128 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses twelve hour, minute and second", run: t129 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset", run: t130 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset (in the form '+-hh:mm')", run: t131 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset (in the form '+-hh')", run: t132 },
-    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset (in the form 'Z')", run: t133 },
-    Test { name: "utcParse-test.js: utcParse(\"%Y %U %w\")(date) handles a year that starts on Sunday", run: t134 },
-    Test { name: "utcParse-test.js: utcParse(\"%w %V %Y\")(date) parses numeric weekday, week number (ISO) and year", run: t135 },
-    Test { name: "utcParse-test.js: utcParse(\"%w %V %G\")(date) parses numeric weekday, week number (ISO) and corresponding year", run: t136 },
-    Test { name: "utcParse-test.js: utcParse(\"%V %Y\")(date) week number (ISO) and year", run: t137 },
-    Test { name: "utcParse-test.js: utcParse(\"%V %g\")(date) week number (ISO) and corresponding two-digits year", run: t138 },
-    Test { name: "utcParse-test.js: utcParse(\"%V %G\")(date) week number (ISO) and corresponding year", run: t139 },
-    Test { name: "utcParse-test.js: utcParse(\"%Q\")(date) parses UNIX timestamps", run: t140 },
-    Test { name: "utcParse-test.js: utcParse(\"%s\")(date) parses UNIX timestamps in seconds", run: t141 },
-    Test { name: "utcParse-test.js: utcParse(\"%s.%L\")(date) parses UNIX timetamps in seconds and milliseconds", run: t142 },
-    Test { name: "utcParse-test.js: utcParse(\"%s.%f\")(date) parses UNIX timetamps in seconds and microseconds", run: t143 },
+    Test { name: "isoFormat-test.js: isoFormat(date) returns an ISO 8601 UTC string", run: t69 },
+    Test { name: "isoParse-test.js: isoParse as ISO 8601", run: t70 },
+    Test { name: "locale-test.js: locale data is valid", run: t71 },
+    Test { name: "defaultLocale-test.js: timeFormat(specifier) defaults to en-US", run: t72 },
+    Test { name: "defaultLocale-test.js: timeParse(specifier) defaults to en-US", run: t73 },
+    Test { name: "defaultLocale-test.js: utcFormat(specifier) defaults to en-US", run: t74 },
+    Test { name: "defaultLocale-test.js: utcParse(specifier) defaults to en-US", run: t75 },
+    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) returns the new default locale", run: t76 },
+    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeFormat", run: t77 },
+    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects timeParse", run: t78 },
+    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcFormat", run: t79 },
+    Test { name: "defaultLocale-test.js: timeFormatDefaultLocale(definition) affects utcParse", run: t80 },
+    Test { name: "parse-test.js: parse(string) coerces the specified string to a string", run: t81 },
+    Test { name: "parse-test.js: timeParse(specifier) coerces the specified specifier to a string", run: t82 },
+    Test { name: "parse-test.js: timeParse(\"%a %m/%d/%Y\")(date) parses abbreviated weekday and date", run: t83 },
+    Test { name: "parse-test.js: timeParse(\"%A %m/%d/%Y\")(date) parses weekday and date", run: t84 },
+    Test { name: "parse-test.js: timeParse(\"%U %Y\")(date) parses week number (Sunday) and year", run: t85 },
+    Test { name: "parse-test.js: timeParse(\"%a %U %Y\")(date) parses abbreviated weekday, week number (Sunday) and year", run: t86 },
+    Test { name: "parse-test.js: timeParse(\"%A %U %Y\")(date) parses weekday, week number (Sunday) and year", run: t87 },
+    Test { name: "parse-test.js: timeParse(\"%w %U %Y\")(date) parses numeric weekday (Sunday), week number (Sunday) and year", run: t88 },
+    Test { name: "parse-test.js: timeParse(\"%w %V %G\")(date) parses numeric weekday, week number (ISO) and corresponding year", run: t89 },
+    Test { name: "parse-test.js: timeParse(\"%w %V %g\")(date) parses numeric weekday, week number (ISO) and corresponding two-digits year", run: t90 },
+    Test { name: "parse-test.js: timeParse(\"%V %g\")(date) parses week number (ISO) and corresponding two-digits year", run: t91 },
+    Test { name: "parse-test.js: timeParse(\"%u %U %Y\")(date) parses numeric weekday (Monday), week number (Monday) and year", run: t92 },
+    Test { name: "parse-test.js: timeParse(\"%W %Y\")(date) parses week number (Monday) and year", run: t93 },
+    Test { name: "parse-test.js: timeParse(\"%a %W %Y\")(date) parses abbreviated weekday, week number (Monday) and year", run: t94 },
+    Test { name: "parse-test.js: timeParse(\"%A %W %Y\")(date) parses weekday, week number (Monday) and year", run: t95 },
+    Test { name: "parse-test.js: timeParse(\"%w %W %Y\")(date) parses numeric weekday (Sunday), week number (Monday) and year", run: t96 },
+    Test { name: "parse-test.js: timeParse(\"%u %W %Y\")(date) parses numeric weekday (Monday), week number (Monday) and year", run: t97 },
+    Test { name: "parse-test.js: timeParse(\"%m/%d/%y\")(date) parses month, date and two-digit year", run: t98 },
+    Test { name: "parse-test.js: timeParse(\"%x\")(date) parses locale date", run: t99 },
+    Test { name: "parse-test.js: timeParse(\"%b %d, %Y\")(date) parses abbreviated month, date and year", run: t100 },
+    Test { name: "parse-test.js: timeParse(\"%B %d, %Y\")(date) parses month, date and year", run: t101 },
+    Test { name: "parse-test.js: timeParse(\"%j %m/%d/%Y\")(date) parses day of year and date", run: t102 },
+    Test { name: "parse-test.js: timeParse(\"%c\")(date) parses locale date and time", run: t103 },
+    Test { name: "parse-test.js: timeParse(\"%H:%M:%S\")(date) parses twenty-four hour, minute and second", run: t104 },
+    Test { name: "parse-test.js: timeParse(\"%X\")(date) parses locale time", run: t105 },
+    Test { name: "parse-test.js: timeParse(\"%L\")(date) parses milliseconds", run: t106 },
+    Test { name: "parse-test.js: timeParse(\"%f\")(date) parses microseconds", run: t107 },
+    Test { name: "parse-test.js: timeParse(\"%I:%M:%S %p\")(date) parses twelve hour, minute and second", run: t108 },
+    Test { name: "parse-test.js: timeParse(\"%I %p\")(date) parses period in non-English locales", run: t109 },
+    Test { name: "parse-test.js: timeParse(\"%Y %q\")(date) parses quarters", run: t110 },
+    Test { name: "parse-test.js: timeParse(\"%Y %q %m\")(date) gives the month number priority", run: t111 },
+    Test { name: "parse-test.js: timeParse(\"%% %m/%d/%Y\")(date) parses literal %", run: t112 },
+    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset", run: t113 },
+    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset in the form '+-hh:mm'", run: t114 },
+    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset in the form '+-hh'", run: t115 },
+    Test { name: "parse-test.js: timeParse(\"%m/%d/%Y %Z\")(date) parses timezone offset in the form 'Z'", run: t116 },
+    Test { name: "parse-test.js: timeParse(\"%-m/%0d/%_Y\")(date) ignores optional padding modifier, skipping zeroes and spaces", run: t117 },
+    Test { name: "parse-test.js: timeParse(\"%b %d, %Y\")(date) doesn't crash when given weird strings", run: t118 },
+    Test { name: "utcParse-test.js: utcParse(specifier) coerces the specified specifier to a string", run: t119 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses abbreviated weekday and numeric date", run: t120 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses weekday and numeric date", run: t121 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses numeric date", run: t122 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses locale date", run: t123 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses abbreviated month, date and year", run: t124 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses month, date and year", run: t125 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses locale date and time", run: t126 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses twenty-four hour, minute and second", run: t127 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses locale time", run: t128 },
+    Test { name: "utcParse-test.js: utcParse(\"%L\")(date) parses milliseconds", run: t129 },
+    Test { name: "utcParse-test.js: utcParse(\"%f\")(date) parses microseconds", run: t130 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses twelve hour, minute and second", run: t131 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset", run: t132 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset (in the form '+-hh:mm')", run: t133 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset (in the form '+-hh')", run: t134 },
+    Test { name: "utcParse-test.js: utcParse(\"\")(date) parses timezone offset (in the form 'Z')", run: t135 },
+    Test { name: "utcParse-test.js: utcParse(\"%Y %U %w\")(date) handles a year that starts on Sunday", run: t136 },
+    Test { name: "utcParse-test.js: utcParse(\"%w %V %Y\")(date) parses numeric weekday, week number (ISO) and year", run: t137 },
+    Test { name: "utcParse-test.js: utcParse(\"%w %V %G\")(date) parses numeric weekday, week number (ISO) and corresponding year", run: t138 },
+    Test { name: "utcParse-test.js: utcParse(\"%V %Y\")(date) week number (ISO) and year", run: t139 },
+    Test { name: "utcParse-test.js: utcParse(\"%V %g\")(date) week number (ISO) and corresponding two-digits year", run: t140 },
+    Test { name: "utcParse-test.js: utcParse(\"%V %G\")(date) week number (ISO) and corresponding year", run: t141 },
+    Test { name: "utcParse-test.js: utcParse(\"%Q\")(date) parses UNIX timestamps", run: t142 },
+    Test { name: "utcParse-test.js: utcParse(\"%s\")(date) parses UNIX timestamps in seconds", run: t143 },
+    Test { name: "utcParse-test.js: utcParse(\"%s.%L\")(date) parses UNIX timetamps in seconds and milliseconds", run: t144 },
+    Test { name: "utcParse-test.js: utcParse(\"%s.%f\")(date) parses UNIX timetamps in seconds and microseconds", run: t145 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -1529,6 +1542,11 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-time-format/test/utcFormat-test.js:304:3", test: "utcFormat-test.js: utcFormat(…) can be used to create a conditional multi-format", skip: Some("helpers: multi(), a file-level function choosing among file-level formats (Time::tick_label ports it)") },
     Assertion { id: "d3-time-format/test/utcFormat-test.js:305:3", test: "utcFormat-test.js: utcFormat(…) can be used to create a conditional multi-format", skip: Some("helpers: multi(), a file-level function choosing among file-level formats (Time::tick_label ports it)") },
     Assertion { id: "d3-time-format/test/utcFormat-test.js:306:3", test: "utcFormat-test.js: utcFormat(…) can be used to create a conditional multi-format", skip: Some("helpers: multi(), a file-level function choosing among file-level formats (Time::tick_label ports it)") },
+    Assertion { id: "d3-time-format/test/isoFormat-test.js:6:3", test: "isoFormat-test.js: isoFormat(date) returns an ISO 8601 UTC string", skip: None },
+    Assertion { id: "d3-time-format/test/isoFormat-test.js:7:3", test: "isoFormat-test.js: isoFormat(date) returns an ISO 8601 UTC string", skip: None },
+    Assertion { id: "d3-time-format/test/isoParse-test.js:6:3", test: "isoParse-test.js: isoParse as ISO 8601", skip: None },
+    Assertion { id: "d3-time-format/test/isoParse-test.js:7:3", test: "isoParse-test.js: isoParse as ISO 8601", skip: None },
+    Assertion { id: "d3-time-format/test/isoParse-test.js:8:3", test: "isoParse-test.js: isoParse as ISO 8601", skip: None },
     Assertion { id: "d3-time-format/test/locale-test.js:10:5", test: "locale-test.js: locale data is valid", skip: None },
     Assertion { id: "d3-time-format/test/defaultLocale-test.js:9:3", test: "defaultLocale-test.js: timeFormat(specifier) defaults to en-US", skip: None },
     Assertion { id: "d3-time-format/test/defaultLocale-test.js:13:3", test: "defaultLocale-test.js: timeParse(specifier) defaults to en-US", skip: Some("api: parsing d3 format strings (Later; jiff's strtime and time::iso_parse parse)") },

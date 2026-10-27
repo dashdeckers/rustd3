@@ -118,6 +118,8 @@
 #floor d3-shape/test/line-test.js 3
 #floor d3-time-format/test/defaultLocale-test.js 2
 #floor d3-time-format/test/format-test.js 122
+#floor d3-time-format/test/isoFormat-test.js 2
+#floor d3-time-format/test/isoParse-test.js 3
 #floor d3-time-format/test/locale-test.js 1
 #floor d3-time-format/test/parse-test.js 0
 #floor d3-time-format/test/utcFormat-test.js 132
@@ -4013,6 +4015,11 @@ d3-time-format/test/format-test.js:269:3
 d3-time-format/test/format-test.js:271:3
 d3-time-format/test/format-test.js:276:3
 d3-time-format/test/format-test.js:281:3
+d3-time-format/test/isoFormat-test.js:6:3
+d3-time-format/test/isoFormat-test.js:7:3
+d3-time-format/test/isoParse-test.js:6:3
+d3-time-format/test/isoParse-test.js:7:3
+d3-time-format/test/isoParse-test.js:8:3
 d3-time-format/test/locale-test.js:10:5
 d3-time-format/test/utcFormat-test.js:27:3
 d3-time-format/test/utcFormat-test.js:28:3

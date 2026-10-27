@@ -90,7 +90,7 @@ const SUITES = [
   {
     suite: "time_format",
     package: "d3-time-format",
-    files: tests(["format", "utcFormat", "locale", "defaultLocale", "parse", "utcParse"]),
+    files: tests(["format", "utcFormat", "isoFormat", "isoParse", "locale", "defaultLocale", "parse", "utcParse"]),
     rules: combine(timeFormat, time),
   },
 ];
