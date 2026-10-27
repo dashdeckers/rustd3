@@ -3,6 +3,7 @@
 //! `AnyContinuous`, against d3-scale 4.0.2, matplotlib 3.11.2's locators
 //! and the fscale prototype.
 
+use rustd3_core::format::{InvalidFormat, Locale};
 use rustd3_core::scale::{self, TickRule};
 use rustd3_core::ticks;
 use rustd3_testkit::obs::{ToObs, Tolerance};
@@ -256,4 +257,146 @@ fn func_maps_through_its_closures_and_prints_its_rule() {
     assert_eq!(s.apply(25.0), 5.0);
     assert_eq!(s.invert(5.0), 25.0);
     assert!(format!("{s:?}").contains("Func { rule: Data, .. }"));
+}
+
+/// Whether `actual` and `expected` have equal lengths and close values.
+fn all_close(actual: &[f64], expected: &[f64]) -> bool {
+    actual
+        .to_obs()
+        .approx_eq(&expected.to_obs(), &Tolerance::default())
+}
+
+/// `logit()` ticks(10) over `domain`.
+fn logit_ticks(domain: [f64; 2]) -> Vec<f64> {
+    scale::logit().domain(domain).ticks(10)
+}
+
+/// `asinh()` ticks(10) over `domain`.
+fn asinh_ticks(domain: [f64; 2]) -> Vec<f64> {
+    scale::asinh().domain(domain).ticks(10)
+}
+
+#[test]
+fn logit_ticks_at_one_half_and_decades_towards_zero_and_one() {
+    let p = scale::continuous(scale::transform::Logit).domain([0.001, 0.999]);
+    let expected = [0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999];
+    assert!(all_close(&p.ticks(10), &expected));
+    assert_eq!(p.ticks(10), logit_ticks([0.001, 0.999]));
+}
+
+#[test]
+fn logit_labels_its_ticks_in_full() -> Result<(), InvalidFormat> {
+    let p = scale::logit().domain([0.001, 0.999]);
+    let f = p.tick_format(10, None)?;
+    assert_eq!(
+        f.format_all(&p.ticks(10)),
+        ["0.001", "0.01", "0.1", "0.5", "0.9", "0.99", "0.999"]
+    );
+    Ok(())
+}
+
+#[test]
+fn logit_is_symmetric_about_one_half() {
+    let p = scale::logit().domain([0.001, 0.999]).range([0.0, 400.0]);
+    assert!(close(p.apply(0.5), 200.0));
+    assert!(close(p.invert(200.0), 0.5));
+}
+
+#[test]
+fn logit_thins_its_ideal_ticks_past_the_count() {
+    assert!(all_close(
+        &logit_ticks([1e-6, 1.0 - 1e-6]),
+        &[1e-6, 1e-4, 0.01, 0.5, 0.99, 0.9999, 0.999999]
+    ));
+}
+
+#[test]
+fn logit_ticks_keep_to_the_domain() {
+    let mut low: Vec<f64> = (-9..=-1).map(|k| 10f64.powi(k)).collect();
+    low.push(0.5);
+    assert!(all_close(&logit_ticks([1e-9, 0.5]), &low));
+    assert!(all_close(
+        &logit_ticks([0.01, 0.99]),
+        &[0.01, 0.1, 0.5, 0.9, 0.99]
+    ));
+    assert!(all_close(
+        &logit_ticks([0.002, 0.998]),
+        &[0.01, 0.1, 0.5, 0.9, 0.99]
+    ));
+}
+
+#[test]
+fn logit_ticks_linearly_when_fewer_than_two_ideal_ticks_fit() {
+    let expected: Vec<f64> = (4..=14).map(|k| f64::from(k) * 0.05).collect();
+    assert!(all_close(&logit_ticks([0.2, 0.7]), &expected));
+}
+
+#[test]
+fn logit_nice_leaves_the_domain_alone() {
+    let p = scale::logit().domain([0.013, 0.97]).nice(10);
+    assert_eq!(p.get_domain(), [0.013, 0.97]);
+}
+
+#[test]
+fn asinh_ticks_signed_powers_of_ten() {
+    assert_eq!(
+        asinh_ticks([-1000.0, 1000.0]),
+        [-100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0]
+    );
+    assert_eq!(
+        asinh_ticks([0.0, 1e6]),
+        [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5]
+    );
+    assert_eq!(asinh_ticks([-3.0, 3.0]), [-1.0, -0.1, 0.0, 0.1, 1.0]);
+    assert_eq!(asinh_ticks([0.0, 100.0]), [0.0, 0.1, 1.0, 10.0, 100.0]);
+}
+
+#[test]
+fn asinh_ticks_every_other_decade_over_eighteen_orders() {
+    // matplotlib on AVX-512 numpy keeps ±1e9: its arcsinh(1e9) is one ulp
+    // above glibc's, which this port's arithmetic matches (D5.1).
+    assert_eq!(
+        asinh_ticks([-1e9, 1e9]),
+        [-1e8, -1e7, -1e5, -1e3, -10.0, 0.0, 10.0, 1e3, 1e5, 1e7, 1e8]
+    );
+}
+
+#[test]
+fn asinh_ticks_lopsided_and_nearly_symmetric_domains() {
+    assert_eq!(asinh_ticks([-50.0, 5.0]), [-10.0, -1.0, -0.1, 0.0, 1.0]);
+    assert_eq!(asinh_ticks([1.0, 1e4]), [1.0, 10.0, 100.0, 1000.0]);
+    assert_eq!(asinh_ticks([-50.0, 45.0]), [-10.0, -1.0, 0.0, 1.0, 10.0]);
+}
+
+#[test]
+fn asinh_ticks_follow_the_linear_width() {
+    let a = scale::asinh().linear_width(10.0).domain([-1000.0, 1000.0]);
+    assert_eq!(a.ticks(10), [-100.0, -10.0, 0.0, 10.0, 100.0]);
+}
+
+#[test]
+fn asinh_ticks_follow_a_descending_domain() {
+    assert_eq!(asinh_ticks([1e4, 1.0]), [1000.0, 100.0, 10.0, 1.0]);
+}
+
+#[test]
+fn asinh_with_the_transformed_rule_gives_uneven_ticks() {
+    let a = scale::asinh()
+        .domain([-1000.0, 1000.0])
+        .tick_rule(TickRule::Transformed);
+    let rounded: Vec<f64> = a
+        .ticks(10)
+        .iter()
+        .map(|v| (v * 100.0).round() / 100.0)
+        .collect();
+    assert_eq!(rounded, [-201.71, -27.29, -3.63, 0.0, 3.63, 27.29, 201.71]);
+}
+
+#[test]
+fn asinh_labels_group_thousands() -> Result<(), InvalidFormat> {
+    let a = scale::asinh().domain([0.0, 1e6]);
+    let f = a.tick_format_in(&Locale::EN_US, 10, None)?;
+    assert_eq!(f.format(1e5), "100,000");
+    assert_eq!(f.format(0.1), "0.1");
+    Ok(())
 }

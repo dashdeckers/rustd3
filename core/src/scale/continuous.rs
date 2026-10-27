@@ -306,6 +306,15 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Symlog, R, N> {
     }
 }
 
+impl<R: Interpolate, const N: usize> Continuous<transform::Asinh, R, N> {
+    /// The width around 0 within which the asinh scale is nearly linear;
+    /// the domain and range stay as they are. It exists only for asinh
+    /// scales.
+    pub fn linear_width(self, linear_width: f64) -> Self {
+        self.transformed(transform::Asinh::new(linear_width))
+    }
+}
+
 /// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
 /// when the last stop is below the first), normalized within its segment,
 /// and the segment's two `values` blended at that fraction.

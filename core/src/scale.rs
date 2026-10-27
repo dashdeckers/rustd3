@@ -81,6 +81,33 @@ pub fn symlog() -> Continuous<transform::Symlog> {
     continuous(transform::Symlog::new(1.0))
 }
 
+/// A logit scale for probabilities: domain [0, 1] (which the transform
+/// sends to ±∞, so set a domain inside (0, 1)) and range [0, 1]; ticks at
+/// 0.5 and decades towards 0 and 1.
+///
+/// ```
+/// use rustd3_core::scale;
+///
+/// let p = scale::logit().domain([0.001, 0.999]);
+/// assert_eq!(p.ticks(10), [0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999]);
+/// ```
+pub fn logit() -> Continuous<transform::Logit> {
+    continuous(transform::Logit)
+}
+
+/// An inverse hyperbolic sine scale: linear width 1, domain [0, 1], range
+/// [0, 1]; ticks at signed powers of ten, as matplotlib's asinh scale.
+///
+/// ```
+/// use rustd3_core::scale;
+///
+/// let a = scale::asinh().domain([-1000.0, 1000.0]);
+/// assert_eq!(a.ticks(10), [-100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0]);
+/// ```
+pub fn asinh() -> Continuous<transform::Asinh> {
+    continuous(transform::Asinh::new(1.0))
+}
+
 /// A scale under the closures `forward` and `inverse`, ticked by `rule`:
 /// the choice of rule is part of the signature.
 ///
