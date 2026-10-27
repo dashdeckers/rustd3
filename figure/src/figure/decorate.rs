@@ -1,6 +1,8 @@
 //! A figure into a drawing list: backgrounds, marks, borders, axes and
 //! titles, each a part.
 
+use std::cell::RefCell;
+
 use kurbo::{Affine, Point, Rect, Shape};
 
 use crate::figure::part::{self, Role};
@@ -9,6 +11,7 @@ use crate::list::{self, Clip, Command, List, Part};
 use crate::mark::Ctx;
 use crate::panel::Panel;
 use crate::text::{self, Anchor, Key, Shaped, anchor};
+use crate::thin;
 
 /// Tolerance of a rectangle's path: exact, rectangles have no curves.
 const TOLERANCE: f64 = 0.1;
@@ -19,8 +22,14 @@ impl Figure<'_> {
     /// background, then per panel its background, its marks in insertion
     /// order inside one group translated to the plot area and clipped to
     /// it, its border, axes and title, then the figure title, centred on
-    /// the plot areas' extent.
-    pub(super) fn decorate(&self, resolved: &Resolved, text: &text::Cache, list: &mut List) {
+    /// the plot areas' extent. Marks thin through `frame`.
+    pub(super) fn decorate(
+        &self,
+        resolved: &Resolved,
+        text: &text::Cache,
+        frame: &RefCell<thin::Frame>,
+        list: &mut List,
+    ) {
         let theme = &self.theme;
         let size = list.size;
         part(list, part::id(Role::Background, 0, 0), |list| {
@@ -43,7 +52,7 @@ impl Figure<'_> {
                     paint: list::brush(theme.panel()),
                 });
             });
-            let ctx = Ctx::new(resolved, theme, *area, text);
+            let ctx = Ctx::new(resolved, theme, *area, text, frame);
             marks(list, i, panel, &ctx);
             if let Some(color) = panel.frame() {
                 part(list, part::id(Role::Border, i, 0), |list| {

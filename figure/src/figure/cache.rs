@@ -3,14 +3,16 @@
 
 use std::sync::Arc;
 
-use crate::text;
+use crate::{text, thin};
 
 /// What a caller keeps between draws of a figure: the text cache, so no
-/// label is shaped twice. The iced widget keeps one in its tree state;
-/// file outputs make a temporary one.
+/// label is shaped twice, and the M4 memo, so an unchanged view is not
+/// thinned twice. The iced widget keeps one in its tree state; file
+/// outputs make a temporary one.
 #[derive(Debug)]
 pub struct Cache {
     text: text::Cache,
+    memo: thin::Memo,
 }
 
 /// What a figure cache holds and has done. Plain data.
@@ -18,6 +20,9 @@ pub struct Cache {
 pub struct Stats {
     /// The text cache's.
     pub text: text::Stats,
+    /// M4 queries run for thinned lines: one per line whose recording,
+    /// revision, channel or column grid the memo had not seen.
+    pub m4_queries: u64,
 }
 
 #[cfg(feature = "fonts")]
@@ -33,24 +38,40 @@ impl Cache {
     pub fn new(fonts: Arc<text::Fonts>) -> Self {
         Cache {
             text: text::Cache::new(fonts),
+            memo: thin::Memo::default(),
         }
     }
 
     /// Starts a figure draw: the text cache's generation advances
-    /// ([`text::Cache::begin`]).
+    /// ([`text::Cache::begin`]), and memoized M4 output unused for 32 draws
+    /// is dropped.
     pub fn begin(&mut self) {
         self.text.begin();
+        self.memo.begin();
     }
 
     /// What the cache holds and has done.
     pub fn stats(&self) -> Stats {
         Stats {
             text: self.text.stats(),
+            m4_queries: self.memo.queries(),
         }
     }
 
     /// The text cache, for resolving.
     pub(super) fn text(&mut self) -> &mut text::Cache {
         &mut self.text
+    }
+
+    /// The text cache, and a frame for one draw's thinning over the memo,
+    /// which [`end`](Cache::end) takes back.
+    pub(super) fn start(&mut self) -> (&text::Cache, thin::Frame) {
+        let memo = std::mem::take(&mut self.memo);
+        (&self.text, thin::Frame::new(memo))
+    }
+
+    /// Keeps the memo of a draw's `frame` for the next draw.
+    pub(super) fn end(&mut self, frame: thin::Frame) {
+        self.memo = frame.into_memo();
     }
 }

@@ -3,6 +3,8 @@
 
 use rustd3_core::series::{Points, m4};
 
+use crate::thin;
+
 /// What a mark needs to fit and thin `Series` data on this x scale.
 ///
 /// Marks are generic over their x scale, while core's indexed recordings
@@ -26,14 +28,19 @@ pub trait Indexed<D> {
     ) -> Option<SeriesExtent<D>>;
 
     /// For a `Series` view: M4 over the columns between consecutive
-    /// `edges` (domain values in increasing order). `None` when `points`
-    /// is not a `Series` view, or `edges` are fewer than two, out of order
-    /// or not valid coordinates.
+    /// `edges` (domain values in increasing order, or decreasing, as a
+    /// reversed scale inverts device-pixel edges), keeping the samples that
+    /// pass `valid`, through `frame`: column boundaries computed once per
+    /// draw for every line on one clock, and output memoized across draws
+    /// by recording, revision, channel and grid. `None` when `points` is
+    /// not a `Series` view, or `edges` are fewer than two, not monotonic or
+    /// not valid coordinates.
     fn thin(
         &self,
         points: &Points<'_, D, f64>,
         edges: &[D],
         valid: &dyn Fn(f64) -> bool,
+        frame: &mut thin::Frame,
     ) -> Option<m4::Lines>;
 }
 

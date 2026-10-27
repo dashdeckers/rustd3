@@ -20,4 +20,13 @@ impl Target {
             Target::Screen { scale } => scale,
         }
     }
+
+    /// Thinning columns per list px: four per list pixel for vector
+    /// output, one per device pixel on screen.
+    pub(crate) fn columns(self) -> f64 {
+        match self {
+            Target::Vector => 4.0,
+            Target::Screen { scale } => scale,
+        }
+    }
 }

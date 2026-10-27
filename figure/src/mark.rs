@@ -22,6 +22,7 @@ mod line;
 mod rule;
 
 use std::any::Any;
+use std::cell::{RefCell, RefMut};
 
 use kurbo::{Cap, Join};
 use rustd3_core::series::Points;
@@ -31,6 +32,7 @@ use crate::list::List;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{self, Key, Shaped};
 use crate::theme::Theme;
+use crate::thin;
 
 pub use dots::{Dots, dots};
 pub use line::{Line, line};
@@ -57,21 +59,25 @@ pub struct Ctx<'r> {
     theme: &'r Theme,
     rect: kurbo::Rect,
     text: &'r text::Cache,
+    frame: &'r RefCell<thin::Frame>,
 }
 
 impl<'r> Ctx<'r> {
-    /// What the marks of the panel whose plot area is `rect` see.
+    /// What the marks of the panel whose plot area is `rect` see; they
+    /// thin through the draw's `frame`.
     pub(crate) fn new(
         resolved: &'r Resolved,
         theme: &'r Theme,
         rect: kurbo::Rect,
         text: &'r text::Cache,
+        frame: &'r RefCell<thin::Frame>,
     ) -> Ctx<'r> {
         Ctx {
             resolved,
             theme,
             rect,
             text,
+            frame,
         }
     }
 }
@@ -107,6 +113,17 @@ impl Ctx<'_> {
     /// output.
     pub fn scale_factor(&self) -> f64 {
         self.resolved.target().scale_factor()
+    }
+
+    /// Thinning columns per list px: one per device pixel on screen, four
+    /// per device pixel for files and per list pixel for vector output.
+    pub(crate) fn columns(&self) -> f64 {
+        self.resolved.target().columns()
+    }
+
+    /// The draw's thinning frame.
+    pub(crate) fn frame(&self) -> RefMut<'_, thin::Frame> {
+        self.frame.borrow_mut()
     }
 
     /// `h`'s resolved scale, borrowed.

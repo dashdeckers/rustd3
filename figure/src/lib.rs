@@ -24,6 +24,7 @@ pub mod svg;
 mod target;
 pub mod text;
 mod theme;
+pub mod thin;
 
 pub use figure::{Cache, Figure, Fits, Held, Resolved};
 pub use panel::Panel;

@@ -9,6 +9,7 @@ use rustd3_core::scale::{self, Continuous, Pad};
 use rustd3_core::series::{Points, m4};
 
 use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, stops};
+use crate::thin;
 
 /// A piecewise scale's inner stops keep their share of the way between its
 /// end stops when the range or the fitted domain changes.
@@ -111,13 +112,18 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
         points: &Points<'_, f64, f64>,
         edges: &[f64],
         valid: &dyn Fn(f64) -> bool,
+        frame: &mut thin::Frame,
     ) -> Option<m4::Lines> {
         let series = points.series()?;
-        let columns = series.recording().columns(edges).ok()?;
-        let lines = series
-            .m4(&columns, valid)
-            .expect("invariant: columns built from this series");
-        Some(lines)
+        let reversed: Vec<f64>;
+        let edges = if edges.first() > edges.last() {
+            reversed = edges.iter().rev().copied().collect();
+            &reversed
+        } else {
+            edges
+        };
+        let grid = thin::grid(edges.iter().map(|e| e.to_bits()));
+        frame.lines(series, edges, grid, valid)
     }
 }
 
@@ -222,13 +228,22 @@ mod tests {
         let points = series.into_points();
         let x = scale::linear();
         let indexed = x.indexed().expect("continuous scales are indexed");
+        let mut frame = thin::Frame::new(thin::Memo::default());
         let edges: Vec<f64> = (0..=100).map(|i| f64::from(i) * 10_000.0).collect();
         let columns = recording.columns(&edges).expect("valid edges");
         let core = series.m4(&columns, |_| true).expect("fresh columns");
-        assert_eq!(indexed.thin(&points, &edges, &|_| true), Some(core));
-        assert_eq!(indexed.thin(&points, &[2.0, 1.0], &|_| true), None);
+        let thinned = indexed.thin(&points, &edges, &|_| true, &mut frame);
+        assert_eq!(thinned, Some(core.clone()));
+        let backwards: Vec<f64> = edges.iter().rev().copied().collect();
+        let thinned = indexed.thin(&points, &backwards, &|_| true, &mut frame);
+        assert_eq!(thinned, Some(core));
+        let disordered = [1.0, 3.0, 2.0];
+        assert_eq!(
+            indexed.thin(&points, &disordered, &|_| true, &mut frame),
+            None
+        );
         let owned = [(0.0, 1.0)].into_points();
-        assert_eq!(indexed.thin(&owned, &edges, &|_| true), None);
+        assert_eq!(indexed.thin(&owned, &edges, &|_| true, &mut frame), None);
     }
 
     #[test]
