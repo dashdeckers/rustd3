@@ -7,7 +7,7 @@ use std::str::FromStr;
 /// The widest padding a specifier may ask for: V8's maximum string length
 /// on 64-bit targets, 2²⁹ − 24, beyond which d3's padding throws a
 /// `RangeError` instead of allocating.
-const MAX_WIDTH: usize = (1 << 29) - 24;
+pub(super) const MAX_WIDTH: usize = (1 << 29) - 24;
 
 /// A parsed `[[fill]align][sign][symbol][0][width][,][.precision][~][type]`.
 #[derive(Debug, Clone, PartialEq)]

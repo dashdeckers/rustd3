@@ -6,7 +6,8 @@
 use std::borrow::Cow;
 
 use rustd3_core::format::{
-    self, Definition, Locale, Specifier, precision_fixed, precision_prefix, precision_round,
+    self, Definition, Locale, Specifier, literal, precision_fixed, precision_prefix,
+    precision_round,
 };
 use serde_json::Value;
 
@@ -129,6 +130,24 @@ fn matches_d3(probes: &Value, name: &str, locale: &Locale) {
             "{name}: {specifier} of {value}"
         );
     }
+}
+
+/// Every double-quoted string literal in `source`, decoded as JSON decodes
+/// it: d3-format's tests escape only with `\uXXXX` and `\"`.
+fn strings(source: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut rest = source;
+    while let Some(start) = rest.find('"') {
+        let bytes = &rest.as_bytes()[start + 1..];
+        let mut end = 0;
+        while end < bytes.len() && bytes[end] != b'"' {
+            end += if bytes[end] == b'\\' { 2 } else { 1 };
+        }
+        let literal = &rest[start..(start + end + 2).min(rest.len())];
+        found.extend(serde_json::from_str::<String>(literal).ok());
+        rest = &rest[(start + end + 2).min(rest.len())..];
+    }
+    found
 }
 
 /// A locale with d3's fallbacks but the given separators and currency.
@@ -329,4 +348,70 @@ fn bundled_locales_write_the_rows_part_i_shows() {
         under(&Locale::default(), ",.1f", 1_234_567.5),
         "1\u{202f}234\u{202f}567.5"
     );
+}
+
+#[test]
+fn literal_check_agrees_with_parser() {
+    let agrees = |text: &str| {
+        let parsed = text.parse::<Specifier>().is_ok();
+        assert_eq!(literal::is_valid(text), parsed, "{text:?}");
+        parsed
+    };
+    let tests = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../dev/harness/d3/d3-format/test"
+    );
+    let mut d3 = Vec::new();
+    for file in std::fs::read_dir(tests).expect("d3-format's tests") {
+        let source = std::fs::read_to_string(file.expect("a test file").path());
+        d3.extend(strings(&source.expect("a test file as UTF-8")));
+    }
+    let valid = d3.iter().filter(|text| agrees(text)).count();
+    assert!(
+        d3.len() > 1000 && valid > 300,
+        "{} strings, {valid} valid",
+        d3.len()
+    );
+    for text in ["$,.2f", "foo", ".-2s", ".f", "\u{a0}€"] {
+        assert!(d3.iter().any(|s| s == text), "{text:?} is in d3's tests");
+    }
+    let edges = [
+        "😀>10",
+        "é^10",
+        "€>8",
+        "\n>10",
+        "\r<1",
+        "\u{2028}>1",
+        "\u{2029}^1",
+        "\u{85}>1",
+        "536870888",
+        "536870889",
+        "99999999999999999999",
+        "\u{212a}",
+        "\u{17f}",
+        ".0",
+        "~",
+    ];
+    for text in edges {
+        agrees(text);
+    }
+    const ALPHABET: [char; 23] = [
+        '0', '1', ',', '.', '~', '$', '#', '+', '-', '(', ' ', '<', '>', '=', '^', 'e', 'f', 'g',
+        'r', 's', '%', 'x', 'z',
+    ];
+    let mut words = vec![String::new()];
+    let mut all = words.clone();
+    for _ in 0..4 {
+        words = words
+            .iter()
+            .flat_map(|w| ALPHABET.iter().map(move |c| format!("{w}{c}")))
+            .collect();
+        all.extend(words.iter().cloned());
+    }
+    assert_eq!(
+        all.len(),
+        1 + 23 + 23 * 23 + 23 * 23 * 23 + 23 * 23 * 23 * 23
+    );
+    let valid = all.iter().filter(|text| agrees(text)).count();
+    assert!(valid > 1000, "{valid} of {} valid", all.len());
 }

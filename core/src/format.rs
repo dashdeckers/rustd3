@@ -7,7 +7,8 @@
 //! d3-format's tables for en-US and the ten languages of the time tables
 //! are constants of [`Locale`] (`DE_DE`, `FR_FR`, `ES_ES`, `IT_IT`,
 //! `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`, `ZH_CN`); its other tables
-//! load at run time through [`Locale::new`].
+//! load at run time through [`Locale::new`]. A specifier literal is checked
+//! by the compiler through [`fmt!`](crate::fmt).
 //!
 //! ```
 //! use rustd3_core::format::{self, Locale};
@@ -17,10 +18,12 @@
 //! assert_eq!(Locale::EN_US.format("$,.2f")?.format(-1234.5), "−$1,234.50");
 //! assert_eq!(Locale::DE_DE.format(",.1f")?.format(1234567.5), "1.234.567,5");
 //! assert!(format::format("10..f").is_err());
+//! assert_eq!(rustd3_core::fmt!(".3s").format(0.000_042), "42.0µ");
 //! # Ok::<(), format::InvalidFormat>(())
 //! ```
 
 mod decimal;
+pub mod literal;
 mod locale;
 mod locales;
 mod precision;
