@@ -271,3 +271,9 @@ at most that (`vello_common` and `vello_cpu` lie on rustd3-figure's
 critical path; typst builds alongside); the whole cold build was not
 repeated. The switch itself rebuilds the dependents of those crates
 once (rustd3-figure, rustd3-iced, iced's renderers, the dev crates).
+
+**`check.sh full` after the change** (9ecd547): 2 min 30 s on the
+first run, which rebuilt the dependents of the optimized crates in every
+feature set, and 1 min 42 s warm, against 4 min 19 s at 3b21383 (warm,
+2k dots, every render at opt-level 0); no warnings.
+
