@@ -258,3 +258,30 @@ fact matters most to Phase 31, whose premise it qualifies.
   line).
 - Phase 31: measure whole-pixel shifts on the trace, not only on the
   wheel figure, before translating tiles.
+
+## Measurements at the end of the phase
+
+2026-10-27, after the decisions (dfa0795 … 3298386);
+`scripts/check.sh full` green at 3298386 in 3 min 53 s (warm), no
+warnings. Harness unchanged: 9 suites, 3,314 assertions, 2,623 passing,
+691 skipped, 80 floors; nothing blessed.
+
+- **One resolve per refresh** (D18.2 (3) B, `a_refresh_resolves_the_figure_once`):
+  a refresh of the rebuilt 2 × 2 grid adds 160 text-cache hits, the hits
+  of one resolve over a warm cache; with the former second resolve, 320.
+- **Translucent background** (D18.1 A,
+  `translucent_background_matches_the_png`): `#336699` at 50%, k = 2,
+  max 1/255 and no channel over 16 on tiny-skia and wgpu (bound 4/255); a
+  gutter pixel shows (153, 178, 204), the straight-alpha blend over
+  white.
+- **Overlay** (tiny-skia / wgpu): the crosshair over panel 0's centre
+  changes 934 / 941 device px at 2 and 556 / 557 at 1.25, none outside
+  the plot area; the ring's centre lands 0.000 device px from the dot;
+  the ring around a dot on the plot area's corner changes nothing
+  outside it (81 px outside with the layer removed, checked, then
+  restored).
+- **Renders viewed** with the pointer over a panel (the trace's lower
+  panel, the scatter, the grid's lower right panel; 1, 1.25 and 2; both
+  backends; scratch, not committed): the crosshair spans that plot area
+  only, one device px wide at 40% ink; the ring sits on the nearest dot
+  or sample; other panels, gutters and the legends are untouched.
