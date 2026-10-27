@@ -8,7 +8,7 @@ use rustd3_testkit::obs::{Obs, ToObs, Token, Tolerance, tokenize};
 
 use crate::record::{self, Mark, Record};
 
-pub(crate) use rustd3_core::color::{Hsl, Rgb};
+pub(crate) use rustd3_core::color::{Cubehelix, Hcl, Hsl, Lab, Rgb};
 pub(crate) use rustd3_core::ease::{Ease, Mode};
 pub(crate) use rustd3_core::interpolate::Interpolate;
 pub(crate) use rustd3_core::path::{PathContext, SvgPath};
@@ -185,6 +185,24 @@ pub fn rgb_approx_equal(c: &Rgb, r: f64, g: f64, b: f64, opacity: f64) -> bool {
 /// d3-color's test helper `assertHslEqual(c, h, s, l, opacity)`: each
 /// component within 1e-6, the opacity exactly, NaN matching NaN.
 pub fn hsl_equal(c: &Hsl, h: f64, s: f64, l: f64, opacity: f64) -> bool {
+    near_channels([c.h, c.s, c.l, c.opacity], [h, s, l, opacity])
+}
+
+/// d3-color's test helper `assertLabEqual(c, l, a, b, opacity)`: as
+/// [`hsl_equal`].
+pub fn lab_equal(c: &Lab, l: f64, a: f64, b: f64, opacity: f64) -> bool {
+    near_channels([c.l, c.a, c.b, c.opacity], [l, a, b, opacity])
+}
+
+/// d3-color's test helper `assertHclEqual(c, h, c, l, opacity)`: as
+/// [`hsl_equal`].
+pub fn hcl_equal(c: &Hcl, h: f64, chroma: f64, l: f64, opacity: f64) -> bool {
+    near_channels([c.h, c.c, c.l, c.opacity], [h, chroma, l, opacity])
+}
+
+/// d3-color's asserts: three channels within 1e-6, the opacity exactly,
+/// NaN matching NaN.
+fn near_channels(actual: [f64; 4], expected: [f64; 4]) -> bool {
     let near = |a: f64, e: f64| {
         if e.is_nan() {
             a.is_nan()
@@ -193,7 +211,9 @@ pub fn hsl_equal(c: &Hsl, h: f64, s: f64, l: f64, opacity: f64) -> bool {
         }
     };
     let same = |a: f64, e: f64| if e.is_nan() { a.is_nan() } else { a == e };
-    near(c.h, h) && near(c.s, s) && near(c.l, l) && same(c.opacity, opacity)
+    let [c0, c1, c2, opacity] = actual;
+    let [e0, e1, e2, expected_opacity] = expected;
+    near(c0, e0) && near(c1, e1) && near(c2, e2) && same(opacity, expected_opacity)
 }
 
 /// d3-ease's test helper `out(easeIn)`: the easing reflected in time and value.

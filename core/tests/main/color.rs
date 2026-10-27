@@ -1,9 +1,9 @@
-//! `color::Rgb` and `color::Hsl` against d3-color 3.1.0: every CSS form
-//! the parser accepts or rejects, the alpha rules, conversions both ways,
-//! formats, clamping, and d3-interpolate 3.0.1's `interpolateRgb` at gamma
-//! 1 alone and as a scale's range.
+//! `color::Rgb`, `Hsl`, `Lab`, `Hcl` and `Cubehelix` against d3-color
+//! 3.1.0: every CSS form the parser accepts or rejects, the alpha rules,
+//! conversions both ways, formats, clamping, and d3-interpolate 3.0.1's
+//! `interpolateRgb` at gamma 1 alone and as a scale's range.
 
-use rustd3_core::color::{Hsl, ParseColorError, Rgb};
+use rustd3_core::color::{Cubehelix, Hcl, Hsl, Lab, ParseColorError, Rgb};
 use rustd3_core::interpolate::Interpolate;
 use rustd3_core::scale;
 
@@ -415,4 +415,118 @@ fn rgb_interpolation_is_d3s_with_gamma_one() {
     let a = rgb("rgba(70, 130, 180, 1)");
     let b = rgb("rgba(255, 0, 0, 0.2)");
     assert_eq!(a.lerp(&b, 0.2).to_string(), "rgba(107, 104, 144, 0.84)");
+}
+
+/// The three channels of a color, NaN written as `None`, to compare with d3
+/// within 1e-6.
+fn channels(c: [f64; 3]) -> [Option<f64>; 4] {
+    [c[0], c[1], c[2], 1.0].map(|v| (!v.is_nan()).then_some(v))
+}
+
+#[test]
+fn rgb_converts_to_lab_with_d3s_d50_constants() {
+    let c = Lab::from(Rgb::new(170.0, 187.0, 204.0));
+    assert!(near(
+        channels([c.l, c.a, c.b]),
+        channels([74.96879980931759, -3.398998724348956, -10.696507207853333])
+    ));
+    let steel: Lab = "steelblue".parse().expect("a CSS color");
+    assert!(near(
+        channels([steel.l, steel.a, steel.b]),
+        channels([51.98624890550498, -8.362792037014344, -32.832699449697714])
+    ));
+    let gray = Lab::from(rgb("gray"));
+    assert_eq!((gray.a, gray.b), (0.0, 0.0));
+    assert_eq!(Rgb::from(Lab::gray(50.0)).to_string(), "rgb(119, 119, 119)");
+    assert_eq!(
+        Rgb::from(steel.brighter(1.0)).to_string(),
+        "rgb(121, 177, 230)"
+    );
+    assert_eq!(steel.darker(1.0).l, steel.l - 18.0);
+    let hsl: Lab = Lab::from(hsl("hsl(60,100%,20%)"));
+    assert!((hsl.l - 41.97125732118659).abs() < 1e-6);
+}
+
+#[test]
+fn lab_parses_through_rgb_and_prints_as_rgb() {
+    assert_eq!(
+        "moccasin".parse::<Lab>().map(|c| c.to_string()),
+        Ok("rgb(255, 228, 181)".to_owned())
+    );
+    assert_eq!(
+        "hsla(60, 100%, 20%, 0.4)"
+            .parse::<Lab>()
+            .map(|c| c.to_string()),
+        Ok("rgba(102, 102, 0, 0.4)".to_owned())
+    );
+    assert_eq!(
+        "invalid".parse::<Lab>().map_err(|e| e.input().to_owned()),
+        Err("invalid".to_owned())
+    );
+    let undefined = Lab {
+        a: f64::NAN,
+        b: f64::NAN,
+        ..Lab::new(50.0, 0.0, 0.0)
+    };
+    assert_eq!(undefined.to_string(), "rgb(119, 119, 119)");
+}
+
+#[test]
+fn hcl_is_lab_in_cylindrical_form_with_undefined_hues() {
+    let steel: Hcl = "steelblue".parse().expect("a CSS color");
+    assert!(near(
+        channels([steel.h, steel.c, steel.l]),
+        channels([255.71009124439382, 33.88100417355618, 51.98624890550498])
+    ));
+    let white: Hcl = "white".parse().expect("a CSS color");
+    assert_eq!(
+        channels([white.h, white.c, white.l]),
+        [None, None, Some(100.0), Some(1.0)]
+    );
+    let black = Hcl::from(Lab::new(0.0, 0.0, 0.0));
+    assert_eq!(
+        channels([black.h, black.c, black.l]),
+        [None, None, Some(0.0), Some(1.0)]
+    );
+    let gray = Hcl::from(Lab::gray(50.0));
+    assert_eq!(
+        channels([gray.h, gray.c, gray.l]),
+        [None, Some(0.0), Some(50.0), Some(1.0)]
+    );
+    assert_eq!(Hcl::from(Lab::new(50.0, 0.0, 10.0)).h, 90.0);
+    assert_eq!(
+        Rgb::from(Hcl::new(200.0, 40.0, 60.0)).to_string(),
+        "rgb(0, 163, 167)"
+    );
+    assert_eq!(Hcl::lch(74.0, 11.0, 252.0), Hcl::new(252.0, 11.0, 74.0));
+    let dark = Lab::from(Hcl::from(Lab::new(0.0, 10.0, 0.0)));
+    assert_eq!((dark.a, dark.b), (10.0, 0.0));
+    assert_eq!(Lab::from(Hcl::new(f64::NAN, 30.0, 40.0)), Lab::gray(40.0));
+    assert_eq!(steel.brighter(1.0).l, steel.l + 18.0);
+    assert_eq!(
+        Hcl::from(hsl("hsl(60,100%,20%)")).to_string(),
+        "rgb(102, 102, 0)"
+    );
+}
+
+#[test]
+fn cubehelix_converts_with_d3s_constants() {
+    let steel: Cubehelix = "steelblue".parse().expect("a CSS color");
+    assert!(near(
+        channels([steel.h, steel.s, steel.l]),
+        channels([202.84837896488932, 0.6273147230777709, 0.460784355920337])
+    ));
+    assert_eq!(steel.to_string(), "rgb(70, 130, 180)");
+    let white = Cubehelix::from(rgb("white"));
+    assert!(white.h.is_nan() && white.s.is_nan());
+    assert_eq!(
+        Cubehelix::new(f64::NAN, f64::NAN, 0.4).to_string(),
+        "rgb(102, 102, 102)"
+    );
+    assert!((steel.brighter(1.0).l - steel.l / 0.7).abs() < 1e-15);
+    assert_eq!(steel.darker(2.0).l, steel.l * 0.7_f64.powf(2.0));
+    assert_eq!(
+        Cubehelix::from(hsl("steelblue")).to_string(),
+        "rgb(70, 130, 180)"
+    );
 }

@@ -730,6 +730,414 @@ fn t107() {   // hsl-test.js: hsl.copy(…) returns a new hsl with the specified
     check("d3-color/test/hsl-test.js:303:3", Kind::Strict, &Hsl { h: 20.0, s: 0.4, ..c }.format_hsl(), &"hsla(20, 40%, 50%, 0.4)");
 }
 
+fn t108() {   // lab-test.js: lab(…) returns an instance of lab and color
+    let mut _c = Lab::new(120.0, 40.0, 50.0);
+    skip("d3-color/test/lab-test.js:7:3", "js: instanceof");
+    skip("d3-color/test/lab-test.js:8:3", "js: instanceof");
+}
+
+fn t109() {   // lab-test.js: lab(…) exposes l, a and b channel values and opacity
+    check("d3-color/test/lab-test.js:12:3", Kind::Strict, &lab_equal(&"rgba(170, 187, 204, 0.4)".parse::<Lab>().expect("a CSS color"), 74.96879980931759, -3.398998724348956, -10.696507207853333, 0.4), &true);
+}
+
+fn t110() {   // lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)
+    check("d3-color/test/lab-test.js:16:3", Kind::Strict, &"#abcdef".parse::<Lab>().expect("a CSS color").to_string(), &"rgb(171, 205, 239)");
+    check("d3-color/test/lab-test.js:17:3", Kind::Strict, &"moccasin".parse::<Lab>().expect("a CSS color").to_string(), &"rgb(255, 228, 181)");
+    check("d3-color/test/lab-test.js:18:3", Kind::Strict, &"hsl(60, 100%, 20%)".parse::<Lab>().expect("a CSS color").to_string(), &"rgb(102, 102, 0)");
+    check("d3-color/test/lab-test.js:19:3", Kind::Strict, &"hsla(60, 100%, 20%, 0.4)".parse::<Lab>().expect("a CSS color").to_string(), &"rgba(102, 102, 0, 0.4)");
+    check("d3-color/test/lab-test.js:20:3", Kind::Strict, &"rgb(12, 34, 56)".parse::<Lab>().expect("a CSS color").to_string(), &"rgb(12, 34, 56)");
+    check("d3-color/test/lab-test.js:21:3", Kind::Strict, &Lab::from(Rgb::new(12.0, 34.0, 56.0)).to_string(), &"rgb(12, 34, 56)");
+    check("d3-color/test/lab-test.js:22:3", Kind::Strict, &Lab::from(Rgb::from(Hsl { h: 60.0, s: 1.0, l: 0.2, opacity: 1.0 })).to_string(), &"rgb(102, 102, 0)");
+    check("d3-color/test/lab-test.js:23:3", Kind::Strict, &Lab::from(Rgb::from(Hsl { h: 60.0, s: 1.0, l: 0.2, opacity: 0.4 })).to_string(), &"rgba(102, 102, 0, 0.4)");
+}
+
+fn t111() {   // lab-test.js: lab.toString() reflects l, a and b channel values and opacity
+    let mut c = "#abc".parse::<Lab>().expect("a CSS color");
+    c.l += 10.0;
+    c.a -= 10.0;
+    c.b += 10.0;
+    c.opacity = 0.4;
+    check("d3-color/test/lab-test.js:29:3", Kind::Strict, &c.to_string(), &"rgba(184, 220, 213, 0.4)");
+}
+
+fn t112() {   // lab-test.js: lab.toString() treats undefined channel values as 0
+    skip("d3-color/test/lab-test.js:33:3", "types: a string that is no CSS color is an Err, where d3 makes NaN channels");
+    check("d3-color/test/lab-test.js:34:3", Kind::Strict, &Lab::new(f64::NAN, 0.0, 0.0).to_string(), &"rgb(0, 0, 0)");
+    check("d3-color/test/lab-test.js:35:3", Kind::Strict, &Lab::new(50.0, f64::NAN, 0.0).to_string(), &"rgb(119, 119, 119)");
+    check("d3-color/test/lab-test.js:36:3", Kind::Strict, &Lab::new(50.0, 0.0, f64::NAN).to_string(), &"rgb(119, 119, 119)");
+    check("d3-color/test/lab-test.js:37:3", Kind::Strict, &Lab::new(50.0, f64::NAN, f64::NAN).to_string(), &"rgb(119, 119, 119)");
+}
+
+fn t113() {   // lab-test.js: lab.toString() treats undefined opacity as 1
+    let mut c = "#abc".parse::<Lab>().expect("a CSS color");
+    c.opacity = f64::NAN;
+    check("d3-color/test/lab-test.js:43:3", Kind::Strict, &c.to_string(), &"rgb(170, 187, 204)");
+}
+
+fn t114() {   // lab-test.js: lab(l, a, b) does not clamp l channel value
+    check("d3-color/test/lab-test.js:47:3", Kind::Strict, &lab_equal(&Lab::new(-10.0, 1.0, 2.0), -10.0, 1.0, 2.0, 1.0), &true);
+    check("d3-color/test/lab-test.js:48:3", Kind::Strict, &lab_equal(&Lab::new(0.0, 1.0, 2.0), 0.0, 1.0, 2.0, 1.0), &true);
+    check("d3-color/test/lab-test.js:49:3", Kind::Strict, &lab_equal(&Lab::new(100.0, 1.0, 2.0), 100.0, 1.0, 2.0, 1.0), &true);
+    check("d3-color/test/lab-test.js:50:3", Kind::Strict, &lab_equal(&Lab::new(110.0, 1.0, 2.0), 110.0, 1.0, 2.0, 1.0), &true);
+}
+
+fn t115() {   // lab-test.js: lab(l, a, b, opacity) does not clamp opacity to [0,1]
+    check("d3-color/test/lab-test.js:54:3", Kind::Strict, &lab_equal(&Lab { opacity: -0.2, ..Lab::new(50.0, 10.0, 20.0) }, 50.0, 10.0, 20.0, -0.2), &true);
+    check("d3-color/test/lab-test.js:55:3", Kind::Strict, &lab_equal(&Lab { opacity: 1.2, ..Lab::new(50.0, 10.0, 20.0) }, 50.0, 10.0, 20.0, 1.2), &true);
+}
+
+fn t116() {   // lab-test.js: lab(l, a, b) coerces channel values to numbers
+    skip("d3-color/test/lab-test.js:59:3", "js: an lab channel is not a number (coercion)");
+}
+
+fn t117() {   // lab-test.js: lab(l, a, b, opacity) coerces opacity to number
+    skip("d3-color/test/lab-test.js:63:3", "js: an lab channel is not a number (coercion)");
+}
+
+fn t118() {   // lab-test.js: lab(l, a, b) allows undefined channel values
+    skip("d3-color/test/lab-test.js:67:3", "js: an lab channel is not a number (coercion)");
+    skip("d3-color/test/lab-test.js:68:3", "js: an lab channel is not a number (coercion)");
+    skip("d3-color/test/lab-test.js:69:3", "js: an lab channel is not a number (coercion)");
+    skip("d3-color/test/lab-test.js:70:3", "js: an lab channel is not a number (coercion)");
+}
+
+fn t119() {   // lab-test.js: lab(l, a, b, opacity) converts undefined opacity to 1
+    skip("d3-color/test/lab-test.js:74:3", "js: null (coercion)");
+    skip("d3-color/test/lab-test.js:75:3", "js: an lab channel is not a number (coercion)");
+}
+
+fn t120() {   // lab-test.js: lab(format) parses the specified format and converts to Lab
+    check("d3-color/test/lab-test.js:79:3", Kind::Strict, &lab_equal(&"#abcdef".parse::<Lab>().expect("a CSS color"), 80.77135418262527, -5.957098328496224, -20.785782794739237, 1.0), &true);
+    check("d3-color/test/lab-test.js:80:3", Kind::Strict, &lab_equal(&"#abc".parse::<Lab>().expect("a CSS color"), 74.96879980931759, -3.398998724348956, -10.696507207853333, 1.0), &true);
+    check("d3-color/test/lab-test.js:81:3", Kind::Strict, &lab_equal(&"rgb(12, 34, 56)".parse::<Lab>().expect("a CSS color"), 12.404844123471648, -2.159950219712034, -17.168132391132946, 1.0), &true);
+    check("d3-color/test/lab-test.js:82:3", Kind::Strict, &lab_equal(&"rgb(12%, 34%, 56%)".parse::<Lab>().expect("a CSS color"), 35.48300043476593, -2.507637675606522, -36.95112983195855, 1.0), &true);
+    check("d3-color/test/lab-test.js:83:3", Kind::Strict, &lab_equal(&"rgba(12%, 34%, 56%, 0.4)".parse::<Lab>().expect("a CSS color"), 35.48300043476593, -2.507637675606522, -36.95112983195855, 0.4), &true);
+    check("d3-color/test/lab-test.js:84:3", Kind::Strict, &lab_equal(&"hsl(60,100%,20%)".parse::<Lab>().expect("a CSS color"), 41.97125732118659, -8.03835128380484, 47.65411917854332, 1.0), &true);
+    check("d3-color/test/lab-test.js:85:3", Kind::Strict, &lab_equal(&"hsla(60,100%,20%,0.4)".parse::<Lab>().expect("a CSS color"), 41.97125732118659, -8.03835128380484, 47.65411917854332, 0.4), &true);
+    check("d3-color/test/lab-test.js:86:3", Kind::Strict, &lab_equal(&"aliceblue".parse::<Lab>().expect("a CSS color"), 97.12294991108756, -1.773836604137824, -4.332680308569969, 1.0), &true);
+}
+
+fn t121() {   // lab-test.js: lab(format) returns undefined channel values for unknown formats
+    skip("d3-color/test/lab-test.js:90:3", "types: a string that is no CSS color is an Err, where d3 makes NaN channels");
+}
+
+fn t122() {   // lab-test.js: lab(lab) copies a Lab color
+    let mut c1 = Lab { opacity: 0.4, ..Lab::new(50.0, 4.0, -5.0) };
+    let mut c2 = c1;
+    check("d3-color/test/lab-test.js:96:3", Kind::Strict, &lab_equal(&c1, 50.0, 4.0, -5.0, 0.4), &true);
+    c1.l = { c1.a = { c1.b = { c1.opacity = 0.0; c1.opacity }; c1.b }; c1.a };
+    check("d3-color/test/lab-test.js:98:3", Kind::Strict, &lab_equal(&c1, 0.0, 0.0, 0.0, 0.0), &true);
+    check("d3-color/test/lab-test.js:99:3", Kind::Strict, &lab_equal(&c2, 50.0, 4.0, -5.0, 0.4), &true);
+}
+
+fn t123() {   // lab-test.js: lab(hcl(lab)) doesn’t lose a and b channels if luminance is zero
+    check("d3-color/test/lab-test.js:103:3", Kind::Strict, &lab_equal(&Lab::from(Hcl::from(Lab::new(0.0, 10.0, 0.0))), 0.0, 10.0, 0.0, 1.0), &true);
+}
+
+fn t124() {   // lab-test.js: lab(rgb) converts from RGB
+    check("d3-color/test/lab-test.js:107:3", Kind::Strict, &lab_equal(&Lab::from(Rgb::new(255.0, 0.0, 0.0).with_opacity(0.4)), 54.29173376861782, 80.8124553179771, 69.88504032350531, 0.4), &true);
+}
+
+fn t125() {   // lab-test.js: lab(color) converts from another colorspace via rgb()
+    skip("d3-color/test/lab-test.js:115:3", "js: prototypes");
+}
+
+fn t126() {   // lab-test.js: lab.brighter(k) returns a brighter color if k > 0
+    let mut c = "rgba(165, 42, 42, 0.4)".parse::<Lab>().expect("a CSS color");
+    check("d3-color/test/lab-test.js:120:3", Kind::Strict, &lab_equal(&c.brighter(0.5), 47.149667346714935, 50.388769337115, 31.834059255569358, 0.4), &true);
+    check("d3-color/test/lab-test.js:121:3", Kind::Strict, &lab_equal(&c.brighter(1.0), 56.149667346714935, 50.388769337115, 31.834059255569358, 0.4), &true);
+    check("d3-color/test/lab-test.js:122:3", Kind::Strict, &lab_equal(&c.brighter(2.0), 74.14966734671493, 50.388769337115, 31.834059255569358, 0.4), &true);
+}
+
+fn t127() {   // lab-test.js: lab.brighter(k) returns a copy
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Lab>().expect("a CSS color");
+    let mut c2 = c1.brighter(1.0);
+    check("d3-color/test/lab-test.js:128:3", Kind::Strict, &lab_equal(&c1, 51.98624890550498, -8.362792037014344, -32.832699449697685, 0.4), &true);
+    check("d3-color/test/lab-test.js:129:3", Kind::Strict, &lab_equal(&c2, 69.98624890550498, -8.362792037014344, -32.832699449697685, 0.4), &true);
+}
+
+fn t128() {   // lab-test.js: lab.brighter() is equivalent to lab.brighter(1)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Lab>().expect("a CSS color");
+    let mut c2 = c1.brighter(1.0);
+    let mut c3 = c1.brighter(1.0);
+    check("d3-color/test/lab-test.js:136:3", Kind::Strict, &lab_equal(&c2, c3.l, c3.a, c3.b, 0.4), &true);
+}
+
+fn t129() {   // lab-test.js: lab.brighter(k) is equivalent to lab.darker(-k)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Lab>().expect("a CSS color");
+    let mut c2 = c1.brighter(1.5);
+    let mut c3 = c1.darker(-1.5);
+    check("d3-color/test/lab-test.js:143:3", Kind::Strict, &lab_equal(&c2, c3.l, c3.a, c3.b, 0.4), &true);
+}
+
+fn t130() {   // lab-test.js: lab.darker(k) returns a darker color if k > 0
+    let mut c = "rgba(165, 42, 42, 0.4)".parse::<Lab>().expect("a CSS color");
+    check("d3-color/test/lab-test.js:148:3", Kind::Strict, &lab_equal(&c.darker(0.5), 29.149667346714935, 50.388769337115, 31.834059255569358, 0.4), &true);
+    check("d3-color/test/lab-test.js:149:3", Kind::Strict, &lab_equal(&c.darker(1.0), 20.149667346714935, 50.388769337115, 31.834059255569358, 0.4), &true);
+    check("d3-color/test/lab-test.js:150:3", Kind::Strict, &lab_equal(&c.darker(2.0), 2.149667346714935, 50.388769337115, 31.834059255569358, 0.4), &true);
+}
+
+fn t131() {   // lab-test.js: lab.darker(k) returns a copy
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Lab>().expect("a CSS color");
+    let mut c2 = c1.darker(1.0);
+    check("d3-color/test/lab-test.js:156:3", Kind::Strict, &lab_equal(&c1, 51.98624890550498, -8.362792037014344, -32.832699449697685, 0.4), &true);
+    check("d3-color/test/lab-test.js:157:3", Kind::Strict, &lab_equal(&c2, 33.98624890550498, -8.362792037014344, -32.832699449697685, 0.4), &true);
+}
+
+fn t132() {   // lab-test.js: lab.darker() is equivalent to lab.darker(1)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Lab>().expect("a CSS color");
+    let mut c2 = c1.darker(1.0);
+    let mut c3 = c1.darker(1.0);
+    check("d3-color/test/lab-test.js:164:3", Kind::Strict, &lab_equal(&c2, c3.l, c3.a, c3.b, 0.4), &true);
+}
+
+fn t133() {   // lab-test.js: lab.darker(k) is equivalent to lab.brighter(-k)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Lab>().expect("a CSS color");
+    let mut c2 = c1.darker(1.5);
+    let mut c3 = c1.brighter(-1.5);
+    check("d3-color/test/lab-test.js:171:3", Kind::Strict, &lab_equal(&c2, c3.l, c3.a, c3.b, 0.4), &true);
+}
+
+fn t134() {   // lab-test.js: lab.rgb() converts to RGB
+    let mut c = Lab { opacity: 0.4, ..Lab::new(50.0, 4.0, -5.0) };
+    check("d3-color/test/lab-test.js:176:3", Kind::Strict, &rgb_approx_equal(&Rgb::from(c), 123.0, 117.0, 128.0, 0.4), &true);
+}
+
+fn t135() {   // hcl-test.js: hcl(…) returns an instance of hcl and color
+    let mut _c = Hcl::new(120.0, 40.0, 50.0);
+    skip("d3-color/test/hcl-test.js:7:3", "js: instanceof");
+    skip("d3-color/test/hcl-test.js:8:3", "js: instanceof");
+}
+
+fn t136() {   // hcl-test.js: hcl(…) exposes h, c, and l channel values
+    check("d3-color/test/hcl-test.js:12:3", Kind::Strict, &hcl_equal(&"#abc".parse::<Hcl>().expect("a CSS color"), 252.37145234745182, 11.223567114593477, 74.96879980931759, 1.0), &true);
+}
+
+fn t137() {   // hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white
+    check("d3-color/test/hcl-test.js:16:3", Kind::Strict, &hcl_equal(&"black".parse::<Hcl>().expect("a CSS color"), f64::NAN, f64::NAN, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:17:3", Kind::Strict, &hcl_equal(&"#000".parse::<Hcl>().expect("a CSS color"), f64::NAN, f64::NAN, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:18:3", Kind::Strict, &hcl_equal(&Hcl::from("#000".parse::<Lab>().expect("a CSS color")), f64::NAN, f64::NAN, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:19:3", Kind::Strict, &hcl_equal(&"white".parse::<Hcl>().expect("a CSS color"), f64::NAN, f64::NAN, 100.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:20:3", Kind::Strict, &hcl_equal(&"#fff".parse::<Hcl>().expect("a CSS color"), f64::NAN, f64::NAN, 100.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:21:3", Kind::Strict, &hcl_equal(&Hcl::from("#fff".parse::<Lab>().expect("a CSS color")), f64::NAN, f64::NAN, 100.0, 1.0), &true);
+}
+
+fn t138() {   // hcl-test.js: hcl(…) returns undefined hue and zero chroma for gray
+    check("d3-color/test/hcl-test.js:25:3", Kind::Strict, &hcl_equal(&"gray".parse::<Hcl>().expect("a CSS color"), f64::NAN, 0.0, 53.585013, 1.0), &true);
+    check("d3-color/test/hcl-test.js:26:3", Kind::Strict, &hcl_equal(&Hcl::from("gray".parse::<Lab>().expect("a CSS color")), f64::NAN, 0.0, 53.585013, 1.0), &true);
+}
+
+fn t139() {   // hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal
+    check("d3-color/test/hcl-test.js:30:3", Kind::Strict, &"#abcdef".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(171, 205, 239)");
+    check("d3-color/test/hcl-test.js:31:3", Kind::Strict, &"moccasin".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(255, 228, 181)");
+    check("d3-color/test/hcl-test.js:32:3", Kind::Strict, &"hsl(60, 100%, 20%)".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(102, 102, 0)");
+    check("d3-color/test/hcl-test.js:33:3", Kind::Strict, &"rgb(12, 34, 56)".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(12, 34, 56)");
+    check("d3-color/test/hcl-test.js:34:3", Kind::Strict, &Hcl::from(Rgb::new(12.0, 34.0, 56.0)).to_string(), &"rgb(12, 34, 56)");
+    check("d3-color/test/hcl-test.js:35:3", Kind::Strict, &Hcl::from(Rgb::from(Hsl { h: 60.0, s: 1.0, l: 0.2, opacity: 1.0 })).to_string(), &"rgb(102, 102, 0)");
+}
+
+fn t140() {   // hcl-test.js: hcl.toString() reflects h, c and l channel values
+    let mut c = "#abc".parse::<Hcl>().expect("a CSS color");
+    c.h += 10.0;
+    c.c += 1.0;
+    c.l -= 1.0;
+    check("d3-color/test/hcl-test.js:41:3", Kind::Strict, &c.to_string(), &"rgb(170, 183, 204)");
+}
+
+fn t141() {   // hcl-test.js: hcl.toString() treats undefined opacity as 1
+    let mut c = "#abc".parse::<Hcl>().expect("a CSS color");
+    c.opacity = f64::NAN;
+    check("d3-color/test/hcl-test.js:47:3", Kind::Strict, &c.to_string(), &"rgb(170, 187, 204)");
+}
+
+fn t142() {   // hcl-test.js: hcl.toString() treats undefined channel values as 0
+    skip("d3-color/test/hcl-test.js:51:3", "types: a string that is no CSS color is an Err, where d3 makes NaN channels");
+    check("d3-color/test/hcl-test.js:52:3", Kind::Strict, &"#000".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(0, 0, 0)");
+    check("d3-color/test/hcl-test.js:53:3", Kind::Strict, &"#ccc".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(204, 204, 204)");
+    check("d3-color/test/hcl-test.js:54:3", Kind::Strict, &"#fff".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(255, 255, 255)");
+    check("d3-color/test/hcl-test.js:55:3", Kind::Strict, &Hcl::new(f64::NAN, 20.0, 40.0).to_string(), &"rgb(94, 94, 94)");
+    check("d3-color/test/hcl-test.js:56:3", Kind::Strict, &Hcl::new(120.0, f64::NAN, 40.0).to_string(), &"rgb(94, 94, 94)");
+    check("d3-color/test/hcl-test.js:57:3", Kind::Strict, &Hcl::new(0.0, f64::NAN, 40.0).to_string(), &"rgb(94, 94, 94)");
+    check("d3-color/test/hcl-test.js:58:3", Kind::Strict, &Hcl::new(120.0, 50.0, f64::NAN).to_string(), &"rgb(0, 0, 0)");
+    check("d3-color/test/hcl-test.js:59:3", Kind::Strict, &Hcl::new(0.0, 50.0, f64::NAN).to_string(), &"rgb(0, 0, 0)");
+    check("d3-color/test/hcl-test.js:60:3", Kind::Strict, &Hcl::new(120.0, 0.0, f64::NAN).to_string(), &"rgb(0, 0, 0)");
+}
+
+fn t143() {   // hcl-test.js: hcl(yellow) is displayable
+    check("d3-color/test/hcl-test.js:64:3", Kind::Strict, &Rgb::from("yellow".parse::<Hcl>().expect("a CSS color")).displayable(), &true);
+    check("d3-color/test/hcl-test.js:65:3", Kind::Strict, &"yellow".parse::<Hcl>().expect("a CSS color").to_string(), &"rgb(255, 255, 0)");
+}
+
+fn t144() {   // hcl-test.js: hcl(h, c, l) does not wrap hue to [0,360)
+    check("d3-color/test/hcl-test.js:69:3", Kind::Strict, &hcl_equal(&Hcl::new(-10.0, 40.0, 50.0), -10.0, 40.0, 50.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:70:3", Kind::Strict, &hcl_equal(&Hcl::new(0.0, 40.0, 50.0), 0.0, 40.0, 50.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:71:3", Kind::Strict, &hcl_equal(&Hcl::new(360.0, 40.0, 50.0), 360.0, 40.0, 50.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:72:3", Kind::Strict, &hcl_equal(&Hcl::new(370.0, 40.0, 50.0), 370.0, 40.0, 50.0, 1.0), &true);
+}
+
+fn t145() {   // hcl-test.js: hcl(h, c, l) does not clamp l channel value
+    check("d3-color/test/hcl-test.js:76:3", Kind::Strict, &hcl_equal(&Hcl::new(120.0, 20.0, -10.0), 120.0, 20.0, -10.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:77:3", Kind::Strict, &hcl_equal(&Hcl::new(120.0, 20.0, 0.0), 120.0, 20.0, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:78:3", Kind::Strict, &hcl_equal(&Hcl::new(120.0, 20.0, 100.0), 120.0, 20.0, 100.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:79:3", Kind::Strict, &hcl_equal(&Hcl::new(120.0, 20.0, 110.0), 120.0, 20.0, 110.0, 1.0), &true);
+}
+
+fn t146() {   // hcl-test.js: hcl(h, c, l, opacity) does not clamp opacity to [0,1]
+    check("d3-color/test/hcl-test.js:83:3", Kind::Strict, &hcl_equal(&Hcl { opacity: -0.2, ..Hcl::new(120.0, 20.0, 100.0) }, 120.0, 20.0, 100.0, -0.2), &true);
+    check("d3-color/test/hcl-test.js:84:3", Kind::Strict, &hcl_equal(&Hcl { opacity: 1.2, ..Hcl::new(120.0, 20.0, 110.0) }, 120.0, 20.0, 110.0, 1.2), &true);
+}
+
+fn t147() {   // hcl-test.js: hcl(h, c, l) coerces channel values to numbers
+    skip("d3-color/test/hcl-test.js:88:3", "js: an hcl channel is not a number (coercion)");
+}
+
+fn t148() {   // hcl-test.js: hcl(h, c, l, opacity) coerces opacity to number
+    skip("d3-color/test/hcl-test.js:92:3", "js: an hcl channel is not a number (coercion)");
+}
+
+fn t149() {   // hcl-test.js: hcl(h, c, l) allows undefined channel values
+    skip("d3-color/test/hcl-test.js:96:3", "js: an hcl channel is not a number (coercion)");
+    skip("d3-color/test/hcl-test.js:97:3", "js: an hcl channel is not a number (coercion)");
+    skip("d3-color/test/hcl-test.js:98:3", "js: an hcl channel is not a number (coercion)");
+    skip("d3-color/test/hcl-test.js:99:3", "js: an hcl channel is not a number (coercion)");
+}
+
+fn t150() {   // hcl-test.js: hcl(h, c, l, opacity) converts undefined opacity to 1
+    skip("d3-color/test/hcl-test.js:103:3", "js: null (coercion)");
+    skip("d3-color/test/hcl-test.js:104:3", "js: an hcl channel is not a number (coercion)");
+}
+
+fn t151() {   // hcl-test.js: hcl(format) parses the specified format and converts to HCL
+    check("d3-color/test/hcl-test.js:108:3", Kind::Strict, &hcl_equal(&"#abcdef".parse::<Hcl>().expect("a CSS color"), 254.0079700170605, 21.62257586147983, 80.77135418262527, 1.0), &true);
+    check("d3-color/test/hcl-test.js:109:3", Kind::Strict, &hcl_equal(&"#abc".parse::<Hcl>().expect("a CSS color"), 252.37145234745182, 11.223567114593477, 74.96879980931759, 1.0), &true);
+    check("d3-color/test/hcl-test.js:110:3", Kind::Strict, &hcl_equal(&"rgb(12, 34, 56)".parse::<Hcl>().expect("a CSS color"), 262.8292023352897, 17.30347233219686, 12.404844123471648, 1.0), &true);
+    check("d3-color/test/hcl-test.js:111:3", Kind::Strict, &hcl_equal(&"rgb(12%, 34%, 56%)".parse::<Hcl>().expect("a CSS color"), 266.117653326772, 37.03612078188506, 35.48300043476593, 1.0), &true);
+    check("d3-color/test/hcl-test.js:112:3", Kind::Strict, &hcl_equal(&"rgba(12%, 34%, 56%, 0.4)".parse::<Hcl>().expect("a CSS color"), 266.117653326772, 37.03612078188506, 35.48300043476593, 0.4), &true);
+    check("d3-color/test/hcl-test.js:113:3", Kind::Strict, &hcl_equal(&"hsl(60,100%,20%)".parse::<Hcl>().expect("a CSS color"), 99.57458688693686, 48.327323183108916, 41.97125732118659, 1.0), &true);
+    check("d3-color/test/hcl-test.js:114:3", Kind::Strict, &hcl_equal(&"hsla(60,100%,20%,0.4)".parse::<Hcl>().expect("a CSS color"), 99.57458688693686, 48.327323183108916, 41.97125732118659, 0.4), &true);
+    check("d3-color/test/hcl-test.js:115:3", Kind::Strict, &hcl_equal(&"aliceblue".parse::<Hcl>().expect("a CSS color"), 247.7353849904697, 4.681732046417135, 97.12294991108756, 1.0), &true);
+}
+
+fn t152() {   // hcl-test.js: hcl(format) returns undefined channel values for unknown formats
+    skip("d3-color/test/hcl-test.js:119:3", "types: a string that is no CSS color is an Err, where d3 makes NaN channels");
+}
+
+fn t153() {   // hcl-test.js: hcl(hcl) copies an HCL color
+    let mut c1 = Hcl { opacity: 0.4, ..Hcl::new(120.0, 30.0, 50.0) };
+    let mut c2 = c1;
+    check("d3-color/test/hcl-test.js:125:3", Kind::Strict, &hcl_equal(&c1, 120.0, 30.0, 50.0, 0.4), &true);
+    c1.h = { c1.c = { c1.l = { c1.opacity = 0.0; c1.opacity }; c1.l }; c1.c };
+    check("d3-color/test/hcl-test.js:127:3", Kind::Strict, &hcl_equal(&c1, 0.0, 0.0, 0.0, 0.0), &true);
+    check("d3-color/test/hcl-test.js:128:3", Kind::Strict, &hcl_equal(&c2, 120.0, 30.0, 50.0, 0.4), &true);
+}
+
+fn t154() {   // hcl-test.js: hcl(lab) returns h = NaN if a and b are zero
+    check("d3-color/test/hcl-test.js:132:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(0.0, 0.0, 0.0)), f64::NAN, f64::NAN, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:133:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(50.0, 0.0, 0.0)), f64::NAN, 0.0, 50.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:134:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(100.0, 0.0, 0.0)), f64::NAN, f64::NAN, 100.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:135:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(0.0, 10.0, 0.0)), 0.0, 10.0, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:136:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(50.0, 10.0, 0.0)), 0.0, 10.0, 50.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:137:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(100.0, 10.0, 0.0)), 0.0, 10.0, 100.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:138:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(0.0, 0.0, 10.0)), 90.0, 10.0, 0.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:139:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(50.0, 0.0, 10.0)), 90.0, 10.0, 50.0, 1.0), &true);
+    check("d3-color/test/hcl-test.js:140:3", Kind::Strict, &hcl_equal(&Hcl::from(Lab::new(100.0, 0.0, 10.0)), 90.0, 10.0, 100.0, 1.0), &true);
+}
+
+fn t155() {   // hcl-test.js: hcl(rgb) converts from RGB
+    check("d3-color/test/hcl-test.js:144:3", Kind::Strict, &hcl_equal(&Hcl::from(Rgb::new(255.0, 0.0, 0.0).with_opacity(0.4)), 40.85261277607024, 106.83899941284552, 54.29173376861782, 0.4), &true);
+}
+
+fn t156() {   // hcl-test.js: hcl(color) converts from another colorspace via rgb()
+    skip("d3-color/test/hcl-test.js:152:3", "js: prototypes");
+}
+
+fn t157() {   // hcl-test.js: hcl.brighter(k) returns a brighter color if k > 0
+    let mut c = "rgba(165, 42, 42, 0.4)".parse::<Hcl>().expect("a CSS color");
+    check("d3-color/test/hcl-test.js:157:3", Kind::Strict, &hcl_equal(&c.brighter(0.5), 32.28342524928155, 59.60231039142763, 47.149667346714935, 0.4), &true);
+    check("d3-color/test/hcl-test.js:158:3", Kind::Strict, &hcl_equal(&c.brighter(1.0), 32.28342524928155, 59.60231039142763, 56.149667346714935, 0.4), &true);
+    check("d3-color/test/hcl-test.js:159:3", Kind::Strict, &hcl_equal(&c.brighter(2.0), 32.28342524928155, 59.60231039142763, 74.14966734671493, 0.4), &true);
+}
+
+fn t158() {   // hcl-test.js: hcl.brighter(k) returns a copy
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Hcl>().expect("a CSS color");
+    let mut c2 = c1.brighter(1.0);
+    check("d3-color/test/hcl-test.js:165:3", Kind::Strict, &hcl_equal(&c1, 255.71009124439382, 33.88100417355615, 51.98624890550498, 0.4), &true);
+    check("d3-color/test/hcl-test.js:166:3", Kind::Strict, &hcl_equal(&c2, 255.71009124439382, 33.88100417355615, 69.98624890550498, 0.4), &true);
+}
+
+fn t159() {   // hcl-test.js: hcl.brighter() is equivalent to hcl.brighter(1)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Hcl>().expect("a CSS color");
+    let mut c2 = c1.brighter(1.0);
+    let mut c3 = c1.brighter(1.0);
+    check("d3-color/test/hcl-test.js:173:3", Kind::Strict, &hcl_equal(&c2, c3.h, c3.c, c3.l, 0.4), &true);
+}
+
+fn t160() {   // hcl-test.js: hcl.brighter(k) is equivalent to hcl.darker(-k)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Hcl>().expect("a CSS color");
+    let mut c2 = c1.brighter(1.5);
+    let mut c3 = c1.darker(-1.5);
+    check("d3-color/test/hcl-test.js:180:3", Kind::Strict, &hcl_equal(&c2, c3.h, c3.c, c3.l, 0.4), &true);
+}
+
+fn t161() {   // hcl-test.js: hcl.darker(k) returns a darker color if k > 0
+    let mut c = "rgba(165, 42, 42, 0.4)".parse::<Hcl>().expect("a CSS color");
+    check("d3-color/test/hcl-test.js:185:3", Kind::Strict, &hcl_equal(&c.darker(0.5), 32.28342524928155, 59.60231039142763, 29.149667346714935, 0.4), &true);
+    check("d3-color/test/hcl-test.js:186:3", Kind::Strict, &hcl_equal(&c.darker(1.0), 32.28342524928155, 59.60231039142763, 20.149667346714935, 0.4), &true);
+    check("d3-color/test/hcl-test.js:187:3", Kind::Strict, &hcl_equal(&c.darker(2.0), 32.28342524928155, 59.60231039142763, 2.149667346714935, 0.4), &true);
+}
+
+fn t162() {   // hcl-test.js: hcl.darker(k) returns a copy
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Hcl>().expect("a CSS color");
+    let mut c2 = c1.darker(1.0);
+    check("d3-color/test/hcl-test.js:193:3", Kind::Strict, &hcl_equal(&c1, 255.71009124439382, 33.88100417355615, 51.98624890550498, 0.4), &true);
+    check("d3-color/test/hcl-test.js:194:3", Kind::Strict, &hcl_equal(&c2, 255.71009124439382, 33.88100417355615, 33.98624890550498, 0.4), &true);
+}
+
+fn t163() {   // hcl-test.js: hcl.darker() is equivalent to hcl.darker(1)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Hcl>().expect("a CSS color");
+    let mut c2 = c1.darker(1.0);
+    let mut c3 = c1.darker(1.0);
+    check("d3-color/test/hcl-test.js:201:3", Kind::Strict, &hcl_equal(&c2, c3.h, c3.c, c3.l, 0.4), &true);
+}
+
+fn t164() {   // hcl-test.js: hcl.darker(k) is equivalent to hcl.brighter(-k)
+    let mut c1 = "rgba(70, 130, 180, 0.4)".parse::<Hcl>().expect("a CSS color");
+    let mut c2 = c1.darker(1.5);
+    let mut c3 = c1.brighter(-1.5);
+    check("d3-color/test/hcl-test.js:208:3", Kind::Strict, &hcl_equal(&c2, c3.h, c3.c, c3.l, 0.4), &true);
+}
+
+fn t165() {   // hcl-test.js: hcl.rgb() converts to RGB
+    let mut c = Hcl { opacity: 0.4, ..Hcl::new(120.0, 30.0, 50.0) };
+    check("d3-color/test/hcl-test.js:213:3", Kind::Strict, &rgb_approx_equal(&Rgb::from(c), 105.0, 126.0, 73.0, 0.4), &true);
+}
+
+fn t166() {   // cubehelix-test.js: cubehelix(…) returns an instance of cubehelix and color
+    let mut _c = "steelblue".parse::<Cubehelix>().expect("a CSS color");
+    skip("d3-color/test/cubehelix-test.js:6:3", "js: instanceof");
+    skip("d3-color/test/cubehelix-test.js:7:3", "js: instanceof");
+}
+
+fn t167() {   // gray-test.js: gray(l[, opacity]) is an alias for lab(l, 0, 0[, opacity])
+    check("d3-color/test/gray-test.js:5:3", Kind::Strict, &lab_equal(&Lab::gray(120.0), 120.0, 0.0, 0.0, 1.0), &true);
+    check("d3-color/test/gray-test.js:6:3", Kind::Strict, &lab_equal(&Lab { opacity: 0.5, ..Lab::gray(120.0) }, 120.0, 0.0, 0.0, 0.5), &true);
+    skip("d3-color/test/gray-test.js:7:3", "js: null (coercion)");
+    skip("d3-color/test/gray-test.js:8:3", "js: an gray channel is not a number (coercion)");
+}
+
+fn t168() {   // lch-test.js: lch(color) is equivalent to hcl(color)
+    check("d3-color/test/lch-test.js:5:3", Kind::Strict, &hcl_equal(&"#abc".parse::<Hcl>().expect("a CSS color"), 252.37145234745182, 11.223567114593477, 74.96879980931759, 1.0), &true);
+    check("d3-color/test/lch-test.js:6:3", Kind::Strict, &hcl_equal(&Hcl::from("#abc".parse::<Rgb>().expect("a CSS color")), 252.37145234745182, 11.223567114593477, 74.96879980931759, 1.0), &true);
+}
+
+fn t169() {   // lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])
+    check("d3-color/test/lch-test.js:10:3", Kind::Strict, &hcl_equal(&Hcl::lch(74.0, 11.0, 252.0), 252.0, 11.0, 74.0, 1.0), &true);
+    check("d3-color/test/lch-test.js:11:3", Kind::Strict, &hcl_equal(&Hcl::lch(74.0, 11.0, 252.0), 252.0, 11.0, 74.0, 1.0), &true);
+    skip("d3-color/test/lch-test.js:12:3", "js: null (coercion)");
+    skip("d3-color/test/lch-test.js:13:3", "js: an lch channel is not a number (coercion)");
+    check("d3-color/test/lch-test.js:14:3", Kind::Strict, &hcl_equal(&Hcl { opacity: 0.5, ..Hcl::lch(74.0, 11.0, 252.0) }, 252.0, 11.0, 74.0, 0.5), &true);
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "color-test.js: color(format) parses CSS color names (e.g., \"rebeccapurple\")", run: t0 },
     Test { name: "color-test.js: color(format) parses 6-digit hexadecimal (e.g., \"#abcdef\")", run: t1 },
@@ -839,6 +1247,68 @@ pub const TESTS: &[Test] = &[
     Test { name: "hsl-test.js: hsl.darker(k) is equivalent to hsl.brighter(-k)", run: t105 },
     Test { name: "hsl-test.js: hsl.rgb() converts to RGB", run: t106 },
     Test { name: "hsl-test.js: hsl.copy(…) returns a new hsl with the specified channel values", run: t107 },
+    Test { name: "lab-test.js: lab(…) returns an instance of lab and color", run: t108 },
+    Test { name: "lab-test.js: lab(…) exposes l, a and b channel values and opacity", run: t109 },
+    Test { name: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", run: t110 },
+    Test { name: "lab-test.js: lab.toString() reflects l, a and b channel values and opacity", run: t111 },
+    Test { name: "lab-test.js: lab.toString() treats undefined channel values as 0", run: t112 },
+    Test { name: "lab-test.js: lab.toString() treats undefined opacity as 1", run: t113 },
+    Test { name: "lab-test.js: lab(l, a, b) does not clamp l channel value", run: t114 },
+    Test { name: "lab-test.js: lab(l, a, b, opacity) does not clamp opacity to [0,1]", run: t115 },
+    Test { name: "lab-test.js: lab(l, a, b) coerces channel values to numbers", run: t116 },
+    Test { name: "lab-test.js: lab(l, a, b, opacity) coerces opacity to number", run: t117 },
+    Test { name: "lab-test.js: lab(l, a, b) allows undefined channel values", run: t118 },
+    Test { name: "lab-test.js: lab(l, a, b, opacity) converts undefined opacity to 1", run: t119 },
+    Test { name: "lab-test.js: lab(format) parses the specified format and converts to Lab", run: t120 },
+    Test { name: "lab-test.js: lab(format) returns undefined channel values for unknown formats", run: t121 },
+    Test { name: "lab-test.js: lab(lab) copies a Lab color", run: t122 },
+    Test { name: "lab-test.js: lab(hcl(lab)) doesn’t lose a and b channels if luminance is zero", run: t123 },
+    Test { name: "lab-test.js: lab(rgb) converts from RGB", run: t124 },
+    Test { name: "lab-test.js: lab(color) converts from another colorspace via rgb()", run: t125 },
+    Test { name: "lab-test.js: lab.brighter(k) returns a brighter color if k > 0", run: t126 },
+    Test { name: "lab-test.js: lab.brighter(k) returns a copy", run: t127 },
+    Test { name: "lab-test.js: lab.brighter() is equivalent to lab.brighter(1)", run: t128 },
+    Test { name: "lab-test.js: lab.brighter(k) is equivalent to lab.darker(-k)", run: t129 },
+    Test { name: "lab-test.js: lab.darker(k) returns a darker color if k > 0", run: t130 },
+    Test { name: "lab-test.js: lab.darker(k) returns a copy", run: t131 },
+    Test { name: "lab-test.js: lab.darker() is equivalent to lab.darker(1)", run: t132 },
+    Test { name: "lab-test.js: lab.darker(k) is equivalent to lab.brighter(-k)", run: t133 },
+    Test { name: "lab-test.js: lab.rgb() converts to RGB", run: t134 },
+    Test { name: "hcl-test.js: hcl(…) returns an instance of hcl and color", run: t135 },
+    Test { name: "hcl-test.js: hcl(…) exposes h, c, and l channel values", run: t136 },
+    Test { name: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", run: t137 },
+    Test { name: "hcl-test.js: hcl(…) returns undefined hue and zero chroma for gray", run: t138 },
+    Test { name: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", run: t139 },
+    Test { name: "hcl-test.js: hcl.toString() reflects h, c and l channel values", run: t140 },
+    Test { name: "hcl-test.js: hcl.toString() treats undefined opacity as 1", run: t141 },
+    Test { name: "hcl-test.js: hcl.toString() treats undefined channel values as 0", run: t142 },
+    Test { name: "hcl-test.js: hcl(yellow) is displayable", run: t143 },
+    Test { name: "hcl-test.js: hcl(h, c, l) does not wrap hue to [0,360)", run: t144 },
+    Test { name: "hcl-test.js: hcl(h, c, l) does not clamp l channel value", run: t145 },
+    Test { name: "hcl-test.js: hcl(h, c, l, opacity) does not clamp opacity to [0,1]", run: t146 },
+    Test { name: "hcl-test.js: hcl(h, c, l) coerces channel values to numbers", run: t147 },
+    Test { name: "hcl-test.js: hcl(h, c, l, opacity) coerces opacity to number", run: t148 },
+    Test { name: "hcl-test.js: hcl(h, c, l) allows undefined channel values", run: t149 },
+    Test { name: "hcl-test.js: hcl(h, c, l, opacity) converts undefined opacity to 1", run: t150 },
+    Test { name: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", run: t151 },
+    Test { name: "hcl-test.js: hcl(format) returns undefined channel values for unknown formats", run: t152 },
+    Test { name: "hcl-test.js: hcl(hcl) copies an HCL color", run: t153 },
+    Test { name: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", run: t154 },
+    Test { name: "hcl-test.js: hcl(rgb) converts from RGB", run: t155 },
+    Test { name: "hcl-test.js: hcl(color) converts from another colorspace via rgb()", run: t156 },
+    Test { name: "hcl-test.js: hcl.brighter(k) returns a brighter color if k > 0", run: t157 },
+    Test { name: "hcl-test.js: hcl.brighter(k) returns a copy", run: t158 },
+    Test { name: "hcl-test.js: hcl.brighter() is equivalent to hcl.brighter(1)", run: t159 },
+    Test { name: "hcl-test.js: hcl.brighter(k) is equivalent to hcl.darker(-k)", run: t160 },
+    Test { name: "hcl-test.js: hcl.darker(k) returns a darker color if k > 0", run: t161 },
+    Test { name: "hcl-test.js: hcl.darker(k) returns a copy", run: t162 },
+    Test { name: "hcl-test.js: hcl.darker() is equivalent to hcl.darker(1)", run: t163 },
+    Test { name: "hcl-test.js: hcl.darker(k) is equivalent to hcl.brighter(-k)", run: t164 },
+    Test { name: "hcl-test.js: hcl.rgb() converts to RGB", run: t165 },
+    Test { name: "cubehelix-test.js: cubehelix(…) returns an instance of cubehelix and color", run: t166 },
+    Test { name: "gray-test.js: gray(l[, opacity]) is an alias for lab(l, 0, 0[, opacity])", run: t167 },
+    Test { name: "lch-test.js: lch(color) is equivalent to hcl(color)", run: t168 },
+    Test { name: "lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])", run: t169 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -1175,4 +1645,166 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-color/test/hsl-test.js:301:3", test: "hsl-test.js: hsl.copy(…) returns a new hsl with the specified channel values", skip: None },
     Assertion { id: "d3-color/test/hsl-test.js:302:3", test: "hsl-test.js: hsl.copy(…) returns a new hsl with the specified channel values", skip: None },
     Assertion { id: "d3-color/test/hsl-test.js:303:3", test: "hsl-test.js: hsl.copy(…) returns a new hsl with the specified channel values", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:7:3", test: "lab-test.js: lab(…) returns an instance of lab and color", skip: Some("js: instanceof") },
+    Assertion { id: "d3-color/test/lab-test.js:8:3", test: "lab-test.js: lab(…) returns an instance of lab and color", skip: Some("js: instanceof") },
+    Assertion { id: "d3-color/test/lab-test.js:12:3", test: "lab-test.js: lab(…) exposes l, a and b channel values and opacity", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:16:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:17:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:18:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:19:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:20:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:21:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:22:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:23:3", test: "lab-test.js: lab.toString() converts to RGB and formats as rgb(…) or rgba(…)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:29:3", test: "lab-test.js: lab.toString() reflects l, a and b channel values and opacity", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:33:3", test: "lab-test.js: lab.toString() treats undefined channel values as 0", skip: Some("types: a string that is no CSS color is an Err, where d3 makes NaN channels") },
+    Assertion { id: "d3-color/test/lab-test.js:34:3", test: "lab-test.js: lab.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:35:3", test: "lab-test.js: lab.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:36:3", test: "lab-test.js: lab.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:37:3", test: "lab-test.js: lab.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:43:3", test: "lab-test.js: lab.toString() treats undefined opacity as 1", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:47:3", test: "lab-test.js: lab(l, a, b) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:48:3", test: "lab-test.js: lab(l, a, b) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:49:3", test: "lab-test.js: lab(l, a, b) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:50:3", test: "lab-test.js: lab(l, a, b) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:54:3", test: "lab-test.js: lab(l, a, b, opacity) does not clamp opacity to [0,1]", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:55:3", test: "lab-test.js: lab(l, a, b, opacity) does not clamp opacity to [0,1]", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:59:3", test: "lab-test.js: lab(l, a, b) coerces channel values to numbers", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:63:3", test: "lab-test.js: lab(l, a, b, opacity) coerces opacity to number", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:67:3", test: "lab-test.js: lab(l, a, b) allows undefined channel values", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:68:3", test: "lab-test.js: lab(l, a, b) allows undefined channel values", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:69:3", test: "lab-test.js: lab(l, a, b) allows undefined channel values", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:70:3", test: "lab-test.js: lab(l, a, b) allows undefined channel values", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:74:3", test: "lab-test.js: lab(l, a, b, opacity) converts undefined opacity to 1", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:75:3", test: "lab-test.js: lab(l, a, b, opacity) converts undefined opacity to 1", skip: Some("js: an lab channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lab-test.js:79:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:80:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:81:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:82:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:83:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:84:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:85:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:86:3", test: "lab-test.js: lab(format) parses the specified format and converts to Lab", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:90:3", test: "lab-test.js: lab(format) returns undefined channel values for unknown formats", skip: Some("types: a string that is no CSS color is an Err, where d3 makes NaN channels") },
+    Assertion { id: "d3-color/test/lab-test.js:96:3", test: "lab-test.js: lab(lab) copies a Lab color", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:98:3", test: "lab-test.js: lab(lab) copies a Lab color", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:99:3", test: "lab-test.js: lab(lab) copies a Lab color", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:103:3", test: "lab-test.js: lab(hcl(lab)) doesn’t lose a and b channels if luminance is zero", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:107:3", test: "lab-test.js: lab(rgb) converts from RGB", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:115:3", test: "lab-test.js: lab(color) converts from another colorspace via rgb()", skip: Some("js: prototypes") },
+    Assertion { id: "d3-color/test/lab-test.js:120:3", test: "lab-test.js: lab.brighter(k) returns a brighter color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:121:3", test: "lab-test.js: lab.brighter(k) returns a brighter color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:122:3", test: "lab-test.js: lab.brighter(k) returns a brighter color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:128:3", test: "lab-test.js: lab.brighter(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:129:3", test: "lab-test.js: lab.brighter(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:136:3", test: "lab-test.js: lab.brighter() is equivalent to lab.brighter(1)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:143:3", test: "lab-test.js: lab.brighter(k) is equivalent to lab.darker(-k)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:148:3", test: "lab-test.js: lab.darker(k) returns a darker color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:149:3", test: "lab-test.js: lab.darker(k) returns a darker color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:150:3", test: "lab-test.js: lab.darker(k) returns a darker color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:156:3", test: "lab-test.js: lab.darker(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:157:3", test: "lab-test.js: lab.darker(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:164:3", test: "lab-test.js: lab.darker() is equivalent to lab.darker(1)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:171:3", test: "lab-test.js: lab.darker(k) is equivalent to lab.brighter(-k)", skip: None },
+    Assertion { id: "d3-color/test/lab-test.js:176:3", test: "lab-test.js: lab.rgb() converts to RGB", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:7:3", test: "hcl-test.js: hcl(…) returns an instance of hcl and color", skip: Some("js: instanceof") },
+    Assertion { id: "d3-color/test/hcl-test.js:8:3", test: "hcl-test.js: hcl(…) returns an instance of hcl and color", skip: Some("js: instanceof") },
+    Assertion { id: "d3-color/test/hcl-test.js:12:3", test: "hcl-test.js: hcl(…) exposes h, c, and l channel values", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:16:3", test: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:17:3", test: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:18:3", test: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:19:3", test: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:20:3", test: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:21:3", test: "hcl-test.js: hcl(…) returns defined hue and undefined chroma for black and white", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:25:3", test: "hcl-test.js: hcl(…) returns undefined hue and zero chroma for gray", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:26:3", test: "hcl-test.js: hcl(…) returns undefined hue and zero chroma for gray", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:30:3", test: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:31:3", test: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:32:3", test: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:33:3", test: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:34:3", test: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:35:3", test: "hcl-test.js: hcl.toString() converts to RGB and formats as hexadecimal", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:41:3", test: "hcl-test.js: hcl.toString() reflects h, c and l channel values", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:47:3", test: "hcl-test.js: hcl.toString() treats undefined opacity as 1", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:51:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: Some("types: a string that is no CSS color is an Err, where d3 makes NaN channels") },
+    Assertion { id: "d3-color/test/hcl-test.js:52:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:53:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:54:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:55:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:56:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:57:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:58:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:59:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:60:3", test: "hcl-test.js: hcl.toString() treats undefined channel values as 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:64:3", test: "hcl-test.js: hcl(yellow) is displayable", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:65:3", test: "hcl-test.js: hcl(yellow) is displayable", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:69:3", test: "hcl-test.js: hcl(h, c, l) does not wrap hue to [0,360)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:70:3", test: "hcl-test.js: hcl(h, c, l) does not wrap hue to [0,360)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:71:3", test: "hcl-test.js: hcl(h, c, l) does not wrap hue to [0,360)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:72:3", test: "hcl-test.js: hcl(h, c, l) does not wrap hue to [0,360)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:76:3", test: "hcl-test.js: hcl(h, c, l) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:77:3", test: "hcl-test.js: hcl(h, c, l) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:78:3", test: "hcl-test.js: hcl(h, c, l) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:79:3", test: "hcl-test.js: hcl(h, c, l) does not clamp l channel value", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:83:3", test: "hcl-test.js: hcl(h, c, l, opacity) does not clamp opacity to [0,1]", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:84:3", test: "hcl-test.js: hcl(h, c, l, opacity) does not clamp opacity to [0,1]", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:88:3", test: "hcl-test.js: hcl(h, c, l) coerces channel values to numbers", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:92:3", test: "hcl-test.js: hcl(h, c, l, opacity) coerces opacity to number", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:96:3", test: "hcl-test.js: hcl(h, c, l) allows undefined channel values", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:97:3", test: "hcl-test.js: hcl(h, c, l) allows undefined channel values", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:98:3", test: "hcl-test.js: hcl(h, c, l) allows undefined channel values", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:99:3", test: "hcl-test.js: hcl(h, c, l) allows undefined channel values", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:103:3", test: "hcl-test.js: hcl(h, c, l, opacity) converts undefined opacity to 1", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:104:3", test: "hcl-test.js: hcl(h, c, l, opacity) converts undefined opacity to 1", skip: Some("js: an hcl channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/hcl-test.js:108:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:109:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:110:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:111:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:112:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:113:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:114:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:115:3", test: "hcl-test.js: hcl(format) parses the specified format and converts to HCL", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:119:3", test: "hcl-test.js: hcl(format) returns undefined channel values for unknown formats", skip: Some("types: a string that is no CSS color is an Err, where d3 makes NaN channels") },
+    Assertion { id: "d3-color/test/hcl-test.js:125:3", test: "hcl-test.js: hcl(hcl) copies an HCL color", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:127:3", test: "hcl-test.js: hcl(hcl) copies an HCL color", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:128:3", test: "hcl-test.js: hcl(hcl) copies an HCL color", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:132:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:133:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:134:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:135:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:136:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:137:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:138:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:139:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:140:3", test: "hcl-test.js: hcl(lab) returns h = NaN if a and b are zero", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:144:3", test: "hcl-test.js: hcl(rgb) converts from RGB", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:152:3", test: "hcl-test.js: hcl(color) converts from another colorspace via rgb()", skip: Some("js: prototypes") },
+    Assertion { id: "d3-color/test/hcl-test.js:157:3", test: "hcl-test.js: hcl.brighter(k) returns a brighter color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:158:3", test: "hcl-test.js: hcl.brighter(k) returns a brighter color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:159:3", test: "hcl-test.js: hcl.brighter(k) returns a brighter color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:165:3", test: "hcl-test.js: hcl.brighter(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:166:3", test: "hcl-test.js: hcl.brighter(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:173:3", test: "hcl-test.js: hcl.brighter() is equivalent to hcl.brighter(1)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:180:3", test: "hcl-test.js: hcl.brighter(k) is equivalent to hcl.darker(-k)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:185:3", test: "hcl-test.js: hcl.darker(k) returns a darker color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:186:3", test: "hcl-test.js: hcl.darker(k) returns a darker color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:187:3", test: "hcl-test.js: hcl.darker(k) returns a darker color if k > 0", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:193:3", test: "hcl-test.js: hcl.darker(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:194:3", test: "hcl-test.js: hcl.darker(k) returns a copy", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:201:3", test: "hcl-test.js: hcl.darker() is equivalent to hcl.darker(1)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:208:3", test: "hcl-test.js: hcl.darker(k) is equivalent to hcl.brighter(-k)", skip: None },
+    Assertion { id: "d3-color/test/hcl-test.js:213:3", test: "hcl-test.js: hcl.rgb() converts to RGB", skip: None },
+    Assertion { id: "d3-color/test/cubehelix-test.js:6:3", test: "cubehelix-test.js: cubehelix(…) returns an instance of cubehelix and color", skip: Some("js: instanceof") },
+    Assertion { id: "d3-color/test/cubehelix-test.js:7:3", test: "cubehelix-test.js: cubehelix(…) returns an instance of cubehelix and color", skip: Some("js: instanceof") },
+    Assertion { id: "d3-color/test/gray-test.js:5:3", test: "gray-test.js: gray(l[, opacity]) is an alias for lab(l, 0, 0[, opacity])", skip: None },
+    Assertion { id: "d3-color/test/gray-test.js:6:3", test: "gray-test.js: gray(l[, opacity]) is an alias for lab(l, 0, 0[, opacity])", skip: None },
+    Assertion { id: "d3-color/test/gray-test.js:7:3", test: "gray-test.js: gray(l[, opacity]) is an alias for lab(l, 0, 0[, opacity])", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-color/test/gray-test.js:8:3", test: "gray-test.js: gray(l[, opacity]) is an alias for lab(l, 0, 0[, opacity])", skip: Some("js: an gray channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lch-test.js:5:3", test: "lch-test.js: lch(color) is equivalent to hcl(color)", skip: None },
+    Assertion { id: "d3-color/test/lch-test.js:6:3", test: "lch-test.js: lch(color) is equivalent to hcl(color)", skip: None },
+    Assertion { id: "d3-color/test/lch-test.js:10:3", test: "lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])", skip: None },
+    Assertion { id: "d3-color/test/lch-test.js:11:3", test: "lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])", skip: None },
+    Assertion { id: "d3-color/test/lch-test.js:12:3", test: "lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-color/test/lch-test.js:13:3", test: "lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])", skip: Some("js: an lch channel is not a number (coercion)") },
+    Assertion { id: "d3-color/test/lch-test.js:14:3", test: "lch-test.js: lch(l, c, h[, opacity]) is equivalent to hcl(h, c, l[, opacity])", skip: None },
 ];

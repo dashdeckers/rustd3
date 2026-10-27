@@ -49,7 +49,7 @@ const SUITES = [
     rules: combine(band, ordinal, color, scale),
   },
   { suite: "interpolate", package: "d3-interpolate", files: tests(["number", "round", "rgb"]), rules: combine(color, interpolate) },
-  { suite: "color", package: "d3-color", files: tests(["color", "rgb", "hsl"]), rules: color },
+  { suite: "color", package: "d3-color", files: tests(["color", "rgb", "hsl", "lab", "hcl", "cubehelix", "gray", "lch"]), rules: color },
   {
     suite: "shape",
     package: "d3-shape",

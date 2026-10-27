@@ -4,7 +4,12 @@
 #floor d3-array/test/tickStep-test.js 75
 #floor d3-array/test/ticks-test.js 92
 #floor d3-color/test/color-test.js 79
+#floor d3-color/test/cubehelix-test.js 0
+#floor d3-color/test/gray-test.js 2
+#floor d3-color/test/hcl-test.js 74
 #floor d3-color/test/hsl-test.js 122
+#floor d3-color/test/lab-test.js 49
+#floor d3-color/test/lch-test.js 5
 #floor d3-color/test/rgb-test.js 97
 #floor d3-ease/test/back-test.js 34
 #floor d3-ease/test/bounce-test.js 34
@@ -399,6 +404,82 @@ d3-color/test/color-test.js:153:3
 d3-color/test/color-test.js:154:3
 d3-color/test/color-test.js:155:3
 d3-color/test/color-test.js:159:3
+d3-color/test/gray-test.js:5:3
+d3-color/test/gray-test.js:6:3
+d3-color/test/hcl-test.js:12:3
+d3-color/test/hcl-test.js:16:3
+d3-color/test/hcl-test.js:17:3
+d3-color/test/hcl-test.js:18:3
+d3-color/test/hcl-test.js:19:3
+d3-color/test/hcl-test.js:20:3
+d3-color/test/hcl-test.js:21:3
+d3-color/test/hcl-test.js:25:3
+d3-color/test/hcl-test.js:26:3
+d3-color/test/hcl-test.js:30:3
+d3-color/test/hcl-test.js:31:3
+d3-color/test/hcl-test.js:32:3
+d3-color/test/hcl-test.js:33:3
+d3-color/test/hcl-test.js:34:3
+d3-color/test/hcl-test.js:35:3
+d3-color/test/hcl-test.js:41:3
+d3-color/test/hcl-test.js:47:3
+d3-color/test/hcl-test.js:52:3
+d3-color/test/hcl-test.js:53:3
+d3-color/test/hcl-test.js:54:3
+d3-color/test/hcl-test.js:55:3
+d3-color/test/hcl-test.js:56:3
+d3-color/test/hcl-test.js:57:3
+d3-color/test/hcl-test.js:58:3
+d3-color/test/hcl-test.js:59:3
+d3-color/test/hcl-test.js:60:3
+d3-color/test/hcl-test.js:64:3
+d3-color/test/hcl-test.js:65:3
+d3-color/test/hcl-test.js:69:3
+d3-color/test/hcl-test.js:70:3
+d3-color/test/hcl-test.js:71:3
+d3-color/test/hcl-test.js:72:3
+d3-color/test/hcl-test.js:76:3
+d3-color/test/hcl-test.js:77:3
+d3-color/test/hcl-test.js:78:3
+d3-color/test/hcl-test.js:79:3
+d3-color/test/hcl-test.js:83:3
+d3-color/test/hcl-test.js:84:3
+d3-color/test/hcl-test.js:108:3
+d3-color/test/hcl-test.js:109:3
+d3-color/test/hcl-test.js:110:3
+d3-color/test/hcl-test.js:111:3
+d3-color/test/hcl-test.js:112:3
+d3-color/test/hcl-test.js:113:3
+d3-color/test/hcl-test.js:114:3
+d3-color/test/hcl-test.js:115:3
+d3-color/test/hcl-test.js:125:3
+d3-color/test/hcl-test.js:127:3
+d3-color/test/hcl-test.js:128:3
+d3-color/test/hcl-test.js:132:3
+d3-color/test/hcl-test.js:133:3
+d3-color/test/hcl-test.js:134:3
+d3-color/test/hcl-test.js:135:3
+d3-color/test/hcl-test.js:136:3
+d3-color/test/hcl-test.js:137:3
+d3-color/test/hcl-test.js:138:3
+d3-color/test/hcl-test.js:139:3
+d3-color/test/hcl-test.js:140:3
+d3-color/test/hcl-test.js:144:3
+d3-color/test/hcl-test.js:157:3
+d3-color/test/hcl-test.js:158:3
+d3-color/test/hcl-test.js:159:3
+d3-color/test/hcl-test.js:165:3
+d3-color/test/hcl-test.js:166:3
+d3-color/test/hcl-test.js:173:3
+d3-color/test/hcl-test.js:180:3
+d3-color/test/hcl-test.js:185:3
+d3-color/test/hcl-test.js:186:3
+d3-color/test/hcl-test.js:187:3
+d3-color/test/hcl-test.js:193:3
+d3-color/test/hcl-test.js:194:3
+d3-color/test/hcl-test.js:201:3
+d3-color/test/hcl-test.js:208:3
+d3-color/test/hcl-test.js:213:3
 d3-color/test/hsl-test.js:12:3
 d3-color/test/hsl-test.js:13:3
 d3-color/test/hsl-test.js:17:3
@@ -521,6 +602,60 @@ d3-color/test/hsl-test.js:300:3
 d3-color/test/hsl-test.js:301:3
 d3-color/test/hsl-test.js:302:3
 d3-color/test/hsl-test.js:303:3
+d3-color/test/lab-test.js:12:3
+d3-color/test/lab-test.js:16:3
+d3-color/test/lab-test.js:17:3
+d3-color/test/lab-test.js:18:3
+d3-color/test/lab-test.js:19:3
+d3-color/test/lab-test.js:20:3
+d3-color/test/lab-test.js:21:3
+d3-color/test/lab-test.js:22:3
+d3-color/test/lab-test.js:23:3
+d3-color/test/lab-test.js:29:3
+d3-color/test/lab-test.js:34:3
+d3-color/test/lab-test.js:35:3
+d3-color/test/lab-test.js:36:3
+d3-color/test/lab-test.js:37:3
+d3-color/test/lab-test.js:43:3
+d3-color/test/lab-test.js:47:3
+d3-color/test/lab-test.js:48:3
+d3-color/test/lab-test.js:49:3
+d3-color/test/lab-test.js:50:3
+d3-color/test/lab-test.js:54:3
+d3-color/test/lab-test.js:55:3
+d3-color/test/lab-test.js:79:3
+d3-color/test/lab-test.js:80:3
+d3-color/test/lab-test.js:81:3
+d3-color/test/lab-test.js:82:3
+d3-color/test/lab-test.js:83:3
+d3-color/test/lab-test.js:84:3
+d3-color/test/lab-test.js:85:3
+d3-color/test/lab-test.js:86:3
+d3-color/test/lab-test.js:96:3
+d3-color/test/lab-test.js:98:3
+d3-color/test/lab-test.js:99:3
+d3-color/test/lab-test.js:103:3
+d3-color/test/lab-test.js:107:3
+d3-color/test/lab-test.js:120:3
+d3-color/test/lab-test.js:121:3
+d3-color/test/lab-test.js:122:3
+d3-color/test/lab-test.js:128:3
+d3-color/test/lab-test.js:129:3
+d3-color/test/lab-test.js:136:3
+d3-color/test/lab-test.js:143:3
+d3-color/test/lab-test.js:148:3
+d3-color/test/lab-test.js:149:3
+d3-color/test/lab-test.js:150:3
+d3-color/test/lab-test.js:156:3
+d3-color/test/lab-test.js:157:3
+d3-color/test/lab-test.js:164:3
+d3-color/test/lab-test.js:171:3
+d3-color/test/lab-test.js:176:3
+d3-color/test/lch-test.js:5:3
+d3-color/test/lch-test.js:6:3
+d3-color/test/lch-test.js:10:3
+d3-color/test/lch-test.js:11:3
+d3-color/test/lch-test.js:14:3
 d3-color/test/rgb-test.js:12:3
 d3-color/test/rgb-test.js:13:3
 d3-color/test/rgb-test.js:17:3
