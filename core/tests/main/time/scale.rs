@@ -128,6 +128,15 @@ fn a_microsecond_in_2026_maps_to_the_nanosecond() {
         .range([0.0, 1000.0]);
     assert_eq!(x.apply(plus(t0, 1)), 1.0);
     assert_eq!(x.invert(500.0), plus(t0, 500));
+    assert_eq!(
+        x.zoom_px(500.0, 2.0).map(|x| x.get_domain()),
+        Some([plus(t0, 250), plus(t0, 750)])
+    );
+    assert!(x.zoom_px(500.0, 2000.0).is_none());
+    assert_eq!(
+        x.pan_px(100.0).map(|x| x.get_domain()),
+        Some([plus(t0, -100), plus(t0, 900)])
+    );
     for ns in 0..=1_000 {
         let t = plus(t0, ns);
         assert_eq!(x.invert(x.apply(t)), t, "{ns} ns");
