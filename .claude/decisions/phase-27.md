@@ -48,6 +48,52 @@ Angeles and UTC. The time tests pass under `TZ=Asia/Kathmandu` and
 **"Decisions this phase may meet"**: not met; jiff's compatible
 disambiguation and V8 agree on every test date.
 
+**27b** (Steps 6–10), 2026-10-27, 7d7022b … fc3d121, two sessions (the
+first was interrupted after 9a84618 and wrote no measurements; the
+second added the doc examples, ed421fb, and the 1 µs spot rows on the
+section's t0, fc3d121). `scripts/check.sh full` green at 9a84618
+(architect's run, 9 min 51 s) and at fc3d121 in 9 min 30 s (warm, the
+benchmark smoke included).
+
+**Harness**, before (744b4ea, as 27a left it) and after (fc3d121): 11 →
+12 suites, 5,698 → 5,879 assertions, 4,676 → 4,794 passing, 1,022 →
+1,084 skipped, 0 → 1 failing (`utcTime-test.js:283`, D27.3), 151 → 153
+floors. The new suite `time_scale` translates d3-scale 4.0.2's
+`time-test.js` (96 assertions: 62 translated, all passing, 64.6 %) and
+`utcTime-test.js` (85: 57 translated, 56 passing, 65.9 %); floors 62 and
+56 (D27.4). Its 62 skips: gap 44 (tick formats, Phase 28), types 8 (a
+polylinear domain, a range of colors with `.interpolate`), js 6
+(numbers as dates, an iterable domain, `instanceof`, a distinct copy),
+api 4 (d3's `clamp()` getter). The d3-time files are unchanged.
+
+**Translator**: 27b +55 / −2 lines (`rules/time.mjs` +54 / −2 for the
+`scaleTime()`/`scaleUtc()` chains, the suite entry); the phase +199 / −3
+of its 250.
+
+**Core**: `time/scale.rs` and `time/scale/{ticks,rescale,pad}.rs`,
+`series/clock/timestamp.rs`; 27b's `core/src` diff +680 / −65 lines (doc
+examples included), its `core/tests` diff +874 / −21.
+
+**Spot checks**: every 27b row is asserted (`core/tests/main/time/scale.rs`,
+doc examples on `Time`, `Rescale for Time`, `Pad for Time`). The d3 rows
+were recomputed in this session with the vendored d3-scale 4.0.2 and
+d3-time 3.1.0 in Node: the Berlin rows under `TZ=Europe/Berlin`
+(`apply` gives 448.00000000000006 there, asserted within 10⁻⁹), the
+others under `TZ=America/Los_Angeles`; every value matches the table.
+The matplotlib rows are the section's (3.11.2), not rerun.
+
+**Fuzz**: `RUSTD3_FUZZ=1 cargo test -p rustd3-core --release --test main
+-- time::fuzz`: 3,000 cases in 14.6 s, none over the 1 s per-case
+timeout (the first session measured the slowest at 133 ms). The default
+runs of `check.sh` are unoptimized, 150 cases with 15 s per case
+(D27.5 (5)).
+
+**Zones**: the time and `Recording<Timestamp>` tests (43) pass under
+`TZ=Asia/Kathmandu` and, by hand, `TZ=UTC`.
+
+**"Decisions this phase may meet"**: not met in 27b; every `time_scale`
+assertion that d3 itself passes, the port passes.
+
 ## D27.1 — `tick_interval` takes a zone it does not use
 
 **Date:** 2026-10-27 · **Context:** Phase 27, step 5 (786b402) · **Status:** decided
@@ -208,3 +254,186 @@ that change no core API.
   before `from_nanosecond` (handoff 09's `is_valid` rule).
 - If jiff fixes `from_nanosecond`'s range check, the guard in
   `time::interval`'s `at` can go.
+
+## D27.3 — `utcTime-test.js:283` expects `utcDay` ticks that d3 7.9.0 no longer gives
+
+**Date:** 2026-10-27 · **Context:** Phase 27, step 7 (212f5c9) · **Status:** open
+
+### Issue
+
+d3-scale 4.0.2's test "scaleUtc.ticks(count) can generate 2-day ticks"
+(`utcTime-test.js:281–289`) expects `[utc(2011, 0, 3), utc(2011, 0, 5),
+utc(2011, 0, 7), utc(2011, 0, 9)]` for the domain 2011-01-02T16:28:27Z …
+2011-01-09T21:34:12Z: days of the month ≡ 1 (mod 2), `utcDay.every(2)`.
+The section's table and its spot row (`utc()`, ".ticks(4) | 01-02, 01-04,
+01-06, 01-08") take d3-time 3.1.0's `unixDay` for the utc ticks, which
+gives 4, 6, 8 January. The port gives 4, 6, 8, so the assertion fails.
+
+### Investigation
+
+- `d3-time/src/ticks.js:55` (3.1.0, vendored):
+  `ticker(utcYear, utcMonth, utcSunday, unixDay, utcHour, utcMinute)`.
+  d3-scale 4.0.2 accepts `"d3-time": "2.1.1 - 3"`
+  (`d3-scale/package.json:39`); its test predates `unixDay`.
+- d3 itself, the vendored d3-scale 4.0.2 over d3-time 3.1.0 in Node 22:
+  `scaleUtc().domain([utc(2011, 0, 2, 16, 28, 27), utc(2011, 0, 9, 21,
+  34, 12)]).ticks(4)` is 2011-01-04, 01-06, 01-08 at 00:00Z. The
+  harness's own d3 run agrees: the suite reports 118 of 119 translated
+  assertions passing d3's semantics.
+
+### Options
+
+| | **A — leave it failing** | B — skip it | C — `utcDay` for utc ticks |
+| --- | --- | --- | --- |
+| Approach | Translated, not in `passing.txt`; the floor is 56 of 85 | A skip category naming the d3-time version | `utc_tick_interval` takes `Day(k)` |
+| Cost | none | a translator rule for one id | contradicts the section, its spot row and d3 7.9.0 |
+| Correctness | the port equals d3 7.9.0 | hides a failing assertion | equals d3-scale's test, not d3 |
+| Fit | the report shows it as failing, with d3 failing it too | against "a failing assertion is never skipped" | — |
+
+### Decision
+
+Recommended: A. The assertion stays translated and failing; nothing is
+skipped and the ratchet does not list it.
+
+### Why
+
+The port matches d3 as vendored and the section's spot row; the test is
+stale against d3-time 3.1.0, which the harness's d3 run shows.
+
+### Followups
+
+- Phase 28 raises the floor of `utcTime-test.js` to 70 %: 56 + its 22
+  tick formats is 78 of 85 (91.8 %), without this assertion.
+- If d3-scale's test is updated upstream (d3-scale ≥ 4.0.3), revendoring
+  makes it pass.
+
+## D27.4 — `time-test.js` and `utcTime-test.js` under 70 %
+
+**Date:** 2026-10-27 · **Context:** Phase 27, steps 6–7 (e8e797b, 212f5c9) · **Status:** open
+
+### Issue
+
+Grading by d3's tests: a core phase's files pass ≥ 70 % unless its skip
+table names them. Exit criterion 6 sets ≥ 60 % for these two, with the
+rest "their `tickFormat` tests (Phase 28, which raises both floors to
+70%) and listed skips (polylinear time domains, `domain([NaN…])`,
+`.interpolate`, `.copy()` identity)".
+
+| File | Assertions | Translated | Passing | Skipped |
+| --- | --- | --- | --- | --- |
+| `time-test.js` | 96 | 62 | 62 (64.6 %) | 34: gap 22 (tick formats), types 4 (polylinear 1; a range of colors with `.interpolate` 3), js 6 (`domain([-1e50, 1e50])` as NaN 3; an iterable domain 1; `instanceof` 1; a distinct copy 1), api 2 (`clamp()` getter) |
+| `utcTime-test.js` | 85 | 57 | 56 (65.9 %) | 28: gap 22, types 4 (as above), api 2 (`clamp()` getter); 1 failing (D27.3) |
+
+Beyond the listed skips: d3's `clamp()` getter (api, 2 per file; the
+section's `Time` has the builder `clamp(bool)` and no getter, as
+Phase 4's scales) and an iterable domain (js, 1; `domain` takes
+`[Timestamp; 2]`).
+
+### Investigation
+
+`cargo run -p rustd3-harness` (the per-file report above);
+`dev/harness/src/generated/time_scale.rs`. Each blessed id was read in
+the diffs of e8e797b (40 ids) and 212f5c9 (78 ids): every one is d3's
+value under America/Los_Angeles.
+
+### Options
+
+| | **A — floors at the passing counts** | B — raise to 70 % now |
+| --- | --- | --- |
+| Approach | Floors 62 and 56, as blessed; exit criterion 6's 60 % holds; Phase 28 adds the 22 tick formats per file | Needs tick formats (Phase 28) or skipping fewer constructs |
+| Cost | none | Phase 28's work, or a `get_clamp` the section does not list |
+| Fit | the section's own criterion | — |
+
+### Decision
+
+Recommended: A, the section's criterion; both files reach 84 / 96 and
+78 / 85 with Phase 28's tick formats.
+
+### Why
+
+Every assertion missing below 70 % is a tick format (Phase 28), a listed
+skip, a getter or input type the section's `Time` does not have, or
+D27.3.
+
+### Followups
+
+- Phase 28: raise both floors once tick formats pass.
+
+## D27.5 — Details of Phase 27b as built
+
+**Date:** 2026-10-27 · **Context:** Phase 27, steps 6–10 (7d7022b … fc3d121) · **Status:** open
+
+### Issue
+
+1. **Commits.** The section counts 11 commits for the phase; 27a made
+   10 and 27b makes 11 (one for D27.1, a core and a harness commit for
+   each of Steps 6 and 7, one each for Steps 8, 9 and 10's fuzz, the
+   doc examples, the spot rows, the closing docs).
+2. **`apply`'s blend.** Design: `apply = r0 + (r1 − r0)·(u / s)`. Built:
+   d3's `interpolateNumber`, `r0·(1 − f) + r1·f`, through `Interpolate for
+   f64`; it is exact at both ends and equal to d3 bit for bit. Every spot
+   row gives the same value either way.
+3. **`invert` beyond the formula.** A NaN `y` (d3: an Invalid Date)
+   gives the domain's start; ±∞ saturate at `Timestamp::MIN`/`MAX`; a
+   flat range gives the domain's middle, as d3's `normalize`.
+4. **`Coordinate::is_valid`.** Design: `fn is_valid(self) -> bool { true
+   } // every Timestamp is`. D9.2's followup and handoff 09: `is_valid`
+   must reject what `at` cannot represent, because a regular clock checks
+   only its last appended x. Built: every instant but `Timestamp::MAX`,
+   where `at` saturates, so an explicit clock cannot hold jiff's last
+   instant either.
+5. **The fuzz timeout.** Exit criterion 10: "fuzzed under a 1 s timeout
+   per case". Built: 1 s optimized (`RUSTD3_FUZZ=1`, 3,000 cases in
+   release); 15 s per case unoptimized, as `check.sh quick` and `full`
+   run it (150 cases), where 10,000 ticks of a stepped week take 1.4 s.
+6. **Gestures at the edges.** `pan_px` on a flat range moves by an
+   infinite fraction, which leaves jiff's range: `None`; `pan_px(0.0)`
+   there reads the NaN fraction as 0 and returns the domain unchanged.
+   `pad` saturates margins at jiff's first and last instants.
+7. **Phase 9's suite "instantiated".** Phase 9's tests are `f64` test
+   functions; built: their helpers (`xs`, `thinned_by_index`, `m4_scan`)
+   are generic over `Coordinate`, and the `Timestamp` tests
+   (`core/tests/main/series/timestamp.rs`) call them on the section's
+   clocks.
+8. **Doc examples** use POSIX zones (`TimeZone::posix`), so they need no
+   time zone database; the tests use `testkit::zone`.
+
+### Investigation
+
+(2) `core/src/interpolate.rs:191–196`; d3-interpolate 3.0.1
+`src/number.js:1–5`. (3) d3-scale 4.0.2 `src/continuous.js:12–16`
+(`normalize`). (4)
+`core/src/series/clock/timestamp.rs`; test
+`instants_past_jiffs_range_and_empty_periods_are_rejected`. (5)
+`core/tests/main/time/fuzz.rs`, `PER_CASE`; this session's release run
+in the Measurements. (6) tests `degenerate_gestures_return_none`,
+`pad_fits_dates_as_matplotlib`.
+
+### Options
+
+| | **A — as built** | B — as written |
+| --- | --- | --- |
+| (1) | 21 commits for the phase, each one logical change | 11, merging core and harness work |
+| (2) | d3's blend | the Design's formula; the last bits differ from d3 for some ranges |
+| (3) | Total and d3's where d3 has a value | — |
+| (4) | `Timestamp::MAX` rejected | `true`: a regular clock past jiff's range would store saturated, repeated x |
+| (5) | 1 s optimized, 15 s unoptimized | 1 s in every build: the debug runs of `check.sh` would fail on slow but correct cases |
+| (6) | As described | — |
+| (7) | Generic helpers, `Timestamp` tests | Phase 9's test functions made generic |
+| (8) | POSIX zones in examples | — |
+
+### Decision
+
+Recommended: A for all eight, as built.
+
+### Why
+
+(2) and (3) follow d3 where the section is silent or writes the same
+value another way; (4) is D9.2's decided followup; (5) keeps the 1 s
+bound where it measures the code rather than the build; (1), (6)–(8)
+change no API.
+
+### Followups
+
+- If B for (4): `is_valid` returns `true` and `Recording::append` needs
+  another way to refuse a saturated x.
