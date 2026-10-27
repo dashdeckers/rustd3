@@ -49,6 +49,11 @@ full() {
   done
   node dev/harness/translate/translate.mjs --check
   RUSTDOCFLAGS="-D warnings" cargo doc -q --workspace --no-deps --all-features
+  # The benchmark's headless smoke plan: a report that fails on errors
+  # (a run that crashes or writes nothing), never on numbers.
+  cargo build -q --release -p rustd3-bench
+  target/release/rustd3-bench run --headless --plan smoke --backend tiny-skia \
+    --out target/bench-smoke
 }
 
 case "${1:-quick}" in
