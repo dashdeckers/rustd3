@@ -94,10 +94,19 @@ pub enum Kind {
     Other(char),
 }
 
-/// A format specifier that does not parse.
+/// A format specifier that does not parse; it carries the specifier as
+/// given.
+///
+/// ```
+/// use rustd3_core::format;
+///
+/// let error = format::format("10..f").unwrap_err();
+/// assert_eq!(error.input(), "10..f");
+/// assert_eq!(error.to_string(), "invalid format: 10..f");
+/// ```
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[error("invalid format: {0}")]
-pub struct InvalidFormat(pub String);
+pub struct InvalidFormat(String);
 
 impl Default for Specifier {
     /// The specifier `""` parses to.
@@ -148,15 +157,14 @@ impl FromStr for Specifier {
         }
         spec.width = digits(&c, &mut i);
         if spec.width.is_some_and(|width| width > MAX_WIDTH) {
-            return Err(InvalidFormat(text.to_owned()));
+            return Err(InvalidFormat::new(text));
         }
         if at(i) == Some(',') {
             (spec.comma, i) = (true, i + 1);
         }
         if at(i) == Some('.') {
             i += 1;
-            spec.precision =
-                Some(digits(&c, &mut i).ok_or_else(|| InvalidFormat(text.to_owned()))?);
+            spec.precision = Some(digits(&c, &mut i).ok_or_else(|| InvalidFormat::new(text))?);
         }
         if at(i) == Some('~') {
             (spec.trim, i) = (true, i + 1);
@@ -167,7 +175,7 @@ impl FromStr for Specifier {
         if i == c.len() {
             Ok(spec)
         } else {
-            Err(InvalidFormat(text.to_owned()))
+            Err(InvalidFormat::new(text))
         }
     }
 }
@@ -255,6 +263,18 @@ impl fmt::Display for Kind {
             Kind::Other(c) => *c,
         };
         write!(f, "{c}")
+    }
+}
+
+impl InvalidFormat {
+    /// The error for `specifier`, as given.
+    fn new(specifier: &str) -> Self {
+        InvalidFormat(specifier.to_owned())
+    }
+
+    /// The specifier that did not parse.
+    pub fn input(&self) -> &str {
+        &self.0
     }
 }
 

@@ -32,6 +32,7 @@ mod any;
 mod band;
 mod continuous;
 mod identity;
+mod mapping;
 mod ordinal;
 mod pad;
 mod piecewise;
@@ -47,6 +48,7 @@ pub use any::AnyContinuous;
 pub use band::{Band, band};
 pub use continuous::Continuous;
 pub use identity::{Identity, identity};
+pub use mapping::Transform;
 pub use ordinal::{Ordinal, ordinal};
 pub use pad::Pad;
 pub use piecewise::piecewise;
@@ -54,7 +56,6 @@ pub use point::{Point, point};
 pub use tick_format::{TickFormat, tick_format};
 pub use tick_rule::TickRule;
 pub use ticks::Ticks;
-pub use transform::Transform;
 
 /// d3's scaleLinear: a continuous scale under the identity transform.
 pub type Linear<R = f64, const N: usize = 2> = Continuous<transform::Identity, R, N>;

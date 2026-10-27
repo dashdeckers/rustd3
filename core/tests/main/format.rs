@@ -4,8 +4,7 @@
 use std::borrow::Cow;
 
 use rustd3_core::format::{
-    self, Definition, InvalidFormat, Locale, Specifier, precision_fixed, precision_prefix,
-    precision_round,
+    self, Definition, Locale, Specifier, precision_fixed, precision_prefix, precision_round,
 };
 
 /// `value` formatted by `specifier` under `locale`.
@@ -81,10 +80,8 @@ fn the_neutral_default_writes_si_prefixes_and_percent() {
 
 #[test]
 fn an_invalid_specifier_is_an_error_carrying_it() {
-    assert_eq!(
-        format::format("10..f"),
-        Err(InvalidFormat("10..f".to_owned()))
-    );
+    let error = format::format("10..f").map_err(|e| e.input().to_owned());
+    assert_eq!(error, Err("10..f".to_owned()));
     assert!(".f".parse::<Specifier>().is_err());
     assert!("foo".parse::<Specifier>().is_err());
 }
@@ -93,9 +90,10 @@ fn an_invalid_specifier_is_an_error_carrying_it() {
 fn a_width_past_v8s_longest_string_is_an_error() {
     assert!("536870888".parse::<Specifier>().is_ok());
     for text in ["536870889", "1000000000000", "99999999999999999999"] {
+        let error = format::format(text).map_err(|e| e.input().to_owned());
         assert_eq!(
-            format::format(text),
-            Err(InvalidFormat(text.to_owned())),
+            error,
+            Err(text.to_owned()),
             "d3 throws a RangeError when {text} pads"
         );
     }

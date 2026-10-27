@@ -10,14 +10,14 @@ use crate::{js, locale, ticks};
 #[derive(Debug, Clone, PartialEq)]
 pub struct TickFormat {
     format: Format,
-    keep: Option<LogKeep>,
+    keep: Option<Keep>,
 }
 
 /// Which ticks of a log scale keep their label (log.js `tickFormat`): the
 /// value over the power of the base nearest it, times the base when below
 /// `base − 0.5`, is at most `k`.
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct LogKeep {
+struct Keep {
     log: transform::Log,
     k: f64,
 }
@@ -35,7 +35,7 @@ impl TickFormat {
     pub(crate) fn thinned(format: Format, log: transform::Log, k: f64) -> TickFormat {
         TickFormat {
             format,
-            keep: Some(LogKeep { log, k }),
+            keep: Some(Keep { log, k }),
         }
     }
 
@@ -111,7 +111,7 @@ impl TickFormat {
     }
 }
 
-impl LogKeep {
+impl Keep {
     /// Whether `value` keeps its label.
     fn keeps(&self, value: f64) -> bool {
         let base = self.log.base();

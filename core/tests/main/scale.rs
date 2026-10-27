@@ -219,7 +219,10 @@ fn tick_format_keeps_a_precision_the_specifier_sets() {
 #[test]
 fn tick_format_rejects_a_malformed_specifier() {
     let error = scale::tick_format(&Locale::EN_US, [0.0, 1.0], 10, Some("10..f"));
-    assert_eq!(error, Err(InvalidFormat("10..f".to_owned())));
+    assert_eq!(
+        error.map_err(|e| e.input().to_owned()),
+        Err("10..f".to_owned())
+    );
 }
 
 #[test]
