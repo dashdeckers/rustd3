@@ -84,6 +84,25 @@ pub enum Interval {
 /// d3.scaleTime with an explicit zone: domain from local midnight on
 /// 2000-01-01 to 2000-01-02 in `zone`, range [0, 1], ticks laid out in
 /// `zone` (days of the month).
+///
+/// Part I's Berlin day, across the end of daylight saving time: d3's
+/// 3-hour interval, at local midnight, 03:00 … 21:00 and midnight again.
+///
+/// ```
+/// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+/// use rustd3_core::time::{self, Interval};
+///
+/// // Berlin's rules since 1996, without a time zone database.
+/// let berlin = TimeZone::posix("CET-1CEST,M3.5.0,M10.5.0/3")?;
+/// let day: [Timestamp; 2] = ["2026-10-24T22:00:00Z".parse()?, "2026-10-25T23:00:00Z".parse()?];
+/// let x = time::time(berlin).domain(day).range([0.0, 800.0]);
+/// assert_eq!(x.tick_interval(8), Interval::Hour(3));
+/// let ticks = x.ticks(8);
+/// let hours: Vec<i8> = ticks.iter().map(|&t| x.get_zone().to_datetime(t).hour()).collect();
+/// assert_eq!(hours, [0, 3, 6, 9, 12, 15, 18, 21, 0]);
+/// assert_eq!(ticks[1], "2026-10-25T02:00:00Z".parse()?);
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 #[doc(alias = "scaleTime")]
 pub fn time(zone: TimeZone) -> Time {
     Time::new(default_domain(&zone), zone, false)

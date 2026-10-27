@@ -19,10 +19,10 @@ const CAP: usize = 10_000;
 const COUNTS: [usize; 9] = [0, 1, 2, 5, 10, 37, 1000, 1_000_000, usize::MAX];
 
 /// Marsaglia's xorshift64: reproducible without a dependency.
-struct Xorshift(u64);
+pub(crate) struct Xorshift(pub(crate) u64);
 
 impl Xorshift {
-    fn next(&mut self) -> u64 {
+    pub(crate) fn next(&mut self) -> u64 {
         let mut x = self.0;
         x ^= x << 13;
         x ^= x >> 7;
@@ -32,12 +32,12 @@ impl Xorshift {
     }
 
     /// An index below `n`.
-    fn below(&mut self, n: usize) -> usize {
+    pub(crate) fn below(&mut self, n: usize) -> usize {
         usize::try_from(self.next() % n as u64).expect("an index below a usize")
     }
 
     /// A value in [0, 1).
-    fn unit(&mut self) -> f64 {
+    pub(crate) fn unit(&mut self) -> f64 {
         (self.next() >> 11) as f64 / (1_u64 << 53) as f64
     }
 

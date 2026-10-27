@@ -7,6 +7,7 @@ use rustd3_core::jiff::tz::TimeZone;
 use rustd3_core::time::{self, Interval};
 use rustd3_testkit::zone;
 
+mod fuzz;
 mod scale;
 
 fn at(s: &str) -> Timestamp {
