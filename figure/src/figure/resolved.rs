@@ -1,6 +1,7 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
 use kurbo::Point;
+use rustd3_core::locale::Locale;
 
 use crate::figure;
 use crate::layout::{self, Laid, Layout, Plan};
@@ -15,6 +16,7 @@ use crate::text::Key;
 pub struct Resolved {
     figure: figure::Id,
     scales: Vec<Box<dyn Scale>>,
+    locale: Locale,
     target: Target,
     size: kurbo::Size,
     areas: Vec<kurbo::Rect>,
@@ -27,16 +29,18 @@ pub struct Resolved {
 
 impl Resolved {
     /// The resolved scales of figure `figure` for `target` and `size`,
-    /// before layout.
+    /// labelled in `locale`, before layout.
     pub(super) fn new(
         figure: figure::Id,
         scales: Vec<Box<dyn Scale>>,
+        locale: Locale,
         target: Target,
         size: kurbo::Size,
     ) -> Resolved {
         Resolved {
             figure,
             scales,
+            locale,
             target,
             size,
             areas: Vec::new(),
@@ -117,6 +121,11 @@ impl Resolved {
     /// The size the figure was resolved for.
     pub(crate) fn size(&self) -> kurbo::Size {
         self.size
+    }
+
+    /// The locale default tick labels are written in.
+    pub(crate) fn locale(&self) -> &Locale {
+        &self.locale
     }
 
     /// The target the figure was resolved for.

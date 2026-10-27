@@ -32,7 +32,8 @@ pub(crate) trait Draw<'a>: 'a {
     /// The offset `.outward(px)` set, px from the plot area.
     fn outward(&self) -> Option<f64>;
 
-    /// The tick labels of the resolved scale's about `count` ticks.
+    /// The tick labels of the resolved scale's about `count` ticks, in the
+    /// figure's locale.
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String>;
 
     /// Whether `.format` sets its labels, so an empty one is the user's,
@@ -89,7 +90,7 @@ where
     }
 
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String> {
-        Axis::texts(self, resolved.scale(self.scale), count)
+        Axis::texts(self, resolved.scale(self.scale), count, resolved.locale())
     }
 
     fn formats(&self) -> bool {

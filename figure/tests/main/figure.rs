@@ -2,6 +2,7 @@
 //! and their parts, and the test mark the fitting and layout tests share.
 
 use rustd3_core::color::Rgb;
+use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::kurbo::{BezPath, PathEl, Rect, Size};
@@ -435,4 +436,70 @@ fn a_tinted_axis_takes_its_palette_color() {
         "line, ticks, 19 labels, the title"
     );
     assert!(paints.iter().all(|p| **p == orange), "{paints:?}");
+}
+
+/// The texts of the glyph runs of axis 0 of panel 0 in `fig`, drawn at
+/// 960 × 480 for vector output.
+fn axis_texts(fig: &Figure<'_>) -> Vec<String> {
+    let list = fig.draw_with(
+        &mut cache(),
+        Size::new(960.0, 480.0),
+        Target::Vector,
+        &Held::default(),
+    );
+    let axis = list
+        .parts
+        .iter()
+        .find(|p| p.id == id(4, 0, 0))
+        .expect("an axis");
+    runs(&list.commands[axis.commands.clone()])
+        .iter()
+        .map(|run| run.text.to_string())
+        .collect()
+}
+
+/// A bottom axis over `domain` asking for `count` ticks, its labels in
+/// `locale`.
+fn in_locale(domain: [f64; 2], count: usize, locale: Locale) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain(domain));
+    fig.locale(locale)
+        .panel(0, 0)
+        .axis(axis::bottom(x).ticks(count));
+    fig
+}
+
+#[test]
+fn default_tick_labels_are_written_in_the_figure_locale() {
+    let thousands = |sep: &str| -> Vec<String> {
+        (0..=6)
+            .map(|i| match i {
+                0 => "0".to_string(),
+                i => format!("{}{sep}000", 2 * i),
+            })
+            .collect()
+    };
+    let neutral = axis_texts(&in_locale([0.0, 12_000.0], 6, Locale::default()));
+    assert_eq!(neutral, thousands("\u{202f}"));
+    let us = axis_texts(&in_locale([0.0, 12_000.0], 6, Locale::EN_US));
+    assert_eq!(us, thousands(","));
+    // The neutral locale groups from five integer digits.
+    let short = axis_texts(&in_locale([0.0, 8_000.0], 4, Locale::default()));
+    assert_eq!(short, ["0", "2000", "4000", "6000", "8000"]);
+    // Offset notation's labels too: [1e9, 1e9 + 12 000] reads 0 … 12 000.
+    let offset = axis_texts(&in_locale([1e9, 1e9 + 12_000.0], 6, Locale::EN_US));
+    assert_eq!(offset[..7], us[..]);
+    assert_eq!(offset[7], "+1e9");
+}
+
+#[test]
+fn a_format_closure_writes_its_own_labels_whatever_the_locale() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 12_000.0]));
+    fig.locale(Locale::EN_US)
+        .panel(0, 0)
+        .axis(axis::bottom(x).ticks(6).format(|v| format!("{v:.0}°")));
+    let labels = axis_texts(&fig);
+    assert_eq!(labels[..3], ["0°", "2000°", "4000°"]);
+    assert_eq!(labels.len(), 7);
 }

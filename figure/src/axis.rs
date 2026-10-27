@@ -250,22 +250,22 @@ where
 
     /// The labels of `scale`'s about `count` ticks: the format's; else,
     /// under a notation, d3's linear labels of what each tick reads as over
-    /// the domain mapped the same way; else the scale's own; under the
-    /// neutral locale.
-    fn texts(&self, scale: &S, count: usize) -> Vec<String> {
+    /// the domain mapped the same way; else the scale's own; both written
+    /// in `locale`.
+    fn texts(&self, scale: &S, count: usize, locale: &Locale) -> Vec<String> {
         let set = self.set(scale, count);
         if let Some(format) = &self.format {
             return set.values().iter().map(|v| format(v)).collect();
         }
         let mapped = self.notation(scale, count).zip(self.numbers(scale, count));
         let Some((notation, (values, domain))) = mapped else {
-            return scale.labels(&set, &Locale::default());
+            return scale.labels(&set, locale);
         };
         let [a, b] = domain.map(|d| notation.apply(d));
         let values = values.into_iter().map(|t| notation.apply(t)).collect();
         let step = ticks::tick_step(a, b, count as f64);
         let linear = scale::linear().domain([a, b]);
-        linear.labels(&ticks::Set::new(values, step, count), &Locale::default())
+        linear.labels(&ticks::Set::new(values, step, count), locale)
     }
 
     /// The notation of `scale`'s about `count` ticks: none with

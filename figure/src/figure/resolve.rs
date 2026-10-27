@@ -87,7 +87,8 @@ impl Figure<'_> {
         areas: Option<&layout::Areas>,
     ) -> Resolved {
         let (scales, marked) = self.fitted(held);
-        let mut resolved = Resolved::new(self.id, scales, target, size);
+        let locale = self.locale.clone();
+        let mut resolved = Resolved::new(self.id, scales, locale, target, size);
         let rects = areas.and_then(|a| a.fit(size, self.panels.len()));
         let layout = Layout::new(self, &resolved, cache.text(), &marked, size, rects);
         let title = self

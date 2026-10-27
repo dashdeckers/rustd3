@@ -16,6 +16,8 @@ use std::any::TypeId;
 use std::fmt::Display;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use rustd3_core::locale::Locale;
+
 use crate::layout::{Cell, Grid};
 use crate::legend::{self, Legend, Slot};
 use crate::panel::Panel;
@@ -67,6 +69,7 @@ pub struct Figure<'a> {
     grid: Grid,
     title: Option<Text>,
     theme: Theme,
+    locale: Locale,
     legends: Vec<(Slot, Box<dyn legend::Draw>)>,
 }
 
@@ -93,6 +96,7 @@ impl<'a> Figure<'a> {
             grid: Grid::default(),
             title: None,
             theme: Theme::default(),
+            locale: Locale::default(),
             legends: Vec::new(),
         }
     }
@@ -156,6 +160,25 @@ impl<'a> Figure<'a> {
     /// The theme every size, color and margin comes from.
     pub fn theme(&mut self, t: Theme) -> &mut Self {
         self.theme = t;
+        self
+    }
+
+    /// The locale default tick labels are written in, offset and
+    /// multiplier notation's included; [`Locale::NEUTRAL`] (SI style:
+    /// U+202F groups of three from five digits) by default. Labels an
+    /// axis's `.format` writes are its own.
+    ///
+    /// ```
+    /// use rustd3_core::locale::Locale;
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::{Figure, axis};
+    ///
+    /// let mut fig = Figure::new();
+    /// let x = fig.scale(scale::linear().domain([0.0, 12_000.0]));
+    /// fig.locale(Locale::EN_US).panel(0, 0).axis(axis::bottom(x));
+    /// ```
+    pub fn locale(&mut self, l: Locale) -> &mut Self {
+        self.locale = l;
         self
     }
 
