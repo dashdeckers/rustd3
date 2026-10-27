@@ -73,7 +73,7 @@ const SUITES = [
       ...tests(["basis", "basisClosed", "basisOpen", "bumpX", "bumpY", "bundle", "cardinal", "cardinalClosed", "cardinalOpen",
         "catmullRom", "catmullRomClosed", "catmullRomOpen", "linear", "linearClosed", "monotoneX", "monotoneY", "natural",
         "step", "stepAfter", "stepBefore"].map((n) => `curve/${n}`)),
-      ...tests(["line", "area"]),
+      ...tests(["line", "area", "lineRadial", "areaRadial"]),
     ],
     rules: shape,
   },

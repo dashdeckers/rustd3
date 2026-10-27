@@ -737,6 +737,60 @@ fn t109() {   // area-test.js: area.lineY1() returns a line derived from the are
     skip("d3-shape/test/area-test.js:188:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
 }
 
+fn t110() {   // lineRadial-test.js: lineRadial() returns a default radial line shape
+    let mut l = shape::line::radial();
+    skip("d3-shape/test/lineRadial-test.js:7:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/lineRadial-test.js:8:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/lineRadial-test.js:9:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/lineRadial-test.js:10:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/lineRadial-test.js:11:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    check("d3-shape/test/lineRadial-test.js:12:3", Kind::PathEq, &drawn(|ctx| l.draw(vec![(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)], ctx)), &"M0,-1L2.727892,1.248441L-3.784012,3.268218");
+}
+
+fn t111() {   // areaRadial-test.js: areaRadial() returns a default radial area shape
+    let mut a = shape::area::radial();
+    skip("d3-shape/test/areaRadial-test.js:7:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:8:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:9:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:10:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:11:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:12:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:13:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    check("d3-shape/test/areaRadial-test.js:14:3", Kind::PathEq, &drawn(|ctx| a.draw(vec![(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)], ctx)), &"M0,-1L2.727892,1.248441L-3.784012,3.268218L0,0L0,0L0,0Z");
+}
+
+fn t112() {   // areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area
+    skip("d3-shape/test/areaRadial-test.js:26:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:27:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:28:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:29:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:30:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+}
+
+fn t113() {   // areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area
+    skip("d3-shape/test/areaRadial-test.js:42:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:43:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:44:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:45:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:46:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+}
+
+fn t114() {   // areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area
+    skip("d3-shape/test/areaRadial-test.js:58:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:59:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:60:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:61:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:62:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+}
+
+fn t115() {   // areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area
+    skip("d3-shape/test/areaRadial-test.js:74:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:75:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:76:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:77:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+    skip("d3-shape/test/areaRadial-test.js:78:3", "api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)");
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "basis-test.js: line.curve(curveBasis)(data) generates the expected path", run: t0 },
     Test { name: "basis-test.js: area.curve(curveBasis)(data) generates the expected path", run: t1 },
@@ -848,6 +902,12 @@ pub const TESTS: &[Test] = &[
     Test { name: "area-test.js: area.lineX1() returns a line derived from the area", run: t107 },
     Test { name: "area-test.js: area.lineY0() returns a line derived from the area", run: t108 },
     Test { name: "area-test.js: area.lineY1() returns a line derived from the area", run: t109 },
+    Test { name: "lineRadial-test.js: lineRadial() returns a default radial line shape", run: t110 },
+    Test { name: "areaRadial-test.js: areaRadial() returns a default radial area shape", run: t111 },
+    Test { name: "areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area", run: t112 },
+    Test { name: "areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area", run: t113 },
+    Test { name: "areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area", run: t114 },
+    Test { name: "areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area", run: t115 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -1188,4 +1248,38 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-shape/test/area-test.js:186:3", test: "area-test.js: area.lineY1() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
     Assertion { id: "d3-shape/test/area-test.js:187:3", test: "area-test.js: area.lineY1() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
     Assertion { id: "d3-shape/test/area-test.js:188:3", test: "area-test.js: area.lineY1() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/lineRadial-test.js:7:3", test: "lineRadial-test.js: lineRadial() returns a default radial line shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/lineRadial-test.js:8:3", test: "lineRadial-test.js: lineRadial() returns a default radial line shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/lineRadial-test.js:9:3", test: "lineRadial-test.js: lineRadial() returns a default radial line shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/lineRadial-test.js:10:3", test: "lineRadial-test.js: lineRadial() returns a default radial line shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/lineRadial-test.js:11:3", test: "lineRadial-test.js: lineRadial() returns a default radial line shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/lineRadial-test.js:12:3", test: "lineRadial-test.js: lineRadial() returns a default radial line shape", skip: None },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:7:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:8:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:9:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:10:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:11:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:12:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:13:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:14:3", test: "areaRadial-test.js: areaRadial() returns a default radial area shape", skip: None },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:26:3", test: "areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:27:3", test: "areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:28:3", test: "areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:29:3", test: "areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:30:3", test: "areaRadial-test.js: areaRadial.lineStartAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:42:3", test: "areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:43:3", test: "areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:44:3", test: "areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:45:3", test: "areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:46:3", test: "areaRadial-test.js: areaRadial.lineEndAngle() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:58:3", test: "areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:59:3", test: "areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:60:3", test: "areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:61:3", test: "areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:62:3", test: "areaRadial-test.js: areaRadial.lineInnerRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:74:3", test: "areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:75:3", test: "areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:76:3", test: "areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:77:3", test: "areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
+    Assertion { id: "d3-shape/test/areaRadial-test.js:78:3", test: "areaRadial-test.js: areaRadial.lineOuterRadius() returns a line derived from the area", skip: Some("api: d3's accessors, getters and contexts (generators take geometry and draw into a PathContext)") },
 ];

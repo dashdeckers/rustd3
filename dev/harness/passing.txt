@@ -96,6 +96,7 @@
 #floor d3-scale/test/utcTime-test.js 78
 #floor d3-shape/test/arc-test.js 111
 #floor d3-shape/test/area-test.js 7
+#floor d3-shape/test/areaRadial-test.js 1
 #floor d3-shape/test/curve/basis-test.js 8
 #floor d3-shape/test/curve/basisClosed-test.js 6
 #floor d3-shape/test/curve/basisOpen-test.js 12
@@ -117,6 +118,7 @@
 #floor d3-shape/test/curve/stepAfter-test.js 8
 #floor d3-shape/test/curve/stepBefore-test.js 8
 #floor d3-shape/test/line-test.js 3
+#floor d3-shape/test/lineRadial-test.js 1
 #floor d3-shape/test/offset/diverging-test.js 6
 #floor d3-shape/test/offset/expand-test.js 3
 #floor d3-shape/test/offset/none-test.js 3
@@ -3791,6 +3793,7 @@ d3-shape/test/area-test.js:112:3
 d3-shape/test/area-test.js:113:3
 d3-shape/test/area-test.js:114:3
 d3-shape/test/area-test.js:115:3
+d3-shape/test/areaRadial-test.js:14:3
 d3-shape/test/curve/basis-test.js:7:3
 d3-shape/test/curve/basis-test.js:8:3
 d3-shape/test/curve/basis-test.js:9:3
@@ -4018,6 +4021,7 @@ d3-shape/test/curve/stepBefore-test.js:18:3
 d3-shape/test/line-test.js:12:3
 d3-shape/test/line-test.js:63:3
 d3-shape/test/line-test.js:64:3
+d3-shape/test/lineRadial-test.js:12:3
 d3-shape/test/offset/diverging-test.js:11:3
 d3-shape/test/offset/diverging-test.js:23:3
 d3-shape/test/offset/diverging-test.js:35:3
