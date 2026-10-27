@@ -187,6 +187,14 @@ pub(crate) fn thinned(decades: f64) -> bool {
     decades.abs() > 1.0 + 1e-9
 }
 
+/// Whether `in_view` decade ticks inside a domain crowd out its minor
+/// ticks: matplotlib's `LogLocator` (3.11.2, `subs='auto'`) draws none once
+/// ten or more integer powers of the base lie inside the domain
+/// (`n_avail >= 10`).
+pub(crate) fn crowded(in_view: f64) -> bool {
+    in_view >= 10.0
+}
+
 /// c·10ᵏ, through an exact power of ten, and split where 10ᵏ alone would
 /// overflow a constant small enough to keep the product finite.
 pub(crate) fn decade(c: f64, k: i32) -> f64 {

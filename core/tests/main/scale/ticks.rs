@@ -509,6 +509,71 @@ fn symlog_minor_ticks_leave_thinned_decades_empty() {
     assert!(x.minor(5).is_empty());
 }
 
+/// matplotlib 3.11.2's `LogLocator(subs='auto').tick_values` over [1, 1e9]
+/// and [1, 1e12] is empty: ten or more integer powers of the base lie
+/// inside the domain (`n_avail >= 10`), whatever the major stride.
+#[test]
+fn log_minor_ticks_are_none_once_ten_decade_ticks_are_in_view() {
+    let wide = scale::log().domain([1.0, 1e12]);
+    let set = wide.tick_set(10);
+    assert_eq!(set.values().len(), 13, "a decade apart");
+    assert!(Ticks::minor(&wide, &set).is_empty());
+    assert!(wide.minor(10).is_empty());
+    let ten = scale::log().domain([1.0, 1e9]);
+    let set = ten.tick_set(9);
+    assert_eq!(set.values().len(), 10, "a decade apart");
+    assert!(Ticks::minor(&ten, &set).is_empty());
+    assert!(ten.minor(9).is_empty());
+}
+
+/// matplotlib 3.11.2's `LogLocator(subs='auto').tick_values` over [1, 1e8]
+/// holds these 64 values inside the domain: nine integer powers of the base
+/// in view leave 2–9 in every decade.
+#[test]
+fn log_minor_ticks_fill_every_decade_with_nine_decade_ticks_in_view() {
+    let nine = scale::log().domain([1.0, 1e8]);
+    let set = nine.tick_set(8);
+    let powers: Vec<f64> = (0..9).map(|k| 10f64.powi(k)).collect();
+    assert_eq!(set.values(), powers);
+    let expected: Vec<f64> = (0..8)
+        .flat_map(|k| (2..10).map(move |m| f64::from(m) * 10f64.powi(k)))
+        .collect();
+    assert_eq!(Ticks::minor(&nine, &set), expected);
+    assert_eq!(nine.minor(8), expected);
+}
+
+/// matplotlib 3.11.2's `LogLocator(base, subs='auto')` draws no minor ticks
+/// for a base below 3 (`b < 3`).
+#[test]
+fn log_minor_ticks_are_none_for_a_base_below_three() {
+    let natural = scale::log().base(std::f64::consts::E).domain([1.0, 1000.0]);
+    assert_eq!(natural.ticks(10).len(), 7);
+    assert!(natural.minor(10).is_empty());
+    assert!(Ticks::minor(&natural, &natural.tick_set(10)).is_empty());
+    let three = scale::log().base(3.0).domain([1.0, 1000.0]);
+    assert!(!three.minor(5).is_empty());
+}
+
+#[test]
+fn symlog_minor_ticks_are_none_once_ten_decades_are_in_view() {
+    let nine = scale::symlog().domain([0.0, 1e8]);
+    let set = nine.tick_set(10);
+    assert_eq!(set.values().len(), 10, "0 and nine decades");
+    let expected: Vec<f64> = (0..8)
+        .flat_map(|k| (2..10).map(move |m| f64::from(m) * 10f64.powi(k)))
+        .collect();
+    assert_eq!(Ticks::minor(&nine, &set), expected);
+    assert_eq!(nine.minor(10), expected);
+    let ten = scale::symlog().domain([0.0, 1e9]);
+    let set = ten.tick_set(10);
+    assert_eq!(set.values().len(), 11, "0 and ten decades");
+    assert!(Ticks::minor(&ten, &set).is_empty());
+    assert!(ten.minor(10).is_empty());
+    let both = scale::symlog().domain([-1e4, 1e4]);
+    assert_eq!(both.ticks(10).len(), 11, "0 and ten decades");
+    assert!(both.minor(10).is_empty());
+}
+
 #[test]
 fn log_minor_ticks_fill_only_gaps_of_at_most_one_decade() {
     let x = scale::log()

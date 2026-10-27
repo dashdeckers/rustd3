@@ -480,7 +480,9 @@ fn log_minor_ticks_follow_the_order_of_a_negative_domain() {
 }
 
 #[test]
-fn log_minor_ticks_of_a_non_integer_base_subdivide() {
-    let x = scale::log().base(std::f64::consts::E).domain([1.0, 100.0]);
+fn log_minor_ticks_of_a_non_integer_base_of_three_or_more_subdivide() {
+    let x = scale::log().base(std::f64::consts::PI).domain([1.0, 100.0]);
     assert_eq!(x.minor(10).len(), 16);
+    let e = scale::log().base(std::f64::consts::E).domain([1.0, 100.0]);
+    assert!(e.minor(10).is_empty(), "a base below 3, as matplotlib");
 }

@@ -19,12 +19,18 @@ const LINEAR_SPAN: f64 = 100.0;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Symlog {
     constant: f64,
+    /// Whether ten or more decades ±c·10ᵏ lie inside the domain, which
+    /// leaves out the decade branch's minor ticks.
+    crowded: bool,
 }
 
 impl Symlog {
     /// The transform with constant `constant`.
     pub(crate) fn new(constant: f64) -> Symlog {
-        Symlog { constant }
+        Symlog {
+            constant,
+            crowded: false,
+        }
     }
 
     /// The decades branch of the tick rule: `ticks::decades` once the
@@ -90,8 +96,10 @@ impl Transform for Symlog {
     /// extended by one step past each end), m·c·10ᵏ for m = 2 … 9 strictly
     /// between neighbouring majors of one sign at most a decade apart (none
     /// next to 0, none across thinned decades, as matplotlib's log minors),
-    /// at most 10,000. Otherwise five equal steps in data space between
-    /// majors: evenly spaced majors never hold two decades of one sign.
+    /// at most 10,000, and none at all once ten or more decades ±c·10ᵏ lie
+    /// inside the domain (matplotlib's `n_avail >= 10`). Otherwise five
+    /// equal steps in data space between majors: evenly spaced majors never
+    /// hold two decades of one sign.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         let tied = |v: &f64| *v == 0.0 || self.decade(*v);
         let inner = major
@@ -109,6 +117,9 @@ impl Transform for Symlog {
         if !decades {
             return ticks::subdivide(&transform::Identity, major, 5);
         }
+        if self.crowded {
+            return Vec::new();
+        }
         let mut minor = Vec::new();
         for pair in major.windows(2) {
             let (p, q) = (pair[0], pair[1]);
@@ -122,6 +133,19 @@ impl Transform for Symlog {
             }
         }
         minor
+    }
+
+    /// The transform told how many decades ±c·10ᵏ (k ≥ 0, the values
+    /// `ticks::decades` can draw) lie inside the domain.
+    fn for_domain(&self, domain: [f64; 2]) -> Symlog {
+        let in_view = ticks::decades(domain, self.constant, usize::MAX)
+            .into_iter()
+            .filter(|v| *v != 0.0)
+            .count();
+        Symlog {
+            crowded: ticks::crowded(in_view as f64),
+            ..*self
+        }
     }
 
     /// The format of the branch `ticks` takes: for decades every tick

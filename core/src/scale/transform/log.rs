@@ -18,6 +18,9 @@ pub struct Log {
     base: f64,
     /// Whether the domain starts below zero, which reflects every value.
     negative: bool,
+    /// Whether ten or more integer powers of the base lie inside the
+    /// domain, which leaves out minor ticks.
+    crowded: bool,
 }
 
 impl Log {
@@ -26,6 +29,7 @@ impl Log {
         Log {
             base,
             negative: false,
+            crowded: false,
         }
     }
 
@@ -120,10 +124,16 @@ impl Transform for Log {
     /// first and last major, the majors excluded, and none between
     /// neighbouring majors more than one decade of the base apart (d3's
     /// thinned decades, where matplotlib draws none); otherwise the default.
+    /// None at all for a base below 3 or once ten or more integer powers of
+    /// the base lie inside the domain, as matplotlib's `LogLocator` with
+    /// `subs='auto'`.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         let (Some(&first), Some(&last)) = (major.first(), major.last()) else {
             return Vec::new();
         };
+        if self.crowded || self.base < 3.0 {
+            return Vec::new();
+        }
         if !self.integer() {
             return ticks::subdivide(self, major, 5);
         }
@@ -157,9 +167,16 @@ impl Transform for Log {
         minor
     }
 
+    /// The transform reflected for a domain that starts below zero, and
+    /// told how many integer powers of the base lie inside the domain
+    /// (matplotlib's `n_avail`).
     fn for_domain(&self, domain: [f64; 2]) -> Log {
+        let unsigned = Log::new(self.base);
+        let [a, b] = domain.map(f64::abs);
+        let in_view = unsigned.logs(a.max(b)).floor() - unsigned.logs(a.min(b)).ceil() + 1.0;
         Log {
             negative: domain[0] < 0.0,
+            crowded: ticks::crowded(in_view),
             ..*self
         }
     }
