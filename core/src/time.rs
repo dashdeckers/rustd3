@@ -1,5 +1,5 @@
-//! Time with explicit zones, on jiff: [`Interval`], d3-time's intervals
-//! with microseconds and nanoseconds beside them, and the lazy
+//! Time with explicit zones, on jiff: [`Interval`], d3-time's calendar
+//! intervals with microseconds and nanoseconds beside them, and the lazy
 //! [`interval::Range`] of an interval's boundaries.
 //!
 //! Every zone is a parameter: nothing here reads the system's clock or
@@ -50,4 +50,21 @@ pub enum Interval {
     /// Whole hours of the local clock; `every(k)` keeps the local hours
     /// that are multiples of `k`.
     Hour(u32),
+    /// Local days, starting at the day's first instant; `every(k)` keeps
+    /// the days of the month ≡ 1 (mod k) (d3's `timeDay`, `utcDay` in UTC).
+    Day(u32),
+    /// Local days; `every(k)` keeps those whose count from 1970-01-01 in
+    /// the zone's calendar is a multiple of `k` (d3's `unixDay` in UTC,
+    /// which `utc` ticks use).
+    UnixDay(u32),
+    /// Weeks starting on the weekday (d3's `timeSunday` … `timeSaturday`;
+    /// `timeWeek` is Sunday); `every(k)` keeps those a multiple of `k`
+    /// weeks from the week that holds the epoch's local date.
+    Week(jiff::civil::Weekday, u32),
+    /// Local months; `every(k)` keeps the months whose index from January
+    /// (0) is a multiple of `k`.
+    Month(u32),
+    /// Local years, starting on January 1; with a step `k`, the years that
+    /// are multiples of `k` (d3's `timeYear.every`).
+    Year(u32),
 }

@@ -2,6 +2,7 @@
 //! under the zone of each row, and the port's own sub-millisecond rows.
 
 use rustd3_core::jiff::Timestamp;
+use rustd3_core::jiff::civil::Weekday;
 use rustd3_core::jiff::tz::TimeZone;
 use rustd3_core::time::Interval;
 use rustd3_testkit::zone;
@@ -138,4 +139,153 @@ fn counts_divide_the_difference_of_the_floors() {
     assert_eq!(Interval::Minute(1).count(start, end, &la), Some(239));
     assert_eq!(Interval::Second(1).count(end, start, &la), Some(-14_399));
     assert_eq!(Interval::Millisecond(7).count(ms(0), ms(10), &la), Some(10));
+}
+
+/// d3-time's `local(y, m, d)`: midnight of a civil date in `tz`.
+fn local(tz: &TimeZone, year: i16, month: i8, day: i8) -> Timestamp {
+    tz.to_timestamp(rustd3_core::jiff::civil::date(year, month, day).at(0, 0, 0, 0))
+        .expect("a local date in range")
+}
+
+#[test]
+fn days_start_at_the_first_instant_even_where_midnight_is_skipped() {
+    let sao_paulo = zone("America/Sao_Paulo");
+    let day = Interval::Day(1);
+    assert_eq!(
+        day.floor(at("2016-10-16T03:00:00Z"), &sao_paulo),
+        Some(ms(1_476_586_800_000))
+    );
+    assert_eq!(
+        day.ceil(at("2016-10-16T04:00:00Z"), &sao_paulo),
+        Some(ms(1_476_669_600_000))
+    );
+    let days = range(
+        day,
+        local(&sao_paulo, 2016, 10, 14),
+        local(&sao_paulo, 2016, 10, 18),
+        &sao_paulo,
+    );
+    let expected = [
+        1_476_414_000_000,
+        1_476_500_400_000,
+        1_476_586_800_000,
+        1_476_669_600_000,
+    ];
+    assert_eq!(days, expected.map(ms));
+}
+
+#[test]
+fn calendar_units_in_los_angeles_follow_d3() {
+    let la = zone("America/Los_Angeles");
+    let day = Interval::Day(1);
+    assert_eq!(
+        day.floor(at("2011-03-13T12:00:00Z"), &la),
+        Some(at("2011-03-13T08:00:00Z"))
+    );
+    assert_eq!(
+        day.offset(at("2011-03-12T08:00:00Z"), 1, &la),
+        Some(at("2011-03-13T08:00:00Z"))
+    );
+    assert_eq!(
+        day.count(local(&la, 2011, 1, 1), local(&la, 2011, 3, 14), &la),
+        Some(72)
+    );
+    let month = Interval::Month(1);
+    assert_eq!(
+        month.count(local(&la, 2011, 1, 15), local(&la, 2012, 3, 2), &la),
+        Some(14)
+    );
+    let sunday = Interval::Week(Weekday::Sunday, 1);
+    assert_eq!(
+        sunday.count(local(&la, 2011, 1, 1), local(&la, 2011, 12, 31), &la),
+        Some(52)
+    );
+    let years = range(
+        Interval::Year(5),
+        local(&la, 2006, 1, 1),
+        local(&la, 2026, 1, 1),
+        &la,
+    );
+    assert_eq!(years, [2010, 2015, 2020, 2025].map(|y| local(&la, y, 1, 1)));
+}
+
+#[test]
+fn calendar_offsets_carry_past_the_end_of_the_month_as_date_does() {
+    let la = zone("America/Los_Angeles");
+    let dec30 = local(&la, 2010, 12, 30);
+    assert_eq!(
+        Interval::Month(1).offset(dec30, 2, &la),
+        Some(at("2011-03-02T08:00:00Z"))
+    );
+    let leap_noon = at("2012-02-29T20:00:00Z");
+    assert_eq!(
+        Interval::Year(1).offset(leap_noon, 1, &la),
+        Some(at("2013-03-01T20:00:00Z"))
+    );
+    let nov6 = local(&la, 2011, 11, 6);
+    assert_eq!(
+        Interval::Month(5).floor(nov6, &la),
+        Some(at("2011-11-01T07:00:00Z"))
+    );
+}
+
+#[test]
+fn stepped_days_keep_days_of_the_month_or_days_since_1970() {
+    let utc = TimeZone::UTC;
+    let (start, stop) = (at("2011-01-01T00:00:00Z"), at("2011-01-09T00:00:00Z"));
+    let days = |interval| -> Vec<i8> {
+        range(interval, start, stop, &utc)
+            .iter()
+            .map(|&t| utc.to_datetime(t).day())
+            .collect()
+    };
+    assert_eq!(days(Interval::Day(2)), [1, 3, 5, 7]);
+    assert_eq!(days(Interval::UnixDay(2)), [2, 4, 6, 8]);
+}
+
+#[test]
+fn stepped_weeks_count_from_the_week_that_holds_the_epochs_local_date() {
+    let berlin = zone("Europe/Berlin");
+    let sundays = range(
+        Interval::Week(Weekday::Sunday, 2),
+        local(&berlin, 2026, 1, 1),
+        local(&berlin, 2026, 3, 1),
+        &berlin,
+    );
+    let expected = [
+        "2026-01-10T23:00:00Z",
+        "2026-01-24T23:00:00Z",
+        "2026-02-07T23:00:00Z",
+        "2026-02-21T23:00:00Z",
+    ];
+    assert_eq!(sundays, expected.map(at));
+    let la = zone("America/Los_Angeles");
+    let thursdays = range(
+        Interval::Week(Weekday::Thursday, 3),
+        local(&la, 1969, 12, 1),
+        local(&la, 1970, 2, 1),
+        &la,
+    );
+    let expected = [
+        "1969-12-04T08:00:00Z",
+        "1969-12-25T08:00:00Z",
+        "1970-01-15T08:00:00Z",
+    ];
+    assert_eq!(thursdays, expected.map(at));
+}
+
+#[test]
+fn offsets_beyond_any_calendar_are_none() {
+    let utc = TimeZone::UTC;
+    let t = at("2026-10-25T12:00:00Z");
+    for interval in [
+        Interval::Day(1),
+        Interval::Week(Weekday::Monday, 1),
+        Interval::Month(1),
+        Interval::Year(7),
+    ] {
+        assert_eq!(interval.offset(t, i64::MAX, &utc), None);
+        assert_eq!(interval.offset(t, i64::MIN, &utc), None);
+    }
+    assert_eq!(Interval::Millisecond(1).offset(t, i64::MIN, &utc), None);
 }

@@ -9,6 +9,7 @@
 //! jiff's range (years −9999 to 9999), where d3 has an Invalid Date, are
 //! `None`.
 
+mod calendar;
 mod clock;
 mod fine;
 mod range;
@@ -52,17 +53,17 @@ impl Interval {
     /// `t` moved by `steps` intervals and not floored (d3's
     /// `interval.offset`): a fixed unit moves by `steps` multiples of its
     /// step; a filtered one moves unit by unit until it has passed `|steps|`
-    /// kept boundaries.
+    /// kept boundaries, about `|steps|·k` unit moves, as d3 does.
     pub fn offset(self, t: Timestamp, steps: i64, tz: &TimeZone) -> Option<Timestamp> {
         if !self.filters() {
-            return self.unit_offset(t, steps);
+            return self.unit_offset(t, steps, tz);
         }
         let direction = steps.signum();
         let mut t = t;
         for _ in 0..steps.unsigned_abs() {
-            t = self.unit_offset(t, direction)?;
+            t = self.unit_offset(t, direction, tz)?;
             while !self.keeps(t, tz) {
-                t = self.unit_offset(t, direction)?;
+                t = self.unit_offset(t, direction, tz)?;
             }
         }
         Some(t)
@@ -73,6 +74,8 @@ impl Interval {
     /// stepped intervals, which have no count in d3). `None` when the count
     /// leaves `i64` (nanoseconds over more than 292 years).
     pub fn count(self, start: Timestamp, end: Timestamp, tz: &TimeZone) -> Option<i64> {
+        let difference =
+            |field: fn(Timestamp, &TimeZone) -> i64| Some(field(end, tz) - field(start, tz));
         match self {
             Interval::Nanosecond(_) => fine::count(start, end, fine::NANOSECOND),
             Interval::Microsecond(_) => fine::count(start, end, fine::MICROSECOND),
@@ -80,6 +83,10 @@ impl Interval {
             Interval::Second(_) => fine::count(start, end, fine::SECOND),
             Interval::Minute(_) => clock::count(start, end, clock::MINUTE, tz),
             Interval::Hour(_) => clock::count(start, end, clock::HOUR, tz),
+            Interval::Day(_) | Interval::UnixDay(_) => difference(calendar::day_of_epoch),
+            Interval::Week(w, _) => Some(calendar::weeks(start, end, w, tz)),
+            Interval::Month(_) => difference(calendar::month_index),
+            Interval::Year(_) => difference(calendar::year),
         }
     }
 
@@ -93,6 +100,11 @@ impl Interval {
             Interval::Second(_) => Interval::Second(k),
             Interval::Minute(_) => Interval::Minute(k),
             Interval::Hour(_) => Interval::Hour(k),
+            Interval::Day(_) => Interval::Day(k),
+            Interval::UnixDay(_) => Interval::UnixDay(k),
+            Interval::Week(w, _) => Interval::Week(w, k),
+            Interval::Month(_) => Interval::Month(k),
+            Interval::Year(_) => Interval::Year(k),
         })
     }
 
@@ -112,24 +124,44 @@ impl Interval {
     /// the unit.
     fn filters(self) -> bool {
         match self {
-            Interval::Nanosecond(_) | Interval::Microsecond(_) | Interval::Millisecond(_) => false,
-            Interval::Second(k) | Interval::Minute(k) | Interval::Hour(k) => k > 1,
+            Interval::Nanosecond(_)
+            | Interval::Microsecond(_)
+            | Interval::Millisecond(_)
+            | Interval::Year(_) => false,
+            Interval::Second(k)
+            | Interval::Minute(k)
+            | Interval::Hour(k)
+            | Interval::Day(k)
+            | Interval::UnixDay(k)
+            | Interval::Week(_, k)
+            | Interval::Month(k) => k > 1,
         }
     }
 
     /// Whether the boundary `t` passes the step's filter: its field is a
     /// multiple of the step.
     fn keeps(self, t: Timestamp, tz: &TimeZone) -> bool {
-        let multiple = |field: i64, k: u32| field % i64::from(k) == 0;
+        let multiple = |field: i64, k: u32| field.rem_euclid(i64::from(k)) == 0;
         match self {
-            Interval::Nanosecond(_) | Interval::Microsecond(_) | Interval::Millisecond(_) => true,
+            Interval::Nanosecond(_)
+            | Interval::Microsecond(_)
+            | Interval::Millisecond(_)
+            | Interval::Year(_) => true,
             Interval::Second(k) => k <= 1 || multiple(fine::second_of_minute(t), k),
             Interval::Minute(k) => k <= 1 || multiple(clock::minute(t, tz), k),
             Interval::Hour(k) => k <= 1 || multiple(clock::hour(t, tz), k),
+            Interval::Day(k) => k <= 1 || multiple(calendar::day_of_month(t, tz) - 1, k),
+            Interval::UnixDay(k) => k <= 1 || multiple(calendar::day_of_epoch(t, tz), k),
+            Interval::Week(w, k) => {
+                k <= 1 || multiple(calendar::weeks(Timestamp::UNIX_EPOCH, t, w, tz), k)
+            }
+            Interval::Month(k) => {
+                k <= 1 || multiple(calendar::month_index(t, tz).rem_euclid(12), k)
+            }
         }
     }
 
-    /// The unit's floor, scaled by the step for the fixed units.
+    /// The unit's floor, scaled by the step for the fixed units and years.
     fn unit_floor(self, t: Timestamp, tz: &TimeZone) -> Option<Timestamp> {
         match self {
             Interval::Nanosecond(k) => fine::floor(t, fine::NANOSECOND * scale(k)),
@@ -138,11 +170,16 @@ impl Interval {
             Interval::Second(_) => fine::floor(t, fine::SECOND),
             Interval::Minute(_) => clock::floor(t, clock::MINUTE, tz),
             Interval::Hour(_) => clock::floor(t, clock::HOUR, tz),
+            Interval::Day(_) | Interval::UnixDay(_) => calendar::day_floor(t, tz),
+            Interval::Week(w, _) => calendar::week_floor(t, w, tz),
+            Interval::Month(_) => calendar::month_floor(t, tz),
+            Interval::Year(k) => calendar::year_floor(t, i64::from(k.max(1)), tz),
         }
     }
 
-    /// `t` moved by `n` units, scaled by the step for the fixed units.
-    fn unit_offset(self, t: Timestamp, n: i64) -> Option<Timestamp> {
+    /// `t` moved by `n` units, scaled by the step for the fixed units and
+    /// years.
+    fn unit_offset(self, t: Timestamp, n: i64, tz: &TimeZone) -> Option<Timestamp> {
         match self {
             Interval::Nanosecond(k) => fine::offset(t, n, fine::NANOSECOND * scale(k)),
             Interval::Microsecond(k) => fine::offset(t, n, fine::MICROSECOND * scale(k)),
@@ -150,6 +187,10 @@ impl Interval {
             Interval::Second(_) => fine::offset(t, n, fine::SECOND),
             Interval::Minute(_) => fine::offset(t, n, clock::MINUTE),
             Interval::Hour(_) => fine::offset(t, n, clock::HOUR),
+            Interval::Day(_) | Interval::UnixDay(_) => calendar::day_offset(t, n, tz),
+            Interval::Week(_, _) => calendar::day_offset(t, n.checked_mul(7)?, tz),
+            Interval::Month(_) => calendar::month_offset(t, n, tz),
+            Interval::Year(k) => calendar::year_offset(t, n.checked_mul(i64::from(k.max(1)))?, tz),
         }
     }
 }
