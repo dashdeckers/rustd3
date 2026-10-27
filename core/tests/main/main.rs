@@ -4,6 +4,8 @@
 mod axis;
 mod band;
 mod color;
+#[cfg(feature = "derive")]
+mod derive;
 mod ease;
 mod examples;
 mod fixtures;
