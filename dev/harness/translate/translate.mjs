@@ -16,6 +16,7 @@ import path from "./rules/path.mjs";
 import pie from "./rules/pie.mjs";
 import scale from "./rules/scale.mjs";
 import shape from "./rules/shape.mjs";
+import stack from "./rules/stack.mjs";
 import stats from "./rules/stats.mjs";
 import time from "./rules/time.mjs";
 import timeFormat from "./rules/time_format.mjs";
@@ -76,6 +77,13 @@ const SUITES = [
     rules: shape,
   },
   { suite: "pie", package: "d3-shape", files: tests(["pie", "arc"]), rules: pie },
+  {
+    suite: "stack",
+    package: "d3-shape",
+    files: tests(["stack", ...["diverging", "expand", "none", "silhouette", "wiggle"].map((n) => `offset/${n}`),
+      ...["appearance", "ascending", "descending", "insideOut", "none", "reverse"].map((n) => `order/${n}`)]),
+    rules: stack,
+  },
   { suite: "zoom", package: "d3-zoom", files: tests(["transform"]), rules: zoom },
   {
     suite: "time",

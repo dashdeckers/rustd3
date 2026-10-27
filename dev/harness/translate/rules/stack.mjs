@@ -22,7 +22,8 @@ const gen = generators({
     return o.t === prop ? { ...g, c: `${g.c}.${prop}(${o.c})` } : skip(API);
   },
   run(g, [arg], ctx) {
-    const rows = (g.keys && arg && val(ex(arg, ctx)).rows) || skip(API);
+    // Rows read from a variable leave it unused: the columns are built here.
+    const rows = (g.keys && (arg?.type === "Identifier" ? ctx.vars.get(arg.name) : arg && val(ex(arg, ctx)))?.rows) || skip(API);
     const cols = g.keys.map((k) => `&[${rows.map((r) => r[k] ?? skip("js: a key past a row (undefined)")).join(", ")}][..]`);
     return { c: `{ let columns = [${cols.join(", ")}]; (${g.c}.layout(&columns), ${g.c}.stacking_order(&columns)) }`, t: "stacked" };
   },
