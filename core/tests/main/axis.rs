@@ -1,5 +1,8 @@
 //! Core axes: d3-axis 3.0.0's formulas through a recording `PathContext`
-//! for the four orients, and the label positions and strings.
+//! for the four orients, the label positions and strings, and the two
+//! d3-axis snapshots read with a small hand-written parser.
+
+use std::path::Path;
 
 use rustd3_core::axis::{self, Anchor, Label};
 use rustd3_core::locale::Locale;
@@ -336,4 +339,157 @@ fn an_axis_prints_its_settings() {
     let x = scale::linear();
     let text = format!("{:?}", axis::left(&x).format(|v| v.to_string()));
     assert!(text.contains("orient: Left") && text.contains("format: Some(\"custom\")"));
+}
+
+/// What one d3-axis snapshot draws: the root's text anchor, the domain
+/// path's points and each tick.
+#[derive(Debug, Default)]
+struct Snapshot {
+    anchor: String,
+    domain: Vec<(f64, f64)>,
+    ticks: Vec<SnapshotTick>,
+}
+
+/// One `<g class="tick">`: its translation, its line's end and its text.
+#[derive(Debug, Default)]
+struct SnapshotTick {
+    at: (f64, f64),
+    line: (f64, f64),
+    text: String,
+    text_at: (f64, f64),
+    dy: String,
+}
+
+/// The value of attribute `name` in the opening tag `tag`.
+fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let start = tag.find(&format!(" {name}=\""))? + name.len() + 3;
+    let len = tag[start..].find('"')?;
+    Some(&tag[start..start + len])
+}
+
+/// A number of the snapshot.
+fn number(text: &str) -> f64 {
+    text.parse()
+        .unwrap_or_else(|_| panic!("a number in the snapshot: {text}"))
+}
+
+/// The points of path data made of `M`, `L`, `H` and `V` segments, each
+/// `H`/`V` rewritten to the point it reaches.
+fn points(d: &str) -> Vec<(f64, f64)> {
+    let mut out = Vec::new();
+    let mut at = (0.0, 0.0);
+    let mut rest = d;
+    while let Some(command) = rest.chars().next() {
+        let end = rest[1..]
+            .find(|c: char| c.is_ascii_alphabetic())
+            .map_or(rest.len(), |i| i + 1);
+        let args: Vec<f64> = rest[1..end].split(',').map(number).collect();
+        at = match (command, args.as_slice()) {
+            ('M' | 'L', [x, y]) => (*x, *y),
+            ('H', [x]) => (*x, at.1),
+            ('V', [y]) => (at.0, *y),
+            _ => panic!("an unexpected segment {command} {args:?}"),
+        };
+        out.push(at);
+        rest = &rest[end..];
+    }
+    out
+}
+
+/// The snapshot `name` under d3-axis's test directory, parsed.
+fn snapshot(name: &str) -> Snapshot {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../dev/harness/d3/d3-axis/test/snapshots")
+        .join(format!("{name}.html"));
+    let html = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let mut snapshot = Snapshot::default();
+    for piece in html.split('<').skip(1) {
+        let (tag, content) = piece.split_once('>').expect("a closed tag");
+        let tick = snapshot.ticks.last_mut();
+        match (tag.split_whitespace().next(), tick) {
+            (Some("g"), _) if attr(tag, "class") == Some("tick") => {
+                let translate = attr(tag, "transform").expect("a tick's transform");
+                let inner = translate
+                    .strip_prefix("translate(")
+                    .and_then(|t| t.strip_suffix(')'))
+                    .expect("a translation");
+                let (x, y) = inner.split_once(',').expect("two coordinates");
+                snapshot.ticks.push(SnapshotTick {
+                    at: (number(x), number(y)),
+                    ..SnapshotTick::default()
+                });
+            }
+            (Some("g"), _) => {
+                if let Some(anchor) = attr(tag, "text-anchor") {
+                    snapshot.anchor = anchor.to_owned();
+                }
+            }
+            (Some("path"), _) => snapshot.domain = points(attr(tag, "d").expect("path data")),
+            (Some("line"), Some(tick)) => {
+                let end = |a| attr(tag, a).map_or(0.0, number);
+                tick.line = (tick.at.0 + end("x2"), tick.at.1 + end("y2"));
+            }
+            (Some("text"), Some(tick)) => {
+                let shift = |a| attr(tag, a).map_or(0.0, number);
+                tick.text_at = (tick.at.0 + shift("x"), tick.at.1 + shift("y"));
+                tick.dy = attr(tag, "dy").expect("a dy").to_owned();
+                tick.text = content.to_owned();
+            }
+            _ => {}
+        }
+    }
+    snapshot
+}
+
+/// Whether two points agree to 1e-9.
+fn same(a: (f64, f64), b: (f64, f64)) -> bool {
+    near(a.0, b.0) && near(a.1, b.1)
+}
+
+#[test]
+fn axis_snapshots_of_d3_are_reproduced() {
+    let unit = scale::linear();
+    let tall = scale::linear().range([0.0, 500.0]);
+    for (name, scale) in [
+        ("axisLeftScaleLinear", &unit),
+        ("axisLeftScaleLinearNonNumericRange", &tall),
+    ] {
+        let expected = snapshot(name);
+        let a = axis::left(scale).locale(Locale::EN_US);
+        let calls = drawn(&a);
+        let ours: Vec<(f64, f64)> = domain(&calls)
+            .iter()
+            .map(|c| match *c {
+                Call::Move(x, y) | Call::Line(x, y) => (x, y),
+            })
+            .collect();
+        assert_eq!(ours.len(), expected.domain.len(), "{name}: domain");
+        assert!(
+            ours.iter().zip(&expected.domain).all(|(a, b)| same(*a, *b)),
+            "{name}: domain {ours:?} against {:?}",
+            expected.domain
+        );
+        let ticks = marks(&calls);
+        let labels = a.labels();
+        assert_eq!(ticks.len(), expected.ticks.len(), "{name}: ticks");
+        assert_eq!(labels.len(), expected.ticks.len(), "{name}: labels");
+        assert_eq!(expected.anchor, "end");
+        for ((mark, label), tick) in ticks.iter().zip(&labels).zip(&expected.ticks) {
+            assert!(
+                same(mark.0, tick.at),
+                "{name}: tick {mark:?} against {tick:?}"
+            );
+            assert!(
+                same(mark.1, tick.line),
+                "{name}: tick {mark:?} against {tick:?}"
+            );
+            assert!(
+                same((label.x(), label.y()), tick.text_at),
+                "{name}: {label:?}"
+            );
+            assert_eq!(label.text(), tick.text, "{name}");
+            assert_eq!(format!("{}em", label.dy()), tick.dy, "{name}");
+            assert_eq!(label.anchor(), Anchor::End, "{name}");
+        }
+    }
 }
