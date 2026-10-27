@@ -2,10 +2,11 @@
 //! `ICED_TEST_BACKEND` names, against the PNG of the same figure.
 
 use iced::{Color, Size};
+use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_figure::kurbo;
 use rustd3_figure::mark::{dots, line};
-use rustd3_figure::{Figure, axis};
+use rustd3_figure::{Figure, Theme, axis};
 use rustd3_iced::Plot;
 use rustd3_testkit::pixels;
 
@@ -39,6 +40,14 @@ fn figure() -> Figure<'static> {
     fig
 }
 
+/// [`figure`] on a background of `#336699` at 50%: gutters and labels
+/// translucent, plot areas opaque.
+fn translucent() -> Figure<'static> {
+    let mut fig = figure();
+    fig.theme(Theme::default().background(Rgb::hex(0x336699).with_opacity(0.5)));
+    fig
+}
+
 /// `n` samples of a sine with a deterministic wobble, phase `seed`.
 fn samples(n: usize, seed: usize) -> Vec<(f64, f64)> {
     (0..n)
@@ -59,29 +68,31 @@ fn shoot(fig: Figure<'static>, k: f32) -> Option<(Shot, String)> {
     Some((harness.frame(headless::epoch()), backend))
 }
 
-/// The widget's first frame at `k` against the PNG of the same figure on
-/// the screenshot's white: max difference and channels over 16, printed.
-fn compare(k: f32) -> Option<(pixels::Diff, String)> {
-    let (shot, backend) = shoot(figure(), k)?;
+/// The widget's first frame of `make()` at `k` against the PNG of the
+/// same figure on the screenshot's white: max difference and channels
+/// over 16, printed.
+fn compare(make: fn() -> Figure<'static>, k: f32) -> Option<(pixels::Diff, Shot, String)> {
+    let (shot, backend) = shoot(make(), k)?;
     let size = kurbo::Size::new(f64::from(SIZE.width), f64::from(SIZE.height));
-    let png = reference::png_of(&figure(), size, f64::from(k), Color::WHITE);
+    let png = reference::png_of(&make(), size, f64::from(k), Color::WHITE);
     assert_eq!((shot.width, shot.height), (png.width, png.height));
     let reference = pixels::Image::new(png.width, png.height, &png.rgba)
         .expect("invariant: a render holds width × height pixels");
     let diff = pixels::Diff::between(&shot.image(), &reference, 16)
         .expect("invariant: the shot has the PNG's size");
     println!(
-        "plot against its PNG, {backend}, k = {k}: max {}/255, {} channels over 16 ({})",
+        "plot against its PNG, {backend}, k = {k}, corner {:?}: max {}/255, {} channels over 16 ({})",
+        shot.pixel(1, 1),
         diff.max(),
         diff.over(),
         headless::features()
     );
-    Some((diff, backend))
+    Some((diff, shot, backend))
 }
 
 #[test]
 fn plot_matches_the_png_of_its_figure() {
-    let Some((diff, backend)) = compare(2.0) else {
+    let Some((diff, _, backend)) = compare(figure, 2.0) else {
         return;
     };
     assert!(
@@ -94,7 +105,7 @@ fn plot_matches_the_png_of_its_figure() {
 #[test]
 fn plot_places_cells_on_device_pixels_at_fractional_scales() {
     for k in [1.25, 1.5] {
-        let Some((diff, backend)) = compare(k) else {
+        let Some((diff, _, backend)) = compare(figure, k) else {
             return;
         };
         assert!(
@@ -103,4 +114,21 @@ fn plot_places_cells_on_device_pixels_at_fractional_scales() {
             diff.max()
         );
     }
+}
+
+#[test]
+fn translucent_background_matches_the_png() {
+    let Some((diff, shot, backend)) = compare(translucent, 2.0) else {
+        return;
+    };
+    assert!(diff.max() <= 4, "{backend}: max {}/255", diff.max());
+    // The gutter shows #336699 at 50% over the white under the widget.
+    let corner = shot.pixel(1, 1);
+    let expected = [153, 178, 204, 255];
+    let off = corner
+        .iter()
+        .zip(expected)
+        .map(|(a, b)| a.abs_diff(b))
+        .max();
+    assert!(off <= Some(1), "{backend}: corner {corner:?}");
 }
