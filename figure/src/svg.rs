@@ -15,7 +15,7 @@ use crate::list::{self, Clip, Command, GlyphRun, List, Outlines, Paints};
 use crate::lower::Caps;
 use crate::pixels;
 
-/// What [`write`] draws natively: everything but sweep gradients, which
+/// What [`write()`] draws natively: everything but sweep gradients, which
 /// [`lower`](crate::lower::lower) rasterizes first.
 pub const CAPS: Caps = Caps {
     glyphs: true,
@@ -24,7 +24,7 @@ pub const CAPS: Caps = Caps {
     sweep: false,
 };
 
-/// How [`write`] writes a list.
+/// How [`write()`] writes a list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
     /// How glyph runs are written.

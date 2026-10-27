@@ -21,7 +21,7 @@ const CAPS: Caps = Caps {
 
 /// The whole of `list` at `scale`, rendered by tiny-skia: round(width ×
 /// scale) × round(height × scale) px of straight RGBA, as
-/// [`raster::render`](crate::raster::render) gives with vello_cpu. Image
+/// `raster::render` gives with vello_cpu. Image
 /// brushes are [`list::Error::Unsupported`]; a degenerate gradient (one
 /// tiny-skia cannot build, such as a linear gradient whose ends coincide)
 /// draws nothing.
