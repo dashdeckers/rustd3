@@ -1,16 +1,31 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
+use crate::axis::Labels;
 use crate::figure;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
+use crate::text::Key;
 
 /// A figure resolved for one size and target: every scale with its domain
-/// fitted or held, and every panel's plot area.
+/// fitted or held, every panel's plot area, and per panel its axes' tick
+/// positions and label keys, for drawing.
 pub struct Resolved {
     figure: figure::Id,
     scales: Vec<Box<dyn Scale>>,
-    areas: Vec<kurbo::Rect>,
     target: Target,
+    areas: Vec<kurbo::Rect>,
+    panels: Vec<Laid>,
+    title: Option<Key>,
+}
+
+/// One panel as laid out, for drawing.
+pub(super) struct Laid {
+    /// Each axis's labels, with its ticks' positions along the plot area.
+    pub(super) axes: Vec<(Labels, Vec<Option<f64>>)>,
+    /// The title's key.
+    pub(super) title: Option<Key>,
+    /// How far the decorations on top reach, the title aside.
+    pub(super) top: f64,
 }
 
 impl Resolved {
@@ -19,8 +34,10 @@ impl Resolved {
         Resolved {
             figure,
             scales,
-            areas: Vec::new(),
             target,
+            areas: Vec::new(),
+            panels: Vec::new(),
+            title: None,
         }
     }
 
@@ -42,8 +59,20 @@ impl Resolved {
         self.target
     }
 
-    /// Sets the plot areas.
-    pub(super) fn place(&mut self, areas: Vec<kurbo::Rect>) {
+    /// The panels as laid out, in panel order.
+    pub(super) fn panels(&self) -> &[Laid] {
+        &self.panels
+    }
+
+    /// The figure title's key.
+    pub(super) fn title(&self) -> Option<&Key> {
+        self.title.as_ref()
+    }
+
+    /// Sets the layout: the plot areas, the panels and the figure title.
+    pub(super) fn place(&mut self, areas: Vec<kurbo::Rect>, panels: Vec<Laid>, title: Option<Key>) {
         self.areas = areas;
+        self.panels = panels;
+        self.title = title;
     }
 }

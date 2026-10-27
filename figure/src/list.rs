@@ -16,7 +16,10 @@ mod run;
 use std::ops::Range;
 
 use kurbo::{Cap, Join, Rect, Size};
-use peniko::FontData;
+use peniko::{Brush, Color, FontData};
+use rustd3_core::color::Rgb;
+
+use crate::text;
 
 pub use bounds::Bounds;
 pub use check::check;
@@ -90,4 +93,10 @@ pub const fn stroke(width: f64) -> kurbo::Stroke {
         .with_caps(Cap::Butt)
         .with_join(Join::Miter)
         .with_miter_limit(4.0)
+}
+
+/// A solid brush of `color`, its channels rounded to 8 bits.
+pub(crate) fn brush(color: Rgb) -> Brush {
+    let [r, g, b, a] = text::channels(color);
+    Brush::Solid(Color::from_rgba8(r, g, b, a))
 }

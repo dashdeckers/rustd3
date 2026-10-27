@@ -2,20 +2,23 @@
 //! the boxes they take beside the axis.
 
 use rustd3_core::axis::Orient;
+use rustd3_core::color::Rgb;
 
 use crate::axis::{Draw, across};
 use crate::figure::Resolved;
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
-/// One axis's labels for a resolve: its side and offset, the keys of its
-/// tick labels (none when it is not labelled) and of its title, set in the
-/// axis's color.
+/// One axis's labels for a resolve: its side, offset and color, the keys of
+/// its tick labels (none when it is not labelled) and of its title, set in
+/// that color.
 pub(crate) struct Labels {
-    orient: Orient,
-    outward: f64,
-    ticks: Vec<Key>,
-    title: Option<Key>,
+    pub(super) orient: Orient,
+    pub(super) outward: f64,
+    pub(super) ink: Rgb,
+    pub(super) tinted: bool,
+    pub(super) ticks: Vec<Key>,
+    pub(super) title: Option<Key>,
 }
 
 impl Labels {
@@ -26,7 +29,8 @@ impl Labels {
         theme: &Theme,
     ) -> Labels {
         let orient = axis.orient();
-        let ink = axis.ink(resolved, theme.ink());
+        let tint = axis.tint(resolved);
+        let ink = tint.unwrap_or(theme.ink());
         let labeled = axis.labeled();
         let style = theme.tick_label(anchor(orient).h, ink);
         let ticks = if labeled {
@@ -45,6 +49,8 @@ impl Labels {
         Labels {
             orient,
             outward: axis.outward(),
+            ink,
+            tinted: tint.is_some(),
             ticks,
             title,
         }
@@ -70,16 +76,22 @@ impl Labels {
         if self.ticks.is_empty() && self.title.is_none() {
             return reach;
         }
-        let across = across(self.orient);
-        let extent = shaped(text, &self.ticks)
-            .flatten()
-            .map(|s| if across { ink(s) } else { s.width() })
-            .fold(0.0, f64::max);
-        reach += theme.tick_pad() + extent;
+        reach += theme.tick_pad() + self.extent(text);
         if let Some(title) = self.title.as_ref().and_then(|key| get(text, key)) {
             reach += theme.label_pad() + ink(title);
         }
         reach
+    }
+
+    /// The tick labels' extent across the axis: the widest advance beside
+    /// a vertical axis, the tallest ink under a horizontal one; 0 without
+    /// labels.
+    pub(super) fn extent(&self, text: &text::Cache) -> f64 {
+        let across = across(self.orient);
+        shaped(text, &self.ticks)
+            .flatten()
+            .map(|s| if across { ink(s) } else { s.width() })
+            .fold(0.0, f64::max)
     }
 
     /// How far the tick labels at `positions` (aligned with the ticks)
@@ -130,6 +142,6 @@ fn shaped<'c>(text: &'c text::Cache, keys: &'c [Key]) -> impl Iterator<Item = Op
 
 /// `key`'s shaped label; `None` when typst rejected it or it is not
 /// cached.
-fn get<'c>(text: &'c text::Cache, key: &Key) -> Option<&'c Shaped> {
+pub(super) fn get<'c>(text: &'c text::Cache, key: &Key) -> Option<&'c Shaped> {
     text.get(key)?.ok()
 }

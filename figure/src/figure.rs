@@ -3,8 +3,11 @@
 //! a theme; resolving it fits domains and lays the grid out.
 
 pub(crate) mod cache;
+mod decorate;
+mod draw;
 mod fits;
 mod held;
+mod part;
 mod resolve;
 mod resolved;
 

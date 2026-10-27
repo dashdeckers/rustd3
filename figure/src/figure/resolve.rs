@@ -2,8 +2,11 @@
 //! gesture, labels measured through the text cache in one batch, and the
 //! grid laid out by protrusions.
 
+use rustd3_core::axis::Orient;
+
 use crate::axis::{self, Labels};
 use crate::figure::fits::Fits;
+use crate::figure::resolved::Laid;
 use crate::figure::{Cache, Figure, Held, Resolved};
 use crate::layout::{self, Reach};
 use crate::panel::Panel;
@@ -91,27 +94,51 @@ impl Figure<'_> {
             .map(|(r, t)| titled(r, t))
             .collect();
         let bare = self.areas(size, reserve, &bare);
-        let reaches: Vec<Reach> = self
+        let overhung: Vec<Reach> = self
             .panels
             .iter()
             .zip(&labels)
             .zip(axes)
             .zip(&bare)
-            .zip(&titles)
-            .map(|((((panel, labels), mut reach), area), title)| {
+            .map(|(((panel, labels), mut reach), area)| {
                 for (a, l) in panel.axes().iter().zip(labels) {
-                    let length = if axis::across(l.orient()) {
-                        area.width()
-                    } else {
-                        area.height()
-                    };
+                    let length = length(l.orient(), *area);
                     let positions = a.positions(&resolved, length);
                     reach.overhang(l.orient(), l.overhang(&positions, length, text));
                 }
-                titled(&reach, title)
+                reach
             })
             .collect();
-        resolved.place(self.areas(size, reserve, &reaches));
+        let reaches: Vec<Reach> = overhung
+            .iter()
+            .zip(&titles)
+            .map(|(r, t)| titled(r, t))
+            .collect();
+        let areas = self.areas(size, reserve, &reaches);
+        let laid = self
+            .panels
+            .iter()
+            .zip(labels)
+            .zip(titles)
+            .zip(overhung.iter().zip(&areas))
+            .map(|(((panel, labels), title), (reach, area))| {
+                let axes = panel
+                    .axes()
+                    .iter()
+                    .zip(labels)
+                    .map(|(a, l)| {
+                        let positions = a.positions(&resolved, length(l.orient(), *area));
+                        (l, positions)
+                    })
+                    .collect();
+                Laid {
+                    axes,
+                    title,
+                    top: reach.top,
+                }
+            })
+            .collect();
+        resolved.place(areas, laid, title);
         resolved
     }
 
@@ -207,4 +234,13 @@ fn get<'c>(text: &'c text::Cache, key: &Key) -> Option<&'c Shaped> {
 /// The ink height of a shaped label.
 fn ink(shaped: &Shaped) -> f64 {
     shaped.ascent() + shaped.descent()
+}
+
+/// The length of `area` along an axis on side `orient`.
+fn length(orient: Orient, area: kurbo::Rect) -> f64 {
+    if axis::across(orient) {
+        area.width()
+    } else {
+        area.height()
+    }
 }

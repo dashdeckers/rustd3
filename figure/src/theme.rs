@@ -18,25 +18,52 @@ pub struct Theme {
     font_scale: f64,
     /// Text, ticks and axis lines: seaborn's ".15".
     ink: Rgb,
+    /// Behind each plot area.
+    panel: Rgb,
+    /// Behind the whole figure.
+    background: Rgb,
     /// Fitted continuous domains get this share of their span per side.
     margin: f64,
 }
 
 impl Default for Theme {
     /// seaborn's `ticks` style at `notebook` size: tick labels 11 pt, axis
-    /// labels and titles 12 pt, the figure title 14.4 pt, ink `#262626`,
+    /// labels and titles 12 pt, the figure title 14.4 pt, ink `#262626`
+    /// for text, ticks and axis lines, white panels and figure, no grid,
     /// 5% margins.
     fn default() -> Self {
         Theme {
             context: 1.0,
             font_scale: 1.0,
             ink: Rgb::hex(0x262626),
+            panel: Rgb::hex(0xffffff),
+            background: Rgb::hex(0xffffff),
             margin: 0.05,
         }
     }
 }
 
 impl Theme {
+    /// Axis lines, ticks and borders: 1.25 pt.
+    pub(crate) fn axis_width(&self) -> f64 {
+        self.pt(1.25)
+    }
+
+    /// Axis lines: the ink, in the ticks style.
+    pub(crate) fn edge(&self) -> Rgb {
+        self.ink
+    }
+
+    /// Behind each plot area.
+    pub(crate) fn panel(&self) -> Rgb {
+        self.panel
+    }
+
+    /// Behind the whole figure.
+    pub(crate) fn background(&self) -> Rgb {
+        self.background
+    }
+
     /// Tick labels: 11 pt.
     pub(crate) fn tick_text(&self) -> f64 {
         self.text(11.0)
@@ -159,7 +186,10 @@ mod tests {
         let pads = [theme.tick(), theme.tick_pad(), theme.label_pad()];
         assert_eq!(pads.map(|v| format!("{v:.3}")), ["8.000", "4.667", "5.333"]);
         assert!(close(theme.title_pad(), 8.0));
+        assert_eq!(format!("{:.3}", theme.axis_width()), "1.667");
         assert_eq!(theme.ink(), Rgb::hex(0x262626));
+        assert_eq!(theme.edge(), theme.ink());
+        assert_eq!([theme.panel(), theme.background()], [Rgb::hex(0xffffff); 2]);
         assert_eq!(theme.margin(), 0.05);
     }
 }

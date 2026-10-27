@@ -1,5 +1,6 @@
 //! [`Panel`]: one plot area in a grid cell.
 
+use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
 use crate::axis::{self, Axis};
@@ -8,12 +9,13 @@ use crate::scale::{Kind, Position};
 use crate::text::Text;
 
 /// One plot area in a grid cell: its marks and axes, which refer to the
-/// figure's scales only through handles, and its title.
+/// figure's scales only through handles, its title and its border.
 pub struct Panel<'a> {
     cell: (usize, usize),
     marks: Vec<Box<dyn Mark<'a>>>,
     axes: Vec<Box<dyn axis::Draw<'a>>>,
     title: Option<Text>,
+    border: Option<Rgb>,
 }
 
 impl<'a> Panel<'a> {
@@ -24,6 +26,7 @@ impl<'a> Panel<'a> {
             marks: Vec::new(),
             axes: Vec::new(),
             title: None,
+            border: None,
         }
     }
 
@@ -50,6 +53,13 @@ impl<'a> Panel<'a> {
         self
     }
 
+    /// A frame of color `c` around the plot area, as wide as the axis
+    /// lines.
+    pub fn border(&mut self, c: Rgb) -> &mut Self {
+        self.border = Some(c);
+        self
+    }
+
     /// The grid cell, (row, column).
     pub(crate) fn cell(&self) -> (usize, usize) {
         self.cell
@@ -68,5 +78,10 @@ impl<'a> Panel<'a> {
     /// The title.
     pub(crate) fn heading(&self) -> Option<&Text> {
         self.title.as_ref()
+    }
+
+    /// The border's color.
+    pub(crate) fn frame(&self) -> Option<Rgb> {
+        self.border
     }
 }

@@ -147,7 +147,7 @@ fn literal(text: &str) -> String {
 }
 
 /// `color`'s channels and opacity as 0–255 integers, rounded and clamped.
-fn channels(color: Rgb) -> [u8; 4] {
+pub(crate) fn channels(color: Rgb) -> [u8; 4] {
     let c = color.clamp();
     // `clamp` leaves every value a whole number in 0..=255 or in [0, 1].
     [c.r, c.g, c.b, (c.opacity * 255.0).round()].map(|v| v as u8)
