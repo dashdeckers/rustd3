@@ -3,6 +3,8 @@
 mod list;
 mod lower;
 mod raster;
+#[cfg(feature = "raster")]
+mod resvg;
 mod sink;
 #[cfg(feature = "tiny-skia")]
 mod skia;
