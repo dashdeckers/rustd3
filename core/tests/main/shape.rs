@@ -3,6 +3,7 @@
 //! and radial shapes in the modules below.
 
 mod arc;
+mod line_of;
 mod pie;
 mod radial;
 mod stack;

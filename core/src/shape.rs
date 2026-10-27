@@ -16,6 +16,7 @@
 //! assert_eq!(d, "M0,4L1,2L2,5L2,10L1,10L0,10Z");
 //! ```
 //!
+//! [`LineOf`] wraps the line in d3-style accessors over a slice of data.
 //! The generators [`Line`], [`Area`], [`Pie`] and [`Stack`] are defined
 //! here and built through the methods in their modules, [`line`],
 //! [`area`], [`pie`] and [`stack`], which also hold the radial forms and
@@ -25,6 +26,7 @@ mod arc;
 pub mod area;
 mod curve;
 pub mod line;
+mod line_of;
 pub mod pie;
 mod slice;
 pub mod stack;
@@ -32,6 +34,7 @@ mod symbol;
 
 pub use arc::Arc;
 pub use curve::Curve;
+pub use line_of::LineOf;
 pub use slice::Slice;
 pub use symbol::Symbol;
 
@@ -108,6 +111,12 @@ pub struct Stack {
 /// d3.line(): straight segments, `None` items breaking the line.
 pub fn line() -> Line {
     Line::default()
+}
+
+/// d3.line() with accessors over a slice of data (Part I, Accessors,
+/// option B): x and y 0, every datum defined, until set.
+pub fn line_of<'a, D>() -> LineOf<'a, D> {
+    LineOf::default()
 }
 
 /// d3.area(): straight segments over a baseline at 0, `None` items
