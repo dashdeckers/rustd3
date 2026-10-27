@@ -31,6 +31,9 @@
 //   finish(line)                   each line of a translated test, rewritten
 //                                  once the whole test is read
 //   nullable                       [t]: Options whose None is d3's null
+//   number(e)                      `+e` for a value of the rules' type, or undefined
+//   observe(e)                     the Obs code an assertion compares a value of
+//                                  the rules' type as, or undefined
 // combine(...rules) merges rule sets: the first that answers a hook wins.
 //
 // `assert.strictEqual(x, null)` checks a fallible x for Err, d3's null, and
@@ -60,7 +63,7 @@ export function combine(...sets) {
     }
     return undefined;
   };
-  const hooks = ["call", "method", "field", "apply", "equal", "statement", "assign", "array"];
+  const hooks = ["call", "method", "field", "apply", "equal", "statement", "assign", "array", "number", "observe"];
   return {
     ...Object.fromEntries(hooks.map((h) => [h, first(h)])),
     identifiers: Object.assign({}, ...sets.map((r) => r.identifiers)),
@@ -143,6 +146,7 @@ export function ex(node, ctx) {
       const a = ex(node.argument, ctx);
       if (node.operator === "-") return { c: `-${needNum(a, "negation")}`, t: "num" };
       if (node.operator === "+" && a.t === "num") return a;
+      if (node.operator === "+") return ctx.rules.number?.(val(a)) ?? skip("js: unary + (coercion)");
       return skip(`js: unary ${node.operator} (coercion)`);
     }
     case "BinaryExpression":
@@ -413,7 +417,7 @@ function check(kind, args, id, ctx) {
   const obs = (e) => {
     const v = val(e);
     if (v.t === "fn") skip("js: function identity");
-    return ctx.rules.display?.includes(v.t) ? `${v.c}.to_string()` : v.c;
+    return ctx.rules.observe?.(v) ?? (ctx.rules.display?.includes(v.t) ? `${v.c}.to_string()` : v.c);
   };
   const custom = ctx.rules.assertions?.[kind];
   if (custom) return custom(args.map((a) => val(ex(a, ctx))), id, ctx);
