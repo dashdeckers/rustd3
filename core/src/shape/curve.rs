@@ -5,9 +5,12 @@
 mod basis;
 mod bump;
 mod bundle;
+mod cardinal;
+mod catmull_rom;
 mod linear;
 mod step;
 
+use crate::js;
 use crate::path::PathContext;
 
 /// How consecutive points are joined: d3's curve factories.
@@ -45,6 +48,41 @@ pub enum Curve {
         /// The bundle strength in [0, 1]: 0 is the straight line.
         beta: f64,
     },
+    /// d3.curveCardinal: a cubic cardinal spline through the points. d3's
+    /// default tension is 0.
+    Cardinal {
+        /// The tension in [0, 1]: 1 draws straight segments.
+        tension: f64,
+    },
+    /// d3.curveCardinalClosed: a closed cardinal spline.
+    CardinalClosed {
+        /// The tension in [0, 1]: 1 draws straight segments.
+        tension: f64,
+    },
+    /// d3.curveCardinalOpen: a cardinal spline from the second point to the
+    /// second-to-last.
+    CardinalOpen {
+        /// The tension in [0, 1]: 1 draws straight segments.
+        tension: f64,
+    },
+    /// d3.curveCatmullRom: a Catmull–Rom spline through the points. d3's
+    /// default alpha is 0.5 (centripetal); alpha 0 is `Cardinal { tension:
+    /// 0 }`.
+    CatmullRom {
+        /// The chord-length exponent in [0, 1]: 0.5 centripetal, 1 chordal.
+        alpha: f64,
+    },
+    /// d3.curveCatmullRomClosed: a closed Catmull–Rom spline.
+    CatmullRomClosed {
+        /// The chord-length exponent in [0, 1]: 0.5 centripetal, 1 chordal.
+        alpha: f64,
+    },
+    /// d3.curveCatmullRomOpen: a Catmull–Rom spline from the second point to
+    /// the second-to-last.
+    CatmullRomOpen {
+        /// The chord-length exponent in [0, 1]: 0.5 centripetal, 1 chordal.
+        alpha: f64,
+    },
 }
 
 /// d3's `_line`, a curve's place in an area: unset for a plain line (d3's
@@ -69,6 +107,12 @@ pub(crate) enum State {
     BasisOpen(basis::BasisOpen),
     Bump(bump::Bump),
     Bundle(bundle::Bundle),
+    Cardinal(cardinal::Cardinal),
+    CardinalClosed(cardinal::CardinalClosed),
+    CardinalOpen(cardinal::CardinalOpen),
+    CatmullRom(catmull_rom::CatmullRom),
+    CatmullRomClosed(catmull_rom::CatmullRomClosed),
+    CatmullRomOpen(catmull_rom::CatmullRomOpen),
 }
 
 /// `$body` with `$family` bound to the family `$state` holds.
@@ -83,6 +127,12 @@ macro_rules! each {
             State::BasisOpen($family) => $body,
             State::Bump($family) => $body,
             State::Bundle($family) => $body,
+            State::Cardinal($family) => $body,
+            State::CardinalClosed($family) => $body,
+            State::CardinalOpen($family) => $body,
+            State::CatmullRom($family) => $body,
+            State::CatmullRomClosed($family) => $body,
+            State::CatmullRomOpen($family) => $body,
         }
     };
 }
@@ -130,6 +180,28 @@ impl State {
             Curve::BumpY => State::Bump(bump::Bump::new(false)),
             Curve::Bundle { beta: 1.0 } => State::Basis(basis::Basis::new()),
             Curve::Bundle { beta } => State::Bundle(bundle::Bundle::new(beta)),
+            Curve::Cardinal { tension } => State::Cardinal(cardinal::Cardinal::new(tension)),
+            Curve::CardinalClosed { tension } => {
+                State::CardinalClosed(cardinal::CardinalClosed::new(tension))
+            }
+            Curve::CardinalOpen { tension } => {
+                State::CardinalOpen(cardinal::CardinalOpen::new(tension))
+            }
+            // d3 takes the cardinal spline for an alpha that is not truthy.
+            Curve::CatmullRom { alpha } if js::truthy(alpha) => {
+                State::CatmullRom(catmull_rom::CatmullRom::new(alpha))
+            }
+            Curve::CatmullRom { .. } => State::Cardinal(cardinal::Cardinal::new(0.0)),
+            Curve::CatmullRomClosed { alpha } if js::truthy(alpha) => {
+                State::CatmullRomClosed(catmull_rom::CatmullRomClosed::new(alpha))
+            }
+            Curve::CatmullRomClosed { .. } => {
+                State::CardinalClosed(cardinal::CardinalClosed::new(0.0))
+            }
+            Curve::CatmullRomOpen { alpha } if js::truthy(alpha) => {
+                State::CatmullRomOpen(catmull_rom::CatmullRomOpen::new(alpha))
+            }
+            Curve::CatmullRomOpen { .. } => State::CardinalOpen(cardinal::CardinalOpen::new(0.0)),
         }
     }
 
@@ -151,9 +223,17 @@ impl State {
             State::Basis(s) => s.area_start(),
             State::BasisOpen(s) => s.area_start(),
             State::Bump(s) => s.area_start(),
+            State::Cardinal(s) => s.area_start(),
+            State::CardinalOpen(s) => s.area_start(),
+            State::CatmullRom(s) => s.area_start(),
+            State::CatmullRomOpen(s) => s.area_start(),
             // d3's closed curves ignore areaStart and areaEnd; `State::area`
             // holds no bundle.
-            State::LinearClosed(_) | State::BasisClosed(_) | State::Bundle(_) => {}
+            State::LinearClosed(_)
+            | State::BasisClosed(_)
+            | State::CardinalClosed(_)
+            | State::CatmullRomClosed(_)
+            | State::Bundle(_) => {}
         }
     }
 
@@ -165,7 +245,15 @@ impl State {
             State::Basis(s) => s.area_end(),
             State::BasisOpen(s) => s.area_end(),
             State::Bump(s) => s.area_end(),
-            State::LinearClosed(_) | State::BasisClosed(_) | State::Bundle(_) => {}
+            State::Cardinal(s) => s.area_end(),
+            State::CardinalOpen(s) => s.area_end(),
+            State::CatmullRom(s) => s.area_end(),
+            State::CatmullRomOpen(s) => s.area_end(),
+            State::LinearClosed(_)
+            | State::BasisClosed(_)
+            | State::CardinalClosed(_)
+            | State::CatmullRomClosed(_)
+            | State::Bundle(_) => {}
         }
     }
 

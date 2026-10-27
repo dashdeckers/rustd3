@@ -302,3 +302,104 @@ fn a_bundle_area_draws_as_basis() {
         area(Curve::Basis, &TOPS)
     );
 }
+
+/// The points of d3's own cardinal tests.
+const ZIGZAG: [(f64, f64); 4] = [(0.0, 1.0), (1.0, 3.0), (2.0, 1.0), (3.0, 3.0)];
+
+#[test]
+fn cardinal_at_tension_zero_passes_through_every_point() {
+    assert_path(
+        &line(Curve::Cardinal { tension: 0.0 }, &PTS),
+        "M0,0C0,0,0.667,1.833,1,2C1.333,2.167,1.667,0.833,2,1C2.333,1.167,3,3,3,3",
+    );
+    assert_path(
+        &line(Curve::Cardinal { tension: 0.0 }, &ZIGZAG),
+        "M0,1C0,1,0.666667,3,1,3C1.333333,3,1.666667,1,2,1C2.333333,1,3,3,3,3",
+    );
+}
+
+#[test]
+fn cardinal_tension_shortens_the_tangents() {
+    assert_path(
+        &line(Curve::Cardinal { tension: 0.5 }, &ZIGZAG),
+        "M0,1C0,1,0.833333,3,1,3C1.166667,3,1.833333,1,2,1C2.166667,1,3,3,3,3",
+    );
+}
+
+#[test]
+fn cardinal_closed_closes_the_spline() {
+    assert_path(
+        &line(Curve::CardinalClosed { tension: 0.0 }, &PTS),
+        "M1,2C1.333,2.167,1.667,0.833,2,1C2.333,1.167,3.333,3.167,3,3\
+         C2.667,2.833,0.333,0.167,0,0C-0.333,-0.167,0.667,1.833,1,2",
+    );
+}
+
+#[test]
+fn cardinal_open_runs_from_the_second_point_to_the_second_to_last() {
+    assert_path(
+        &line(Curve::CardinalOpen { tension: 0.0 }, &PTS),
+        "M1,2C1.333,2.167,1.667,0.833,2,1",
+    );
+}
+
+#[test]
+fn a_cardinal_area_runs_back_along_its_baseline() {
+    assert_path(
+        &area(Curve::Cardinal { tension: 0.0 }, &ZIGZAG[..3]),
+        "M0,1C0,1,0.666667,3,1,3C1.333333,3,2,1,2,1L2,0C2,0,1.333333,0,1,0\
+         C0.666667,0,0,0,0,0Z",
+    );
+}
+
+#[test]
+fn a_cardinal_closed_area_draws_two_closed_splines() {
+    assert_path(
+        &area(Curve::CardinalClosed { tension: 0.0 }, &TOPS),
+        "M1,2C1.333,2.167,2.167,4.667,2,5C1.833,5.333,0.167,4.5,0,4C-0.167,3.5,0.667,1.833,1,2\
+         M1,0C0.667,0,-0.167,0,0,0C0.167,0,1.833,0,2,0C2.167,0,1.333,0,1,0",
+    );
+}
+
+#[test]
+fn catmull_rom_at_half_alpha_is_centripetal() {
+    assert_path(
+        &line(Curve::CatmullRom { alpha: 0.5 }, &PTS),
+        "M0,0C0,0,0.619,1.938,1,2C1.303,2.049,1.697,0.951,2,1C2.381,1.062,3,3,3,3",
+    );
+}
+
+#[test]
+fn catmull_rom_closed_closes_the_spline() {
+    assert_path(
+        &line(Curve::CatmullRomClosed { alpha: 0.5 }, &PTS),
+        "M1,2C1.303,2.049,1.697,0.951,2,1C2.381,1.062,3.112,2.919,3,3\
+         C2.845,3.111,0.155,-0.111,0,0C-0.112,0.081,0.619,1.938,1,2",
+    );
+}
+
+#[test]
+fn catmull_rom_open_runs_from_the_second_point_to_the_second_to_last() {
+    assert_path(
+        &line(Curve::CatmullRomOpen { alpha: 0.5 }, &PTS),
+        "M1,2C1.303,2.049,1.697,0.951,2,1",
+    );
+}
+
+#[test]
+fn catmull_rom_at_alpha_zero_is_the_cardinal_spline_of_tension_zero() {
+    let cardinal = [
+        Curve::Cardinal { tension: 0.0 },
+        Curve::CardinalClosed { tension: 0.0 },
+        Curve::CardinalOpen { tension: 0.0 },
+    ];
+    let catmull_rom = [
+        Curve::CatmullRom { alpha: 0.0 },
+        Curve::CatmullRomClosed { alpha: 0.0 },
+        Curve::CatmullRomOpen { alpha: 0.0 },
+    ];
+    for (a, b) in cardinal.into_iter().zip(catmull_rom) {
+        assert_eq!(line(a, &PTS), line(b, &PTS));
+        assert_eq!(area(a, &TOPS), area(b, &TOPS));
+    }
+}

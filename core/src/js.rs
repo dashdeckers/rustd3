@@ -60,6 +60,11 @@ pub(crate) fn min(a: f64, b: f64) -> f64 {
     }
 }
 
+/// JavaScript's truthiness of a number: false for ±0 and NaN.
+pub(crate) fn truthy(x: f64) -> bool {
+    x != 0.0 && !x.is_nan()
+}
+
 /// `round(x)` as an integer: `Some` iff it is finite and |round(x)| ≤ 2⁵³.
 pub(crate) fn to_int(x: f64) -> Option<i64> {
     let r = round(x);
@@ -79,6 +84,12 @@ mod tests {
         assert_eq!(round(0.499_999_999_999_999_94), 0.0);
         assert!(round(f64::NAN).is_nan());
         assert_eq!(round(f64::INFINITY), f64::INFINITY);
+    }
+
+    #[test]
+    fn truthy_numbers_are_neither_zero_nor_nan() {
+        assert!(truthy(0.5) && truthy(-1.0) && truthy(f64::INFINITY));
+        assert!(!truthy(0.0) && !truthy(-0.0) && !truthy(f64::NAN));
     }
 
     #[test]
