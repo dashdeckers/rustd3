@@ -39,6 +39,8 @@ mod tick_rule;
 mod ticks;
 pub mod transform;
 
+pub(crate) use continuous::polymap;
+
 pub use any::AnyContinuous;
 pub use band::{Band, band};
 pub use continuous::Continuous;

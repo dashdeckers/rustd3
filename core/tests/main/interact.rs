@@ -1,8 +1,10 @@
-//! `interact`: pointer input, d3-zoom's transform and the zoom behavior
-//! against d3-zoom 3.0.0 (d3's `wheeled`, `mousedowned` and `dblclicked`
-//! computed in Node from the vendored sources).
+//! `interact`: pointer input, d3-zoom's transform, the zoom behavior and
+//! `Rescale` against d3-zoom 3.0.0 and d3-scale 4.0.2 (d3's `wheeled`,
+//! `mousedowned`, `dblclicked` and `rescaleX` computed in Node from the
+//! vendored sources), and the pixel-space gestures against their rule.
 
-use rustd3_core::interact::{self, Button, Delta, Modifiers, Pointer, Zoom};
+use rustd3_core::interact::{self, Button, Delta, Modifiers, Pointer, Rescale, Zoom};
+use rustd3_core::scale::{self, AnyContinuous, TickRule};
 use rustd3_testkit::obs::{ToObs, Tolerance};
 
 /// The transform with these fields.
@@ -163,10 +165,12 @@ fn line_wheel_steps_zoom_in_and_out_as_d3() {
 }
 
 #[test]
-fn ctrl_multiplies_a_wheel_step_by_ten() {
+fn ctrl_multiplies_a_wheel_step_by_ten_and_the_scale_rescales_as_d3() {
     let zoomed = wheeled(Delta::Pixels { x: 0.0, y: -10.0 }, Modifiers::CTRL);
     let expected = t(1.148698354997035, -66.91425974866581, -22.30475324955526);
     assert_eq!(zoomed, Some(expected));
+    let visible = x().rescale_x(&expected).get_domain();
+    assert_eq!(visible, [6.067942345494186, 93.12299867510657]);
 }
 
 #[test]
@@ -314,4 +318,191 @@ fn the_scale_extent_bounds_a_double_click() {
     let mut zoom = Zoom::default().scale_extent([0.5, 1.0]);
     let click = Pointer::DoubleClicked { x: 100.0, y: 50.0 };
     assert_eq!(zoom.handle(click, interact::Transform::IDENTITY), None);
+}
+
+/// The spot checks' scale: [0, 100] over 960 px.
+fn x() -> scale::Linear {
+    scale::linear().domain([0.0, 100.0]).range([0.0, 960.0])
+}
+
+/// d3's `log().domain([1, 1000]).range([0, 300])`.
+fn log() -> scale::Log {
+    scale::log().domain([1.0, 1000.0]).range([0.0, 300.0])
+}
+
+/// Whether `a` and `b` agree within 1e-12 relative.
+fn near<const N: usize>(a: [f64; N], b: [f64; N]) -> bool {
+    a.to_obs()
+        .approx_eq(&b.to_obs(), &Tolerance::relative(1e-12))
+}
+
+#[test]
+fn rescale_is_d3s_on_linear_and_log_scales() {
+    let half = interact::Transform::IDENTITY
+        .translate(-480.0, 0.0)
+        .scale(2.0);
+    assert_eq!(x().rescale_x(&half).get_domain(), [25.0, 75.0]);
+    let log_half = interact::Transform::IDENTITY
+        .translate(-150.0, 0.0)
+        .scale(2.0);
+    assert_eq!(
+        log().rescale_x(&log_half).get_domain(),
+        [5.62341325190349, 177.82794100389225]
+    );
+    let y = scale::linear().domain([0.0, 10.0]).range([500.0, 0.0]);
+    let vertical = interact::Transform::IDENTITY
+        .translate(0.0, -250.0)
+        .scale(2.0);
+    assert_eq!(y.rescale_y(&vertical).get_domain(), [2.5, 7.5]);
+    assert_eq!(y.rescale_y(&vertical).get_range(), &[500.0, 0.0]);
+}
+
+#[test]
+fn pixel_gestures_pan_and_zoom_the_domain() {
+    let zoomed = x().zoom_px(480.0, 2.0).map(|s| s.get_domain());
+    assert_eq!(zoomed, Some([25.0, 75.0]));
+    assert_eq!(
+        x().pan_px(96.0).map(|s| s.get_domain()),
+        Some([-10.0, 90.0])
+    );
+    let out = x().zoom_px(0.0, 0.5).map(|s| s.get_domain());
+    assert_eq!(out, Some([0.0, 200.0]));
+    let flipped = scale::linear().domain([100.0, 0.0]).range([0.0, 960.0]);
+    let panned = flipped.pan_px(96.0).expect("a valid pan").get_domain();
+    assert!(near(panned, [110.0, 10.0]));
+}
+
+#[test]
+fn zoom_px_equals_rescale_x_for_an_unclamped_scale() {
+    let half = |anchor: f64| t(2.0, -anchor, 0.0);
+    let log_zoomed = log().zoom_px(150.0, 2.0).map(|s| s.get_domain());
+    assert_eq!(log_zoomed, Some(log().rescale_x(&half(150.0)).get_domain()));
+    assert_eq!(log_zoomed, Some([5.62341325190349, 177.82794100389225]));
+    // t = (k, a·(1 − k), 0) shows at r what zoom_px(a, k) does.
+    for (anchor, factor) in [(480.0, 2.0), (100.0, 3.5), (900.0, 0.25), (-50.0, 1.7)] {
+        let t = t(factor, anchor * (1.0 - factor), 0.0);
+        for scale in [x().into(), AnyContinuous::from(log())] {
+            let gesture = scale.zoom_px(anchor, factor).expect("a valid zoom");
+            assert!(near(gesture.get_domain(), scale.rescale_x(&t).get_domain()));
+        }
+    }
+}
+
+#[test]
+fn a_clamped_scale_cannot_zoom_out_by_rescale_but_can_by_gesture() {
+    let clamped = x().clamp(true);
+    let out = t(0.5, 240.0, 0.0);
+    assert_eq!(clamped.rescale_x(&out).get_domain(), [0.0, 100.0]);
+    let gesture = clamped.zoom_px(480.0, 0.5).map(|s| s.get_domain());
+    assert_eq!(gesture, Some([-50.0, 150.0]));
+}
+
+#[test]
+fn log_gestures_move_in_transformed_space() {
+    let panned = log().pan_px(100.0).expect("a valid pan").get_domain();
+    assert!(near(panned, [0.10000000000000002, 99.99999999999996]));
+    let zoomed = log().zoom_px(0.0, 3.0).expect("a valid zoom").get_domain();
+    assert!(near(zoomed, [1.0, 10.0]));
+}
+
+#[test]
+fn piecewise_stops_move_together() {
+    let s = scale::piecewise([0.0, 10.0, 100.0], [0.0, 480.0, 960.0]);
+    assert_eq!(
+        s.pan_px(48.0).map(|s| s.get_domain()),
+        Some([-1.0, 9.0, 91.0])
+    );
+    let zoomed = s.zoom_px(480.0, 2.0).map(|s| s.get_domain());
+    assert_eq!(zoomed, Some([5.0, 10.0, 55.0]));
+    let half = interact::Transform::IDENTITY
+        .translate(-480.0, 0.0)
+        .scale(2.0);
+    assert_eq!(s.rescale_x(&half).get_domain(), [5.0, 10.0, 55.0]);
+}
+
+#[test]
+fn the_identity_scale_moves_its_one_array() {
+    let s = scale::identity().domain([0.0, 960.0]);
+    let panned = s.pan_px(96.0).expect("a valid pan");
+    assert_eq!(panned.get_domain(), [-96.0, 864.0]);
+    assert_eq!(panned.get_range(), [-96.0, 864.0]);
+    let zoomed = s.zoom_px(480.0, 2.0).map(|s| s.get_domain());
+    assert_eq!(zoomed, Some([240.0, 720.0]));
+    let half = interact::Transform::IDENTITY
+        .translate(-480.0, 0.0)
+        .scale(2.0);
+    let rescaled = s.rescale_x(&half);
+    assert_eq!(rescaled.get_domain(), [240.0, 720.0]);
+    assert_eq!(rescaled.get_range(), [240.0, 720.0]);
+    let down = interact::Transform::IDENTITY.translate(0.0, 60.0);
+    assert_eq!(s.rescale_y(&down).get_domain(), [-60.0, 900.0]);
+}
+
+#[test]
+fn any_continuous_rescales_as_its_transform() {
+    let any: AnyContinuous = log().into();
+    let zoomed = any.zoom_px(150.0, 2.0).map(|s| s.get_domain());
+    assert_eq!(zoomed, log().zoom_px(150.0, 2.0).map(|s| s.get_domain()));
+    let panned = any.pan_px(-30.0).map(|s| s.get_domain());
+    assert_eq!(panned, log().pan_px(-30.0).map(|s| s.get_domain()));
+    let half = t(2.0, -150.0, 0.0);
+    assert_eq!(
+        any.rescale_x(&half).get_domain(),
+        log().rescale_x(&half).get_domain()
+    );
+}
+
+#[test]
+fn a_span_below_two_to_the_minus_forty_of_its_centre_is_rejected() {
+    let unit = scale::linear().range([0.0, 960.0]);
+    let deep = unit.zoom_px(480.0, 1e12).expect("a span of 1e-12");
+    let [a, b] = deep.get_domain();
+    // 1e-12 up to the rounding of 0.5 ± 5e-13.
+    assert!((b - a - 1e-12).abs() < 1e-15, "{}", b - a);
+    assert!(unit.zoom_px(480.0, 1e13).is_none());
+    let identity = scale::identity();
+    assert!(identity.zoom_px(0.5, 1e12).is_some());
+    assert!(identity.zoom_px(0.5, 1e13).is_none());
+}
+
+#[test]
+fn factors_that_are_not_finite_and_positive_are_rejected() {
+    for factor in [-1.0, 0.0, -0.0, f64::INFINITY, f64::NAN] {
+        assert!(x().zoom_px(480.0, factor).is_none(), "{factor}");
+        assert!(scale::identity().zoom_px(0.5, factor).is_none(), "{factor}");
+    }
+    assert!(x().zoom_px(f64::NAN, 2.0).is_none());
+}
+
+#[test]
+fn stops_that_are_not_finite_are_rejected() {
+    for dx in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert!(x().pan_px(dx).is_none(), "{dx}");
+        assert!(scale::identity().pan_px(dx).is_none(), "{dx}");
+    }
+    // e^(±3450): the far end overflows.
+    assert!(log().zoom_px(150.0, 1e-3).is_none());
+}
+
+#[test]
+fn stops_whose_transformed_value_is_not_finite_are_rejected() {
+    // The near end underflows to 0, which log maps to −∞.
+    assert!(log().zoom_px(300.0, 0.009).is_none());
+    assert!(log().zoom_px(300.0, 0.01).is_some());
+}
+
+#[test]
+fn stops_that_leave_the_domains_order_are_rejected() {
+    let square = scale::func(f64::sqrt, |u| u * u, TickRule::Data)
+        .domain([0.0, 100.0])
+        .range([0.0, 100.0]);
+    assert!(square.pan_px(60.0).is_none());
+    assert!(square.pan_px(-60.0).is_some());
+}
+
+#[test]
+fn flat_domains_and_ranges_cannot_move() {
+    assert!(scale::linear().domain([5.0, 5.0]).pan_px(10.0).is_none());
+    assert!(scale::linear().range([0.0, 0.0]).pan_px(10.0).is_none());
+    assert!(scale::identity().domain([3.0, 3.0]).pan_px(1.0).is_none());
 }

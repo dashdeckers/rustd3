@@ -87,6 +87,11 @@ impl<T, R, const N: usize> Continuous<T, R, N> {
             tick_rule: self.tick_rule,
         }
     }
+
+    /// The forward cache: the transform's `forward` of each stop.
+    pub(crate) fn forward(&self) -> &[f64; N] {
+        &self.forward
+    }
 }
 
 impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
@@ -345,8 +350,9 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Asinh, R, N> {
 
 /// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
 /// when the last stop is below the first), normalized within its segment,
-/// and the segment's two `values` blended at that fraction.
-fn polymap<V, const N: usize>(
+/// and the segment's two `values` blended at that fraction. Past the end
+/// stops the end segments extend.
+pub(crate) fn polymap<V, const N: usize>(
     stops: &[f64; N],
     values: &[V; N],
     u: f64,
