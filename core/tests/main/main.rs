@@ -15,6 +15,7 @@ mod format;
 mod fuzz;
 mod interact;
 mod interpolate;
+mod join;
 mod locale;
 mod ordinal;
 mod pad;
