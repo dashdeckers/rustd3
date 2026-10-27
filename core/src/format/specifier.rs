@@ -4,6 +4,11 @@
 use std::fmt;
 use std::str::FromStr;
 
+/// The widest padding a specifier may ask for: V8's maximum string length
+/// on 64-bit targets, 2²⁹ − 24, beyond which d3's padding throws a
+/// `RangeError` instead of allocating.
+const MAX_WIDTH: usize = (1 << 29) - 24;
+
 /// A parsed `[[fill]align][sign][symbol][0][width][,][.precision][~][type]`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Specifier {
@@ -117,7 +122,9 @@ impl FromStr for Specifier {
 
     /// d3's formatSpecifier: the regular expression
     /// `^(?:(.)?([<>=^]))?([+\-( ])?([$#])?(0)?(\d+)?(,)?(\.\d+)?(~)?([a-z%])?$`
-    /// (case-insensitive), with `.` matching no line terminator.
+    /// (case-insensitive), with `.` matching no line terminator. A width
+    /// above 2²⁹ − 24 = 536,870,888 is an error too, where d3 parses it
+    /// and throws a `RangeError` when it pads.
     fn from_str(text: &str) -> Result<Self, InvalidFormat> {
         let c: Vec<char> = text.chars().collect();
         let at = |i: usize| c.get(i).copied();
@@ -140,6 +147,9 @@ impl FromStr for Specifier {
             (spec.zero, i) = (true, i + 1);
         }
         spec.width = digits(&c, &mut i);
+        if spec.width.is_some_and(|width| width > MAX_WIDTH) {
+            return Err(InvalidFormat(text.to_owned()));
+        }
         if at(i) == Some(',') {
             (spec.comma, i) = (true, i + 1);
         }

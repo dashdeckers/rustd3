@@ -90,6 +90,18 @@ fn an_invalid_specifier_is_an_error_carrying_it() {
 }
 
 #[test]
+fn a_width_past_v8s_longest_string_is_an_error() {
+    assert!("536870888".parse::<Specifier>().is_ok());
+    for text in ["536870889", "1000000000000", "99999999999999999999"] {
+        assert_eq!(
+            format::format(text),
+            Err(InvalidFormat(text.to_owned())),
+            "d3 throws a RangeError when {text} pads"
+        );
+    }
+}
+
+#[test]
 fn the_neutral_default_groups_from_five_integer_digits() {
     assert_eq!(neutral(",.1f", 1_234_567.5), "1\u{202f}234\u{202f}567.5");
     assert_eq!(neutral(",.2f", -12345.678), "−12\u{202f}345.68");
