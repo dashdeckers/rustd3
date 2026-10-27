@@ -84,11 +84,13 @@
 #floor d3-scale/test/ordinal-test.js 63
 #floor d3-scale/test/point-test.js 14
 #floor d3-scale/test/pow-test.js 161
+#floor d3-scale/test/quantile-test.js 28
 #floor d3-scale/test/quantize-test.js 28
 #floor d3-scale/test/radial-test.js 0
 #floor d3-scale/test/sequential-test.js 31
 #floor d3-scale/test/sqrt-test.js 3
 #floor d3-scale/test/symlog-test.js 39
+#floor d3-scale/test/threshold-test.js 12
 #floor d3-scale/test/tickFormat-test.js 25
 #floor d3-shape/test/area-test.js 7
 #floor d3-shape/test/curve/basis-test.js 8
@@ -3231,6 +3233,34 @@ d3-scale/test/pow-test.js:438:3
 d3-scale/test/pow-test.js:439:3
 d3-scale/test/pow-test.js:445:3
 d3-scale/test/pow-test.js:446:3
+d3-scale/test/quantile-test.js:6:3
+d3-scale/test/quantile-test.js:7:3
+d3-scale/test/quantile-test.js:13:3
+d3-scale/test/quantile-test.js:14:3
+d3-scale/test/quantile-test.js:15:3
+d3-scale/test/quantile-test.js:16:3
+d3-scale/test/quantile-test.js:18:3
+d3-scale/test/quantile-test.js:19:3
+d3-scale/test/quantile-test.js:20:3
+d3-scale/test/quantile-test.js:21:3
+d3-scale/test/quantile-test.js:26:3
+d3-scale/test/quantile-test.js:31:3
+d3-scale/test/quantile-test.js:46:3
+d3-scale/test/quantile-test.js:51:3
+d3-scale/test/quantile-test.js:56:3
+d3-scale/test/quantile-test.js:58:3
+d3-scale/test/quantile-test.js:63:3
+d3-scale/test/quantile-test.js:64:3
+d3-scale/test/quantile-test.js:87:3
+d3-scale/test/quantile-test.js:88:3
+d3-scale/test/quantile-test.js:89:3
+d3-scale/test/quantile-test.js:90:3
+d3-scale/test/quantile-test.js:103:3
+d3-scale/test/quantile-test.js:104:3
+d3-scale/test/quantile-test.js:105:3
+d3-scale/test/quantile-test.js:111:3
+d3-scale/test/quantile-test.js:112:3
+d3-scale/test/quantile-test.js:113:3
 d3-scale/test/quantize-test.js:8:3
 d3-scale/test/quantize-test.js:9:3
 d3-scale/test/quantize-test.js:10:3
@@ -3332,6 +3362,18 @@ d3-scale/test/symlog-test.js:161:3
 d3-scale/test/symlog-test.js:162:3
 d3-scale/test/symlog-test.js:168:3
 d3-scale/test/symlog-test.js:169:3
+d3-scale/test/threshold-test.js:6:3
+d3-scale/test/threshold-test.js:7:3
+d3-scale/test/threshold-test.js:8:3
+d3-scale/test/threshold-test.js:9:3
+d3-scale/test/threshold-test.js:14:3
+d3-scale/test/threshold-test.js:15:3
+d3-scale/test/threshold-test.js:16:3
+d3-scale/test/threshold-test.js:17:3
+d3-scale/test/threshold-test.js:18:3
+d3-scale/test/threshold-test.js:19:3
+d3-scale/test/threshold-test.js:25:3
+d3-scale/test/threshold-test.js:26:3
 d3-scale/test/tickFormat-test.js:5:3
 d3-scale/test/tickFormat-test.js:6:3
 d3-scale/test/tickFormat-test.js:7:3

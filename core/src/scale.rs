@@ -3,9 +3,9 @@
 //! generic over a public [`Transform`] and the range type; d3's identity
 //! scale; its sequential and diverging scales, a transform followed by an
 //! interpolator such as a color scheme; its band, point and ordinal scales
-//! over an explicit domain of keys; its quantize scale, which cuts a domain
-//! into bins; [`Ticks`], what an axis or a colorbar
-//! needs from any of them; and [`Pad`], a domain fitted to data as
+//! over an explicit domain of keys; its quantize, quantile and threshold
+//! scales, which cut a domain into bins; [`Ticks`], what an axis or a
+//! colorbar needs from any of them; and [`Pad`], a domain fitted to data as
 //! matplotlib autoscales an axis.
 //!
 //! ```
@@ -41,8 +41,10 @@ mod ordinal;
 mod pad;
 mod piecewise;
 mod point;
+mod quantile;
 mod quantize;
 mod sequential;
+mod threshold;
 mod tick_format;
 mod tick_rule;
 mod ticks;
@@ -60,8 +62,10 @@ pub use ordinal::{Ordinal, ordinal};
 pub use pad::Pad;
 pub use piecewise::piecewise;
 pub use point::{Point, point};
+pub use quantile::{Quantile, quantile};
 pub use quantize::{Quantize, quantize};
 pub use sequential::{Sequential, sequential};
+pub use threshold::{Threshold, threshold};
 pub use tick_format::{TickFormat, tick_format};
 pub use tick_rule::TickRule;
 pub use ticks::Ticks;

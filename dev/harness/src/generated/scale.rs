@@ -2616,6 +2616,176 @@ fn t310() {   // quantize-test.js: quantize.invertExtent(y) is exactly consisten
     skip("d3-scale/test/quantize-test.js:120:5", "gap: a function other than of one number returning an expression");
 }
 
+fn t311() {   // quantile-test.js: scaleQuantile() has the expected default
+    let mut s = scale::quantile(Vec::<f64>::new(), Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:7:3", Kind::Strict, &s.get_range().to_vec(), &Vec::<f64>::new());
+    skip("d3-scale/test/quantile-test.js:8:3", "api: unknown values (apply returns None)");
+}
+
+fn t312() {   // quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantile-test.js:13:3", Kind::Strict, &vec![3.0, 6.0, 6.9, 7.0, 7.1].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![0.0, 0.0, 0.0, 0.0, 0.0]);
+    check("d3-scale/test/quantile-test.js:14:3", Kind::Strict, &vec![8.0, 8.9].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![1.0, 1.0]);
+    check("d3-scale/test/quantile-test.js:15:3", Kind::Strict, &vec![9.0, 9.1, 10.0, 13.0].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![2.0, 2.0, 2.0, 2.0]);
+    check("d3-scale/test/quantile-test.js:16:3", Kind::Strict, &vec![14.9, 15.0, 15.1, 16.0, 20.0].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![3.0, 3.0, 3.0, 3.0, 3.0]);
+    s = s.domain(vec![3.0, 6.0, 7.0, 8.0, 8.0, 9.0, 10.0, 13.0, 15.0, 16.0, 20.0]).range(vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantile-test.js:18:3", Kind::Strict, &vec![3.0, 6.0, 6.9, 7.0, 7.1].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![0.0, 0.0, 0.0, 0.0, 0.0]);
+    check("d3-scale/test/quantile-test.js:19:3", Kind::Strict, &vec![8.0, 8.9].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![1.0, 1.0]);
+    check("d3-scale/test/quantile-test.js:20:3", Kind::Strict, &vec![9.0, 9.1, 10.0, 13.0].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![2.0, 2.0, 2.0, 2.0]);
+    check("d3-scale/test/quantile-test.js:21:3", Kind::Strict, &vec![14.9, 15.0, 15.1, 16.0, 20.0].iter().map(|&v| s.apply(v).copied()).collect::<Vec<_>>(), &vec![3.0, 3.0, 3.0, 3.0, 3.0]);
+}
+
+fn t313() {   // quantile-test.js: quantile(x) returns undefined if the input value is NaN
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantile-test.js:26:3", Kind::Strict, &s.apply(f64::NAN).copied(), &Option::<f64>::None);
+}
+
+fn t314() {   // quantile-test.js: quantile.domain() values are sorted in ascending order
+    let mut s = scale::quantile(vec![6.0, 3.0, 7.0, 8.0, 8.0, 13.0, 20.0, 15.0, 16.0, 10.0], Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:31:3", Kind::Strict, &s.get_domain().to_vec(), &vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0]);
+}
+
+fn t315() {   // quantile-test.js: quantile.domain() values are coerced to numbers
+    skip("d3-scale/test/quantile-test.js:36:3", "js: strs values (coercion)");
+}
+
+fn t316() {   // quantile-test.js: quantile.domain() accepts an iterable
+    skip("d3-scale/test/quantile-test.js:41:3", "js: new Set (coercion)");
+}
+
+fn t317() {   // quantile-test.js: quantile.domain() values are allowed to be zero
+    let mut s = scale::quantile([Some(1.0), Some(2.0), Some(0.0), Some(0.0), Option::<f64>::None].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(), Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:46:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 0.0, 1.0, 2.0]);
+}
+
+fn t318() {   // quantile-test.js: quantile.domain() non-numeric values are ignored
+    let mut s = scale::quantile([Some(6.0), Some(3.0), Some(f64::NAN), Option::<f64>::None, Some(7.0), Some(8.0), Some(8.0), Some(13.0), Option::<f64>::None, Some(20.0), Some(15.0), Some(16.0), Some(10.0), Some(f64::NAN)].iter().map(|v| v.unwrap_or(f64::NAN)).collect::<Vec<f64>>(), Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:51:3", Kind::Strict, &s.get_domain().to_vec(), &vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0]);
+}
+
+fn t319() {   // quantile-test.js: quantile.quantiles() returns the inner thresholds
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantile-test.js:56:3", Kind::Strict, &s.quantiles().to_vec(), &vec![7.25, 9.0, 14.5]);
+    s = s.domain(vec![3.0, 6.0, 7.0, 8.0, 8.0, 9.0, 10.0, 13.0, 15.0, 16.0, 20.0]).range(vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantile-test.js:58:3", Kind::Strict, &s.quantiles().to_vec(), &vec![7.5, 9.0, 14.0]);
+}
+
+fn t320() {   // quantile-test.js: quantile.range() cardinality determines the number of quantiles
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:63:3", Kind::Strict, &({ s = s.range(vec![0.0, 1.0, 2.0, 3.0]); s.quantiles().to_vec() }), &vec![7.25, 9.0, 14.5]);
+    check("d3-scale/test/quantile-test.js:64:3", Kind::Strict, &({ s = s.range(vec![0.0, 1.0]); s.quantiles().to_vec() }), &vec![9.0]);
+    skip("d3-scale/test/quantile-test.js:65:3", "js: array hole");
+    skip("d3-scale/test/quantile-test.js:66:3", "js: array hole");
+}
+
+fn t321() {   // quantile-test.js: quantile.range() accepts an iterable
+    skip("d3-scale/test/quantile-test.js:71:3", "js: new Set (coercion)");
+}
+
+fn t322() {   // quantile-test.js: quantile.range() values are arbitrary
+    skip("d3-scale/test/quantile-test.js:79:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantile-test.js:80:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantile-test.js:81:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantile-test.js:82:3", "js: an object compared by identity or valueOf");
+}
+
+fn t323() {   // quantile-test.js: quantile.invertExtent() maps a value in the range to a domain extent
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], vec![0.0, 1.0, 2.0, 3.0]);
+    check("d3-scale/test/quantile-test.js:87:3", Kind::Strict, &s.invert_extent(&0.0), &vec![3.0, 7.25]);
+    check("d3-scale/test/quantile-test.js:88:3", Kind::Strict, &s.invert_extent(&1.0), &vec![7.25, 9.0]);
+    check("d3-scale/test/quantile-test.js:89:3", Kind::Strict, &s.invert_extent(&2.0), &vec![9.0, 14.5]);
+    check("d3-scale/test/quantile-test.js:90:3", Kind::Strict, &s.invert_extent(&3.0), &vec![14.5, 20.0]);
+}
+
+fn t324() {   // quantile-test.js: quantile.invertExtent() allows arbitrary range values
+    skip("d3-scale/test/quantile-test.js:97:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/quantile-test.js:98:3", "js: an object compared by identity or valueOf");
+}
+
+fn t325() {   // quantile-test.js: quantile.invertExtent() returns [NaN, NaN] when the given value is not in the range
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], Vec::<f64>::new());
+    check("d3-scale/test/quantile-test.js:103:3", Kind::Strict, &s.invert_extent(&-1.0).is_none(), &true);
+    check("d3-scale/test/quantile-test.js:104:3", Kind::Strict, &s.invert_extent(&0.5).is_none(), &true);
+    check("d3-scale/test/quantile-test.js:105:3", Kind::Strict, &s.invert_extent(&2.0).is_none(), &true);
+    skip("d3-scale/test/quantile-test.js:106:3", "types: a value of another type than the range's");
+}
+
+fn t326() {   // quantile-test.js: quantile.invertExtent() returns the first match if duplicate values exist in the range
+    let mut s = scale::quantile(vec![3.0, 6.0, 7.0, 8.0, 8.0, 10.0, 13.0, 15.0, 16.0, 20.0], vec![0.0, 1.0, 2.0, 0.0]);
+    check("d3-scale/test/quantile-test.js:111:3", Kind::Strict, &s.invert_extent(&0.0), &vec![3.0, 7.25]);
+    check("d3-scale/test/quantile-test.js:112:3", Kind::Strict, &s.invert_extent(&1.0), &vec![7.25, 9.0]);
+    check("d3-scale/test/quantile-test.js:113:3", Kind::Strict, &s.invert_extent(&2.0), &vec![9.0, 14.5]);
+}
+
+fn t327() {   // quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input
+    skip("d3-scale/test/quantile-test.js:118:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantile-test.js:119:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantile-test.js:120:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantile-test.js:121:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantile-test.js:122:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantile-test.js:123:3", "api: unknown values (apply returns None)");
+    skip("d3-scale/test/quantile-test.js:124:3", "api: unknown values (apply returns None)");
+}
+
+fn t328() {   // threshold-test.js: scaleThreshold() has the expected defaults
+    let mut x = scale::threshold(vec![0.5], vec![0.0, 1.0]);
+    check("d3-scale/test/threshold-test.js:6:3", Kind::Strict, &x.get_domain().to_vec(), &vec![0.5]);
+    check("d3-scale/test/threshold-test.js:7:3", Kind::Strict, &x.get_range().to_vec(), &vec![0.0, 1.0]);
+    check("d3-scale/test/threshold-test.js:8:3", Kind::Strict, &x.apply(0.50).copied(), &1.0);
+    check("d3-scale/test/threshold-test.js:9:3", Kind::Strict, &x.apply(0.49).copied(), &0.0);
+}
+
+fn t329() {   // threshold-test.js: threshold(x) maps a number to a discrete value in the range
+    let mut x = scale::threshold(vec![(1.0 / 3.0), (2.0 / 3.0)], vec!["a", "b", "c"]);
+    check("d3-scale/test/threshold-test.js:14:3", Kind::Strict, &x.apply(0.0).copied(), &"a");
+    check("d3-scale/test/threshold-test.js:15:3", Kind::Strict, &x.apply(0.2).copied(), &"a");
+    check("d3-scale/test/threshold-test.js:16:3", Kind::Strict, &x.apply(0.4).copied(), &"b");
+    check("d3-scale/test/threshold-test.js:17:3", Kind::Strict, &x.apply(0.6).copied(), &"b");
+    check("d3-scale/test/threshold-test.js:18:3", Kind::Strict, &x.apply(0.8).copied(), &"c");
+    check("d3-scale/test/threshold-test.js:19:3", Kind::Strict, &x.apply(1.0).copied(), &"c");
+}
+
+fn t330() {   // threshold-test.js: threshold(x) returns undefined if the specified value x is not orderable
+    let mut x = scale::threshold(vec![(1.0 / 3.0), (2.0 / 3.0)], vec!["a", "b", "c"]);
+    skip("d3-scale/test/threshold-test.js:24:3", "js: 0 arguments to a scale (undefined)");
+    check("d3-scale/test/threshold-test.js:25:3", Kind::Strict, &x.apply(f64::NAN).copied(), &Option::<f64>::None);
+    check("d3-scale/test/threshold-test.js:26:3", Kind::Strict, &x.apply(f64::NAN).copied(), &Option::<f64>::None);
+    skip("d3-scale/test/threshold-test.js:27:3", "js: null (coercion)");
+}
+
+fn t331() {   // threshold-test.js: threshold.domain(…) supports arbitrary orderable values
+    skip("d3-scale/test/threshold-test.js:32:3", "js: strs values (coercion)");
+    skip("d3-scale/test/threshold-test.js:33:3", "js: strs values (coercion)");
+    skip("d3-scale/test/threshold-test.js:34:3", "js: strs values (coercion)");
+    skip("d3-scale/test/threshold-test.js:35:3", "js: strs values (coercion)");
+    skip("d3-scale/test/threshold-test.js:36:3", "js: strs values (coercion)");
+}
+
+fn t332() {   // threshold-test.js: threshold.domain(…) accepts an iterable
+    skip("d3-scale/test/threshold-test.js:41:3", "js: new Set (coercion)");
+}
+
+fn t333() {   // threshold-test.js: threshold.range(…) supports arbitrary values
+    skip("d3-scale/test/threshold-test.js:46:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:47:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:48:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:49:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:50:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:51:3", "js: an object compared by identity or valueOf");
+}
+
+fn t334() {   // threshold-test.js: threshold.range(…) accepts an iterable
+    skip("d3-scale/test/threshold-test.js:56:3", "js: strs values (coercion)");
+}
+
+fn t335() {   // threshold-test.js: threshold.invertExtent(y) returns the domain extent for the specified range value
+    skip("d3-scale/test/threshold-test.js:61:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:62:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:63:3", "js: an object compared by identity or valueOf");
+    skip("d3-scale/test/threshold-test.js:64:3", "js: an object compared by identity or valueOf");
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "linear-test.js: scaleLinear() has the expected defaults", run: t0 },
     Test { name: "linear-test.js: scaleLinear(range) sets the range", run: t1 },
@@ -2928,6 +3098,31 @@ pub const TESTS: &[Test] = &[
     Test { name: "quantize-test.js: quantize.invertExtent() returns [NaN, NaN] when the given value is not in the range", run: t308 },
     Test { name: "quantize-test.js: quantize.invertExtent() returns the first match if duplicate values exist in the range", run: t309 },
     Test { name: "quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)", run: t310 },
+    Test { name: "quantile-test.js: scaleQuantile() has the expected default", run: t311 },
+    Test { name: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", run: t312 },
+    Test { name: "quantile-test.js: quantile(x) returns undefined if the input value is NaN", run: t313 },
+    Test { name: "quantile-test.js: quantile.domain() values are sorted in ascending order", run: t314 },
+    Test { name: "quantile-test.js: quantile.domain() values are coerced to numbers", run: t315 },
+    Test { name: "quantile-test.js: quantile.domain() accepts an iterable", run: t316 },
+    Test { name: "quantile-test.js: quantile.domain() values are allowed to be zero", run: t317 },
+    Test { name: "quantile-test.js: quantile.domain() non-numeric values are ignored", run: t318 },
+    Test { name: "quantile-test.js: quantile.quantiles() returns the inner thresholds", run: t319 },
+    Test { name: "quantile-test.js: quantile.range() cardinality determines the number of quantiles", run: t320 },
+    Test { name: "quantile-test.js: quantile.range() accepts an iterable", run: t321 },
+    Test { name: "quantile-test.js: quantile.range() values are arbitrary", run: t322 },
+    Test { name: "quantile-test.js: quantile.invertExtent() maps a value in the range to a domain extent", run: t323 },
+    Test { name: "quantile-test.js: quantile.invertExtent() allows arbitrary range values", run: t324 },
+    Test { name: "quantile-test.js: quantile.invertExtent() returns [NaN, NaN] when the given value is not in the range", run: t325 },
+    Test { name: "quantile-test.js: quantile.invertExtent() returns the first match if duplicate values exist in the range", run: t326 },
+    Test { name: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", run: t327 },
+    Test { name: "threshold-test.js: scaleThreshold() has the expected defaults", run: t328 },
+    Test { name: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", run: t329 },
+    Test { name: "threshold-test.js: threshold(x) returns undefined if the specified value x is not orderable", run: t330 },
+    Test { name: "threshold-test.js: threshold.domain(…) supports arbitrary orderable values", run: t331 },
+    Test { name: "threshold-test.js: threshold.domain(…) accepts an iterable", run: t332 },
+    Test { name: "threshold-test.js: threshold.range(…) supports arbitrary values", run: t333 },
+    Test { name: "threshold-test.js: threshold.range(…) accepts an iterable", run: t334 },
+    Test { name: "threshold-test.js: threshold.invertExtent(y) returns the domain extent for the specified range value", run: t335 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -4215,4 +4410,83 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/quantize-test.js:112:3", test: "quantize-test.js: quantize.invertExtent() returns the first match if duplicate values exist in the range", skip: None },
     Assertion { id: "d3-scale/test/quantize-test.js:119:5", test: "quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)", skip: Some("gap: a function other than of one number returning an expression") },
     Assertion { id: "d3-scale/test/quantize-test.js:120:5", test: "quantize-test.js: quantize.invertExtent(y) is exactly consistent with quantize(x)", skip: Some("gap: a function other than of one number returning an expression") },
+    Assertion { id: "d3-scale/test/quantile-test.js:6:3", test: "quantile-test.js: scaleQuantile() has the expected default", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:7:3", test: "quantile-test.js: scaleQuantile() has the expected default", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:8:3", test: "quantile-test.js: scaleQuantile() has the expected default", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:13:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:14:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:15:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:16:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:18:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:19:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:20:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:21:3", test: "quantile-test.js: quantile(x) uses the R-7 algorithm to compute quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:26:3", test: "quantile-test.js: quantile(x) returns undefined if the input value is NaN", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:31:3", test: "quantile-test.js: quantile.domain() values are sorted in ascending order", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:36:3", test: "quantile-test.js: quantile.domain() values are coerced to numbers", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:41:3", test: "quantile-test.js: quantile.domain() accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:46:3", test: "quantile-test.js: quantile.domain() values are allowed to be zero", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:51:3", test: "quantile-test.js: quantile.domain() non-numeric values are ignored", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:56:3", test: "quantile-test.js: quantile.quantiles() returns the inner thresholds", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:58:3", test: "quantile-test.js: quantile.quantiles() returns the inner thresholds", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:63:3", test: "quantile-test.js: quantile.range() cardinality determines the number of quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:64:3", test: "quantile-test.js: quantile.range() cardinality determines the number of quantiles", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:65:3", test: "quantile-test.js: quantile.range() cardinality determines the number of quantiles", skip: Some("js: array hole") },
+    Assertion { id: "d3-scale/test/quantile-test.js:66:3", test: "quantile-test.js: quantile.range() cardinality determines the number of quantiles", skip: Some("js: array hole") },
+    Assertion { id: "d3-scale/test/quantile-test.js:71:3", test: "quantile-test.js: quantile.range() accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:79:3", test: "quantile-test.js: quantile.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantile-test.js:80:3", test: "quantile-test.js: quantile.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantile-test.js:81:3", test: "quantile-test.js: quantile.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantile-test.js:82:3", test: "quantile-test.js: quantile.range() values are arbitrary", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantile-test.js:87:3", test: "quantile-test.js: quantile.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:88:3", test: "quantile-test.js: quantile.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:89:3", test: "quantile-test.js: quantile.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:90:3", test: "quantile-test.js: quantile.invertExtent() maps a value in the range to a domain extent", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:97:3", test: "quantile-test.js: quantile.invertExtent() allows arbitrary range values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantile-test.js:98:3", test: "quantile-test.js: quantile.invertExtent() allows arbitrary range values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/quantile-test.js:103:3", test: "quantile-test.js: quantile.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:104:3", test: "quantile-test.js: quantile.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:105:3", test: "quantile-test.js: quantile.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:106:3", test: "quantile-test.js: quantile.invertExtent() returns [NaN, NaN] when the given value is not in the range", skip: Some("types: a value of another type than the range's") },
+    Assertion { id: "d3-scale/test/quantile-test.js:111:3", test: "quantile-test.js: quantile.invertExtent() returns the first match if duplicate values exist in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:112:3", test: "quantile-test.js: quantile.invertExtent() returns the first match if duplicate values exist in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:113:3", test: "quantile-test.js: quantile.invertExtent() returns the first match if duplicate values exist in the range", skip: None },
+    Assertion { id: "d3-scale/test/quantile-test.js:118:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:119:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:120:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:121:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:122:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:123:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/quantile-test.js:124:3", test: "quantile-test.js: quantile.unknown(value) sets the return value for undefined, null, and NaN input", skip: Some("api: unknown values (apply returns None)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:6:3", test: "threshold-test.js: scaleThreshold() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:7:3", test: "threshold-test.js: scaleThreshold() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:8:3", test: "threshold-test.js: scaleThreshold() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:9:3", test: "threshold-test.js: scaleThreshold() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:14:3", test: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:15:3", test: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:16:3", test: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:17:3", test: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:18:3", test: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:19:3", test: "threshold-test.js: threshold(x) maps a number to a discrete value in the range", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:24:3", test: "threshold-test.js: threshold(x) returns undefined if the specified value x is not orderable", skip: Some("js: 0 arguments to a scale (undefined)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:25:3", test: "threshold-test.js: threshold(x) returns undefined if the specified value x is not orderable", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:26:3", test: "threshold-test.js: threshold(x) returns undefined if the specified value x is not orderable", skip: None },
+    Assertion { id: "d3-scale/test/threshold-test.js:27:3", test: "threshold-test.js: threshold(x) returns undefined if the specified value x is not orderable", skip: Some("js: null (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:32:3", test: "threshold-test.js: threshold.domain(…) supports arbitrary orderable values", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:33:3", test: "threshold-test.js: threshold.domain(…) supports arbitrary orderable values", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:34:3", test: "threshold-test.js: threshold.domain(…) supports arbitrary orderable values", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:35:3", test: "threshold-test.js: threshold.domain(…) supports arbitrary orderable values", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:36:3", test: "threshold-test.js: threshold.domain(…) supports arbitrary orderable values", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:41:3", test: "threshold-test.js: threshold.domain(…) accepts an iterable", skip: Some("js: new Set (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:46:3", test: "threshold-test.js: threshold.range(…) supports arbitrary values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:47:3", test: "threshold-test.js: threshold.range(…) supports arbitrary values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:48:3", test: "threshold-test.js: threshold.range(…) supports arbitrary values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:49:3", test: "threshold-test.js: threshold.range(…) supports arbitrary values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:50:3", test: "threshold-test.js: threshold.range(…) supports arbitrary values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:51:3", test: "threshold-test.js: threshold.range(…) supports arbitrary values", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:56:3", test: "threshold-test.js: threshold.range(…) accepts an iterable", skip: Some("js: strs values (coercion)") },
+    Assertion { id: "d3-scale/test/threshold-test.js:61:3", test: "threshold-test.js: threshold.invertExtent(y) returns the domain extent for the specified range value", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:62:3", test: "threshold-test.js: threshold.invertExtent(y) returns the domain extent for the specified range value", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:63:3", test: "threshold-test.js: threshold.invertExtent(y) returns the domain extent for the specified range value", skip: Some("js: an object compared by identity or valueOf") },
+    Assertion { id: "d3-scale/test/threshold-test.js:64:3", test: "threshold-test.js: threshold.invertExtent(y) returns the domain extent for the specified range value", skip: Some("js: an object compared by identity or valueOf") },
 ];
