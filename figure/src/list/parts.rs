@@ -1,8 +1,11 @@
 //! Part hashes: FNV-1a 64 over what each part of a list drew, so that a
 //! figure drawn again from equal data hashes equally and a part drawn
-//! elsewhere or differently does not.
+//! elsewhere or differently does not; and [`Cells`], the canvas cut at
+//! every plot-area edge, with the parts each cell touches, a hash of them
+//! and their raster work, which a widget renders and skips by.
 
 use std::fmt;
+use std::ops::Range;
 
 use kurbo::{Affine, BezPath, PathEl, Point, Rect};
 use peniko::{Brush, FontData, ImageData};
@@ -14,6 +17,164 @@ const BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 
 /// FNV-1a 64's prime.
 const PRIME: u64 = 0x0000_0100_0000_01b3;
+
+/// Path elements per raster work item of a fill or stroke.
+const ELEMENTS: u64 = 16;
+
+/// The canvas cut into cells at device-pixel edges: the column and row
+/// edges, and the cells row-major (cell `row × (cols.len() − 1) + col`).
+/// Plain data.
+///
+/// ```
+/// use rustd3_figure::list::{self, List};
+///
+/// let list = List::default();
+/// let cells = list::cells(&list, &[0.0, 100.0, 200.0], &[0.0, 50.0], 1.0);
+/// assert_eq!(cells.cell_at([100, 10]), Some(1));
+/// assert_eq!(cells.cell_at([200, 10]), None);
+/// ```
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Cells {
+    /// Column edges in device px, increasing.
+    pub cols: Vec<u32>,
+    /// Row edges in device px, increasing.
+    pub rows: Vec<u32>,
+    /// The cells, row-major.
+    pub cells: Vec<Cell>,
+}
+
+/// One cell of [`Cells`]. Plain data.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cell {
+    /// Device px, integer edges.
+    pub rect: Rect,
+    /// Indices into `List::parts` whose device bounds touch the cell.
+    pub parts: Vec<u32>,
+    /// The cell rect and its parts' hashes, in order.
+    pub hash: u64,
+    /// Raster work items of the listed parts.
+    pub work: u64,
+}
+
+impl Cells {
+    /// The cell containing a device pixel; cells are half-open, so a pixel
+    /// on the last edge, or outside the canvas, is in none.
+    pub fn cell_at(&self, device: [i32; 2]) -> Option<usize> {
+        let col = at(&self.cols, device[0])?;
+        let row = at(&self.rows, device[1])?;
+        Some(row * (self.cols.len() - 1) + col)
+    }
+}
+
+/// The canvas of `list` cut at `xs` and `ys` (list px, each snapped to
+/// device px at `scale`: `round(x · scale)`, sorted and deduplicated; edges
+/// that are not finite are ignored, negative ones taken as 0), with each
+/// cell's parts bucketed once: the parts whose bounds in device px,
+/// inflated by one device px for antialiasing, share interior with the
+/// cell. A cell's hash is FNV-1a 64 of its rect and its parts' hashes in
+/// order; its work counts one item per `Fill`, `Stroke` or `Image` command
+/// of its parts plus ⌊elements / 16⌋ of a fill's or stroke's path, one per
+/// point of a `Markers` command and one per glyph of a `Glyphs` command;
+/// a part that touches several cells counts fully in each. Parts that
+/// draw nothing (bounds of no area) touch no cell.
+pub fn cells(list: &List, xs: &[f64], ys: &[f64], scale: f64) -> Cells {
+    let cols = edges(xs, scale);
+    let rows = edges(ys, scale);
+    let (across, down) = (cols.len().saturating_sub(1), rows.len().saturating_sub(1));
+    let mut parts: Vec<Vec<u32>> = vec![Vec::new(); across * down];
+    for (index, part) in list.parts.iter().enumerate() {
+        if part.bounds.area() <= 0.0 {
+            continue;
+        }
+        let device = part.bounds.scale_from_origin(scale).inflate(1.0, 1.0);
+        let index = u32::try_from(index).expect("invariant: a list holds fewer than 2^32 parts");
+        for row in span(&rows, device.y0, device.y1) {
+            for col in span(&cols, device.x0, device.x1) {
+                parts[row * across + col].push(index);
+            }
+        }
+    }
+    let work: Vec<u64> = list
+        .parts
+        .iter()
+        .map(|part| {
+            list.commands
+                .get(part.commands.clone())
+                .unwrap_or(&[])
+                .iter()
+                .map(work)
+                .sum()
+        })
+        .collect();
+    let cells = parts
+        .into_iter()
+        .enumerate()
+        .map(|(i, parts)| {
+            let (row, col) = (i / across, i % across);
+            let rect = Rect::new(
+                f64::from(cols[col]),
+                f64::from(rows[row]),
+                f64::from(cols[col + 1]),
+                f64::from(rows[row + 1]),
+            );
+            let mut fnv = Fnv::default();
+            fnv.rect(rect);
+            for &p in &parts {
+                fnv.u64(list.parts[p as usize].hash);
+            }
+            Cell {
+                rect,
+                hash: fnv.finish(),
+                work: parts.iter().map(|&p| work[p as usize]).sum(),
+                parts,
+            }
+        })
+        .collect();
+    Cells { cols, rows, cells }
+}
+
+/// `values` in device px at `scale`, rounded, sorted and deduplicated.
+fn edges(values: &[f64], scale: f64) -> Vec<u32> {
+    let mut edges: Vec<u32> = values
+        .iter()
+        .map(|v| v * scale)
+        .filter(|v| v.is_finite())
+        // Saturates past u32::MAX; negative edges are 0.
+        .map(|v| v.round().max(0.0) as u32)
+        .collect();
+    edges.sort_unstable();
+    edges.dedup();
+    edges
+}
+
+/// The cells along one axis between `edges` that share interior with
+/// `(lo, hi)`.
+fn span(edges: &[u32], lo: f64, hi: f64) -> Range<usize> {
+    let cells = edges.len().saturating_sub(1);
+    let start = edges
+        .partition_point(|&e| f64::from(e) <= lo)
+        .saturating_sub(1);
+    let end = edges.partition_point(|&e| f64::from(e) < hi).min(cells);
+    start..end.max(start)
+}
+
+/// The cell along one axis between `edges` holding pixel `p`.
+fn at(edges: &[u32], p: i32) -> Option<usize> {
+    let after = edges.partition_point(|&e| i64::from(e) <= i64::from(p));
+    (after > 0 && after < edges.len()).then(|| after - 1)
+}
+
+/// The raster work of one command.
+fn work(command: &Command) -> u64 {
+    let path = |path: &BezPath| 1 + path.elements().len() as u64 / ELEMENTS;
+    match command {
+        Command::Fill { path: p, .. } | Command::Stroke { path: p, .. } => path(p),
+        Command::Image { .. } => 1,
+        Command::Markers { at, .. } => at.len() as u64,
+        Command::Glyphs(run) => run.glyphs.len() as u64,
+        Command::Push { .. } | Command::Pop => 0,
+    }
+}
 
 /// An FNV-1a 64 hash being written: byte-wise, the same on every platform
 /// and Rust version, unlike `std`'s `DefaultHasher`. Numbers go in as their
@@ -329,6 +490,24 @@ fn debug(fnv: &mut Fnv, value: &impl fmt::Debug) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spans_take_the_cells_whose_interior_a_range_shares() {
+        let edges = [0, 100, 200];
+        assert_eq!(span(&edges, -1.0, 50.0), 0..1);
+        assert_eq!(span(&edges, 99.0, 101.0), 0..2);
+        assert_eq!(span(&edges, 100.0, 150.0), 1..2);
+        assert_eq!(span(&edges, 250.0, 300.0), 2..2);
+        assert_eq!(span(&edges, -50.0, -10.0), 0..0);
+        assert_eq!(span(&[], 0.0, 10.0), 0..0);
+    }
+
+    #[test]
+    fn edges_snap_sort_and_drop_duplicates_and_non_finite_values() {
+        let xs = [200.0, 0.0, 99.7, 100.2, f64::NAN, -3.0];
+        assert_eq!(edges(&xs, 1.0), [0, 100, 200]);
+        assert_eq!(edges(&[10.3, 10.5], 1.5), [15, 16]);
+    }
 
     #[test]
     fn fnv_1a_64_matches_its_reference_values() {

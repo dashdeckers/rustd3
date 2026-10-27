@@ -74,6 +74,25 @@ impl Resolved {
             .collect()
     }
 
+    /// Every plot-area edge plus 0 and the size, per axis (x, then y), in
+    /// list px, increasing and each once: where
+    /// [`list::cells`](crate::list::cells) cuts the canvas.
+    pub fn edges(&self) -> (Vec<f64>, Vec<f64>) {
+        let edges = |ends: [f64; 2], of: fn(&kurbo::Rect) -> [f64; 2]| {
+            let mut edges: Vec<f64> = ends
+                .into_iter()
+                .chain(self.areas.iter().flat_map(of))
+                .collect();
+            edges.sort_by(f64::total_cmp);
+            edges.dedup();
+            edges
+        };
+        (
+            edges([0.0, self.size.width], |r| [r.x0, r.x1]),
+            edges([0.0, self.size.height], |r| [r.y0, r.y1]),
+        )
+    }
+
     /// Layout passes until tick counts settled (1..=4).
     pub fn passes(&self) -> usize {
         self.passes

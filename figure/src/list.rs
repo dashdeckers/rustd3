@@ -29,6 +29,7 @@ pub use command::Command;
 pub use error::Error;
 pub use outline::Outlines;
 pub use paints::Paints;
+pub use parts::{Cell, Cells, cells};
 pub use run::{Glyph, GlyphRun};
 
 /// A drawing list: what a figure draws, in logical px, for any backend.
