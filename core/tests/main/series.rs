@@ -1,4 +1,7 @@
-//! Recordings: storage, clocks and appends.
+//! Recordings: storage, clocks, appends and M4, the index's answers
+//! checked against raw scans of the same samples.
+
+mod exact;
 
 use rustd3_core::series::{Clock, Error, Recording};
 
@@ -23,6 +26,81 @@ fn regular(start: f64, period: f64, channels: &[&[f64]]) -> Recording<f64> {
 /// Every sample's x, in order.
 fn xs(rec: &Recording<f64>) -> Vec<f64> {
     (0..rec.len()).map(|i| rec.x(i).expect("i < len")).collect()
+}
+
+/// Column edges in samples and M4's polylines for data-space `edges`, from
+/// channel 0's index.
+fn thinned_by_index(
+    rec: &Recording<f64>,
+    edges: &[f64],
+    valid: impl Fn(f64) -> bool,
+) -> (Vec<usize>, Vec<Vec<usize>>) {
+    let columns = rec.columns(edges).expect("valid edges");
+    let series = rec.series(0).expect("channel 0");
+    let lines = series.m4(&columns, valid).expect("fresh columns");
+    let lines = lines.iter().map(<[usize]>::to_vec).collect();
+    (columns.edges().to_vec(), lines)
+}
+
+/// The raw-scan reference: column edges by `partition_point` over `x`, NaN
+/// runs and per-column extremes by scanning `y`, and M4 as rustd3.md
+/// writes it (Phase 9, Extremes and M4).
+fn m4_scan(
+    x: &[f64],
+    y: &[f64],
+    edges: &[f64],
+    valid: impl Fn(f64) -> bool,
+) -> (Vec<usize>, Vec<Vec<usize>>) {
+    let edges: Vec<usize> = edges.iter().map(|e| x.partition_point(|t| t < e)).collect();
+    let mut runs = Vec::new();
+    let mut start = None;
+    for (i, v) in y.iter().enumerate() {
+        match (v.is_nan(), start) {
+            (false, None) => start = Some(i),
+            (true, Some(s)) => {
+                runs.push((s, i));
+                start = None;
+            }
+            (false, Some(_)) | (true, None) => {}
+        }
+    }
+    runs.extend(start.map(|s| (s, y.len())));
+    let (view_a, view_b) = (edges[0], edges[edges.len() - 1]);
+    let mut lines = Vec::new();
+    for (ra, rb) in runs {
+        if ra >= view_b || rb <= view_a {
+            continue;
+        }
+        let mut line = Vec::new();
+        if ra < view_a {
+            line.push(view_a - 1);
+        }
+        for column in edges.windows(2) {
+            let (a, b) = (column[0].max(ra), column[1].min(rb));
+            if a >= b {
+                continue;
+            }
+            let (mut min, mut max) = (None::<usize>, None::<usize>);
+            for i in (a..b).filter(|&i| valid(y[i])) {
+                if min.is_none_or(|m| y[i] < y[m]) {
+                    min = Some(i);
+                }
+                if max.is_none_or(|m| y[i] > y[m]) {
+                    max = Some(i);
+                }
+            }
+            let mut picks = vec![a, b - 1];
+            picks.extend(min.into_iter().chain(max));
+            picks.sort_unstable();
+            picks.dedup();
+            line.extend(picks);
+        }
+        if rb > view_b {
+            line.push(view_b);
+        }
+        lines.push(line);
+    }
+    (edges, lines)
 }
 
 #[test]
@@ -351,11 +429,10 @@ fn thinned(
     valid: impl Fn(f64) -> bool,
 ) -> (Vec<usize>, Vec<Vec<usize>>) {
     let rec = regular(0.0, 1.0, &[values]);
-    let columns = rec.columns(edges).expect("valid edges");
-    let series = rec.series(0).expect("channel 0");
-    let lines = series.m4(&columns, valid).expect("fresh columns");
-    let lines = lines.iter().map(<[usize]>::to_vec).collect();
-    (columns.edges().to_vec(), lines)
+    let x = xs(&rec);
+    let thinned = thinned_by_index(&rec, edges, &valid);
+    assert_eq!(thinned, m4_scan(&x, values, edges, &valid), "the raw scan");
+    thinned
 }
 
 #[test]
