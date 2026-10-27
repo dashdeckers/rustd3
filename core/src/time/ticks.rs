@@ -53,6 +53,23 @@ const TABLE: [(Interval, i128); 18] = [
 /// below a second, milliseconds, microseconds or nanoseconds stepped by it
 /// (d3 stops at whole milliseconds). The choice depends on the span alone;
 /// a zone applies where the interval floors and steps, as in [`ticks`].
+///
+/// ```
+/// use rustd3_core::jiff::{SignedDuration, Timestamp};
+/// use rustd3_core::time::{self, Interval};
+///
+/// let t0: Timestamp = "2026-10-25T12:00:00Z".parse()?;
+/// let after = |d: SignedDuration| t0 + d;
+/// let day = after(SignedDuration::from_hours(25));
+/// assert_eq!(time::tick_interval(t0, day, 8), Interval::Hour(3));
+/// let century = after(SignedDuration::from_hours(24 * 365 * 100));
+/// assert_eq!(time::tick_interval(t0, century, 5), Interval::Year(20));
+/// let micros = after(SignedDuration::from_micros(10));
+/// assert_eq!(time::tick_interval(t0, micros, 5), Interval::Microsecond(2));
+/// let nanos = after(SignedDuration::from_nanos(100));
+/// assert_eq!(time::tick_interval(t0, nanos, 10), Interval::Nanosecond(10));
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 #[doc(alias = "timeTickInterval")]
 pub fn tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
     let span = (stop.as_nanosecond() - start.as_nanosecond()).abs();
@@ -86,6 +103,27 @@ pub fn tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interva
 /// from `start` to `stop`, both included, in the order of `start → stop`;
 /// at most `min(10·count, 10_000)`, so a count of 0 gives none. Equal
 /// ends give one tick.
+///
+/// Eight days in Los Angeles take every other day of the month at local
+/// midnight; the `utc` twin counts days from 1970-01-01, as d3's does.
+///
+/// ```
+/// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+/// use rustd3_core::time;
+///
+/// // Los Angeles' rules since 2007, without a time zone database.
+/// let la = TimeZone::posix("PST8PDT,M3.2.0,M11.1.0")?;
+/// let at = |s: &str| s.parse::<Timestamp>();
+/// let (start, stop) = (at("2011-01-01T08:00:00Z")?, at("2011-01-09T08:00:00Z")?);
+/// let days = |ticks: Vec<Timestamp>| -> Vec<String> {
+///     ticks.iter().map(|t| t.to_string()[8..13].to_owned()).collect()
+/// };
+/// let local = time::ticks(start, stop, 4, &la);
+/// assert_eq!(days(local), ["01T08", "03T08", "05T08", "07T08", "09T08"]);
+/// assert_eq!(days(time::utc_ticks(start, stop, 4)), ["02T00", "04T00", "06T00", "08T00"]);
+/// assert!(time::ticks(start, stop, 0, &la).is_empty());
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 #[doc(alias = "timeTicks")]
 pub fn ticks(start: Timestamp, stop: Timestamp, count: usize, zone: &TimeZone) -> Vec<Timestamp> {
     let interval = tick_interval(start, stop, count);

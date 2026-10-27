@@ -41,6 +41,25 @@ impl Time {
     /// d3's `nice(count)`: [`nice_with`](Time::nice_with) the
     /// [`tick_interval`](Time::tick_interval) of `count`. A count of 0 has
     /// no interval in d3 and leaves the domain as it is.
+    ///
+    /// A day in Los Angeles from 00:12 to 23:48 extends to local midnights,
+    /// or with weeks to the Sundays around it:
+    ///
+    /// ```
+    /// use rustd3_core::jiff::{Timestamp, civil::Weekday, tz::TimeZone};
+    /// use rustd3_core::time::{self, Interval};
+    ///
+    /// let la = TimeZone::posix("PST8PDT,M3.2.0,M11.1.0")?;
+    /// let at = |s: &str| s.parse::<Timestamp>();
+    /// let day = [at("2009-01-01T08:12:00Z")?, at("2009-01-02T07:48:00Z")?];
+    /// let x = time::time(la).domain(day);
+    /// let midnights = [at("2009-01-01T08:00:00Z")?, at("2009-01-02T08:00:00Z")?];
+    /// assert_eq!(x.clone().nice(10).get_domain(), midnights);
+    /// let weeks = x.clone().nice_with(Interval::Week(Weekday::Sunday, 1)).get_domain();
+    /// assert_eq!(weeks, [at("2008-12-28T08:00:00Z")?, at("2009-01-04T08:00:00Z")?]);
+    /// assert_eq!(x.clone().nice(0), x);
+    /// # Ok::<(), rustd3_core::jiff::Error>(())
+    /// ```
     pub fn nice(self, count: usize) -> Self {
         let interval = self.tick_interval(count);
         self.nice_with(interval)

@@ -44,6 +44,31 @@ pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};
 /// as a multiple of the unit since the epoch; the others keep the
 /// boundaries whose field is a multiple of the step, as d3's filtered
 /// intervals do.
+///
+/// Days follow the local calendar: in Los Angeles the Sunday daylight
+/// saving time starts on is 23 hours long, and still one day.
+///
+/// ```
+/// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+/// use rustd3_core::time::Interval;
+///
+/// let la = TimeZone::posix("PST8PDT,M3.2.0,M11.1.0")?;
+/// let at = |s: &str| s.parse::<Timestamp>();
+/// let saturday = at("2011-03-12T08:00:00Z")?; // local midnight
+/// let day = Interval::Day(1);
+/// assert_eq!(day.offset(saturday, 1, &la), Some(at("2011-03-13T08:00:00Z")?));
+/// assert_eq!(day.offset(saturday, 2, &la), Some(at("2011-03-14T07:00:00Z")?));
+/// assert_eq!(day.floor(at("2011-03-13T20:00:00Z")?, &la), Some(at("2011-03-13T08:00:00Z")?));
+/// assert_eq!(day.count(saturday, at("2011-03-14T07:00:00Z")?, &la), Some(2));
+/// // every(k) keeps boundaries whose field is a multiple of k.
+/// let every_other = day.every(2).expect("a step of 2");
+/// let odd_days: Vec<Timestamp> =
+///     every_other.range(saturday, at("2011-03-18T07:00:00Z")?, &la).collect();
+/// let expected = ["2011-03-13T08:00:00Z", "2011-03-15T07:00:00Z", "2011-03-17T07:00:00Z"];
+/// assert_eq!(odd_days, expected.map(|s| s.parse::<Timestamp>().expect("an instant")));
+/// assert_eq!(day.every(0), None);
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Interval {
     /// Multiples of `k` nanoseconds since the epoch.
@@ -111,6 +136,25 @@ pub fn time(zone: TimeZone) -> Time {
 /// d3.scaleUtc: domain 2000-01-01T00:00Z to 2000-01-02T00:00Z, range
 /// [0, 1], ticks laid out in UTC with d3's utc intervals (days counted from
 /// 1970-01-01, `UnixDay`).
+///
+/// It differs from `time(TimeZone::UTC)` only in its ticks' days:
+///
+/// ```
+/// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+/// use rustd3_core::time::{self, Interval};
+///
+/// let week: [Timestamp; 2] = ["2011-01-01T00:00:00Z".parse()?, "2011-01-09T00:00:00Z".parse()?];
+/// let day_of_month = |x: &time::Time| -> Vec<i8> {
+///     x.ticks(4).iter().map(|&t| x.get_zone().to_datetime(t).day()).collect()
+/// };
+/// let unix = time::utc().domain(week);
+/// assert_eq!(unix.tick_interval(4), Interval::UnixDay(2));
+/// assert_eq!(day_of_month(&unix), [2, 4, 6, 8]);
+/// let calendar = time::time(TimeZone::UTC).domain(week);
+/// assert_eq!(calendar.tick_interval(4), Interval::Day(2));
+/// assert_eq!(day_of_month(&calendar), [1, 3, 5, 7, 9]);
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 #[doc(alias = "scaleUtc")]
 pub fn utc() -> Time {
     Time::new(default_domain(&TimeZone::UTC), TimeZone::UTC, true)

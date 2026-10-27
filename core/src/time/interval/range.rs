@@ -13,6 +13,23 @@ use crate::time::Interval;
 /// range ends at the first that is not strictly between the previous one
 /// and `stop`, or that leaves jiff's range. It owns a clone of the zone,
 /// which shares jiff's data.
+///
+/// A day holds 86.4 trillion nanoseconds; taking the first three computes
+/// three.
+///
+/// ```
+/// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+/// use rustd3_core::time::Interval;
+///
+/// let at = |s: &str| s.parse::<Timestamp>();
+/// let (start, stop) = (at("2026-10-25T00:00:00Z")?, at("2026-10-26T00:00:00Z")?);
+/// let mut nanos = Interval::Nanosecond(1).range(start, stop, &TimeZone::UTC);
+/// assert_eq!(nanos.nth(2), Some(at("2026-10-25T00:00:00.000000002Z")?));
+/// let hours = Interval::Hour(1).range_step(start, stop, 6, &TimeZone::UTC);
+/// let six_hourly: Vec<i8> = hours.map(|t| t.to_zoned(TimeZone::UTC).hour()).collect();
+/// assert_eq!(six_hourly, [0, 6, 12, 18]);
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 #[derive(Debug, Clone)]
 pub struct Range {
     interval: Interval,
