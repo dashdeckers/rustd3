@@ -64,8 +64,13 @@ impl Transform {
     }
 
     /// d3's `transform.translate(x, y)`: translated by (`x`, `y`) in data
-    /// units, which this scale factor multiplies.
+    /// units, which this scale factor multiplies. A zero translation
+    /// returns the transform unchanged, as in d3 (so −0 and an infinite
+    /// `k` stay as they are).
     pub fn translate(self, x: f64, y: f64) -> Self {
+        if x == 0.0 && y == 0.0 {
+            return self;
+        }
         Transform {
             x: self.x + self.k * x,
             y: self.y + self.k * y,
