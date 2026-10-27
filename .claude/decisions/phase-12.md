@@ -47,7 +47,7 @@ panic.
 
 ## D12.1 — Statements of Phase 12 that do not hold as written, or leave a detail open
 
-**Date:** 2026-10-27 · **Context:** Phase 12, steps 1–7 (5a9d40a … e8b99de) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 12, steps 1–7 (5a9d40a … e8b99de) · **Status:** decided
 
 ### Issue
 
@@ -141,7 +141,12 @@ panic.
 
 ### Decision
 
-Recommended: A for all fourteen, already built.
+A for all fourteen (architect, 2026-10-27), as built. Renders are
+`TooLarge` above 65,408 device px per side (vello_cpu 0.3.0's limit);
+paint of markers and glyph runs is placed in the group's space for
+every command, the rule Phase 37's PDF output follows; image brushes
+draw on vello only and are `Unsupported` elsewhere; `raster::Error`
+gains `Length`.
 
 ### Why
 
