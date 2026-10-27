@@ -337,3 +337,215 @@ fn explicit_locate_equals_partition_point_across_chunks_and_duplicates() {
         );
     }
 }
+
+/// The spot checks' channel y: two NaN at 4 and 5.
+const Y: [f64; 10] = [0.0, 5.0, -1.0, 3.0, f64::NAN, f64::NAN, 2.0, 8.0, 1.0, 4.0];
+
+/// The spot checks' channel a: no NaN.
+const A: [f64; 10] = [0.0, 5.0, -1.0, 3.0, 1.0, 2.0, 2.0, 8.0, 1.0, 4.0];
+
+/// Column edges in samples and M4's polylines for data-space `edges`.
+fn thinned(
+    values: &[f64],
+    edges: &[f64],
+    valid: impl Fn(f64) -> bool,
+) -> (Vec<usize>, Vec<Vec<usize>>) {
+    let rec = regular(0.0, 1.0, &[values]);
+    let columns = rec.columns(edges).expect("valid edges");
+    let series = rec.series(0).expect("channel 0");
+    let lines = series.m4(&columns, valid).expect("fresh columns");
+    let lines = lines.iter().map(<[usize]>::to_vec).collect();
+    (columns.edges().to_vec(), lines)
+}
+
+#[test]
+fn m4_keeps_first_extremes_and_last_per_column_and_run() {
+    let all = |_| true;
+    let (edges, lines) = thinned(&Y, &[0.0, 5.0, 10.0], all);
+    assert_eq!(
+        (edges, lines),
+        (vec![0, 5, 10], vec![vec![0, 1, 2, 3], vec![6, 7, 8, 9]])
+    );
+    let (edges, lines) = thinned(&A, &[0.0, 5.0, 10.0], all);
+    assert_eq!(
+        (edges, lines),
+        (vec![0, 5, 10], vec![vec![0, 1, 2, 4, 5, 7, 8, 9]])
+    );
+}
+
+#[test]
+fn m4_reaches_one_sample_past_the_view_inside_the_run() {
+    let (edges, lines) = thinned(&Y, &[1.5, 5.0, 8.5], |_| true);
+    assert_eq!(
+        (edges, lines),
+        (vec![2, 5, 9], vec![vec![1, 2, 3], vec![6, 7, 8, 9]])
+    );
+    let (edges, lines) = thinned(&A, &[3.2, 3.4], |_| true);
+    assert_eq!((edges, lines), (vec![4, 4], vec![vec![3, 4]]));
+    let (edges, lines) = thinned(&Y, &[4.2, 4.8], |_| true);
+    assert_eq!((edges, lines), (vec![5, 5], vec![]));
+    let (edges, lines) = thinned(&Y, &[3.5, 3.6], |_| true);
+    assert_eq!((edges, lines), (vec![4, 4], vec![]));
+}
+
+#[test]
+fn m4_filters_extremes_but_not_a_columns_first_and_last_samples() {
+    let (_, lines) = thinned(&Y, &[0.0, 5.0, 10.0], |v| v > 0.0);
+    assert_eq!(lines, [vec![0, 1, 3], vec![6, 7, 8, 9]]);
+    let (_, lines) = thinned(&Y, &[0.0, 5.0, 10.0], |v| v > 100.0);
+    assert_eq!(lines, [vec![0, 3], vec![6, 9]]);
+}
+
+#[test]
+fn column_edges_are_clamped_by_locate() {
+    let (edges, lines) = thinned(&A, &[-1.0, 20.0], |_| true);
+    assert_eq!((edges, lines), (vec![0, 10], vec![vec![0, 2, 7, 9]]));
+}
+
+#[test]
+fn a_column_of_one_sample_emits_that_sample() {
+    let (edges, lines) = thinned(&A, &[0.0, 0.5, 1.5, 10.0], |_| true);
+    assert_eq!(
+        (edges, lines),
+        (vec![0, 1, 2, 10], vec![vec![0, 1, 2, 7, 9]])
+    );
+}
+
+#[test]
+fn extent_and_extremes_ignore_nan() {
+    let rec = regular(0.0, 1.0, &[&Y]);
+    let s = rec.series(0).expect("channel 0");
+    assert_eq!(s.extent(), Some([-1.0, 8.0]));
+    let found = s.extremes(0..10, |_| true).expect("values");
+    assert_eq!((found.min(), found.max()), ((2, -1.0), (7, 8.0)));
+    assert_eq!(s.extremes(4..6, |_| true), None);
+    assert_eq!(s.extremes(3..5, |v| v < 0.0), None);
+    let found = s.extremes(8..100, |_| true).expect("clamped");
+    assert_eq!((found.min(), found.max()), ((8, 1.0), (9, 4.0)));
+    assert_eq!(s.extremes(20..30, |_| true), None);
+    let nan = regular(0.0, 1.0, &[&[f64::NAN; 300]]);
+    assert_eq!(nan.series(0).expect("channel 0").extent(), None);
+}
+
+#[test]
+fn ties_pick_the_earliest_sample_in_raw_scans_and_nodes() {
+    let mut values = vec![5.0; 1000];
+    for i in [130, 70, 600] {
+        values[i] = -1.0;
+    }
+    for i in [900, 500, 64] {
+        values[i] = 9.0;
+    }
+    let rec = regular(0.0, 1.0, &[&values]);
+    let s = rec.series(0).expect("channel 0");
+    let picks = |samples| {
+        let found = s.extremes(samples, |_| true).expect("values");
+        (found.min(), found.max())
+    };
+    assert_eq!(picks(0..1000), ((70, -1.0), (64, 9.0)));
+    assert_eq!(picks(71..1000), ((130, -1.0), (500, 9.0)));
+    assert_eq!(picks(131..899), ((600, -1.0), (500, 9.0)));
+    assert_eq!(picks(601..1000), ((601, 5.0), (900, 9.0)));
+    assert_eq!(picks(1..64), ((1, 5.0), (1, 5.0)));
+    let zeros = regular(0.0, 1.0, &[&[0.0, -0.0, 0.0]]);
+    let found = zeros.series(0).expect("channel 0").extremes(0..3, |_| true);
+    assert_eq!(found.map(|f| (f.min().0, f.max().0)), Some((0, 0)));
+}
+
+#[test]
+fn infinite_samples_are_values_not_gaps() {
+    let values = [1.0, f64::INFINITY, f64::NEG_INFINITY, 2.0];
+    let rec = regular(0.0, 1.0, &[&values]);
+    let s = rec.series(0).expect("channel 0");
+    assert_eq!(s.extent(), Some([f64::NEG_INFINITY, f64::INFINITY]));
+    assert!(s.runs(0..4).eq(std::iter::once(0..4)));
+    let (_, lines) = thinned(&values, &[0.0, 4.0], |v| v.is_finite());
+    assert_eq!(lines, [vec![0, 3]]);
+}
+
+#[test]
+fn runs_are_the_nan_free_ranges_of_the_samples_asked_for() {
+    let rec = regular(0.0, 1.0, &[&Y]);
+    let s = rec.series(0).expect("channel 0");
+    assert_eq!(s.runs(0..10).collect::<Vec<_>>(), [0..4, 6..10]);
+    assert_eq!(s.runs(2..7).collect::<Vec<_>>(), [2..4, 6..7]);
+    assert_eq!(s.runs(4..6).count(), 0);
+    assert!(s.runs(7..100).eq(std::iter::once(7..10)));
+}
+
+#[test]
+fn a_series_reads_its_channel_on_the_recordings_clock() {
+    let rec = Recording::new(
+        Clock::Explicit(vec![0.5, 1.5, 4.0]),
+        [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+    )
+    .expect("valid recording");
+    let s = rec.series(1).expect("channel 1");
+    assert!(rec.series(2).is_none());
+    assert_eq!((s.channel(), s.len(), s.is_empty()), (1, 3, false));
+    assert_eq!(s.recording().id(), rec.id());
+    assert_eq!((s.get(2), s.get(3)), (Some((4.0, 6.0)), None));
+    assert_eq!(
+        s.iter().collect::<Vec<_>>(),
+        [(0.5, 4.0), (1.5, 5.0), (4.0, 6.0)]
+    );
+}
+
+#[test]
+fn column_edges_must_number_two_and_be_valid_and_ordered() {
+    let rec = regular(0.0, 1.0, &[&A]);
+    assert_eq!(rec.columns(&[]), Err(Error::Edges(0)));
+    assert_eq!(rec.columns(&[1.0]), Err(Error::Edges(1)));
+    assert_eq!(
+        rec.columns(&[2.0, 1.0]),
+        Err(Error::Edge {
+            index: 1,
+            value: 1.0
+        })
+    );
+    assert_eq!(
+        rec.columns(&[0.0, f64::INFINITY]),
+        Err(Error::Edge {
+            index: 1,
+            value: f64::INFINITY
+        })
+    );
+    assert!(
+        matches!(rec.columns(&[f64::NAN, 1.0]), Err(Error::Edge { index: 0, value }) if value.is_nan())
+    );
+    let columns = rec.columns(&[1.0, 1.0, 5.0]).expect("valid edges");
+    assert_eq!((columns.len(), columns.samples()), (2, 1..5));
+}
+
+#[test]
+fn columns_from_another_revision_or_recording_are_stale() {
+    let mut rec = regular(0.0, 1.0, &[&A]);
+    let columns = rec.columns(&[0.0, 10.0]).expect("valid edges");
+    let other = regular(0.0, 1.0, &[&A]);
+    let err = other.series(0).expect("channel 0").m4(&columns, |_| true);
+    assert_eq!(
+        err,
+        Err(Error::Stale {
+            recording: rec.id(),
+            built: 0,
+            current: 0
+        })
+    );
+    rec.extend(&[], [[1.0]]).expect("an append");
+    let err = rec.series(0).expect("channel 0").m4(&columns, |_| true);
+    assert_eq!(
+        err,
+        Err(Error::Stale {
+            recording: rec.id(),
+            built: 0,
+            current: 1
+        })
+    );
+    let columns = rec.columns(&[0.0, 10.0]).expect("valid edges");
+    assert!(
+        rec.series(0)
+            .expect("channel 0")
+            .m4(&columns, |_| true)
+            .is_ok()
+    );
+}

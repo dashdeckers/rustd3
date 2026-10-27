@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::series::channel::Channel;
 use crate::series::chunks::Chunks;
-use crate::series::{CHUNK, Clock, Coordinate, Error};
+use crate::series::{CHUNK, Clock, Columns, Coordinate, Error, Series};
 
 /// The most samples a recording retains: the index's offsets are `u32`.
 const MAX: u64 = u32::MAX as u64;
@@ -145,6 +145,11 @@ impl<X: Coordinate> Recording<X> {
         dropped
     }
 
+    /// A view of channel `channel`, or `None` if there is no such channel.
+    pub fn series(&self, channel: usize) -> Option<Series<'_, X>> {
+        (channel < self.channels.len()).then(|| Series::new(self, channel))
+    }
+
     /// The number of samples, the same in every channel.
     pub fn len(&self) -> usize {
         self.len
@@ -202,6 +207,29 @@ impl<X: Coordinate> Recording<X> {
     /// The first and last x, if there are samples.
     pub fn x_extent(&self) -> Option<[X; 2]> {
         Some([self.x(0)?, self.x(self.len.checked_sub(1)?)?])
+    }
+
+    /// Column boundaries in samples for data-space `edges` (≥ 2,
+    /// non-decreasing): each edge maps to `locate(edge)`, so an edge below
+    /// `x(0)` gives 0 and one above the last x gives `len`.
+    pub fn columns(&self, edges: &[X]) -> Result<Columns, Error<X>> {
+        if edges.len() < 2 {
+            return Err(Error::Edges(edges.len()));
+        }
+        let mut previous = None;
+        for (index, &value) in edges.iter().enumerate() {
+            if !value.is_valid() || previous.is_some_and(|previous| previous > value) {
+                return Err(Error::Edge { index, value });
+            }
+            previous = Some(value);
+        }
+        let samples = edges.iter().map(|&edge| self.locate(edge)).collect();
+        Ok(Columns::new(self.id, self.revision, samples))
+    }
+
+    /// Channel `i`, which must exist.
+    pub(crate) fn channel(&self, i: usize) -> &Channel {
+        &self.channels[i]
     }
 
     /// Validates an append of `x` and `channels`, then stores it.

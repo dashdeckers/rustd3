@@ -1,5 +1,7 @@
 //! Long data: recordings of `f64` channels on one clock, held in chunks
-//! that appends never move and that `drop_front` removes whole.
+//! that appends never move and that `drop_front` removes whole; `Copy`
+//! views of one channel; and M4 thinning per column, answered by an exact
+//! index that grows with every append.
 //!
 //! ```
 //! use rustd3_core::series::{Clock, Error, Recording};
@@ -17,14 +19,19 @@
 mod channel;
 mod chunks;
 mod clock;
+mod columns;
 mod error;
 mod index;
+pub mod m4;
 mod recording;
 mod runs;
+mod view;
 
 pub use clock::{Clock, Coordinate};
+pub use columns::Columns;
 pub use error::Error;
 pub use recording::{Id, Recording};
+pub use view::Series;
 
 /// Samples per chunk: storage grows and drops by whole chunks.
 const CHUNK: usize = 65_536;

@@ -1,8 +1,11 @@
 //! One channel of a recording: its samples in chunks, their M4 index and
 //! their NaN-free runs.
 
+use std::ops::Range;
+
 use crate::series::chunks::Chunks;
 use crate::series::index::Index;
+use crate::series::m4::Extremes;
 use crate::series::runs::Runs;
 
 /// One channel's samples (NaN is a gap), indexed as they arrive.
@@ -14,6 +17,26 @@ pub(crate) struct Channel {
 }
 
 impl Channel {
+    /// Sample `i`, if there is one.
+    pub(crate) fn get(&self, i: usize) -> Option<f64> {
+        self.values.get(i)
+    }
+
+    /// The NaN-free runs.
+    pub(crate) fn runs(&self) -> &Runs {
+        &self.runs
+    }
+
+    /// The earliest minimum and maximum of `samples` (within the channel)
+    /// among those that pass `valid`, from the index.
+    pub(crate) fn extremes(
+        &self,
+        samples: Range<usize>,
+        valid: &impl Fn(f64) -> bool,
+    ) -> Option<Extremes> {
+        self.index.extremes(&self.values, samples, valid)
+    }
+
     /// Appends `values`, pushing the index nodes and runs they complete.
     pub(crate) fn extend(&mut self, values: &[f64]) {
         let first = self.values.len();
@@ -66,9 +89,13 @@ mod tests {
             let fresh = channel(&values[chunks * CHUNK..]);
             assert_eq!(dropped.values.len(), n - chunks * CHUNK);
             assert_eq!(dropped.index.bits(), fresh.index.bits(), "{chunks} chunks");
-            assert_eq!(dropped.runs.all(), fresh.runs.all(), "{chunks} chunks");
+            assert_eq!(
+                dropped.runs.overlapping(0..n),
+                fresh.runs.overlapping(0..n),
+                "{chunks} chunks"
+            );
             let first = 9_973 - chunks * CHUNK % 9_973;
-            assert_eq!(dropped.runs.all()[0], 0..first);
+            assert_eq!(dropped.runs.overlapping(0..n)[0], 0..first);
         }
     }
 }

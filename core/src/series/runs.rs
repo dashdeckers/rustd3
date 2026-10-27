@@ -43,10 +43,13 @@ impl Runs {
         }
     }
 
-    /// Every run.
-    #[cfg(test)]
-    pub(crate) fn all(&self) -> &[Range<usize>] {
-        &self.ranges
+    /// The runs that overlap `samples`, whole: those that end after its
+    /// start and start before its end (for an empty `samples`, those that
+    /// hold samples on both sides of it).
+    pub(crate) fn overlapping(&self, samples: Range<usize>) -> &[Range<usize>] {
+        let first = self.ranges.partition_point(|run| run.end <= samples.start);
+        let last = self.ranges.partition_point(|run| run.start < samples.end);
+        &self.ranges[first..last.max(first)]
     }
 }
 

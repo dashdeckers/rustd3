@@ -3,9 +3,11 @@
 
 use std::fmt;
 use std::mem;
+use std::ops::Range;
 
 use crate::series::BLOCK;
 use crate::series::chunks::Chunks;
+use crate::series::m4::Extremes;
 
 /// Levels `0..=L`: level 0 holds one node per complete block, and node j of
 /// level k covers blocks `[j·2ᵏ, (j+1)·2ᵏ)`. Only complete nodes are
@@ -40,6 +42,16 @@ struct Node {
 enum Extreme {
     Min,
     Max,
+}
+
+/// One extremes query: the running minimum and maximum as (sample, value),
+/// fed in sample order.
+struct Query<'a, F> {
+    index: &'a Index,
+    values: &'a Chunks<f64>,
+    valid: &'a F,
+    min: Option<(usize, f64)>,
+    max: Option<(usize, f64)>,
 }
 
 /// A summary: the levels, nodes and bytes rather than every node.
@@ -86,6 +98,44 @@ impl Index {
             .iter()
             .map(|level| level.len() * Level::NODE)
             .sum()
+    }
+
+    /// The earliest minimum and maximum of the samples in `samples` (within
+    /// `values`) that are not NaN and pass `valid`. The partial blocks at
+    /// both ends are scanned raw and the full blocks between them read
+    /// from the largest aligned nodes, left to right; a node whose stored
+    /// extreme fails `valid` descends to its children for that extreme, and
+    /// a failing leaf is scanned raw.
+    pub(crate) fn extremes(
+        &self,
+        values: &Chunks<f64>,
+        samples: Range<usize>,
+        valid: &impl Fn(f64) -> bool,
+    ) -> Option<Extremes> {
+        let mut query = Query {
+            index: self,
+            values,
+            valid,
+            min: None,
+            max: None,
+        };
+        let (first, last) = (samples.start.div_ceil(BLOCK), samples.end / BLOCK);
+        if first >= last {
+            query.scan(&Extreme::BOTH, samples);
+        } else {
+            query.scan(&Extreme::BOTH, samples.start..first * BLOCK);
+            let mut block = first;
+            while block < last {
+                // The largest node that starts at `block` and ends by `last`.
+                let k = block.trailing_zeros().min((last - block).ilog2());
+                for extreme in Extreme::BOTH {
+                    query.node(extreme, k as usize, block >> k);
+                }
+                block += 1 << k;
+            }
+            query.scan(&Extreme::BOTH, last * BLOCK..samples.end);
+        }
+        Some(Extremes::new(query.min?, query.max?))
     }
 
     /// Every level's four vectors, values as bits, for exact comparisons.
@@ -145,6 +195,8 @@ impl Level {
 }
 
 impl Extreme {
+    const BOTH: [Extreme; 2] = [Extreme::Min, Extreme::Max];
+
     /// Whether `value` replaces `kept`: strictly smaller (min) or larger (max).
     fn beats(self, value: f64, kept: f64) -> bool {
         match self {
@@ -175,6 +227,53 @@ impl Extreme {
                 },
                 |kept, next| self.keep(kept, next),
             )
+    }
+}
+
+impl<F: Fn(f64) -> bool> Query<'_, F> {
+    /// Keeps `value` at sample `at` as `extreme` when it is strictly better
+    /// than the kept one.
+    fn offer(&mut self, extreme: Extreme, at: usize, value: f64) {
+        let kept = match extreme {
+            Extreme::Min => &mut self.min,
+            Extreme::Max => &mut self.max,
+        };
+        if kept.is_none_or(|(_, kept)| extreme.beats(value, kept)) {
+            *kept = Some((at, value));
+        }
+    }
+
+    /// Offers every sample of `range` that is not NaN and passes `valid`
+    /// as each of `extremes`.
+    fn scan(&mut self, extremes: &[Extreme], range: Range<usize>) {
+        let values = self.values;
+        for (first, piece) in values.pieces(range) {
+            for (at, &value) in (first..).zip(piece) {
+                if !value.is_nan() && (self.valid)(value) {
+                    for &extreme in extremes {
+                        self.offer(extreme, at, value);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Offers node `j` of level `k` as `extreme`, descending where its
+    /// stored extreme fails `valid`.
+    fn node(&mut self, extreme: Extreme, k: usize, j: usize) {
+        let node = self.index.levels[k].node(extreme, j);
+        let first = (j << k) * BLOCK;
+        if node.value.is_nan() {
+            return;
+        }
+        if (self.valid)(node.value) {
+            self.offer(extreme, first + node.at as usize, node.value);
+        } else if k == 0 {
+            self.scan(&[extreme], first..first + BLOCK);
+        } else {
+            self.node(extreme, k - 1, 2 * j);
+            self.node(extreme, k - 1, 2 * j + 1);
+        }
     }
 }
 
