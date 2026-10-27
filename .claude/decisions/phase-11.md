@@ -155,7 +155,7 @@ thread, and the test polls (sleep, tick, frame) up to 200 times.
 | (5) | One slot, as the struct's comment says; documented | A queue of presses stamped in order by the next redraw |
 | (6) | (a) no `Left` while a button is held (drags continue, as d3's window listeners); a drag that ends outside reports `Left` at the next move, since the area never reported the pointer leaving; (b) `Pressed` for the second button, `Released` only for the first; (c) after `DoubleClicked` the stamped press is forgotten, so presses 2, 4, 6 … double-click, as iced's Single, Double, Triple, Double; (d) the previous factor is kept, as `Plot` skips such factors; (e) iced's `as_millis() <= 300` with a strictly later stamp and distance < 6 (`core/src/mouse/click.rs:73-84`) | — |
 | (7) | Two more tests and a row: `every_device_offset_lands_exactly_at_every_factor`, `image_bounds_for_device_125_at_125_percent_are_100_2` (the spot row's arithmetic), and 1024 × 512 in `a_larger_image_needs_a_tick` | The three tests only |
-| (8) | The clip is the image's own biased bounds, exact on both backends at 0.25; Phase 18 may use either (both measured exact) | — |
+| (8) | The clip is the image's own biased bounds, measured exact on both backends at 0.25 (as is the widget's whole rect); `device / k` should be exact too (tiny-skia's non-anti-aliased mask covers pixel centres from d, wgpu rounds d + 0.001) but was not measured | — |
 | (9) | Recorded; `figure = ["dep:rustd3-figure", "rustd3-figure/raster"]` as the section writes it (same effect); `rustd3-iced = { path = "iced" }` in `[workspace.dependencies]`, used by the dev crates | — |
 
 ### Decision
