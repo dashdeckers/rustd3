@@ -4,4 +4,6 @@ mod list;
 mod lower;
 mod raster;
 mod sink;
+#[cfg(feature = "tiny-skia")]
+mod skia;
 mod svg;

@@ -5,6 +5,8 @@
 
 #[cfg(feature = "png")]
 pub mod png;
+#[cfg(feature = "tiny-skia")]
+pub mod skia;
 pub mod snap;
 #[cfg(feature = "raster")]
 mod vello;
@@ -20,7 +22,7 @@ use crate::list::{Bounds, List, Outlines};
 /// to 4 px, and either overflows past 65,535: widths from 65,409 and
 /// heights from 65,533 panic (`vello_cpu-0.3.0/src/span.rs:84-90`,
 /// `vello_common-0.3.0/src/util.rs:222-238`).
-#[cfg(feature = "raster")]
+#[cfg(any(feature = "raster", feature = "tiny-skia"))]
 const MAX_SIDE: f64 = 65_408.0;
 /// The longest side of an image in a list: vello_cpu's `u16` pixmaps.
 #[cfg(feature = "raster")]
@@ -191,7 +193,7 @@ pub fn render(list: &List, scale: f64) -> Result<Image, Error> {
 /// The device size of `area` at `scale`, each side rounded:
 /// [`Error::Empty`] below one px (or not a number), [`Error::TooLarge`]
 /// above 65,408.
-#[cfg(feature = "raster")]
+#[cfg(any(feature = "raster", feature = "tiny-skia"))]
 pub(crate) fn device(area: Rect, scale: f64) -> Result<(u16, u16), Error> {
     let (width, height) = (
         (area.width() * scale).round(),

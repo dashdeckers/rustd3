@@ -19,6 +19,21 @@ pub(crate) fn straight(image: &ImageData) -> Result<Vec<u8>, &'static str> {
     Ok(rgba)
 }
 
+/// The pixels as premultiplied RGBA.
+#[cfg(feature = "tiny-skia")]
+pub(crate) fn premultiplied(image: &ImageData) -> Result<Vec<u8>, &'static str> {
+    let mut rgba = rgba(image)?;
+    if image.alpha_type == ImageAlphaType::Alpha {
+        for px in rgba.chunks_exact_mut(4) {
+            let a = u16::from(px[3]);
+            for c in &mut px[..3] {
+                *c = u8::try_from((u16::from(*c) * a + 127) / 255).unwrap_or(u8::MAX);
+            }
+        }
+    }
+    Ok(rgba)
+}
+
 /// The pixels in RGBA channel order, alpha as stored.
 fn rgba(image: &ImageData) -> Result<Vec<u8>, &'static str> {
     let mut data = image.data.data().to_vec();
