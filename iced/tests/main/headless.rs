@@ -35,6 +35,8 @@ pub struct Harness<'a, Message> {
     #[cfg(all(feature = "figure", feature = "fonts"))]
     waited: usize,
     redraw: window::RedrawRequest,
+    /// The cursor the last update asked for.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
     interaction: mouse::Interaction,
 }
 
@@ -91,6 +93,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             #[cfg(all(feature = "figure", feature = "fonts"))]
             waited: 0,
             redraw: window::RedrawRequest::Wait,
+            #[cfg(all(feature = "figure", feature = "fonts"))]
             interaction: mouse::Interaction::None,
         })
     }
@@ -133,16 +136,19 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             &mut self.renderer,
             &mut self.bus,
         );
-        (self.redraw, self.interaction) = match state {
-            user_interface::State::Updated {
-                redraw_request,
-                mouse_interaction,
-                ..
-            } => (redraw_request, mouse_interaction),
-            user_interface::State::Outdated => {
-                (window::RedrawRequest::Wait, mouse::Interaction::None)
-            }
+        self.redraw = match &state {
+            user_interface::State::Updated { redraw_request, .. } => *redraw_request,
+            user_interface::State::Outdated => window::RedrawRequest::Wait,
         };
+        #[cfg(all(feature = "figure", feature = "fonts"))]
+        {
+            self.interaction = match &state {
+                user_interface::State::Updated {
+                    mouse_interaction, ..
+                } => *mouse_interaction,
+                user_interface::State::Outdated => mouse::Interaction::None,
+            };
+        }
         statuses
     }
 
@@ -195,6 +201,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
     }
 
     /// The cursor the last update asked for.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
     pub fn interaction(&self) -> mouse::Interaction {
         self.interaction
     }
