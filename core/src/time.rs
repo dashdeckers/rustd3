@@ -1,6 +1,8 @@
 //! Time with explicit zones, on jiff: [`Interval`], d3-time's calendar
-//! intervals with microseconds and nanoseconds beside them, and the lazy
-//! [`interval::Range`] of an interval's boundaries.
+//! intervals with microseconds and nanoseconds beside them, the lazy
+//! [`interval::Range`] of an interval's boundaries, and d3's tick
+//! functions, [`ticks`], [`ticks_with`], [`tick_interval`] and their `utc_`
+//! twins.
 //!
 //! Every zone is a parameter: nothing here reads the system's clock or
 //! zone. Instants are jiff [`Timestamp`](jiff::Timestamp)s and arithmetic
@@ -23,6 +25,10 @@
 //! ```
 
 pub mod interval;
+
+mod ticks;
+
+pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};
 
 /// A unit of time and a step: d3-time's intervals (`timeSecond` …
 /// `timeYear`, `utcDay`, `unixDay`), with microseconds and nanoseconds

@@ -4,7 +4,7 @@
 use rustd3_core::jiff::Timestamp;
 use rustd3_core::jiff::civil::{Weekday, date};
 use rustd3_core::jiff::tz::TimeZone;
-use rustd3_core::time::Interval;
+use rustd3_core::time::{self, Interval};
 use rustd3_testkit::zone;
 
 fn at(s: &str) -> Timestamp {
@@ -432,4 +432,128 @@ fn interval_range_is_lazy() {
     assert_eq!(eleventh.as_nanosecond() - start.as_nanosecond(), 10);
     // A range holds its state, not its boundaries.
     assert!(size_of_val(&nanoseconds) <= 128);
+}
+
+fn instants<const N: usize>(rfc3339: [&str; N]) -> [Timestamp; N] {
+    rfc3339.map(at)
+}
+
+#[test]
+fn ticks_follow_d3s_table_in_the_zone() {
+    let berlin = zone("Europe/Berlin");
+    let (start, stop) = (at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z"));
+    assert_eq!(
+        time::tick_interval(start, stop, 8, &berlin),
+        Interval::Hour(3)
+    );
+    let expected = instants([
+        "2026-10-24T22:00:00Z",
+        "2026-10-25T02:00:00Z",
+        "2026-10-25T05:00:00Z",
+        "2026-10-25T08:00:00Z",
+        "2026-10-25T11:00:00Z",
+        "2026-10-25T14:00:00Z",
+        "2026-10-25T17:00:00Z",
+        "2026-10-25T20:00:00Z",
+        "2026-10-25T23:00:00Z",
+    ]);
+    assert_eq!(time::ticks(start, stop, 8, &berlin), expected);
+    let la = zone("America/Los_Angeles");
+    let minutes = time::ticks_with(
+        at("2011-01-01T20:01:00Z"),
+        at("2011-01-01T20:04:04Z"),
+        Interval::Minute(1),
+        &la,
+    );
+    let expected = instants([
+        "2011-01-01T20:01:00Z",
+        "2011-01-01T20:02:00Z",
+        "2011-01-01T20:03:00Z",
+        "2011-01-01T20:04:00Z",
+    ]);
+    assert_eq!(minutes, expected);
+    let decades = time::ticks(local(&la, 2001, 1, 1), local(&la, 2138, 1, 1), 10, &la);
+    assert_eq!(
+        decades,
+        std::array::from_fn::<_, 13, _>(|i| local(&la, 2010 + 10 * i as i16, 1, 1))
+    );
+}
+
+#[test]
+fn utc_ticks_count_days_from_1970() {
+    let la = zone("America/Los_Angeles");
+    let (start, stop) = (local(&la, 2011, 1, 1), local(&la, 2011, 1, 9));
+    assert_eq!(
+        time::utc_tick_interval(start, stop, 4),
+        Interval::UnixDay(2)
+    );
+    let expected = instants([
+        "2011-01-02T00:00:00Z",
+        "2011-01-04T00:00:00Z",
+        "2011-01-06T00:00:00Z",
+        "2011-01-08T00:00:00Z",
+    ]);
+    assert_eq!(time::utc_ticks(start, stop, 4), expected);
+    let zoned = time::ticks(start, stop, 4, &la);
+    assert_eq!(zoned, [1, 3, 5, 7, 9].map(|d| local(&la, 2011, 1, d)));
+}
+
+#[test]
+fn ticks_go_below_a_millisecond() {
+    let utc = TimeZone::UTC;
+    let t0 = at("2026-10-25T12:00:00Z");
+    let plus = |ns: i128| Timestamp::from_nanosecond(t0.as_nanosecond() + ns).expect("in 2026");
+    assert_eq!(
+        time::tick_interval(t0, plus(10_000), 5, &utc),
+        Interval::Microsecond(2)
+    );
+    assert_eq!(
+        time::ticks(t0, plus(10_000), 5, &utc),
+        [0, 2_000, 4_000, 6_000, 8_000, 10_000].map(plus)
+    );
+    assert_eq!(
+        time::tick_interval(t0, plus(100), 10, &utc),
+        Interval::Nanosecond(10)
+    );
+    assert_eq!(time::ticks(t0, plus(100), 10, &utc).len(), 11);
+    assert_eq!(
+        time::tick_interval(t0, plus(1_000_000_000), 4, &utc),
+        Interval::Millisecond(200)
+    );
+}
+
+#[test]
+fn degenerate_tick_requests_follow_d3() {
+    let utc = TimeZone::UTC;
+    let t = at("2026-10-25T12:00:00.5Z");
+    assert_eq!(time::ticks(t, t, 10, &utc), [t]);
+    assert_eq!(time::tick_interval(t, t, 10, &utc), Interval::Nanosecond(1));
+    assert_eq!(time::ticks(t, at("2027-10-25T12:00:00Z"), 0, &utc), []);
+    let (a, b) = (at("2014-03-02T00:00:00Z"), at("2010-12-18T00:00:00Z"));
+    let descending = instants([
+        "2014-01-01T00:00:00Z",
+        "2013-01-01T00:00:00Z",
+        "2012-01-01T00:00:00Z",
+        "2011-01-01T00:00:00Z",
+    ]);
+    assert_eq!(time::utc_ticks(a, b, 4), descending);
+}
+
+#[test]
+fn ticks_are_capped() {
+    let utc = TimeZone::UTC;
+    let (start, stop) = (at("2026-10-25T12:00:00Z"), at("2026-10-25T12:00:01Z"));
+    assert_eq!(
+        time::ticks_with(start, stop, Interval::Nanosecond(1), &utc).len(),
+        10_000
+    );
+    let span = (Timestamp::MIN, Timestamp::MAX);
+    assert_eq!(
+        time::tick_interval(span.0, span.1, 1, &utc),
+        Interval::Year(20_000)
+    );
+    let ad1 = at("0001-01-01T00:00:00Z");
+    assert_eq!(time::ticks(ad1, span.1, 1_000_000, &utc).len(), 10_000);
+    let halves = time::ticks(stop, start, 2, &utc);
+    assert_eq!(halves, [stop, at("2026-10-25T12:00:00.5Z"), start]);
 }
