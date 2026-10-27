@@ -10,6 +10,7 @@ mod hit;
 mod layout;
 mod legend;
 mod list;
+mod locale;
 mod lower;
 mod marks;
 mod parts;
