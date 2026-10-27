@@ -201,3 +201,57 @@ fn the_constants_pair_the_number_and_time_tables_of_their_language() {
     let runtime = Locale::from(format::Locale::new(format::Definition::default()));
     assert_eq!(runtime.time(), &time::Locale::NEUTRAL);
 }
+
+#[test]
+fn a_runtime_time_table_labels_time_ticks_through_the_figure_locale()
+-> Result<(), rustd3_core::jiff::Error> {
+    use rustd3_core::format;
+    use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+    use rustd3_core::scale::Ticks;
+    use rustd3_core::time::{self, Definition, Ladder};
+
+    // d3-time-format's sv-SE table, which no constant holds; the labels
+    // are d3 7.9.0's with it as the default locale (scaleUtc, ticks 5 and 4).
+    let names = |s: &str| {
+        s.split(' ')
+            .map(|n| n.to_owned().into())
+            .collect::<Vec<_>>()
+    };
+    let sv = time::Locale::new(Definition {
+        date_time: "%A den %d %B %Y %X".into(),
+        date: "%Y-%m-%d".into(),
+        time: "%H:%M:%S".into(),
+        periods: ["fm".into(), "em".into()],
+        days: names("Söndag Måndag Tisdag Onsdag Torsdag Fredag Lördag")
+            .try_into()
+            .unwrap(),
+        short_days: names("Sön Mån Tis Ons Tor Fre Lör").try_into().unwrap(),
+        months: names(
+            "Januari Februari Mars April Maj Juni Juli Augusti September Oktober November December",
+        )
+        .try_into()
+        .unwrap(),
+        short_months: names("Jan Feb Mar Apr Maj Jun Jul Aug Sep Okt Nov Dec")
+            .try_into()
+            .unwrap(),
+        ladder: Ladder::D3,
+    });
+    let locale = Locale::new(format::Locale::EN_US, sv.clone());
+    assert_eq!(locale.time(), &sv);
+    assert_eq!(locale.number(), &format::Locale::EN_US);
+    let weeks: [Timestamp; 2] = ["2026-09-20T00:00Z".parse()?, "2026-11-10T00:00Z".parse()?];
+    let t = time::time(TimeZone::UTC).domain(weeks);
+    assert_eq!(
+        t.labels(&t.tick_set(5), &locale),
+        [
+            "Sep 20", "Sep 27", "Okt 04", "Okt 11", "Okt 18", "Okt 25", "November", "Nov 08"
+        ]
+    );
+    let night: [Timestamp; 2] = ["2026-10-31T22:00Z".parse()?, "2026-11-01T02:00Z".parse()?];
+    let t = time::time(TimeZone::UTC).domain(night);
+    assert_eq!(
+        t.labels(&t.tick_set(4), &locale),
+        ["10 em", "11 em", "November", "01 fm", "02 fm"]
+    );
+    Ok(())
+}
