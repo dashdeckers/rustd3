@@ -2,7 +2,7 @@
 
 ## D4.1 — Statements of Phase 4 that do not hold as written
 
-**Date:** 2026-10-27 · **Context:** Phase 4, steps 2 and 4 (6a7fd9f, 1535248) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 4, steps 2 and 4 (6a7fd9f, 1535248) · **Status:** decided
 
 ### Issue
 
@@ -59,6 +59,13 @@
 
 ### Decision
 
+A for all four (architect, 2026-10-27): the log rule takes the decades
+branch only past 10,000 multiples, the bound the cap exists for, and
+otherwise returns d3's multiples; `Continuous::{transform, forward}`
+arrive with their first caller in Phase 6; the spot check compares
+within tolerance; the built-in transforms keep private fields and are
+built through `scale::pow()`, `sqrt()`, `log()` and their builders.
+
 Recommended: A for all four, already built.
 
 ### Why
@@ -77,7 +84,7 @@ and adds no public constructor that no phase asks for.
 
 ## D4.2 — Three d3-scale test files pass under 70 %
 
-**Date:** 2026-10-27 · **Context:** Phase 4, step 5 (12b09ab) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 4, step 5 (12b09ab) · **Status:** decided
 
 ### Issue
 
@@ -127,6 +134,12 @@ translated assertion of them passes, under d3's semantics too:
 | Correctness | Counts and reasons stay visible in the report and floors | Tests of behaviour Rust does not have | Hides 497 assertions |
 
 ### Decision
+
+A (architect, 2026-10-27). Phase 4's skip table gains `linear-test.js`,
+`pow-test.js` and `sqrt-test.js` (mismatched lengths `types:`, color
+ranges `gap: phase 7`, coercion and aliasing `js:`, getters `api:`),
+with floors at 153, 155 and 3. Phase 7 raises them when color ranges
+translate.
 
 Recommended: A. The floors are blessed at the passing counts (153,
 155, 3), so the ratchet holds every passing assertion either way.
