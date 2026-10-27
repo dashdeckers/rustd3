@@ -1,15 +1,56 @@
 //! [`Plot`]: a [`Figure`] shown as images that vello_cpu renders from its
-//! drawing list, the pixels the figure's PNG has.
+//! drawing list, the pixels the figure's PNG has, with a crosshair and a
+//! nearest-point highlight drawn over them.
+//!
+//! `view` builds the figure from the app's state and hands it to the
+//! widget by value; the widget keeps its own state (the figure's cache,
+//! the rendered cells) in iced's widget tree between frames:
+//!
+//! ```no_run
+//! use iced::Element;
+//! use rustd3_core::scale;
+//! use rustd3_figure::mark::line;
+//! use rustd3_figure::{Figure, axis};
+//! use rustd3_iced::Plot;
+//!
+//! struct App {
+//!     data: Vec<(f64, f64)>,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {}
+//!
+//! /// The app's data as a figure: one line on fitted scales.
+//! fn figure(data: &[(f64, f64)]) -> Figure<'static> {
+//!     let mut fig = Figure::new();
+//!     let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+//!     fig.panel(0, 0)
+//!         .mark(line(data.iter().copied(), x, y))
+//!         .axis(axis::left(y))
+//!         .axis(axis::bottom(x));
+//!     fig
+//! }
+//!
+//! impl App {
+//!     fn view(&self) -> Element<'_, Message> {
+//!         Plot::new(figure(&self.data)).into()
+//!     }
+//! }
+//! ```
 //!
 //! The widget resolves and draws its figure once per `RedrawRequested`,
 //! for the screen at the effective scale factor (`Plot::scale_factor`,
 //! else the renderer's hint, else the window's factor, else 1), and only
-//! when the figure was rebuilt, the widget resized or the factor changed.
-//! It cuts the list into the cells of the canvas's partition by every
-//! plot-area edge, renders every cell, and draws each as images placed on
-//! whole device pixels. A cell whose RGBA would reach [`BAND_BYTES`] is
-//! rendered and drawn as horizontal bands below that size, so the GPU
-//! renderer uploads every image inside the frame that first draws it.
+//! when the figure was rebuilt, the widget resized or the factor changed;
+//! it keeps every image when no cell's device rect or content hash
+//! changed. It cuts the list into the cells of the canvas's partition by
+//! every plot-area edge, renders every cell, and draws each as images
+//! placed on whole device pixels. A cell whose RGBA would reach
+//! [`BAND_BYTES`] is rendered and drawn as horizontal bands below that
+//! size, so the GPU renderer uploads every image inside the frame that
+//! first draws it. Hovering renders no cell: the crosshair and the
+//! highlight are quads in a layer clipped to the hovered plot area, in the
+//! figure theme's ink.
 
 mod cell;
 #[cfg(test)]
