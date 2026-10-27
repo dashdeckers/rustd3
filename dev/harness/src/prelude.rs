@@ -179,6 +179,59 @@ pub fn slices(slices: &[shape::Slice]) -> Obs {
     Obs::List(slices.iter().map(|s| Obs::List(fields(s))).collect())
 }
 
+/// d3-shape's test double `polygonContext()`: the points of the last
+/// subpath, whose `area()` is the absolute `d3.polygonArea` of them. Curves
+/// and arcs, which d3's double does not have, add their end point.
+#[derive(Debug, Default)]
+pub struct Polygon {
+    points: Vec<(f64, f64)>,
+}
+
+impl Polygon {
+    /// The polygon's area, whichever way it winds.
+    pub fn area(&self) -> f64 {
+        let Some(&last) = self.points.last() else {
+            return 0.0;
+        };
+        let mut b = last;
+        let mut twice = 0.0;
+        for &point in &self.points {
+            let a = b;
+            b = point;
+            twice += a.1 * b.0 - a.0 * b.1;
+        }
+        (twice / 2.0).abs()
+    }
+}
+
+impl PathContext for Polygon {
+    fn move_to(&mut self, x: f64, y: f64) {
+        self.points = vec![(x, y)];
+    }
+
+    fn line_to(&mut self, x: f64, y: f64) {
+        self.points.push((x, y));
+    }
+
+    fn quadratic_curve_to(&mut self, _x1: f64, _y1: f64, x: f64, y: f64) {
+        self.points.push((x, y));
+    }
+
+    fn bezier_curve_to(&mut self, _x1: f64, _y1: f64, _x2: f64, _y2: f64, x: f64, y: f64) {
+        self.points.push((x, y));
+    }
+
+    fn arc(&mut self, x: f64, y: f64, r: f64, _start: f64, end: f64, _anticlockwise: bool) {
+        self.points.push((x + r * end.cos(), y + r * end.sin()));
+    }
+
+    fn close_path(&mut self) {}
+
+    fn rect(&mut self, x: f64, y: f64, w: f64, h: f64) {
+        self.points = vec![(x, y), (x + w, y), (x + w, y + h), (x, y + h)];
+    }
+}
+
 /// d3-color's test helper `assertRgbEqual(c, r, g, b, opacity)`: each
 /// channel equal, NaN matching NaN.
 pub fn rgb_equal(c: &Rgb, r: f64, g: f64, b: f64, opacity: f64) -> bool {
@@ -439,6 +492,17 @@ mod tests {
         assert_eq!(js_round(-0.6), -1.0);
         assert_eq!(js_round(2.5), 3.0);
         assert!(js_round(f64::NAN).is_nan());
+    }
+
+    #[test]
+    fn a_polygon_measures_its_last_subpath_either_way_round() {
+        let mut p = Polygon::default();
+        p.rect(0.0, 0.0, 2.0, 3.0);
+        assert_eq!(p.area(), 6.0);
+        p.move_to(0.0, 0.0);
+        p.line_to(0.0, 4.0);
+        p.line_to(4.0, 0.0);
+        assert_eq!(p.area(), 8.0);
     }
 
     #[test]

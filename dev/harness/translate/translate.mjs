@@ -17,6 +17,7 @@ import pie from "./rules/pie.mjs";
 import scale from "./rules/scale.mjs";
 import shape from "./rules/shape.mjs";
 import stack from "./rules/stack.mjs";
+import symbol from "./rules/symbol.mjs";
 import stats from "./rules/stats.mjs";
 import time from "./rules/time.mjs";
 import timeFormat from "./rules/time_format.mjs";
@@ -84,6 +85,7 @@ const SUITES = [
       ...["appearance", "ascending", "descending", "insideOut", "none", "reverse"].map((n) => `order/${n}`)]),
     rules: stack,
   },
+  { suite: "symbol", package: "d3-shape", files: tests(["symbol", "symbols"]), rules: symbol },
   { suite: "zoom", package: "d3-zoom", files: tests(["transform"]), rules: zoom },
   {
     suite: "time",

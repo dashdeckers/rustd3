@@ -130,6 +130,8 @@
 #floor d3-shape/test/order/reverse-test.js 1
 #floor d3-shape/test/pie-test.js 15
 #floor d3-shape/test/stack-test.js 3
+#floor d3-shape/test/symbol-test.js 32
+#floor d3-shape/test/symbols-test.js 1
 #floor d3-time-format/test/defaultLocale-test.js 2
 #floor d3-time-format/test/format-test.js 122
 #floor d3-time-format/test/isoFormat-test.js 2
@@ -4062,6 +4064,39 @@ d3-shape/test/pie-test.js:182:3
 d3-shape/test/stack-test.js:15:3
 d3-shape/test/stack-test.js:86:3
 d3-shape/test/stack-test.js:104:3
+d3-shape/test/symbol-test.js:11:3
+d3-shape/test/symbol-test.js:42:3
+d3-shape/test/symbol-test.js:43:3
+d3-shape/test/symbol-test.js:44:3
+d3-shape/test/symbol-test.js:55:3
+d3-shape/test/symbol-test.js:56:3
+d3-shape/test/symbol-test.js:61:16
+d3-shape/test/symbol-test.js:62:18
+d3-shape/test/symbol-test.js:67:3
+d3-shape/test/symbol-test.js:68:3
+d3-shape/test/symbol-test.js:73:16
+d3-shape/test/symbol-test.js:74:18
+d3-shape/test/symbol-test.js:79:3
+d3-shape/test/symbol-test.js:80:3
+d3-shape/test/symbol-test.js:97:16
+d3-shape/test/symbol-test.js:98:18
+d3-shape/test/symbol-test.js:103:3
+d3-shape/test/symbol-test.js:104:3
+d3-shape/test/symbol-test.js:109:16
+d3-shape/test/symbol-test.js:110:18
+d3-shape/test/symbol-test.js:115:3
+d3-shape/test/symbol-test.js:116:3
+d3-shape/test/symbol-test.js:117:3
+d3-shape/test/symbol-test.js:128:16
+d3-shape/test/symbol-test.js:129:18
+d3-shape/test/symbol-test.js:134:3
+d3-shape/test/symbol-test.js:135:3
+d3-shape/test/symbol-test.js:146:16
+d3-shape/test/symbol-test.js:147:18
+d3-shape/test/symbol-test.js:152:3
+d3-shape/test/symbol-test.js:153:3
+d3-shape/test/symbol-test.js:165:3
+d3-shape/test/symbols-test.js:9:3
 d3-time-format/test/defaultLocale-test.js:9:3
 d3-time-format/test/defaultLocale-test.js:17:3
 d3-time-format/test/format-test.js:38:3

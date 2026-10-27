@@ -13,6 +13,7 @@ mod color;
 mod shape;
 mod pie;
 mod stack;
+mod symbol;
 mod zoom;
 mod time;
 mod time_scale;
@@ -30,6 +31,7 @@ pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "shape", tests: shape::TESTS, asserts: shape::ASSERTS },
     registry::Suite { name: "pie", tests: pie::TESTS, asserts: pie::ASSERTS },
     registry::Suite { name: "stack", tests: stack::TESTS, asserts: stack::ASSERTS },
+    registry::Suite { name: "symbol", tests: symbol::TESTS, asserts: symbol::ASSERTS },
     registry::Suite { name: "zoom", tests: zoom::TESTS, asserts: zoom::ASSERTS },
     registry::Suite { name: "time", tests: time::TESTS, asserts: time::ASSERTS },
     registry::Suite { name: "time_scale", tests: time_scale::TESTS, asserts: time_scale::ASSERTS },
