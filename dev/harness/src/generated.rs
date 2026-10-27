@@ -14,6 +14,7 @@ mod shape;
 mod zoom;
 mod time;
 mod time_scale;
+mod time_format;
 
 pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "path", tests: path::TESTS, asserts: path::ASSERTS },
@@ -28,4 +29,5 @@ pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "zoom", tests: zoom::TESTS, asserts: zoom::ASSERTS },
     registry::Suite { name: "time", tests: time::TESTS, asserts: time::ASSERTS },
     registry::Suite { name: "time_scale", tests: time_scale::TESTS, asserts: time_scale::ASSERTS },
+    registry::Suite { name: "time_format", tests: time_format::TESTS, asserts: time_format::ASSERTS },
 ];

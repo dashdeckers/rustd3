@@ -17,6 +17,7 @@ import scale from "./rules/scale.mjs";
 import shape from "./rules/shape.mjs";
 import stats from "./rules/stats.mjs";
 import time from "./rules/time.mjs";
+import timeFormat from "./rules/time_format.mjs";
 import zoom from "./rules/zoom.mjs";
 
 const tests = (names) => names.map((n) => `${n}-test.js`);
@@ -25,7 +26,8 @@ const tests = (names) => names.map((n) => `${n}-test.js`);
 // zoom-test.js, zoom-events-test.js and zoom-callback-test.js drive the DOM
 // and stand in Phase 10's skip table; rustd3-core's interact/zoom.rs ports
 // zoom-test.js's numeric sequences. d3-time's interval-test.js builds
-// custom intervals, which the closed time::Interval leaves out.
+// custom intervals, which the closed time::Interval leaves out. d3-time-format's
+// parse-test.js and utcParse-test.js are translated as skips: parsing is Later.
 const SUITES = [
   { suite: "path", package: "d3-path", files: tests(["path", "pathRound"]), rules: path },
   {
@@ -85,6 +87,12 @@ const SUITES = [
     rules: time,
   },
   { suite: "time_scale", package: "d3-scale", files: tests(["time", "utcTime"]), rules: time },
+  {
+    suite: "time_format",
+    package: "d3-time-format",
+    files: tests(["format", "utcFormat", "locale", "defaultLocale", "parse", "utcParse"]),
+    rules: combine(timeFormat, time),
+  },
 ];
 
 const D3 = new URL("../d3/", import.meta.url);
