@@ -5,6 +5,7 @@ mod draw;
 mod figure;
 mod fit;
 mod layout;
+mod legend;
 mod list;
 mod lower;
 mod marks;

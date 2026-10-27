@@ -13,9 +13,11 @@ mod resolved;
 mod save;
 
 use std::any::TypeId;
+use std::fmt::Display;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::layout::{Cell, Grid};
+use crate::legend::{self, Legend, Slot};
 use crate::panel::Panel;
 use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef};
 use crate::text::Text;
@@ -65,6 +67,7 @@ pub struct Figure<'a> {
     grid: Grid,
     title: Option<Text>,
     theme: Theme,
+    legends: Vec<(Slot, Box<dyn legend::Draw>)>,
 }
 
 /// One scale of the table, and how to fit it when it is fitted.
@@ -90,6 +93,7 @@ impl<'a> Figure<'a> {
             grid: Grid::default(),
             title: None,
             theme: Theme::default(),
+            legends: Vec::new(),
         }
     }
 
@@ -153,6 +157,22 @@ impl<'a> Figure<'a> {
     pub fn theme(&mut self, t: Theme) -> &mut Self {
         self.theme = t;
         self
+    }
+
+    /// Places legend `l` in figure slot `slot`, outside the grid: a row
+    /// centred on the plot areas above or below it, a column beside it.
+    /// Legends in one slot stack outward in the order they are added.
+    pub fn legend<K>(&mut self, slot: Slot, l: Legend<K>) -> &mut Self
+    where
+        K: PartialEq + Clone + Display + 'static,
+    {
+        self.legends.push((slot, Box::new(l)));
+        self
+    }
+
+    /// The legends in figure slots, in the order they were added.
+    pub(crate) fn legends(&self) -> &[(Slot, Box<dyn legend::Draw>)] {
+        &self.legends
     }
 
     /// The panels, in the order of their first use.

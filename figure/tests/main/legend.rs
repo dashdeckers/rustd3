@@ -1,0 +1,307 @@
+//! Legends: entries in domain order, rows in top and bottom slots centred on
+//! the plot areas, columns beside the grid and framed in panel corners, and
+//! the room slots take from the grid.
+
+use rustd3_core::color::Rgb;
+use rustd3_core::scale::{self, Ordinal};
+use rustd3_core::scheme::COLORBLIND;
+use rustd3_figure::kurbo::{Rect, Shape, Size};
+use rustd3_figure::legend::{Inset, Legend, Slot, legend};
+use rustd3_figure::list::{Command, List, part};
+use rustd3_figure::peniko::{Brush, Color};
+use rustd3_figure::scale::ScaleRef;
+use rustd3_figure::{Figure, Held, Target, axis};
+
+use crate::figure::{cache, line};
+
+/// The tick-label size at notebook, px: legend em.
+const EM: f64 = 44.0 / 3.0;
+
+/// The canvas padding, px.
+const PAD: f64 = 0.8 * EM;
+
+/// DejaVu Sans's typographic ascender plus descender (1556 + 492 of 2048
+/// units) at `size` px: a line box.
+fn line_box(size: f64) -> f64 {
+    let [ascender, descender] = [1556.0, 492.0].map(|units| units / 2048.0 * size);
+    ascender + descender
+}
+
+/// A one-panel figure, x and y fitted to 0 … 10 with axes, and a palette
+/// over three sources.
+fn sources() -> (Figure<'static>, ScaleRef<Ordinal<&'static str, Rgb>>) {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let color = fig.scale(scale::ordinal(
+        ["accel x", "accel z", "bearing temp"],
+        COLORBLIND,
+    ));
+    fig.panel(0, 0)
+        .mark(line(x, [0.0, 10.0]))
+        .mark(line(y, [0.0, 10.0]))
+        .axis(axis::left(y))
+        .axis(axis::bottom(x));
+    (fig, color)
+}
+
+/// `fig` drawn at 640 × 480 for vector output.
+fn draw(fig: &Figure<'_>) -> List {
+    fig.draw_with(
+        &mut cache(),
+        Size::new(640.0, 480.0),
+        Target::Vector,
+        &Held::default(),
+    )
+}
+
+/// The plot area of `fig`'s first panel at 640 × 480.
+fn area(fig: &Figure<'_>) -> Rect {
+    crate::figure::resolve(fig, &Held::default()).plot_areas()[0]
+}
+
+/// The commands of the part with id `id`.
+fn commands(list: &List, id: part::Id) -> &[Command] {
+    let p = list
+        .parts
+        .iter()
+        .find(|p| p.id == id)
+        .unwrap_or_else(|| panic!("no part {id:?}"));
+    &list.commands[p.commands.clone()]
+}
+
+/// The id of legend `index` in figure slots.
+fn slotted(index: u64) -> part::Id {
+    part::Id::new(7 << 56 | 0xff_ffff << 32 | index)
+}
+
+/// The id of inset legend `index` of panel `panel`.
+fn inset(panel: u64, index: u64) -> part::Id {
+    part::Id::new(7 << 56 | panel << 32 | index)
+}
+
+/// The rectangles and solid colors of the fills among `commands`.
+fn fills(commands: &[Command]) -> Vec<(Rect, Brush)> {
+    commands
+        .iter()
+        .filter_map(|c| {
+            if let Command::Fill { path, paint } = c {
+                Some((path.bounding_box(), paint.clone()))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// The texts and baselines (run origins) of the glyph runs among
+/// `commands`.
+fn labels(commands: &[Command]) -> Vec<(String, f64, f64)> {
+    commands
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                let t = run.transform.translation();
+                Some((run.text.to_string(), t.x, t.y))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// An opaque solid brush of `hex`.
+fn solid(hex: u32) -> Brush {
+    let [_, r, g, b] = hex.to_be_bytes();
+    Brush::Solid(Color::from_rgba8(r, g, b, 255))
+}
+
+#[test]
+fn a_legend_has_one_square_per_key_in_domain_order() {
+    let (mut fig, color) = sources();
+    fig.legend(Slot::Bottom, legend(color));
+    let list = draw(&fig);
+    let swatches = fills(commands(&list, slotted(0)));
+    assert_eq!(swatches.len(), 3);
+    let colors: Vec<Brush> = swatches.iter().map(|(_, b)| b.clone()).collect();
+    assert_eq!(colors, [solid(0x0173b2), solid(0xde8f05), solid(0x029e73)]);
+    for (rect, _) in &swatches {
+        let side = [rect.width(), rect.height()].map(|v| format!("{v:.3}"));
+        assert_eq!(side, ["10.267", "10.267"]);
+    }
+    let texts: Vec<String> = labels(commands(&list, slotted(0)))
+        .into_iter()
+        .map(|(t, ..)| t)
+        .collect();
+    assert_eq!(texts, ["accel x", "accel z", "bearing temp"]);
+}
+
+#[test]
+fn a_bottom_slot_raises_the_grid_by_its_row_and_half_an_em() {
+    let (bare, _) = sources();
+    let (mut fig, color) = sources();
+    fig.legend(Slot::Bottom, legend(color));
+    let (before, after) = (area(&bare), area(&fig));
+    let moved = before.y1 - after.y1;
+    // The row: the labels' line box, which holds their ink and the swatch.
+    let expected = line_box(EM) + 0.5 * EM;
+    // The ink of "l" and "b" tops the ascender by 3e-5 px.
+    assert!((moved - expected).abs() < 1e-4, "{moved} {expected}");
+    assert_eq!(
+        (before.x0, before.x1, before.y0),
+        (after.x0, after.x1, after.y0)
+    );
+}
+
+#[test]
+fn one_legend_value_draws_in_a_slot_and_an_inset_and_the_row_centres_on_the_plot_areas() {
+    let (mut fig, color) = sources();
+    let key = legend(color).title("source");
+    fig.panel(0, 0).legend(Inset::TopLeft, key.clone());
+    fig.legend(Slot::Bottom, key);
+    let list = draw(&fig);
+    let area = area(&fig);
+    let row = commands(&list, slotted(0));
+    let corner = commands(&list, inset(0, 0));
+    assert_eq!(labels(row).len(), 4);
+    assert_eq!(labels(corner).len(), 4);
+    // The row: centred on the plot area (its title's start and its last
+    // label's advance end are equally far from the area's ends).
+    let texts = labels(row);
+    let (_, first_x, baseline) = texts[0].clone();
+    assert!(texts.iter().all(|(_, _, y)| (y - baseline).abs() < 1e-9));
+    let end = row
+        .iter()
+        .rev()
+        .find_map(|c| {
+            if let Command::Glyphs(run) = c {
+                let last = run.glyphs.last()?;
+                Some(run.transform.translation().x + f64::from(last.x + last.advance))
+            } else {
+                None
+            }
+        })
+        .expect("a label");
+    let (left, right) = (first_x - area.x0, area.x1 - end);
+    assert!((left - right).abs() < 1e-4, "{left} {right}");
+    // Its bottom (the line box under the baseline) on the padding.
+    let descender = 492.0 / 2048.0 * 16.0;
+    assert!(
+        (baseline + descender - (480.0 - PAD)).abs() < 1e-4,
+        "{baseline}"
+    );
+    // The inset: a frame 0.5 em inside the corner, white at 0.8 with a
+    // #cccccc edge, the title centred on top, entries below it.
+    let frame = fills(corner)[0].clone();
+    assert!((frame.0.x0 - area.x0 - 0.5 * EM).abs() < 1e-9, "{frame:?}");
+    assert!((frame.0.y0 - area.y0 - 0.5 * EM).abs() < 1e-9, "{frame:?}");
+    assert_eq!(frame.1, Brush::Solid(Color::from_rgba8(255, 255, 255, 204)));
+    let edge = corner.iter().find_map(|c| {
+        if let Command::Stroke { paint, style, .. } = c {
+            Some((paint.clone(), style.width))
+        } else {
+            None
+        }
+    });
+    assert_eq!(edge, Some((solid(0xcccccc), 1.0)));
+    let texts = labels(corner);
+    assert_eq!(texts[0].0, "source");
+    assert!(texts[1].2 > texts[0].2 && texts[2].2 > texts[1].2);
+}
+
+#[test]
+fn column_rows_are_their_line_box_and_half_an_em_apart() {
+    let (mut fig, color) = sources();
+    fig.panel(0, 0).legend(Inset::BottomRight, legend(color));
+    let list = draw(&fig);
+    let corner = commands(&list, inset(0, 0));
+    let baselines: Vec<f64> = labels(corner).into_iter().map(|(.., y)| y).collect();
+    let pitch = line_box(EM) + 0.5 * EM;
+    for pair in baselines.windows(2) {
+        assert!((pair[1] - pair[0] - pitch).abs() < 1e-4, "{baselines:?}");
+    }
+    // Swatches stand on their baselines, 1.5 em before their labels.
+    let swatches: Vec<Rect> = fills(corner).into_iter().skip(1).map(|(r, _)| r).collect();
+    let starts: Vec<(f64, f64)> = labels(corner).into_iter().map(|(_, x, y)| (x, y)).collect();
+    for (swatch, (x, y)) in swatches.iter().zip(&starts) {
+        assert!((swatch.y1 - y).abs() < 1e-9 && (x - swatch.x0 - 1.5 * EM).abs() < 1e-9);
+    }
+    // The frame sits 0.5 em inside the bottom right corner.
+    let area = area(&fig);
+    let frame = fills(corner)[0].0;
+    assert!((area.x1 - frame.x1 - 0.5 * EM).abs() < 1e-9, "{frame:?}");
+    assert!((area.y1 - frame.y1 - 0.5 * EM).abs() < 1e-9, "{frame:?}");
+}
+
+#[test]
+fn side_slots_hold_columns_centred_on_the_plot_areas_and_stack_outward() {
+    let (mut fig, color) = sources();
+    let key: Legend<&str> = legend(color);
+    fig.legend(Slot::Right, key.clone())
+        .legend(Slot::Right, key.clone().title("again"))
+        .legend(Slot::Left, key);
+    let list = draw(&fig);
+    let area = area(&fig);
+    let bounds = |id| {
+        list.parts
+            .iter()
+            .find(|p| p.id == id)
+            .expect("a legend")
+            .bounds
+    };
+    let (near, far, left) = (bounds(slotted(0)), bounds(slotted(1)), bounds(slotted(2)));
+    assert!(near.x0 > area.x1 && far.x0 > near.x1, "{near:?} {far:?}");
+    assert!(far.x1 <= 640.0 - PAD + 1e-9, "{far:?}");
+    assert!(left.x1 < area.x0 && left.x0 >= PAD - 1e-9, "{left:?}");
+    // Centred vertically: the swatch column's middle on the area's.
+    let swatches = fills(commands(&list, slotted(0)));
+    let (top, bottom) = (swatches[0].0.y0, swatches[2].0.y1);
+    let middle = (area.y0 + area.y1) / 2.0;
+    assert!(((top + bottom) / 2.0 - middle).abs() < EM, "{top} {bottom}");
+}
+
+#[test]
+fn a_top_slot_sits_below_the_figure_title_and_above_the_grid() {
+    let (mut fig, color) = sources();
+    fig.title("Sources").legend(Slot::Top, legend(color));
+    let list = draw(&fig);
+    let title = list
+        .parts
+        .iter()
+        .find(|p| p.id == part::Id::new(1 << 56))
+        .expect("a title")
+        .bounds;
+    let row = list
+        .parts
+        .iter()
+        .find(|p| p.id == slotted(0))
+        .expect("a legend")
+        .bounds;
+    let area = area(&fig);
+    assert!(
+        title.y1 < row.y0 && row.y1 < area.y0,
+        "{title:?} {row:?} {area:?}"
+    );
+}
+
+#[test]
+fn legend_parts_follow_the_marks_of_their_panel_and_the_figure_title() {
+    let (mut fig, color) = sources();
+    fig.title("Sources")
+        .legend(Slot::Bottom, legend(color))
+        .panel(0, 0)
+        .legend(Inset::TopRight, legend(color));
+    let list = draw(&fig);
+    let ids: Vec<part::Id> = list.parts.iter().map(|p| p.id).collect();
+    let at = |id| ids.iter().position(|i| *i == id).expect("a part");
+    assert!(
+        at(inset(0, 0)) < at(part::Id::new(4 << 56)),
+        "before the axes"
+    );
+    assert_eq!(at(slotted(0)), ids.len() - 1, "last, after the title");
+    let first = &commands(&list, inset(0, 0))[0];
+    let Command::Fill { path, .. } = first else {
+        panic!("a frame first: {first:?}");
+    };
+    assert!(path.bounding_box().area() > 0.0);
+}

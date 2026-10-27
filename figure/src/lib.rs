@@ -12,6 +12,7 @@ pub use peniko;
 pub mod axis;
 mod figure;
 pub mod layout;
+pub mod legend;
 pub mod list;
 pub mod lower;
 pub mod mark;

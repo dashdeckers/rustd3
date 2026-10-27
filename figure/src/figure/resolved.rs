@@ -1,7 +1,10 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
+use kurbo::Point;
+
 use crate::figure;
 use crate::layout::{self, Laid, Layout, Plan};
+use crate::legend::Block;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
 use crate::text::Key;
@@ -16,6 +19,7 @@ pub struct Resolved {
     size: kurbo::Size,
     areas: Vec<kurbo::Rect>,
     panels: Vec<Laid>,
+    legends: Vec<(Block, Point)>,
     title: Option<Key>,
     passes: usize,
     held: bool,
@@ -37,6 +41,7 @@ impl Resolved {
             size,
             areas: Vec::new(),
             panels: Vec::new(),
+            legends: Vec::new(),
             title: None,
             passes: 0,
             held: false,
@@ -124,6 +129,11 @@ impl Resolved {
         &self.panels
     }
 
+    /// The legends in figure slots and their top-left corners.
+    pub(super) fn legends(&self) -> &[(Block, Point)] {
+        &self.legends
+    }
+
     /// The figure title's key.
     pub(super) fn title(&self) -> Option<&Key> {
         self.title.as_ref()
@@ -134,6 +144,7 @@ impl Resolved {
     pub(super) fn place(&mut self, layout: Layout, title: Option<Key>, held: bool) {
         self.areas = layout.areas;
         self.panels = layout.panels;
+        self.legends = layout.legends;
         self.passes = layout.passes;
         self.title = title;
         self.held = held;

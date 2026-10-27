@@ -2,12 +2,14 @@
 //! lengths, labels follow the counts and lengths follow the labels, so
 //! layout repeats until the counts settle, at most four times.
 
-use kurbo::{Rect, Size};
+use kurbo::{Point, Rect, Size};
 use rustd3_core::axis::Orient;
 
 use crate::axis::{self, Labels, Placed};
 use crate::figure::{Figure, Resolved};
+use crate::layout::slots::Slots;
 use crate::layout::{self, Plan, Reach, collide, plan};
+use crate::legend::{Block, Content, Inset, Slot};
 use crate::panel::Panel;
 use crate::text::{self, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
@@ -15,13 +17,24 @@ use crate::theme::Theme;
 /// Passes at most; counts that have not settled by then are kept.
 const PASSES: usize = 4;
 
+/// The canvas's padding, em.
+const PAD: f64 = 0.8;
+
+/// From a panel's corner to an inset legend, em: matplotlib's
+/// `legend.borderaxespad`.
+const INSET: f64 = 0.5;
+
 /// A figure laid out for one size: every panel's plot area and, per panel,
-/// its axes as placed and its title.
+/// its axes as placed, its title and its inset legends; and the legends in
+/// figure slots.
 pub(crate) struct Layout {
     /// Plot areas in list px, in panel order.
     pub(crate) areas: Vec<Rect>,
     /// The panels as laid out, in panel order.
     pub(crate) panels: Vec<Laid>,
+    /// The legends in figure slots and their top-left corners, in the
+    /// order they were added.
+    pub(crate) legends: Vec<(Block, Point)>,
     /// Passes run: 1 to 4.
     pub(crate) passes: usize,
 }
@@ -34,6 +47,9 @@ pub(crate) struct Laid {
     pub(crate) title: Option<Key>,
     /// How far the decorations on top reach, the title aside.
     pub(crate) top: f64,
+    /// Its inset legends, framed, and their top-left corners, in the order
+    /// they were added.
+    pub(crate) insets: Vec<(Block, Point)>,
 }
 
 /// One pass's axes: per panel, per axis, its labels and plan.
@@ -53,7 +69,8 @@ impl Layout {
     /// its title (title pad and ink height, above everything on top); each
     /// column takes the largest reach of its panels per side and each row
     /// likewise, and the rest is split by weight inside 0.8 em of padding,
-    /// below the figure title's ink height and 8 px. Passes stop when the
+    /// below the figure title's ink height and 8 px, inside what the
+    /// legends in figure slots reserve. Passes stop when the
     /// counts equal the last pass's. Held areas are kept as they are: one
     /// pass takes the counts from their lengths and measures the labels,
     /// which may then reach past the old reaches. Every labelled vertical
@@ -80,9 +97,34 @@ impl Layout {
             Key::new(&Text::from("0"), &style)
         });
         let roles = plan::roles(panels);
+        let slotted: Vec<(Slot, Content)> = figure
+            .legends()
+            .iter()
+            .map(|(slot, l)| (*slot, Content::new(&**l, resolved, theme)))
+            .collect();
+        let insets: Vec<Vec<(Inset, Content)>> = panels
+            .iter()
+            .map(|p| {
+                p.insets()
+                    .iter()
+                    .map(|(at, l)| (*at, Content::new(&**l, resolved, theme)))
+                    .collect()
+            })
+            .collect();
+        let legend_keys: Vec<Key> = slotted
+            .iter()
+            .map(|(_, c)| c)
+            .chain(insets.iter().flatten().map(|(_, c)| c))
+            .flat_map(Content::keys)
+            .cloned()
+            .collect();
         let mut areas = match held {
             Some(rects) => rects.to_vec(),
-            None => place(figure, size, 0.0, &bare(figure, &roles)),
+            None => place(
+                figure,
+                inner(size, theme.em(), [0.0; 4]),
+                &bare(figure, &roles),
+            ),
         };
         let mut last: Option<Vec<Vec<usize>>> = None;
         let mut axes: Axes = Vec::new();
@@ -115,7 +157,8 @@ impl Layout {
                     .chain(titles.iter().flatten())
                     .chain(&title)
                     .chain(&zero)
-                    .chain(extra),
+                    .chain(extra)
+                    .chain(&legend_keys),
             );
             let text = &*text;
             let slack = zero
@@ -151,10 +194,6 @@ impl Layout {
             if held.is_some() {
                 break;
             }
-            let reserve = title
-                .as_ref()
-                .and_then(|key| get(text, key))
-                .map_or(0.0, |s| ink(s) + theme.title_pad());
             let titled: Vec<Reach> = reaches
                 .iter()
                 .zip(&titles)
@@ -166,18 +205,26 @@ impl Layout {
                     reach
                 })
                 .collect();
-            areas = place(figure, size, reserve, &titled);
+            let reserve = reserve(&slots(&slotted, text, theme), title.as_ref(), text, theme);
+            areas = place(figure, inner(size, theme.em(), reserve), &titled);
             if last.as_ref() == Some(&counts) {
                 break;
             }
             last = Some(counts);
         }
+        let text = &*text;
+        let em = theme.em();
+        let slots = slots(&slotted, text, theme);
+        let grid = inner(size, em, reserve(&slots, title.as_ref(), text, theme));
+        let extent = areas.iter().copied().reduce(|a, b| a.union(b));
+        let legends = slots.place(grid, extent.unwrap_or(grid), em);
         let mut panels: Vec<Laid> = panels
             .iter()
             .zip(axes)
             .zip(titles)
             .zip(reaches.iter().zip(&areas))
-            .map(|(((p, axes), title), ((reach, above), area))| {
+            .zip(insets)
+            .map(|((((p, axes), title), ((reach, above), area)), insets)| {
                 let axes = p
                     .axes()
                     .iter()
@@ -190,10 +237,19 @@ impl Layout {
                         placed
                     })
                     .collect();
+                let insets = insets
+                    .into_iter()
+                    .map(|(at, content)| {
+                        let block = content.column(text, theme).framed(em);
+                        let corner = at.place(*area, block.size(), INSET * em);
+                        (block, corner)
+                    })
+                    .collect();
                 Laid {
                     axes,
                     title,
                     top: reach.top,
+                    insets,
                 }
             })
             .collect();
@@ -201,6 +257,7 @@ impl Layout {
         Layout {
             areas,
             panels,
+            legends,
             passes,
         }
     }
@@ -301,17 +358,55 @@ fn reach(
     (reach, top)
 }
 
-/// The plot areas of `figure`'s panels for `size`, with `reserve` px above
-/// the grid for the figure title and each panel reaching `reaches` past
-/// its plot area. A panel's left reach counts against its first column,
-/// its right reach against its last, and likewise for rows; its plot area
-/// runs from its first track's start to its last track's end.
-fn place(figure: &Figure<'_>, size: Size, reserve: f64, reaches: &[Reach]) -> Vec<Rect> {
+/// The legends of `slotted` laid out for their slots: rows on top and
+/// bottom, columns on the sides.
+fn slots(slotted: &[(Slot, Content)], text: &text::Cache, theme: &Theme) -> Slots {
+    Slots::new(
+        slotted
+            .iter()
+            .map(|(slot, content)| {
+                let block = match slot {
+                    Slot::Top | Slot::Bottom => content.row(text, theme),
+                    Slot::Left | Slot::Right => content.column(text, theme),
+                };
+                (*slot, block)
+            })
+            .collect(),
+    )
+}
+
+/// What the figure title (its ink height and 8 px, on top) and the legends
+/// in `slots` reserve outside the grid, px, as [top, right, bottom, left].
+fn reserve(slots: &Slots, title: Option<&Key>, text: &text::Cache, theme: &Theme) -> [f64; 4] {
+    let mut reserve = slots.reserve(theme.em());
+    reserve[0] += title
+        .and_then(|key| get(text, key))
+        .map_or(0.0, |s| ink(s) + theme.title_pad());
+    reserve
+}
+
+/// The box the grid's tracks fill on a canvas of `size`: inside 0.8 em of
+/// padding and `reserve` px ([top, right, bottom, left]) beyond it.
+fn inner(size: Size, em: f64, [top, right, bottom, left]: [f64; 4]) -> Rect {
+    let pad = PAD * em;
+    Rect::new(
+        pad + left,
+        pad + top,
+        size.width - pad - right,
+        size.height - pad - bottom,
+    )
+}
+
+/// The plot areas of `figure`'s panels with the tracks filling `inner` and
+/// each panel reaching `reaches` past its plot area. A panel's left reach
+/// counts against its first column, its right reach against its last, and
+/// likewise for rows; its plot area runs from its first track's start to
+/// its last track's end.
+fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach]) -> Vec<Rect> {
     let theme = figure.style();
     let grid = figure.grid();
     let panels = figure.panels();
     let em = theme.em();
-    let pad = 0.8 * em;
     let rows = tracks(
         grid.row_weights().len(),
         panels.iter().map(|p| p.cell().rows().end),
@@ -333,13 +428,13 @@ fn place(figure: &Figure<'_>, size: Size, reserve: f64, reaches: &[Reach]) -> Ve
         grid.row_weights(),
         &grid.row_gaps_px(rows, em),
         &row_reach,
-        [pad + reserve, size.height - 2.0 * pad - reserve],
+        [inner.y0, inner.height()],
     );
     let xs = layout::tracks(
         grid.col_weights(),
         &grid.col_gaps_px(cols, em),
         &col_reach,
-        [pad, size.width - 2.0 * pad],
+        [inner.x0, inner.width()],
     );
     let span = |tracks: &[[f64; 2]], range: std::ops::Range<usize>| {
         let ([start, _], [last, length]) = (tracks[range.start], tracks[range.end - 1]);

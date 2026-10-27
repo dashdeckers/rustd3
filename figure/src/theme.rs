@@ -177,6 +177,29 @@ impl Theme {
         style(self.tick_text(), align, fill)
     }
 
+    /// A legend entry's label: tick-label size (matplotlib's
+    /// `legend.fontsize` at seaborn's notebook, 11 pt), in ink.
+    pub(crate) fn legend_label(&self) -> Style {
+        style(self.tick_text(), anchor::Horizontal::Start, self.ink)
+    }
+
+    /// A legend's title: 12 pt (`legend.title_fontsize`), centred lines in
+    /// ink.
+    pub(crate) fn legend_title(&self) -> Style {
+        style(self.label_text(), anchor::Horizontal::Middle, self.ink)
+    }
+
+    /// Behind an inset legend: the panel's color at matplotlib's
+    /// `legend.framealpha`, 0.8.
+    pub(crate) fn legend_face(&self) -> Rgb {
+        self.panel.with_opacity(0.8)
+    }
+
+    /// An inset legend's edge: matplotlib's `legend.edgecolor`, gray 0.8.
+    pub(crate) fn legend_edge(&self) -> Rgb {
+        Rgb::hex(0xcccccc)
+    }
+
     /// The figure title's style: centred lines in ink.
     pub(crate) fn figure_title(&self) -> Style {
         style(

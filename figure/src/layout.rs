@@ -23,6 +23,7 @@ mod hold;
 mod passes;
 mod plan;
 mod protrusion;
+mod slots;
 mod tracks;
 
 pub use cell::Cell;

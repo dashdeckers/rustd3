@@ -19,7 +19,14 @@ pub(super) enum Role {
     Heading = 5,
     /// A mark of a panel.
     Mark = 6,
+    /// A legend: in a corner of a panel, or, under [`FIGURE`], in a figure
+    /// slot.
+    Legend = 7,
 }
+
+/// The panel field of figure-level parts that panels' parts could share
+/// ids with: legends in figure slots.
+pub(super) const FIGURE: usize = (1 << 24) - 1;
 
 /// The id of element `index` of `role` in panel `panel`: `role << 56 |
 /// panel << 32 | index`, stable across draws of the same figure.

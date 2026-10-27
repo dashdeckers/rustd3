@@ -21,8 +21,9 @@ impl Figure<'_> {
     /// wrapped in a part with bounds `Rect::ZERO` and hash 0: the figure
     /// background, then per panel its background, its marks in insertion
     /// order inside one group translated to the plot area and clipped to
-    /// it, its border, axes and title, then the figure title, centred on
-    /// the plot areas' extent. Marks thin through `frame`.
+    /// it, its inset legends, its border, axes and title, then the figure
+    /// title, centred on the plot areas' extent, and the legends in figure
+    /// slots. Marks thin through `frame`.
     pub(super) fn decorate(
         &self,
         resolved: &Resolved,
@@ -54,6 +55,11 @@ impl Figure<'_> {
             });
             let ctx = Ctx::new(resolved, theme, *area, text, frame);
             marks(list, i, panel, &ctx);
+            for (j, (block, at)) in laid.insets.iter().enumerate() {
+                part(list, part::id(Role::Legend, i, j), |list| {
+                    block.draw(*at, text, theme, list);
+                });
+            }
             if let Some(color) = panel.frame() {
                 part(list, part::id(Role::Border, i, 0), |list| {
                     list.commands.push(Command::Stroke {
@@ -86,6 +92,11 @@ impl Figure<'_> {
             };
             part(list, part::id(Role::Title, 0, 0), |list| {
                 title.place(list, at, top, 0.0);
+            });
+        }
+        for (k, (block, at)) in resolved.legends().iter().enumerate() {
+            part(list, part::id(Role::Legend, part::FIGURE, k), |list| {
+                block.draw(*at, text, theme, list);
             });
         }
     }
