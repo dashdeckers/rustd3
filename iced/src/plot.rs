@@ -67,6 +67,11 @@
 //! the crosshair and the highlight are quads in a layer clipped to the
 //! hovered plot area, in the figure theme's ink.
 //!
+//! [`Plot::revision`] re-renders every cell once for a change the hashes
+//! cannot see (a paint image's pixels replaced in place, a font swapped),
+//! and [`Plot::caching`] with [`Caching::Off`] re-renders every cell
+//! whenever any cell changed, a diagnostic for the benchmark.
+//!
 //! Changed cells render inline when the [`cost`] model predicts they take
 //! at most half the frame budget, and otherwise on one thread the widget
 //! owns, with vello_cpu's own pool; [`Plot::render`] forces either path.
@@ -103,6 +108,59 @@
 //! shows a grab hand over a zoomable plot area, a grabbing hand during a
 //! drag, a resize arrow over a zoomable axis and a crosshair over other
 //! plot areas.
+
+//! **Live data.** The widget keeps no recording state: the hashes are the
+//! dependency tracker. An append bumps the recording's revision, which
+//! the thinning memo keys on, so the next frame thins the view from the
+//! index again; the line's part hashes anew and its plot-area cell
+//! renders, and nothing else does while the scales stay. With an x handle
+//! fitted to `Fit::Window(span)` the domain follows the newest data in
+//! whole device columns, so the x axes' ticks and labels re-render too;
+//! a gesture holds the window until a double click lets it follow again.
+//! `drop_front` renders the same way:
+//!
+//! ```no_run
+//! use iced::Element;
+//! use rustd3_core::scale;
+//! use rustd3_core::series::Recording;
+//! use rustd3_figure::mark::line;
+//! use rustd3_figure::scale::Fit;
+//! use rustd3_figure::{Figure, axis};
+//! use rustd3_iced::Plot;
+//!
+//! struct Live {
+//!     /// A regular clock: appends take no x.
+//!     rec: Recording<f64>,
+//! }
+//!
+//! #[derive(Debug, Clone)]
+//! enum Message {
+//!     Samples(Vec<f64>),
+//! }
+//!
+//! impl Live {
+//!     fn update(&mut self, message: Message) {
+//!         match message {
+//!             Message::Samples(y) => {
+//!                 self.rec.extend(&[], [y]).expect("one channel, finite samples");
+//!             }
+//!         }
+//!     }
+//!
+//!     fn view(&self) -> Element<'_, Message> {
+//!         let mut fig = Figure::new();
+//!         // The last ten seconds, moving in whole device columns.
+//!         let t = fig.fit_with(scale::linear(), Fit::Window(10.0));
+//!         let v = fig.fit(scale::linear());
+//!         fig.panel(0, 0)
+//!             .mark(line(self.rec.series(0).expect("channel 0"), t, v))
+//!             .axis(axis::left(v))
+//!             .axis(axis::bottom(t))
+//!             .zoom_x(t);
+//!         Plot::new(fig).into()
+//!     }
+//! }
+//! ```
 
 mod budget;
 mod caching;
