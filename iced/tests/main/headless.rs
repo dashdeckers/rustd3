@@ -21,7 +21,8 @@ use rustd3_testkit::pixels;
 
 /// A user interface on a headless renderer at a fixed size and scale.
 pub struct Harness<'a, Message> {
-    ui: UserInterface<'a, Message, iced::Theme, iced::Renderer>,
+    /// `None` only while [`Harness::rebuild`] swaps the root.
+    ui: Option<UserInterface<'a, Message, iced::Theme, iced::Renderer>>,
     renderer: iced::Renderer,
     /// Logical size.
     size: Size,
@@ -77,7 +78,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
         });
         let ui = UserInterface::build(root, size, user_interface::Cache::default(), &mut renderer);
         Some(Harness {
-            ui,
+            ui: Some(ui),
             renderer,
             size,
             scale,
@@ -95,10 +96,30 @@ impl<'a, Message: 'a> Harness<'a, Message> {
         self.cursor = mouse::Cursor::Available(at);
     }
 
+    /// Rebuilds the interface from `root`, as the runtime does after the
+    /// app's `update`: widget state carries over where the tree matches.
+    pub fn rebuild(&mut self, root: impl iced::Widget<Message> + 'a) {
+        let cache = self
+            .ui
+            .take()
+            .expect("invariant: the interface is only taken here")
+            .into_cache();
+        self.ui = Some(UserInterface::build(
+            root,
+            self.size,
+            cache,
+            &mut self.renderer,
+        ));
+    }
+
     /// Updates the interface with `events`, in one update.
     pub fn events(&mut self, events: &[Event]) -> Vec<event::Status> {
         let waker = self.waker();
-        let (state, statuses) = self.ui.update(
+        let ui = self
+            .ui
+            .as_mut()
+            .expect("invariant: the interface is only taken during a rebuild");
+        let (state, statuses) = ui.update(
             &window::Headless,
             &waker,
             events,
@@ -123,7 +144,11 @@ impl<'a, Message: 'a> Harness<'a, Message> {
     pub fn frame(&mut self, now: Instant) -> Shot {
         self.tick();
         let _ = self.events(&[Event::Window(window::Event::RedrawRequested(now))]);
-        self.ui.draw(
+        let ui = self
+            .ui
+            .as_mut()
+            .expect("invariant: the interface is only taken during a rebuild");
+        ui.draw(
             &mut self.renderer,
             &iced::Theme::Light,
             &renderer::Style {
