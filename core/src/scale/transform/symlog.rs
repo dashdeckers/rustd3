@@ -1,7 +1,8 @@
 //! The symmetric log transform, under d3's scaleSymlog (symlog.js), with
 //! ticks by decades past the constant.
 
-use crate::scale::{Transform, transform};
+use crate::format::{Format, InvalidFormat, Locale, Specifier};
+use crate::scale::{self, TickFormat, Transform, transform};
 use crate::ticks;
 
 /// The most minor ticks the decade rule returns.
@@ -13,7 +14,8 @@ const LINEAR_SPAN: f64 = 100.0;
 /// logarithmic beyond the constant c. Ticks are d3's linear ticks while the
 /// domain stays within two decades past the constant and thinned decades
 /// (`ticks::decades`) beyond; minor ticks are 2–9 per decade between decade
-/// majors.
+/// majors. Labels follow the ticks: d3's linear tick format for linear
+/// ticks, `",.12~g"` for decades.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Symlog {
     constant: f64,
@@ -23,6 +25,17 @@ impl Symlog {
     /// The transform with constant `constant`.
     pub(crate) fn new(constant: f64) -> Symlog {
         Symlog { constant }
+    }
+
+    /// The decades branch of the tick rule: `ticks::decades` once the
+    /// larger end is 100 constants or more from 0 and at least two decades
+    /// fall inside the domain; `None` where the rule ticks linearly.
+    fn decades(&self, domain: [f64; 2], count: usize) -> Option<Vec<f64>> {
+        let largest = domain[0].abs().max(domain[1].abs());
+        if largest / self.constant < LINEAR_SPAN {
+            return None;
+        }
+        Some(ticks::decades(domain, self.constant, count)).filter(|decades| decades.len() >= 2)
     }
 
     /// Whether |v| is exactly c·10ᵏ for some k.
@@ -68,16 +81,8 @@ impl Transform for Symlog {
     /// 0; otherwise `ticks::decades`, or the linear ticks again when fewer
     /// than two decades fall inside the domain.
     fn ticks(&self, domain: [f64; 2], count: usize) -> Vec<f64> {
-        let largest = domain[0].abs().max(domain[1].abs());
-        if largest / self.constant < LINEAR_SPAN {
-            return ticks::linear(domain, count);
-        }
-        let decades = ticks::decades(domain, self.constant, count);
-        if decades.len() < 2 {
-            ticks::linear(domain, count)
-        } else {
-            decades
-        }
+        self.decades(domain, count)
+            .unwrap_or_else(|| ticks::linear(domain, count))
     }
 
     /// When every nonzero major is ±c·10ᵏ, or every one but the first and
@@ -115,5 +120,22 @@ impl Transform for Symlog {
             }
         }
         minor
+    }
+
+    /// The format of the branch `ticks` takes: for decades every tick
+    /// labelled, the specifier defaulting to `",.12~g"` (asinh's labels);
+    /// for linear ticks d3's linear tick format.
+    fn tick_format(
+        &self,
+        locale: &Locale,
+        domain: [f64; 2],
+        count: usize,
+        specifier: Option<&str>,
+    ) -> Result<TickFormat, InvalidFormat> {
+        if self.decades(domain, count).is_none() {
+            return scale::tick_format(locale, domain, count, specifier).map(TickFormat::from);
+        }
+        let specifier: Specifier = specifier.unwrap_or(",.12~g").parse()?;
+        Ok(TickFormat::from(Format::new(locale, specifier)))
     }
 }

@@ -226,7 +226,8 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         self.transform.minor(&self.ticks(count))
     }
 
-    /// d3's `tickFormat(count, specifier)` under the neutral locale.
+    /// d3's `tickFormat(count, specifier)` under the neutral locale; see
+    /// [`tick_format_in`](Continuous::tick_format_in).
     pub fn tick_format(
         &self,
         count: usize,
@@ -235,13 +236,32 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         self.tick_format_in(&Locale::NEUTRAL, count, specifier)
     }
 
-    /// d3's `tickFormat(count, specifier)` under `locale`.
+    /// d3's `tickFormat(count, specifier)` under `locale`: the transform's
+    /// tick format. With a tick rule set and no specifier, the labels follow
+    /// the rule's ticks instead: `,f` to the decimal places of the smallest
+    /// gap between neighbouring `ticks(count)`, every tick labelled; fewer
+    /// than two ticks keep the transform's format.
+    ///
+    /// ```
+    /// use rustd3_core::scale::{self, TickRule};
+    ///
+    /// let s = scale::sqrt().domain([0.0, 1.0]).tick_rule(TickRule::Transformed);
+    /// let f = s.tick_format(5, None)?;
+    /// assert_eq!(f.format_all(&s.ticks(5)), ["0.00", "0.04", "0.16", "0.36", "0.64", "1.00"]);
+    /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
+    /// ```
     pub fn tick_format_in(
         &self,
         locale: &Locale,
         count: usize,
         specifier: Option<&str>,
     ) -> Result<TickFormat, InvalidFormat> {
+        if self.tick_rule.is_some()
+            && specifier.is_none()
+            && let Some(format) = TickFormat::spaced(locale, &self.ticks(count))
+        {
+            return Ok(format);
+        }
         self.transform
             .tick_format(locale, self.ends(), count, specifier)
     }

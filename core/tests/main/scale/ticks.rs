@@ -261,7 +261,7 @@ fn symlog_ticks_and_labels_follow_its_decade_rule() {
 }
 
 #[test]
-fn a_custom_tick_rule_sets_the_values_and_d3s_step_sets_the_format() {
+fn a_custom_tick_rule_sets_the_values_and_their_spacing_sets_the_format() {
     let x = scale::linear()
         .domain([0.0, 1.2])
         .tick_rule(TickRule::custom(|[a, b], _| {
@@ -362,4 +362,79 @@ fn rebinding_labels_keeps_the_specifier_and_the_si_prefix() -> Result<(), Invali
     );
     assert_eq!(neutral.labels(&set, &Locale::NEUTRAL)[5], "1.0M");
     Ok(())
+}
+
+#[test]
+fn symlog_decades_label_every_tick_in_full() {
+    let x = scale::symlog().constant(0.05).domain([0.0, 500.0]);
+    let set = x.tick_set(10);
+    assert_eq!(set.values(), [0.0, 0.05, 0.5, 5.0, 50.0, 500.0]);
+    assert_eq!(
+        x.labels(&set, &Locale::NEUTRAL),
+        ["0", "0.05", "0.5", "5", "50", "500"]
+    );
+    let tiny = scale::symlog().constant(1e-6).domain([0.0, 1e-3]);
+    assert_eq!(
+        labels(&tiny, 10, &Locale::NEUTRAL),
+        ["0", "0.000001", "0.00001", "0.0001", "0.001"]
+    );
+}
+
+#[test]
+fn symlog_linear_ticks_keep_d3s_linear_labels() -> Result<(), InvalidFormat> {
+    let x = scale::symlog().domain([-3.0, 3.0]);
+    let all = labels(&x, 10, &Locale::NEUTRAL);
+    assert_eq!(all.len(), 13);
+    assert_eq!(
+        (all[0].as_str(), all[1].as_str()),
+        ("\u{2212}3.0", "\u{2212}2.5")
+    );
+    assert_eq!(x.tick_format(10, None)?.format(0.5), "0.5");
+    Ok(())
+}
+
+#[test]
+fn a_transformed_rule_labels_to_the_places_of_the_smallest_gap() -> Result<(), InvalidFormat> {
+    let x = scale::sqrt()
+        .domain([0.0, 1.0])
+        .tick_rule(TickRule::Transformed);
+    let expected = ["0.00", "0.04", "0.16", "0.36", "0.64", "1.00"];
+    assert_eq!(labels(&x, 5, &Locale::NEUTRAL), expected);
+    assert_eq!(x.tick_format(5, None)?.format_all(&x.ticks(5)), expected);
+    assert_eq!(x.tick_format(5, Some(".1f"))?.format(0.04), "0.0");
+    Ok(())
+}
+
+#[test]
+fn a_log_scale_under_the_data_rule_labels_every_tick() {
+    let x = scale::log().domain([1.0, 1000.0]).tick_rule(TickRule::Data);
+    assert_eq!(
+        labels(&x, 10, &Locale::EN_US),
+        [
+            "100", "200", "300", "400", "500", "600", "700", "800", "900", "1,000"
+        ]
+    );
+}
+
+#[test]
+fn a_gap_with_float_noise_adds_no_place() {
+    let x = scale::linear().domain([0.0, 1.0]);
+    let ruled = x.clone().tick_rule(TickRule::Data);
+    assert_eq!(0.3 - 0.2, 0.09999999999999998);
+    assert_eq!(
+        labels(&ruled, 10, &Locale::NEUTRAL),
+        labels(&x, 10, &Locale::NEUTRAL)
+    );
+}
+
+#[test]
+fn a_rule_with_fewer_than_two_ticks_keeps_the_transforms_labels() {
+    let x = scale::log()
+        .domain([1.0, 100.0])
+        .tick_rule(TickRule::custom(|_, _| vec![50.0]));
+    assert_eq!(labels(&x, 10, &Locale::EN_US), ["50"]);
+    let blank = scale::log()
+        .domain([1.0, 100.0])
+        .tick_rule(TickRule::custom(|_, _| vec![70.0]));
+    assert_eq!(labels(&blank, 10, &Locale::EN_US), [""]);
 }

@@ -24,9 +24,11 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
         Some(self.apply(*value))
     }
 
-    /// The transform's default tick format for the set's count under
-    /// `locale`: d3's `,.{precision}f` for linear-like transforms, d3's
-    /// blanked log labels for log.
+    /// The scale's default tick format for the set's count under `locale`
+    /// ([`Continuous::tick_format_in`] with no specifier): d3's
+    /// `,.{precision}f` for linear-like transforms, d3's blanked log labels
+    /// for log, `,f` to the places of the ticks' smallest gap under a tick
+    /// rule.
     ///
     /// # Panics
     ///

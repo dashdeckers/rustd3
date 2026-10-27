@@ -39,6 +39,27 @@ impl TickFormat {
         }
     }
 
+    /// `,f` under `locale` to the decimal places
+    /// ([`format::precision_fixed`]) of the smallest positive gap between
+    /// neighbouring `ticks`, every tick labelled: the default labels of a
+    /// scale whose tick rule replaces its transform's. The gap is read to
+    /// 12 significant digits, so that the float noise of a difference (0.3
+    /// − 0.2 = 0.09999999999999998) adds no place. `None` for fewer than
+    /// two ticks or no positive gap.
+    pub(crate) fn spaced(locale: &Locale, ticks: &[f64]) -> Option<TickFormat> {
+        let gap = ticks
+            .windows(2)
+            .map(|pair| (pair[1] - pair[0]).abs())
+            .filter(|gap| gap.is_finite() && *gap > 0.0)
+            .min_by(f64::total_cmp)?;
+        let gap: f64 = format!("{gap:.11e}").parse().ok()?;
+        let specifier = ",f"
+            .parse::<Specifier>()
+            .ok()?
+            .with_precision(format::precision_fixed(gap)?);
+        Some(TickFormat::from(Format::new(locale, specifier)))
+    }
+
     /// One tick's label; `""` for a tick a log scale leaves unlabelled.
     pub fn format(&self, value: f64) -> String {
         match &self.keep {
