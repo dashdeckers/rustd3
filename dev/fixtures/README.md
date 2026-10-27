@@ -33,3 +33,10 @@ version fails instead of silently changing the values.
 ```bash
 python3 dev/fixtures/<name>.py
 ```
+
+## Written by a table generator
+
+`format_locales.json` is written by `dev/harness/gen/format_locales.mjs`
+together with the number-locale tables it checks (d3's own
+`formatLocale` over a fixed probe list per locale); `scripts/check.sh
+full` reruns the generator and fails on any difference.

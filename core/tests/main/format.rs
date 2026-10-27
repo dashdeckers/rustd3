@@ -1,11 +1,51 @@
-//! Number formats under the neutral locale, d3's `EN_US`, and de-DE and
-//! fr-FR built with `Locale::new`.
+//! Number formats under the neutral locale, d3's `EN_US`, de-DE and fr-FR
+//! built with `Locale::new`, and the bundled locales against d3-format
+//! 3.1.2's tables and its own output (`dev/fixtures/format_locales.json`,
+//! written by `dev/harness/gen/format_locales.mjs`).
 
 use std::borrow::Cow;
 
 use rustd3_core::format::{
     self, Definition, Locale, Specifier, precision_fixed, precision_prefix, precision_round,
 };
+use serde_json::Value;
+
+/// The fixture, read at compile time so the test needs no working directory.
+const PROBES: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../dev/fixtures/format_locales.json"
+));
+
+/// d3-format 3.1.2's JSON table `name`, read at compile time.
+macro_rules! table {
+    ($name:literal) => {
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../dev/harness/d3/d3-format/locale/",
+            $name,
+            ".json"
+        ))
+    };
+}
+
+/// Each bundled constant, with d3's name for it and the table it is
+/// generated from.
+const BUNDLED: [(&str, Locale, &str); 11] = [
+    ("de-DE", Locale::DE_DE, table!("de-DE")),
+    ("en-US", Locale::EN_US, table!("en-US")),
+    ("es-ES", Locale::ES_ES, table!("es-ES")),
+    ("fr-FR", Locale::FR_FR, table!("fr-FR")),
+    ("it-IT", Locale::IT_IT, table!("it-IT")),
+    ("ja-JP", Locale::JA_JP, table!("ja-JP")),
+    ("nl-NL", Locale::NL_NL, table!("nl-NL")),
+    ("pl-PL", Locale::PL_PL, table!("pl-PL")),
+    ("pt-BR", Locale::PT_BR, table!("pt-BR")),
+    ("ru-RU", Locale::RU_RU, table!("ru-RU")),
+    ("zh-CN", Locale::ZH_CN, table!("zh-CN")),
+];
+
+/// Tables that load at run time: Indian grouping and Arabic-Indic digits.
+const RUNTIME: [(&str, &str); 2] = [("ar-001", table!("ar-001")), ("en-IN", table!("en-IN"))];
 
 /// `value` formatted by `specifier` under `locale`.
 fn under(locale: &Locale, specifier: &str, value: f64) -> String {
@@ -20,6 +60,75 @@ fn neutral(specifier: &str, value: f64) -> String {
     format::format(specifier)
         .expect("a valid specifier")
         .format(value)
+}
+
+/// The locale d3's `formatLocale` builds from the JSON table `json`: its
+/// fields, `Definition`'s fallbacks for the absent ones, and grouping only
+/// with a separator (locale.js 13–20).
+fn from_json(json: &str) -> Locale {
+    let table: Value = serde_json::from_str(json).expect("a JSON table");
+    let text = |key: &str| {
+        let value = table.get(key)?.as_str().expect("a string field");
+        Some(Cow::Owned(value.to_owned()))
+    };
+    let texts = |key: &str| -> Option<Vec<Cow<'static, str>>> {
+        let values = table.get(key)?.as_array().expect("an array field");
+        Some(
+            values
+                .iter()
+                .map(|v| Cow::Owned(v.as_str().expect("a string").to_owned()))
+                .collect(),
+        )
+    };
+    let grouping = match (table.get("grouping"), table.get("thousands")) {
+        (Some(sizes), Some(_)) => sizes
+            .as_array()
+            .expect("group sizes")
+            .iter()
+            .map(|n| usize::try_from(n.as_u64().expect("a group size")).expect("a size that fits"))
+            .collect(),
+        _ => Vec::new(),
+    };
+    let Definition {
+        decimal,
+        thousands,
+        currency,
+        percent,
+        minus,
+        nan,
+        ..
+    } = Definition::default();
+    Locale::new(Definition {
+        decimal: text("decimal").unwrap_or(decimal),
+        thousands: text("thousands").unwrap_or(thousands),
+        grouping: Cow::Owned(grouping),
+        currency: texts("currency")
+            .map_or(currency, |c| c.try_into().expect("two currency strings")),
+        numerals: texts("numerals").map(|n| n.try_into().expect("ten numerals")),
+        percent: text("percent").unwrap_or(percent),
+        minus: text("minus").unwrap_or(minus),
+        nan: text("nan").unwrap_or(nan),
+        group_from: 1,
+    })
+}
+
+/// Asserts that `locale` writes each of the fixture's probes for `name`
+/// as d3 does.
+fn matches_d3(probes: &Value, name: &str, locale: &Locale) {
+    let rows = probes[name]["probes"]
+        .as_array()
+        .expect("probes for the locale");
+    assert_eq!(rows.len(), 6, "{name}");
+    for row in rows {
+        let specifier = row[0].as_str().expect("a specifier");
+        let value = row[1].as_f64().expect("a value");
+        let d3 = row[2].as_str().expect("d3's output");
+        assert_eq!(
+            under(locale, specifier, value),
+            d3,
+            "{name}: {specifier} of {value}"
+        );
+    }
 }
 
 /// A locale with d3's fallbacks but the given separators and currency.
@@ -173,4 +282,51 @@ fn numerals_replace_every_digit() {
     });
     // d3-format's arabicLocale test, ar-001.
     assert_eq!(under(&ar, "$,.2f", -1234.56), "−١٬٢٣٤٫٥٦");
+}
+
+#[test]
+fn bundled_locales_equal_their_json() {
+    for (name, constant, json) in BUNDLED {
+        assert_eq!(constant, from_json(json), "{name}");
+    }
+}
+
+#[test]
+fn bundled_number_locales_match_d3() {
+    let probes: Value = serde_json::from_str(PROBES).expect("the fixture");
+    for (name, constant, _) in BUNDLED {
+        let named = probes[name]["constant"].as_str().expect("a bundled locale");
+        assert_eq!(named, name.replace('-', "_").to_uppercase());
+        matches_d3(&probes, name, &constant);
+    }
+    let bundled = probes.as_object().expect("locales by name");
+    let bundled = bundled
+        .values()
+        .filter(|v| v["constant"].is_string())
+        .count();
+    assert_eq!(bundled, BUNDLED.len());
+}
+
+#[test]
+fn runtime_number_locales_match_d3() {
+    let probes: Value = serde_json::from_str(PROBES).expect("the fixture");
+    for (name, json) in RUNTIME {
+        assert!(probes[name]["constant"].is_null(), "{name} is not bundled");
+        matches_d3(&probes, name, &from_json(json));
+    }
+    let in_ = from_json(table!("en-IN"));
+    assert_eq!(under(&in_, ",", 10_000_000.454_3), "1,00,00,000.4543");
+    assert_eq!(under(&in_, ",.1f", 1_234_567.5), "12,34,567.5");
+}
+
+#[test]
+fn bundled_locales_write_the_rows_part_i_shows() {
+    assert_eq!(under(&Locale::DE_DE, ",.1f", 1_234_567.5), "1.234.567,5");
+    assert_eq!(under(&Locale::DE_DE, "$,.2f", 1234.5), "1.234,50\u{a0}€");
+    assert_eq!(under(&Locale::FR_FR, ".1%", 0.123), "12,3\u{202f}%");
+    assert_eq!(under(&Locale::EN_US, "$,.2f", -1234.5), "−$1,234.50");
+    assert_eq!(
+        under(&Locale::default(), ",.1f", 1_234_567.5),
+        "1\u{202f}234\u{202f}567.5"
+    );
 }

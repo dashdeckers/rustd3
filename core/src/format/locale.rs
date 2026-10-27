@@ -99,19 +99,6 @@ impl Locale {
         group_from: 5,
     });
 
-    /// d3's default: ",", groups of three, ["$", ""].
-    pub const EN_US: Locale = Locale::from_table(Table {
-        decimal: ".",
-        thousands: ",",
-        grouping: &[3],
-        currency: ["$", ""],
-        numerals: None,
-        percent: "%",
-        minus: "\u{2212}",
-        nan: "NaN",
-        group_from: 1,
-    });
-
     /// The locale a definition states.
     pub fn new(definition: Definition) -> Locale {
         let Definition {

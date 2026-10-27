@@ -4,6 +4,10 @@
 //! The free functions use the neutral locale, SI style: a point, digits
 //! grouped by a narrow no-break space from five integer digits on, no
 //! currency, and − for minus. d3's own default is [`Locale::EN_US`].
+//! d3-format's tables for en-US and the ten languages of the time tables
+//! are constants of [`Locale`] (`DE_DE`, `FR_FR`, `ES_ES`, `IT_IT`,
+//! `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`, `ZH_CN`); its other tables
+//! load at run time through [`Locale::new`].
 //!
 //! ```
 //! use rustd3_core::format::{self, Locale};
@@ -11,12 +15,14 @@
 //! assert_eq!(format::format(".1%")?.format(0.123), "12.3%");
 //! assert_eq!(format::format(",.2f")?.format(-12345.678), "−12\u{202f}345.68");
 //! assert_eq!(Locale::EN_US.format("$,.2f")?.format(-1234.5), "−$1,234.50");
+//! assert_eq!(Locale::DE_DE.format(",.1f")?.format(1234567.5), "1.234.567,5");
 //! assert!(format::format("10..f").is_err());
 //! # Ok::<(), format::InvalidFormat>(())
 //! ```
 
 mod decimal;
 mod locale;
+mod locales;
 mod precision;
 mod specifier;
 
