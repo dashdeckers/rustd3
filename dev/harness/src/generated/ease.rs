@@ -9,7 +9,7 @@ fn t0() {   // back-test.js: easeBack is an alias for easeBackInOut
 }
 
 fn t1() {   // back-test.js: easeBackIn(t) returns the expected results
-    check("d3-ease/test/back-test.js:11:3", Kind::Strict, &(Ease::back(Mode::In).apply(0.0)).abs(), &0.000000);
+    check("d3-ease/test/back-test.js:11:3", Kind::Strict, &f64::abs(Ease::back(Mode::In).apply(0.0)), &0.000000);
     check("d3-ease/test/back-test.js:12:3", Kind::InDelta(1e-6), &Ease::back(Mode::In).apply(0.1), &-0.014314);
     check("d3-ease/test/back-test.js:13:3", Kind::InDelta(1e-6), &Ease::back(Mode::In).apply(0.2), &-0.046451);
     check("d3-ease/test/back-test.js:14:3", Kind::InDelta(1e-6), &Ease::back(Mode::In).apply(0.3), &-0.080200);
@@ -261,7 +261,7 @@ fn t28() {   // elastic-test.js: easeElastic is an alias for easeElasticOut
 }
 
 fn t29() {   // elastic-test.js: easeElasticIn(t) returns the expected results
-    check("d3-ease/test/elastic-test.js:11:3", Kind::Strict, &(Ease::elastic(Mode::In).apply(0.0)).abs(), &0.000000);
+    check("d3-ease/test/elastic-test.js:11:3", Kind::Strict, &f64::abs(Ease::elastic(Mode::In).apply(0.0)), &0.000000);
     check("d3-ease/test/elastic-test.js:12:3", Kind::InDelta(1e-6), &Ease::elastic(Mode::In).apply(0.1), &0.000978);
     check("d3-ease/test/elastic-test.js:13:3", Kind::InDelta(1e-6), &Ease::elastic(Mode::In).apply(0.2), &-0.001466);
     check("d3-ease/test/elastic-test.js:14:3", Kind::InDelta(1e-6), &Ease::elastic(Mode::In).apply(0.3), &-0.003421);

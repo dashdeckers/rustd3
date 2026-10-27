@@ -1,8 +1,16 @@
 # d3 assertions that must keep passing, and per test file the passes it must keep. Written by rustd3-harness --bless after reading the diff.
+#floor d3-array/test/count-test.js 4
+#floor d3-array/test/deviation-test.js 29
+#floor d3-array/test/extent-test.js 26
+#floor d3-array/test/max-test.js 26
+#floor d3-array/test/mean-test.js 24
+#floor d3-array/test/min-test.js 26
 #floor d3-array/test/nice-test.js 29
+#floor d3-array/test/sum-test.js 22
 #floor d3-array/test/tickIncrement-test.js 45
 #floor d3-array/test/tickStep-test.js 75
 #floor d3-array/test/ticks-test.js 92
+#floor d3-array/test/variance-test.js 28
 #floor d3-color/test/color-test.js 79
 #floor d3-color/test/cubehelix-test.js 0
 #floor d3-color/test/gray-test.js 2
@@ -96,6 +104,141 @@
 #floor d3-shape/test/curve/stepBefore-test.js 8
 #floor d3-shape/test/line-test.js 3
 #floor d3-zoom/test/transform-test.js 11
+d3-array/test/count-test.js:5:3
+d3-array/test/count-test.js:11:3
+d3-array/test/count-test.js:19:3
+d3-array/test/count-test.js:20:3
+d3-array/test/deviation-test.js:5:3
+d3-array/test/deviation-test.js:6:3
+d3-array/test/deviation-test.js:7:3
+d3-array/test/deviation-test.js:8:3
+d3-array/test/deviation-test.js:12:3
+d3-array/test/deviation-test.js:13:3
+d3-array/test/deviation-test.js:14:3
+d3-array/test/deviation-test.js:18:3
+d3-array/test/deviation-test.js:19:3
+d3-array/test/deviation-test.js:23:3
+d3-array/test/deviation-test.js:24:3
+d3-array/test/deviation-test.js:25:3
+d3-array/test/deviation-test.js:26:3
+d3-array/test/deviation-test.js:27:3
+d3-array/test/deviation-test.js:28:3
+d3-array/test/deviation-test.js:32:3
+d3-array/test/deviation-test.js:33:3
+d3-array/test/deviation-test.js:34:3
+d3-array/test/deviation-test.js:38:3
+d3-array/test/deviation-test.js:39:3
+d3-array/test/deviation-test.js:40:3
+d3-array/test/deviation-test.js:44:3
+d3-array/test/deviation-test.js:45:3
+d3-array/test/deviation-test.js:49:3
+d3-array/test/deviation-test.js:50:3
+d3-array/test/deviation-test.js:51:3
+d3-array/test/deviation-test.js:52:3
+d3-array/test/deviation-test.js:53:3
+d3-array/test/deviation-test.js:54:3
+d3-array/test/extent-test.js:5:3
+d3-array/test/extent-test.js:6:3
+d3-array/test/extent-test.js:7:3
+d3-array/test/extent-test.js:8:3
+d3-array/test/extent-test.js:19:3
+d3-array/test/extent-test.js:21:3
+d3-array/test/extent-test.js:23:3
+d3-array/test/extent-test.js:24:3
+d3-array/test/extent-test.js:35:3
+d3-array/test/extent-test.js:36:3
+d3-array/test/extent-test.js:37:3
+d3-array/test/extent-test.js:38:3
+d3-array/test/extent-test.js:39:3
+d3-array/test/extent-test.js:43:3
+d3-array/test/extent-test.js:44:3
+d3-array/test/extent-test.js:45:3
+d3-array/test/extent-test.js:46:3
+d3-array/test/extent-test.js:57:3
+d3-array/test/extent-test.js:59:3
+d3-array/test/extent-test.js:61:3
+d3-array/test/extent-test.js:62:3
+d3-array/test/extent-test.js:73:3
+d3-array/test/extent-test.js:74:3
+d3-array/test/extent-test.js:75:3
+d3-array/test/extent-test.js:76:3
+d3-array/test/extent-test.js:77:3
+d3-array/test/max-test.js:5:3
+d3-array/test/max-test.js:6:3
+d3-array/test/max-test.js:7:3
+d3-array/test/max-test.js:8:3
+d3-array/test/max-test.js:19:3
+d3-array/test/max-test.js:21:3
+d3-array/test/max-test.js:23:3
+d3-array/test/max-test.js:24:3
+d3-array/test/max-test.js:35:3
+d3-array/test/max-test.js:36:3
+d3-array/test/max-test.js:37:3
+d3-array/test/max-test.js:38:3
+d3-array/test/max-test.js:39:3
+d3-array/test/max-test.js:43:3
+d3-array/test/max-test.js:44:3
+d3-array/test/max-test.js:45:3
+d3-array/test/max-test.js:46:3
+d3-array/test/max-test.js:57:3
+d3-array/test/max-test.js:59:3
+d3-array/test/max-test.js:61:3
+d3-array/test/max-test.js:62:3
+d3-array/test/max-test.js:73:3
+d3-array/test/max-test.js:74:3
+d3-array/test/max-test.js:75:3
+d3-array/test/max-test.js:76:3
+d3-array/test/max-test.js:77:3
+d3-array/test/mean-test.js:6:3
+d3-array/test/mean-test.js:7:3
+d3-array/test/mean-test.js:8:3
+d3-array/test/mean-test.js:9:3
+d3-array/test/mean-test.js:13:3
+d3-array/test/mean-test.js:14:3
+d3-array/test/mean-test.js:15:3
+d3-array/test/mean-test.js:19:3
+d3-array/test/mean-test.js:20:3
+d3-array/test/mean-test.js:21:3
+d3-array/test/mean-test.js:22:3
+d3-array/test/mean-test.js:23:3
+d3-array/test/mean-test.js:40:3
+d3-array/test/mean-test.js:41:3
+d3-array/test/mean-test.js:42:3
+d3-array/test/mean-test.js:43:3
+d3-array/test/mean-test.js:47:3
+d3-array/test/mean-test.js:48:3
+d3-array/test/mean-test.js:49:3
+d3-array/test/mean-test.js:53:3
+d3-array/test/mean-test.js:54:3
+d3-array/test/mean-test.js:55:3
+d3-array/test/mean-test.js:56:3
+d3-array/test/mean-test.js:57:3
+d3-array/test/min-test.js:5:3
+d3-array/test/min-test.js:6:3
+d3-array/test/min-test.js:7:3
+d3-array/test/min-test.js:8:3
+d3-array/test/min-test.js:19:3
+d3-array/test/min-test.js:21:3
+d3-array/test/min-test.js:23:3
+d3-array/test/min-test.js:24:3
+d3-array/test/min-test.js:35:3
+d3-array/test/min-test.js:36:3
+d3-array/test/min-test.js:37:3
+d3-array/test/min-test.js:38:3
+d3-array/test/min-test.js:39:3
+d3-array/test/min-test.js:43:3
+d3-array/test/min-test.js:44:3
+d3-array/test/min-test.js:45:3
+d3-array/test/min-test.js:46:3
+d3-array/test/min-test.js:57:3
+d3-array/test/min-test.js:59:3
+d3-array/test/min-test.js:61:3
+d3-array/test/min-test.js:62:3
+d3-array/test/min-test.js:73:3
+d3-array/test/min-test.js:74:3
+d3-array/test/min-test.js:75:3
+d3-array/test/min-test.js:76:3
+d3-array/test/min-test.js:77:3
 d3-array/test/nice-test.js:5:3
 d3-array/test/nice-test.js:6:3
 d3-array/test/nice-test.js:7:3
@@ -125,6 +268,28 @@ d3-array/test/nice-test.js:42:3
 d3-array/test/nice-test.js:43:3
 d3-array/test/nice-test.js:44:3
 d3-array/test/nice-test.js:45:3
+d3-array/test/sum-test.js:5:3
+d3-array/test/sum-test.js:6:3
+d3-array/test/sum-test.js:7:3
+d3-array/test/sum-test.js:8:3
+d3-array/test/sum-test.js:26:3
+d3-array/test/sum-test.js:27:3
+d3-array/test/sum-test.js:28:3
+d3-array/test/sum-test.js:32:3
+d3-array/test/sum-test.js:33:3
+d3-array/test/sum-test.js:34:3
+d3-array/test/sum-test.js:35:3
+d3-array/test/sum-test.js:40:3
+d3-array/test/sum-test.js:41:3
+d3-array/test/sum-test.js:42:3
+d3-array/test/sum-test.js:43:3
+d3-array/test/sum-test.js:61:3
+d3-array/test/sum-test.js:62:3
+d3-array/test/sum-test.js:63:3
+d3-array/test/sum-test.js:67:3
+d3-array/test/sum-test.js:68:3
+d3-array/test/sum-test.js:69:3
+d3-array/test/sum-test.js:70:3
 d3-array/test/tickIncrement-test.js:5:3
 d3-array/test/tickIncrement-test.js:6:3
 d3-array/test/tickIncrement-test.js:7:3
@@ -337,6 +502,34 @@ d3-array/test/ticks-test.js:123:3
 d3-array/test/ticks-test.js:124:3
 d3-array/test/ticks-test.js:125:3
 d3-array/test/ticks-test.js:126:3
+d3-array/test/variance-test.js:5:3
+d3-array/test/variance-test.js:6:3
+d3-array/test/variance-test.js:7:3
+d3-array/test/variance-test.js:11:3
+d3-array/test/variance-test.js:12:3
+d3-array/test/variance-test.js:13:3
+d3-array/test/variance-test.js:17:3
+d3-array/test/variance-test.js:18:3
+d3-array/test/variance-test.js:22:3
+d3-array/test/variance-test.js:23:3
+d3-array/test/variance-test.js:24:3
+d3-array/test/variance-test.js:25:3
+d3-array/test/variance-test.js:26:3
+d3-array/test/variance-test.js:27:3
+d3-array/test/variance-test.js:31:3
+d3-array/test/variance-test.js:32:3
+d3-array/test/variance-test.js:33:3
+d3-array/test/variance-test.js:37:3
+d3-array/test/variance-test.js:38:3
+d3-array/test/variance-test.js:39:3
+d3-array/test/variance-test.js:43:3
+d3-array/test/variance-test.js:44:3
+d3-array/test/variance-test.js:48:3
+d3-array/test/variance-test.js:49:3
+d3-array/test/variance-test.js:50:3
+d3-array/test/variance-test.js:51:3
+d3-array/test/variance-test.js:52:3
+d3-array/test/variance-test.js:53:3
 d3-color/test/color-test.js:6:3
 d3-color/test/color-test.js:7:3
 d3-color/test/color-test.js:8:3

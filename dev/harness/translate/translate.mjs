@@ -32,6 +32,12 @@ const SUITES = [
     files: tests(["back", "bounce", "circle", "cubic", "elastic", "exp", "linear", "poly", "quad", "sin"]),
     rules: ease,
   },
+  {
+    suite: "array",
+    package: "d3-array",
+    files: tests(["count", "min", "max", "extent", "sum", "mean", "variance", "deviation"]),
+    rules: combine(stats, array),
+  },
   { suite: "ticks", package: "d3-array", files: tests(["ticks", "tickIncrement", "tickStep", "nice"]), rules: array },
   {
     suite: "format",

@@ -4,6 +4,7 @@ use crate::registry;
 
 mod path;
 mod ease;
+mod array;
 mod ticks;
 mod format;
 mod scale;
@@ -15,6 +16,7 @@ mod zoom;
 pub const SUITES: &[registry::Suite] = &[
     registry::Suite { name: "path", tests: path::TESTS, asserts: path::ASSERTS },
     registry::Suite { name: "ease", tests: ease::TESTS, asserts: ease::ASSERTS },
+    registry::Suite { name: "array", tests: array::TESTS, asserts: array::ASSERTS },
     registry::Suite { name: "ticks", tests: ticks::TESTS, asserts: ticks::ASSERTS },
     registry::Suite { name: "format", tests: format::TESTS, asserts: format::ASSERTS },
     registry::Suite { name: "scale", tests: scale::TESTS, asserts: scale::ASSERTS },

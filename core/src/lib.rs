@@ -4,6 +4,7 @@
 //! animation as plain values and state machines, renderer-agnostic and
 //! graded by d3's own tests.
 
+pub mod array;
 pub mod axis;
 pub mod color;
 pub mod ease;

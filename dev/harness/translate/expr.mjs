@@ -256,7 +256,7 @@ function math(prop, args) {
   if (prop === "pow") {
     return { c: `(${needNum(nth(args, 0), "Math.pow base")}).powf(${needNum(nth(args, 1), "Math.pow exponent")})`, t: "num" };
   }
-  if (MATH_FNS[prop]) return { c: `(${needNum(nth(args, 0), `Math.${prop} argument`)}).${MATH_FNS[prop]}()`, t: "num" };
+  if (MATH_FNS[prop]) return { c: `f64::${MATH_FNS[prop]}(${needNum(nth(args, 0), `Math.${prop} argument`)})`, t: "num" };
   return skip(`gap: Math.${prop}`);
 }
 
