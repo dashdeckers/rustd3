@@ -11,6 +11,18 @@ pub fn precision_fixed(step: f64) -> Option<usize> {
     decimal::exponent(step).map(|e| decimal::count(-e))
 }
 
+/// [`precision_fixed`] for a step measured between values of magnitude up
+/// to `max`: the step is read to 12 significant digits of `max` first, so
+/// that the float noise of a difference (0.3 − 0.2 = 0.09999999999999998;
+/// 1e9 + 0.3 − (1e9 + 0.2) = 0.09999990463256836) adds no place. `None`
+/// for a step that is zero, not finite or below that resolution.
+pub(crate) fn precision_fixed_between(step: f64, max: f64) -> Option<usize> {
+    let step = step.abs();
+    let digits = 12 + decimal::exponent(step)? - decimal::exponent(max.abs().max(step))?;
+    let digits = usize::try_from(digits).ok().filter(|digits| *digits > 0)?;
+    decimal::parts(step, digits).map(|(_, e)| decimal::count(-e))
+}
+
 /// d3.precisionPrefix: decimal places for values `step` apart formatted
 /// with `value`'s SI prefix (`precision_prefix(1e5, 1.3e6)` is 1, "1.3M").
 #[doc(alias = "precisionPrefix")]

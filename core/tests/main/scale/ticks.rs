@@ -418,13 +418,27 @@ fn a_log_scale_under_the_data_rule_labels_every_tick() {
 
 #[test]
 fn a_gap_with_float_noise_adds_no_place() {
-    let x = scale::linear().domain([0.0, 1.0]);
-    let ruled = x.clone().tick_rule(TickRule::Data);
     assert_eq!(0.3 - 0.2, 0.09999999999999998);
-    assert_eq!(
-        labels(&ruled, 10, &Locale::NEUTRAL),
-        labels(&x, 10, &Locale::NEUTRAL)
-    );
+    assert_eq!(1e9 + 0.3 - (1e9 + 0.2), 0.09999990463256836);
+    for domain in [[0.0, 1.0], [1e9, 1e9 + 1.0]] {
+        let x = scale::linear().domain(domain);
+        let ruled = x.clone().tick_rule(TickRule::Data);
+        assert_eq!(
+            labels(&ruled, 10, &Locale::EN_US),
+            labels(&x, 10, &Locale::EN_US),
+            "{domain:?}"
+        );
+    }
+    let near = scale::linear().domain([1e9, 1e9 + 1.0]);
+    assert_eq!(labels(&near, 10, &Locale::EN_US)[1], "1,000,000,000.1");
+}
+
+#[test]
+fn a_gap_below_the_ticks_resolution_keeps_the_transforms_labels() {
+    let x = scale::linear()
+        .domain([1.0, 2.0])
+        .tick_rule(TickRule::custom(|_, _| vec![1.0, 1.0 + 1e-13, 2.0]));
+    assert_eq!(labels(&x, 10, &Locale::EN_US), ["1.0", "1.0", "2.0"]);
 }
 
 #[test]
