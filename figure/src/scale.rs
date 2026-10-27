@@ -1,6 +1,6 @@
 //! What the figure needs from a scale: an object-safe [`Scale`] for its
-//! table, which delegates gestures to core's `Rescale`, and typed
-//! capability traits for marks and axes ([`Kind`], [`Position`],
+//! table, which delegates gestures to core's `Rescale`; [`ScaleRef`], the
+//! typed handle marks and axes hold; and typed capability traits for them ([`Kind`], [`Position`],
 //! [`Paint`], [`Fittable`], [`Invert`], [`Indexed`]), implemented for
 //! core's continuous scales with an `f64` range and for its band, point and
 //! ordinal color scales.
@@ -21,6 +21,7 @@ mod band;
 mod continuous;
 mod fit;
 mod fittable;
+mod handle;
 mod indexed;
 mod invert;
 mod kind;
@@ -33,6 +34,7 @@ use std::any::Any;
 
 pub use fit::Fit;
 pub use fittable::Fittable;
+pub use handle::ScaleRef;
 pub use indexed::{Indexed, SeriesExtent};
 pub use invert::Invert;
 pub use kind::Kind;

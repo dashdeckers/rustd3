@@ -1,5 +1,9 @@
-//! rustd3-figure's tests: the drawing list, its checks and its outputs.
+//! rustd3-figure's tests: the figure model, fitting and layout; the drawing
+//! list, its checks and its outputs; text.
 
+mod figure;
+mod fit;
+mod layout;
 mod list;
 mod lower;
 mod raster;

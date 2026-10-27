@@ -9,12 +9,27 @@
 pub use kurbo;
 pub use peniko;
 
+mod figure;
+pub mod layout;
 pub mod list;
 pub mod lower;
+pub mod mark;
+mod panel;
 pub mod path;
+mod pixels;
 pub mod raster;
 pub mod scale;
 pub mod svg;
+mod target;
 pub mod text;
+mod theme;
 
-mod pixels;
+pub use figure::{Cache, Figure, Fits, Held, Resolved};
+pub use panel::Panel;
+pub use target::Target;
+pub use theme::Theme;
+
+/// What a figure's [`Cache`] reports.
+pub mod cache {
+    pub use crate::figure::cache::Stats;
+}
