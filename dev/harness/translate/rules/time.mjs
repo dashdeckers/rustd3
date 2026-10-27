@@ -28,14 +28,14 @@ const DATES = new Set(["date", "odate"]);
 const ROUNDING = new Set(["floor", "ceil", "round"]);
 
 /** The zone argument of an interval's calls; `&la` declares la in the test. */
-function zone(utc, ctx) {
+export function zone(utc, ctx) {
   if (utc) return "&TimeZone::UTC";
   ctx.lets.set("la", LA);
   return "&la";
 }
 
 /** A date argument as Timestamp code; d3 coerces anything else. */
-function date(e) {
+export function date(e) {
   if (e?.t === "date") return e.c;
   if (e?.t === "odate") return `${e.c}.expect("d3 test: a valid date")`;
   return skip(`js: ${e?.t === "num" ? "a number" : (e?.t ?? "a missing value")} as a date (coercion)`);
@@ -55,8 +55,9 @@ function whole(e, what, ty, min = 0) {
 const number = (e) => (DATES.has(e.t) ? { c: `(${date(e)}.as_millisecond() as f64)`, t: "num" } : undefined);
 
 /** The prelude's local(…) or utc(…): ECMAScript's MakeDate over 1 to 7 fields. */
-function civil(name, args, ctx) {
+export function civil(name, args, ctx) {
   if (args.length < 1 || args.length > 7) skip(`js: ${name} with ${args.length} fields`);
+  if (Math.abs(Number(args[0].c)) > 9999) skip("types: a year outside jiff's range (-9999 to 9999)");
   const fields = `&[${args.map((a) => needNum(a, `${name} field`)).join(", ")}]`;
   return { c: name === "utc" ? `utc(${fields})` : `local(${zone(false, ctx)}, ${fields})`, t: "date" };
 }
