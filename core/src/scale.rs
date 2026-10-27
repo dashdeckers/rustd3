@@ -1,8 +1,8 @@
 //! d3-scale's continuous scales as plain values: built by consuming
 //! builders, read by `apply`, `invert`, `ticks` and `tick_format`, and
 //! generic over a public [`Transform`] and the range type; d3's identity
-//! scale; its band and point scales over an explicit domain of keys; and
-//! [`Ticks`], what an axis needs from any of them.
+//! scale; its band, point and ordinal scales over an explicit domain of
+//! keys; and [`Ticks`], what an axis needs from any of them.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -31,6 +31,7 @@ mod any;
 mod band;
 mod continuous;
 mod identity;
+mod ordinal;
 mod piecewise;
 mod point;
 mod tick_format;
@@ -42,6 +43,7 @@ pub use any::AnyContinuous;
 pub use band::{Band, band};
 pub use continuous::Continuous;
 pub use identity::{Identity, identity};
+pub use ordinal::{Ordinal, ordinal};
 pub use piecewise::piecewise;
 pub use point::{Point, point};
 pub use tick_format::{TickFormat, tick_format};

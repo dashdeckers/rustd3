@@ -9,6 +9,7 @@ mod format;
 mod fuzz;
 mod interpolate;
 mod locale;
+mod ordinal;
 mod path;
 mod point;
 mod rules;
