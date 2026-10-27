@@ -1,6 +1,7 @@
-//! d3-shape's line and area generators over iterators of already-scaled
-//! geometry (Part I, Accessors, option A), drawing into any
-//! [`PathContext`](crate::path::PathContext) with one of d3's curves.
+//! d3-shape over iterators of already-scaled geometry (Part I, Accessors,
+//! option A): lines and areas with d3's curves, their radial forms, pies
+//! and arcs, stacks and symbols, each drawing into any
+//! [`PathContext`](crate::path::PathContext).
 //!
 //! ```
 //! use rustd3_core::path;
@@ -14,22 +15,75 @@
 //! let d = path::svg(|p| shape::area().draw(rows.map(Some), p));
 //! assert_eq!(d, "M0,4L1,2L2,5L2,10L1,10L0,10Z");
 //! ```
+//!
+//! The generators [`Line`], [`Area`], [`Pie`] and [`Stack`] are defined
+//! here and built through the methods in their modules, [`line`],
+//! [`area`], [`pie`] and [`stack`], which also hold the radial forms and
+//! the stack's orders and offsets.
 
 mod arc;
-mod area;
+pub mod area;
 mod curve;
-mod line;
+pub mod line;
 pub mod pie;
 mod slice;
 pub mod stack;
 mod symbol;
 
 pub use arc::Arc;
-pub use area::{Area, Span};
 pub use curve::Curve;
-pub use line::{Line, Vertex};
 pub use slice::Slice;
 pub use symbol::Symbol;
+
+/// An item a line draws: a point, or `None` for a gap.
+pub trait Vertex {
+    /// The point, or `None` to break the line (d3's `defined`).
+    fn vertex(self) -> Option<(f64, f64)>;
+}
+
+/// d3.line() over already-scaled points, built by consuming builders.
+///
+/// ```
+/// use rustd3_core::path;
+/// use rustd3_core::shape;
+///
+/// let readings = [Some(75.0), Some(25.0), None, Some(50.0), Some(0.0)];
+/// let points = readings
+///     .iter()
+///     .enumerate()
+///     .map(|(i, v)| v.map(|v| (i as f64 * 100.0, v)));
+/// let d = path::svg(|p| shape::line().draw(points, p));
+/// assert_eq!(d, "M0,75L100,25M300,50L400,0");
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Line {
+    curve: Curve,
+}
+
+/// An item an area draws: `(x, y0, y1)`, or `(x, y1)` over the area's
+/// baseline, or `None` for a gap.
+pub trait Span {
+    /// The item as `(x, y0, y1)`, a 2-tuple taking `baseline` as `y0`; `None`
+    /// breaks the area (d3's `defined`).
+    fn span(self, baseline: f64) -> Option<(f64, f64, f64)>;
+}
+
+/// d3.area() over already-scaled items, built by consuming builders.
+///
+/// ```
+/// use rustd3_core::path;
+/// use rustd3_core::shape;
+///
+/// let tops = [(0.0, 4.0), (1.0, 2.0), (2.0, 5.0)];
+/// let d = path::svg(|p| shape::area().y0(300.0).draw(tops, p));
+/// assert_eq!(d, "M0,4L1,2L2,5L2,300L1,300L0,300Z");
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Area {
+    curve: Curve,
+    /// The `y0` of 2-tuple items; 0 is d3's default.
+    baseline: f64,
+}
 
 /// d3.pie(): values to the angles of [`Slice`]s, largest first by default;
 /// built by consuming builders, laid out by [`Pie::layout`]. Its methods
@@ -42,6 +96,15 @@ pub struct Pie {
     pad_angle: f64,
 }
 
+/// d3.stack() over columns: orders and offsets as builders, laid out by
+/// [`Stack::layout`]. Its methods, [`stack::Order`] and [`stack::Offset`]
+/// are in [`stack`] (the module).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Stack {
+    order: stack::Order,
+    offset: stack::Offset,
+}
+
 /// d3.line(): straight segments, `None` items breaking the line.
 pub fn line() -> Line {
     Line::default()
@@ -51,15 +114,6 @@ pub fn line() -> Line {
 /// breaking the area.
 pub fn area() -> Area {
     Area::default()
-}
-
-/// d3.stack() over columns: orders and offsets as builders, laid out by
-/// [`Stack::layout`]. Its methods, [`stack::Order`] and [`stack::Offset`]
-/// are in [`stack`] (the module).
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Stack {
-    order: stack::Order,
-    offset: stack::Offset,
 }
 
 /// d3.pie(): descending, from 0 to τ, unpadded.

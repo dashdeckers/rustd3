@@ -1,34 +1,14 @@
-//! d3's area generator: a curve along the top of each run of items, then
-//! back along its baseline.
+//! d3's area generator ([`Area`](crate::shape::Area)): a curve along the
+//! top of each run of items, then back along its baseline; and its radial
+//! form ([`Radial`]).
+
+mod radial;
+
+pub use radial::{Radial, radial};
 
 use crate::path::PathContext;
-use crate::shape::Curve;
 use crate::shape::curve::State;
-
-/// An item an area draws: `(x, y0, y1)`, or `(x, y1)` over the area's
-/// baseline, or `None` for a gap.
-pub trait Span {
-    /// The item as `(x, y0, y1)`, a 2-tuple taking `baseline` as `y0`; `None`
-    /// breaks the area (d3's `defined`).
-    fn span(self, baseline: f64) -> Option<(f64, f64, f64)>;
-}
-
-/// d3.area() over already-scaled items, built by consuming builders.
-///
-/// ```
-/// use rustd3_core::path;
-/// use rustd3_core::shape;
-///
-/// let tops = [(0.0, 4.0), (1.0, 2.0), (2.0, 5.0)];
-/// let d = path::svg(|p| shape::area().y0(300.0).draw(tops, p));
-/// assert_eq!(d, "M0,4L1,2L2,5L2,300L1,300L0,300Z");
-/// ```
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Area {
-    curve: Curve,
-    /// The `y0` of 2-tuple items; 0 is d3's default.
-    baseline: f64,
-}
+use crate::shape::{Area, Curve, Span};
 
 impl Span for (f64, f64, f64) {
     fn span(self, _baseline: f64) -> Option<(f64, f64, f64)> {
@@ -73,26 +53,41 @@ impl Area {
     /// edges as two closed rings, as d3's do; `Curve::Bundle` draws as
     /// `Curve::Basis`.
     pub fn draw<S: Span>(&self, items: impl IntoIterator<Item = S>, ctx: &mut impl PathContext) {
-        let mut state = State::area(self.curve);
-        let mut base = Vec::new();
-        for item in items {
-            match item.span(self.baseline) {
-                Some((x, y0, y1)) => {
-                    if base.is_empty() {
-                        state.area_start();
-                        state.line_start();
-                    }
-                    base.push((x, y0));
-                    state.point(x, y1, ctx);
-                }
-                None => end_run(&mut state, &mut base, ctx),
-            }
-        }
-        end_run(&mut state, &mut base, ctx);
+        let edges = items
+            .into_iter()
+            .map(|item| item.span(self.baseline).map(|(x, y0, y1)| (x, y0, x, y1)));
+        draw_edges(self.curve, edges, ctx);
     }
 }
 
-/// Ends the run whose `(x, y0)` are in `base`, if one is open: the top's
+/// d3's area loop (`area.js`, `area(data)`) over `(x0, y0, x1, y1)` items:
+/// for each run of `Some` items, `curve` through `(x1, y1)` forward, then
+/// through `(x0, y0)` backward. [`Area`] passes `x0 == x1`; the radial area
+/// passes edges whose x differ.
+fn draw_edges(
+    curve: Curve,
+    edges: impl IntoIterator<Item = Option<(f64, f64, f64, f64)>>,
+    ctx: &mut impl PathContext,
+) {
+    let mut state = State::area(curve);
+    let mut base = Vec::new();
+    for edge in edges {
+        match edge {
+            Some((x0, y0, x1, y1)) => {
+                if base.is_empty() {
+                    state.area_start();
+                    state.line_start();
+                }
+                base.push((x0, y0));
+                state.point(x1, y1, ctx);
+            }
+            None => end_run(&mut state, &mut base, ctx),
+        }
+    }
+    end_run(&mut state, &mut base, ctx);
+}
+
+/// Ends the run whose `(x0, y0)` are in `base`, if one is open: the top's
 /// `line_end`, then the baseline drawn in reverse as a second line.
 fn end_run(state: &mut State, base: &mut Vec<(f64, f64)>, ctx: &mut impl PathContext) {
     if base.is_empty() {
@@ -100,8 +95,8 @@ fn end_run(state: &mut State, base: &mut Vec<(f64, f64)>, ctx: &mut impl PathCon
     }
     state.line_end(ctx);
     state.line_start();
-    for (x, y0) in base.drain(..).rev() {
-        state.point(x, y0, ctx);
+    for (x, y) in base.drain(..).rev() {
+        state.point(x, y, ctx);
     }
     state.line_end(ctx);
     state.area_end();

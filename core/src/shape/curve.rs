@@ -128,6 +128,12 @@ pub(crate) enum State {
     Natural(natural::Natural),
 }
 
+/// d3's `curveRadial` point (`curve/radial.js`): the radial forms place
+/// (angle, radius) at `(r·sin a, −r·cos a)` before their curve sees it.
+pub(crate) fn radial(angle: f64, radius: f64) -> (f64, f64) {
+    (radius * angle.sin(), radius * -angle.cos())
+}
+
 /// `$body` with `$family` bound to the family `$state` holds.
 macro_rules! each {
     ($state:expr, $family:ident => $body:expr) => {

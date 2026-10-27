@@ -4,6 +4,7 @@
 
 mod arc;
 mod pie;
+mod radial;
 mod stack;
 mod symbol;
 
