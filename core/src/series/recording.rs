@@ -346,7 +346,163 @@ fn gallop(guess: usize, len: usize, below: impl Fn(usize) -> bool) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Range;
+
     use super::*;
+
+    /// A 64-bit LCG, uniform in [0, 1).
+    struct Lcg(u64);
+
+    impl Lcg {
+        fn next(&mut self) -> f64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (self.0 >> 11) as f64 / (1_u64 << 53) as f64
+        }
+
+        /// A length from 1 to `max`, log-uniform.
+        fn len(&mut self, max: usize) -> usize {
+            ((max as f64).powf(self.next()) as usize).clamp(1, max)
+        }
+    }
+
+    /// Values with NaN runs, ties and ±∞.
+    fn values(n: usize, random: &mut Lcg) -> Vec<f64> {
+        let mut gap = 0;
+        (0..n)
+            .map(|_| {
+                let u = random.next();
+                if gap > 0 || u < 1e-4 {
+                    gap = if gap > 0 {
+                        gap - 1
+                    } else {
+                        (u * 1e8) as usize % 2_000
+                    };
+                    return f64::NAN;
+                }
+                match (u * 1e9) as u64 % 5_003 {
+                    0 => f64::INFINITY,
+                    1 => f64::NEG_INFINITY,
+                    _ => (u * 64.0).floor() - 32.0,
+                }
+            })
+            .collect()
+    }
+
+    /// Every channel's index levels as bits and runs.
+    fn layout(rec: &Recording<f64>) -> Vec<crate::series::channel::Layout> {
+        rec.channels.iter().map(Channel::layout).collect()
+    }
+
+    /// Column edges in samples and M4's polylines of every channel over a
+    /// few views of the recording's x extent.
+    fn thinned(rec: &Recording<f64>) -> Vec<(Vec<usize>, Vec<Vec<usize>>)> {
+        let Some([lo, hi]) = rec.x_extent() else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        for (a, b, columns) in [(0.0, 1.0, 997), (0.25, 0.3, 50), (0.5, 0.500_01, 3)] {
+            let (a, b) = (lo + (hi - lo) * a, lo + (hi - lo) * b);
+            let edges: Vec<f64> = (0..=columns)
+                .map(|c| a + (b - a) * c as f64 / columns as f64)
+                .collect();
+            let grid = rec.columns(&edges).unwrap();
+            for channel in 0..rec.channels() {
+                let lines = rec
+                    .series(channel)
+                    .unwrap()
+                    .m4(&grid, |y| y > -20.0)
+                    .unwrap();
+                out.push((
+                    grid.edges().to_vec(),
+                    lines.iter().map(<[usize]>::to_vec).collect(),
+                ));
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn split_appends_equal_a_one_shot_build() {
+        let mut random = Lcg(17);
+        for pattern in 0..20 {
+            let n = 150_000 + random.len(250_000);
+            let channels = [values(n, &mut random), values(n, &mut random)];
+            // Odd patterns on an explicit clock with repeated x, even ones on a regular clock.
+            let explicit = pattern % 2 == 1;
+            let x: Vec<f64> = (0..n).map(|i| (i / 3) as f64 * 0.5).collect();
+            let x = |range: Range<usize>| if explicit { &x[range] } else { &x[..0] };
+            let clock = |x: &[f64]| {
+                if explicit {
+                    Clock::Explicit(x.to_vec())
+                } else {
+                    Clock::Regular {
+                        start: 2.5,
+                        period: 0.125,
+                    }
+                }
+            };
+            let pick = |range: Range<usize>| channels.iter().map(move |c| &c[range.clone()]);
+            let once = Recording::new(clock(x(0..n)), pick(0..n)).unwrap();
+            let first = random.len(200_000).min(n);
+            let mut split = Recording::new(clock(x(0..first)), pick(0..first)).unwrap();
+            let mut at = first;
+            while at < n {
+                let len = random.len(200_000).min(n - at);
+                split.extend(x(at..at + len), pick(at..at + len)).unwrap();
+                at += len;
+            }
+            assert_eq!(layout(&split), layout(&once), "pattern {pattern}");
+            assert_eq!(thinned(&split), thinned(&once), "pattern {pattern}");
+        }
+    }
+
+    #[test]
+    fn a_recording_after_drop_front_equals_a_fresh_explicit_one_of_the_retained_samples() {
+        let mut random = Lcg(23);
+        let n = 6 * CHUNK + 12_345;
+        let channels = [values(n, &mut random), values(n, &mut random)];
+        let mut original = Recording::new(
+            Clock::Regular {
+                start: 3.0,
+                period: 0.25,
+            },
+            [&channels[0][..70_000], &channels[1][..70_000]],
+        )
+        .unwrap();
+        original
+            .extend(&[], [&channels[0][70_000..], &channels[1][70_000..]])
+            .unwrap();
+        for chunks in [1, 2, 5] {
+            let mut dropped = original.clone();
+            assert_eq!(dropped.drop_front(chunks * CHUNK + 7), chunks * CHUNK);
+            let retained = chunks * CHUNK..n;
+            let x: Vec<f64> = (0..dropped.len()).map(|i| dropped.x(i).unwrap()).collect();
+            let mut fresh = Recording::new(
+                Clock::Explicit(x),
+                channels.iter().map(|c| &c[retained.clone()]),
+            )
+            .unwrap();
+            assert_eq!(layout(&dropped), layout(&fresh), "{chunks} chunks");
+            assert_eq!(thinned(&dropped), thinned(&fresh), "{chunks} chunks");
+            let more = values(3_000, &mut random);
+            let next: Vec<f64> = (0..3_000).map(|i| 3.0 + (n + i) as f64 * 0.25).collect();
+            dropped.extend(&[], [&more, &more]).unwrap();
+            fresh.extend(&next, [&more, &more]).unwrap();
+            assert_eq!(
+                layout(&dropped),
+                layout(&fresh),
+                "{chunks} chunks, then an append"
+            );
+            assert_eq!(
+                thinned(&dropped),
+                thinned(&fresh),
+                "{chunks} chunks, then an append"
+            );
+        }
+    }
 
     #[test]
     fn appends_past_u32_max_retained_samples_are_rejected_before_storing() {

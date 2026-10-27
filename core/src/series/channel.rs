@@ -8,6 +8,10 @@ use crate::series::index::Index;
 use crate::series::m4::Extremes;
 use crate::series::runs::Runs;
 
+/// A channel's index levels as bits and its runs.
+#[cfg(test)]
+pub(crate) type Layout = (Vec<[Vec<u64>; 4]>, Vec<Range<usize>>);
+
 /// One channel's samples (NaN is a gap), indexed as they arrive.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Channel {
@@ -43,6 +47,15 @@ impl Channel {
         self.values.extend(values);
         self.index.extend(&self.values);
         self.runs.extend(first, values);
+    }
+
+    /// The index's levels as bits and the runs, for exact comparisons.
+    #[cfg(test)]
+    pub(crate) fn layout(&self) -> Layout {
+        (
+            self.index.bits(),
+            self.runs.overlapping(0..usize::MAX).to_vec(),
+        )
     }
 
     /// Removes the first `chunks` chunks and rebuilds the index and the

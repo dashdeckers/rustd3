@@ -1,6 +1,7 @@
 //! Recordings: storage, clocks, appends and M4, the index's answers
 //! checked against raw scans of the same samples.
 
+mod agree;
 mod exact;
 
 use rustd3_core::series::{Clock, Error, Recording};
