@@ -8,6 +8,7 @@ mod ease;
 mod fixtures;
 mod format;
 mod fuzz;
+mod interact;
 mod interpolate;
 mod locale;
 mod ordinal;

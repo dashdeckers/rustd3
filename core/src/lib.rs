@@ -8,6 +8,7 @@ pub mod axis;
 pub mod color;
 pub mod ease;
 pub mod format;
+pub mod interact;
 pub mod interpolate;
 pub mod locale;
 pub mod path;
