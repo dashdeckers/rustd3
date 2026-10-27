@@ -37,6 +37,16 @@ full() {
   done
   TZ=Asia/Kathmandu cargo test -q -p rustd3-figure   # default features: fonts
   TZ=Asia/Kathmandu cargo test -q -p rustd3
+  # iced's tests once per backend; with ICED_TEST_BACKEND set iced does not
+  # fall back, and a missing Vulkan device fails unless RUSTD3_ALLOW_NO_GPU=1.
+  for backend in tiny-skia wgpu; do
+    if [ "$backend" = wgpu ] && [ "${RUSTD3_ALLOW_NO_GPU:-0}" = 1 ]; then
+      echo "RUSTD3_ALLOW_NO_GPU=1: iced tests skip wgpu when it finds no device"
+    fi
+    for p in rustd3-iced rustd3-examples rustd3-bench; do
+      ICED_TEST_BACKEND=$backend TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features -- --nocapture
+    done
+  done
   node dev/harness/translate/translate.mjs --check
   RUSTDOCFLAGS="-D warnings" cargo doc -q --workspace --no-deps --all-features
 }
