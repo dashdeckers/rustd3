@@ -148,3 +148,19 @@ fn fit_with_window_on_a_band_handle_panics() {
     let mut fig = Figure::new();
     fig.fit_with(scale::band(["a", "b"]), Fit::Window(()));
 }
+
+#[cfg(not(debug_assertions))]
+#[test]
+fn a_foreign_handle_fits_unchecked_in_release_builds() {
+    let mut first = Figure::new();
+    let foreign = first.fit(scale::linear());
+    let mut fig = Figure::new();
+    let y = fig.fit(scale::linear());
+    fig.panel(0, 0).mark(line(foreign, [0.0, 10.0]));
+    // Same index and type: release builds skip the check, so the data
+    // lands on this figure's scale.
+    assert_domain(
+        resolve(&fig, &Held::default()).scale(y).get_domain(),
+        [-0.5, 10.5],
+    );
+}
