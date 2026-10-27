@@ -15,6 +15,12 @@ pub(crate) fn unit(v: f64) -> String {
     fixed(v, 4)
 }
 
+/// A scale that may be small, such as a glyph run's size / 1000: six
+/// places, trimmed alike.
+pub(crate) fn fine(v: f64) -> String {
+    fixed(v, 6)
+}
+
 /// `matrix(a b c d e f)`, coefficients through [`unit`].
 pub(crate) fn matrix(t: Affine) -> String {
     let [a, b, c, d, e, f] = t.as_coeffs().map(unit);

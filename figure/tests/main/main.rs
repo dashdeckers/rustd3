@@ -2,3 +2,4 @@
 
 mod list;
 mod sink;
+mod svg;

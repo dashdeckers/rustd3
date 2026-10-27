@@ -66,6 +66,26 @@ impl Outlines {
         self.outline(font, id).map(|o| o.bounds)
     }
 
+    /// A run's glyphs as one path in its group's space, each outline
+    /// placed by [`place`]; a glyph without an outline adds nothing.
+    pub(crate) fn run(&mut self, fonts: &[FontData], run: &GlyphRun) -> BezPath {
+        let mut path = BezPath::new();
+        let Some(font) = fonts.get(run.font) else {
+            return path;
+        };
+        for glyph in &run.glyphs {
+            if let Some(outline) = self.get(font, glyph.id) {
+                path.extend(
+                    (place(run, glyph) * outline.clone())
+                        .elements()
+                        .iter()
+                        .copied(),
+                );
+            }
+        }
+        path
+    }
+
     fn outline(&mut self, font: &FontData, id: u32) -> Option<&Outline> {
         self.cache
             .entry((font.data.id(), font.index, id))
