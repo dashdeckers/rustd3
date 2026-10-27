@@ -74,7 +74,7 @@ depends on a gap or fold that jiff resolves differently from `Date`.
 
 ## D28.1 — A runtime time table has no way into the figure locale
 
-**Date:** 2026-10-27 · **Context:** Phase 28, step 5 (899319e) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 28, step 5 (899319e) · **Status:** decided
 
 ### Issue
 
@@ -110,7 +110,11 @@ first to draw time axes.
 
 ### Decision
 
-Recommended: B. Not built: it is a public item the section does not list.
+B (architect, 2026-10-27): `locale::Locale::new(number: format::Locale,
+time: time::Locale) -> locale::Locale`, public, so runtime tables reach
+`fig.locale`; `From<format::Locale>` stays (neutral time half). Done as
+the first commit of Phase 29's session, with a test that a runtime
+`time::Locale::new(…)` labels a time axis through `locale::Locale::new`.
 
 ### Why
 
@@ -123,7 +127,7 @@ pair of tables the constants give; C covers half of it.
 
 ## D28.2 — Details of Phase 28 as built
 
-**Date:** 2026-10-27 · **Context:** Phase 28, steps 0–6 (bdcb912 … 54cb28a) · **Status:** open
+**Date:** 2026-10-27 · **Context:** Phase 28, steps 0–6 (bdcb912 … 54cb28a) · **Status:** decided
 
 ### Issue
 
@@ -197,7 +201,7 @@ halves.
 
 ### Decision
 
-Recommended: A for all twelve, as built.
+A for all twelve (architect, 2026-10-27), as built.
 
 ### Why
 
