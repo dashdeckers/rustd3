@@ -91,6 +91,7 @@ impl Figure<'_> {
         let (scales, marked) = self.fitted(held, cache);
         let locale = self.locale.clone();
         let mut resolved = Resolved::new(self.id, scales, locale, target, size);
+        resolved.bind(&self.panels);
         let rects = areas.and_then(|a| a.fit(size, self.panels.len()));
         let layout = Layout::new(self, &resolved, cache.text(), &marked, size, rects);
         let title = self

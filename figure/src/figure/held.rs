@@ -22,6 +22,15 @@ impl Held {
             .insert(h.index(), (TypeId::of::<S>(), Box::new(scale)));
     }
 
+    /// Holds `scale` for the handle at table position `index`, keyed by
+    /// the scale's own type: what a widget holds for handles it knows only
+    /// by position. Resolving uses it where the figure's scale at `index`
+    /// has that type, as [`hold`](Held::hold) does.
+    pub fn hold_erased(&mut self, index: usize, scale: Box<dyn Scale>) {
+        let kind = scale.as_any().type_id();
+        self.scales.insert(index, (kind, scale));
+    }
+
     /// Lets go of what `h` holds; fitting applies again.
     pub fn release<S: Kind>(&mut self, h: ScaleRef<S>) {
         if self.get(h).is_some() {

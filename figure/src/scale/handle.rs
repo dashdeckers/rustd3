@@ -72,4 +72,10 @@ impl<S> ScaleRef<S> {
         debug_assert!(self.figure == figure, "handle from another figure");
         self.index()
     }
+
+    /// The same handle without its scale type, for lists of handles of
+    /// several types.
+    pub(crate) fn erased(self) -> ScaleRef<()> {
+        ScaleRef::new(self.figure, self.index)
+    }
 }

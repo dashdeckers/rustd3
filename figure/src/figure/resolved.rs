@@ -1,11 +1,13 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
 use kurbo::Point;
+use rustd3_core::axis::Orient;
 use rustd3_core::locale::Locale;
 
 use crate::figure;
 use crate::layout::{self, Laid, Layout, Plan};
 use crate::legend::Block;
+use crate::panel::Panel;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
 use crate::text::Key;
@@ -26,6 +28,11 @@ pub struct Resolved {
     title: Option<Key>,
     passes: usize,
     held: bool,
+    /// Per panel, the table positions of the handles it zooms along x and
+    /// along y.
+    zooms: Vec<[Vec<usize>; 2]>,
+    /// Per panel, each axis's side and handle position, in insertion order.
+    axes: Vec<Vec<(Orient, usize)>>,
 }
 
 impl Resolved {
@@ -51,6 +58,8 @@ impl Resolved {
             title: None,
             passes: 0,
             held: false,
+            zooms: Vec::new(),
+            axes: Vec::new(),
         }
     }
 
@@ -62,9 +71,33 @@ impl Resolved {
             .expect("invariant: a handle's scale has the handle's type")
     }
 
+    /// The resolved scale at position `index` of the table, its type
+    /// erased (a widget keeps gesture state by position and `TypeId`);
+    /// `None` past the table's end.
+    pub fn scale_at(&self, index: usize) -> Option<&dyn Scale> {
+        self.scales.get(index).map(|scale| &**scale)
+    }
+
     /// Plot-area rects in list px, one per panel in panel order.
     pub fn plot_areas(&self) -> &[kurbo::Rect] {
         &self.areas
+    }
+
+    /// The table positions of the handles panel `panel` zooms along x and
+    /// along y ([`Panel::zoom_x`], [`Panel::zoom_y`]); empty for a panel
+    /// that zooms none and for one that does not exist.
+    pub fn zooms(&self, panel: usize) -> (&[usize], &[usize]) {
+        self.zooms
+            .get(panel)
+            .map_or((&[], &[]), |[x, y]| (x.as_slice(), y.as_slice()))
+    }
+
+    /// The side of axis `axis` (in insertion order) of panel `panel`, and
+    /// its handle's table position; `None` when there is no such axis.
+    /// With [`plan`](Resolved::plan)'s offset and thickness it bounds the
+    /// strip the axis draws in.
+    pub fn axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
+        self.axes.get(panel)?.get(axis).copied()
     }
 
     /// How layout placed axis `axis` (in insertion order) of panel `panel`
@@ -167,6 +200,16 @@ impl Resolved {
     /// The figure title's key.
     pub(crate) fn title(&self) -> Option<&Key> {
         self.title.as_ref()
+    }
+
+    /// Records, for each of `panels` (this figure's), the handles it zooms
+    /// and its axes' sides and handles.
+    pub(super) fn bind(&mut self, panels: &[Panel<'_>]) {
+        self.zooms = panels.iter().map(|p| p.zooms(self.figure)).collect();
+        self.axes = panels
+            .iter()
+            .map(|p| p.axes().iter().map(|a| (a.orient(), a.handle())).collect())
+            .collect();
     }
 
     /// Sets the layout, the figure title's key and whether the layout

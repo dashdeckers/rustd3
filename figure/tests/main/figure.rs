@@ -1,6 +1,7 @@
 //! The figure model: handles, the scale table, held scales, decorations
 //! and their parts, and the test mark the fitting and layout tests share.
 
+use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
@@ -146,6 +147,88 @@ fn a_held_scale_of_another_type_is_ignored() {
     let mut held = Held::default();
     held.hold(log, scale::log().domain([1.0, 100.0]));
     assert_eq!(resolve(&fig, &held).scale(x).get_domain(), [-0.5, 10.5]);
+}
+
+#[test]
+fn an_erased_hold_holds_like_a_typed_one() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    fig.panel(0, 0).mark(line(x, [0.0, 10.0]));
+    let mut held = Held::default();
+    held.hold_erased(x.index(), Box::new(scale::linear().domain([2.0, 4.0])));
+    assert_eq!(held.get(x).map(|s| s.get_domain()), Some([2.0, 4.0]));
+    assert_eq!(resolve(&fig, &held).scale(x).get_domain(), [2.0, 4.0]);
+    // Keyed by the boxed scale's own type: a log scale at x's position
+    // is ignored.
+    held.hold_erased(x.index(), Box::new(scale::log().domain([1.0, 100.0])));
+    assert!(held.get(x).is_none());
+    assert_eq!(resolve(&fig, &held).scale(x).get_domain(), [-0.5, 10.5]);
+}
+
+#[test]
+fn the_resolved_scale_at_a_position_is_the_handles_without_its_type() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::log());
+    fig.panel(0, 0)
+        .mark(line(x, [0.0, 10.0]))
+        .mark(line(y, [1.0, 1e3]));
+    let r = resolve(&fig, &Held::default());
+    let erased = r.scale_at(x.index()).expect("position 0");
+    let linear = erased
+        .as_any()
+        .downcast_ref::<Linear>()
+        .expect("a linear scale");
+    assert_eq!(linear.get_domain(), r.scale(x).get_domain());
+    let log = r.scale_at(y.index()).expect("position 1");
+    assert_eq!(log.as_any().type_id(), std::any::TypeId::of::<scale::Log>());
+    assert!(r.scale_at(2).is_none());
+}
+
+#[test]
+fn panels_list_the_handles_they_zoom_once_each() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let vib = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let temp = fig.fit(scale::log());
+    fig.panel(0, 0)
+        .zoom_x(x)
+        .zoom_y(vib)
+        .zoom_y(temp)
+        .zoom_y(vib);
+    fig.panel(0, 1).zoom_y(temp);
+    fig.panel(1, 0);
+    let r = resolve(&fig, &Held::default());
+    let none: &[usize] = &[];
+    assert_eq!(r.zooms(0), (&[0][..], &[1, 2][..]));
+    assert_eq!(r.zooms(1), (none, &[2][..]));
+    assert_eq!(r.zooms(2), (none, none));
+    assert_eq!(r.zooms(3), (none, none), "no such panel");
+}
+
+#[cfg(debug_assertions)]
+#[test]
+#[should_panic(expected = "handle from another figure")]
+fn a_zoomed_handle_from_another_figure_panics_when_resolved() {
+    let mut first = Figure::new();
+    let foreign = first.fit(scale::linear());
+    let mut fig = Figure::new();
+    fig.fit(scale::linear());
+    fig.panel(0, 0).zoom_x(foreign);
+    resolve(&fig, &Held::default());
+}
+
+#[test]
+fn axes_report_their_side_and_handle() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0).axis(axis::left(y)).axis(axis::bottom(x));
+    let r = resolve(&fig, &Held::default());
+    assert_eq!(r.axis(0, 0), Some((Orient::Left, y.index())));
+    assert_eq!(r.axis(0, 1), Some((Orient::Bottom, x.index())));
+    assert_eq!(r.axis(0, 2), None);
+    assert_eq!(r.axis(1, 0), None);
 }
 
 #[test]
