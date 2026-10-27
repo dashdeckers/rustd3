@@ -2,10 +2,12 @@
 //! and the refresh that renders a figure's cells.
 
 use iced_core::{Point, Rectangle, Size, image};
+use rustd3_core::color::Rgb;
 use rustd3_figure::list::{self, Bounds, Outlines};
-use rustd3_figure::{Cache, Figure, Held, Target, kurbo, raster};
+use rustd3_figure::{Cache, Figure, Held, Target, hit, kurbo, raster};
 
 use crate::plot::cell::Cell;
+use crate::plot::overlay::{Overlay, Shown};
 
 /// The widget's tree state: the figure's cache, the rasterizer, and the
 /// cells last rendered. It borrows nothing of the figure.
@@ -30,6 +32,10 @@ pub(crate) struct State {
     cells: Vec<Cell>,
     /// Plot areas in device px, relative to the widget's device origin.
     areas: Vec<[i32; 4]>,
+    /// The points the marks draw, list px, for hover.
+    hits: hit::Index,
+    /// The crosshair and highlight where the pointer is.
+    overlay: Overlay,
 }
 
 impl Default for State {
@@ -44,6 +50,8 @@ impl Default for State {
             stale: true,
             cells: Vec::new(),
             areas: Vec::new(),
+            hits: hit::Index::default(),
+            overlay: Overlay::default(),
         }
     }
 }
@@ -77,7 +85,8 @@ impl State {
     /// the screen at `factor` and draws it, cuts the list into cells at every
     /// plot-area edge and, unless every cell's device rect and hash is the
     /// stored one, renders every band of every cell and keeps the plot
-    /// areas. Returns the number of cells rendered.
+    /// areas and the points the marks draw. Returns the number of cells
+    /// rendered.
     pub(crate) fn refresh(&mut self, figure: &Figure<'_>, factor: f32) -> usize {
         if !self.stale && self.factor == Some(factor) {
             return 0;
@@ -89,6 +98,7 @@ impl State {
         if !((size.width * k).round() >= 1.0 && (size.height * k).round() >= 1.0) {
             self.cells.clear();
             self.areas.clear();
+            self.hits = hit::Index::default();
             return 0;
         }
         let target = Target::Screen { scale: k };
@@ -113,11 +123,29 @@ impl State {
             .iter()
             .map(|area| [area.x0, area.y0, area.x1, area.y1].map(|edge| (edge * k).round() as i32))
             .collect();
+        self.hits = figure.hits(&resolved, &mut self.cache);
         self.cells.len()
     }
 
-    /// Draws every cell for a widget laid out at `bounds`.
-    pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle)
+    /// Hovers at `at` (logical, in the window; `None` when the pointer left
+    /// or something above covers it) over a widget laid out at `bounds`,
+    /// showing what `shown` asks for. True when the overlay changed, so the
+    /// widget redraws only then; no cell renders.
+    pub(crate) fn hover(&mut self, at: Option<Point>, bounds: Rectangle, shown: Shown) -> bool {
+        let Some(factor) = self.factor else {
+            return false;
+        };
+        let [x0, y0] = origin(bounds, factor);
+        let device = at.map(|p| Point::new(p.x * factor - x0 as f32, p.y * factor - y0 as f32));
+        let next = Overlay::hover(device, &self.areas, &self.hits, factor, shown);
+        let changed = next != self.overlay;
+        self.overlay = next;
+        changed
+    }
+
+    /// Draws every cell, then the overlay in `ink`, for a widget laid out
+    /// at `bounds`.
+    pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, ink: Rgb)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
     {
@@ -128,6 +156,7 @@ impl State {
         for cell in &self.cells {
             cell.draw(renderer, origin, factor);
         }
+        self.overlay.draw(renderer, origin, factor, ink);
     }
 
     /// Whether `at` (logical, in the window) lies over a plot area of a
@@ -168,11 +197,12 @@ pub(super) fn cache() -> Cache {
 
 #[cfg(test)]
 mod tests {
-    use iced_core::Size;
+    use iced_core::{Point, Rectangle, Size};
     use rustd3_figure::{Held, Target, kurbo};
 
     use super::State;
     use crate::plot::fixture;
+    use crate::plot::overlay::{Overlay, Shown};
 
     /// The factors layout, snapping and placement are checked at.
     const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
@@ -282,6 +312,52 @@ mod tests {
                 assert_eq!(rgba.len(), (*width * *height * 4) as usize);
             }
         }
+    }
+
+    #[test]
+    fn hover_renders_no_cell() {
+        let fig = fixture::grid();
+        let mut state = state(640.0, 480.0);
+        assert!(state.refresh(&fig, 1.25) > 0);
+        let shown = Shown {
+            crosshair: true,
+            highlight: true,
+        };
+        let bounds = Rectangle::new(Point::ORIGIN, Size::new(640.0, 480.0));
+        let [x0, y0, x1, y1] = state.areas[0];
+        let centre = Point::new((x0 + x1) as f32 / 2.5, (y0 + y1) as f32 / 2.5);
+        assert!(state.hover(Some(centre), bounds, shown));
+        assert!(!state.hover(Some(centre), bounds, shown), "the same place");
+        // The redraw the hover asks for renders nothing, and neither does
+        // the rebuild an app's message would cause.
+        assert_eq!(state.refresh(&fig, 1.25), 0);
+        state.rebuilt();
+        assert_eq!(state.refresh(&fixture::grid(), 1.25), 0);
+        assert!(state.hover(None, bounds, shown), "the pointer left");
+        assert_eq!(state.refresh(&fig, 1.25), 0);
+    }
+
+    #[test]
+    fn hovering_outside_every_plot_area_shows_nothing() {
+        let mut state = state(640.0, 480.0);
+        state.refresh(&fixture::grid(), 1.0);
+        let bounds = Rectangle::new(Point::ORIGIN, Size::new(640.0, 480.0));
+        let shown = Shown {
+            crosshair: true,
+            highlight: true,
+        };
+        assert!(!state.hover(Some(Point::new(1.0, 1.0)), bounds, shown));
+        assert_eq!(state.overlay, Overlay::default());
+        // With nothing shown, moving inside a plot area changes no part.
+        let none = Shown {
+            crosshair: false,
+            highlight: false,
+        };
+        let [x0, y0, ..] = state.areas[0];
+        let inside = Point::new(x0 as f32 + 3.0, y0 as f32 + 3.0);
+        assert!(state.hover(Some(inside), bounds, none), "the panel changed");
+        let further = Point::new(x0 as f32 + 9.0, y0 as f32 + 9.0);
+        assert!(!state.hover(Some(further), bounds, none));
     }
 
     #[test]

@@ -15,6 +15,7 @@ mod cell;
 #[cfg(test)]
 mod fixture;
 mod handle;
+mod overlay;
 mod scale_factor;
 mod state;
 
@@ -28,6 +29,7 @@ use iced_core::widget::{Meta, Tree, tree};
 use iced_core::{Element, Event, Length, Rectangle, Shell, Size, Widget, window};
 use rustd3_figure::Figure;
 
+use overlay::Shown;
 use state::State;
 
 /// RGBA bytes at which a cell is split into bands: wgpu uploads images
@@ -51,6 +53,8 @@ pub struct Plot<'a, Message> {
     width: Length,
     height: Length,
     scale_factor: Option<f32>,
+    crosshair: bool,
+    highlight: bool,
     _message: PhantomData<Message>,
 }
 
@@ -62,6 +66,8 @@ impl<'a, Message> Plot<'a, Message> {
             width: Length::Fill,
             height: Length::Fill,
             scale_factor: None,
+            crosshair: true,
+            highlight: true,
             _message: PhantomData,
         }
     }
@@ -89,6 +95,33 @@ impl<'a, Message> Plot<'a, Message> {
         Plot {
             scale_factor: Some(factor),
             ..self
+        }
+    }
+
+    /// Crosshair in the hovered panel (default on): two lines one device
+    /// pixel wide through the pointer, in the figure theme's ink at 40%.
+    pub fn crosshair(self, on: bool) -> Self {
+        Plot {
+            crosshair: on,
+            ..self
+        }
+    }
+
+    /// Ring around the nearest data point (default on): the point of the
+    /// hovered panel's marks nearest the pointer within 12 logical px,
+    /// circled in the figure theme's ink.
+    pub fn highlight(self, on: bool) -> Self {
+        Plot {
+            highlight: on,
+            ..self
+        }
+    }
+
+    /// The overlay parts this widget shows.
+    fn shown(&self) -> Shown {
+        Shown {
+            crosshair: self.crosshair,
+            highlight: self.highlight,
         }
     }
 }
@@ -126,8 +159,8 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        _layout: Layout,
-        _cursor: mouse::Cursor,
+        layout: Layout,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -146,7 +179,21 @@ where
                     renderer.scale(),
                     state.window_factor(),
                 );
-                state.refresh(&self.figure, factor);
+                // New cells may move the plot areas or the points under
+                // the pointer.
+                if state.refresh(&self.figure, factor) > 0 {
+                    state.hover(cursor.position(), layout.bounds(), self.shown());
+                }
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                if state.hover(cursor.position(), layout.bounds(), self.shown()) {
+                    shell.request_redraw();
+                }
+            }
+            Event::Mouse(mouse::Event::CursorLeft) => {
+                if state.hover(None, layout.bounds(), self.shown()) {
+                    shell.request_redraw();
+                }
             }
             Event::Window(_)
             | Event::Mouse(_)
@@ -168,9 +215,10 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
+        let ink = self.figure.get_theme().get_ink();
         tree.state
             .downcast_ref::<State>()
-            .draw(renderer, layout.bounds());
+            .draw(renderer, layout.bounds(), ink);
     }
 
     fn mouse_interaction(
