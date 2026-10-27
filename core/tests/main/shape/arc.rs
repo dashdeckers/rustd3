@@ -26,17 +26,6 @@ fn drawn(arc: Arc, slice: &Slice) -> String {
 }
 
 #[test]
-fn a_donut_slice_from_a_pie_is_one_closed_subpath() {
-    let slices = shape::pie().layout([3.0, 1.0, 2.0]);
-    let donut = shape::arc().inner_radius(40.0).outer_radius(80.0);
-    assert_eq!(
-        drawn(donut, &slices[0]),
-        "M0,-80A80,80,0,1,1,0,80L0,40A40,40,0,1,0,0,-40Z"
-    );
-    assert_eq!(donut.centroid(&slices[0]), (60.0, 0.0));
-}
-
-#[test]
 fn a_circular_sector_runs_out_along_the_ring_and_back_to_the_centre() {
     let arc = shape::arc().outer_radius(100.0);
     assert_eq!(

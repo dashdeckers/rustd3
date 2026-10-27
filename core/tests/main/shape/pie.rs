@@ -2,6 +2,7 @@
 
 use std::f64::consts::{PI, TAU};
 
+use rustd3_core::path::SvgPath;
 use rustd3_core::shape::{self, pie};
 
 /// Each slice as (index, start, end), in input order.
@@ -10,6 +11,24 @@ fn rows(slices: &[shape::Slice]) -> Vec<(usize, f64, f64)> {
         .iter()
         .map(|s| (s.index, s.start_angle, s.end_angle))
         .collect()
+}
+
+#[test]
+fn pie_and_donut_examples() {
+    let slices = shape::pie().layout([3.0, 1.0, 2.0]);
+    assert_eq!((slices[0].datum, slices[0].index), (0, 0));
+    assert_eq!((slices[0].start_angle, slices[0].end_angle), (0.0, PI));
+    assert_eq!((slices[1].datum, slices[1].index), (1, 2));
+    assert!((slices[1].start_angle - 5.0 * PI / 3.0).abs() < 1e-12);
+    assert!((slices[1].end_angle - TAU).abs() < 1e-12);
+    let donut = shape::arc().inner_radius(40.0).outer_radius(80.0);
+    assert_eq!(donut.centroid(&slices[0]), (60.0, 0.0));
+    let mut path = SvgPath::with_digits(3);
+    donut.draw(&slices[0], &mut path);
+    assert_eq!(
+        path.to_string(),
+        "M0,-80A80,80,0,1,1,0,80L0,40A40,40,0,1,0,0,-40Z"
+    );
 }
 
 #[test]
