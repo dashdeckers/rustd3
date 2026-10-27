@@ -31,7 +31,7 @@ the workspace rules part.
 
 ## D30.1 — Details of Phase 30 as built
 
-**Date:** 2026-10-28 · **Context:** Phase 30, steps 1–5 (9df22ce, d60488d, 9b93952, 102be32) · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 30, steps 1–5 (9df22ce, d60488d, 9b93952, 102be32) · **Status:** decided
 
 ### Issue
 
@@ -110,9 +110,10 @@ the inactive sign is null) and `dim.input` (28, 35).
 
 ### Decision
 
-Recommended: A for all thirteen. (3) departs from d3 on purpose and is
-the one behavior choice here; it follows the section's own table and
-Phase 10's zoom.
+A for all thirteen (architect, 2026-10-27), as built. Only the left
+button's release ends a brush or drag gesture, as Part I and Phase 10's
+`Zoom` say; modifiers are accepted and not stored; `empty` follows d3's
+check of both axes.
 
 ### Why
 
