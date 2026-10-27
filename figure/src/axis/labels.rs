@@ -10,13 +10,14 @@ use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
 /// One axis's labels for a layout pass: its side and color, the keys of its
-/// tick labels (none when it is not labelled) and of its title, set in that
-/// color.
+/// tick labels (none when it is not labelled) with their ticks' absolute
+/// indices, and the key of its title, set in that color.
 pub(crate) struct Labels {
     pub(super) orient: Orient,
     pub(super) ink: Rgb,
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Key>,
+    pub(super) indices: Vec<i64>,
     pub(super) title: Option<Key>,
 }
 
@@ -34,14 +35,15 @@ impl Labels {
         let tint = axis.tint(resolved);
         let ink = tint.unwrap_or(theme.ink());
         let style = theme.tick_label(anchor(orient).h, ink);
-        let ticks = if labeled {
+        let (ticks, indices) = if labeled {
             let texts = axis.texts(resolved, count);
-            texts
+            let keys = texts
                 .into_iter()
                 .map(|t| Key::new(&Text::from(t), &style))
-                .collect()
+                .collect();
+            (keys, axis.indices(resolved, count))
         } else {
-            Vec::new()
+            (Vec::new(), Vec::new())
         };
         let title = axis
             .title()
@@ -52,8 +54,14 @@ impl Labels {
             ink,
             tinted: tint.is_some(),
             ticks,
+            indices,
             title,
         }
+    }
+
+    /// Each tick label's tick's absolute index.
+    pub(crate) fn indices(&self) -> &[i64] {
+        &self.indices
     }
 
     /// Every key, for the text cache's batch.

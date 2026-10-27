@@ -40,6 +40,7 @@
 
 mod draw;
 mod labels;
+mod placed;
 
 use std::rc::Rc;
 
@@ -55,6 +56,7 @@ use crate::text::Text;
 
 pub(crate) use draw::Draw;
 pub(crate) use labels::Labels;
+pub(crate) use placed::Placed;
 
 /// A label for each tick value, in place of the scale's.
 type Format<'a, D> = Rc<dyn Fn(&D) -> String + 'a>;

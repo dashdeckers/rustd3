@@ -66,10 +66,7 @@ impl Figure<'_> {
             let shown = laid.axes.iter().enumerate().filter(|(_, a)| a.plan.shown);
             for (j, placed) in shown {
                 part(list, part::id(Role::Axis, i, j), |list| {
-                    let offset = placed.plan.offset;
-                    placed
-                        .labels
-                        .draw(&placed.positions, *area, offset, text, theme, list);
+                    placed.draw(*area, text, theme, list);
                 });
             }
             if let Some(title) = shaped(text, laid.title.as_ref()) {

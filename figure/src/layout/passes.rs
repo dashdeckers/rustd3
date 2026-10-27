@@ -5,9 +5,9 @@
 use kurbo::{Rect, Size};
 use rustd3_core::axis::Orient;
 
-use crate::axis::{self, Labels};
+use crate::axis::{self, Labels, Placed};
 use crate::figure::{Figure, Resolved};
-use crate::layout::{self, Plan, Reach, plan};
+use crate::layout::{self, Plan, Reach, collide, plan};
 use crate::panel::Panel;
 use crate::text::{self, Key, Shaped};
 
@@ -33,16 +33,6 @@ pub(crate) struct Laid {
     pub(crate) title: Option<Key>,
     /// How far the decorations on top reach, the title aside.
     pub(crate) top: f64,
-}
-
-/// One axis as laid out.
-pub(crate) struct Placed {
-    /// Its labels.
-    pub(crate) labels: Labels,
-    /// Its plan.
-    pub(crate) plan: Plan,
-    /// Its ticks' positions along the plot area, aligned with the labels.
-    pub(crate) positions: Vec<Option<f64>>,
 }
 
 /// One pass's axes: per panel, per axis, its labels and plan.
@@ -165,7 +155,7 @@ impl Layout {
             }
             last = Some(counts);
         }
-        let panels = panels
+        let mut panels: Vec<Laid> = panels
             .iter()
             .zip(axes)
             .zip(titles)
@@ -178,11 +168,7 @@ impl Layout {
                     .map(|(a, (labels, plan))| {
                         let length = length(a.orient(), *area);
                         let positions = a.positions(resolved, length, plan.count);
-                        Placed {
-                            labels,
-                            plan,
-                            positions,
-                        }
+                        Placed::new(labels, plan, positions, *area, text, theme)
                     })
                     .collect();
                 Laid {
@@ -192,11 +178,33 @@ impl Layout {
                 }
             })
             .collect();
+        keep(&mut panels, &areas);
         Layout {
             areas,
             panels,
             passes,
         }
+    }
+}
+
+/// Runs the collision passes over the tick labels of `panels`, laid out in
+/// plot areas `areas`, and keeps their verdicts in each axis.
+fn keep(panels: &mut [Laid], areas: &[Rect]) {
+    let candidates: Vec<collide::Axis<'_>> = panels
+        .iter()
+        .zip(areas)
+        .flat_map(|(laid, area)| {
+            laid.axes.iter().map(move |a| collide::Axis {
+                area: area.area(),
+                boxes: &a.boxes,
+                indices: a.labels.indices(),
+            })
+        })
+        .collect();
+    let verdicts = collide::collide(&candidates);
+    let axes = panels.iter_mut().flat_map(|laid| laid.axes.iter_mut());
+    for (axis, keep) in axes.zip(verdicts) {
+        axis.keep = keep;
     }
 }
 

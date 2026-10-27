@@ -17,6 +17,7 @@
 //! # let _ = grid;
 //! ```
 
+pub(crate) mod collide;
 mod passes;
 mod plan;
 mod protrusion;

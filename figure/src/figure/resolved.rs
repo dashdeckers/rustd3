@@ -52,6 +52,18 @@ impl Resolved {
         Some(self.panels.get(panel)?.axes.get(axis)?.plan)
     }
 
+    /// The box of every tick label layout kept, in list px, in panel, axis
+    /// and tick order: the label's advance width by its ink height. No two
+    /// overlap.
+    pub fn label_boxes(&self) -> Vec<kurbo::Rect> {
+        self.panels
+            .iter()
+            .flat_map(|laid| &laid.axes)
+            .flat_map(|a| a.boxes.iter().zip(&a.keep))
+            .filter_map(|(b, keep)| b.filter(|_| *keep))
+            .collect()
+    }
+
     /// Layout passes until tick counts settled (1..=4).
     pub fn passes(&self) -> usize {
         self.passes

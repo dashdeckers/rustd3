@@ -1,21 +1,17 @@
-//! [`Draw`]: an axis with its scale type erased, as a panel holds it, and
-//! drawing a resolved axis.
+//! [`Draw`]: an axis with its scale type erased, as a panel holds it.
 
-use std::f64::consts::FRAC_PI_2;
-
-use kurbo::{BezPath, Cap, Point, Rect};
+use std::any::Any;
+use std::collections::HashMap;
 
 use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
-use crate::axis::labels::{anchor, get};
-use crate::axis::{Axis, Labels, across};
+use crate::axis::{Axis, across};
 use crate::figure::Resolved;
-use crate::list::{self, Command, List};
+use crate::layout::collide;
 use crate::scale::{Kind, Position};
-use crate::text::{self, Anchor};
-use crate::theme::Theme;
+use crate::text;
 
 /// An axis with its scale type erased: what layout and drawing ask of it.
 pub(crate) trait Draw<'a>: 'a {
@@ -45,6 +41,13 @@ pub(crate) trait Draw<'a>: 'a {
     /// horizontal axis, up [length, 0] for a vertical one; `None` for a key
     /// outside the domain or a position that is not finite.
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>>;
+
+    /// Each of about `count` ticks' absolute index, aligned with
+    /// [`texts`](Draw::texts), which the stride of the collision pass counts
+    /// from: the value over d3's tick step when the ticks are evenly spaced
+    /// on that grid; the key's position in the domain for band and point
+    /// scales; the position in the set otherwise (log ticks).
+    fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64>;
 
     /// The title along the axis.
     fn title(&self) -> Option<&text::Text>;
@@ -100,97 +103,51 @@ where
             .collect()
     }
 
+    fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64> {
+        let scale = resolved.scale(self.scale);
+        let set = self.set(scale, count);
+        let values = set.values();
+        let numbers: Option<Vec<f64>> = values.iter().map(number).collect();
+        let domain =
+            Kind::domain(scale).and_then(|d| (&d as &dyn Any).downcast_ref::<[f64; 2]>().copied());
+        if let Some(grid) = numbers
+            .as_deref()
+            .zip(domain)
+            .and_then(|(numbers, domain)| collide::grid(numbers, domain, count))
+        {
+            return grid;
+        }
+        let positions = (0..values.len() as i64).collect();
+        if numbers.is_some() || self.values.is_none() {
+            return positions;
+        }
+        // Keys chosen by `.values`: their places among the scale's own
+        // ticks, which for band and point scales are the domain's keys.
+        let place = |key| Position::position(scale, key).map(f64::to_bits);
+        let full = scale.tick_set(count);
+        let mut at = HashMap::new();
+        for (i, key) in full.values().iter().enumerate() {
+            if let Some(bits) = place(key) {
+                at.entry(bits).or_insert(i as i64);
+            }
+        }
+        values
+            .iter()
+            .zip(positions)
+            .map(|(key, i)| {
+                place(key)
+                    .and_then(|bits| at.get(&bits).copied())
+                    .unwrap_or(i)
+            })
+            .collect()
+    }
+
     fn title(&self) -> Option<&text::Text> {
         self.label.as_ref()
     }
 }
 
-impl Labels {
-    /// Appends the axis `offset` px outside plot area `area` to `list`: its
-    /// line in the theme's edge color (its own when tinted) with square
-    /// caps, so two axes meet at a closed corner as matplotlib's projecting
-    /// spines do, its ticks at `positions` (along the plot area, aligned
-    /// with the ticks), its tick labels a tick pad past the ticks, and its
-    /// title a label pad past the labels' extent, turned a quarter
-    /// counter-clockwise on the left and clockwise on the right.
-    pub(crate) fn draw(
-        &self,
-        positions: &[Option<f64>],
-        area: Rect,
-        offset: f64,
-        text: &text::Cache,
-        theme: &Theme,
-        list: &mut List,
-    ) {
-        let orient = self.orient;
-        let outward = if matches!(orient, Orient::Top | Orient::Left) {
-            -1.0
-        } else {
-            1.0
-        };
-        // The axis line, and a point `across` px outward of it `along` px
-        // from the plot area's start.
-        let line = match orient {
-            Orient::Top => area.y0 - offset,
-            Orient::Bottom => area.y1 + offset,
-            Orient::Left => area.x0 - offset,
-            Orient::Right => area.x1 + offset,
-        };
-        let at = |along: f64, across_: f64| {
-            if across(orient) {
-                Point::new(area.x0 + along, line + outward * across_)
-            } else {
-                Point::new(line + outward * across_, area.y0 + along)
-            }
-        };
-        let length = if across(orient) {
-            area.width()
-        } else {
-            area.height()
-        };
-        let stroke = list::stroke(theme.axis_width());
-        let edge = if self.tinted { self.ink } else { theme.edge() };
-        let mut path = BezPath::new();
-        path.move_to(at(0.0, 0.0));
-        path.line_to(at(length, 0.0));
-        list.commands.push(Command::Stroke {
-            path,
-            style: stroke.clone().with_caps(Cap::Square),
-            paint: list::brush(edge),
-        });
-        let mut ticks = BezPath::new();
-        for p in positions.iter().flatten() {
-            ticks.move_to(at(*p, 0.0));
-            ticks.line_to(at(*p, theme.tick()));
-        }
-        list.commands.push(Command::Stroke {
-            path: ticks,
-            style: stroke,
-            paint: list::brush(self.ink),
-        });
-        let gap = theme.tick() + theme.tick_pad();
-        for (key, p) in self.ticks.iter().zip(positions) {
-            if let (Some(shaped), Some(p)) = (get(text, key), p) {
-                shaped.place(list, at(*p, gap), anchor(orient), 0.0);
-            }
-        }
-        if let Some(title) = self.title.as_ref().and_then(|key| get(text, key)) {
-            let beyond = gap + self.extent(text) + theme.label_pad();
-            let angle = match orient {
-                Orient::Top | Orient::Bottom => 0.0,
-                Orient::Left => -FRAC_PI_2,
-                Orient::Right => FRAC_PI_2,
-            };
-            let v = if orient == Orient::Bottom {
-                text::anchor::Vertical::Top
-            } else {
-                text::anchor::Vertical::Bottom
-            };
-            let anchor = Anchor {
-                h: text::anchor::Horizontal::Middle,
-                v,
-            };
-            title.place(list, at(length / 2.0, beyond), anchor, angle);
-        }
-    }
+/// `v` as a number, when the domain is `f64`.
+fn number<D: 'static>(v: &D) -> Option<f64> {
+    (v as &dyn Any).downcast_ref::<f64>().copied()
 }

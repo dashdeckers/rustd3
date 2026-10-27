@@ -6,7 +6,7 @@ use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::layout::{Grid, em, px};
-use rustd3_figure::list::part;
+use rustd3_figure::list::{Command, part};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{self, Key, Style, Text, anchor};
 use rustd3_figure::{Figure, Held, Panel, Target, axis};
@@ -486,5 +486,227 @@ fn an_explicit_outward_axis_on_an_inner_panel_is_not_drawn_and_labels_false_draw
     assert!(
         plan.shown && !plan.labeled && plan.offset == 10.0,
         "{plan:?}"
+    );
+}
+
+/// Asserts the layout invariants of `fig` at `size` for `target`, its
+/// panels in `cells`: at most four passes, no two kept tick labels' boxes
+/// overlap, attached panels share pixel ranges bit for bit.
+pub fn assert_layout(fig: &Figure<'_>, size: Size, target: Target, cells: &[(usize, usize)]) {
+    let r = fig.resolve(size, &mut cache(), &Held::default(), target);
+    assert!(r.passes() <= 4, "{} passes", r.passes());
+    let boxes = r.label_boxes();
+    for (i, a) in boxes.iter().enumerate() {
+        for b in &boxes[i + 1..] {
+            let overlap = a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+            assert!(!overlap, "{a:?} overlaps {b:?}");
+        }
+    }
+    assert_attached(r.plot_areas(), cells);
+}
+
+/// The texts of the tick labels drawn by axis `axis` of panel `panel`.
+fn drawn(fig: &Figure<'_>, size: Size, panel: u64, axis: u64) -> Vec<String> {
+    drawn_with(fig, size, panel, axis, &mut cache())
+}
+
+/// [`drawn`] through `cache`.
+fn drawn_with(
+    fig: &Figure<'_>,
+    size: Size,
+    panel: u64,
+    axis: u64,
+    cache: &mut rustd3_figure::Cache,
+) -> Vec<String> {
+    let list = fig.draw_with(cache, size, Target::Vector, &Held::default());
+    let id = part::Id::new(4 << 56 | panel << 32 | axis);
+    let Some(part) = list.parts.iter().find(|p| p.id == id) else {
+        return Vec::new();
+    };
+    list.commands[part.commands.clone()]
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.text.to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// The size, 480 px tall, at which panel 0 of `fig` is `width` px wide.
+fn at_width(fig: &Figure<'_>, width: f64) -> Size {
+    let mut size = Size::new(width + 60.0, 480.0);
+    for _ in 0..20 {
+        let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
+        let w = r.plot_areas()[0].width();
+        if (w - width).abs() < 1e-9 {
+            return size;
+        }
+        size.width += width - w;
+    }
+    panic!("no size gives a plot area {width} px wide");
+}
+
+/// Twenty speed bins "0–10" … "190–200" on a band scale with padding 0.1.
+fn bins() -> Vec<String> {
+    (0..20)
+        .map(|i| format!("{}–{}", 10 * i, 10 * i + 10))
+        .collect()
+}
+
+#[test]
+fn twenty_band_labels_keep_every_kth_at_four_widths() {
+    let widths: Vec<String> = ["0–10", "10–20", "90–100", "100–110"]
+        .iter()
+        .map(|l| format!("{:.3}", measure(l, 44.0 / 3.0).0))
+        .collect();
+    assert_eq!(widths, ["35.328", "44.659", "53.990", "63.322"]);
+    let mut fig = Figure::new();
+    let speed = fig.scale(scale::band(bins()).padding(0.1));
+    fig.panel(0, 0).axis(axis::bottom(speed));
+    let rows = [
+        (320.0, vec![0, 4, 8, 12, 16]),
+        (480.0, vec![0, 3, 6, 9, 12, 15, 18]),
+        (960.0, (0..20).step_by(2).collect()),
+        (1400.0, (0..20).collect()),
+    ];
+    for (width, kept) in rows {
+        let size = at_width(&fig, width);
+        let expected: Vec<String> = kept.iter().map(|&i| bins()[i].clone()).collect();
+        assert_eq!(drawn(&fig, size, 0, 0), expected, "at {width} px");
+        assert_layout(&fig, size, Target::Vector, &[(0, 0)]);
+    }
+}
+
+/// A bottom axis over `domain`, fixed, with 20 ticks asked.
+fn every_five(domain: [f64; 2]) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain(domain));
+    fig.panel(0, 0).axis(axis::bottom(x).ticks(20));
+    fig
+}
+
+#[test]
+fn the_stride_counts_ticks_from_zero_so_a_pan_keeps_the_same_labels() {
+    let fig = every_five([0.0, 100.0]);
+    let size = at_width(&fig, 200.0);
+    let kept = ["0", "15", "30", "45", "60", "75", "90"];
+    assert_eq!(drawn(&fig, size, 0, 0), kept);
+    let panned = every_five([2.5, 102.5]);
+    let size = at_width(&panned, 200.0);
+    assert_eq!(drawn(&panned, size, 0, 0), kept[1..]);
+}
+
+#[test]
+fn kept_labels_only_change_at_the_ends_while_an_axis_pans() {
+    // 100 units over about 400 px, ticks every 5 (about 20 px): three-digit
+    // labels (28 px) keep every second tick for any width from 280 to 560.
+    let size = Size::new(440.0, 200.0);
+    let mut cache = cache();
+    let mut seed = 7_u32;
+    let mut start = 100.0;
+    let mut last: Option<Vec<f64>> = None;
+    for _ in 0..200 {
+        seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+        let px = f64::from(1 + (seed >> 8) % 50);
+        let step = if seed >> 31 == 0 { px } else { -px } / 4.0;
+        start = if (100.0..=850.0).contains(&(start + step)) {
+            start + step
+        } else {
+            start - step
+        };
+        let fig = every_five([start, start + 100.0]);
+        let width = fig
+            .resolve(size, &mut cache, &Held::default(), Target::Vector)
+            .plot_areas()[0]
+            .width();
+        assert!((300.0..=540.0).contains(&width), "{width}");
+        let kept: Vec<f64> = drawn_with(&fig, size, 0, 0, &mut cache)
+            .iter()
+            .map(|t| t.parse().expect("a number"))
+            .collect();
+        assert!(kept.iter().all(|v| v % 10.0 == 0.0), "{start}: {kept:?}");
+        if let Some(last) = &last {
+            let within = |values: &[f64], of: &[f64]| -> Vec<f64> {
+                let (low, high) = (of[0], of[of.len() - 1]);
+                values
+                    .iter()
+                    .copied()
+                    .filter(|v| (low..=high).contains(v))
+                    .collect()
+            };
+            assert_eq!(within(last, &kept), within(&kept, last), "at {start}");
+        }
+        last = Some(kept);
+    }
+}
+
+/// Two stacked panels, rows weighted 1.0 and 0.3 with `gap` between them,
+/// y fixed to [0, 3] on top and [0, 100] below, both on left axes.
+fn stacked_rows(gap: f64) -> Figure<'static> {
+    let mut fig = Figure::new();
+    fig.layout(Grid::new().rows([1.0, 0.3]).row_gaps([px(gap)]));
+    let top = fig.scale(scale::linear().domain([0.0, 3.0]));
+    let bottom = fig.scale(scale::linear().domain([0.0, 100.0]));
+    fig.panel(0, 0).axis(axis::left(top));
+    fig.panel(1, 0).axis(axis::left(bottom));
+    fig
+}
+
+#[test]
+fn end_labels_of_stacked_panels_keep_the_gap_their_overhangs_reserve() {
+    let size = Size::new(640.0, 480.0);
+    let fig = stacked_rows(4.0);
+    let top = drawn(&fig, size, 0, 0);
+    let bottom = drawn(&fig, size, 1, 0);
+    assert_eq!(
+        (top[0].as_str(), bottom.last().map(String::as_str)),
+        ("0.0", Some("100"))
+    );
+    let r = resolve(&fig, &Held::default());
+    let boxes = r.label_boxes();
+    let zero = boxes[0];
+    let hundred = boxes[boxes.len() - 1];
+    assert!(
+        (hundred.y0 - zero.y1 - 4.0).abs() < 1e-9,
+        "{zero:?} {hundred:?}"
+    );
+    assert_layout(&fig, size, Target::Vector, &[(0, 0), (1, 0)]);
+}
+
+#[test]
+fn where_end_labels_of_two_panels_overlap_the_larger_panel_keeps_its_own() {
+    let size = Size::new(640.0, 480.0);
+    let fig = stacked_rows(-12.0);
+    let top = drawn(&fig, size, 0, 0);
+    let bottom = drawn(&fig, size, 1, 0);
+    assert_eq!(top[0], "0.0");
+    assert_eq!(bottom, ["0", "50"], "the bottom panel's 100 gives way");
+    assert_layout(&fig, size, Target::Vector, &[(0, 0), (1, 0)]);
+}
+
+#[test]
+fn layout_invariants_hold_on_the_test_figures_and_the_examples() {
+    let size = Size::new(640.0, 480.0);
+    let (fig, ..) = one_panel(|p, x, y| {
+        p.axis(axis::left(y)).axis(axis::bottom(x));
+    });
+    assert_layout(&fig, size, Target::Vector, &[(0, 0)]);
+    let cells: Vec<(usize, usize)> = (0..4).flat_map(|r| (0..4).map(move |c| (r, c))).collect();
+    for target in [Target::Vector, Target::Screen { scale: 2.0 }] {
+        assert_layout(&grid(4, 4), size, target, &cells);
+        assert_layout(&shared(4), size, target, &cells);
+    }
+    let scatter = crate::scatter::scatter(crate::scatter::POINTS);
+    assert_layout(&scatter, crate::scatter::SIZE, Target::Vector, &[(0, 0)]);
+    let rec = crate::trace::recording(crate::trace::SAMPLES);
+    let trace = crate::trace::trace(&rec);
+    assert_layout(
+        &trace,
+        crate::trace::SIZE,
+        Target::Vector,
+        &[(0, 0), (1, 0)],
     );
 }
