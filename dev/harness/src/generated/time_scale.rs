@@ -280,49 +280,65 @@ fn t39() {   // time-test.js: time.ticks() returns descending ticks for a descen
 }
 
 fn t40() {   // time-test.js: time.tickFormat()(date) formats year on New Year's
-    skip("d3-scale/test/time-test.js:366:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:367:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:368:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:366:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 0.0, 1.0]), &time::Locale::EN_US), &"2011");
+    check("d3-scale/test/time-test.js:367:3", Kind::Strict, &f.tick_label(local(&la, &[2012.0, 0.0, 1.0]), &time::Locale::EN_US), &"2012");
+    check("d3-scale/test/time-test.js:368:3", Kind::Strict, &f.tick_label(local(&la, &[2013.0, 0.0, 1.0]), &time::Locale::EN_US), &"2013");
 }
 
 fn t41() {   // time-test.js: time.tickFormat()(date) formats month on the 1st of each month
-    skip("d3-scale/test/time-test.js:373:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:374:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:375:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:373:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 1.0]), &time::Locale::EN_US), &"February");
+    check("d3-scale/test/time-test.js:374:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 2.0, 1.0]), &time::Locale::EN_US), &"March");
+    check("d3-scale/test/time-test.js:375:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 3.0, 1.0]), &time::Locale::EN_US), &"April");
 }
 
 fn t42() {   // time-test.js: time.tickFormat()(date) formats week on Sunday midnight
-    skip("d3-scale/test/time-test.js:380:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:381:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:382:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:380:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 6.0]), &time::Locale::EN_US), &"Feb 06");
+    check("d3-scale/test/time-test.js:381:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 13.0]), &time::Locale::EN_US), &"Feb 13");
+    check("d3-scale/test/time-test.js:382:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 20.0]), &time::Locale::EN_US), &"Feb 20");
 }
 
 fn t43() {   // time-test.js: time.tickFormat()(date) formats date on midnight
-    skip("d3-scale/test/time-test.js:387:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:388:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:389:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:387:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0]), &time::Locale::EN_US), &"Wed 02");
+    check("d3-scale/test/time-test.js:388:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 3.0]), &time::Locale::EN_US), &"Thu 03");
+    check("d3-scale/test/time-test.js:389:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 4.0]), &time::Locale::EN_US), &"Fri 04");
 }
 
 fn t44() {   // time-test.js: time.tickFormat()(date) formats hour on minute zero
-    skip("d3-scale/test/time-test.js:394:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:395:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:396:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:394:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 11.0]), &time::Locale::EN_US), &"11 AM");
+    check("d3-scale/test/time-test.js:395:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 12.0]), &time::Locale::EN_US), &"12 PM");
+    check("d3-scale/test/time-test.js:396:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 13.0]), &time::Locale::EN_US), &"01 PM");
 }
 
 fn t45() {   // time-test.js: time.tickFormat()(date) formats minute on second zero
-    skip("d3-scale/test/time-test.js:401:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:402:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:403:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:401:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 11.0, 59.0]), &time::Locale::EN_US), &"11:59");
+    check("d3-scale/test/time-test.js:402:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 12.0, 1.0]), &time::Locale::EN_US), &"12:01");
+    check("d3-scale/test/time-test.js:403:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 12.0, 2.0]), &time::Locale::EN_US), &"12:02");
 }
 
 fn t46() {   // time-test.js: time.tickFormat()(date) otherwise, formats second
-    skip("d3-scale/test/time-test.js:408:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:409:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/time-test.js:410:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::time(la.clone());
+    check("d3-scale/test/time-test.js:408:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 12.0, 1.0, 9.0]), &time::Locale::EN_US), &":09");
+    check("d3-scale/test/time-test.js:409:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 12.0, 1.0, 10.0]), &time::Locale::EN_US), &":10");
+    check("d3-scale/test/time-test.js:410:3", Kind::Strict, &f.tick_label(local(&la, &[2011.0, 1.0, 2.0, 12.0, 1.0, 11.0]), &time::Locale::EN_US), &":11");
 }
 
 fn t47() {   // time-test.js: time.tickFormat(count, specifier) returns a time format for the specified specifier
-    skip("d3-scale/test/time-test.js:415:3", "gap: time tick formats (Phase 28)");
+    let la = zone("America/Los_Angeles");
+    let mut f = time::Locale::EN_US.format("%c");
+    check("d3-scale/test/time-test.js:415:3", Kind::Strict, &f.format(local(&la, &[2011.0, 1.0, 2.0, 12.0]), &la), &"2/2/2011, 12:00:00 PM");
 }
 
 fn t48() {   // utcTime-test.js: scaleUtc.nice() is an alias for scaleUtc.nice(10)
@@ -544,49 +560,57 @@ fn t84() {   // utcTime-test.js: scaleUtc.ticks(count) returns one tick for an e
 }
 
 fn t85() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's
-    skip("d3-scale/test/utcTime-test.js:348:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:349:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:350:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:348:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 0.0, 1.0]), &time::Locale::EN_US), &"2011");
+    check("d3-scale/test/utcTime-test.js:349:3", Kind::Strict, &f.tick_label(utc(&[2012.0, 0.0, 1.0]), &time::Locale::EN_US), &"2012");
+    check("d3-scale/test/utcTime-test.js:350:3", Kind::Strict, &f.tick_label(utc(&[2013.0, 0.0, 1.0]), &time::Locale::EN_US), &"2013");
 }
 
 fn t86() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month
-    skip("d3-scale/test/utcTime-test.js:355:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:356:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:357:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:355:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 1.0]), &time::Locale::EN_US), &"February");
+    check("d3-scale/test/utcTime-test.js:356:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 2.0, 1.0]), &time::Locale::EN_US), &"March");
+    check("d3-scale/test/utcTime-test.js:357:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 3.0, 1.0]), &time::Locale::EN_US), &"April");
 }
 
 fn t87() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight
-    skip("d3-scale/test/utcTime-test.js:362:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:363:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:364:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:362:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 6.0]), &time::Locale::EN_US), &"Feb 06");
+    check("d3-scale/test/utcTime-test.js:363:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 13.0]), &time::Locale::EN_US), &"Feb 13");
+    check("d3-scale/test/utcTime-test.js:364:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 20.0]), &time::Locale::EN_US), &"Feb 20");
 }
 
 fn t88() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight
-    skip("d3-scale/test/utcTime-test.js:369:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:370:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:371:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:369:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0]), &time::Locale::EN_US), &"Wed 02");
+    check("d3-scale/test/utcTime-test.js:370:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 3.0]), &time::Locale::EN_US), &"Thu 03");
+    check("d3-scale/test/utcTime-test.js:371:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 4.0]), &time::Locale::EN_US), &"Fri 04");
 }
 
 fn t89() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero
-    skip("d3-scale/test/utcTime-test.js:376:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:377:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:378:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:376:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 11.0]), &time::Locale::EN_US), &"11 AM");
+    check("d3-scale/test/utcTime-test.js:377:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 12.0]), &time::Locale::EN_US), &"12 PM");
+    check("d3-scale/test/utcTime-test.js:378:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 13.0]), &time::Locale::EN_US), &"01 PM");
 }
 
 fn t90() {   // utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero
-    skip("d3-scale/test/utcTime-test.js:383:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:384:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:385:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:383:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 11.0, 59.0]), &time::Locale::EN_US), &"11:59");
+    check("d3-scale/test/utcTime-test.js:384:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 12.0, 1.0]), &time::Locale::EN_US), &"12:01");
+    check("d3-scale/test/utcTime-test.js:385:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 12.0, 2.0]), &time::Locale::EN_US), &"12:02");
 }
 
 fn t91() {   // utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second
-    skip("d3-scale/test/utcTime-test.js:390:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:391:3", "gap: time tick formats (Phase 28)");
-    skip("d3-scale/test/utcTime-test.js:392:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::utc();
+    check("d3-scale/test/utcTime-test.js:390:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 12.0, 1.0, 9.0]), &time::Locale::EN_US), &":09");
+    check("d3-scale/test/utcTime-test.js:391:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 12.0, 1.0, 10.0]), &time::Locale::EN_US), &":10");
+    check("d3-scale/test/utcTime-test.js:392:3", Kind::Strict, &f.tick_label(utc(&[2011.0, 1.0, 2.0, 12.0, 1.0, 11.0]), &time::Locale::EN_US), &":11");
 }
 
 fn t92() {   // utcTime-test.js: scaleUtc.tickFormat(count, specifier) returns a time format for the specified specifier
-    skip("d3-scale/test/utcTime-test.js:397:3", "gap: time tick formats (Phase 28)");
+    let mut f = time::Locale::EN_US.format("%c");
+    check("d3-scale/test/utcTime-test.js:397:3", Kind::Strict, &f.format(utc(&[2011.0, 1.0, 2.0, 12.0]), &TimeZone::UTC), &"2/2/2011, 12:00:00 PM");
 }
 
 pub const TESTS: &[Test] = &[
@@ -760,28 +784,28 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/time-test.js:355:3", test: "time-test.js: time.ticks(count) returns one tick for an empty domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:360:3", test: "time-test.js: time.ticks() returns descending ticks for a descending domain", skip: None },
     Assertion { id: "d3-scale/test/time-test.js:361:3", test: "time-test.js: time.ticks() returns descending ticks for a descending domain", skip: None },
-    Assertion { id: "d3-scale/test/time-test.js:366:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:367:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:368:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:373:3", test: "time-test.js: time.tickFormat()(date) formats month on the 1st of each month", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:374:3", test: "time-test.js: time.tickFormat()(date) formats month on the 1st of each month", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:375:3", test: "time-test.js: time.tickFormat()(date) formats month on the 1st of each month", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:380:3", test: "time-test.js: time.tickFormat()(date) formats week on Sunday midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:381:3", test: "time-test.js: time.tickFormat()(date) formats week on Sunday midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:382:3", test: "time-test.js: time.tickFormat()(date) formats week on Sunday midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:387:3", test: "time-test.js: time.tickFormat()(date) formats date on midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:388:3", test: "time-test.js: time.tickFormat()(date) formats date on midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:389:3", test: "time-test.js: time.tickFormat()(date) formats date on midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:394:3", test: "time-test.js: time.tickFormat()(date) formats hour on minute zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:395:3", test: "time-test.js: time.tickFormat()(date) formats hour on minute zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:396:3", test: "time-test.js: time.tickFormat()(date) formats hour on minute zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:401:3", test: "time-test.js: time.tickFormat()(date) formats minute on second zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:402:3", test: "time-test.js: time.tickFormat()(date) formats minute on second zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:403:3", test: "time-test.js: time.tickFormat()(date) formats minute on second zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:408:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:409:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:410:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/time-test.js:415:3", test: "time-test.js: time.tickFormat(count, specifier) returns a time format for the specified specifier", skip: Some("gap: time tick formats (Phase 28)") },
+    Assertion { id: "d3-scale/test/time-test.js:366:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:367:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:368:3", test: "time-test.js: time.tickFormat()(date) formats year on New Year's", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:373:3", test: "time-test.js: time.tickFormat()(date) formats month on the 1st of each month", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:374:3", test: "time-test.js: time.tickFormat()(date) formats month on the 1st of each month", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:375:3", test: "time-test.js: time.tickFormat()(date) formats month on the 1st of each month", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:380:3", test: "time-test.js: time.tickFormat()(date) formats week on Sunday midnight", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:381:3", test: "time-test.js: time.tickFormat()(date) formats week on Sunday midnight", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:382:3", test: "time-test.js: time.tickFormat()(date) formats week on Sunday midnight", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:387:3", test: "time-test.js: time.tickFormat()(date) formats date on midnight", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:388:3", test: "time-test.js: time.tickFormat()(date) formats date on midnight", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:389:3", test: "time-test.js: time.tickFormat()(date) formats date on midnight", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:394:3", test: "time-test.js: time.tickFormat()(date) formats hour on minute zero", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:395:3", test: "time-test.js: time.tickFormat()(date) formats hour on minute zero", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:396:3", test: "time-test.js: time.tickFormat()(date) formats hour on minute zero", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:401:3", test: "time-test.js: time.tickFormat()(date) formats minute on second zero", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:402:3", test: "time-test.js: time.tickFormat()(date) formats minute on second zero", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:403:3", test: "time-test.js: time.tickFormat()(date) formats minute on second zero", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:408:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:409:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:410:3", test: "time-test.js: time.tickFormat()(date) otherwise, formats second", skip: None },
+    Assertion { id: "d3-scale/test/time-test.js:415:3", test: "time-test.js: time.tickFormat(count, specifier) returns a time format for the specified specifier", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:9:3", test: "utcTime-test.js: scaleUtc.nice() is an alias for scaleUtc.nice(10)", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:14:3", test: "utcTime-test.js: scaleUtc.nice() can nice sub-second domains", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:19:3", test: "utcTime-test.js: scaleUtc.nice() can nice multi-year domains", skip: None },
@@ -845,26 +869,26 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/utcTime-test.js:323:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate 1-year ticks", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:333:3", test: "utcTime-test.js: scaleUtc.ticks(count) can generate multi-year ticks", skip: None },
     Assertion { id: "d3-scale/test/utcTime-test.js:343:3", test: "utcTime-test.js: scaleUtc.ticks(count) returns one tick for an empty domain", skip: None },
-    Assertion { id: "d3-scale/test/utcTime-test.js:348:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:349:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:350:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:355:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:356:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:357:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:362:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:363:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:364:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:369:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:370:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:371:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:376:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:377:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:378:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:383:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:384:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:385:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:390:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:391:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:392:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second", skip: Some("gap: time tick formats (Phase 28)") },
-    Assertion { id: "d3-scale/test/utcTime-test.js:397:3", test: "utcTime-test.js: scaleUtc.tickFormat(count, specifier) returns a time format for the specified specifier", skip: Some("gap: time tick formats (Phase 28)") },
+    Assertion { id: "d3-scale/test/utcTime-test.js:348:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:349:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:350:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats year on New Year's", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:355:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:356:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:357:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats month on the 1st of each month", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:362:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:363:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:364:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats week on Sunday midnight", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:369:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:370:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:371:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats date on midnight", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:376:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:377:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:378:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats hour on minute zero", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:383:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:384:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:385:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) formats minute on second zero", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:390:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:391:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:392:3", test: "utcTime-test.js: scaleUtc.tickFormat()(date) otherwise, formats second", skip: None },
+    Assertion { id: "d3-scale/test/utcTime-test.js:397:3", test: "utcTime-test.js: scaleUtc.tickFormat(count, specifier) returns a time format for the specified specifier", skip: None },
 ];
