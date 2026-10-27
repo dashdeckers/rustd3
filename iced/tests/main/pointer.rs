@@ -11,6 +11,8 @@ use iced_core::{Event, Point, Rectangle};
 use rustd3_core::interact::{self, Button, Delta, Modifiers, Pointer, Zoom};
 use rustd3_iced::pointer::Tracker;
 
+use crate::headless::epoch;
+
 /// The area the tests translate for: 600 × 300 at (100, 50).
 const BOUNDS: Rectangle = Rectangle {
     x: 100.0,
@@ -18,16 +20,6 @@ const BOUNDS: Rectangle = Rectangle {
     width: 600.0,
     height: 300.0,
 };
-
-/// One real instant the tests offset from; the library itself reads no
-/// clock.
-#[expect(
-    clippy::disallowed_methods,
-    reason = "a test needs one instant to build later ones from"
-)]
-fn epoch() -> Instant {
-    Instant::now()
-}
 
 /// The cursor at (`x`, `y`) in the area's own coordinates.
 fn at(x: f32, y: f32) -> mouse::Cursor {
