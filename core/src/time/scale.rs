@@ -1,6 +1,8 @@
 //! [`Time`], d3's time scale with an explicit zone, computing in `i128`
 //! nanoseconds from the domain's start.
 
+mod pad;
+mod rescale;
 mod ticks;
 
 use jiff::Timestamp;
@@ -103,17 +105,20 @@ impl Time {
     /// last instants; a NaN `y`, where d3 has an Invalid Date, gives the
     /// domain's start.
     pub fn invert(&self, y: f64) -> Timestamp {
+        let offset = self.offset(self.kept(self.position(y)));
+        time::saturating(self.start().saturating_add(offset))
+    }
+
+    /// Where `y` lies from the range's start (0) to its end (1), unclamped;
+    /// 0.5 for a flat range, as d3's `normalize`.
+    fn position(&self, y: f64) -> f64 {
         let [r0, r1] = self.range;
         let extent = r1 - r0;
-        let fraction = if extent == 0.0 {
+        if extent == 0.0 {
             0.5
         } else {
             (y - r0) / extent
-        };
-        time::saturating(
-            self.start()
-                .saturating_add(self.offset(self.kept(fraction))),
-        )
+        }
     }
 
     /// The domain's start in nanoseconds from the epoch.

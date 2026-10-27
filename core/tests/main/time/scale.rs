@@ -2,9 +2,11 @@
 //! 4.0.2 in Node under the zone of each row, and the port's own rows in
 //! nanoseconds.
 
+use rustd3_core::interact::{self, Rescale};
 use rustd3_core::jiff::Timestamp;
 use rustd3_core::jiff::civil::Weekday;
 use rustd3_core::jiff::tz::TimeZone;
+use rustd3_core::scale::Pad;
 use rustd3_core::time::{self, Interval};
 use rustd3_testkit::zone;
 
@@ -252,4 +254,144 @@ fn nice_of_zero_and_past_jiffs_range_leave_the_domain() {
     let edge = time::utc().domain([plus(Timestamp::MIN, 1), plus(Timestamp::MAX, -1)]);
     assert_eq!(edge.clone().nice_with(Interval::Year(1)), edge);
     assert_eq!(edge.clone().nice_with(Interval::Nanosecond(1)), edge);
+}
+
+#[test]
+fn rescaling_berlin_by_a_transform_moves_the_domain_as_d3() {
+    let x = berlin_day();
+    let pan = interact::Transform {
+        k: 1.0,
+        x: 80.0,
+        y: 0.0,
+    };
+    let panned = [at("2026-10-24T19:30:00Z"), at("2026-10-25T20:30:00Z")];
+    assert_eq!(x.rescale_x(&pan).get_domain(), panned);
+    assert_eq!(x.pan_px(80.0).map(|x| x.get_domain()), Some(panned));
+    let zoom = interact::Transform {
+        k: 2.0,
+        x: -400.0,
+        y: 0.0,
+    };
+    let zoomed = [at("2026-10-25T04:15:00Z"), at("2026-10-25T16:45:00Z")];
+    assert_eq!(x.rescale_x(&zoom).get_domain(), zoomed);
+    assert_eq!(x.zoom_px(400.0, 2.0).map(|x| x.get_domain()), Some(zoomed));
+    let vertical = x.clone().range([800.0, 0.0]);
+    let flipped = interact::Transform {
+        k: 1.0,
+        x: 0.0,
+        y: -80.0,
+    };
+    // Content moved up 80 px on an upward axis shows earlier instants.
+    assert_eq!(vertical.rescale_y(&flipped).get_domain(), panned);
+    assert_eq!(vertical.pan_px(-80.0).map(|x| x.get_domain()), Some(panned));
+}
+
+#[test]
+fn a_clamping_scale_cannot_zoom_out_through_rescale_but_gestures_do_not_clamp() {
+    let x = berlin_day().clamp(true);
+    let out = interact::Transform {
+        k: 0.5,
+        x: 200.0,
+        y: 0.0,
+    };
+    assert_eq!(x.rescale_x(&out).get_domain(), x.get_domain());
+    let wide = x.zoom_px(400.0, 0.5).expect("a zoom out of a day");
+    assert_eq!(
+        wide.get_domain(),
+        [at("2026-10-24T09:30:00Z"), at("2026-10-26T11:30:00Z")]
+    );
+}
+
+#[test]
+fn degenerate_gestures_return_none() {
+    let t0 = at("2026-10-25T12:00:00Z");
+    let x = time::utc()
+        .domain([t0, plus(t0, 1_000)])
+        .range([0.0, 1000.0]);
+    assert!(x.zoom_px(500.0, 2000.0).is_none());
+    assert!(x.zoom_px(500.0, 1001.0).is_none());
+    assert!(x.zoom_px(500.0, 999.0).is_some());
+    for factor in [0.0, -2.0, f64::NAN, f64::INFINITY] {
+        assert!(x.zoom_px(500.0, factor).is_none(), "{factor}");
+    }
+    for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert!(x.zoom_px(value, 2.0).is_none(), "{value}");
+        assert!(x.pan_px(value).is_none(), "{value}");
+    }
+    let flat = time::utc().domain([t0, t0]).range([0.0, 1000.0]);
+    assert!(flat.pan_px(10.0).is_none() && flat.zoom_px(500.0, 2.0).is_none());
+    let edge = time::utc().domain([Timestamp::MIN, plus(Timestamp::MIN, 1_000)]);
+    assert!(edge.pan_px(0.5).is_none());
+    assert!(edge.pan_px(-0.5).is_some());
+    let wide = time::utc().domain([Timestamp::MIN, Timestamp::MAX]);
+    assert!(wide.zoom_px(0.5, 0.5).is_none());
+    let flat_range = x.clone().range([3.0, 3.0]);
+    assert!(flat_range.pan_px(1.0).is_none());
+    let reversed = time::utc()
+        .domain([plus(t0, 1_000), t0])
+        .range([0.0, 1000.0]);
+    assert_eq!(
+        reversed.zoom_px(500.0, 2.0).map(|x| x.get_domain()),
+        Some([plus(t0, 750), plus(t0, 250)])
+    );
+}
+
+#[test]
+fn pad_fits_dates_as_matplotlib() {
+    let x = time::utc();
+    assert_eq!(
+        x.pad(None, 0.05, &[]),
+        [at("1970-01-01T00:00:00Z"), at("1970-01-02T00:00:00Z")]
+    );
+    let noon = at("2026-01-01T12:00:00Z");
+    assert_eq!(
+        x.pad(Some([noon, noon]), 0.05, &[]),
+        [at("2023-10-21T12:00:00Z"), at("2028-03-14T12:00:00Z")]
+    );
+    let ten_days = [at("2026-01-01T00:00:00Z"), at("2026-01-11T00:00:00Z")];
+    let padded = [at("2025-12-31T12:00:00Z"), at("2026-01-11T12:00:00Z")];
+    assert_eq!(x.pad(Some(ten_days), 0.05, &[]), padded);
+    assert_eq!(x.pad(Some([ten_days[1], ten_days[0]]), 0.05, &[]), padded);
+    let stuck = x.pad(Some(ten_days), 0.05, &[ten_days[0]]);
+    assert_eq!(stuck, [ten_days[0], padded[1]]);
+    let reversed = time::utc().domain([ten_days[1], ten_days[0]]);
+    assert_eq!(
+        reversed.pad(Some(ten_days), 0.05, &[]),
+        [padded[1], padded[0]]
+    );
+    assert_eq!(
+        x.pad(Some([Timestamp::MIN, Timestamp::MAX]), 0.05, &[]),
+        [Timestamp::MIN, Timestamp::MAX]
+    );
+}
+
+#[test]
+fn timestamps_2026_over_one_microsecond() {
+    let t0 = at("2026-10-25T12:00:00.000000001Z");
+    let x = time::utc()
+        .domain([t0, plus(t0, 1_000)])
+        .range([0.0, 1000.0]);
+    let ns = |t: Timestamp| t.as_nanosecond() - t0.as_nanosecond();
+    for offset in 0..=1_000 {
+        assert_eq!(x.apply(plus(t0, offset)), offset as f64, "apply {offset}");
+        assert_eq!(x.invert(offset as f64), plus(t0, offset), "invert {offset}");
+    }
+    let panned = x.pan_px(100.0).expect("a pan").get_domain();
+    assert_eq!(panned.map(ns), [-100, 900]);
+    let zoomed = x.zoom_px(500.0, 2.0).expect("a zoom").get_domain();
+    assert_eq!(zoomed.map(ns), [250, 750]);
+    let off_centre = x.zoom_px(333.0, 3.0).expect("a zoom").get_domain();
+    assert_eq!(off_centre.map(ns), [222, 555]);
+    let padded = x.pad(Some(x.get_domain()), 0.05, &[]);
+    assert_eq!(padded.map(ns), [-50, 1_050]);
+    // The i128 path keeps every probe to the nanosecond; an f64 of epoch
+    // nanoseconds (a 256 ns ulp in 2026) moves at least one.
+    let probes = [x.get_domain(), panned, zoomed, off_centre, padded].concat();
+    let offsets: Vec<i128> = probes.iter().map(|&t| ns(t)).collect();
+    assert_eq!(
+        offsets,
+        [0, 1_000, -100, 900, 250, 750, 222, 555, -50, 1_050]
+    );
+    let through_f64 = |t: Timestamp| ((t.as_nanosecond() as f64) as i128) - t.as_nanosecond();
+    assert!(probes.iter().any(|&t| through_f64(t).abs() >= 1));
 }
