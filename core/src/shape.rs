@@ -22,12 +22,14 @@ mod line;
 pub mod pie;
 mod slice;
 pub mod stack;
+mod symbol;
 
 pub use arc::Arc;
 pub use area::{Area, Span};
 pub use curve::Curve;
 pub use line::{Line, Vertex};
 pub use slice::Slice;
+pub use symbol::Symbol;
 
 /// d3.pie(): values to the angles of [`Slice`]s, largest first by default;
 /// built by consuming builders, laid out by [`Pie::layout`]. Its methods

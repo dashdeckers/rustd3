@@ -35,6 +35,16 @@ pub trait PathContext {
     fn arc(&mut self, x: f64, y: f64, r: f64, start: f64, end: f64, anticlockwise: bool);
     /// Closes the current subpath with a line back to its start.
     fn close_path(&mut self);
+    /// d3's rect: a closed rectangle from (`x`, `y`), `w` wide and `h` high,
+    /// as a move, three lines and a close. [`SvgPath`] prints it as d3-path
+    /// does, `M{x},{y}h{w}v{h}h{−w}Z`.
+    fn rect(&mut self, x: f64, y: f64, w: f64, h: f64) {
+        self.move_to(x, y);
+        self.line_to(x + w, y);
+        self.line_to(x + w, y + h);
+        self.line_to(x, y + h);
+        self.close_path();
+    }
 }
 
 /// Draws with `draw` into a fresh [`SvgPath`] and returns its data.

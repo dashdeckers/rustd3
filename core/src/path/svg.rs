@@ -69,6 +69,11 @@ impl PathContext for SvgPath {
             self.data.push('Z');
         }
     }
+
+    /// d3-path's rect: `M{x},{y}h{w}v{h}h{−w}Z` ([`SvgPath::rect`]).
+    fn rect(&mut self, x: f64, y: f64, w: f64, h: f64) {
+        SvgPath::rect(self, x, y, w, h);
+    }
 }
 
 impl SvgPath {

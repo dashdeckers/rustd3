@@ -5,6 +5,7 @@
 mod arc;
 mod pie;
 mod stack;
+mod symbol;
 
 use rustd3_core::path::{self, PathContext};
 use rustd3_core::shape::{self, Curve};
