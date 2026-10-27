@@ -4,6 +4,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
 use crate::axis::{self, Axis};
+use crate::layout::Cell;
 use crate::mark::Mark;
 use crate::scale::{Kind, Position};
 use crate::text::Text;
@@ -11,7 +12,7 @@ use crate::text::Text;
 /// One plot area in a grid cell: its marks and axes, which refer to the
 /// figure's scales only through handles, its title and its border.
 pub struct Panel<'a> {
-    cell: (usize, usize),
+    cell: Cell,
     marks: Vec<Box<dyn Mark<'a>>>,
     axes: Vec<Box<dyn axis::Draw<'a>>>,
     title: Option<Text>,
@@ -19,8 +20,8 @@ pub struct Panel<'a> {
 }
 
 impl<'a> Panel<'a> {
-    /// An empty panel in grid cell `cell`, (row, column).
-    pub(crate) fn new(cell: (usize, usize)) -> Panel<'a> {
+    /// An empty panel in grid cell `cell`.
+    pub(crate) fn new(cell: Cell) -> Panel<'a> {
         Panel {
             cell,
             marks: Vec::new(),
@@ -60,9 +61,9 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// The grid cell, (row, column).
-    pub(crate) fn cell(&self) -> (usize, usize) {
-        self.cell
+    /// The grid cell.
+    pub(crate) fn cell(&self) -> &Cell {
+        &self.cell
     }
 
     /// The marks, in insertion order.

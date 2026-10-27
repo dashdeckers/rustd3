@@ -15,7 +15,7 @@ mod save;
 use std::any::TypeId;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::layout::Grid;
+use crate::layout::{Cell, Grid};
 use crate::panel::Panel;
 use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef};
 use crate::text::Text;
@@ -117,12 +117,20 @@ impl<'a> Figure<'a> {
     }
 
     /// The panel in grid cell `(row, col)`, made on first use; panels keep
-    /// the order of their first use.
+    /// the order of their first use. `panel(r, c)` is
+    /// `panel_at(Cell::new(r, c))`.
     pub fn panel(&mut self, row: usize, col: usize) -> &mut Panel<'a> {
-        let i = match self.panels.iter().position(|p| p.cell() == (row, col)) {
+        self.panel_at(Cell::new(row, col))
+    }
+
+    /// The panel spanning `at`, made on first use: the same cell and span
+    /// give the same panel. Panels whose cells overlap are laid out over
+    /// each other.
+    pub fn panel_at(&mut self, at: Cell) -> &mut Panel<'a> {
+        let i = match self.panels.iter().position(|p| *p.cell() == at) {
             Some(i) => i,
             None => {
-                self.panels.push(Panel::new((row, col)));
+                self.panels.push(Panel::new(at));
                 self.panels.len() - 1
             }
         };

@@ -3,6 +3,8 @@
 //! and loses its labels and title. Axes on one side stack outward in
 //! insertion order, and a stacked axis that is inner is not drawn.
 
+use std::ops::Range;
+
 use rustd3_core::axis::Orient;
 
 use crate::axis::{self, Draw};
@@ -46,8 +48,8 @@ pub(crate) struct Role {
 }
 
 /// Each panel's axes' roles, in insertion order. An axis is inner when a
-/// panel further out on its side (left of it for a left axis, in the same
-/// row; below it for a bottom axis, in the same column) shows the same
+/// panel further out on its side (left of it for a left axis, in a row it
+/// spans; below it for a bottom axis, in a column it spans) shows the same
 /// handle on the same side; it is stacked when an axis drawn before it is
 /// on its side. Inner axes lose their labels, and inner axes that are
 /// stacked or moved outward are not drawn; `.labels(b)` sets the labels
@@ -109,18 +111,21 @@ pub(crate) fn stack<'a>(
         .collect()
 }
 
-/// Whether another of `panels`, further out on `axis`'s side of `panel`,
+/// Whether another of `panels`, further out on `axis`'s side of `panel`
+/// (beyond its columns in rows it overlaps, for a left or right axis;
+/// beyond its rows in columns it overlaps, for a top or bottom axis),
 /// shows the same handle on that side.
 fn inner<'a>(panels: &[Panel<'a>], panel: &Panel<'a>, axis: &(dyn Draw<'a> + 'a)) -> bool {
     let orient = axis.orient();
-    let (row, col) = panel.cell();
+    let (rows, cols) = (panel.cell().rows(), panel.cell().cols());
+    let overlap = |a: &Range<usize>, b: &Range<usize>| a.start < b.end && b.start < a.end;
     panels.iter().any(|q| {
-        let (r, c) = q.cell();
+        let (r, c) = (q.cell().rows(), q.cell().cols());
         let beyond = match orient {
-            Orient::Left => r == row && c < col,
-            Orient::Right => r == row && c > col,
-            Orient::Top => c == col && r < row,
-            Orient::Bottom => c == col && r > row,
+            Orient::Left => overlap(&r, &rows) && c.end <= cols.start,
+            Orient::Right => overlap(&r, &rows) && c.start >= cols.end,
+            Orient::Top => overlap(&c, &cols) && r.end <= rows.start,
+            Orient::Bottom => overlap(&c, &cols) && r.start >= rows.end,
         };
         beyond
             && q.axes()

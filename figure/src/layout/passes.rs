@@ -252,23 +252,31 @@ fn reach(
 
 /// The plot areas of `figure`'s panels for `size`, with `reserve` px above
 /// the grid for the figure title and each panel reaching `reaches` past
-/// its plot area.
+/// its plot area. A panel's left reach counts against its first column,
+/// its right reach against its last, and likewise for rows; its plot area
+/// runs from its first track's start to its last track's end.
 fn place(figure: &Figure<'_>, size: Size, reserve: f64, reaches: &[Reach]) -> Vec<Rect> {
     let theme = figure.style();
     let grid = figure.grid();
     let panels = figure.panels();
     let em = theme.em();
     let pad = 0.8 * em;
-    let rows = tracks(grid.row_weights().len(), panels.iter().map(|p| p.cell().0));
-    let cols = tracks(grid.col_weights().len(), panels.iter().map(|p| p.cell().1));
+    let rows = tracks(
+        grid.row_weights().len(),
+        panels.iter().map(|p| p.cell().rows().end),
+    );
+    let cols = tracks(
+        grid.col_weights().len(),
+        panels.iter().map(|p| p.cell().cols().end),
+    );
     let mut row_reach = vec![[0.0_f64; 2]; rows];
     let mut col_reach = vec![[0.0_f64; 2]; cols];
     for (panel, reach) in panels.iter().zip(reaches) {
-        let (r, c) = panel.cell();
-        let row = &mut row_reach[r];
-        *row = [row[0].max(reach.top), row[1].max(reach.bottom)];
-        let col = &mut col_reach[c];
-        *col = [col[0].max(reach.left), col[1].max(reach.right)];
+        let (r, c) = (panel.cell().rows(), panel.cell().cols());
+        row_reach[r.start][0] = row_reach[r.start][0].max(reach.top);
+        row_reach[r.end - 1][1] = row_reach[r.end - 1][1].max(reach.bottom);
+        col_reach[c.start][0] = col_reach[c.start][0].max(reach.left);
+        col_reach[c.end - 1][1] = col_reach[c.end - 1][1].max(reach.right);
     }
     let ys = layout::tracks(
         grid.row_weights(),
@@ -282,19 +290,24 @@ fn place(figure: &Figure<'_>, size: Size, reserve: f64, reaches: &[Reach]) -> Ve
         &col_reach,
         [pad, size.width - 2.0 * pad],
     );
+    let span = |tracks: &[[f64; 2]], range: std::ops::Range<usize>| {
+        let ([start, _], [last, length]) = (tracks[range.start], tracks[range.end - 1]);
+        [start, last + length]
+    };
     panels
         .iter()
         .map(|p| {
-            let ([y, h], [x, w]) = (ys[p.cell().0], xs[p.cell().1]);
-            Rect::new(x, y, x + w, y + h)
+            let [y0, y1] = span(&ys, p.cell().rows());
+            let [x0, x1] = span(&xs, p.cell().cols());
+            Rect::new(x0, y0, x1, y1)
         })
         .collect()
 }
 
 /// The number of tracks along one axis: as many as there are weights, or
-/// as the panels' cells need.
-fn tracks(weights: usize, cells: impl Iterator<Item = usize>) -> usize {
-    cells.map(|c| c + 1).fold(weights, usize::max)
+/// as the panels' last tracks need.
+fn tracks(weights: usize, ends: impl Iterator<Item = usize>) -> usize {
+    ends.fold(weights, usize::max)
 }
 
 /// `key`'s shaped label; `None` when typst rejected it.

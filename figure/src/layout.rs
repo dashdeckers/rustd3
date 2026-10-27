@@ -17,12 +17,14 @@
 //! # let _ = grid;
 //! ```
 
+mod cell;
 pub(crate) mod collide;
 mod passes;
 mod plan;
 mod protrusion;
 mod tracks;
 
+pub use cell::Cell;
 pub(crate) use passes::{Laid, Layout};
 pub use plan::Plan;
 pub(crate) use protrusion::Reach;

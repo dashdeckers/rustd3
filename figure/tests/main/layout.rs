@@ -5,7 +5,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_figure::kurbo::{Rect, Size};
-use rustd3_figure::layout::{Grid, em, px};
+use rustd3_figure::layout::{Cell, Grid, em, px};
 use rustd3_figure::list::{Command, part};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{self, Key, Style, Text, anchor};
@@ -709,4 +709,68 @@ fn layout_invariants_hold_on_the_test_figures_and_the_examples() {
         Target::Vector,
         &[(0, 0), (1, 0)],
     );
+}
+
+/// A 2 × 2 grid with panels in (0, 0) and (0, 1) and one across row 1, all
+/// with a bottom axis on one x handle; the spanning panel has a left axis
+/// with wide labels.
+fn spanning() -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let wide = fig.fit(scale::linear());
+    for c in 0..2 {
+        fig.panel(0, c)
+            .mark(line(x, [0.0, 10.0]))
+            .mark(line(y, [0.0, 3.0]))
+            .axis(axis::left(y))
+            .axis(axis::bottom(x));
+    }
+    fig.panel_at(Cell::new(1, 0).span(1, 2))
+        .mark(line(x, [0.0, 10.0]))
+        .mark(line(wide, [0.0, 300_000.0]))
+        .axis(axis::left(wide))
+        .axis(axis::bottom(x));
+    fig
+}
+
+#[test]
+fn a_spanning_panel_runs_from_its_first_column_to_its_last() {
+    let fig = spanning();
+    let r = resolve(&fig, &Held::default());
+    let areas = r.plot_areas();
+    let (first, second, span) = (areas[0], areas[1], areas[2]);
+    assert!(
+        same(span.x0, first.x0) && same(span.x1, second.x1),
+        "{areas:?}"
+    );
+    // Its wide labels count against column 0's left track: the panel
+    // above starts where it does, beyond the narrow labels' reach.
+    let narrow = r.plan(0, 0).expect("the top left panel's axis");
+    let reach = r.plan(2, 0).expect("the spanning panel's axis");
+    assert!(reach.thickness > narrow.thickness + 20.0, "{reach:?}");
+    assert!((first.x0 - PAD - reach.thickness).abs() < 1e-9, "{first:?}");
+    assert!(span.y0 > first.y1 && same(first.y0, second.y0));
+}
+
+#[test]
+fn a_spanning_panel_below_makes_the_axes_above_it_inner() {
+    let fig = spanning();
+    let r = resolve(&fig, &Held::default());
+    for panel in 0..2 {
+        let bottom = r.plan(panel, 1).expect("a bottom axis");
+        assert!(bottom.shown && !bottom.labeled, "{panel}: {bottom:?}");
+    }
+    let outer = r.plan(2, 1).expect("the spanning panel's bottom axis");
+    assert!(outer.labeled);
+}
+
+#[test]
+fn the_same_cell_and_span_give_the_same_panel() {
+    let mut fig = spanning();
+    fig.panel_at(Cell::new(1, 0).span(1, 2)).title("again");
+    fig.panel(0, 1);
+    assert_eq!(resolve(&fig, &Held::default()).plot_areas().len(), 3);
+    fig.panel(1, 0);
+    assert_eq!(resolve(&fig, &Held::default()).plot_areas().len(), 4);
 }
