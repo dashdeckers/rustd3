@@ -1,0 +1,22 @@
+size 400x300 fonts 1 parts 4
+0 fill M0,0L400,0L400,300L0,300Z #ffffff
+1 push matrix(1 0 0 1 40 20) rect(0,0,320,220)
+2 fill M0,0L320,0L320,220L0,220Z linear(0,0,320,0)[0 #eaeaf2,1 #fafafc]
+3 stroke M0,110L320,110 w1.5 butt miter 4 dash[6,3]@0 #4c72b0
+4 stroke M20,200L80,120L140,160L200,40 w2.5 round round #dd8452
+5 stroke M20,30L60,60L100,20 w3 square miter 4 #8c8c8c
+6 markers n3 bbox(-0.5,-0.5,0.5,0.5) #000000 sizes[6,10,14] paints[2:0,1,0]
+7 markers n4 bbox(-0.5,-0.5,0.5,0.5) linear(40,0,100,0)[0 #64b5cd,1 #2a4d8f] sizes[12,12,12,12]
+8 fill M290,150C290,172.09,272.09,190,250,190C227.91,190,210,172.09,210,150C210,127.91,227.91,110,250,110C272.09,110,290,127.91,290,150 radial(250,150,0,250,150,40)[0 #8172b3,1 #8172b340]
+9 push matrix(0.9553 0.2955 -0.2955 0.9553 55.1514 -24.9144) path(M70,200L110,130L150,200)
+10 fill M60,140L160,140L160,210L60,210Z #93786099
+11 pop
+12 image rect(272,8,304,40) 16x16 nearest
+13 image rect(200,180,248,212) 4x4 smooth
+14 pop
+15 glyphs font0 11 "Wheel: RL" ids[58,75,72,72,79,29,3,53,47] matrix(1 0 0 1 40 270) #262626
+16 glyphs font0 10 "Speed (km/h)" ids[54,83,72,72,71,3,11,78,80,18,75,12] matrix(0 -1 1 0 24 160) #262626
+part 0 0..1 bounds(0,0,400,300)
+part 1 1..15 bounds(40,20,360,240)
+part 2 15..16 bounds(40.37,261.64,95.35,270.16)
+part 3 16..17 bounds(16.4,93.29,26.08,159.34)
