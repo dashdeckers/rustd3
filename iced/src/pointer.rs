@@ -36,8 +36,10 @@ const DOUBLE_CLICK_PX: f64 = 6.0;
 ///   away.
 ///
 /// Time comes only from `RedrawRequested`, so while a press waits for it,
-/// [`wants_redraw`](Tracker::wants_redraw) is true and the program should
-/// return `Action::request_redraw()`.
+/// [`wants_redraw`](Tracker::wants_redraw) is true: a program that
+/// publishes no message for the event returns `Action::request_redraw()`
+/// (iced redraws after a published message anyway). One press waits at a
+/// time; a second press before the redraw takes its place.
 ///
 /// ```
 /// use iced_core::{mouse, Event, Point, Rectangle, Size};
@@ -139,8 +141,9 @@ impl Tracker {
         }
     }
 
-    /// A press waits for the next `RedrawRequested` to be timed: return
-    /// `Action::request_redraw()` while this is true.
+    /// A press waits for the next `RedrawRequested` to be timed: while this
+    /// is true, a program that publishes nothing returns
+    /// `Action::request_redraw()`.
     pub fn wants_redraw(&self) -> bool {
         self.waiting.is_some()
     }
