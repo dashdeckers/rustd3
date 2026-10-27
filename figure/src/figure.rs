@@ -73,10 +73,12 @@ pub struct Figure<'a> {
     legends: Vec<(Slot, Box<dyn legend::Draw>)>,
 }
 
-/// One scale of the table, and how to fit it when it is fitted.
+/// One scale of the table, how to fit it when it is fitted, and whether
+/// to what its panels' x shows (`Fit::Visible`).
 struct Entry {
     scale: Box<dyn Scale>,
     fitter: Option<fits::Fitter>,
+    visible: bool,
 }
 
 impl Default for Figure<'_> {
@@ -113,15 +115,24 @@ impl<'a> Figure<'a> {
     }
 
     /// A scale whose domain follows its marks' data as `fit` says.
-    /// `Fit::Window` and `Fit::Visible` resolve as `Fit::All` for now.
-    /// `Fit::Window(())` on a categorical scale (span `()`) means nothing,
-    /// and debug builds panic on it.
+    /// `Fit::Window` resolves as `Fit::All` for now. `Fit::Window(())` on a
+    /// categorical scale (span `()`) means nothing, and debug builds panic
+    /// on it.
+    ///
+    /// A `Fit::Visible` handle on y fits to the data whose x lies in the
+    /// resolved domain of its marks' x handles (read from a recording's
+    /// index in O(log n)), merged across panels; its domain grows at once
+    /// to contain the padded extent and shrinks only by whole eighths of
+    /// its last span, remembered in the [`Cache`] by handle index and
+    /// scale type, so panning does not make it flicker. Used as x, or over
+    /// an x that is itself `Fit::Visible`, it fits all its data.
     pub fn fit_with<S: Fittable>(&mut self, s: S, fit: Fit<S::Span>) -> ScaleRef<S> {
         debug_assert!(
             !(matches!(fit, Fit::Window(_)) && TypeId::of::<S::Span>() == TypeId::of::<()>()),
             "Fit::Window on a categorical scale"
         );
-        self.add(Box::new(s), Some(fits::Fitter::of::<S>()))
+        let visible = matches!(fit, Fit::Visible);
+        self.add(Box::new(s), Some((fits::Fitter::of::<S>(), visible)))
     }
 
     /// The panel in grid cell `(row, col)`, made on first use; panels keep
@@ -218,11 +229,17 @@ impl<'a> Figure<'a> {
         self.title.as_ref()
     }
 
-    /// Appends `scale` to the table.
-    fn add<S>(&mut self, scale: Box<dyn Scale>, fitter: Option<fits::Fitter>) -> ScaleRef<S> {
+    /// Appends `scale` to the table, fitted by `fit` (and to what x shows
+    /// when its flag is set) when given.
+    fn add<S>(&mut self, scale: Box<dyn Scale>, fit: Option<(fits::Fitter, bool)>) -> ScaleRef<S> {
         let index = u32::try_from(self.scales.len())
             .expect("invariant: a figure holds fewer than 2^32 scales");
-        self.scales.push(Entry { scale, fitter });
+        let (fitter, visible) = fit.map_or((None, false), |(f, v)| (Some(f), v));
+        self.scales.push(Entry {
+            scale,
+            fitter,
+            visible,
+        });
         ScaleRef::new(self.id, index)
     }
 }

@@ -1,10 +1,10 @@
 //! [`Fits`]: the data extents and sticky values marks report per fitted
 //! handle, kept in each scale's own domain type.
 
-use std::any::Any;
+use std::any::{Any, TypeId};
 
 use crate::figure;
-use crate::scale::{Kind, Scale, ScaleRef};
+use crate::scale::{Kind, Position, Scale, ScaleRef, visible};
 use crate::text::Key;
 use crate::theme::Theme;
 
@@ -24,6 +24,10 @@ pub struct Fits {
     theme: Theme,
     /// The labels marks draw.
     labels: Vec<Key>,
+    /// In the pass that fits `Fit::Visible` handles to what x shows: per
+    /// table entry, whether it is such a handle (so its scale is not
+    /// resolved yet); `None` in the first pass.
+    pending: Option<Vec<bool>>,
 }
 
 /// One fitted handle's scale as built, its extent so far and its sticky
@@ -42,7 +46,14 @@ pub(super) struct Fitter {
     start: fn(&dyn Scale) -> Box<dyn Any>,
     /// The scale of a filled slot, fitted with a margin.
     finish: fn(Box<dyn Any>, f64) -> Box<dyn Scale>,
+    /// The scale of a filled slot of a `Fit::Visible` handle, fitted with
+    /// a margin and stepped from what the memory holds for its index.
+    settle: Settle,
 }
+
+/// [`Fitter::settle`]'s function: a slot, the margin, the memory and the
+/// entry's index.
+type Settle = fn(Box<dyn Any>, f64, &mut visible::Memory, usize) -> Box<dyn Scale>;
 
 impl Fitter {
     /// The fitter of scales of type `S`.
@@ -50,7 +61,21 @@ impl Fitter {
         Fitter {
             start: start::<S>,
             finish: finish::<S>,
+            settle: settle::<S>,
         }
+    }
+
+    /// The scale of `slot`, entry `index`'s, fitted with `margin` as a
+    /// `Fit::Visible` handle through `memory`: [`visible::Memory::settle`]
+    /// for a numeric domain, the last domain when no value is in view.
+    pub(super) fn settle(
+        self,
+        slot: Box<dyn Any>,
+        margin: f64,
+        memory: &mut visible::Memory,
+        index: usize,
+    ) -> Box<dyn Scale> {
+        (self.settle)(slot, margin, memory, index)
     }
 
     /// An empty slot for `scale`.
@@ -79,7 +104,40 @@ impl Fits {
             scales,
             theme,
             labels: Vec::new(),
+            pending: None,
         }
+    }
+
+    /// The same reports, for the pass that fits the `Fit::Visible` handles
+    /// marked in `pending` (one flag per table entry) to what x shows,
+    /// once every other handle is resolved.
+    pub(super) fn visible(self, pending: Vec<bool>) -> Fits {
+        Fits {
+            pending: Some(pending),
+            ..self
+        }
+    }
+
+    /// In the pass that fits `Fit::Visible` handles, for a mark on `x` and
+    /// `y`: `x`'s resolved scale over [0, 1] when `y` is such a handle
+    /// (the values `x` shows are those it places in [0, 1]); `None` in the
+    /// first pass, for other `y`s, and when `x` is itself a `Fit::Visible`
+    /// handle (no cycles: `y` then sees all of its data).
+    pub(crate) fn window<X: Position, Y: Kind>(
+        &mut self,
+        x: ScaleRef<X>,
+        y: ScaleRef<Y>,
+    ) -> Option<X> {
+        let pending = self.pending.as_ref()?;
+        if pending.get(x.of(self.figure)).copied().unwrap_or(true) {
+            return None;
+        }
+        self.slot(y)?;
+        self.scale(x)
+            .with_range([0.0, 1.0])
+            .as_any()
+            .downcast_ref::<X>()
+            .cloned()
     }
 
     /// Widens `h`'s extent by `v` when its scale admits it (finite and
@@ -143,6 +201,42 @@ fn start<S: Kind>(scale: &dyn Scale) -> Box<dyn Any> {
         extent: None,
         sticky: Vec::new(),
     })
+}
+
+/// The scale of `slot`, a `Slot<S>` of entry `index`, fitted to its extent
+/// and sticky values with `margin`, then stepped from the domain `memory`
+/// last gave it, when its domain is numeric; with nothing in view, the
+/// domain `memory` last gave it, if any.
+fn settle<S: Kind>(
+    slot: Box<dyn Any>,
+    margin: f64,
+    memory: &mut visible::Memory,
+    index: usize,
+) -> Box<dyn Scale> {
+    let slot = slot
+        .downcast::<Slot<S>>()
+        .expect("invariant: an entry's slot is made by its fitter");
+    let key = (index, TypeId::of::<S>());
+    let fitted = match slot.extent.as_ref() {
+        Some(extent) => slot.scale.fitted(Some(extent), &slot.sticky, margin),
+        None => match memory.last(key).and_then(ends::<S>) {
+            Some(last) => return Box::new(slot.scale.fitted(Some(&last), &[], 0.0)),
+            None => return Box::new(slot.scale.fitted(None, &slot.sticky, margin)),
+        },
+    };
+    let padded = Kind::domain(&fitted).and_then(|d| (&d as &dyn Any).downcast_ref().copied());
+    let Some(padded) = padded else {
+        return Box::new(fitted);
+    };
+    match ends::<S>(memory.settle(key, padded)) {
+        Some(settled) => Box::new(slot.scale.fitted(Some(&settled), &[], 0.0)),
+        None => Box::new(fitted),
+    }
+}
+
+/// `[a, b]` as the ends of an `S` domain, when its domain is `f64`.
+fn ends<S: Kind>(ends: [f64; 2]) -> Option<[S::Domain; 2]> {
+    (&ends as &dyn Any).downcast_ref().cloned()
 }
 
 /// The scale of `slot`, a `Slot<S>`, fitted to its extent and sticky

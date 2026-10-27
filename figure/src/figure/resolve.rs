@@ -2,8 +2,10 @@
 //! gesture, labels measured through the text cache, and the grid laid out
 //! in passes.
 
+use std::any::Any;
+
 use crate::figure::fits::Fits;
-use crate::figure::{Cache, Figure, Held, Resolved};
+use crate::figure::{Cache, Entry, Figure, Held, Resolved};
 use crate::layout::{self, Layout};
 use crate::panel::Panel;
 use crate::scale::Scale;
@@ -86,7 +88,7 @@ impl Figure<'_> {
         target: Target,
         areas: Option<&layout::Areas>,
     ) -> Resolved {
-        let (scales, marked) = self.fitted(held);
+        let (scales, marked) = self.fitted(held, cache);
         let locale = self.locale.clone();
         let mut resolved = Resolved::new(self.id, scales, locale, target, size);
         let rects = areas.and_then(|a| a.fit(size, self.panels.len()));
@@ -100,18 +102,28 @@ impl Figure<'_> {
     }
 
     /// Every scale of the table as resolved (held, fitted to the marks'
-    /// data, or as built), and the labels the marks draw.
-    fn fitted(&self, held: &Held) -> (Vec<Box<dyn Scale>>, Vec<Key>) {
-        let slots = self
+    /// data, or as built), and the labels the marks draw. Two passes: every
+    /// fitted handle that no gesture holds is fitted to all its data,
+    /// except `Fit::Visible` ones; those are then fitted to the data their
+    /// marks' resolved x scales show, stepped through `cache`'s memory.
+    fn fitted(&self, held: &Held, cache: &mut Cache) -> (Vec<Box<dyn Scale>>, Vec<Key>) {
+        let margin = self.theme.margin();
+        let unheld = |i: usize, entry: &Entry| held.scale(i, &*entry.scale).is_none();
+        let pending: Vec<bool> = self
             .scales
             .iter()
             .enumerate()
-            .map(
-                |(i, entry)| match (held.scale(i, &*entry.scale), entry.fitter) {
-                    (None, Some(fitter)) => Some(fitter.start(&*entry.scale)),
-                    (Some(_), _) | (None, None) => None,
-                },
-            )
+            .map(|(i, entry)| entry.visible && entry.fitter.is_some() && unheld(i, entry))
+            .collect();
+        let slots = self
+            .scales
+            .iter()
+            .zip(&pending)
+            .enumerate()
+            .map(|(i, (entry, &pending))| {
+                let fitter = entry.fitter.filter(|_| unheld(i, entry) && !pending)?;
+                Some(fitter.start(&*entry.scale))
+            })
             .collect();
         let built = self
             .scales
@@ -123,13 +135,8 @@ impl Figure<'_> {
                     .boxed()
             })
             .collect();
-        let mut fits = Fits::new(self.id, slots, built, self.theme.clone());
-        for mark in self.panels.iter().flat_map(Panel::marks) {
-            mark.fit(&mut fits);
-        }
-        let margin = self.theme.margin();
-        let (slots, labels) = fits.into_parts();
-        let scales = self
+        let (slots, labels) = self.report(Fits::new(self.id, slots, built, self.theme.clone()));
+        let mut scales: Vec<Box<dyn Scale>> = self
             .scales
             .iter()
             .zip(slots)
@@ -142,6 +149,34 @@ impl Figure<'_> {
                 }
             })
             .collect();
+        if pending.contains(&true) {
+            let slots = self
+                .scales
+                .iter()
+                .zip(&pending)
+                .map(|(entry, &pending)| {
+                    let fitter = entry.fitter.filter(|_| pending)?;
+                    Some(fitter.start(&*entry.scale))
+                })
+                .collect();
+            let resolved = scales.iter().map(|s| s.boxed()).collect();
+            let fits = Fits::new(self.id, slots, resolved, self.theme.clone()).visible(pending);
+            let (slots, _) = self.report(fits);
+            for (i, (entry, slot)) in self.scales.iter().zip(slots).enumerate() {
+                if let Some((fitter, slot)) = entry.fitter.zip(slot) {
+                    scales[i] = fitter.settle(slot, margin, cache.visible(), i);
+                }
+            }
+        }
         (scales, labels)
+    }
+
+    /// What every mark reports to `fits`: its slots, and the labels marks
+    /// draw.
+    fn report(&self, mut fits: Fits) -> (Vec<Option<Box<dyn Any>>>, Vec<Key>) {
+        for mark in self.panels.iter().flat_map(Panel::marks) {
+            mark.fit(&mut fits);
+        }
+        fits.into_parts()
     }
 }

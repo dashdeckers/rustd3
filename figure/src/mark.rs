@@ -211,13 +211,19 @@ fn admits<S: Kind>(scale: &S, v: f64) -> bool {
 
 /// Reports `points` on `x` and `y`: a recording channel through the x
 /// scale's index (its first and last x, and its y extremes among the values
-/// `y` admits), read in O(log n); anything else pair by pair.
+/// `y` admits), read in O(log n); anything else pair by pair. When `y` is
+/// fitted to what `x` shows (`Fit::Visible`), only the y values of the
+/// points `x` shows.
 fn fit<'a, X: Position, Y: Position>(
     points: &Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     fits: &mut Fits,
 ) {
+    if let Some(window) = fits.window(x, y) {
+        visible(points, &window, y, fits);
+        return;
+    }
     let extent = points.indexed().and_then(|channel| {
         let ys = fits.scale(y);
         fits.scale(x)
@@ -240,6 +246,36 @@ fn fit<'a, X: Position, Y: Position>(
                 fits.add(x, &a);
                 fits.add(y, &b);
             }
+        }
+    }
+}
+
+/// Reports to `y` the y values of `points` whose x `window` shows (it
+/// places them in [0, 1], ends included): a recording channel's extremes
+/// through the x scale's index over `window`'s domain, in O(log n);
+/// anything else pair by pair.
+fn visible<'a, X: Position, Y: Position>(
+    points: &Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
+    window: &X,
+    y: ScaleRef<Y>,
+    fits: &mut Fits,
+) {
+    if let (Some(channel), Some(indexed)) = (points.indexed(), window.indexed()) {
+        let ys = fits.scale(y);
+        let extent = indexed.series_extent(&channel, Kind::domain(window), &|v| admits(ys, v));
+        for v in extent.iter().flat_map(|e| e.y).flatten() {
+            if let Some(v) = value(v) {
+                fits.add(y, &v);
+            }
+        }
+        return;
+    }
+    for (a, b) in points.iter() {
+        if window
+            .position(&a)
+            .is_some_and(|t| (0.0..=1.0).contains(&t))
+        {
+            fits.add(y, &b);
         }
     }
 }

@@ -10,7 +10,7 @@ pub enum Fit<Span> {
     /// exactly as `All`. Meaningless on a categorical handle, whose span is
     /// `()`.
     Window(Span),
-    /// y fitted to the data inside the visible x range. Not implemented
-    /// yet: resolves exactly as `All`.
+    /// y fitted to the data inside its x handles' resolved domains, held
+    /// still by steps of one eighth of its span; as `All` on an x handle.
     Visible,
 }

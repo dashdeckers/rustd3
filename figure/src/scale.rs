@@ -29,6 +29,7 @@ mod ordinal;
 mod paint;
 mod point;
 mod position;
+pub(crate) mod visible;
 
 use std::any::Any;
 

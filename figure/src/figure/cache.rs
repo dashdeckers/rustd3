@@ -3,16 +3,19 @@
 
 use std::sync::Arc;
 
+use crate::scale::visible;
 use crate::{text, thin};
 
 /// What a caller keeps between draws of a figure: the text cache, so no
-/// label is shaped twice, and the M4 memo, so an unchanged view is not
-/// thinned twice. The iced widget keeps one in its tree state; file
-/// outputs make a temporary one.
+/// label is shaped twice, the M4 memo, so an unchanged view is not thinned
+/// twice, and the last domains of `Fit::Visible` handles, so they shrink
+/// by steps. The iced widget keeps one in its tree state; file outputs make
+/// a temporary one.
 #[derive(Debug)]
 pub struct Cache {
     text: text::Cache,
     memo: thin::Memo,
+    visible: visible::Memory,
 }
 
 /// What a figure cache holds and has done. Plain data.
@@ -39,6 +42,7 @@ impl Cache {
         Cache {
             text: text::Cache::new(fonts),
             memo: thin::Memo::default(),
+            visible: visible::Memory::default(),
         }
     }
 
@@ -56,6 +60,11 @@ impl Cache {
             text: self.text.stats(),
             m4_queries: self.memo.queries(),
         }
+    }
+
+    /// The last domains of `Fit::Visible` handles.
+    pub(crate) fn visible(&mut self) -> &mut visible::Memory {
+        &mut self.visible
     }
 
     /// The text cache, for resolving.

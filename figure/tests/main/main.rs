@@ -23,6 +23,7 @@ mod support;
 mod svg;
 mod text;
 mod thin;
+mod visible;
 
 // The example figures of rustd3-examples, compiled into these tests so
 // that the snapshots and the thinning spot checks draw exactly what the
