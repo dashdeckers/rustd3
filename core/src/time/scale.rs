@@ -1,6 +1,7 @@
 //! [`Time`], d3's time scale with an explicit zone, computing in `i128`
 //! nanoseconds from the domain's start.
 
+mod labels;
 mod pad;
 mod rescale;
 mod ticks;

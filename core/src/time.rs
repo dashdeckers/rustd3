@@ -1,8 +1,11 @@
 //! Time with explicit zones, on jiff: [`Interval`], d3-time's calendar
 //! intervals with microseconds and nanoseconds beside them, the lazy
 //! [`interval::Range`] of an interval's boundaries, d3's tick functions,
-//! [`ticks`], [`ticks_with`], [`tick_interval`] and their `utc_` twins, and
-//! [`Time`], d3's time scale, made by [`time()`] and [`utc()`].
+//! [`ticks`], [`ticks_with`], [`tick_interval`] and their `utc_` twins,
+//! [`Time`], d3's time scale, made by [`time()`] and [`utc()`], and
+//! d3-time-format's formats: a [`Format`] compiled under a [`Locale`]
+//! (d3's timeFormatLocale plus the [`Ladder`] tick labels climb, built
+//! from a [`Definition`]), or under the neutral locale by [`format()`].
 //!
 //! Every zone is a parameter: nothing here reads the system's clock or
 //! zone. Instants are jiff [`Timestamp`]s and arithmetic on them is in
@@ -26,6 +29,9 @@
 
 pub mod interval;
 
+mod definition;
+mod format;
+mod locale;
 mod scale;
 mod ticks;
 
@@ -33,6 +39,9 @@ use jiff::Timestamp;
 use jiff::civil;
 use jiff::tz::TimeZone;
 
+pub use definition::Definition;
+pub use format::{Format, format};
+pub use locale::{Ladder, Locale};
 pub use scale::Time;
 pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};
 
