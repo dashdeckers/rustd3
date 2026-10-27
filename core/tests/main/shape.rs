@@ -1,5 +1,8 @@
 //! Lines and areas against what d3-shape 3.2.0 prints, compared after the
-//! normalization of d3's `assertPathEqual`.
+//! normalization of d3's `assertPathEqual`; pies, arcs, stacks, symbols
+//! and radial shapes in the modules below.
+
+mod pie;
 
 use rustd3_core::path::{self, PathContext};
 use rustd3_core::shape::{self, Curve};

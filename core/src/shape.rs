@@ -18,10 +18,24 @@
 mod area;
 mod curve;
 mod line;
+pub mod pie;
+mod slice;
 
 pub use area::{Area, Span};
 pub use curve::Curve;
 pub use line::{Line, Vertex};
+pub use slice::Slice;
+
+/// d3.pie(): values to the angles of [`Slice`]s, largest first by default;
+/// built by consuming builders, laid out by [`Pie::layout`]. Its methods
+/// and [`pie::Sort`] are in [`pie`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pie {
+    sort: pie::Sort,
+    start_angle: f64,
+    end_angle: f64,
+    pad_angle: f64,
+}
 
 /// d3.line(): straight segments, `None` items breaking the line.
 pub fn line() -> Line {
@@ -32,4 +46,9 @@ pub fn line() -> Line {
 /// breaking the area.
 pub fn area() -> Area {
     Area::default()
+}
+
+/// d3.pie(): descending, from 0 to τ, unpadded.
+pub fn pie() -> Pie {
+    Pie::default()
 }
