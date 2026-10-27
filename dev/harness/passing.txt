@@ -61,6 +61,7 @@
 #floor d3-path/test/path-test.js 62
 #floor d3-path/test/pathRound-test.js 12
 #floor d3-scale/test/band-test.js 77
+#floor d3-scale/test/diverging-test.js 56
 #floor d3-scale/test/identity-test.js 44
 #floor d3-scale/test/linear-test.js 171
 #floor d3-scale/test/log-test.js 130
@@ -2153,6 +2154,62 @@ d3-scale/test/band-test.js:243:3
 d3-scale/test/band-test.js:245:3
 d3-scale/test/band-test.js:246:3
 d3-scale/test/band-test.js:247:3
+d3-scale/test/diverging-test.js:6:3
+d3-scale/test/diverging-test.js:9:3
+d3-scale/test/diverging-test.js:10:3
+d3-scale/test/diverging-test.js:11:3
+d3-scale/test/diverging-test.js:12:3
+d3-scale/test/diverging-test.js:13:3
+d3-scale/test/diverging-test.js:19:3
+d3-scale/test/diverging-test.js:20:3
+d3-scale/test/diverging-test.js:21:3
+d3-scale/test/diverging-test.js:22:3
+d3-scale/test/diverging-test.js:23:3
+d3-scale/test/diverging-test.js:41:3
+d3-scale/test/diverging-test.js:42:3
+d3-scale/test/diverging-test.js:43:3
+d3-scale/test/diverging-test.js:44:3
+d3-scale/test/diverging-test.js:45:3
+d3-scale/test/diverging-test.js:46:3
+d3-scale/test/diverging-test.js:47:3
+d3-scale/test/diverging-test.js:48:3
+d3-scale/test/diverging-test.js:49:3
+d3-scale/test/diverging-test.js:50:3
+d3-scale/test/diverging-test.js:51:3
+d3-scale/test/diverging-test.js:52:3
+d3-scale/test/diverging-test.js:57:3
+d3-scale/test/diverging-test.js:58:3
+d3-scale/test/diverging-test.js:59:3
+d3-scale/test/diverging-test.js:60:3
+d3-scale/test/diverging-test.js:65:3
+d3-scale/test/diverging-test.js:66:3
+d3-scale/test/diverging-test.js:67:3
+d3-scale/test/diverging-test.js:68:3
+d3-scale/test/diverging-test.js:73:3
+d3-scale/test/diverging-test.js:74:3
+d3-scale/test/diverging-test.js:75:3
+d3-scale/test/diverging-test.js:76:3
+d3-scale/test/diverging-test.js:81:3
+d3-scale/test/diverging-test.js:82:3
+d3-scale/test/diverging-test.js:83:3
+d3-scale/test/diverging-test.js:84:3
+d3-scale/test/diverging-test.js:85:3
+d3-scale/test/diverging-test.js:86:3
+d3-scale/test/diverging-test.js:87:3
+d3-scale/test/diverging-test.js:88:3
+d3-scale/test/diverging-test.js:89:3
+d3-scale/test/diverging-test.js:90:3
+d3-scale/test/diverging-test.js:91:3
+d3-scale/test/diverging-test.js:92:3
+d3-scale/test/diverging-test.js:103:3
+d3-scale/test/diverging-test.js:106:3
+d3-scale/test/diverging-test.js:110:3
+d3-scale/test/diverging-test.js:117:3
+d3-scale/test/diverging-test.js:127:3
+d3-scale/test/diverging-test.js:128:3
+d3-scale/test/diverging-test.js:129:3
+d3-scale/test/diverging-test.js:135:3
+d3-scale/test/diverging-test.js:147:3
 d3-scale/test/identity-test.js:6:3
 d3-scale/test/identity-test.js:7:3
 d3-scale/test/identity-test.js:12:3

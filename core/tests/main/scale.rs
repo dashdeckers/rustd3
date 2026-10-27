@@ -1,6 +1,7 @@
 //! Continuous scales and `scale::tick_format` against d3-scale 4.0.2, and
 //! the neutral locale's labels where they differ from d3's `EN_US`.
 
+mod diverging;
 mod identity;
 mod sequential;
 mod ticks;

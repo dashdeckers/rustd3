@@ -1,9 +1,11 @@
 //! d3-scale's continuous scales as plain values: built by consuming
 //! builders, read by `apply`, `invert`, `ticks` and `tick_format`, and
 //! generic over a public [`Transform`] and the range type; d3's identity
-//! scale; its band, point and ordinal scales over an explicit domain of
-//! keys; [`Ticks`], what an axis needs from any of them; and [`Pad`], a
-//! domain fitted to data as matplotlib autoscales an axis.
+//! scale; its sequential and diverging scales, a transform followed by an
+//! interpolator such as a color scheme; its band, point and ordinal scales
+//! over an explicit domain of keys; [`Ticks`], what an axis or a colorbar
+//! needs from any of them; and [`Pad`], a domain fitted to data as
+//! matplotlib autoscales an axis.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -31,6 +33,7 @@ macro_rules! builtin_transforms {
 mod any;
 mod band;
 mod continuous;
+mod diverging;
 mod identity;
 mod mapping;
 mod ordinal;
@@ -48,6 +51,7 @@ pub(crate) use continuous::polymap;
 pub use any::AnyContinuous;
 pub use band::{Band, band};
 pub use continuous::Continuous;
+pub use diverging::{Diverging, diverging};
 pub use identity::{Identity, identity};
 pub use mapping::Transform;
 pub use ordinal::{Ordinal, ordinal};

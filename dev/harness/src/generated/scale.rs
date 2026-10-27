@@ -2374,6 +2374,149 @@ fn t280() {   // sequential-test.js: scaleSequential(range) sets the interpolato
     check("d3-scale/test/sequential-test.js:118:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0]);
 }
 
+fn t281() {   // diverging-test.js: scaleDiverging() has the expected defaults
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t);
+    check("d3-scale/test/diverging-test.js:6:3", Kind::Strict, &s.get_domain().to_vec(), &vec![0.0, 0.5, 1.0]);
+    skip("d3-scale/test/diverging-test.js:7:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    skip("d3-scale/test/diverging-test.js:8:3", "api: d3's clamp() getter (only domain and range have get_)");
+    check("d3-scale/test/diverging-test.js:9:3", Kind::Strict, &s.apply(-0.5), &-0.5);
+    check("d3-scale/test/diverging-test.js:10:3", Kind::Strict, &s.apply(0.0), &0.0);
+    check("d3-scale/test/diverging-test.js:11:3", Kind::Strict, &s.apply(0.5), &0.5);
+    check("d3-scale/test/diverging-test.js:12:3", Kind::Strict, &s.apply(1.0), &1.0);
+    check("d3-scale/test/diverging-test.js:13:3", Kind::Strict, &s.apply(1.5), &1.5);
+}
+
+fn t282() {   // diverging-test.js: diverging.clamp(true) enables clamping
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).clamp(true);
+    skip("d3-scale/test/diverging-test.js:18:3", "api: d3's clamp() getter (only domain and range have get_)");
+    check("d3-scale/test/diverging-test.js:19:3", Kind::Strict, &s.apply(-0.5), &0.0);
+    check("d3-scale/test/diverging-test.js:20:3", Kind::Strict, &s.apply(0.0), &0.0);
+    check("d3-scale/test/diverging-test.js:21:3", Kind::Strict, &s.apply(0.5), &0.5);
+    check("d3-scale/test/diverging-test.js:22:3", Kind::Strict, &s.apply(1.0), &1.0);
+    check("d3-scale/test/diverging-test.js:23:3", Kind::Strict, &s.apply(1.5), &1.0);
+}
+
+fn t283() {   // diverging-test.js: diverging.domain() coerces domain values to numbers
+    skip("d3-scale/test/diverging-test.js:28:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/diverging-test.js:29:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/diverging-test.js:30:3", "js: strings as domain values (coercion)");
+    skip("d3-scale/test/diverging-test.js:31:3", "js: strings as domain values (coercion)");
+}
+
+fn t284() {   // diverging-test.js: diverging.domain() accepts an iterable
+    skip("d3-scale/test/diverging-test.js:36:3", "js: a domain from an iterable");
+}
+
+fn t285() {   // diverging-test.js: diverging.domain() handles a degenerate domain
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).domain([2.0, 2.0, 3.0]);
+    check("d3-scale/test/diverging-test.js:41:3", Kind::Strict, &s.get_domain().to_vec(), &vec![2.0, 2.0, 3.0]);
+    check("d3-scale/test/diverging-test.js:42:3", Kind::Strict, &s.apply(-1.2), &0.5);
+    check("d3-scale/test/diverging-test.js:43:3", Kind::Strict, &s.apply(0.6), &0.5);
+    check("d3-scale/test/diverging-test.js:44:3", Kind::Strict, &s.apply(2.4), &0.7);
+    check("d3-scale/test/diverging-test.js:45:3", Kind::Strict, &({ s = s.domain([1.0, 2.0, 2.0]); s.get_domain().to_vec() }), &vec![1.0, 2.0, 2.0]);
+    check("d3-scale/test/diverging-test.js:46:3", Kind::Strict, &s.apply(-1.0), &-1.0);
+    check("d3-scale/test/diverging-test.js:47:3", Kind::Strict, &s.apply(0.5), &-0.25);
+    check("d3-scale/test/diverging-test.js:48:3", Kind::Strict, &s.apply(2.4), &0.5);
+    check("d3-scale/test/diverging-test.js:49:3", Kind::Strict, &({ s = s.domain([2.0, 2.0, 2.0]); s.get_domain().to_vec() }), &vec![2.0, 2.0, 2.0]);
+    check("d3-scale/test/diverging-test.js:50:3", Kind::Strict, &s.apply(-1.0), &0.5);
+    check("d3-scale/test/diverging-test.js:51:3", Kind::Strict, &s.apply(0.5), &0.5);
+    check("d3-scale/test/diverging-test.js:52:3", Kind::Strict, &s.apply(2.4), &0.5);
+}
+
+fn t286() {   // diverging-test.js: diverging.domain() handles a descending domain
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).domain([4.0, 2.0, 1.0]);
+    check("d3-scale/test/diverging-test.js:57:3", Kind::Strict, &s.get_domain().to_vec(), &vec![4.0, 2.0, 1.0]);
+    check("d3-scale/test/diverging-test.js:58:3", Kind::Strict, &s.apply(1.2), &0.9);
+    check("d3-scale/test/diverging-test.js:59:3", Kind::Strict, &s.apply(2.0), &0.5);
+    check("d3-scale/test/diverging-test.js:60:3", Kind::Strict, &s.apply(3.0), &0.25);
+}
+
+fn t287() {   // diverging-test.js: divergingLog.domain() handles a descending domain
+    let mut s = scale::diverging([0.1, 1.0, 10.0], |t: f64| t).transform(scale::transform::Log::new(10.0)).domain([3.0, 2.0, 1.0]);
+    check("d3-scale/test/diverging-test.js:65:3", Kind::Strict, &s.get_domain().to_vec(), &vec![3.0, 2.0, 1.0]);
+    check("d3-scale/test/diverging-test.js:66:3", Kind::Strict, &s.apply(1.2), &(1.0 - 0.1315172029168969));
+    check("d3-scale/test/diverging-test.js:67:3", Kind::Strict, &s.apply(2.0), &(1.0 - 0.5000000000000000));
+    check("d3-scale/test/diverging-test.js:68:3", Kind::Strict, &s.apply(2.8), &(1.0 - 0.9149213210862197));
+}
+
+fn t288() {   // diverging-test.js: divergingLog.domain() handles a descending negative domain
+    let mut s = scale::diverging([0.1, 1.0, 10.0], |t: f64| t).transform(scale::transform::Log::new(10.0)).domain([-1.0, -2.0, -3.0]);
+    check("d3-scale/test/diverging-test.js:73:3", Kind::Strict, &s.get_domain().to_vec(), &vec![-1.0, -2.0, -3.0]);
+    check("d3-scale/test/diverging-test.js:74:3", Kind::Strict, &s.apply(-1.2), &0.1315172029168969);
+    check("d3-scale/test/diverging-test.js:75:3", Kind::Strict, &s.apply(-2.0), &0.5000000000000000);
+    check("d3-scale/test/diverging-test.js:76:3", Kind::Strict, &s.apply(-2.8), &0.9149213210862197);
+}
+
+fn t289() {   // diverging-test.js: diverging.domain() handles a non-numeric domain
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).domain([f64::NAN, 2.0, 3.0]);
+    check("d3-scale/test/diverging-test.js:81:3", Kind::Strict, &(s.get_domain().to_vec()[(0.0) as usize]).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:82:3", Kind::Strict, &(s.apply(-1.2)).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:83:3", Kind::Strict, &(s.apply(0.6)).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:84:3", Kind::Strict, &s.apply(2.4), &0.7);
+    check("d3-scale/test/diverging-test.js:85:3", Kind::Strict, &(({ s = s.domain([1.0, f64::NAN, 2.0]); s.get_domain().to_vec() })[(1.0) as usize]).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:86:3", Kind::Strict, &(s.apply(-1.0)).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:87:3", Kind::Strict, &(s.apply(0.5)).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:88:3", Kind::Strict, &(s.apply(2.4)).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:89:3", Kind::Strict, &(({ s = s.domain([0.0, 1.0, f64::NAN]); s.get_domain().to_vec() })[(2.0) as usize]).is_nan(), &true);
+    check("d3-scale/test/diverging-test.js:90:3", Kind::Strict, &s.apply(-1.0), &-0.5);
+    check("d3-scale/test/diverging-test.js:91:3", Kind::Strict, &s.apply(0.5), &0.25);
+    check("d3-scale/test/diverging-test.js:92:3", Kind::Strict, &(s.apply(2.4)).is_nan(), &true);
+}
+
+fn t290() {   // diverging-test.js: diverging.domain() only considers the first three elements of the domain
+    skip("d3-scale/test/diverging-test.js:97:3", "types: a diverging scale of other than 3 stops (d3 ignores the rest)");
+}
+
+fn t291() {   // diverging-test.js: diverging.copy() returns an isolated copy of the scale
+    let mut s1 = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).domain([1.0, 2.0, 3.0]).clamp(true);
+    let mut s2 = s1.clone();
+    check("d3-scale/test/diverging-test.js:103:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![1.0, 2.0, 3.0]);
+    skip("d3-scale/test/diverging-test.js:104:3", "api: d3's clamp() getter (only domain and range have get_)");
+    s1 = s1.domain([-1.0, 1.0, 2.0]);
+    check("d3-scale/test/diverging-test.js:106:3", Kind::Strict, &s2.get_domain().to_vec(), &vec![1.0, 2.0, 3.0]);
+    s1 = s1.clamp(false);
+    skip("d3-scale/test/diverging-test.js:108:3", "api: d3's clamp() getter (only domain and range have get_)");
+    s2 = s2.domain([3.0, 4.0, 5.0]);
+    check("d3-scale/test/diverging-test.js:110:3", Kind::Strict, &s1.get_domain().to_vec(), &vec![-1.0, 1.0, 2.0]);
+    s2 = s2.clamp(true);
+    skip("d3-scale/test/diverging-test.js:112:3", "api: d3's clamp() getter (only domain and range have get_)");
+}
+
+fn t292() {   // diverging-test.js: diverging.range() returns the computed range
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).interpolator((|t: f64| ((t * 2.0) + 1.0)));
+    check("d3-scale/test/diverging-test.js:117:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 2.0, 3.0]);
+}
+
+fn t293() {   // diverging-test.js: diverging.interpolator(interpolator) sets the interpolator
+    let mut i0 = (|t: f64| t);
+    let mut i1 = (|t: f64| (t * 2.0));
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).interpolator(i0);
+    skip("d3-scale/test/diverging-test.js:124:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    s = s.interpolator(i1);
+    skip("d3-scale/test/diverging-test.js:125:3", "js: a setter returns its scale (identity)");
+    skip("d3-scale/test/diverging-test.js:126:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    check("d3-scale/test/diverging-test.js:127:3", Kind::Strict, &s.apply(-0.5), &-1.0);
+    check("d3-scale/test/diverging-test.js:128:3", Kind::Strict, &s.apply(0.0), &0.0);
+    check("d3-scale/test/diverging-test.js:129:3", Kind::Strict, &s.apply(0.5), &1.0);
+}
+
+fn t294() {   // diverging-test.js: diverging.range(range) sets the interpolator
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).range([1.0, 3.0, 10.0]);
+    skip("d3-scale/test/diverging-test.js:134:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    check("d3-scale/test/diverging-test.js:135:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0, 10.0]);
+}
+
+fn t295() {   // diverging-test.js: diverging.range(range) ignores additional values
+    skip("d3-scale/test/diverging-test.js:140:3", "types: a diverging scale of other than 3 stops (d3 ignores the rest)");
+    skip("d3-scale/test/diverging-test.js:141:3", "types: a diverging scale of other than 3 stops (d3 ignores the rest)");
+}
+
+fn t296() {   // diverging-test.js: scaleDiverging(range) sets the interpolator
+    let mut s = scale::diverging([0.0, 0.5, 1.0], |t: f64| t).range([1.0, 3.0, 10.0]);
+    skip("d3-scale/test/diverging-test.js:146:3", "api: d3's interpolator() getter (only domain and range have get_)");
+    check("d3-scale/test/diverging-test.js:147:3", Kind::Strict, &s.get_range().to_vec(), &vec![1.0, 3.0, 10.0]);
+}
+
 pub const TESTS: &[Test] = &[
     Test { name: "linear-test.js: scaleLinear() has the expected defaults", run: t0 },
     Test { name: "linear-test.js: scaleLinear(range) sets the range", run: t1 },
@@ -2656,6 +2799,22 @@ pub const TESTS: &[Test] = &[
     Test { name: "sequential-test.js: sequential.range(range) sets the interpolator", run: t278 },
     Test { name: "sequential-test.js: sequential.range(range) ignores additional values", run: t279 },
     Test { name: "sequential-test.js: scaleSequential(range) sets the interpolator", run: t280 },
+    Test { name: "diverging-test.js: scaleDiverging() has the expected defaults", run: t281 },
+    Test { name: "diverging-test.js: diverging.clamp(true) enables clamping", run: t282 },
+    Test { name: "diverging-test.js: diverging.domain() coerces domain values to numbers", run: t283 },
+    Test { name: "diverging-test.js: diverging.domain() accepts an iterable", run: t284 },
+    Test { name: "diverging-test.js: diverging.domain() handles a degenerate domain", run: t285 },
+    Test { name: "diverging-test.js: diverging.domain() handles a descending domain", run: t286 },
+    Test { name: "diverging-test.js: divergingLog.domain() handles a descending domain", run: t287 },
+    Test { name: "diverging-test.js: divergingLog.domain() handles a descending negative domain", run: t288 },
+    Test { name: "diverging-test.js: diverging.domain() handles a non-numeric domain", run: t289 },
+    Test { name: "diverging-test.js: diverging.domain() only considers the first three elements of the domain", run: t290 },
+    Test { name: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", run: t291 },
+    Test { name: "diverging-test.js: diverging.range() returns the computed range", run: t292 },
+    Test { name: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", run: t293 },
+    Test { name: "diverging-test.js: diverging.range(range) sets the interpolator", run: t294 },
+    Test { name: "diverging-test.js: diverging.range(range) ignores additional values", run: t295 },
+    Test { name: "diverging-test.js: scaleDiverging(range) sets the interpolator", run: t296 },
 ];
 
 pub const ASSERTS: &[Assertion] = &[
@@ -3817,4 +3976,79 @@ pub const ASSERTS: &[Assertion] = &[
     Assertion { id: "d3-scale/test/sequential-test.js:112:3", test: "sequential-test.js: sequential.range(range) ignores additional values", skip: Some("types: a sequential scale of other than 2 stops (d3 ignores the rest)") },
     Assertion { id: "d3-scale/test/sequential-test.js:117:3", test: "sequential-test.js: scaleSequential(range) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
     Assertion { id: "d3-scale/test/sequential-test.js:118:3", test: "sequential-test.js: scaleSequential(range) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:6:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:7:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:8:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:9:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:10:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:11:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:12:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:13:3", test: "diverging-test.js: scaleDiverging() has the expected defaults", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:18:3", test: "diverging-test.js: diverging.clamp(true) enables clamping", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:19:3", test: "diverging-test.js: diverging.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:20:3", test: "diverging-test.js: diverging.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:21:3", test: "diverging-test.js: diverging.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:22:3", test: "diverging-test.js: diverging.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:23:3", test: "diverging-test.js: diverging.clamp(true) enables clamping", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:28:3", test: "diverging-test.js: diverging.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:29:3", test: "diverging-test.js: diverging.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:30:3", test: "diverging-test.js: diverging.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:31:3", test: "diverging-test.js: diverging.domain() coerces domain values to numbers", skip: Some("js: strings as domain values (coercion)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:36:3", test: "diverging-test.js: diverging.domain() accepts an iterable", skip: Some("js: a domain from an iterable") },
+    Assertion { id: "d3-scale/test/diverging-test.js:41:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:42:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:43:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:44:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:45:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:46:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:47:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:48:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:49:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:50:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:51:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:52:3", test: "diverging-test.js: diverging.domain() handles a degenerate domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:57:3", test: "diverging-test.js: diverging.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:58:3", test: "diverging-test.js: diverging.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:59:3", test: "diverging-test.js: diverging.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:60:3", test: "diverging-test.js: diverging.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:65:3", test: "diverging-test.js: divergingLog.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:66:3", test: "diverging-test.js: divergingLog.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:67:3", test: "diverging-test.js: divergingLog.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:68:3", test: "diverging-test.js: divergingLog.domain() handles a descending domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:73:3", test: "diverging-test.js: divergingLog.domain() handles a descending negative domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:74:3", test: "diverging-test.js: divergingLog.domain() handles a descending negative domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:75:3", test: "diverging-test.js: divergingLog.domain() handles a descending negative domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:76:3", test: "diverging-test.js: divergingLog.domain() handles a descending negative domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:81:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:82:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:83:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:84:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:85:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:86:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:87:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:88:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:89:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:90:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:91:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:92:3", test: "diverging-test.js: diverging.domain() handles a non-numeric domain", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:97:3", test: "diverging-test.js: diverging.domain() only considers the first three elements of the domain", skip: Some("types: a diverging scale of other than 3 stops (d3 ignores the rest)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:103:3", test: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:104:3", test: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:106:3", test: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:108:3", test: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:110:3", test: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:112:3", test: "diverging-test.js: diverging.copy() returns an isolated copy of the scale", skip: Some("api: d3's clamp() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:117:3", test: "diverging-test.js: diverging.range() returns the computed range", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:124:3", test: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:125:3", test: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", skip: Some("js: a setter returns its scale (identity)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:126:3", test: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:127:3", test: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:128:3", test: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:129:3", test: "diverging-test.js: diverging.interpolator(interpolator) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:134:3", test: "diverging-test.js: diverging.range(range) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:135:3", test: "diverging-test.js: diverging.range(range) sets the interpolator", skip: None },
+    Assertion { id: "d3-scale/test/diverging-test.js:140:3", test: "diverging-test.js: diverging.range(range) ignores additional values", skip: Some("types: a diverging scale of other than 3 stops (d3 ignores the rest)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:141:3", test: "diverging-test.js: diverging.range(range) ignores additional values", skip: Some("types: a diverging scale of other than 3 stops (d3 ignores the rest)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:146:3", test: "diverging-test.js: scaleDiverging(range) sets the interpolator", skip: Some("api: d3's interpolator() getter (only domain and range have get_)") },
+    Assertion { id: "d3-scale/test/diverging-test.js:147:3", test: "diverging-test.js: scaleDiverging(range) sets the interpolator", skip: None },
 ];

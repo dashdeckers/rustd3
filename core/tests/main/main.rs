@@ -5,6 +5,7 @@ mod axis;
 mod band;
 mod color;
 mod ease;
+mod examples;
 mod fixtures;
 mod format;
 mod fuzz;
