@@ -36,10 +36,10 @@ static WORKERS: Mutex<()> = Mutex::new(());
 /// The expensive scatter's logical size: 6.4 million device px at 2.
 const LARGE: Size = Size::new(1600.0, 1000.0);
 
-/// The expensive scatter's dots. The cost model predicts 12.8 + 5 ms at
-/// 2, over half of any frame budget; a debug build renders its plot area
-/// in about 2.5 s, where 200k dots take a minute (D19.1).
-const DOTS: usize = 2_000;
+/// The expensive scatter's dots. The cost model predicts 12.8 + 500 ms
+/// at 2; with vello_cpu's crates optimized in the dev profile, a debug
+/// build renders its plot area in about a second (D19.1).
+const DOTS: usize = 200_000;
 
 /// The cheap figures' logical size.
 const MEDIUM: Size = Size::new(480.0, 320.0);
@@ -583,8 +583,10 @@ fn expensive_refresh_uses_the_worker() {
         "{rendered:?}"
     );
     let model = modelled(&samples);
-    println!(
-        "expensive refresh, {backend}: {missing} cells on the worker, model {model:.1} ms > 8.35"
+    println!("expensive refresh, {backend}: {missing} cells on the worker, model {model:.1} ms");
+    // 6.4e6 px / 5e5 + 200k dots / 400 ≈ 513 ms, and the axes' labels.
+    assert!(
+        (model / 513.0 - 1.0).abs() < 0.01,
+        "{backend}: model {model} ms"
     );
-    assert!(model > 8.35, "{backend}: model {model} ms");
 }

@@ -220,3 +220,54 @@ records the measured factor in release, and its verdict may move them.
 ### Followups
 
 Phase 22: record the calibration factor of each scenario.
+
+## Measurements after D19.1
+
+2026-10-27, before Phase 20's steps. The dev profile optimizes four
+dependency crates (`[profile.dev.package."<crate>@<version>"] opt-level
+= 3`): `vello_cpu@0.3.0`, `vello_common@0.3.0`, `fearless_simd@0.7.0`
+and `tiny-skia@0.12.0`. The specs name versions because hayro (typst's
+PDF images) depends on `vello_cpu` 0.0.8, `vello_common` 0.0.8 and
+`fearless_simd` 0.4.1 and 1.2.0: a bare name optimizes those too and
+rebuilds typst-library for nothing. A spec that stops matching after a
+lockfile change makes cargo warn.
+
+**The plot-area cell** of `iced/tests/main/pipeline.rs`'s scatter
+(1600 × 1000 logical at 2; about 5.7 million px), rendered inline
+through the widget, `Raster` sample durations, debug build, tiny-skia
+harness:
+
+| Profile | 0 dots | 2,000 dots | 200,000 dots |
+| --- | --- | --- | --- |
+| Before (every dependency at opt-level 0) | 0.82 s | 2.2 s | 59.3 s |
+| `vello_cpu` only | 0.65 s | 1.0 s | 34.1 s |
+| `vello_cpu`, `vello_common`, `fearless_simd` | 33 ms | 73 ms | 0.94 s (wgpu harness: 0.98 s) |
+| the same and `kurbo` (not kept) | 33 ms | 65 ms | 0.97 s |
+
+`kurbo` gains at most 11% and would rebuild typst-library, usvg and
+iced's renderers, so it is left at opt-level 0. A harness frame at
+3200 × 2000 on tiny-skia took about 3.5 s (iced_tiny_skia draws through
+tiny-skia at opt-level 0) and dominated the tiny-skia run of
+`worker_mode_matches_inline_mode`; with `tiny-skia@0.12.0` optimized,
+rustd3-iced's integration tests on tiny-skia take 11.8 s instead of
+26.5 s. Optimization levels leave IEEE arithmetic as it is: every pixel
+test keeps its bound.
+
+**The section's 200k-dot tests are restored** with the 10 s wait
+(`DOTS = 200_000`):
+
+| Test | tiny-skia | wgpu (lavapipe) |
+| --- | --- | --- |
+| `worker_mode_matches_inline_mode` | 0/255; first wake 0.45 s; current after 2 wakes | 0/255; first wake 0.88 s; current after 3 wakes |
+| `expensive_refresh_uses_the_worker` | model 515.6 ms (asserted within 1% of the section's 513: 12.8 ms of pixels, 500.5 of dots, the axes' labels) | same |
+| `worker_exits_on_drop` | 0 threads before, 2 with a set, 0 after | same |
+
+**Build times.** Compile time of the optimized crates on this 2-core
+container, measured with `cargo build --timings` in a scratch target
+directory (default features), opt-level 0 → 3: `fearless_simd` 3.9 →
+4.4 s, `vello_common` 2.3 → 8.1 s, `vello_cpu` 5.0 → 17.3 s, `tiny-skia`
+1.6 → 4.2 s; 21 s of compile time more in all. A cold build grows by
+at most that (`vello_common` and `vello_cpu` lie on rustd3-figure's
+critical path; typst builds alongside); the whole cold build was not
+repeated. The switch itself rebuilds the dependents of those crates
+once (rustd3-figure, rustd3-iced, iced's renderers, the dev crates).
