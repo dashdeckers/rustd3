@@ -6,6 +6,7 @@ use rustd3_core::color::Rgb;
 
 use crate::figure::Fits;
 use crate::hatch::Hatch;
+use crate::legend::Swatch;
 use crate::mark::Ctx;
 use crate::scale::{Paint, ScaleRef};
 
@@ -78,12 +79,13 @@ impl Color {
         }
     }
 
-    /// Reports `hatch`, when set, for the key, so legend swatches of the
-    /// key repeat it; marks without a key report nothing.
-    pub(crate) fn hatched(&self, hatch: Option<&Hatch>, fits: &mut Fits) {
-        if let (Color::Keyed(lookup), Some(hatch)) = (self, hatch) {
+    /// Reports the key with the mark's legend swatch `glyph` and its
+    /// `hatch`, so legends of the key draw that swatch and repeat the
+    /// hatch; marks without a key report nothing.
+    pub(crate) fn report(&self, glyph: Swatch, hatch: Option<&Hatch>, fits: &mut Fits) {
+        if let Color::Keyed(lookup) = self {
             let (palette, key) = lookup.key();
-            fits.hatch(palette, key, hatch);
+            fits.key(palette, key, glyph, hatch);
         }
     }
 

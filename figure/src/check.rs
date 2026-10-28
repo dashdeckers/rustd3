@@ -62,6 +62,16 @@ pub enum Issue {
         /// The tick labels drawn: 0 or 1.
         kept: usize,
     },
+    /// Two legends drawn over each other: insets stacked past their plot
+    /// area's middle, or in corners of one too small to hold them apart.
+    LegendsOverlap {
+        /// The panel whose plot area holds them; `None` for legends in
+        /// figure slots.
+        panel: Option<usize>,
+        /// Their indices among the panel's legends (or the figure's), in
+        /// the order they were added.
+        legends: [usize; 2],
+    },
     /// Owned data over 100,000 points: use a Series.
     LargeOwned {
         /// The mark's panel.

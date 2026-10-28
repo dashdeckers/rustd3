@@ -29,6 +29,7 @@ pub(crate) mod keys;
 mod slot;
 mod swatch;
 
+use std::any::Any;
 use std::fmt::Display;
 
 use rustd3_core::color::Rgb;
@@ -49,14 +50,35 @@ pub use slot::Slot;
 pub use swatch::Swatch;
 
 /// A legend of an ordinal palette: one entry per key of its domain, in
-/// domain order, a swatch in the key's color (a square unless
-/// [`glyph`](Legend::glyph) says otherwise, hatched as the marks filled
-/// with the key are) beside the key's `Display` text, under an optional
-/// title.
+/// domain order, a swatch in the key's color beside the key's `Display`
+/// text, under an optional title. Each key's swatch stands for the
+/// figure's marks drawn in its color: a square when one of them is an
+/// area, ribbon, bar, histogram, density or rectangle (hatched as the
+/// first hatched one is), else a line when one is a line (dashed by the
+/// first on and off lengths of its dash), else a dot for dots; a key no
+/// mark uses gets a square. [`glyph`](Legend::glyph) sets one swatch for
+/// every key.
+///
+/// ```
+/// use rustd3_core::scale;
+/// use rustd3_core::scheme::COLORBLIND;
+/// use rustd3_figure::Figure;
+/// use rustd3_figure::legend::{Inset, legend};
+/// use rustd3_figure::mark::{dots, line};
+///
+/// let mut fig = Figure::new();
+/// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+/// let color = fig.scale(scale::ordinal(["model", "measured"], COLORBLIND));
+/// fig.panel(0, 0)
+///     .mark(line([(0.0, 0.0), (1.0, 1.0)], x, y).stroke(color, "model"))
+///     .mark(dots([(0.5, 0.6)], x, y).fill(color, "measured"))
+///     // A line beside "model", a dot beside "measured".
+///     .legend(Inset::TopLeft, legend(color));
+/// ```
 pub struct Legend<K> {
     palette: ScaleRef<Ordinal<K, Rgb>>,
     title: Option<Text>,
-    glyph: Swatch,
+    glyph: Option<Swatch>,
 }
 
 impl<K> Clone for Legend<K> {
@@ -77,7 +99,7 @@ where
     Legend {
         palette,
         title: None,
-        glyph: Swatch::Square,
+        glyph: None,
     }
 }
 
@@ -90,10 +112,13 @@ impl<K> Legend<K> {
         }
     }
 
-    /// What each entry shows in its key's color: a square (the default),
-    /// a dot or a line.
+    /// What every entry shows in its key's color, a square, a dot or a
+    /// line, in place of the swatch of the key's marks.
     pub fn glyph(self, g: Swatch) -> Self {
-        Legend { glyph: g, ..self }
+        Legend {
+            glyph: Some(g),
+            ..self
+        }
     }
 }
 
@@ -109,15 +134,12 @@ where
 /// A legend with its key type erased: what layout and drawing ask of it.
 pub(crate) trait Draw {
     /// The entries over the resolved scales, in `theme`'s colors: for a
-    /// legend of an ordinal palette, each key's color, text and the hatch
-    /// of the marks filled with it, in domain order.
+    /// legend of an ordinal palette, each key's color, text, swatch and the
+    /// hatch of the marks filled with it, in domain order.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry>;
 
     /// The title.
     fn title(&self) -> Option<&Text>;
-
-    /// What each entry shows.
-    fn glyph(&self) -> Swatch;
 }
 
 impl<K> Draw for Legend<K>
@@ -130,13 +152,14 @@ where
             .get_domain()
             .iter()
             .map(|key| {
-                let hatch = resolved
-                    .hatch(self.palette.index(), |k| k.downcast_ref::<K>() == Some(key))
-                    .cloned();
+                let index = self.palette.index();
+                let is = |k: &dyn Any| k.downcast_ref::<K>() == Some(key);
+                let glyph = self.glyph.or_else(|| resolved.glyph(index, is));
                 Entry {
                     color: palette.apply(key).copied(),
                     label: key.to_string(),
-                    hatch,
+                    glyph: glyph.unwrap_or_default(),
+                    hatch: resolved.hatch(index, is).cloned(),
                     size: None,
                 }
             })
@@ -145,9 +168,5 @@ where
 
     fn title(&self) -> Option<&Text> {
         self.title.as_ref()
-    }
-
-    fn glyph(&self) -> Swatch {
-        self.glyph
     }
 }

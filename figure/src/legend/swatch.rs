@@ -19,8 +19,9 @@ const TOLERANCE: f64 = 1e-3;
 
 /// What a legend draws beside each label, in the key's color, standing on
 /// the label's baseline in a box 0.7 em tall (matplotlib's
-/// `legend.handleheight`). A square of a key whose marks are hatched
-/// repeats their [`Hatch`](crate::hatch::Hatch).
+/// `legend.handleheight`). A legend of a palette draws each key's as its
+/// marks report it ([`Legend`](crate::legend::Legend)); a square of a key
+/// whose marks are hatched repeats their [`Hatch`](crate::hatch::Hatch).
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -34,8 +35,8 @@ const TOLERANCE: f64 = 1e-3;
 /// ```
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum Swatch {
-    /// A filled square 0.7 em on a side: the default, for bars, areas and
-    /// densities.
+    /// A filled square 0.7 em on a side: for bars, areas, ribbons and
+    /// densities, and for keys no mark uses.
     #[default]
     Square,
     /// A filled dot of the theme's marker diameter (at most the square's
@@ -62,10 +63,11 @@ impl Swatch {
     }
 
     /// Appends the swatch in `color` to `list`, in its box `rect` in the
-    /// figure's coordinates, sized by `theme`; a square is hatched with
-    /// `hatch`, anchored to the figure as its marks' hatches are, and a dot
-    /// is `size` px across when given (a size legend's), else the theme's
-    /// marker diameter at most the box's height.
+    /// figure's coordinates, sized by `theme`; a square, as large as the
+    /// box's shorter side and centred in it, is hatched with `hatch`, anchored to the figure
+    /// as its marks' hatches are, and a dot is `size` px across when given
+    /// (a size legend's), else the theme's marker diameter at most the
+    /// box's height.
     pub(crate) fn draw(
         self,
         rect: Rect,
@@ -78,12 +80,14 @@ impl Swatch {
         let paint = list::brush(color);
         let command = match self {
             Swatch::Square => {
+                let side = rect.height().min(rect.width());
+                let square = Rect::from_center_size(rect.center(), (side, side));
                 list.commands.push(Command::Fill {
-                    path: rect.to_path(TOLERANCE),
+                    path: square.to_path(TOLERANCE),
                     paint,
                 });
                 if let Some(hatch) = hatch {
-                    hatch.draw(Clip::Rect(rect), rect, Vec2::ZERO, theme, list);
+                    hatch.draw(Clip::Rect(square), square, Vec2::ZERO, theme, list);
                 }
                 return;
             }

@@ -68,6 +68,7 @@ where
             .map(|(v, label)| Entry {
                 color: scale.paint(&v),
                 label,
+                glyph: Swatch::Dot,
                 hatch: None,
                 size: None,
             })
@@ -76,9 +77,5 @@ where
 
     fn title(&self) -> Option<&Text> {
         None
-    }
-
-    fn glyph(&self) -> Swatch {
-        Swatch::Dot
     }
 }

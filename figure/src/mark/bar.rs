@@ -7,6 +7,7 @@ use crate::check::Issue;
 use crate::figure::Fits;
 use crate::hatch::Hatch;
 use crate::hit;
+use crate::legend::Swatch;
 use crate::list::{self, Clip, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Mark, dodge, positive, reach, rect, within};
@@ -207,7 +208,7 @@ impl<K> Bars<K> {
                 }
             }
         }
-        self.color.hatched(self.hatch.as_ref(), fits);
+        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
     }
 
     /// One `Fill` command per bar `rects` lists (panel coordinates), each

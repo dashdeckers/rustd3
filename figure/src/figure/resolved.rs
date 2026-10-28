@@ -10,10 +10,10 @@ use rustd3_core::locale::Locale;
 
 use crate::brush;
 use crate::figure;
-use crate::figure::fits::Hatched;
+use crate::figure::fits::Reported;
 use crate::hatch::Hatch;
 use crate::layout::{self, Laid, Layout, Plan};
-use crate::legend::Block;
+use crate::legend::{Block, Swatch};
 use crate::panel::Panel;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
@@ -48,9 +48,8 @@ pub struct Resolved {
     /// Per table entry, whether it is a `Fit::Window` handle some panel
     /// places across.
     windowed: Vec<bool>,
-    /// The hatches of marks filled through a palette, as they reported
-    /// them.
-    hatches: Rc<[Hatched]>,
+    /// The palette keys marks draw in, as they reported them.
+    keys: Rc<[Reported]>,
     /// Column grids lines thin on, by handle index, as held.
     grids: HashMap<usize, thin::Grid>,
     /// How far plot areas reach past the view, list px, as held.
@@ -85,7 +84,7 @@ impl Resolved {
             cells: Vec::new(),
             brushes: Vec::new(),
             windowed: Vec::new(),
-            hatches: Rc::from([]),
+            keys: Rc::from([]),
             grids: HashMap::new(),
             overscan: 0.0,
         }
@@ -292,18 +291,34 @@ impl Resolved {
         self.overscan
     }
 
-    /// Sets the hatches marks filled through a palette reported.
-    pub(super) fn hatched(&mut self, hatches: Rc<[Hatched]>) {
-        self.hatches = hatches;
+    /// Sets the palette keys marks reported drawing in.
+    pub(super) fn keyed(&mut self, keys: Rc<[Reported]>) {
+        self.keys = keys;
     }
 
     /// The hatch of the first mark that reported one for palette `palette`
     /// (its table position) and a key for which `is` holds.
     pub(crate) fn hatch(&self, palette: usize, is: impl Fn(&dyn Any) -> bool) -> Option<&Hatch> {
-        self.hatches
+        self.keys
             .iter()
-            .find(|h| h.palette == palette && is(&*h.key))
-            .map(|h| &h.hatch)
+            .filter(|k| k.palette == palette && is(&*k.key))
+            .find_map(|k| k.hatch.as_ref())
+    }
+
+    /// The legend swatch of the marks that reported drawing in palette
+    /// `palette`'s (its table position) color for a key for which `is`
+    /// holds: a square when any of them fills a shape, else the first
+    /// line's, else a dot; `None` when none did.
+    pub(crate) fn glyph(&self, palette: usize, is: impl Fn(&dyn Any) -> bool) -> Option<Swatch> {
+        let glyphs = || {
+            self.keys
+                .iter()
+                .filter(|k| k.palette == palette && is(&*k.key))
+                .map(|k| k.glyph)
+        };
+        let square = glyphs().find(|g| *g == Swatch::Square);
+        let line = || glyphs().find(|g| matches!(g, Swatch::Line { .. }));
+        square.or_else(line).or_else(|| glyphs().next())
     }
 
     /// Sets the layout, the figure title's key and whether the layout

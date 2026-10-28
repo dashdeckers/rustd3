@@ -6,6 +6,7 @@ use peniko::Brush;
 
 use crate::check::Issue;
 use crate::figure::Fits;
+use crate::legend::Swatch;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Mark, reach};
@@ -89,6 +90,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
             for v in [y0, y1] {
                 fits.add(self.y, v);
             }
+        }
+        for color in self.fill.iter().chain(&self.stroke) {
+            color.report(Swatch::Square, None, fits);
         }
     }
 

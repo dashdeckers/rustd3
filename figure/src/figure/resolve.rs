@@ -5,7 +5,7 @@
 use std::any::Any;
 use std::rc::Rc;
 
-use crate::figure::fits::{Fits, Hatched, Reports};
+use crate::figure::fits::{Fits, Reported, Reports};
 use crate::figure::{Cache, Entry, Figure, Held, Resolved};
 use crate::layout::{self, Layout};
 use crate::scale::{Scale, visible};
@@ -26,14 +26,14 @@ const COUNT: usize = 10;
 /// (held, fitted, or as built), the largest x a window handle's marks
 /// admit, the panels whose marks place it across, and whether it is a
 /// `Fit::Visible` handle to settle; the labels the marks draw; and the
-/// hatches of their fill keys.
+/// palette keys they draw in.
 struct Fitted {
     scales: Vec<Box<dyn Scale>>,
     last: Vec<Option<Box<dyn Any>>>,
     across: Vec<Vec<usize>>,
     pending: Vec<bool>,
     labels: Vec<Key>,
-    hatches: Rc<[Hatched]>,
+    keys: Rc<[Reported]>,
 }
 
 impl Figure<'_> {
@@ -152,7 +152,7 @@ impl Figure<'_> {
             let locale = self.locale.clone();
             let mut resolved = Resolved::new(self.id, scales, locale, target, size);
             resolved.bind(&self.panels, windowed.clone());
-            resolved.hatched(Rc::clone(&fitted.hatches));
+            resolved.keyed(Rc::clone(&fitted.keys));
             resolved.thin_on(held.grid_table().clone(), held.overscanned());
             let layout = Layout::new(self, &resolved, cache.text(), &fitted.labels, size, rects);
             resolved.place(layout, title.clone(), rects.is_some());
@@ -287,7 +287,7 @@ impl Figure<'_> {
             across: reports.across,
             pending,
             labels: reports.labels,
-            hatches: reports.hatches.into(),
+            keys: reports.keys.into(),
         }
     }
 

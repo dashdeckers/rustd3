@@ -7,6 +7,7 @@ use rustd3_core::series::{self, Data, Points, Series, m4};
 use crate::check::Issue;
 use crate::figure::Fits;
 use crate::hatch::Hatch;
+use crate::legend::Swatch;
 use crate::list::{self, Clip, Command, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Error, Mark, admits, at, polygon, reach, runs};
@@ -177,7 +178,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
         super::fit(&self.points, self.x, self.y, fits);
         fits.add(self.y, &self.base);
         fits.stick(self.y, self.base);
-        self.color.hatched(self.hatch.as_ref(), fits);
+        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
     }
 
     /// One `Fill` command: per run of points placed on both scales (or of
@@ -293,7 +294,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
         if reaches_zero(&self.lower, sx, sy) || reaches_zero(&self.upper, sx, sy) {
             fits.stick(self.y, 0.0);
         }
-        self.color.hatched(self.hatch.as_ref(), fits);
+        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
     }
 
     /// One `Fill` command: per run of rows whose x and both edges are

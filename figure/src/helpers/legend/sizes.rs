@@ -90,6 +90,7 @@ where
                 Some(Entry {
                     color: Some(theme.get_ink()),
                     label,
+                    glyph: Swatch::Dot,
                     hatch: None,
                     size: Some(2.0 * r),
                 })
@@ -99,9 +100,5 @@ where
 
     fn title(&self) -> Option<&Text> {
         None
-    }
-
-    fn glyph(&self) -> Swatch {
-        Swatch::Dot
     }
 }

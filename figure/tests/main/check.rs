@@ -145,6 +145,30 @@ fn an_axis_left_with_one_tick_label_is_reported() {
 }
 
 #[test]
+fn inset_legends_drawn_over_each_other_are_reported() {
+    let (mut fig, ..) = panel();
+    let color = fig.scale(scale::ordinal(["accel x", "accel z", "temp"], COLORBLIND));
+    let key = legend(color);
+    fig.panel(0, 0)
+        .legend(Inset::TopLeft, key.clone())
+        .legend(Inset::TopLeft, key.clone())
+        .legend(Inset::BottomLeft, key);
+    // Two stacked in the top corner and one in the bottom corner hold
+    // apart in a tall plot area and overlap in a short one.
+    assert_eq!(fig.check(size(640.0, 480.0)), []);
+    let issues = fig.check(size(640.0, 220.0));
+    let overlaps: Vec<Issue> = issues
+        .into_iter()
+        .filter(|i| matches!(i, Issue::LegendsOverlap { .. }))
+        .collect();
+    let pair = |legends| Issue::LegendsOverlap {
+        panel: Some(0),
+        legends,
+    };
+    assert_eq!(overlaps, [pair([1, 2])]);
+}
+
+#[test]
 fn owned_data_over_100000_points_belongs_in_a_recording() {
     let (mut fig, x, y) = panel();
     let many: Vec<(f64, f64)> = (0..150_000).map(|i| (f64::from(i) * 1e-4, 1.0)).collect();

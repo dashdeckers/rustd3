@@ -10,6 +10,7 @@ use rustd3_core::series::{Data, Points};
 use crate::check::Issue;
 use crate::figure::Fits;
 use crate::hit;
+use crate::legend::Swatch;
 use crate::list::{self, Command, List, Paints};
 use crate::mark::channel::Channel;
 use crate::mark::color::Color;
@@ -306,6 +307,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
             return;
         }
         super::fit(&self.points, self.x, self.y, fits);
+        self.color.report(Swatch::Dot, None, fits);
         if let Some(Ok(channel)) = &self.fill_by {
             channel.fit(fits);
         }

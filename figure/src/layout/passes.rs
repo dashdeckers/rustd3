@@ -262,11 +262,18 @@ impl Layout {
                             placed
                         })
                         .collect();
+                    let mut stacked: Vec<(Inset, f64)> = Vec::new();
                     let insets = insets
                         .into_iter()
                         .map(|(at, content)| {
                             let block = content.inset(*area, text, theme);
-                            let corner = at.place(*area, block.size(), INSET * em);
+                            let inward = stacked
+                                .iter()
+                                .filter(|(c, _)| *c == at)
+                                .map(|(_, h)| h + INSET * em)
+                                .sum();
+                            let corner = at.place(*area, block.size(), INSET * em, inward);
+                            stacked.push((at, block.size().height));
                             (block, corner)
                         })
                         .collect();

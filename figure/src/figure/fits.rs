@@ -7,6 +7,7 @@ use rustd3_core::locale::Locale;
 
 use crate::figure;
 use crate::hatch::Hatch;
+use crate::legend::Swatch;
 use crate::scale::{Kind, Position, Scale, ScaleRef, visible, window};
 use crate::text::Key;
 use crate::theme::Theme;
@@ -17,7 +18,8 @@ use crate::theme::Theme;
 /// `f64`). Handles that are not fitted, or that a gesture holds, ignore
 /// what is reported. The figure's own marks also report the labels they
 /// draw, so that they are shaped in the figure's one batch of text, and
-/// the hatches of their fill keys, which legend swatches repeat.
+/// the palette keys they draw in, with what they draw (a line, dots, a
+/// filled shape) and their hatch, which legend swatches repeat.
 pub struct Fits {
     figure: figure::Id,
     /// One per table entry: a `Slot<S>` for the fitted ones.
@@ -30,8 +32,8 @@ pub struct Fits {
     locale: Locale,
     /// The labels marks draw.
     labels: Vec<Key>,
-    /// The hatches of marks filled through a palette.
-    hatches: Vec<Hatched>,
+    /// The palette keys marks draw in.
+    keys: Vec<Reported>,
     /// In the pass that fits `Fit::Visible` handles to what x shows: per
     /// table entry, whether it is such a handle (so its scale is not
     /// resolved yet); `None` in the first pass.
@@ -45,20 +47,22 @@ pub struct Fits {
 
 /// What the marks reported: per table entry its slot, filled when it is
 /// fitted and not held, and the panels that place it across; the labels
-/// marks draw; and the hatches of their fill keys.
+/// marks draw; and the palette keys they draw in.
 pub(super) struct Reports {
     pub(super) slots: Vec<Option<Box<dyn Any>>>,
     pub(super) across: Vec<Vec<usize>>,
     pub(super) labels: Vec<Key>,
-    pub(super) hatches: Vec<Hatched>,
+    pub(super) keys: Vec<Reported>,
 }
 
-/// A hatched mark's fill: its palette's position in the scale table, its
-/// key (the palette's domain type, boxed) and its hatch.
-pub(crate) struct Hatched {
+/// A mark drawn in a palette's color for a key: the palette's position in
+/// the scale table, the key (the palette's domain type, boxed), the swatch
+/// that stands for the mark in a legend, and its hatch.
+pub(crate) struct Reported {
     pub(crate) palette: usize,
     pub(crate) key: Box<dyn Any>,
-    pub(crate) hatch: Hatch,
+    pub(crate) glyph: Swatch,
+    pub(crate) hatch: Option<Hatch>,
 }
 
 /// One fitted handle's scale as built, its extent so far and its sticky
@@ -178,7 +182,7 @@ impl Fits {
             theme,
             locale,
             labels: Vec::new(),
-            hatches: Vec::new(),
+            keys: Vec::new(),
             pending: None,
             panel: 0,
             across,
@@ -315,13 +319,21 @@ impl Fits {
         self.labels.push(key);
     }
 
-    /// A mark filled with palette `palette`'s (its table position) `key`
-    /// is hatched with `hatch`, which legend swatches of that key repeat.
-    pub(crate) fn hatch(&mut self, palette: usize, key: Box<dyn Any>, hatch: &Hatch) {
-        self.hatches.push(Hatched {
+    /// A mark drawn in palette `palette`'s (its table position) color for
+    /// `key` stands as `glyph` in a legend and is hatched with `hatch`,
+    /// which legend swatches of that key repeat.
+    pub(crate) fn key(
+        &mut self,
+        palette: usize,
+        key: Box<dyn Any>,
+        glyph: Swatch,
+        hatch: Option<&Hatch>,
+    ) {
+        self.keys.push(Reported {
             palette,
             key,
-            hatch: hatch.clone(),
+            glyph,
+            hatch: hatch.cloned(),
         });
     }
 
@@ -348,7 +360,7 @@ impl Fits {
             slots: self.slots,
             across: self.across,
             labels: self.labels,
-            hatches: self.hatches,
+            keys: self.keys,
         }
     }
 

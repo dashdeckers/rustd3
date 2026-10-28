@@ -8,6 +8,7 @@ use rustd3_core::shape::{self, Curve};
 use crate::check::Issue;
 use crate::figure::Fits;
 use crate::hit;
+use crate::legend::Swatch;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Mark, across, at, dashes, guard, positive, stroke, within};
@@ -131,6 +132,12 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
 impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     fn fit(&self, fits: &mut Fits) {
         super::fit(&self.points, self.x, self.y, fits);
+        let dash = match self.dash[..] {
+            [] => None,
+            [on] => Some([on, on]),
+            [on, off, ..] => Some([on, off]),
+        };
+        self.color.report(Swatch::Line { dash }, None, fits);
     }
 
     /// One `Stroke` command through every point placed on both scales, or

@@ -36,38 +36,37 @@ const EDGE: f64 = 1.0;
 /// Tolerance of a rectangle's path: exact, rectangles have no curves.
 const TOLERANCE: f64 = 0.1;
 
-/// A legend's content for one resolve: its title's key, its entries in
-/// order, and what its swatches show.
+/// A legend's content for one resolve: its title's key and its entries in
+/// order.
 pub(crate) struct Content {
     title: Option<Key>,
     entries: Vec<Keyed>,
-    glyph: Swatch,
 }
 
-/// An entry for one resolve: its swatch's color, its label's key, the
-/// hatch of its marks and its dot's diameter, px (`None`: the theme's
-/// marker size).
+/// An entry for one resolve: its swatch's color, its label's key, what its
+/// swatch shows, the hatch of its marks and its dot's diameter, px
+/// (`None`: the theme's marker size).
 struct Keyed {
     color: Rgb,
     key: Key,
+    glyph: Swatch,
     hatch: Option<Hatch>,
     size: Option<f64>,
 }
 
 /// A legend laid out, relative to its top-left corner: its size, whether
-/// it is framed, what its swatches show, their boxes, colors, hatches and
-/// dot diameters, and where its labels' first baselines start (or, for a
+/// it is framed, its swatches (boxes, colors, what they show, hatches and
+/// dot diameters), and where its labels' first baselines start (or, for a
 /// centred title, are centred).
 pub(crate) struct Block {
     size: Size,
     framed: bool,
-    glyph: Swatch,
     swatches: Vec<Swatched>,
     labels: Vec<(Key, Point, anchor::Horizontal)>,
 }
 
-/// A swatch: its box, color, hatch and dot diameter.
-type Swatched = (Rect, Rgb, Option<Hatch>, Option<f64>);
+/// A swatch: its box, color, what it shows, hatch and dot diameter.
+type Swatched = (Rect, Rgb, Swatch, Option<Hatch>, Option<f64>);
 
 /// A block being laid out: how far its labels and swatches reach above and
 /// below the baseline at y = 0, and what it holds so far.
@@ -91,15 +90,12 @@ impl Content {
             .map(|entry| Keyed {
                 color: entry.color.unwrap_or(theme.get_gray()),
                 key: Key::new(&Text::from(entry.label), &style),
+                glyph: entry.glyph,
                 hatch: entry.hatch,
                 size: entry.size,
             })
             .collect();
-        Content {
-            title,
-            entries,
-            glyph: legend.glyph(),
-        }
+        Content { title, entries }
     }
 
     /// Every key, for the text cache's batch.
@@ -118,7 +114,6 @@ impl Content {
     /// swatches.
     pub(crate) fn row(&self, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
-        let side = self.glyph.width(em);
         let entry = text.fonts().line(theme.tick_text());
         let mut rows = Rows {
             top: -SWATCH * em,
@@ -142,11 +137,12 @@ impl Content {
             if i > 0 {
                 x += ENTRIES * em;
             }
-            let width = side.max(e.size.unwrap_or(0.0));
+            let width = e.width(em);
             let r = swatch(x, width, em, e.size);
             rows.top = rows.top.min(r.y0);
             rows.bottom = rows.bottom.max(r.y1);
-            rows.swatches.push((r, e.color, e.hatch.clone(), e.size));
+            rows.swatches
+                .push((r, e.color, e.glyph, e.hatch.clone(), e.size));
             x += width + LABEL * em;
             x += rows.label(
                 text,
@@ -158,21 +154,18 @@ impl Content {
         }
         let size = Size::new(x, rows.bottom - rows.top);
         let by = Vec2::new(0.0, -rows.top);
-        rows.block(size, by, self.glyph)
+        rows.block(size, by)
     }
 
     /// The legend as a column: the title centred on top, then one entry per
     /// row (its swatch's box standing on the row's baseline as in a
     /// [`row`](Content::row), every box as wide as the widest, 0.8 em, its
     /// label), each row the height of its label's line box united with its
-    /// ink and swatch, rows 0.5 em apart.
+    /// ink and swatch, rows 0.5 em apart. Squares and dots are centred in
+    /// boxes wider than they are.
     pub(crate) fn column(&self, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
-        let side = self
-            .entries
-            .iter()
-            .filter_map(|e| e.size)
-            .fold(self.glyph.width(em), f64::max);
+        let side = self.entries.iter().map(|e| e.width(em)).fold(0.0, f64::max);
         let entry = text.fonts().line(theme.tick_text());
         let width = |key: &Key| get(text, key).map_or(0.0, Shaped::width);
         let labels = self
@@ -209,7 +202,8 @@ impl Content {
             let (top, bottom) = (top.min(r.y0), bottom.max(r.y1));
             let baseline = y - top;
             let r = r + Vec2::new(0.0, baseline);
-            rows.swatches.push((r, e.color, e.hatch.clone(), e.size));
+            rows.swatches
+                .push((r, e.color, e.glyph, e.hatch.clone(), e.size));
             if shaped.is_some() {
                 let at = Point::new(side + LABEL * em, baseline);
                 rows.labels
@@ -217,7 +211,15 @@ impl Content {
             }
             y += bottom - top;
         }
-        rows.block(Size::new(w, y), Vec2::ZERO, self.glyph)
+        rows.block(Size::new(w, y), Vec2::ZERO)
+    }
+}
+
+impl Keyed {
+    /// Its swatch's box width for a legend em of `em` px: its glyph's, or
+    /// a larger dot's diameter.
+    fn width(&self, em: f64) -> f64 {
+        self.glyph.width(em).max(self.size.unwrap_or(0.0))
     }
 }
 
@@ -244,17 +246,15 @@ impl Rows {
         shaped.width()
     }
 
-    /// The block of `size` holding what was added, moved by `by`, its
-    /// swatches showing `glyph`.
-    fn block(self, size: Size, by: Vec2, glyph: Swatch) -> Block {
+    /// The block of `size` holding what was added, moved by `by`.
+    fn block(self, size: Size, by: Vec2) -> Block {
         Block {
             size,
             framed: false,
-            glyph,
             swatches: self
                 .swatches
                 .into_iter()
-                .map(|(r, c, h, d)| (r + by, c, h, d))
+                .map(|(r, c, g, h, d)| (r + by, c, g, h, d))
                 .collect(),
             labels: self
                 .labels
@@ -279,11 +279,10 @@ impl Block {
         Block {
             size: Size::new(self.size.width + 2.0 * pad, self.size.height + 2.0 * pad),
             framed: true,
-            glyph: self.glyph,
             swatches: self
                 .swatches
                 .into_iter()
-                .map(|(r, c, h, d)| (r + by, c, h, d))
+                .map(|(r, c, g, h, d)| (r + by, c, g, h, d))
                 .collect(),
             labels: self
                 .labels
@@ -301,9 +300,8 @@ impl Block {
         if self.framed {
             frame(self.size.to_rect() + by, theme, list);
         }
-        for (rect, color, hatch, size) in &self.swatches {
-            self.glyph
-                .draw(*rect + by, *color, hatch.as_ref(), *size, theme, list);
+        for (rect, color, glyph, hatch, size) in &self.swatches {
+            glyph.draw(*rect + by, *color, hatch.as_ref(), *size, theme, list);
         }
         for (key, p, h) in &self.labels {
             if let Some(shaped) = get(text, key) {

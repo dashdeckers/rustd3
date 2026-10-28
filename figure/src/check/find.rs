@@ -14,7 +14,8 @@ impl Figure<'_> {
     /// The figure resolved for `size` with a fresh cache over the bundled
     /// fonts for vector output, nothing drawn, and what it finds: grid axes
     /// with no room left for plot areas, axes left with fewer than two of
-    /// their tick labels, text longer than what it labels
+    /// their tick labels, legends drawn over each other, text longer than
+    /// what it labels
     /// (axis and panel titles, the figure title, legends), labels with
     /// glyphs the fonts lack or markup typst rejects, and what each mark
     /// reports ([`Mark::issues`](crate::mark::Mark::issues): collected data
@@ -39,6 +40,7 @@ impl Figure<'_> {
         let resolved = self.resolve(size, &mut cache, &held, crate::Target::Vector);
         let mut issues = room(&resolved);
         issues.extend(few(&resolved));
+        issues.extend(overlaps(&resolved));
         issues.extend(overflow(self, &resolved, cache.text()));
         issues.extend(labels(cache.text()));
         let (text, frame) = cache.start();
@@ -111,6 +113,36 @@ fn few(resolved: &Resolved) -> Vec<Issue> {
                 .count();
             if placed.plan.shown && placed_boxes >= 2 && kept < 2 {
                 issues.push(Issue::FewLabels { panel, axis, kept });
+            }
+        }
+    }
+    issues
+}
+
+/// Legends whose boxes overlap (touching is not overlap): per panel its
+/// insets, then the legends in figure slots, each pair once in the order
+/// they were added.
+fn overlaps(resolved: &Resolved) -> Vec<Issue> {
+    let insets = resolved
+        .panels()
+        .iter()
+        .enumerate()
+        .map(|(i, laid)| (Some(i), &laid.insets[..]));
+    let slots = std::iter::once((None, resolved.legends()));
+    let mut issues = Vec::new();
+    for (panel, legends) in insets.chain(slots) {
+        let boxes: Vec<kurbo::Rect> = legends
+            .iter()
+            .map(|(block, at)| block.size().to_rect() + at.to_vec2())
+            .collect();
+        for (i, a) in boxes.iter().enumerate() {
+            for (j, b) in boxes.iter().enumerate().skip(i + 1) {
+                if a.intersect(*b).area() > 0.0 {
+                    issues.push(Issue::LegendsOverlap {
+                        panel,
+                        legends: [i, j],
+                    });
+                }
             }
         }
     }

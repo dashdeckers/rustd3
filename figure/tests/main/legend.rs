@@ -10,7 +10,7 @@ use rustd3_figure::legend::{Inset, Legend, Slot, Swatch, legend};
 use rustd3_figure::list::{Command, List, part};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::ScaleRef;
-use rustd3_figure::{Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Target, axis, mark};
 
 use crate::figure::{cache, line};
 
@@ -204,6 +204,97 @@ fn legend_glyphs_draw_dots_and_dashed_lines_in_the_squares_place() {
             assert_eq!(style.dash_pattern.as_slice(), dash.as_slice());
         }
     }
+}
+
+/// What each swatch among `commands` (a legend part's) draws: "line" for a
+/// stroke, with its dash; "dot" for a fill 8 px across, the theme's marker;
+/// "square" for one 0.7 em across; frames are left out.
+fn glyphs(commands: &[Command]) -> Vec<(&'static str, Vec<f64>)> {
+    commands
+        .iter()
+        .filter_map(|c| {
+            if let Command::Stroke { style, .. } = c {
+                return Some(("line", style.dash_pattern.to_vec()));
+            }
+            let Command::Fill { path, .. } = c else {
+                return None;
+            };
+            let width = path.bounding_box().width();
+            let kind = if (width - 8.0).abs() < 1e-3 {
+                "dot"
+            } else if (width - 0.7 * EM).abs() < 1e-3 {
+                "square"
+            } else {
+                return None;
+            };
+            Some((kind, Vec::new()))
+        })
+        .collect()
+}
+
+#[test]
+fn legends_draw_the_swatch_of_each_keys_marks_unless_told_otherwise() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let keys = ["model", "measured", "band", "trend", "unused"];
+    let color = fig.scale(scale::ordinal(keys, COLORBLIND));
+    let points = [(0.0, 1.0), (1.0, 2.0), (2.0, 1.5)];
+    fig.panel(0, 0)
+        .mark(
+            mark::line(points, x, y)
+                .stroke(color, "model")
+                .dash([6.0, 3.0]),
+        )
+        .mark(mark::dots(points, x, y).fill(color, "measured"))
+        .mark(mark::ribbon([(0.0, 0.5, 1.5), (2.0, 1.0, 2.0)], x, y).fill(color, "band"))
+        .mark(mark::dots(points, x, y).fill(color, "trend"))
+        .mark(mark::line(points, x, y).stroke(color, "trend"));
+    fig.legend(Slot::Bottom, legend(color))
+        .legend(Slot::Bottom, legend(color).glyph(Swatch::Square));
+    let list = draw(&fig);
+    // A line key draws a line with its dash, a dots key a dot, a ribbon key
+    // and a key no mark uses a square; a key drawn as dots and a line
+    // draws the line.
+    let dashed = vec![6.0, 3.0];
+    let expected = [
+        ("line", dashed),
+        ("dot", vec![]),
+        ("square", vec![]),
+        ("line", vec![]),
+        ("square", vec![]),
+    ];
+    assert_eq!(glyphs(commands(&list, slotted(0))), expected);
+    // `.glyph` sets every key's.
+    let squares = vec![("square", Vec::new()); 5];
+    assert_eq!(glyphs(commands(&list, slotted(1))), squares);
+}
+
+#[test]
+fn inset_legends_in_one_corner_stack_inward_half_an_em_apart() {
+    let (mut fig, color) = sources();
+    let key = legend(color);
+    fig.panel(0, 0)
+        .legend(Inset::BottomRight, key.clone())
+        .legend(Inset::TopLeft, key.clone())
+        .legend(Inset::BottomRight, key.clone())
+        .legend(Inset::TopLeft, key);
+    let list = draw(&fig);
+    let area = area(&fig);
+    let frame = |index| fills(commands(&list, inset(0, index)))[0].0;
+    let (low, high) = (frame(0), frame(2));
+    assert!((low.y1 - (area.y1 - 0.5 * EM)).abs() < 1e-9, "{low:?}");
+    assert!(
+        (high.y1 - (low.y0 - 0.5 * EM)).abs() < 1e-9,
+        "{high:?} {low:?}"
+    );
+    assert_eq!((low.x1, high.x1), (area.x1 - 0.5 * EM, area.x1 - 0.5 * EM));
+    let (top, below) = (frame(1), frame(3));
+    assert!((top.y0 - (area.y0 + 0.5 * EM)).abs() < 1e-9, "{top:?}");
+    assert!(
+        (below.y0 - (top.y1 + 0.5 * EM)).abs() < 1e-9,
+        "{below:?} {top:?}"
+    );
 }
 
 #[test]
