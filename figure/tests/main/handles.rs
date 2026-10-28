@@ -9,7 +9,7 @@ use rustd3_core::series::{Clock, Recording};
 use rustd3_core::time::{self, Time};
 use rustd3_figure::kurbo::{PathEl, Size};
 use rustd3_figure::list::{Command, List};
-use rustd3_figure::mark::{dots, line, rule_x};
+use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::{Fit, Invert, Kind, Paint, Position, Scale};
 use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 
@@ -134,6 +134,7 @@ fn point_handles_place_their_keys_without_width() {
 #[test]
 fn keys_outside_a_band_domain_are_reported_once_per_handle() {
     use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::mark::rule_x;
 
     let mut fig = Figure::new();
     let band = fig.scale(scale::band(["a", "b", "c"]).padding(0.1));
