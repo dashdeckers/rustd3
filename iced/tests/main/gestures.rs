@@ -10,7 +10,9 @@ use std::time::Duration;
 
 use iced::time::Instant;
 use iced::{Event, Point, Size, event, keyboard, mouse};
+use rustd3_core::jiff::Timestamp;
 use rustd3_core::scale::{self, Linear};
+use rustd3_core::time;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::mark::dots;
 use rustd3_figure::scale::ScaleRef;
@@ -311,6 +313,62 @@ fn five_wheel_events_publish_one_message() {
     // The next frame has no new input and publishes nothing.
     let _ = harness.frame(t0 + FRAME * 2);
     assert!(harness.messages().is_empty(), "{backend}");
+}
+
+/// What [`wheel_zoom_on_a_time_handle_publishes_timestamps`]'s widget
+/// publishes for its time handle.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Window([Timestamp; 2]);
+
+#[test]
+fn wheel_zoom_on_a_time_handle_publishes_timestamps() {
+    let at = |s: &str| s.parse::<Timestamp>().expect("an instant");
+    let day = [at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z")];
+    let mut fig = Figure::new();
+    let t = fig.scale(time::utc().domain(day));
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0)
+        .mark(dots([(day[0], 0.25), (day[1], 0.75)], t, y))
+        .axis(axis::bottom(t))
+        .zoom_x(t);
+    let area = areas(&fig, 1.0)[0];
+    let plot = Plot::new(fig).render(Render::Inline).on_change(t, Window);
+    let t0 = headless::epoch();
+    let Some(mut harness) = Harness::new(plot, SIZE, 1.0) else {
+        return;
+    };
+    let backend = harness.backend();
+    let _ = harness.frame(t0);
+    let cursor = Point::new(
+        (area.x0 + 0.3 * area.width()).round() as f32 + 0.25,
+        area.center().y as f32,
+    );
+    harness.point_at(cursor);
+    let _ = harness.events(&[lines(1.0)]);
+    let _ = harness.frame(t0 + FRAME);
+    let messages = harness.messages();
+    let [Window([a, b])] = messages[..] else {
+        panic!("{backend}: one domain of instants, {messages:?}");
+    };
+    // One line: the span shrinks by 2^0.05 about the instant under the
+    // cursor, to the nanosecond.
+    let span = day[1].duration_since(day[0]).as_nanos();
+    let shrunk = b.duration_since(a).as_nanos();
+    let expected = span as f64 / 2f64.powf(0.05);
+    assert!(
+        (shrunk as f64 - expected).abs() <= 1.0,
+        "{backend}: {shrunk} ns"
+    );
+    let share = (f64::from(cursor.x) - area.x0) / area.width();
+    let under = |[a, b]: [Timestamp; 2]| {
+        let offset = (share * b.duration_since(a).as_nanos() as f64).round() as i128;
+        a.as_nanosecond() + offset
+    };
+    let moved = under([a, b]) - under(day);
+    assert!(
+        moved.abs() <= 1,
+        "{backend}: the cursor's instant moved {moved} ns"
+    );
 }
 
 /// Twin y handles on panel 0 (vib left, temp right) over one x, and temp
