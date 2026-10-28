@@ -218,6 +218,7 @@ fn a_clip_of_no_area_clips_everything() {
 
 /// The spec's bound for a measured tile score: 0.02 when the measurement
 /// meets it, else 1.25 × the measurement, never above 0.05.
+#[cfg(feature = "raster")]
 fn bound(measured: f64) -> f64 {
     assert!(measured <= 0.05, "{measured} is a writer bug, not a bound");
     if measured <= 0.02 {
