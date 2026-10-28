@@ -29,11 +29,16 @@ use std::sync::Arc;
 
 use rustd3_figure::list::{self, Bounds, Command, List, Outlines, Part, part};
 
-/// The role of the figure's background, a panel's background, a mark and
-/// a panel's grid lines in a part id's top byte.
+use crate::plot::style;
+
+/// The role of the figure's background, a panel's background, an axis's
+/// ticks and labels, a mark, a legend and a panel's grid lines in a part
+/// id's top byte.
 const BACKGROUND: u64 = 0;
 const PANEL: u64 = 2;
+pub(crate) const AXIS: u64 = 4;
 const MARK: u64 = 6;
+pub(crate) const LEGEND: u64 = 7;
 const GRID: u64 = 9;
 
 /// A list a job renders, with its bounds.
@@ -43,11 +48,13 @@ pub(crate) struct Source {
     pub(crate) bounds: Arc<Bounds>,
 }
 
-/// One plot area's layer: the list its tiles render, and a hash of its
-/// parts.
+/// One plot area's layer: the list its tiles render, a hash of its
+/// parts, and a hash of their looks without their positions
+/// ([`style::hash`]).
 pub(crate) struct Layer {
     pub(crate) source: Source,
     pub(crate) hash: u64,
+    pub(crate) style: u64,
 }
 
 /// A figure's list split into the plot areas' layers and the chrome.
@@ -94,8 +101,15 @@ impl Layers {
                 }
                 parts.extend(&moving);
                 let hash = parts.iter().fold(FNV, |hash, p| fnv(hash, p.hash));
+                let style = parts
+                    .iter()
+                    .fold(FNV, |hash, p| fnv(hash, style::hash(list, p)));
                 let source = Source::of(sub(list, &runs, &parts), outlines);
-                Layer { source, hash }
+                Layer {
+                    source,
+                    hash,
+                    style,
+                }
             })
             .collect();
         let still: Vec<&Part> = list
@@ -129,23 +143,41 @@ impl Source {
     }
 }
 
+/// A part id's value: rustd3-figure keeps it private and orders ids by
+/// it, so it is the greatest value whose id is not past `id`.
+fn value(id: part::Id) -> u64 {
+    let (mut low, mut high) = (0_u64, u64::MAX);
+    while low < high {
+        let middle = low + (high - low).div_ceil(2);
+        if part::Id::new(middle) <= id {
+            low = middle;
+        } else {
+            high = middle - 1;
+        }
+    }
+    low
+}
+
+/// The role, panel and index a part id packs: `role << 56 | panel << 32 |
+/// index`.
+pub(crate) fn decode(id: part::Id) -> (u64, usize, usize) {
+    let v = value(id);
+    let field = |shift: u32, bits: u32| {
+        usize::try_from((v >> shift) & ((1 << bits) - 1)).expect("invariant: at most 32 bits")
+    };
+    (v >> 56, field(32, 24), field(0, 32))
+}
+
 /// The role of a part: the top byte of its id.
 fn role(id: part::Id) -> u64 {
-    (0..=255_u64)
-        .find(|r| id < part::Id::new((r + 1) << 56))
-        .unwrap_or(255)
+    decode(id).0
 }
 
 /// The panel of a part that moves with a plot area's data (a panel's
 /// background, grid lines or marks); `None` for any other part.
 fn moves(id: part::Id) -> Option<usize> {
-    let role = role(id);
-    if ![PANEL, MARK, GRID].contains(&role) {
-        return None;
-    }
-    let base = role << 56;
-    let panel = (0..1_u64 << 24).find(|p| id < part::Id::new(base | (p + 1) << 32))?;
-    usize::try_from(panel).ok()
+    let (role, panel, _) = decode(id);
+    [PANEL, MARK, GRID].contains(&role).then_some(panel)
 }
 
 /// The command runs of `parts`.
@@ -201,7 +233,7 @@ mod tests {
     use rustd3_figure::list::{Command, Outlines, part};
     use rustd3_figure::{Held, Target};
 
-    use super::{Layers, moves, role};
+    use super::{Layers, decode, moves, role};
     use crate::plot::{fixture, state};
 
     #[test]
@@ -216,6 +248,12 @@ mod tests {
         assert_eq!(moves(id(4, 1, 0)), None, "an axis stays");
         assert_eq!(moves(id(8, 0, 1)), None, "a spine stays");
         assert_eq!(moves(id(7, 0, 0)), None, "an inset legend stays");
+        assert_eq!(decode(id(4, 3, 1)), (4, 3, 1));
+        assert_eq!(decode(id(7, (1 << 24) - 1, 2)), (7, (1 << 24) - 1, 2));
+        assert_eq!(
+            decode(id(255, 0, u64::from(u32::MAX))),
+            (255, 0, u32::MAX as usize)
+        );
     }
 
     #[test]

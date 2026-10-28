@@ -335,32 +335,54 @@ fn clock() -> Instant {
 }
 
 /// The cells the raster samples among `samples` rendered for `fig` at
-/// `size` and `k`, increasing and each once: a tile counts as the cell
-/// holding its plot area's top left pixel (each plot area of these
-/// figures is one cell).
+/// `size` and `k`, increasing and each once (see [`spans`]).
 pub fn rendered(samples: &[Sample], fig: &Figure<'_>, size: Size, k: f32) -> Vec<u32> {
+    let mut rendered: Vec<u32> = spans(samples, fig, size, k).concat();
+    rendered.sort_unstable();
+    rendered.dedup();
+    rendered
+}
+
+/// The cells each raster sample among `samples` rendered for `fig` at
+/// `size` and `k`: a tile counts as the cell holding its plot area's top
+/// left pixel (each plot area of these figures is one cell); a gutter run
+/// reports its first cell and its pixels, and holds the cells after it in
+/// its row up to them; an overlay reports the plot area's cell, larger
+/// than itself.
+fn spans(samples: &[Sample], fig: &Figure<'_>, size: Size, k: f32) -> Vec<Vec<u32>> {
     let cells = partition(fig, size, k).1;
     let areas = plot_areas(fig, size, k).len();
     let of: Vec<u32> = (0..areas)
         .map(|panel| area_cell(fig, size, k, &cells, panel))
         .collect();
-    let mut rendered: Vec<u32> = samples
+    let area = |c: u32| {
+        let r = cells.cells[c as usize].rect;
+        ((r.x1 - r.x0) * (r.y1 - r.y0)) as u64
+    };
+    samples
         .iter()
         .filter_map(|sample| match sample {
             Sample::Raster {
                 target: probe::Target::Cell(cell),
+                pixels,
                 ..
-            } => Some(*cell),
+            } => {
+                let mut run = vec![*cell];
+                let mut covered = area(*cell);
+                while covered < u64::from(*pixels) {
+                    let next = run[run.len() - 1] + 1;
+                    covered += area(next);
+                    run.push(next);
+                }
+                Some(run)
+            }
             Sample::Raster {
                 target: probe::Target::Tile { area, .. },
                 ..
-            } => Some(of[*area as usize]),
+            } => Some(vec![of[*area as usize]]),
             Sample::Stage { .. } | Sample::Frame { .. } => None,
         })
-        .collect();
-    rendered.sort_unstable();
-    rendered.dedup();
-    rendered
+        .collect()
 }
 
 /// The plot areas of `fig` at `size` on the screen at `k`, list px.
@@ -751,6 +773,7 @@ fn fit_window_follows_in_whole_device_columns() {
         let backend = harness.backend();
         let t = headless::epoch();
         let mut last: Option<([f64; 2], List, Cells)> = None;
+        let mut runs: Vec<Vec<u32>> = Vec::new();
         // Every line and both x axes; the y axes and the rest stay.
         let moving = [
             part_id(4, 0, 1),
@@ -771,6 +794,9 @@ fn fit_window_follows_in_whole_device_columns() {
             let samples: Vec<Sample> = rx.try_iter().collect();
             let (fig, x) = trace(&top, &bottom, follow);
             let cells_rendered = rendered(&samples, &fig, LIVE, k);
+            if step == 0 {
+                runs = spans(&samples, &fig, LIVE, k);
+            }
             let target = Target::Screen {
                 scale: f64::from(k),
             };
@@ -789,11 +815,17 @@ fn fit_window_follows_in_whole_device_columns() {
             if let Some((previous, before, before_cells)) = &last {
                 let moved = (domain[1] - previous[1]) / col;
                 let changed = changed_parts(before, &list);
-                // The cells the moving parts are in now or were in: a tick
+                // The cells the moving parts are in now or were in (a tick
                 // leaving the plot area's end takes its pixels in the
-                // gutter beside it along.
-                let mut expected = listing(&cells, &list, &moving);
-                expected.extend(listing(before_cells, before, &moving));
+                // gutter beside it along), and the cells merged with them.
+                let mut touched = listing(&cells, &list, &moving);
+                touched.extend(listing(before_cells, before, &moving));
+                let mut expected: Vec<u32> = runs
+                    .iter()
+                    .filter(|run| run.iter().any(|c| touched.contains(c)))
+                    .flatten()
+                    .copied()
+                    .collect();
                 expected.sort_unstable();
                 expected.dedup();
                 println!(

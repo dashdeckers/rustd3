@@ -40,8 +40,8 @@ pub(crate) struct Job {
 /// Where a job's image goes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Spot {
-    /// A cell outside the plot areas, by its index in the partition.
-    Cell(usize),
+    /// A run of gutter cells, by its index among the runs.
+    Gutter(usize),
     /// Tile `(i, j)` of plot area `area`'s grid numbered `grid`, planned
     /// with the grid's origin at `at` (device px).
     Tile {
@@ -181,7 +181,7 @@ mod tests {
         let rect = [0, 0, 960, 640];
         let job = Job {
             target: probe::Target::Cell(0),
-            spot: super::Spot::Cell(0),
+            spot: super::Spot::Gutter(0),
             generation: 1,
             hash: 0,
             list: Arc::new(list),

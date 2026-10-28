@@ -4,6 +4,8 @@
 mod brush;
 mod canvas;
 #[cfg(all(feature = "figure", feature = "fonts"))]
+mod classify;
+#[cfg(all(feature = "figure", feature = "fonts"))]
 mod gestures;
 mod headless;
 #[cfg(all(feature = "figure", feature = "fonts"))]

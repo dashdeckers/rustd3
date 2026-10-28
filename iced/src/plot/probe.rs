@@ -83,9 +83,10 @@ pub enum Sample {
         at: Instant,
         /// The newest generation planned.
         generation: u64,
-        /// Slots (the cells outside plot areas and the plot areas' tiles)
-        /// with an image of any generation; a tile without one of its own
-        /// counts when its area's preview layer covers it.
+        /// Slots (the runs of gutter cells, the plot areas' visible tiles
+        /// and their overlays) with an image of any generation; a tile
+        /// without one of its own counts when its area's preview layer
+        /// covers it.
         images: u32,
         /// Slots with no image at all (the theme background shows).
         missing: u32,
@@ -114,7 +115,10 @@ pub enum Stage {
 pub enum Target {
     /// A cell outside every plot area, by its position in the partition's
     /// cells (row-major), stable while the partition's rect sequence is
-    /// unchanged.
+    /// unchanged. Adjacent gutter cells of a row merged into one image
+    /// report their first (leftmost) cell, with the pixels of all of
+    /// them; what stays put over a plot area reports the cell holding its
+    /// top left pixel.
     Cell(u32),
     /// A tile of a plot area: the area's position among the plot areas
     /// (panel order), and the tile's column and row on its grid, whose

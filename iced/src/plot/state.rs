@@ -21,6 +21,7 @@ use crate::plot::input::Input;
 use crate::plot::job::{Done, Job, Spot, Stamp};
 use crate::plot::layer::{self, Layers};
 use crate::plot::listener::Listener;
+use crate::plot::merge::{self, Run};
 use crate::plot::overlay::{self, Overlay};
 use crate::plot::preview::Basis;
 use crate::plot::probe::{self, Probe, Sample, Stage};
@@ -50,11 +51,16 @@ pub(crate) struct State {
     /// Whether the figure was rebuilt or the widget resized since the
     /// last refresh.
     stale: bool,
-    /// The partition's cells, row-major, and what each shows; cells inside
-    /// a plot area show nothing of their own (its tiles do).
-    slots: Vec<Slot>,
+    /// The partition's cells, row-major: their device rects.
+    cells: Vec<[i32; 4]>,
     /// Per partition cell, the plot area that holds it, if one does.
     owner: Vec<Option<usize>>,
+    /// The partition's cells outside the plot areas, merged into runs of
+    /// one slot each; cells inside a plot area show nothing of their own
+    /// (its tiles do).
+    gutters: Vec<Run>,
+    /// What the last repaint drew from, which every render reads.
+    drawn: Option<Drawn>,
     /// Bumped whenever the content the slots hold changes.
     generation: u64,
     /// The generation that built the slots: results rendered for an older
@@ -136,8 +142,10 @@ impl Default for State {
             window: None,
             factor: None,
             stale: true,
-            slots: Vec::new(),
+            cells: Vec::new(),
             owner: Vec::new(),
+            gutters: Vec::new(),
+            drawn: None,
             generation: 0,
             floor: 0,
             frame: 0,
@@ -769,8 +777,10 @@ impl State {
         let k = f64::from(factor);
         let size = kurbo::Size::new(f64::from(self.size.width), f64::from(self.size.height));
         if !((size.width * k).round() >= 1.0 && (size.height * k).round() >= 1.0) {
-            self.slots.clear();
+            self.cells.clear();
             self.owner.clear();
+            self.gutters.clear();
+            self.drawn = None;
             self.areas.clear();
             self.hits.rebuild(hit::Index::default());
             self.map = region::Map::default();
@@ -862,12 +872,12 @@ impl State {
     /// Draws `resolved` (of `figure`, the probe's clock read at `start`
     /// before resolving) into a list at `k` and splits it into the plot
     /// areas' layers and the chrome ([`Layers`]); cuts the chrome into
-    /// cells at every plot-area edge; plans the cells outside the plot
-    /// areas, the plot areas' tiles (their grids having moved as `moves`
-    /// says) and the overlays of the chrome over the plot areas; and renders
-    /// what changed: the visible tiles, then the cells and overlays, then
-    /// the ring of tiles around each area (on the worker under `Auto` when
-    /// it can start). Returns how many changed.
+    /// cells at every plot-area edge; plans the gutter runs, the plot
+    /// areas' tiles (their grids having moved as `moves` says) and the
+    /// overlays of the chrome over the plot areas; and renders what
+    /// changed: the visible tiles, then the gutters and overlays, then the
+    /// ring of tiles around each area (on the worker under `Auto` when it
+    /// can start). Returns how many changed.
     fn repaint(
         &mut self,
         figure: &Figure<'_>,
@@ -899,14 +909,22 @@ impl State {
             .iter()
             .map(|&rect| overlays(&layers.fixed.list, rect, k))
             .collect();
-        let hashes: Vec<u64> = layers.layers.iter().map(|layer| layer.hash).collect();
+        let contents: Vec<(u64, u64)> = layers
+            .layers
+            .iter()
+            .map(|layer| (layer.hash, layer.style))
+            .collect();
         let plan = self.plan(
-            &cells.cells,
+            Partition {
+                cells: &cells,
+                chrome: &layers.chrome.list,
+                resolved,
+            },
             Planned {
                 rects: &rects,
                 lists,
                 views: &views,
-                hashes: &hashes,
+                contents: &contents,
                 overlays: &overlays,
                 moves,
             },
@@ -916,110 +934,22 @@ impl State {
             return 0;
         }
         self.hits.rebuild(figure.hits(resolved, &mut self.cache));
-        let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
-        let generation = self.generation;
         // A tile's work is its share of its layer's over the area, by the
         // pixels of the area it covers (the ring's tiles count pixels
         // only); an overlay's, its chrome's over its rect.
-        let works: Vec<u64> = self
-            .areas
+        let areas = rects
             .iter()
             .zip(&layers.layers)
-            .map(|(area, layer)| work(&layer.source.list, area.rect(), k))
+            .map(|(&rect, layer)| work(&layer.source.list, rect, k))
             .collect();
-        let job = |at: At, state: &State| -> Job {
-            let (target, spot, rect, hash, source, work, view) = match at {
-                At::Cell(index) => {
-                    let slot = &state.slots[index];
-                    let target = probe::Target::Cell(
-                        u32::try_from(index).expect("invariant: fewer than 2^32 cells"),
-                    );
-                    let work = cells.cells[index].work;
-                    let source = &layers.chrome;
-                    (
-                        target,
-                        Spot::Cell(index),
-                        slot.rect(),
-                        slot.hash(),
-                        source,
-                        work,
-                        [None; 2],
-                    )
-                }
-                At::Tile(p, t) => {
-                    let area = &state.areas[p];
-                    let tile: &Tile = &area.tiles()[t];
-                    let key = tile.key();
-                    let target = probe::Target::Tile {
-                        area: key.area,
-                        i: key.i,
-                        j: key.j,
-                    };
-                    let spot = Spot::Tile {
-                        area: p,
-                        grid: area.serial(),
-                        i: key.i,
-                        j: key.j,
-                        at: area.origin(),
-                    };
-                    let all = u128::from(slot::pixels(area.rect()).max(1));
-                    let px = u128::from(slot::pixels(tile::intersect(tile.rect(), area.rect())));
-                    let work = u64::try_from(u128::from(works[p]) * px / all).unwrap_or(u64::MAX);
-                    let source = &layers.layers[p].source;
-                    (
-                        target,
-                        spot,
-                        tile.rect(),
-                        tile.slot().hash(),
-                        source,
-                        work,
-                        views[p],
-                    )
-                }
-                At::Overlay(p, o) => {
-                    let slot = &state.areas[p].overlays()[o];
-                    let rect = slot.rect();
-                    let target = probe::Target::Cell(
-                        cells
-                            .cell_at([rect[0], rect[1]])
-                            .and_then(|c| u32::try_from(c).ok())
-                            .unwrap_or(u32::MAX),
-                    );
-                    let work = work(&layers.fixed.list, rect, k);
-                    (
-                        target,
-                        Spot::Overlay { area: p },
-                        rect,
-                        slot.hash(),
-                        &layers.fixed,
-                        work,
-                        [None; 2],
-                    )
-                }
-            };
-            Job {
-                target,
-                spot,
-                generation,
-                hash,
-                list: Arc::clone(&source.list),
-                bounds: Arc::clone(&source.bounds),
-                rect,
-                bands: slot::bands(rect),
-                scale: k,
-                work,
-                enqueued,
-                view,
-            }
-        };
-        let model = |ats: &[At], state: &State| -> f64 {
-            ats.iter()
-                .map(|&at| {
-                    let job = job(at, state);
-                    cost::model_ms(slot::pixels(job.rect), job.work)
-                })
-                .sum()
-        };
+        self.drawn = Some(Drawn {
+            cells: cells.cells.iter().map(|cell| cell.work).collect(),
+            areas,
+            layers,
+            k,
+        });
+        let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
+        let generation = self.generation;
         // Everything waiting renders, what this refresh changed and what
         // an earlier job set left: under `Auto`, all of it inline when the
         // model allows; else what shows in the canvas does when it alone
@@ -1030,6 +960,12 @@ impl State {
         for &at in &todo {
             self.requeue(at, generation);
         }
+        let model = |ats: &[At], state: &State| -> f64 {
+            ats.iter()
+                .filter_map(|&at| state.job(at, generation, None))
+                .map(|job| cost::model_ms(slot::pixels(job.rect), job.work))
+                .sum()
+        };
         let now: Vec<At> = todo
             .iter()
             .copied()
@@ -1049,19 +985,123 @@ impl State {
             here
         };
         for at in here {
-            let done = job(at, self).run(&mut self.raster);
-            self.land(done, true, probe);
+            if let Some(job) = self.job(at, generation, enqueued) {
+                let done = job.run(&mut self.raster);
+                self.land(done, true, probe);
+            }
         }
         // What is left replaces the worker's pending set, whose unfinished
         // jobs it abandons: everything still waiting renders again, visible
         // tiles first, the ring last; nothing when all rendered inline.
         if self.worker.is_some() {
-            let jobs: Vec<Job> = self.waiting().into_iter().map(|at| job(at, self)).collect();
+            let jobs: Vec<Job> = self
+                .waiting()
+                .into_iter()
+                .filter_map(|at| self.job(at, generation, enqueued))
+                .collect();
             if let Some(worker) = &self.worker {
                 worker.replace(jobs);
             }
         }
         plan.len()
+    }
+
+    /// The job that renders `at` for `generation` from what the last
+    /// repaint drew, its queue time measured from `enqueued`; `None`
+    /// before a repaint drew anything or for a slot that is gone.
+    fn job(&self, at: At, generation: u64, enqueued: Option<Stamp>) -> Option<Job> {
+        let drawn = self.drawn.as_ref()?;
+        let k = drawn.k;
+        let (target, spot, rect, hash, source, work, view) = match at {
+            At::Gutter(g) => {
+                let run = self.gutters.get(g)?;
+                let cells = run.cells();
+                let target = probe::Target::Cell(
+                    u32::try_from(cells.start).expect("invariant: fewer than 2^32 cells"),
+                );
+                let work = cells
+                    .map(|c| drawn.cells.get(c).copied().unwrap_or(0))
+                    .sum();
+                let slot = run.slot();
+                let source = &drawn.layers.chrome;
+                (
+                    target,
+                    Spot::Gutter(g),
+                    slot.rect(),
+                    slot.hash(),
+                    source,
+                    work,
+                    [None; 2],
+                )
+            }
+            At::Tile(p, t) => {
+                let area = self.areas.get(p)?;
+                let tile: &Tile = area.tiles().get(t)?;
+                let key = tile.key();
+                let target = probe::Target::Tile {
+                    area: key.area,
+                    i: key.i,
+                    j: key.j,
+                };
+                let spot = Spot::Tile {
+                    area: p,
+                    grid: area.serial(),
+                    i: key.i,
+                    j: key.j,
+                    at: area.origin(),
+                };
+                let all = u128::from(slot::pixels(area.rect()).max(1));
+                let px = u128::from(slot::pixels(tile::intersect(tile.rect(), area.rect())));
+                let layer = u128::from(drawn.areas.get(p).copied().unwrap_or(0));
+                let work = u64::try_from(layer * px / all).unwrap_or(u64::MAX);
+                let source = &drawn.layers.layers.get(p)?.source;
+                (
+                    target,
+                    spot,
+                    tile.rect(),
+                    tile.slot().hash(),
+                    source,
+                    work,
+                    self.peek(p),
+                )
+            }
+            At::Overlay(p, o) => {
+                let slot = self.areas.get(p)?.overlays().get(o)?;
+                let rect = slot.rect();
+                let [x, y, ..] = rect;
+                let cell = self
+                    .cells
+                    .iter()
+                    .position(|&[x0, y0, x1, y1]| (x0..x1).contains(&x) && (y0..y1).contains(&y));
+                let target = probe::Target::Cell(
+                    cell.and_then(|c| u32::try_from(c).ok()).unwrap_or(u32::MAX),
+                );
+                let work = work(&drawn.layers.fixed.list, rect, k);
+                (
+                    target,
+                    Spot::Overlay { area: p },
+                    rect,
+                    slot.hash(),
+                    &drawn.layers.fixed,
+                    work,
+                    [None; 2],
+                )
+            }
+        };
+        Some(Job {
+            target,
+            spot,
+            generation,
+            hash,
+            list: Arc::clone(&source.list),
+            bounds: Arc::clone(&source.bounds),
+            rect,
+            bands: slot::bands(rect),
+            scale: k,
+            work,
+            enqueued,
+            view,
+        })
     }
 
     /// Starts the worker unless it runs, waking the UI through `waker`.
@@ -1099,7 +1139,7 @@ impl State {
 
     /// Everything waiting for a render, in the order it renders: the
     /// tiles that meet their plot area and do not show their part of it
-    /// exact, then the cells and the overlays, then the ring of tiles
+    /// exact, then the gutters and the overlays, then the ring of tiles
     /// around each area and the tiles whose part inside it is exact.
     fn waiting(&self) -> Vec<At> {
         let tiles = |ring: bool| {
@@ -1114,16 +1154,16 @@ impl State {
                     .map(move |(t, _)| At::Tile(p, t))
             })
         };
-        let cells = (0..self.slots.len())
-            .filter(|&c| self.slots[c].pending().is_some())
-            .map(At::Cell);
+        let gutters = (0..self.gutters.len())
+            .filter(|&g| self.gutters[g].slot().pending().is_some())
+            .map(At::Gutter);
         let overlays = self.areas.iter().enumerate().flat_map(|(p, area)| {
             (0..area.overlays().len())
                 .filter(move |&o| area.overlays()[o].pending().is_some())
                 .map(move |o| At::Overlay(p, o))
         });
         tiles(false)
-            .chain(cells)
+            .chain(gutters)
             .chain(overlays)
             .chain(tiles(true))
             .collect()
@@ -1137,7 +1177,7 @@ impl State {
                 let (area, tile) = (&self.areas[p], &self.areas[p].tiles()[t]);
                 !area.shows(tile) || area.is_exact(tile)
             }
-            At::Cell(_) | At::Overlay(..) => false,
+            At::Gutter(_) | At::Overlay(..) => false,
         }
     }
 
@@ -1145,7 +1185,7 @@ impl State {
     /// in was replaced by one that renders it again.
     fn requeue(&mut self, at: At, generation: u64) {
         let slot = match at {
-            At::Cell(c) => &mut self.slots[c],
+            At::Gutter(g) => self.gutters[g].slot_mut(),
             At::Tile(p, t) => self.areas[p].tiles_mut()[t].slot_mut(),
             At::Overlay(p, o) => &mut self.areas[p].overlays_mut()[o],
         };
@@ -1165,20 +1205,20 @@ impl State {
         shown
     }
 
-    /// Plans a refresh whose partition cells (of the chrome) are `cells`,
-    /// for the plot areas `planned` describes: rebuilds the slots and the
-    /// areas when their rects differ (every cell, tile and overlay new and
-    /// changed); else finds the cells outside plot areas whose content hash
-    /// differs from their slot's, each area's tiles that its layer's hash
-    /// and its grid's move leave stale, and the overlays whose rects or
-    /// hashes changed. With `caching` off, every one when any changed;
+    /// Plans a refresh whose partition is `partition`, for the plot areas
+    /// `planned` describes: rebuilds the cells, the gutter runs and the
+    /// areas when their rects differ (every run, tile and overlay new and
+    /// changed); else finds the gutter runs whose content hash differs
+    /// from their slot's, each area's tiles that its layer's hash, its
+    /// style and its grid's move leave stale, and the overlays whose rects
+    /// or hashes changed. With `caching` off, every one when any changed;
     /// every one when `revision` is not the one the slots were planned at.
     /// If any changed, bumps the generation, stores the new hashes and
     /// marks them pending. Returns them, tiles first, area by area, then
-    /// the cells, then the overlays.
+    /// the gutters, then the overlays.
     fn plan(
         &mut self,
-        cells: &[list::Cell],
+        partition: Partition<'_>,
         planned: Planned<'_>,
         (caching, revision): (Caching, u64),
     ) -> Vec<At> {
@@ -1186,53 +1226,63 @@ impl State {
             rects,
             lists,
             views,
-            hashes,
+            contents,
             overlays,
             moves,
         } = planned;
+        let cells = &partition.cells.cells;
         let cell_rects: Vec<[i32; 4]> = cells.iter().map(|cell| slot::device(cell.rect)).collect();
-        let owner: Vec<Option<usize>> = cell_rects
-            .iter()
-            .map(|r| rects.iter().position(|a| tile::intersect(*r, *a) == *r))
-            .collect();
-        let same = self.slots.len() == cell_rects.len()
-            && self
-                .slots
-                .iter()
-                .zip(&cell_rects)
-                .all(|(s, r)| s.rect() == *r)
+        let hashes: Vec<u64> = cells.iter().map(|cell| cell.hash).collect();
+        let same = self.cells == cell_rects
             && self.areas.len() == rects.len()
             && self.areas.iter().zip(rects).all(|(a, r)| a.rect() == *r)
             && moves.len() == rects.len();
         let mut changed: Vec<usize> = if same {
-            (0..cells.len())
-                .filter(|&c| owner[c].is_none() && self.slots[c].hash() != cells[c].hash)
+            (0..self.gutters.len())
+                .filter(|&g| {
+                    let run = &self.gutters[g];
+                    run.slot().hash() != run.hash(&hashes)
+                })
                 .collect()
         } else {
-            self.slots = cell_rects
+            self.owner = cell_rects
                 .iter()
-                .zip(cells)
-                .map(|(&rect, cell)| Slot::new(rect, cell.hash))
+                .map(|r| rects.iter().position(|a| tile::intersect(*r, *a) == *r))
                 .collect();
-            self.owner = owner;
+            let across = partition.cells.cols.len().saturating_sub(1).max(1);
+            let deps = merge::deps(partition.cells, partition.chrome, partition.resolved);
+            self.gutters = merge::runs(&cell_rects, across, &self.owner, &deps)
+                .into_iter()
+                .map(|run| {
+                    let hash = run
+                        .clone()
+                        .fold(layer::FNV, |h, c| layer::fnv(h, hashes[c]));
+                    Run::new(run, &cell_rects, hash)
+                })
+                .collect();
+            self.cells = cell_rects;
             self.areas = (0..rects.len())
                 .map(|p| {
                     self.grids += 1;
                     let index = u32::try_from(p).expect("invariant: fewer than 2^32 plot areas");
-                    Area::new(index, (rects[p], lists[p]), hashes[p], self.grids, views[p])
+                    Area::new(
+                        index,
+                        (rects[p], lists[p]),
+                        contents[p],
+                        self.grids,
+                        views[p],
+                    )
                 })
                 .collect();
             self.floor = self.generation + 1;
-            (0..cells.len())
-                .filter(|&c| self.owner[c].is_none())
-                .collect()
+            (0..self.gutters.len()).collect()
         };
         let moved = |p: usize| if same { moves[p] } else { Moved::Anew };
         let dirty = !same
             || !changed.is_empty()
             || self.areas.iter().enumerate().any(|(p, area)| {
                 moved(p) != Moved::Still
-                    || area.is_stale(hashes[p])
+                    || area.is_stale(contents[p].0)
                     || area.overlays_differ(&overlays[p])
             });
         let every = match caching {
@@ -1241,22 +1291,21 @@ impl State {
         };
         self.revision = revision;
         if every {
-            changed = (0..cells.len())
-                .filter(|&c| self.owner[c].is_none())
-                .collect();
+            changed = (0..self.gutters.len()).collect();
         }
         if !(dirty || every) {
             return Vec::new();
         }
         self.generation += 1;
         let generation = self.generation;
-        for &c in &changed {
-            self.slots[c].change(cells[c].hash, generation);
+        for &g in &changed {
+            let hash = self.gutters[g].hash(&hashes);
+            self.gutters[g].slot_mut().change(hash, generation);
         }
         let mut tiles = Vec::new();
         let mut layered = Vec::new();
         for (p, area) in self.areas.iter_mut().enumerate() {
-            area.change(hashes[p], generation, (moved(p), every));
+            area.change(contents[p], generation, (moved(p), every));
             tiles.extend(
                 area.tiles()
                     .iter()
@@ -1269,7 +1318,7 @@ impl State {
         }
         tiles
             .into_iter()
-            .chain(changed.into_iter().map(At::Cell))
+            .chain(changed.into_iter().map(At::Gutter))
             .chain(layered)
             .collect()
     }
@@ -1311,10 +1360,10 @@ impl State {
         );
         let bands = bands.ok();
         match done.spot {
-            Spot::Cell(index) => self
-                .slots
-                .get_mut(index)
-                .is_some_and(|slot| slot.land(done.generation, done.hash, bands, done.view)),
+            Spot::Gutter(index) => self.gutters.get_mut(index).is_some_and(|run| {
+                run.slot_mut()
+                    .land(done.generation, done.hash, bands, done.view)
+            }),
             Spot::Tile {
                 area,
                 grid,
@@ -1335,13 +1384,7 @@ impl State {
     /// What the following draw shows; reports each newly shown image's
     /// bytes once.
     fn report(&mut self, at: Instant) -> Sample {
-        let gutters = || {
-            self.slots
-                .iter()
-                .zip(&self.owner)
-                .filter(|(_, owner)| owner.is_none())
-                .map(|(slot, _)| slot)
-        };
+        let gutters = || self.gutters.iter().map(Run::slot);
         let count = |test: fn(&Slot) -> bool| {
             u32::try_from(gutters().filter(|s| test(s)).count()).unwrap_or(u32::MAX)
         };
@@ -1355,7 +1398,11 @@ impl State {
                 previews += shown.previews;
             }
         }
-        let gutters: u64 = self.slots.iter_mut().map(Slot::take_fresh).sum();
+        let gutters: u64 = self
+            .gutters
+            .iter_mut()
+            .map(|run| run.slot_mut().take_fresh())
+            .sum();
         let tiles: u64 = self.areas.iter_mut().map(Area::take_fresh).sum();
         Sample::Frame {
             frame: self.frame,
@@ -1436,8 +1483,8 @@ impl State {
         self.hits.report()
     }
 
-    /// Draws every image of a cell outside the plot areas (the theme
-    /// background where a cell has none), each plot area's tiles over its
+    /// Draws every image of a gutter run (the theme background where one
+    /// has none), each plot area's tiles over its
     /// preview layer mapped from the views it was planned at to the views
     /// now, then each brush's selection and the hover overlay in the
     /// theme's ink, for a widget laid out at `bounds`.
@@ -1450,13 +1497,8 @@ impl State {
         };
         let origin = origin(bounds, factor);
         let background = overlay::color(theme.get_background());
-        for (slot, _) in self
-            .slots
-            .iter()
-            .zip(&self.owner)
-            .filter(|(_, o)| o.is_none())
-        {
-            slot.draw(renderer, origin, factor, background);
+        for run in &self.gutters {
+            run.slot().draw(renderer, origin, factor, background);
         }
         for (p, area) in self.areas.iter().enumerate() {
             area.draw(renderer, (origin, factor), self.peek(p), background);
@@ -1502,25 +1544,44 @@ impl State {
     }
 }
 
-/// A job's slot: a partition cell, tile `t` of plot area `p`, or overlay
+/// A job's slot: gutter run `g`, tile `t` of plot area `p`, or overlay
 /// `o` of plot area `p`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum At {
-    Cell(usize),
+    Gutter(usize),
     Tile(usize, usize),
     Overlay(usize, usize),
 }
 
+/// What a refresh plans the gutters from: the partition's cells of the
+/// chrome, the chrome they were cut from and the resolve that drew it.
+struct Partition<'a> {
+    cells: &'a list::Cells,
+    chrome: &'a List,
+    resolved: &'a Resolved,
+}
+
 /// What a refresh plans the plot areas from, per area: its device rect
-/// and list px, the views its axes show, its layer's hash, its overlays'
-/// rects and hashes, and how its grid moved.
+/// and list px, the views its axes show, its layer's hash and style hash,
+/// its overlays' rects and hashes, and how its grid moved.
 struct Planned<'a> {
     rects: &'a [[i32; 4]],
     lists: &'a [kurbo::Rect],
     views: &'a [[Option<Basis>; 2]],
-    hashes: &'a [u64],
+    contents: &'a [(u64, u64)],
     overlays: &'a [Vec<([i32; 4], u64)>],
     moves: &'a [Moved],
+}
+
+/// What a repaint drew from: the lists every job renders (each plot
+/// area's layer, the chrome, the chrome without the figure's background)
+/// at `k` device px per list px, the raster work of each partition cell,
+/// and of each layer over its plot area.
+struct Drawn {
+    layers: Layers,
+    k: f64,
+    cells: Vec<u64>,
+    areas: Vec<u64>,
 }
 
 /// Where the parts of `fixed` (the chrome without the figure's
@@ -1644,6 +1705,7 @@ mod tests {
 
     use super::{Pipeline, State};
     use crate::plot::area::Area;
+    use crate::plot::merge::Run;
     use crate::plot::overlay::{Overlay, Shown};
     use crate::plot::probe::{self, Probe, Sample, Stage};
     use crate::plot::slot::Slot;
@@ -1745,15 +1807,10 @@ mod tests {
         targets
     }
 
-    /// The device rects of what shows in the canvas: the cells outside
-    /// plot areas, then each plot area's tiles that meet it, cut to it.
+    /// The device rects of what shows in the canvas: the gutter runs,
+    /// then each plot area's tiles that meet it, cut to it.
     fn shown(state: &State) -> Vec<[i32; 4]> {
-        let gutters = state
-            .slots
-            .iter()
-            .zip(&state.owner)
-            .filter(|(_, owner)| owner.is_none())
-            .map(|(slot, _)| slot.rect());
+        let gutters = state.gutters.iter().map(|run| run.slot().rect());
         let tiles = state.areas.iter().flat_map(|area| {
             area.tiles()
                 .iter()
@@ -1763,18 +1820,14 @@ mod tests {
         gutters.chain(tiles).collect()
     }
 
-    /// Every slot of `state`: the cells outside plot areas, each plot
-    /// area's tiles (its ring included) and its overlays (as the cell
+    /// Every slot of `state`: the gutter runs (as their first cell), each
+    /// plot area's tiles (its ring included) and its overlays (as the cell
     /// holding their corner).
     fn slots(state: &State) -> Vec<(probe::Target, &Slot)> {
-        let cells = (0..state.slots.len())
-            .filter(|&c| state.owner[c].is_none())
-            .map(|c| {
-                (
-                    probe::Target::Cell(u32::try_from(c).unwrap()),
-                    &state.slots[c],
-                )
-            });
+        let cells = state.gutters.iter().map(|run| {
+            let first = u32::try_from(run.cells().start).unwrap();
+            (probe::Target::Cell(first), run.slot())
+        });
         let tiles = state.areas.iter().flat_map(|area| {
             area.tiles().iter().map(|tile| {
                 let key = tile.key();
@@ -1790,12 +1843,9 @@ mod tests {
             area.overlays().iter().map(|slot| {
                 let [x, y, ..] = slot.rect();
                 let cell = state
-                    .slots
+                    .cells
                     .iter()
-                    .position(|s| {
-                        let [x0, y0, x1, y1] = s.rect();
-                        (x0..x1).contains(&x) && (y0..y1).contains(&y)
-                    })
+                    .position(|&[x0, y0, x1, y1]| (x0..x1).contains(&x) && (y0..y1).contains(&y))
                     .expect("an overlay lies in a cell");
                 (probe::Target::Cell(u32::try_from(cell).unwrap()), slot)
             })
@@ -1818,7 +1868,7 @@ mod tests {
             let mut state = state(640.0, 480.0);
             let rendered = refresh(&mut state, &fig, k);
             let canvas = [0, 0, (640.0 * k).round() as i32, (480.0 * k).round() as i32];
-            let cells: Vec<[i32; 4]> = state.slots.iter().map(|slot| slot.rect()).collect();
+            let cells = state.cells.clone();
             // Four plot areas cut each axis into at most nine tracks.
             assert!(cells.len() > 4, "k = {k}: {} cells", cells.len());
             // The cells outside plot areas, the plot areas' tiles and their
@@ -1896,9 +1946,8 @@ mod tests {
         assert!(!tiles.is_empty());
         assert_eq!(rasters(&again), tiles);
         assert_eq!(state.generation, 2);
-        for (c, slot) in state.slots.iter().enumerate() {
-            let expected = state.owner[c].is_none().then_some(1);
-            assert_eq!(slot.generation(), expected, "slot {c}");
+        for (g, run) in state.gutters.iter().enumerate() {
+            assert_eq!(run.slot().generation(), Some(1), "run {g}");
         }
         for (p, area) in state.areas.iter().enumerate() {
             for tile in area.tiles() {
@@ -2082,12 +2131,7 @@ mod tests {
         state.redraw::<()>(&fixture::pair(moved), 2.0, clock(), &pipeline, (&[], &[]));
         assert_eq!(state.generation, 2);
         settle(&mut state, &wakes, None);
-        let gutters = state
-            .slots
-            .iter()
-            .zip(&state.owner)
-            .filter(|(_, o)| o.is_none());
-        assert!(gutters.into_iter().all(|(slot, _)| slot.is_current()));
+        assert!(state.gutters.iter().all(|run| run.slot().is_current()));
         let tiles = state.areas.iter().flat_map(Area::tiles);
         assert!(tiles.into_iter().all(|tile| tile.slot().is_current()));
     }
@@ -2122,13 +2166,9 @@ mod tests {
         for k in [1.25, 1.5] {
             let mut state = state(640.0, 480.0);
             refresh(&mut state, &fig, k);
-            let gutters = state
-                .slots
-                .iter()
-                .zip(&state.owner)
-                .filter(|(_, o)| o.is_none());
+            let gutters = state.gutters.iter().map(Run::slot);
             let tiles = state.areas.iter().flat_map(Area::tiles).map(Tile::slot);
-            for slot in gutters.map(|(slot, _)| slot).chain(tiles) {
+            for slot in gutters.chain(tiles) {
                 let [x0, y0, x1, y1] = slot.rect();
                 let images = slot.images();
                 assert_eq!(images.len(), 1, "k = {k}: every cell is one band");
@@ -2197,6 +2237,6 @@ mod tests {
     fn a_widget_of_no_device_pixel_has_no_cells() {
         let mut state = state(0.0, 480.0);
         assert_eq!(refresh(&mut state, &fixture::grid(), 1.0), 0);
-        assert!(state.slots.is_empty());
+        assert!(state.cells.is_empty() && state.gutters.is_empty());
     }
 }

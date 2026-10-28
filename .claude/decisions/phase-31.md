@@ -560,3 +560,60 @@ records the new numbers. First commit of session 31c.
   frames): 0.2 ring tiles a frame at 1 and 0.6 at 2 (31b: 6.0 and 8.6),
   0 frames outdated. `tiles_cover_the_area_once` counts (columns + 2) ×
   (rows + 2) whole squares; the ×1.2 zoom-out still misses nothing.
+
+## D31.7 — The two-point test of a handle change has no evaluator
+
+**Date:** 2026-10-28 · **Context:** Phase 31, step 6 · **Status:** open
+
+### Issue
+
+"Invalidation by dependency and merging", rule 1: "Compare the scale a
+slot was rendered with to the new one at two domain points: a constant
+integral device-pixel offset is a translation, anything else a change",
+and "A `Fit::Visible` y handle that refits during an x pan is a change."
+The widget holds every handle as rustd3-figure's object-safe
+`scale::Scale` (`figure/src/scale.rs:53-75`: `as_any`, `boxed`,
+`with_range`, `pan_px`, `zoom_px`), which maps no position, and the
+figure's typed readers (`Resolved::scale::<S>`) need a type the widget
+does not know. D20.3 met the same gap for previews and took the
+gestures' views (each lead handle's map in range shares) instead; 31b's
+`Area::translation` classifies from those views. A view changes only by
+a gesture: a `Fit::Visible` y handle that refits while x pans, or any
+handle the app changes during a drag, keeps its view, so the area counts
+as translated. Step 6's style hash does not catch it either (positions
+are what it leaves out). No test or workload uses `Fit::Visible`.
+
+### Investigation
+
+`Scale`'s implementors (`figure/src/scale/{continuous,color,ordinal,
+binned,band,point}.rs`) are generic over transforms, key types and stop
+counts, so the iced crate cannot downcast to an enumerable set. The
+brush conversions (D36.1, `brush::Placed::place`) carry typed function
+pointers per brush, built where the handle's type is known; nothing does
+so for every handle. What the widget can compare without a scale: part
+hashes of the axes showing a handle (absent when no axis shows it) and
+the layer's positions (a pan changes them all).
+
+### Options
+
+| | A — views only (as built) | **B — a position map on `Scale`** | C — axis parts as a proxy |
+| --- | --- | --- | --- |
+| Approach | A handle change is what the gestures' views say; a non-gesture change during a drag goes undetected | Add an object-safe `Scale::remap(&self, from: &dyn Scale, range: [f64; 2], at: [f64; 2]) -> Option<[f64; 2]>` to rustd3-figure (each impl downcasts `from` to its own type: `self.position(from.invert(p))`; `None` across types or for non-positional scales); the widget keeps each lead handle's scale per grid and calls it at the area's two edges | A handle whose axis parts' hashes changed while its view did not is a change |
+| Cost | — | One trait method in figure (about 60 lines over the impls), additive; one call per lead handle per refresh | A few lines; panels without a shown axis for the handle stay undetected |
+| Correctness | Stale tiles shown as current while a `Fit::Visible` y refits during an x pan, until the drag ends and the layout settles | The section's rule exactly | Partial |
+| API | none | A public method on figure's `Scale` (Phase 14's trait), which the section does not name | none |
+
+### Recommendation
+
+B: it is the section's rule and the only one that holds without an axis;
+it adds a public method the section does not make, hence this entry.
+Until it is decided the widget classifies by the views (A).
+
+### Decision
+
+Open.
+
+### Followups
+
+- If B: one `feat(figure)` commit for `Scale::remap`, then the widget's
+  classification and a test `a_refit_during_a_pan_re_renders`.

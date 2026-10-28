@@ -68,7 +68,9 @@
 //! over them. It renders only the cells,
 //! tiles and overlays whose content hash changed (every one when the
 //! partition's rects change), the ring after the rest, and draws each as
-//! images placed on whole device pixels.
+//! images placed on whole device pixels. Adjacent gutter cells of a row
+//! whose content depends on the same handles (an axis strip and the
+//! corners its labels reach into) merge into one image.
 //! A cell whose RGBA would reach [`BAND_BYTES`] is rendered and drawn as
 //! horizontal bands below that size, so the GPU renderer uploads every
 //! image inside the frame that first draws it; a tile always stays under
@@ -116,7 +118,10 @@
 //! areas it pans move by as many pixels, lines thin on columns anchored
 //! to the moved grid and dashes keep their phase, so a tile's image moves
 //! with it unchanged and only the tiles entering the ring render, a column
-//! per 256 px; the gutter cells showing the panned handle render whole. Any other change of a plot area's view (a zoom) begins its grid
+//! per 256 px, while the plot area looks the same apart from where things
+//! are (its paints, strokes, markers and glyphs: a figure rebuilt in
+//! another color renders every tile); the gutter cells showing the panned
+//! handle render whole. Any other change of a plot area's view (a zoom) begins its grid
 //! anew: while the new tiles' sharp renders are pending, the old tiles,
 //! ring included, are drawn scaled by one affine map per axis, soft until
 //! the new ones land; gutters keep their last image. A double click
@@ -205,6 +210,7 @@ mod input;
 mod job;
 mod layer;
 mod listener;
+mod merge;
 mod overlay;
 mod preview;
 pub mod probe;
@@ -213,6 +219,7 @@ mod render;
 mod scale_factor;
 mod slot;
 mod state;
+mod style;
 mod tile;
 mod worker;
 

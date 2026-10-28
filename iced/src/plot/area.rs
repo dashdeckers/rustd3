@@ -51,6 +51,9 @@ pub(crate) struct Area {
     anchor: [Option<Basis>; 2],
     /// Hash of the area's current layer.
     hash: u64,
+    /// The style hash of its current layer: what it looks like apart from
+    /// where it draws ([`style::hash`](crate::plot::style::hash)).
+    style: u64,
     /// The grid's keys that meet the grown rect, row by row.
     tiles: Vec<Tile>,
     /// Tiles of an earlier grid, drawn mapped while the grid's visible
@@ -87,12 +90,13 @@ pub(crate) struct Shown {
 
 impl Area {
     /// Plot area `index` over device rect `rect` (list px `list`), holding
-    /// layer `hash`, its grid anchored at its corner at the views `now`
-    /// and numbered `serial`; no tile has an image yet.
+    /// a layer of hash `hash` and style hash `style`, its grid anchored at
+    /// its corner at the views `now` and numbered `serial`; no tile has an
+    /// image yet.
     pub(crate) fn new(
         index: u32,
         (rect, list): ([i32; 4], Rect),
-        hash: u64,
+        (hash, style): (u64, u64),
         serial: u64,
         now: [Option<Basis>; 2],
     ) -> Area {
@@ -104,6 +108,7 @@ impl Area {
             serial,
             anchor: now,
             hash,
+            style,
             tiles: Vec::new(),
             preview: Vec::new(),
             overlays: Vec::new(),
@@ -233,19 +238,23 @@ impl Area {
                 .any(|tile| tile.slot().is_missing() && tile.slot().pending().is_none())
     }
 
-    /// The area's layer is `hash` at `generation`, its grid having
-    /// `moved`: after a translation an image that showed the layer before
-    /// and covers its tile shows it now; every other tile that does not
-    /// show it, or that has no image and no pending render, is marked
-    /// pending (every tile with `every`). True when one was.
+    /// The area's layer is `hash`, of style hash `style`, at
+    /// `generation`, its grid having `moved`: after a translation that
+    /// kept the layer's style, an image that showed the layer before and
+    /// covers its tile shows it now (the rules of Phase 31's dependency
+    /// classification: a translation renders only entering tiles, anything
+    /// else every tile); every other tile that does not show it, or that
+    /// has no image and no pending render, is marked pending (every tile
+    /// with `every`). True when one was.
     pub(crate) fn change(
         &mut self,
-        hash: u64,
+        (hash, style): (u64, u64),
         generation: u64,
         (moved, every): (Moved, bool),
     ) -> bool {
-        let translated = moved == Moved::Translated && !every;
+        let translated = moved == Moved::Translated && style == self.style && !every;
         self.hash = hash;
+        self.style = style;
         let origin = self.grid.origin();
         let mut changed = false;
         for tile in &mut self.tiles {
@@ -571,8 +580,8 @@ mod tests {
     fn rendered() -> Area {
         let rect = [0, 0, 900, 600];
         let list = Rect::new(0.0, 0.0, 900.0, 600.0);
-        let mut area = Area::new(0, (rect, list), 1, 1, panned(0.0));
-        assert!(area.change(1, 1, (Moved::Anew, false)));
+        let mut area = Area::new(0, (rect, list), (1, 0), 1, panned(0.0));
+        assert!(area.change((1, 0), 1, (Moved::Anew, false)));
         let jobs: Vec<_> = area
             .tiles()
             .iter()
@@ -648,7 +657,7 @@ mod tests {
             .find(|t| (t.key().i, t.key().j) == (-1, 0));
         assert_eq!(left.map(|t| t.rect()), Some([-219, 0, 37, 256]));
         assert!(left.is_some_and(|t| t.covers([37, 0])));
-        assert!(area.change(2, 2, (Moved::Translated, false)));
+        assert!(area.change((2, 0), 2, (Moved::Translated, false)));
         // The new key i = −2, its whole square [−475, −219), in 5 rows;
         // nothing visible.
         let entering: Vec<(i32, i32)> = (-1..=3).map(|j| (-2, j)).collect();
@@ -671,9 +680,25 @@ mod tests {
         // Column 4, rendered over its square [1024, 1280), is at [987,
         // 1243): still its square; no new key (i = −2 would be [−549,
         // −293)).
-        assert!(!area.change(2, 2, (Moved::Translated, false)));
+        assert!(!area.change((2, 0), 2, (Moved::Translated, false)));
         assert!(pending(&area).is_empty());
         assert_eq!(area.tiles().len(), 30);
+    }
+
+    #[test]
+    fn a_translation_with_another_style_renders_every_tile() {
+        let mut area = rendered();
+        assert_eq!(
+            area.follow(panned(-37.0 / 900.0), 1.0, 2),
+            Moved::Translated
+        );
+        // The positions moved and the style hash changed: no image shows
+        // the new layer, so all 30 tiles render.
+        assert!(area.change((2, 1), 2, (Moved::Translated, false)));
+        assert_eq!(pending(&area).len(), 30);
+        // Every image moved with the grid and still shows old content.
+        let shown = area.shown(1.0, panned(-37.0 / 900.0));
+        assert_eq!((shown.missing, shown.previews), (0, 12));
     }
 
     #[test]
@@ -688,7 +713,7 @@ mod tests {
             let now = panned(f64::from(offset) / 900.0);
             let hash = 1 + frame;
             assert_eq!(area.follow(now, 1.0, 2), Moved::Translated);
-            if area.change(hash, 1 + frame, (Moved::Translated, false)) {
+            if area.change((hash, 0), 1 + frame, (Moved::Translated, false)) {
                 entered.push((offset, pending(&area)));
                 land_pending(&mut area, hash);
             }
