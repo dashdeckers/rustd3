@@ -5,7 +5,14 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+documentation = "https://docs.rs/rustd3-core"
+keywords = ["d3", "scale", "chart", "visualization", "time"]
+categories = ["visualization", "science", "date-and-time"]
+include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/LICENSE-d3"]
 autotests = false
+
+[package.metadata.docs.rs]
+all-features = true
 
 [[test]]
 name = "main"

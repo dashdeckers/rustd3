@@ -5,6 +5,13 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license-file = "LICENSE"
+documentation = "https://docs.rs/rustd3-fonts"
+categories = ["visualization"]
+include = [
+    "src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE",
+    "/LICENSE-DejaVu", "/LICENSE-NewCMMath.txt",
+    "/DejaVuSans.ttf", "/DejaVuSans-Bold.ttf", "/NewCMMath-Regular.otf",
+]
 autotests = false
 
 [[test]]
