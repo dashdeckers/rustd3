@@ -41,7 +41,10 @@ impl Figure<'_> {
     /// plot area by its axes (tick, tick pad, the labels' extent and, with
     /// a title, the label pad and the title's ink height, at the axis's
     /// offset), by tick labels that overhang its ends and by its title
-    /// (title pad and ink height, above everything on top); each column
+    /// (title pad and ink height above everything on top, and at least to
+    /// its ink top when its last baseline sits the title pad and the text
+    /// face's descender above the top-side axes of its grid row, where the
+    /// titles of one row share a baseline); each column
     /// takes the largest reach of its panels per side and each row
     /// likewise, and the rest is split by weight inside 0.8 em of padding,
     /// below the figure title's ink height and 8 px.

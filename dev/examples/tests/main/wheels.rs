@@ -22,6 +22,9 @@ const FIXTURE: &str = include_str!(concat!(
 /// The role a figure gives its marks' parts.
 const MARK: u64 = 6;
 
+/// The role a figure gives its panels' titles.
+const HEADING: u64 = 5;
+
 /// The fixture's value at `pointer`.
 fn fixture(pointer: &str) -> Obs {
     Fixture::parse(FIXTURE)
@@ -167,6 +170,52 @@ fn the_wheel_figures_64_labels_are_64_runs_of_365_glyphs_in_one_font() {
     // here one title, four panel titles ("Wheel: RL" two runs), 50 tick
     // labels, 8 axis titles, 4 rule labels and the legend's 4.
     assert_eq!((runs.len(), glyphs, list.fonts.len()), (64, 365, 1));
+}
+
+#[test]
+fn the_wheel_figures_four_titles_share_two_baselines_one_per_row() {
+    let (resolved, list) = drawn(&wheel_figure(false));
+    // Per title part, its panel and its runs' baselines ("Wheel: RL" is
+    // two runs).
+    let titles: Vec<(u64, Vec<f64>)> = list
+        .parts
+        .iter()
+        .filter_map(|p| match role_and_panel(p.id) {
+            (HEADING, panel) => {
+                let baselines = list.commands[p.commands.clone()]
+                    .iter()
+                    .filter_map(|c| {
+                        if let Command::Glyphs(run) = c {
+                            Some(run.transform.translation().y)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                Some((panel, baselines))
+            }
+            _ => None,
+        })
+        .collect();
+    // FL, FR, RL, RR: each wheel's scatter, the first of its three panels.
+    let panels: Vec<u64> = titles.iter().map(|(panel, _)| *panel).collect();
+    assert_eq!(panels, [0, 3, 6, 9]);
+    let rows: Vec<f64> = titles
+        .iter()
+        .map(|(_, baselines)| {
+            assert!(baselines.windows(2).all(|w| w[0] == w[1]), "{baselines:?}");
+            baselines[0]
+        })
+        .collect();
+    assert_eq!((rows[0], rows[2]), (rows[1], rows[3]), "{rows:?}");
+    // Each row's baseline sits the title pad (8 px) and DejaVu Sans's
+    // descender at 16 px above its scatters, which have no top axes.
+    let descender = 492.0 / 2048.0 * 16.0;
+    let areas = resolved.plot_areas();
+    for (row, panel) in [(rows[0], 0), (rows[2], 6)] {
+        let expected = areas[panel].y0 - 8.0 - descender;
+        assert!((row - expected).abs() < 1e-9, "{row} against {expected}");
+    }
 }
 
 #[test]

@@ -17,8 +17,9 @@ use crate::figure::{cache, line, resolve};
 /// 0.8 em of padding at notebook: 0.8 × 11 pt × 4/3.
 const PAD: f64 = 0.8 * 11.0 * 4.0 / 3.0;
 
-/// `label` measured in the theme's ink at `size` px: (width, ink height).
-fn measure(label: &str, size: f64) -> (f64, f64) {
+/// `label` shaped in the theme's ink at `size` px: (width, ink ascent,
+/// ink descent).
+fn shape(label: &str, size: f64) -> (f64, f64, f64) {
     let style = Style {
         size,
         bold: false,
@@ -29,7 +30,13 @@ fn measure(label: &str, size: f64) -> (f64, f64) {
     let mut cache = text::Cache::new(crate::text::fonts());
     cache.prepare([&key]);
     let shaped = cache.get(&key).expect("prepared").expect("shaped");
-    (shaped.width(), shaped.ascent() + shaped.descent())
+    (shaped.width(), shaped.ascent(), shaped.descent())
+}
+
+/// `label` measured in the theme's ink at `size` px: (width, ink height).
+fn measure(label: &str, size: f64) -> (f64, f64) {
+    let (width, ascent, descent) = shape(label, size);
+    (width, ascent + descent)
 }
 
 /// The figure title, measured at `size` px: (width, ink height).
@@ -40,6 +47,11 @@ fn title_box(size: f64) -> (f64, f64) {
 /// `label`'s ink height at `size` px.
 fn ink_height(label: &str, size: f64) -> f64 {
     measure(label, size).1
+}
+
+/// `label`'s ink above its baseline at `size` px.
+fn ink_ascent(label: &str, size: f64) -> f64 {
+    shape(label, size).1
 }
 
 /// DejaVu Sans's OS/2 typographic ascender and descender (1556 and 492 of
@@ -254,13 +266,76 @@ fn an_unlabelled_axis_reaches_by_its_tick_and_an_outward_one_by_its_offset() {
 }
 
 #[test]
-fn a_panel_title_adds_the_title_pad_and_its_ink_height_on_top() {
+fn a_panel_title_adds_the_title_pad_the_descender_and_its_ink_ascent_on_top() {
     let (fig, ..) = one_panel(|p, _, _| {
         p.title("Wheel: RL");
     });
     let area = resolve(&fig, &Held::default()).plot_areas()[0];
-    let ink = ink_height("Wheel: RL", 16.0);
-    assert!((area.y0 - (PAD + 8.0 + ink)).abs() < 1e-9, "{area:?}");
+    let [_, descender] = line_box(16.0);
+    let ascent = ink_ascent("Wheel: RL", 16.0);
+    let expected = PAD + 8.0 + descender + ascent;
+    assert!((area.y0 - expected).abs() < 1e-9, "{area:?}");
+}
+
+/// The baselines of panel `panel`'s title in `list`: each run's origin.
+fn title_baselines(list: &List, panel: u64) -> Vec<f64> {
+    let id = part::Id::new(5 << 56 | panel << 32);
+    let part = list
+        .parts
+        .iter()
+        .find(|p| p.id == id)
+        .expect("a title part");
+    list.commands[part.commands.clone()]
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.transform.translation().y)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn panel_titles_of_a_row_share_a_baseline_whatever_their_descenders_and_side_axes() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let titles = ["Wheel: FL", "gypsy", "Top", "plain"];
+    for (i, title) in titles.into_iter().enumerate() {
+        let panel = fig.panel(i / 2, i % 2);
+        panel
+            .mark(line(x, [0.0, 10.0]))
+            .mark(line(y, [0.0, 3.0]))
+            .title(title);
+        // A labelled left axis overhangs the top by half its line box in
+        // the first panel of each row; a top axis raises the second row.
+        if i % 2 == 0 {
+            panel.axis(axis::left(y));
+        }
+        if i == 2 {
+            panel.axis(axis::top(x));
+        }
+    }
+    let size = Size::new(640.0, 480.0);
+    let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+    let areas = resolve_at(&fig, size).plot_areas().to_vec();
+    let [_, descender] = line_box(16.0);
+    let [tick_ascender, tick_descender] = line_box(44.0 / 3.0);
+    // The top axis reaches its tick, pad and line box.
+    let top = 8.0 + 14.0 / 3.0 + tick_ascender + tick_descender;
+    for (panel, raise) in [0.0, 0.0, top, top].into_iter().enumerate() {
+        let expected = areas[panel].y0 - 8.0 - descender - raise;
+        let baselines = title_baselines(&list, panel as u64);
+        assert!(!baselines.is_empty());
+        for y in baselines {
+            assert!(
+                (y - expected).abs() < 1e-9,
+                "panel {panel}: {y} against {expected}"
+            );
+        }
+    }
 }
 
 #[test]

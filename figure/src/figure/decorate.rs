@@ -85,9 +85,14 @@ impl Figure<'_> {
                 });
             }
             if let Some(title) = shaped(text, laid.title.as_ref()) {
-                let at = Point::new(area.center().x, area.y0 - laid.top - theme.title_pad());
+                let baseline = area.y0 - laid.heading - title.last();
+                let at = Point::new(area.center().x, baseline);
+                let anchor = Anchor {
+                    h: anchor::Horizontal::Middle,
+                    v: anchor::Vertical::Baseline,
+                };
                 part(list, part::id(Role::Heading, i, 0), |list| {
-                    title.place(list, at, bottom(), 0.0);
+                    title.place(list, at, anchor, 0.0);
                 });
             }
         }
@@ -152,12 +157,4 @@ fn part(list: &mut List, id: list::part::Id, draw: impl FnOnce(&mut List)) {
 /// The label of `key`, when there is one and typst shaped it.
 fn shaped<'c>(text: &'c text::Cache, key: Option<&Key>) -> Option<&'c Shaped> {
     text.get(key?)?.ok()
-}
-
-/// The anchor at the middle of a label's bottom edge.
-fn bottom() -> Anchor {
-    Anchor {
-        h: anchor::Horizontal::Middle,
-        v: anchor::Vertical::Bottom,
-    }
 }

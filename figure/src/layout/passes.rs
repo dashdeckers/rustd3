@@ -42,8 +42,9 @@ pub(crate) struct Laid {
     pub(crate) axes: Vec<Placed>,
     /// The title's key.
     pub(crate) title: Option<Key>,
-    /// How far the decorations on top reach, the title aside.
-    pub(crate) top: f64,
+    /// How far above the plot area the title's last baseline sits: the
+    /// same for every panel whose cell starts in its grid row.
+    pub(crate) heading: f64,
     /// Its inset legends, framed, and their top-left corners, in the order
     /// they were added.
     pub(crate) insets: Vec<(Block, Point)>,
@@ -67,7 +68,10 @@ impl Layout {
     /// batch, and places the plot areas again: each panel reaches past its
     /// plot area by its axes (offset and thickness), by tick labels that
     /// overhang its ends at their positions in the last placement, and by
-    /// its title (title pad and ink height, above everything on top); each
+    /// its title ([`headings`]: its last baseline the title pad and the
+    /// text face's descender above the top-side axes of its grid row, and
+    /// at least as high as the title pad and its ink height above the
+    /// panel's own top reach); each
     /// column takes the largest reach of its panels per side and each row
     /// likewise, and the rest is split by weight inside 0.8 em of padding,
     /// below the figure title's ink height and 8 px, inside what the
@@ -198,10 +202,12 @@ impl Layout {
             let titled: Vec<Reach> = reaches
                 .iter()
                 .zip(&titles)
-                .map(|((reach, _), title)| {
+                .zip(headings(panels, &axes, text, theme))
+                .map(|(((reach, _), title), heading)| {
                     let mut reach = *reach;
                     if let Some(s) = title.as_ref().and_then(|key| get(text, key)) {
-                        reach.top += theme.title_pad() + ink(s);
+                        let above = reach.top + theme.title_pad() + ink(s);
+                        reach.top = above.max(heading + s.last() + s.ascent());
                     }
                     reach
                 })
@@ -219,40 +225,44 @@ impl Layout {
         let grid = inner(size, em, reserve(&slots, title.as_ref(), text, theme));
         let extent = areas.iter().copied().reduce(|a, b| a.union(b));
         let legends = slots.place(grid, extent.unwrap_or(grid), em);
+        let headings = headings(panels, &axes, text, theme);
         let mut panels: Vec<Laid> = panels
             .iter()
             .zip(axes)
-            .zip(titles)
+            .zip(titles.into_iter().zip(headings))
             .zip(reaches.iter().zip(&areas))
             .zip(insets)
-            .map(|((((p, axes), title), ((reach, above), area)), insets)| {
-                let axes = p
-                    .axes()
-                    .iter()
-                    .zip(axes)
-                    .map(|(a, (labels, plan))| {
-                        let length = length(a.orient(), *area);
-                        let positions = a.positions(resolved, length, plan.count);
-                        let mut placed = Placed::new(labels, plan, positions, *area, text, theme);
-                        placed.above = *above;
-                        placed
-                    })
-                    .collect();
-                let insets = insets
-                    .into_iter()
-                    .map(|(at, content)| {
-                        let block = content.column(text, theme).framed(em);
-                        let corner = at.place(*area, block.size(), INSET * em);
-                        (block, corner)
-                    })
-                    .collect();
-                Laid {
-                    axes,
-                    title,
-                    top: reach.top,
-                    insets,
-                }
-            })
+            .map(
+                |((((p, axes), (title, heading)), ((_, above), area)), insets)| {
+                    let axes = p
+                        .axes()
+                        .iter()
+                        .zip(axes)
+                        .map(|(a, (labels, plan))| {
+                            let length = length(a.orient(), *area);
+                            let positions = a.positions(resolved, length, plan.count);
+                            let mut placed =
+                                Placed::new(labels, plan, positions, *area, text, theme);
+                            placed.above = *above;
+                            placed
+                        })
+                        .collect();
+                    let insets = insets
+                        .into_iter()
+                        .map(|(at, content)| {
+                            let block = content.column(text, theme).framed(em);
+                            let corner = at.place(*area, block.size(), INSET * em);
+                            (block, corner)
+                        })
+                        .collect();
+                    Laid {
+                        axes,
+                        title,
+                        heading,
+                        insets,
+                    }
+                },
+            )
             .collect();
         keep(&mut panels, &areas);
         Layout {
@@ -283,6 +293,32 @@ fn bare(figure: &Figure<'_>, roles: &[Vec<plan::Role>]) -> Vec<Reach> {
             }
             reach
         })
+        .collect()
+}
+
+/// How far above each of `panels`' plot areas its title's last baseline
+/// sits, with `axes` placed: the title pad and the text face's descender at
+/// the title size above the largest reach of the shown top-side axes among
+/// the panels whose cells start in its grid row (matplotlib moves a title
+/// up for top-side axes only), so the titles of a row share one baseline
+/// whatever their descenders and the overhangs of side axes.
+fn headings(panels: &[Panel<'_>], axes: &Axes, text: &text::Cache, theme: &Theme) -> Vec<f64> {
+    let row = |p: &Panel<'_>| p.cell().rows().start;
+    let mut tops = vec![0.0_f64; panels.iter().map(|p| row(p) + 1).max().unwrap_or(0)];
+    for (p, axes) in panels.iter().zip(axes) {
+        let top = p
+            .axes()
+            .iter()
+            .zip(axes)
+            .filter(|(a, (_, plan))| plan.shown && a.orient() == Orient::Top)
+            .map(|(_, (_, plan))| plan.offset + plan.thickness)
+            .fold(0.0, f64::max);
+        tops[row(p)] = tops[row(p)].max(top);
+    }
+    let [_, descender] = text.fonts().line(theme.label_text());
+    panels
+        .iter()
+        .map(|p| tops[row(p)] + theme.title_pad() + descender)
         .collect()
 }
 
