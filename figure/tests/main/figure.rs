@@ -12,7 +12,7 @@ use rustd3_figure::list::{self, Command, GlyphRun, List, part};
 use rustd3_figure::mark::{Ctx, Mark};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::{Kind, ScaleRef};
-use rustd3_figure::{Cache, Figure, Fits, Held, Resolved, Target, Theme, axis};
+use rustd3_figure::{Cache, Figure, Fits, Held, Resolved, Target, Theme, axis, brush, layout};
 
 /// A mark that only reports values on one handle; with a base, it also
 /// sticks there, as bars do.
@@ -216,6 +216,46 @@ fn a_zoomed_handle_from_another_figure_panics_when_resolved() {
     let mut fig = Figure::new();
     fig.fit(scale::linear());
     fig.panel(0, 0).zoom_x(foreign);
+    resolve(&fig, &Held::default());
+}
+
+#[test]
+fn flat_panel_indices_map_back_to_their_cells() {
+    let mut fig = Figure::new();
+    // Panels are numbered in the order of first use, not row by row.
+    for (row, col) in [(1, 1), (0, 0), (1, 0), (0, 1)] {
+        fig.panel(row, col);
+    }
+    fig.panel_at(layout::Cell::new(2, 0).span(1, 2));
+    let r = resolve(&fig, &Held::default());
+    let cells: Vec<_> = (0..5).map(|panel| r.panel_cell(panel)).collect();
+    assert_eq!(cells, [(1, 1), (0, 0), (1, 0), (0, 1), (2, 0)]);
+}
+
+#[test]
+fn panels_report_their_brush() {
+    let mut fig = Figure::new();
+    let full = fig.scale(scale::linear().domain([0.0, 100.0]));
+    let focus = fig.scale(scale::linear().domain([20.0, 40.0]));
+    fig.panel(0, 0).zoom_x(focus);
+    fig.panel(1, 0).brush(brush::x(full).sets(focus));
+    let r = resolve(&fig, &Held::default());
+    assert!(r.brush(0).is_none());
+    let placed = r.brush(1).expect("panel 1 brushes");
+    assert_eq!(placed.dim(), brush::Dim::X);
+    assert_eq!((placed.over(), placed.target()), (0, Some(1)));
+    assert!(r.brush(2).is_none(), "no such panel");
+}
+
+#[cfg(debug_assertions)]
+#[test]
+#[should_panic(expected = "handle from another figure")]
+fn a_brushed_handle_from_another_figure_panics_when_resolved() {
+    let mut first = Figure::new();
+    let foreign = first.fit(scale::linear());
+    let mut fig = Figure::new();
+    fig.fit(scale::linear());
+    fig.panel(0, 0).brush(brush::x(foreign));
     resolve(&fig, &Held::default());
 }
 

@@ -7,6 +7,7 @@ use kurbo::Point;
 use rustd3_core::axis::Orient;
 use rustd3_core::locale::Locale;
 
+use crate::brush;
 use crate::figure;
 use crate::figure::fits::Hatched;
 use crate::hatch::Hatch;
@@ -38,6 +39,10 @@ pub struct Resolved {
     zooms: Vec<[Vec<usize>; 2]>,
     /// Per panel, each axis's side and handle position, in insertion order.
     axes: Vec<Vec<(Orient, usize)>>,
+    /// Per panel, the first row and column of its grid cell.
+    cells: Vec<(usize, usize)>,
+    /// Per panel, its brush.
+    brushes: Vec<Option<brush::Placed>>,
     /// Per table entry, whether it is a `Fit::Window` handle some panel
     /// places across.
     windowed: Vec<bool>,
@@ -71,6 +76,8 @@ impl Resolved {
             held: false,
             zooms: Vec::new(),
             axes: Vec::new(),
+            cells: Vec::new(),
+            brushes: Vec::new(),
             windowed: Vec::new(),
             hatches: Rc::from([]),
         }
@@ -111,6 +118,23 @@ impl Resolved {
     /// strip the axis draws in.
     pub fn axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
         self.axes.get(panel)?.get(axis).copied()
+    }
+
+    /// (row, col) of a flat panel index, as `hit::Hit::panel` reports it:
+    /// the first row and column of the panel's grid cell (panels are
+    /// numbered in the order of their first use, not row by row).
+    ///
+    /// # Panics
+    ///
+    /// For a panel index the figure does not have.
+    pub fn panel_cell(&self, panel: usize) -> (usize, usize) {
+        self.cells[panel]
+    }
+
+    /// The brush placed on panel `panel` ([`Panel::brush`]); `None` for a
+    /// panel without one and for one that does not exist.
+    pub fn brush(&self, panel: usize) -> Option<&brush::Placed> {
+        self.brushes.get(panel)?.as_ref()
     }
 
     /// How layout placed axis `axis` (in insertion order) of panel `panel`
@@ -223,11 +247,19 @@ impl Resolved {
         self.windowed.get(index).copied().unwrap_or(false)
     }
 
-    /// Records, for each of `panels` (this figure's), the handles it zooms
-    /// and its axes' sides and handles, and per table entry whether it is
-    /// a window placed across.
+    /// Records, for each of `panels` (this figure's), its grid cell, the
+    /// handles it zooms, its axes' sides and handles and its brush, and
+    /// per table entry whether it is a window placed across.
     pub(super) fn bind(&mut self, panels: &[Panel<'_>], windowed: Vec<bool>) {
         self.windowed = windowed;
+        self.cells = panels
+            .iter()
+            .map(|p| (p.cell().rows().start, p.cell().cols().start))
+            .collect();
+        self.brushes = panels
+            .iter()
+            .map(|p| p.brushing().map(|b| b.of(self.figure)))
+            .collect();
         self.zooms = panels.iter().map(|p| p.zooms(self.figure)).collect();
         self.axes = panels
             .iter()

@@ -10,6 +10,7 @@ pub use kurbo;
 pub use peniko;
 
 pub mod axis;
+pub mod brush;
 pub mod check;
 pub mod colorbar;
 mod figure;

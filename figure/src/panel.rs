@@ -4,6 +4,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
 use crate::axis::{self, Axis};
+use crate::brush;
 use crate::figure;
 use crate::layout::Cell;
 use crate::legend::{self, Inset};
@@ -13,7 +14,7 @@ use crate::text::Text;
 
 /// One plot area in a grid cell: its marks, axes and inset legends, which
 /// refer to the figure's scales only through handles, its title, its
-/// border, and the handles gestures over it rescale.
+/// border, the handles gestures over it rescale, and its brush.
 pub struct Panel<'a> {
     cell: Cell,
     marks: Vec<Box<dyn Mark<'a>>>,
@@ -23,6 +24,7 @@ pub struct Panel<'a> {
     border: Option<Rgb>,
     /// The handles zoomed along x, then along y, each once.
     zooms: [Vec<ScaleRef<()>>; 2],
+    brush: Option<brush::Placed>,
 }
 
 impl<'a> Panel<'a> {
@@ -36,6 +38,7 @@ impl<'a> Panel<'a> {
             title: None,
             border: None,
             zooms: [Vec::new(), Vec::new()],
+            brush: None,
         }
     }
 
@@ -92,12 +95,38 @@ impl<'a> Panel<'a> {
         self.zoom(1, h.erased())
     }
 
+    /// Drag in this panel brushes; one brush per panel (a second replaces
+    /// it). In the iced `Plot` widget a left-button drag over the plot
+    /// area selects an interval along the brush's axis instead of panning,
+    /// while the wheel still zooms; file outputs ignore it.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::{Figure, brush};
+    ///
+    /// let mut fig = Figure::new();
+    /// let full = fig.scale(scale::linear().domain([0.0, 100.0]));
+    /// let focus = fig.scale(scale::linear().domain([0.0, 100.0]));
+    /// fig.panel(0, 0).zoom_x(focus);
+    /// // The overview below sets the window the panel above shows.
+    /// fig.panel(1, 0).brush(brush::x(full).sets(focus));
+    /// ```
+    pub fn brush(&mut self, b: impl Into<brush::Placed>) -> &mut Self {
+        self.brush = Some(b.into());
+        self
+    }
+
     /// The table positions of the handles zoomed along x and along y, in
     /// the order they were added, for figure `figure`.
     pub(crate) fn zooms(&self, figure: figure::Id) -> [Vec<usize>; 2] {
         self.zooms
             .each_ref()
             .map(|handles| handles.iter().map(|h| h.of(figure)).collect())
+    }
+
+    /// The brush placed on the panel, if any.
+    pub(crate) fn brushing(&self) -> Option<&brush::Placed> {
+        self.brush.as_ref()
     }
 
     /// The grid cell.
