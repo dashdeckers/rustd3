@@ -73,8 +73,9 @@ where
 
 /// The region between `y0` and `y1` of rows `(x, y0, y1)` on `x` and
 /// `y`, in the theme palette's first color: `shape::stack`'s `[y0, y1]`
-/// plugs in directly. Both edges enter fitting; nothing is held. Never
-/// thinned.
+/// plugs in directly. Both edges enter fitting; 0 is held when an edge
+/// reaches exactly 0 (matplotlib's sticky edge), so a stacked area stands
+/// on the axis, and nothing else is. Never thinned.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -105,7 +106,8 @@ where
 /// thinned together ([`Thin::Auto`]): per column, M4 over both channels
 /// at once (core's `Series::m4_joint`), so both edges keep their extremes
 /// and the lower edge stays below the upper one wherever the data does.
-/// Channels of two recordings draw nothing, and
+/// 0 is held when a channel's least or greatest value is exactly 0, as
+/// [`ribbon`] holds it. Channels of two recordings draw nothing, and
 /// [`Figure::check`](crate::Figure::check) reports
 /// [`Error::Recordings`].
 ///
@@ -279,13 +281,18 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
 
 impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
     /// Both edges, each as a line does (a recording channel through the x
-    /// scale's index); nothing for a ribbon that cannot be drawn.
+    /// scale's index), holding 0 when an edge reaches exactly 0; nothing
+    /// for a ribbon that cannot be drawn.
     fn fit(&self, fits: &mut Fits) {
         if self.error.is_some() {
             return;
         }
         super::fit(&self.lower, self.x, self.y, fits);
         super::fit(&self.upper, self.x, self.y, fits);
+        let (sx, sy) = (fits.scale(self.x), fits.scale(self.y));
+        if reaches_zero(&self.lower, sx, sy) || reaches_zero(&self.upper, sx, sy) {
+            fits.stick(self.y, 0.0);
+        }
         self.color.hatched(self.hatch.as_ref(), fits);
     }
 
@@ -336,6 +343,27 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
         }
         super::issues(&self.lower, &self.color, ctx, issues);
         super::outside(&self.lower, (self.x, self.y), ctx, issues);
+    }
+}
+
+/// Whether some value of `points` that `y` admits is exactly 0: a recording
+/// channel's least or greatest one, read from its index through `x`'s
+/// bridge (a 0 strictly inside the channel's range stops no margin), other
+/// data value by value.
+fn reaches_zero<X: Position, Y: Position<Domain = f64>>(
+    points: &Points<'_, <X as Kind>::Domain, f64>,
+    x: &X,
+    y: &Y,
+) -> bool {
+    let valid = |v| admits(y, v);
+    let channel = points
+        .indexed()
+        .and_then(|channel| x.indexed()?.series_extent(&channel, None, &valid));
+    match channel {
+        Some(extent) => extent
+            .y
+            .is_some_and(|[low, high]| low == 0.0 || high == 0.0),
+        None => points.iter().any(|(_, v)| v == 0.0 && valid(v)),
     }
 }
 

@@ -57,7 +57,7 @@ fn bars_from_a_base_are_held_at_zero_and_dots_are_not() {
 }
 
 #[test]
-fn span_bars_hold_neither_end_and_ignore_a_base() {
+fn span_bars_away_from_zero_hold_neither_end_and_ignore_a_base() {
     let (mut fig, x, y) = banded();
     fig.panel(0, 0)
         .mark(bar_y_spans([("a", [1.0, 3.0])], x, y).base(-5.0));
@@ -68,6 +68,30 @@ fn span_bars_hold_neither_end_and_ignore_a_base() {
         .mark(bar_y([("a", 3.0)], x, y).base(1.0).base(f64::INFINITY));
     let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
     assert!(close(domain, [1.0, 3.1]), "{domain:?}");
+}
+
+#[test]
+fn span_bars_hold_an_end_at_zero_so_stacks_stand_on_the_axis() {
+    // Stacked from 0: the y margin stops at 0, matplotlib's sticky edge.
+    let (mut fig, x, y) = banded();
+    fig.panel(0, 0)
+        .mark(bar_y_spans([("a", [0.0, 3.0]), ("b", [0.0, 1.0])], x, y))
+        .mark(bar_y_spans([("a", [3.0, 4.0]), ("b", [1.0, 2.0])], x, y));
+    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    assert!(close(domain, [0.0, 4.2]), "{domain:?}");
+    // Diverging: 0 lies inside the data, so both margins stay.
+    let (mut fig, x, y) = banded();
+    fig.panel(0, 0)
+        .mark(bar_y_spans([("a", [0.0, 3.0]), ("b", [-2.0, 0.0])], x, y));
+    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    assert!(close(domain, [-2.25, 3.25]), "{domain:?}");
+    // Horizontal spans hold 0 along x.
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.scale(scale::band(["a"]));
+    fig.panel(0, 0).mark(bar_x_spans([([0.0, 2.0], "a")], x, y));
+    let domain = resolve(&fig, &Held::default()).scale(x).get_domain();
+    assert!(close(domain, [0.0, 2.1]), "{domain:?}");
 }
 
 #[test]

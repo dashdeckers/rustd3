@@ -46,7 +46,7 @@ struct Bars<K> {
 enum Rows<K> {
     /// `bar_y`, `bar_x`: values from a held base.
     Values { rows: Vec<(K, f64)>, base: f64 },
-    /// `bar_y_spans`, `bar_x_spans`: both ends given, neither held.
+    /// `bar_y_spans`, `bar_x_spans`: both ends given, only an end at 0 held.
     Spans(Vec<(K, [f64; 2])>),
 }
 
@@ -113,8 +113,9 @@ where
 }
 
 /// One vertical bar from y0 to y1 per row `(x, [y0, y1])`:
-/// `shape::stack`'s spans plug in directly. Both ends enter fitting,
-/// neither is held.
+/// `shape::stack`'s spans plug in directly. Both ends enter fitting; an
+/// end exactly 0 is held (matplotlib's sticky edge), so stacked bars stand
+/// on the axis, and no other end is.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -143,7 +144,7 @@ where
 }
 
 /// One horizontal bar from x0 to x1 per row `([x0, x1], y)`. Both ends
-/// enter fitting, neither is held.
+/// enter fitting; an end exactly 0 is held, and no other end is.
 pub fn bar_x_spans<X, Y>(
     rows: impl IntoIterator<Item = ([f64; 2], <Y as Kind>::Domain)>,
     x: ScaleRef<X>,
@@ -182,7 +183,7 @@ impl<K> Bars<K> {
     }
 
     /// Fits the keys on `key` and both ends on `value`, holding the base of
-    /// rows from a base.
+    /// rows from a base and 0 when a span ends exactly there.
     fn fit<S: Position<Domain = K>, V: Position<Domain = f64>>(
         &self,
         key: ScaleRef<S>,
@@ -195,9 +196,16 @@ impl<K> Bars<K> {
                 fits.add(value, &v);
             }
         }
-        if let Rows::Values { base, .. } = self.rows {
-            fits.add(value, &base);
-            fits.stick(value, base);
+        match &self.rows {
+            Rows::Values { base, .. } => {
+                fits.add(value, base);
+                fits.stick(value, *base);
+            }
+            Rows::Spans(rows) => {
+                if rows.iter().flat_map(|(_, span)| span).any(|v| *v == 0.0) {
+                    fits.stick(value, 0.0);
+                }
+            }
         }
         self.color.hatched(self.hatch.as_ref(), fits);
     }
