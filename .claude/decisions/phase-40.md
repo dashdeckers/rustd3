@@ -75,7 +75,7 @@ background's text color); the `Plot` example on tiny-skia at 2×.
 
 ## D40.1 — Include entries without a leading slash match files at any depth
 
-**Date:** 2026-10-28 · **Context:** Phase 40, step 1, 71442c3 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 40, step 1, 71442c3 · **Status:** decided
 
 ### Issue
 
@@ -104,6 +104,11 @@ The four other packages have no nested file of a listed name today, but
 | Correctness | Each entry matches one file | The other lists stay open to a future nested match | Does not work: cargo ignores `exclude` when `include` is set |
 | Fit | The table's files, one to one | Two styles | Not possible as stated |
 
+### Decision
+
+A (architect, 2026-10-28), as built in 71442c3: every plain file name in
+the five `include` lists is anchored with a leading slash.
+
 ### Recommendation
 
 A, as built in 71442c3.
@@ -115,7 +120,7 @@ release script's path check stays a backstop rather than the only guard.
 
 ## D40.2 — Details of Phase 40 as built
 
-**Date:** 2026-10-28 · **Context:** Phase 40, steps 1–5 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 40, steps 1–5 · **Status:** decided
 
 ### Issue
 
@@ -169,6 +174,10 @@ the built crates:
 | (14) | cargo 1.97.0 leaves the dry run's `.crate` files in `target/package/tmp-crate/`; the script reads the crate from there or from `target/package/`, fails when neither holds it or its lockfile, and names each lockfile it read (7a03794 fixed a first version that passed on a missing file). Exit criterion 4's command, run against `tmp-crate/`, prints 0 for all five |
 | (15) | None; categories as the section gives them |
 | (16) | Item 1 adds this session's check and that `cargo info` runs outside the repository; item 4 names the dry run's expected tail and warnings; item 9 adds updating the README's iced sections; the MSRV section is the section's text with the floors the lockfile shows |
+
+### Decision
+
+A for all sixteen (architect, 2026-10-28), as built.
 
 ### Recommendation
 
