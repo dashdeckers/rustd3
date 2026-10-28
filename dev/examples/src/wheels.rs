@@ -75,8 +75,11 @@ const DAMAGED: [Wheel; 1] = [Wheel::RL];
 const MIN_COUNT: f64 = 20.0;
 
 /// The wheel figure of `samples` in [`PALETTE`], its legend below the
-/// grid, or in a corner of FL's scatter with `inset`.
-pub fn figure(samples: &[Sample], inset: bool) -> Figure<'static> {
+/// grid, or in a corner of FL's scatter with `inset`. Every mark owns its
+/// data, so the figure borrows nothing: it is a `Figure<'static>`, or a
+/// figure of any shorter lifetime beside figures that borrow (`Figure` is
+/// invariant in its lifetime).
+pub fn figure<'a>(samples: &[Sample], inset: bool) -> Figure<'a> {
     figure_with(samples, inset, PALETTE)
 }
 
@@ -84,11 +87,11 @@ pub fn figure(samples: &[Sample], inset: bool) -> Figure<'static> {
 // The body is Part I's worked example line for line, in its vertical
 // style, so rustfmt leaves it as written.
 #[rustfmt::skip]
-pub fn figure_with(
+pub fn figure_with<'a>(
     samples: &[Sample],
     inset: bool,
     palette: [Rgb; 3],
-) -> Figure<'static> {
+) -> Figure<'a> {
     let of = |w: Wheel, s: Source| {
         samples.iter().filter(move |d| {
             d.wheel == w && d.source == s
