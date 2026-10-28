@@ -553,7 +553,7 @@ fn dash_phase_is_zero_at_the_anchor() {
         let (before, area) = on_grid(&rec, domain, origin, k, &pattern);
         let (offset, length, anchor) = anchored(&before, origin, 1.0 / k);
         let phase = (offset + length).rem_euclid(9.0);
-        assert!(phase.min(9.0 - phase) < 1e-9, "k = {k}: phase {phase}");
+        assert!(phase.min(9.0 - phase) < 1e-5, "k = {k}: phase {phase}");
         // After a pan of 37 device px the same sample is the anchor, and
         // the pattern is at 0 there again.
         let d = 37.0 / k;
@@ -574,7 +574,7 @@ fn dash_phase_is_zero_at_the_anchor() {
             (again.x - anchor.x - d).abs() < 1e-9 && again.y == anchor.y,
             "k = {k}"
         );
-        assert!(phase.min(9.0 - phase) < 1e-9, "k = {k}: phase {phase}");
+        assert!(phase.min(9.0 - phase) < 1e-5, "k = {k}: phase {phase}");
     }
     // Without a grid the pattern starts at the first point, as before.
     let mut fig = Figure::new();
@@ -591,6 +591,37 @@ fn dash_phase_is_zero_at_the_anchor() {
         panic!("a stroke");
     };
     assert_eq!(style.dash_offset, 0.0);
+    // A grown plot area without a held grid anchors on the grid from its
+    // left edge, as a widget does before a drag moves the grid.
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([50.0, 150.0]));
+    let y = fig.scale(scale::linear().domain([-1.0, 2.0]));
+    fig.panel(0, 0)
+        .mark(line(rec.series(2).expect("channel 2"), x, y).dash(pattern));
+    let offset = |held: &Held| {
+        let list = fig.draw_with(
+            &mut cache(),
+            Size::new(640.0, 400.0),
+            Target::Screen { scale: 1.0 },
+            held,
+        );
+        let Some(Command::Stroke { style, .. }) = marked(&list).into_iter().next() else {
+            panic!("a stroke");
+        };
+        style.dash_offset
+    };
+    let mut grown = Held::default();
+    grown.overscan(100.0);
+    let mut anchored = Held::default();
+    anchored.overscan(100.0).grids(vec![(
+        x.index(),
+        Grid {
+            origin: 0.0,
+            density: 1.0,
+        },
+    )]);
+    assert_ne!(offset(&grown), 0.0);
+    assert_eq!(offset(&grown), offset(&anchored));
 }
 
 #[test]

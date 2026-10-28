@@ -67,8 +67,9 @@ pub(crate) fn edges<D>(indexed: &dyn Indexed<D>, width: f64, per_px: f64) -> Opt
     )
 }
 
-/// Columns an edge on a grid is moved left by before it is inverted.
-const LEAD: f64 = 1e-6;
+/// Columns an edge on a grid is moved left by before it is inverted (and
+/// before a dash anchor's column is searched).
+pub(crate) const LEAD: f64 = 1e-6;
 
 /// The column edges on `grid` of every column that intersects the view
 /// `[lo, hi]` (list px along the plot area): edge `c` at `indexed`'s

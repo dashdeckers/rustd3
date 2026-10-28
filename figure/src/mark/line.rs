@@ -227,18 +227,33 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     }
 }
 
+/// List px past the anchor at which [`phase`] puts the pattern's phase 0.
+///
+/// A dash starting exactly on the anchor, a vertex, would start an ulp
+/// either side of it depending on how the arc length rounds, which
+/// differs between two draws of a pan: an ulp before it, the dash holds a
+/// sliver of the segment before and joins it, so the corner gains a wedge
+/// (up to 17/255 at the seam of two tiles, measured). A millionth of a px
+/// past it, far above the rounding, every draw starts the dash on the
+/// segment after.
+const PAST: f64 = 1e-6;
+
 /// The dash offset that puts the phase of `pattern` at 0 on the first of
 /// `items` (runs of points broken by `None`, as the line draws them) that
 /// lies in the column of `grid` holding its origin, `[origin, origin + 1 /
-/// density)` across: the arc length from the start of that point's run,
-/// negated, modulo the pattern's length, as each run starts the pattern
-/// afresh at the offset. 0 without a pattern or such a point.
+/// density)` across, both edges a millionth of a column to the left as
+/// thinning takes them ([`thin::LEAD`]: a sample on the origin, which a pan
+/// can place an ulp either side of it, stays in the column), [`PAST`]
+/// after it: the arc length from the start of that point's run and
+/// `PAST`, negated, modulo the pattern's length, as each run starts the
+/// pattern afresh at the offset. 0 without a pattern or such a point.
 fn phase(items: &[Option<Point>], grid: thin::Grid, pattern: &[f64]) -> f64 {
     let period: f64 = pattern.iter().sum();
     if period <= 0.0 || !period.is_finite() {
         return 0.0;
     }
-    let column = grid.origin..grid.origin + 1.0 / grid.density;
+    let lead = thin::LEAD / grid.density;
+    let column = grid.origin - lead..grid.origin + 1.0 / grid.density - lead;
     let mut length = 0.0;
     let mut previous: Option<Point> = None;
     for item in items {
@@ -251,7 +266,7 @@ fn phase(items: &[Option<Point>], grid: thin::Grid, pattern: &[f64]) -> f64 {
             None => 0.0,
         };
         if column.contains(&p.x) {
-            return (-length).rem_euclid(period);
+            return (-length - PAST).rem_euclid(period);
         }
         previous = Some(p);
     }
@@ -283,12 +298,29 @@ mod tests {
             p(7.0, 0.0),
             p(10.5, 0.0),
         ];
-        assert_eq!(phase(&items, grid, &[3.0, 1.0]), 1.5);
+        assert!((phase(&items, grid, &[3.0, 1.0]) - 1.5).abs() < 1e-5);
         assert_eq!(phase(&items, grid, &[]), 0.0);
         let elsewhere = Grid {
             origin: 50.0,
             density: 1.0,
         };
         assert_eq!(phase(&items, elsewhere, &[3.0, 1.0]), 0.0);
+    }
+
+    #[test]
+    fn a_point_an_ulp_left_of_the_origin_anchors() {
+        let grid = Grid {
+            origin: 10.0,
+            density: 1.0,
+        };
+        let p = |x: f64| Some(Point::new(x, 0.0));
+        // A pan can put the sample on the origin either side of it; both
+        // anchor, and the column's right edge leads too.
+        let left = [p(0.0), p(10.0 - 1e-12), p(10.5)];
+        let right = [p(0.0), p(10.0 + 1e-12), p(10.5)];
+        assert!((phase(&left, grid, &[3.0, 1.0]) - 2.0).abs() < 1e-5);
+        assert!((phase(&right, grid, &[3.0, 1.0]) - 2.0).abs() < 1e-5);
+        let past = [p(0.0), p(11.0 - 1e-12)];
+        assert_eq!(phase(&past, grid, &[3.0, 1.0]), 0.0);
     }
 }

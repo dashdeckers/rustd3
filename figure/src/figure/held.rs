@@ -71,8 +71,10 @@ impl Held {
     /// x handle has one thins on its columns instead of columns from its
     /// plot area's left edge at the target's density, and a dashed one
     /// sets its dash offset so that the pattern's phase is 0 at the first
-    /// sample of the column containing the grid's origin, measured along
-    /// the emitted polyline. Replaces the grids set before.
+    /// sample of the column containing the grid's origin (a millionth of a
+    /// px past it, so that rounding cannot start the dash on the segment
+    /// before), measured along the emitted polyline. Replaces the grids set
+    /// before.
     pub fn grids(&mut self, grids: Vec<(usize, thin::Grid)>) -> &mut Held {
         self.grids = grids.into_iter().collect();
         self
@@ -88,7 +90,9 @@ impl Held {
     /// plot-area tile jobs (additive): its background and grid lines cover
     /// the grown area, its marks are clipped to it and draw the data there
     /// (lines thin the columns of the grown view and keep one sample
-    /// beyond it), so tiles around the view show what a pan brings in. The
+    /// beyond it; without a grid of their own they thin and anchor dashes
+    /// on the grid from the plot area's left edge at the target's
+    /// density), so tiles around the view show what a pan brings in. The
     /// rest of the figure draws as it would without; a width that is not
     /// finite and positive extends nothing.
     pub fn overscan(&mut self, px: f64) -> &mut Held {
