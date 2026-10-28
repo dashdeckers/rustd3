@@ -1,8 +1,10 @@
 //! rustd3-examples' tests: the core-level use cases driven headlessly
-//! through `iced_test`'s simulator, on `ICED_TEST_BACKEND`'s renderer.
+//! through `iced_test`'s simulator, on `ICED_TEST_BACKEND`'s renderer, and
+//! the wheel figure.
 
 mod focus_context;
 mod update_pattern;
+mod wheels;
 
 use iced::Settings;
 use iced::advanced::renderer::{self, Headless as _};
