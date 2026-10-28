@@ -1,7 +1,7 @@
 //! [`Indexed`]: series data through generic marks, and [`SeriesExtent`],
 //! what it reads from a recording.
 
-use rustd3_core::series::{Points, m4};
+use rustd3_core::series::{Coordinate, Points, m4};
 
 use crate::thin;
 
@@ -51,4 +51,51 @@ pub struct SeriesExtent<D> {
     pub x: [D; 2],
     /// The y extremes; `None` when no sample is valid.
     pub y: Option<[f64; 2]>,
+}
+
+/// [`Indexed::series_extent`] for any coordinate: the samples of `points`
+/// whose x lies in `[low, high]` when `x` holds `(low, past)` with `past`
+/// the first x beyond `high` (`None` past the coordinate's last value),
+/// every sample for `None`.
+pub(crate) fn extent<X: Coordinate>(
+    points: &Points<'_, X, f64>,
+    x: Option<(X, Option<X>)>,
+    valid: &dyn Fn(f64) -> bool,
+) -> Option<SeriesExtent<X>> {
+    let series = points.series()?;
+    let recording = series.recording();
+    let samples = match x {
+        None => 0..series.len(),
+        Some((low, past)) => {
+            let end = past.map_or(series.len(), |past| recording.locate(past));
+            recording.locate(low)..end
+        }
+    };
+    let last = samples.end.checked_sub(1)?;
+    let x = [recording.x(samples.start)?, recording.x(last)?];
+    let y = series
+        .extremes(samples, valid)
+        .map(|e| [e.min().1, e.max().1]);
+    Some(SeriesExtent { x, y })
+}
+
+/// [`Indexed::thin`] for any coordinate: the edges put in increasing
+/// order, their grid keyed by `bits` of each edge.
+pub(crate) fn thin<X: Coordinate, B: IntoIterator<Item = u64>>(
+    points: &Points<'_, X, f64>,
+    edges: &[X],
+    bits: impl Fn(&X) -> B,
+    valid: &dyn Fn(f64) -> bool,
+    frame: &mut thin::Frame,
+) -> Option<m4::Lines> {
+    let series = points.series()?;
+    let reversed: Vec<X>;
+    let edges = if edges.first() > edges.last() {
+        reversed = edges.iter().rev().copied().collect();
+        &reversed
+    } else {
+        edges
+    };
+    let grid = thin::grid(edges.iter().flat_map(bits));
+    frame.lines(series, edges, grid, valid)
 }

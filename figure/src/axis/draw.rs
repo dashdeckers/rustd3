@@ -1,10 +1,13 @@
 //! [`Draw`]: an axis with its scale type erased, as a panel holds it.
 
+use std::any::Any;
 use std::collections::HashMap;
 
 use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
+use rustd3_core::jiff::Timestamp;
 use rustd3_core::scale::Ticks;
+use rustd3_core::time::Time;
 
 use crate::axis::{Axis, across};
 use crate::figure::Resolved;
@@ -49,8 +52,10 @@ pub(crate) trait Draw<'a>: 'a {
     /// Each of about `count` ticks' absolute index, aligned with
     /// [`texts`](Draw::texts), which the stride of the collision pass counts
     /// from: the value over d3's tick step when the ticks are evenly spaced
-    /// on that grid; the key's position in the domain for band and point
-    /// scales; the position in the set otherwise (log ticks).
+    /// on that grid; for a time scale, the units of its tick interval from
+    /// the Unix epoch floored in its zone; the key's position in the domain
+    /// for band and point scales; the position in the set otherwise (log
+    /// ticks).
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64>;
 
     /// The offset or multiplier label of about `count` ticks
@@ -117,6 +122,15 @@ where
 
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64> {
         let scale = resolved.scale(self.scale);
+        if let Some(time) = scale.as_any().downcast_ref::<Time>() {
+            let set = self.set(scale, count);
+            let instants = set.values().iter().map(|v| (v as &dyn Any).downcast_ref());
+            let instants: Option<Vec<Timestamp>> =
+                instants.map(Option::<&Timestamp>::copied).collect();
+            if let Some(indices) = instants.and_then(|t| intervals(time, &t, count)) {
+                return indices;
+            }
+        }
         let numbers = self.numbers(scale, count);
         if let Some(grid) = numbers
             .as_ref()
@@ -159,4 +173,19 @@ where
     fn title(&self) -> Option<&text::Text> {
         self.label.as_ref()
     }
+}
+
+/// Each of `instants`' count of units of `time`'s tick interval for about
+/// `count` ticks from the Unix epoch floored to that interval in the
+/// scale's zone (Phase 27's `Interval::count`, the step ignored), so the
+/// kept labels stay on the same instants while a time axis pans; `None`
+/// when a boundary or count leaves jiff's range or `i64`.
+fn intervals(time: &Time, instants: &[Timestamp], count: usize) -> Option<Vec<i64>> {
+    let interval = time.tick_interval(count);
+    let zone = time.get_zone();
+    let epoch = interval.floor(Timestamp::UNIX_EPOCH, zone)?;
+    instants
+        .iter()
+        .map(|&t| interval.count(epoch, t, zone))
+        .collect()
 }

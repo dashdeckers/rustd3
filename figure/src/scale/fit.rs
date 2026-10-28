@@ -15,8 +15,11 @@ pub enum Fit<Span> {
     /// columns, so the thinning columns of one update are the last ones
     /// shifted by a whole count and a streaming line does not shimmer. The
     /// columns line up on linear scales; on others the window spans `span`
-    /// in data units all the same. Recordings on different clocks share
-    /// one `last`, their newest x of all.
+    /// in data units all the same. A time handle's span is a
+    /// `SignedDuration` and its columns whole nanoseconds (`span / w`
+    /// rounded), counted from the Unix epoch, so the window spans `w`
+    /// columns exactly, within `w / 2` ns of `span`. Recordings on
+    /// different clocks share one `last`, their newest x of all.
     ///
     /// A panel narrower than the widest one using the handle gets columns
     /// that are not whole device pixels: its pixels are right, only its
@@ -32,6 +35,7 @@ pub enum Fit<Span> {
     /// whose span is `()`.
     Window(Span),
     /// y fitted to the data inside its x handles' resolved domains, held
-    /// still by steps of one eighth of its span; as `All` on an x handle.
+    /// still by steps of one eighth of its span (whole nanoseconds on a
+    /// time handle); as `All` on an x handle.
     Visible,
 }

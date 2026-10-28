@@ -21,7 +21,7 @@ use rustd3_core::locale::Locale;
 use crate::layout::{Cell, Grid};
 use crate::legend::{self, Legend, Slot};
 use crate::panel::Panel;
-use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef};
+use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef, window};
 use crate::text::Text;
 use crate::theme::Theme;
 
@@ -75,12 +75,12 @@ pub struct Figure<'a> {
 
 /// One scale of the table, how to fit it when it is fitted, whether to
 /// what its panels' x shows (`Fit::Visible`), and the span of x it shows
-/// when it is a window (`Fit::Window`).
+/// when it is a window (`Fit::Window`): its `Kind::Span`, boxed.
 struct Entry {
     scale: Box<dyn Scale>,
     fitter: Option<fits::Fitter>,
     visible: bool,
-    window: Option<f64>,
+    window: Option<Box<dyn Any>>,
 }
 
 impl Default for Figure<'_> {
@@ -171,14 +171,14 @@ impl<'a> Figure<'a> {
         );
         let visible = matches!(fit, Fit::Visible);
         let window = match fit {
-            Fit::Window(span) => (&span as &dyn Any).downcast_ref::<f64>().copied(),
+            Fit::Window(span) => window::span(span),
             Fit::All | Fit::Visible => None,
         };
         self.add(Entry {
             scale: Box::new(s),
             fitter: Some(fits::Fitter::of::<S>()),
             visible,
-            window: window.filter(|span| span.is_finite() && *span > 0.0),
+            window,
         })
     }
 

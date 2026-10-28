@@ -1,9 +1,65 @@
-//! `Fit::Window`'s quantization, and [`Memory`]: the column counts the
-//! last resolve laid each windowed handle out in, from which the next one
+//! `Fit::Window`'s quantization, in `f64` for numbers and in `i128`
+//! nanoseconds for instants, and [`Memory`]: the column counts the last
+//! resolve laid each windowed handle out in, from which the next one
 //! starts.
 
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
+
+use rustd3_core::jiff::{SignedDuration, Timestamp};
+
+use crate::scale::visible::instant;
+
+/// `span` as a window's span, boxed: an `f64` that is finite and
+/// positive, or a positive `SignedDuration`; `None` for any other (a
+/// categorical scale's `()`).
+pub(crate) fn span<S: Copy + 'static>(span: S) -> Option<Box<dyn Any>> {
+    let any = &span as &dyn Any;
+    if let Some(&number) = any.downcast_ref::<f64>() {
+        return (number.is_finite() && number > 0.0).then(|| Box::new(number) as Box<dyn Any>);
+    }
+    let duration = *any.downcast_ref::<SignedDuration>()?;
+    duration
+        .is_positive()
+        .then(|| Box::new(duration) as Box<dyn Any>)
+}
+
+/// The window of span `span` ending at `last`, `columns` columns wide, as
+/// `[D; 2]` boxed: [`ends`] for numbers, [`instants`] for a
+/// `SignedDuration` after a `Timestamp`; `None` for other types and where
+/// those give none.
+pub(crate) fn shown(last: &dyn Any, span: &dyn Any, columns: u32) -> Option<Box<dyn Any>> {
+    if let (Some(&last), Some(&span)) = (last.downcast_ref::<f64>(), span.downcast_ref::<f64>()) {
+        return ends(last, span, columns).map(|e| Box::new(e) as Box<dyn Any>);
+    }
+    let last = *last.downcast_ref::<Timestamp>()?;
+    let span = *span.downcast_ref::<SignedDuration>()?;
+    instants(last, span, columns).map(|e| Box::new(e) as Box<dyn Any>)
+}
+
+/// [`ends`] in `i128` nanoseconds: each column is `span / columns`
+/// rounded to whole nanoseconds, `right` the first multiple of it from the
+/// epoch at or past `last`, and `left` lies `columns` columns before it,
+/// so appends move the window by whole columns and the columns' edges
+/// repeat exactly. `None` when `span` is not positive, `columns` is 0, a
+/// column rounds to no nanosecond or an end leaves jiff's range.
+pub(crate) fn instants(
+    last: Timestamp,
+    span: SignedDuration,
+    columns: u32,
+) -> Option<[Timestamp; 2]> {
+    let span = span.as_nanos();
+    let columns = i128::from(columns);
+    if span <= 0 || columns == 0 {
+        return None;
+    }
+    let col = (span + columns / 2) / columns;
+    if col == 0 {
+        return None;
+    }
+    let right = -(-last.as_nanosecond()).div_euclid(col) * col;
+    Some([instant(right - columns * col)?, instant(right)?])
+}
 
 /// The newest `span` of x ending at `last` in a plot area `columns` device
 /// columns wide, `[left, right]`: with `col = span / columns`, `right` is
@@ -74,6 +130,43 @@ mod tests {
         assert_eq!(ends(1.0, f64::NAN, 100), None);
         assert_eq!(ends(1.0, 10.0, 0), None);
         assert_eq!(ends(f64::INFINITY, 10.0, 100), None);
+    }
+
+    #[test]
+    fn a_time_window_ends_at_the_first_whole_column_in_nanoseconds() {
+        let at = |s: &str| s.parse::<Timestamp>().expect("an instant");
+        let ten = SignedDuration::from_secs(10);
+        // Columns of 10 ms: 12:00:03.456789 rounds up to .46.
+        let window = instants(at("2026-10-25T12:00:03.456789Z"), ten, 1000);
+        let expected = [at("2026-10-25T11:59:53.46Z"), at("2026-10-25T12:00:03.46Z")];
+        assert_eq!(window, Some(expected));
+        let on = instants(at("2026-10-25T12:00:03.46Z"), ten, 1000);
+        assert_eq!(on, Some(expected));
+        // 1 s over 3 columns: 333,333,333 ns each, the span 1 ns short.
+        let [left, right] = instants(at("2026-10-25T12:00:00Z"), SignedDuration::from_secs(1), 3)
+            .expect("a window");
+        assert_eq!(right.duration_since(left).as_nanos(), 999_999_999);
+        assert_eq!(right.as_nanosecond() % 333_333_333, 0);
+        assert_eq!(
+            instants(at("2026-10-25T12:00:00Z"), SignedDuration::from_nanos(1), 3),
+            None
+        );
+        assert_eq!(instants(at("2026-10-25T12:00:00Z"), -ten, 3), None);
+        assert_eq!(instants(Timestamp::MAX, ten, 1000), None);
+    }
+
+    #[test]
+    fn spans_of_numbers_and_durations_are_kept_when_positive() {
+        let number = span(5.0).and_then(|s| s.downcast_ref::<f64>().copied());
+        assert_eq!(number, Some(5.0));
+        assert!(span(0.0).is_none() && span(f64::NAN).is_none() && span(()).is_none());
+        assert!(span(SignedDuration::from_secs(60)).is_some());
+        assert!(span(SignedDuration::ZERO).is_none());
+        let last = Timestamp::UNIX_EPOCH;
+        let shown = shown(&last, &SignedDuration::from_secs(10), 10).expect("a window");
+        let ends = shown.downcast_ref::<[Timestamp; 2]>().expect("instants");
+        assert_eq!(ends[1], last);
+        assert!(super::shown(&1.0, &SignedDuration::from_secs(1), 10).is_none());
     }
 
     #[test]

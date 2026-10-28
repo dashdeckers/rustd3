@@ -94,22 +94,23 @@ fn a_user_format_is_not_localized() {
     assert_eq!(own, ["-1.0", "-0.5", "0.0", "0.5", "1.0"]);
 }
 
-/// Through core's axis until the figure takes time handles (Phase 33;
-/// D32.1): the same labels a figure's default time format writes.
+/// A figure time handle labels through the time half of the figure
+/// locale: DE_DE keeps the ISO ladder, as the neutral default does.
 #[test]
 fn time_axes_keep_the_iso_ladder_under_de_de() {
     let berlin = rustd3_testkit::zone("Europe/Berlin");
     let day: [Timestamp; 2] =
         ["2026-10-24T22:00:00Z", "2026-10-25T23:00:00Z"].map(|s| s.parse().expect("an instant"));
-    let x = time::time(berlin).domain(day).range([0.0, 800.0]);
-    assert_eq!(x.tick_interval(8), time::Interval::Hour(3));
     let ladder = [
         "10-25", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00", "10-26",
     ];
     for locale in [Locale::default(), Locale::DE_DE] {
-        let a = rustd3_core::axis::bottom(&x).ticks(8).locale(locale);
-        let texts: Vec<String> = a.labels().iter().map(|l| l.text().to_owned()).collect();
-        assert_eq!(texts, ladder);
+        let mut fig = Figure::new();
+        let x = fig.scale(time::time(berlin.clone()).domain(day));
+        fig.locale(locale)
+            .panel(0, 0)
+            .axis(axis::bottom(x).ticks(8));
+        assert_eq!(labels(&fig), ladder);
     }
 }
 

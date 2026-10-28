@@ -2,8 +2,8 @@
 //! table, which delegates gestures to core's `Rescale`; [`ScaleRef`], the
 //! typed handle marks and axes hold; and typed capability traits for them ([`Kind`], [`Position`],
 //! [`Paint`], [`Fittable`], [`Invert`], [`Indexed`]), implemented for
-//! core's continuous scales with an `f64` range and for its band, point and
-//! ordinal color scales.
+//! core's continuous scales with an `f64` range, its time scales, and its
+//! band, point and ordinal color scales.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -29,6 +29,7 @@ mod ordinal;
 mod paint;
 mod point;
 mod position;
+mod time;
 pub(crate) mod visible;
 pub(crate) mod window;
 

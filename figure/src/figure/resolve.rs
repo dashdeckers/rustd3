@@ -2,10 +2,12 @@
 //! gesture, labels measured through the text cache, and the grid laid out
 //! in passes.
 
+use std::any::Any;
+
 use crate::figure::fits::{Fits, Reports};
 use crate::figure::{Cache, Entry, Figure, Held, Resolved};
 use crate::layout::{self, Layout};
-use crate::scale::{Scale, visible, window};
+use crate::scale::{Scale, visible};
 use crate::target::Target;
 use crate::text::Key;
 
@@ -20,7 +22,7 @@ const ROUNDS: usize = 3;
 /// `Fit::Visible` handle to settle; and the labels the marks draw.
 struct Fitted {
     scales: Vec<Box<dyn Scale>>,
-    last: Vec<Option<f64>>,
+    last: Vec<Option<Box<dyn Any>>>,
     across: Vec<Vec<usize>>,
     pending: Vec<bool>,
     labels: Vec<Key>,
@@ -192,7 +194,7 @@ impl Figure<'_> {
             })
             .collect();
         let reports = self.report(Fits::new(self.id, slots, built, self.theme.clone()));
-        let mut last = vec![None; self.scales.len()];
+        let mut last: Vec<Option<Box<dyn Any>>> = self.scales.iter().map(|_| None).collect();
         let scales = self
             .scales
             .iter()
@@ -233,14 +235,15 @@ impl Figure<'_> {
     ) -> Vec<Box<dyn Scale>> {
         let mut scales: Vec<Box<dyn Scale>> = fitted.scales.iter().map(|s| s.boxed()).collect();
         for (i, entry) in self.scales.iter().enumerate() {
-            let (Some(span), Some(last), Some(&Some(count)), Some(fitter)) =
-                (entry.window, fitted.last[i], columns.get(i), entry.fitter)
-            else {
+            let (Some(span), Some(last), Some(&Some(count)), Some(fitter)) = (
+                entry.window.as_deref(),
+                fitted.last[i].as_deref(),
+                columns.get(i),
+                entry.fitter,
+            ) else {
                 continue;
             };
-            let shown =
-                window::ends(last, span, count).and_then(|ends| fitter.window(&*entry.scale, ends));
-            if let Some(shown) = shown {
+            if let Some(shown) = fitter.window(&*entry.scale, last, span, count) {
                 scales[i] = shown;
             }
         }

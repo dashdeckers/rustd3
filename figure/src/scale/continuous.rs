@@ -8,7 +8,7 @@ use rustd3_core::interact::Rescale;
 use rustd3_core::scale::{self, Continuous, Pad};
 use rustd3_core::series::{Points, m4};
 
-use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, stops};
+use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stops};
 use crate::thin;
 
 /// A piecewise scale's inner stops keep their share of the way between its
@@ -90,21 +90,11 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
         x: Option<[f64; 2]>,
         valid: &dyn Fn(f64) -> bool,
     ) -> Option<SeriesExtent<f64>> {
-        let series = points.series()?;
-        let recording = series.recording();
-        let samples = match x {
-            None => 0..series.len(),
-            Some([a, b]) => {
-                let (low, high) = if b < a { (b, a) } else { (a, b) };
-                recording.locate(low)..recording.locate(high.next_up())
-            }
-        };
-        let last = samples.end.checked_sub(1)?;
-        let x = [recording.x(samples.start)?, recording.x(last)?];
-        let y = series
-            .extremes(samples, valid)
-            .map(|e| [e.min().1, e.max().1]);
-        Some(SeriesExtent { x, y })
+        let x = x.map(|[a, b]| {
+            let (low, high) = if b < a { (b, a) } else { (a, b) };
+            (low, Some(high.next_up()))
+        });
+        indexed::extent(points, x, valid)
     }
 
     fn thin(
@@ -114,16 +104,7 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
         valid: &dyn Fn(f64) -> bool,
         frame: &mut thin::Frame,
     ) -> Option<m4::Lines> {
-        let series = points.series()?;
-        let reversed: Vec<f64>;
-        let edges = if edges.first() > edges.last() {
-            reversed = edges.iter().rev().copied().collect();
-            &reversed
-        } else {
-            edges
-        };
-        let grid = thin::grid(edges.iter().map(|e| e.to_bits()));
-        frame.lines(series, edges, grid, valid)
+        indexed::thin(points, edges, |e| [e.to_bits()], valid, frame)
     }
 }
 

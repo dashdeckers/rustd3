@@ -4,7 +4,7 @@
 use std::any::{Any, TypeId};
 
 use crate::figure;
-use crate::scale::{Kind, Position, Scale, ScaleRef, visible};
+use crate::scale::{Kind, Position, Scale, ScaleRef, visible, window};
 use crate::text::Key;
 use crate::theme::Theme;
 
@@ -63,17 +63,15 @@ pub(super) struct Fitter {
     /// The scale of a filled slot of a `Fit::Visible` handle, fitted with
     /// a margin and stepped from what the memory holds for its index.
     settle: Settle,
-    /// The largest value a filled slot's extent holds, when the domain is
-    /// `f64`.
-    last: fn(&dyn Any) -> Option<f64>,
-    /// The scale as built showing exactly `ends`, when its domain is `f64`
-    /// and it admits both.
+    /// The largest value a filled slot's extent holds, boxed.
+    last: fn(&dyn Any) -> Option<Box<dyn Any>>,
+    /// The scale as built showing a window.
     window: Window,
 }
 
-/// [`Fitter::window`]'s function: the scale as built and the window's
-/// ends.
-type Window = fn(&dyn Scale, [f64; 2]) -> Option<Box<dyn Scale>>;
+/// [`Fitter::window`]'s function: the scale as built, the last value its
+/// marks admit, the window's span and its column count.
+type Window = fn(&dyn Scale, &dyn Any, &dyn Any, u32) -> Option<Box<dyn Scale>>;
 
 /// [`Fitter::settle`]'s function: a slot, the margin, the memory and the
 /// entry's index.
@@ -91,21 +89,29 @@ impl Fitter {
         }
     }
 
-    /// The largest value `slot`, a filled slot of this fitter's, holds
-    /// when the domain is `f64`: a window's last x.
-    pub(super) fn last(self, slot: &dyn Any) -> Option<f64> {
+    /// The largest value `slot`, a filled slot of this fitter's, holds,
+    /// boxed: a window's last x.
+    pub(super) fn last(self, slot: &dyn Any) -> Option<Box<dyn Any>> {
         (self.last)(slot)
     }
 
-    /// `scale`, this fitter's type as built, showing exactly `ends` (no
-    /// margin), when its domain is `f64` and it admits both ends.
-    pub(super) fn window(self, scale: &dyn Scale, ends: [f64; 2]) -> Option<Box<dyn Scale>> {
-        (self.window)(scale, ends)
+    /// `scale`, this fitter's type as built, showing exactly the newest
+    /// `span` up to `last` in `columns` whole columns
+    /// ([`window::shown`]), with no margin; `None` when the domain is
+    /// neither numbers nor instants or the scale does not admit both ends.
+    pub(super) fn window(
+        self,
+        scale: &dyn Scale,
+        last: &dyn Any,
+        span: &dyn Any,
+        columns: u32,
+    ) -> Option<Box<dyn Scale>> {
+        (self.window)(scale, last, span, columns)
     }
 
     /// The scale of `slot`, entry `index`'s, fitted with `margin` as a
     /// `Fit::Visible` handle through `memory`: [`visible::Memory::settle`]
-    /// for a numeric domain, the last domain when no value is in view.
+    /// for numbers and instants, the last domain when no value is in view.
     pub(super) fn settle(
         self,
         slot: Box<dyn Any>,
@@ -267,8 +273,8 @@ fn start<S: Kind>(scale: &dyn Scale) -> Box<dyn Any> {
 
 /// The scale of `slot`, a `Slot<S>` of entry `index`, fitted to its extent
 /// and sticky values with `margin`, then stepped from the domain `memory`
-/// last gave it, when its domain is numeric; with nothing in view, the
-/// domain `memory` last gave it, if any.
+/// last gave it, when its domain is numbers or instants; with nothing in
+/// view, the domain `memory` last gave it, if any.
 fn settle<S: Kind>(
     slot: Box<dyn Any>,
     margin: f64,
@@ -281,48 +287,52 @@ fn settle<S: Kind>(
     let key = (index, TypeId::of::<S>());
     let fitted = match slot.extent.as_ref() {
         Some(extent) => slot.scale.fitted(Some(extent), &slot.sticky, margin),
-        None => match memory.last(key).and_then(ends::<S>) {
+        None => match memory
+            .last(key)
+            .and_then(visible::Domain::ends::<S::Domain>)
+        {
             Some(last) => return Box::new(slot.scale.fitted(Some(&last), &[], 0.0)),
             None => return Box::new(slot.scale.fitted(None, &slot.sticky, margin)),
         },
     };
-    let padded = Kind::domain(&fitted).and_then(|d| (&d as &dyn Any).downcast_ref().copied());
+    let padded = Kind::domain(&fitted).and_then(|d| visible::Domain::of(&d));
     let Some(padded) = padded else {
         return Box::new(fitted);
     };
-    match ends::<S>(memory.settle(key, padded)) {
+    match memory.settle(key, padded).ends::<S::Domain>() {
         Some(settled) => Box::new(slot.scale.fitted(Some(&settled), &[], 0.0)),
         None => Box::new(fitted),
     }
 }
 
-/// The upper end of `slot`'s extent, a `Slot<S>`'s, when its domain is
-/// `f64`.
-fn last<S: Kind>(slot: &dyn Any) -> Option<f64> {
+/// The upper end of `slot`'s extent, a `Slot<S>`'s, boxed.
+fn last<S: Kind>(slot: &dyn Any) -> Option<Box<dyn Any>> {
     let slot = slot
         .downcast_ref::<Slot<S>>()
         .expect("invariant: an entry's slot is made by its fitter");
     let [_, high] = slot.extent.as_ref()?;
-    (high as &dyn Any).downcast_ref().copied()
+    Some(Box::new(high.clone()))
 }
 
-/// `scale`, an `S`, showing exactly `ends` when its domain is `f64` and it
-/// admits both.
-fn window<S: Kind>(scale: &dyn Scale, ends: [f64; 2]) -> Option<Box<dyn Scale>> {
+/// `scale`, an `S`, showing exactly the window of `span` up to `last` in
+/// `columns` columns, when its domain is numbers or instants and it
+/// admits both ends.
+fn window<S: Kind>(
+    scale: &dyn Scale,
+    last: &dyn Any,
+    span: &dyn Any,
+    columns: u32,
+) -> Option<Box<dyn Scale>> {
     let scale = scale
         .as_any()
         .downcast_ref::<S>()
         .expect("invariant: an entry's fitter is made for its scale's type");
-    let ends = self::ends::<S>(ends)?;
+    let shown = window::shown(last, span, columns)?;
+    let ends = shown.downcast_ref::<[S::Domain; 2]>()?;
     if !ends.iter().all(|v| scale.admits(v)) {
         return None;
     }
-    Some(Box::new(scale.fitted(Some(&ends), &[], 0.0)))
-}
-
-/// `[a, b]` as the ends of an `S` domain, when its domain is `f64`.
-fn ends<S: Kind>(ends: [f64; 2]) -> Option<[S::Domain; 2]> {
-    (&ends as &dyn Any).downcast_ref().cloned()
+    Some(Box::new(scale.fitted(Some(ends), &[], 0.0)))
 }
 
 /// The scale of `slot`, a `Slot<S>`, fitted to its extent and sticky
