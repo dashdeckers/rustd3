@@ -254,8 +254,10 @@ impl Layout {
                         .map(|(a, (labels, plan))| {
                             let length = length(a.orient(), *area);
                             let positions = a.positions(resolved, length, plan.count);
+                            let minors = a.minors(resolved, length, plan.count);
                             let mut placed =
                                 Placed::new(labels, plan, positions, *area, text, theme);
+                            placed.minors = minors;
                             placed.above = *above;
                             placed
                         })

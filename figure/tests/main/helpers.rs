@@ -2,6 +2,7 @@
 //! and scipy (`dev/fixtures/stats.json`, written by `stats.py`) through the
 //! tolerant `Obs` compare, and its charts and grids as figures.
 
+mod axes;
 mod boxplot;
 mod ecdf;
 mod errorbar;

@@ -93,6 +93,7 @@ pub struct Axis<'a, S: Kind> {
     outward: Option<f64>,
     labels: Option<bool>,
     offset: bool,
+    minor: bool,
     rotate: f64,
     tint: Option<Tint<'a>>,
 }
@@ -109,6 +110,7 @@ impl<S: Kind> Clone for Axis<'_, S> {
             outward: self.outward,
             labels: self.labels,
             offset: self.offset,
+            minor: self.minor,
             rotate: self.rotate,
             tint: self.tint.clone(),
         }
@@ -235,6 +237,25 @@ impl<'a, S: Kind> Axis<'a, S> {
         Axis { offset: on, ..self }
     }
 
+    /// With or without minor ticks, off by default: core's
+    /// [`Ticks::minor`] values for the axis's ticks (fifths of a step on
+    /// linear axes, 2–9 of each decade on log and symlog ones, none on
+    /// band, point and time axes), drawn at the theme's minor tick size and
+    /// width (4 pt and 1 pt at notebook) in the styles that draw tick
+    /// marks, without labels or grid lines.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::{Figure, axis};
+    ///
+    /// let mut fig = Figure::new();
+    /// let y = fig.fit(scale::log());
+    /// fig.panel(0, 0).axis(axis::left(y).minor(true));
+    /// ```
+    pub fn minor(self, on: bool) -> Self {
+        Axis { minor: on, ..self }
+    }
+
     /// Rotates tick labels counter-clockwise by `deg` (matplotlib's sign).
     /// Labels anchor at their end for positive angles on bottom axes
     /// (matplotlib's `autofmt_xdate`: 30°, `ha="right"`), at their start
@@ -336,6 +357,7 @@ fn new<'a, S: Kind>(orient: Orient, h: ScaleRef<S>) -> Axis<'a, S> {
         outward: None,
         labels: None,
         offset: true,
+        minor: false,
         rotate: 0.0,
         tint: None,
     }

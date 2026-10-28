@@ -29,6 +29,8 @@ pub(crate) struct Placed {
     pub(crate) boxes: Vec<Option<Obb>>,
     /// Which tick labels are drawn.
     pub(crate) keep: Vec<bool>,
+    /// Its minor ticks' positions along the plot area (`Axis::minor`).
+    pub(crate) minors: Vec<f64>,
     /// How far above the plot area a vertical axis's offset or multiplier
     /// label sits, a tick pad below its bottom: the panel's top reach
     /// without those labels.
@@ -55,6 +57,7 @@ impl Placed {
             positions,
             boxes: Vec::new(),
             keep: Vec::new(),
+            minors: Vec::new(),
             above: 0.0,
         };
         placed.boxes = placed.measure(area, text, theme);
@@ -120,9 +123,9 @@ impl Placed {
     }
 
     /// Appends the axis's tick marks beside plot area `area` to `list`:
-    /// those whose label the scale's format blanks at the minor size and
-    /// width (d3's log ticks between labelled ones), on whole device pixels
-    /// on raster targets (`snap`).
+    /// those whose label the scale's format blanks (d3's log ticks between
+    /// labelled ones) and its minor ticks at the minor size and width, on
+    /// whole device pixels on raster targets (`snap`).
     pub(crate) fn marks(&self, area: Rect, theme: &Theme, snap: Snap, list: &mut List) {
         self.ticks(&self.spine(area, theme), theme, snap, list);
     }
@@ -227,8 +230,8 @@ impl Placed {
 
     /// Appends the tick marks along `spine` to `list`: major ticks at the
     /// theme's tick size and width, those whose label the scale's format
-    /// blanks at the minor size and width, on whole device pixels on raster
-    /// targets (`snap`).
+    /// blanks and the minor ticks at the minor size and width, on whole
+    /// device pixels on raster targets (`snap`).
     fn ticks(&self, spine: &Spine, theme: &Theme, snap: Snap, list: &mut List) {
         let labels = &self.labels;
         let width = theme.tick_width();
@@ -243,6 +246,11 @@ impl Placed {
             };
             path.move_to(spine.snapped(*p, 0.0, w, snap));
             path.line_to(spine.snapped(*p, length, w, snap));
+        }
+        let (length, w) = (theme.minor_tick(), theme.minor_width());
+        for p in &self.minors {
+            minor.move_to(spine.snapped(*p, 0.0, w, snap));
+            minor.line_to(spine.snapped(*p, length, w, snap));
         }
         list.commands.push(Command::Stroke {
             path: ticks,

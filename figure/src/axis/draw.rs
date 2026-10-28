@@ -53,6 +53,12 @@ pub(crate) trait Draw<'a>: 'a {
     /// outside the domain or a position that is not finite.
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>>;
 
+    /// With `.minor(true)`, the positions of core's minor ticks for about
+    /// `count` ticks ([`Ticks::minor`]) along a panel `length` px long, as
+    /// [`positions`](Draw::positions) places ticks, those not finite left
+    /// out; none otherwise.
+    fn minors(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<f64>;
+
     /// Each of about `count` ticks' absolute index, aligned with
     /// [`texts`](Draw::texts), which the stride of the collision pass counts
     /// from: the value over d3's tick step when the ticks are evenly spaced
@@ -111,20 +117,23 @@ where
     }
 
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>> {
-        let range = if across(self.orient) {
-            [0.0, length]
-        } else {
-            [length, 0.0]
-        };
-        let ranged = resolved.scale(self.scale).with_range(range);
-        let ranged = ranged
-            .as_any()
-            .downcast_ref::<S>()
-            .expect("invariant: a scale's with_range keeps its type");
-        self.set(ranged, count)
+        let ranged = self.ranged(resolved, length);
+        self.set(&ranged, count)
             .values()
             .iter()
-            .map(|v| Ticks::position(ranged, v, 0.0).filter(|p| p.is_finite()))
+            .map(|v| Ticks::position(&ranged, v, 0.0).filter(|p| p.is_finite()))
+            .collect()
+    }
+
+    fn minors(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<f64> {
+        if !self.minor {
+            return Vec::new();
+        }
+        let ranged = self.ranged(resolved, length);
+        let set = self.set(&ranged, count);
+        Ticks::minor(&ranged, &set)
+            .iter()
+            .filter_map(|v| Ticks::position(&ranged, v, 0.0).filter(|p| p.is_finite()))
             .collect()
     }
 
@@ -180,6 +189,28 @@ where
 
     fn title(&self) -> Option<&text::Text> {
         self.label.as_ref()
+    }
+}
+
+impl<S> Axis<'_, S>
+where
+    S: Position + Ticks<Domain = <S as Kind>::Domain>,
+{
+    /// The resolved scale over a panel `length` px long: across [0,
+    /// length] for a horizontal axis, up [length, 0] for a vertical one.
+    fn ranged(&self, resolved: &Resolved, length: f64) -> S {
+        let range = if across(self.orient) {
+            [0.0, length]
+        } else {
+            [length, 0.0]
+        };
+        resolved
+            .scale(self.scale)
+            .with_range(range)
+            .as_any()
+            .downcast_ref::<S>()
+            .expect("invariant: a scale's with_range keeps its type")
+            .clone()
     }
 }
 

@@ -68,6 +68,11 @@ impl<'g, 'a: 'g> axis::Draw<'g> for Side<'g, 'a> {
             .collect()
     }
 
+    /// None: a colorbar draws no minor ticks.
+    fn minors(&self, _resolved: &Resolved, _length: f64, _count: usize) -> Vec<f64> {
+        Vec::new()
+    }
+
     /// The ticks' places in their set: colorbar labels are not thinned.
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64> {
         (0..self.bar.shares(resolved, count).len() as i64).collect()

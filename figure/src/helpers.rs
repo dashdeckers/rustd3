@@ -25,6 +25,7 @@
 //! let fig = grid.into_figure();
 //! ```
 
+pub mod axes;
 pub mod labels;
 pub mod legend;
 pub mod stats;
