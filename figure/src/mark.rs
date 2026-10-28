@@ -297,6 +297,32 @@ fn issues<X, Y>(points: &Points<'_, X, Y>, color: &Color, ctx: &Ctx<'_>, issues:
     }
 }
 
+/// Reports the keys of `points` that `x` or `y` cannot place (band and
+/// point keys outside their domain, which draw nothing), one issue per
+/// handle with their count. Recording channels, whose x is a coordinate
+/// on a continuous scale, are not read.
+fn outside<X: Position, Y: Position>(
+    points: &Points<'_, <X as Kind>::Domain, <Y as Kind>::Domain>,
+    (x, y): (ScaleRef<X>, ScaleRef<Y>),
+    ctx: &Ctx<'_>,
+    issues: &mut Vec<Issue>,
+) {
+    if points.indexed().is_some() {
+        return;
+    }
+    let (sx, sy) = (ctx.scale(x), ctx.scale(y));
+    let (mut across, mut up) = (0, 0);
+    for (a, b) in points.iter() {
+        across += usize::from(sx.position(&a).is_none());
+        up += usize::from(sy.position(&b).is_none());
+    }
+    for (handle, count) in [(x.index(), across), (y.index(), up)] {
+        if count > 0 {
+            issues.push(Issue::OutsideDomain { handle, count });
+        }
+    }
+}
+
 /// Whether `p` lies in `bounds`, edges included.
 fn within(bounds: Rect, p: Point) -> bool {
     (bounds.x0..=bounds.x1).contains(&p.x) && (bounds.y0..=bounds.y1).contains(&p.y)

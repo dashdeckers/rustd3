@@ -3,6 +3,7 @@
 use kurbo::{Point, Shape};
 use rustd3_core::color::Rgb;
 
+use crate::check::Issue;
 use crate::figure::Fits;
 use crate::list::{self, Command, List};
 use crate::mark::{Ctx, Mark, at, dashes, positive, stroke};
@@ -172,6 +173,16 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
         {
             let (h, v) = corner;
             shaped.place(list, label, Anchor { h, v }, 0.0);
+        }
+    }
+
+    /// A value outside a band or point domain, which draws nothing.
+    fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
+        if ctx.scale(self.scale).position(&self.value).is_none() {
+            issues.push(Issue::OutsideDomain {
+                handle: self.scale.index(),
+                count: 1,
+            });
         }
     }
 }

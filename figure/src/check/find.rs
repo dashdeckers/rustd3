@@ -17,9 +17,11 @@ impl Figure<'_> {
     /// (axis and panel titles, the figure title, legends), labels with
     /// glyphs the fonts lack or markup typst rejects, and what each mark
     /// reports ([`Mark::issues`](crate::mark::Mark::issues): collected data
-    /// over 100,000 points, palette keys outside their palette). Layout's
-    /// issues come first, in panel order, then text's, by label, then the
-    /// marks', in panel and mark order.
+    /// over 100,000 points, palette keys outside their palette, band and
+    /// point keys outside their domain). Layout's issues come first, in
+    /// panel order, then text's, by label, then the marks', in panel and
+    /// mark order; the keys outside one handle's domain are counted in one
+    /// issue, where its first mark reported them.
     ///
     /// ```
     /// use rustd3_figure::check::{Issue, size};
@@ -39,15 +41,42 @@ impl Figure<'_> {
         issues.extend(labels(cache.text()));
         let (text, frame) = cache.start();
         let frame = RefCell::new(frame);
+        let mut marks = Vec::new();
         for (i, (panel, area)) in self.panels().iter().zip(resolved.plot_areas()).enumerate() {
             let ctx = Ctx::new(&resolved, self.get_theme(), *area, text, &frame);
             for (j, mark) in panel.marks().iter().enumerate() {
-                mark.issues(&ctx.at(i, j), &mut issues);
+                mark.issues(&ctx.at(i, j), &mut marks);
             }
         }
         cache.end(frame.into_inner());
+        issues.extend(per_handle(marks));
         issues
     }
+}
+
+/// `issues` with the counts of every handle's `OutsideDomain` issues
+/// summed into its first one.
+fn per_handle(issues: Vec<Issue>) -> Vec<Issue> {
+    let mut merged: Vec<Issue> = Vec::with_capacity(issues.len());
+    for issue in issues {
+        if let Issue::OutsideDomain { handle, count } = issue {
+            let earlier = merged.iter_mut().find_map(|i| {
+                if let Issue::OutsideDomain { handle: h, count } = i
+                    && *h == handle
+                {
+                    Some(count)
+                } else {
+                    None
+                }
+            });
+            if let Some(total) = earlier {
+                *total += count;
+                continue;
+            }
+        }
+        merged.push(issue);
+    }
+    merged
 }
 
 /// Grid axes whose reaches and gaps leave no room for plot areas.

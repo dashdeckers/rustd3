@@ -82,6 +82,15 @@ pub enum Issue {
         /// The mark's index in its panel.
         mark: usize,
     },
+    /// Data keys outside a band or point scale's domain, which draw
+    /// nothing: one issue per handle, over every mark that uses it.
+    OutsideDomain {
+        /// The handle's position in the figure's scale table
+        /// ([`ScaleRef::index`](crate::scale::ScaleRef::index)).
+        handle: usize,
+        /// How many data values lie outside the domain.
+        count: usize,
+    },
 }
 
 /// What text overflows.

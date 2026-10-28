@@ -6,6 +6,7 @@ mod check;
 mod draw;
 mod figure;
 mod fit;
+mod handles;
 mod hit;
 mod layout;
 mod legend;

@@ -130,9 +130,11 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
         }
     }
 
-    /// Collected data over 100,000 points; a fill key the palette lacks.
+    /// Collected data over 100,000 points; a fill key the palette lacks;
+    /// keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         super::issues(&self.points, &self.color, ctx, issues);
+        super::outside(&self.points, (self.x, self.y), ctx, issues);
     }
 }
 
