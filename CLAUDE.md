@@ -60,7 +60,9 @@ The harness and translator exist from Phase 2. Fixture scripts under
   `AnyContinuous`, `ScaleRef`, `TickRule`, `TickFormat`, `GlyphRun`,
   `BrushX`, `BrushY`, `BrushEvent`, `InvalidFormat`, `ParseColorError`,
   `IcedPath`, and no others.
-- No ambient clock or zone in library code (clippy `disallowed-methods`).
+- No ambient clock or zone in library code (clippy `disallowed-methods`),
+  except the `Plot` widget timing its own renders for its cost model
+  (D31.8), in one function with a scoped `expect` and its reason.
 - No mutable global state beyond `OnceLock` statics of parsed fonts, the
   id and eviction counters, and the bounded typst cache.
 - `f64` geometry; `f32` only at backend boundaries and in `GlyphRun`/`Glyph`.

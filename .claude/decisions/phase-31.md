@@ -563,7 +563,7 @@ records the new numbers. First commit of session 31c.
 
 ## D31.7 — The two-point test of a handle change has no evaluator
 
-**Date:** 2026-10-28 · **Context:** Phase 31, step 6 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, step 6 · **Status:** decided
 
 ### Issue
 
@@ -611,16 +611,15 @@ Until it is decided the widget classifies by the views (A).
 
 ### Decision
 
-Open.
-
-### Followups
-
-- If B: one `feat(figure)` commit for `Scale::remap`, then the widget's
-  classification and a test `a_refit_during_a_pan_re_renders`.
+B (architect, 2026-10-28): figure's object-safe `Scale` gains the
+additive public `Scale::remap`, documented for widgets, and the widget
+classifies handle changes by the section's two-point test, so a
+`Fit::Visible` refit during a pan is caught at once. First commit of
+session 31d.
 
 ## D31.8 — The cost model cannot time renders without the probe's clock
 
-**Date:** 2026-10-28 · **Context:** Phase 31, step 7 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, step 7 · **Status:** decided
 
 ### Issue
 
@@ -660,12 +659,12 @@ decided the widget calibrates from probe-timed renders (A).
 
 ### Decision
 
-Open.
-
-### Followups
-
-- If B: the clock reading in `Job::run` and the conventions' exception
-  list; `Done.duration` always set, the probe's samples unchanged.
+B (architect, 2026-10-28): the `Plot` widget may read the monotonic
+clock (`Instant::now`) to time its own renders for the cost model, and
+nowhere else: one function, a scoped `#[expect(clippy::disallowed_methods,
+reason = "…D31.8")]`, and CLAUDE.md's rule names this exception. Output
+never depends on it (only where a job runs); tests that assert where jobs
+run keep forcing `Render::Inline` or `Render::Worker`. Session 31d.
 
 ## Measurements, session 31c
 
@@ -775,7 +774,7 @@ zoom-out's margin beyond the data's end blank as the data ends there.
 
 ## D31.9 — Details of Phase 31c as built
 
-**Date:** 2026-10-28 · **Context:** Phase 31, e39be1b … · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, e39be1b … · **Status:** decided
 
 ### Issue
 
@@ -822,9 +821,5 @@ A for all thirteen.
 
 ### Decision
 
-Open.
+A for all thirteen (architect, 2026-10-28), as built.
 
-### Followups
-
-- (7): with D31.8 B the fit sees every render, which is what makes the
-  per-job decision right on machines without a probe.
