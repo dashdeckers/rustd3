@@ -248,7 +248,7 @@ departures are D34.4 (7).
 
 ## D34.4 — Details of Phase 34b as built
 
-**Date:** 2026-10-28 · **Context:** Phase 34, D34.3's change and steps 5–7, 41c2370 … ee179bf · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 34, D34.3's change and steps 5–7, 41c2370 … ee179bf · **Status:** decided
 
 ### Issue
 
@@ -300,7 +300,10 @@ departures are D34.4 (7).
 
 ### Decision
 
-Recommended: A for all ten.
+A for all ten (architect, 2026-10-28), as built. `size_by` is bounded by
+`Position<Domain = f64>`; the wheel function's departures follow the
+compiler and the lints; `wheels` stays out of the default plan, so D22.1's
+registered plan is unchanged.
 
 ### Why
 
@@ -321,3 +324,44 @@ figure runs everywhere else; (10) separates the crates.
 - Phase 39: value labels may build on `note`.
 - If the user wants the wheel figure in the verdict's run, it is a new
   entry against D22.1 before the run.
+
+## D34.5 — Panel titles in a row share a baseline
+
+**Date:** 2026-10-28 · **Context:** the architect's view of the 2× wheel figure after Phase 34b (8414bd6) · **Status:** decided
+
+### Issue
+
+On the wheel figure, "Wheel: FL" sits 3.5 px (1×) above "Wheel: FR", and
+"Wheel: RL" above "Wheel: RR". `decorate.rs` places a panel title at
+`area.y0 − laid.top − title_pad`, where `laid.top` is the panel's whole
+top reach, including the half-label overhang of its left axis's top tick
+label; the outer panels have labelled y axes and the inner ones do not.
+Titles are also anchored at their ink bottom (D16.4 left titles as they
+were), so a title with a descender would sit higher than one without.
+matplotlib places an axes title at the axes' top plus a pad, moved up
+only by top-side x-axis decorations, with text metrics, not ink.
+
+### Options
+
+| | **A — one baseline per row** | B — as built |
+| --- | --- | --- |
+| Approach | A title's baseline sits at `y0 − title_pad − descender − top`, where `top` is the largest reach of top-side axes (ticks, labels, axis title) among the panels of its grid row; overhangs of left and right axes do not count. Reserved room stays as now (it already includes the title) | Each title over its own whole reach, ink-anchored |
+| Cost | Small: the title's anchor in `decorate.rs` and its box in layout | — |
+| Correctness | Titles of a row align, as in matplotlib and seaborn | Ragged titles on every grid with labelled outer axes |
+
+### Decision
+
+A (architect, 2026-10-28). Done as the first commit of Phase 35's
+session: titles are anchored by the face's line metrics (as D16.4 does
+for tick labels) and placed per grid row as above; the wheel figure's
+snapshots are re-blessed after reading the diffs and viewing the render.
+
+### Why
+
+It is the look a reader of matplotlib or seaborn figures expects, and
+cheap now, before Phases 35–39 add more figures that bless the current
+placement.
+
+### Followups
+
+- Supersedes "Titles keep theirs" in D16.4 (1) for panel titles.
