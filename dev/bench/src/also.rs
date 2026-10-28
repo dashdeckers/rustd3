@@ -1,11 +1,16 @@
 //! What earlier phases asked the benchmark to measure beside its
 //! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4): figure-level renders,
-//! resolves and lists timed in this build, written as the report's "Also
+//! resolves and lists, and the widget's tiles drawn on iced's headless
+//! renderers, timed in this build, written as the report's "Also
 //! measured" section.
 
 use std::fmt::Write as _;
 use std::time::Instant;
 
+use iced::advanced::renderer::{self as iced_renderer, Headless as _};
+use iced::advanced::{Renderer as _, shell};
+use iced::{Event, mouse, window};
+use iced_runtime::user_interface::{self, UserInterface};
 use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_core::series::{Clock, Recording};
@@ -16,7 +21,9 @@ use rustd3_figure::mark::{dots, line};
 use rustd3_figure::raster::{self, Image, Settings, Simd};
 use rustd3_figure::thin::Thin;
 use rustd3_figure::{Cache, Figure, Held, Target, axis};
-use rustd3_iced::plot::cost;
+use rustd3_iced::Plot;
+use rustd3_iced::plot::probe::Sample;
+use rustd3_iced::plot::{Probe, Render, cost};
 
 use crate::stats::percentile;
 use crate::workload::Workload;
@@ -38,6 +45,7 @@ pub fn measure() -> String {
         thin_line(),
         windowed_resolve(),
         scatter_lists(),
+        tile_draw(),
     ];
     let mut md = String::from(
         "## Also measured\n\nFigure-level items earlier phases asked for, measured in this build \
@@ -335,6 +343,179 @@ fn scatter_lists() -> Row {
             .to_owned(),
         value: format!("{} (medians of 9 frames)", parts.join("; ")),
     }
+}
+
+/// D22.4 (3): a 1600 × 1000 device-px plot area of tiles drawn per frame
+/// of a pan at factor 1 on iced's headless renderers: a drag in steps of 3
+/// px, every visible tile translated (drawn at whole device pixels, no
+/// resampling); per frame the widget's `draw` and the renderer composing
+/// the frame (`screenshot`, which on wgpu also reads it back), the ring's
+/// renders in the update before them excluded; medians of 30 frames.
+fn tile_draw() -> Row {
+    let parts: Vec<String> = ["tiny-skia", "wgpu"]
+        .into_iter()
+        .map(|backend| match tile_frames(backend) {
+            Some(([draw, compose], [images, empty])) => format!(
+                "{backend}: draw {draw:.2} ms, compose {compose:.2} ms for {images} images \
+                 (an empty figure's frame, one image: {empty:.2} ms)"
+            ),
+            None => format!("{backend}: no headless renderer"),
+        })
+        .collect();
+    Row {
+        item: "D22.4 (3): a 1600 × 1000 plot area of tiles drawn per frame of a pan (headless, \
+               factor 1)"
+            .to_owned(),
+        value: format!("{} (medians of 30 frames)", parts.join("; ")),
+    }
+}
+
+/// The medians of [`tile_draw`]'s two stages on `backend`, ms, the images
+/// a frame draws, and the median compose of an empty figure's frame of
+/// the same size; `None` without a renderer for it.
+fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
+    let mut renderer = iced::futures::executor::block_on(iced::Renderer::new(
+        iced_renderer::Settings::default(),
+        Some(backend),
+    ))?;
+    renderer.hint(iced_renderer::Scale {
+        window: 1.0,
+        application: 1.0,
+    });
+    let curve: Vec<(f64, f64)> = (0..10_000)
+        .map(|i| {
+            let t = f64::from(i) * 0.01;
+            (t, (t * 0.7).sin() + 0.2 * (t * 5.0).sin())
+        })
+        .collect();
+    let figure = || {
+        let mut fig = Figure::new();
+        let x = fig.scale(scale::linear().domain([20.0, 80.0]));
+        let y = fig.scale(scale::linear().domain([-1.5, 1.5]));
+        fig.panel(0, 0)
+            .mark(line(curve.clone(), x, y))
+            .axis(axis::left(y))
+            .axis(axis::bottom(x))
+            .zoom_x(x);
+        fig
+    };
+    // The window whose plot area is 1600 × 1000.
+    let target = Target::Screen { scale: 1.0 };
+    let mut size = Size::new(1700.0, 1080.0);
+    let mut area = Rect::ZERO;
+    for _ in 0..8 {
+        let resolved = figure().resolve(size, &mut Cache::default(), &Held::default(), target);
+        area = *resolved.plot_areas().first()?;
+        let (dw, dh) = (1600.0 - area.width(), 1000.0 - area.height());
+        if dw.abs() < 0.5 && dh.abs() < 0.5 {
+            break;
+        }
+        size = Size::new(size.width + dw, size.height + dh);
+    }
+    let bounds = iced::Size::new(size.width as f32, size.height as f32);
+    let physical = iced::Size::new(bounds.width.round() as u32, bounds.height.round() as u32);
+    let (tx, rx) = std::sync::mpsc::channel();
+    let plot = Plot::<()>::new(figure())
+        .scale_factor(1.0)
+        .render(Render::Inline)
+        .crosshair(false)
+        .highlight(false)
+        .probe(Probe::new(Instant::now, tx));
+    let mut ui = UserInterface::build(
+        plot,
+        bounds,
+        user_interface::Cache::default(),
+        &mut renderer,
+    );
+    let waker = shell::Waker::new(|| {});
+    let mut bus = shell::Bus::new();
+    let mut at = iced::Point::new(area.center().x as f32, area.center().y as f32);
+    let style = iced_renderer::Style {
+        text_color: iced::Color::BLACK,
+    };
+    let (mut draws, mut composes) = (Vec::new(), Vec::new());
+    for frame in 0..34 {
+        let mut events = match frame {
+            0 => Vec::new(),
+            1 => vec![
+                Event::Mouse(mouse::Event::CursorMoved { position: at }),
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+            ],
+            _ => {
+                at.x -= 3.0;
+                vec![Event::Mouse(mouse::Event::CursorMoved { position: at })]
+            }
+        };
+        events.push(Event::Window(
+            window::Event::RedrawRequested(Instant::now()),
+        ));
+        renderer.tick();
+        let _ = ui.update(
+            &window::Headless,
+            &waker,
+            &events,
+            mouse::Cursor::Available(at),
+            &mut renderer,
+            &mut bus,
+        );
+        let begin = Instant::now();
+        ui.draw(
+            &mut renderer,
+            &iced::Theme::Light,
+            &style,
+            mouse::Cursor::Available(at),
+        );
+        let drawn = Instant::now();
+        let _ = renderer.screenshot(physical, 1.0, iced::Color::WHITE);
+        let composed = Instant::now();
+        if frame >= 4 {
+            draws.push((drawn - begin).as_secs_f64() * 1e3);
+            composes.push((composed - drawn).as_secs_f64() * 1e3);
+        }
+    }
+    let shown = rx
+        .try_iter()
+        .filter_map(|sample| match sample {
+            Sample::Frame { images, .. } => Some(images),
+            Sample::Raster { .. } | Sample::Stage { .. } => None,
+        })
+        .last()?;
+    let mut empty = UserInterface::build(
+        Plot::<()>::new(Figure::new()).render(Render::Inline),
+        bounds,
+        user_interface::Cache::default(),
+        &mut renderer,
+    );
+    let mut blank = Vec::new();
+    for frame in 0..14 {
+        let events = [Event::Window(
+            window::Event::RedrawRequested(Instant::now()),
+        )];
+        renderer.tick();
+        let _ = empty.update(
+            &window::Headless,
+            &waker,
+            &events,
+            mouse::Cursor::Unavailable,
+            &mut renderer,
+            &mut bus,
+        );
+        empty.draw(
+            &mut renderer,
+            &iced::Theme::Light,
+            &style,
+            mouse::Cursor::Unavailable,
+        );
+        let begin = Instant::now();
+        let _ = renderer.screenshot(physical, 1.0, iced::Color::WHITE);
+        if frame >= 4 {
+            blank.push(begin.elapsed().as_secs_f64() * 1e3);
+        }
+    }
+    Some((
+        [percentile(&draws, 50.0)?, percentile(&composes, 50.0)?],
+        [f64::from(shown), percentile(&blank, 50.0)?],
+    ))
 }
 
 /// The list of `fig` at `size` for the screen at `k`, and its cells.
