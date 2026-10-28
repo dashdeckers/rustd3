@@ -98,7 +98,7 @@ to step 3.
 
 ## D35.2 — Details of Phase 35a as built
 
-**Date:** 2026-10-28 · **Context:** Phase 35, D34.5 and steps 1–2, e19632d … a0e4b5d · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 35, D34.5 and steps 1–2, e19632d … a0e4b5d · **Status:** decided
 
 ### Issue
 
@@ -169,7 +169,10 @@ to step 3.
 
 ### Decision
 
-Recommended: A for all eleven, as built.
+A for all eleven (architect, 2026-10-28), as built. Theme getters stay
+crate-private beside D18.1's public `get_ink` and `get_background`;
+pads scale with the context as the spec and the prototype do; under
+`Domains::Nice` only `Fit::All` handles are rounded.
 
 ### Why
 
