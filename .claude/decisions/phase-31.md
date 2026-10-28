@@ -666,3 +666,162 @@ Open.
 
 - If B: the clock reading in `Job::run` and the conventions' exception
   list; `Done.duration` always set, the probe's samples unchanged.
+
+## Measurements, session 31c
+
+2026-10-28, session 31c (D31.6 and Steps 6–8: e39be1b, e7b8ed0, ffdeb6d,
+550a067, b3994cb, the splat's fast path and the benchmark's rows). Same
+machine (2 cores, release builds for every timing; single runs on a
+shared container, ±30 %). Harness unchanged throughout: 16 suites, 6,722
+assertions, 5,292 passing, 179 floors; nothing blessed.
+
+**Before the steps.** The architect's warm-up `scripts/check.sh full`
+(rebuilding `target/debug`) was running when the session began; this
+session's first cargo command waited for it.
+
+**D31.6 (e39be1b).** Recorded under D31.6 ("Built").
+
+**Step 6 (e7b8ed0).** `unchanged_panels_are_kept`: a 37 px drag over the
+left of two side-by-side panels renders the left area's entering column
+(5 tiles), no tile of the right area, and 5 of the 11 gutter runs and
+overlays. `style_change_during_a_pan_re_renders`: 4 (at 1) and 5 (at 2)
+tiles on the translated frame, then every tile (20 and 35) once the
+figure comes back in another color, 1/255 against a fresh render of the
+new color at the snapped domain. `gutters_merge_into_fewer_images`: the
+two panels' 13 gutter cells show as 9 images at 1, 1.25 and 2, 1/255
+against the PNG. Both backends.
+
+**Step 7 (550a067).** `threads_sets_the_pool_size`: `threads(1, 2, 3, 0,
+65)` give 1, 2, 3, 1 and 64 threads named `rustd3-plot`, the pool of
+another size stopped first. `tiles_near_the_cursor_render_first` (a
+wheel step 60 px right of and 50 px below the area's corner; the 12 tiles
+in view, ranked by distance, in arrival order): 1 thread
+[0, 1, …, 11]; 2 threads [1, 0, 3, 2, 4, 5, 7, 6, 8, …] on tiny-skia and
+[0, 1, 3, 4, 5, 2, 7, 8, 6, …] on wgpu, none more than one place early.
+`large_marker_sets_splat_on_screen`: 9,999 dots 1/255 against the PNG,
+10,000 dots 29/255. `expensive_refresh_uses_the_worker`: 6 cheap jobs
+inline (8.30 ms modelled), 98 in view on the pool, the model's total
+514.8 ms against 514.1 expected.
+
+**The gutters during a pan** (the architect's question; `rustd3-bench
+also`'s new rows, release). Per frame of a `pan-x` replay over the
+benchmark's `trace` at full size (1600 × 1000 logical, `Render::Auto`, the
+default pool of one thread here, headless without drawing, the pool
+drained until 300 ms of silence after each frame), means of 40 frames
+after the press:
+
+| Backend | Factor | Inline tiles | Inline cells | Inline ms | Pool tiles | Pool cells | Pool ms | Frames with every cell inline |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| tiny-skia | 1 | 0.2 | 5.5–6.0 | 2.0–3.4 | 0.0 | 0.0–0.1 | 0.00 | 95–100 % |
+| tiny-skia | 2 | 0.8–0.9 | 5.9–6.0 | 4.0–4.3 | 0.0–0.1 | 0.0 | 0.01–0.06 | 98–100 % |
+| wgpu | 1 | 0.2 | 6.0 | 1.8–2.3 | 0.0 | 0.0 | 0.00 | 100 % |
+| wgpu | 2 | 0.9 | 5.8–6.0 | 3.9–4.2 | 0.0 | 0.0–0.1 | 0.00–0.01 | 98–100 % |
+
+(ranges over three runs of `also`). The cells are the gutter runs and the
+overlays that show the panned handle; with merging they are about 6 a
+frame, and the fitted cost model, which learns their per-render
+overhead, renders them inline. One axis gutter render, single-threaded,
+medians of 15 (the strip under the bottom plot area, 22 glyph runs, and
+the overlay over the area's bottom edge, two device rows):
+
+| Render | As drawn | Without glyphs | Without strokes | No command (fixed) |
+| --- | --- | --- | --- | --- |
+| Strip at 1 (1389 × 59 px) | 0.36–0.39 ms | 0.22–0.23 | 0.27 | 0.14 |
+| Strip at 2 (2778 × 117 px) | 1.02–1.10 ms | 0.81–0.83 | 0.82–0.83 | 0.57–0.58 |
+| Edge overlay at 1 (1389 × 2 px) | 0.10 | 0.09 | 0.02 | 0.01 |
+| Edge overlay at 2 (2778 × 2 px) | 0.19–0.26 | 0.18 | 0.04 | 0.01 |
+
+Glyphs cost about 0.15 ms of a strip at 1 and 0.2–0.3 ms at 2; the
+fixed cost of a render of the strip's size (clearing, packing and
+un-premultiplying its pixels) is the largest part at 2; strokes (the spine
+and ticks) are what an overlay costs. Glyph rasterization does not
+dominate, so no glyph decision is raised. 31b's "about 4 ms each" was
+measured under the headless run's readback on two cores.
+
+**The headless real-time run** (`target/release/rustd3-bench run
+--headless --plan quick --scenario pan-x --workload trace --factor 1,2
+--runs 1 --backend B`, as 31b; report-only):
+
+| Backend | Factor | Frame p50/p95/p99 | Latency p50/p95 | Preview share | Inline |
+| --- | --- | --- | --- | --- | --- |
+| tiny-skia | 1 | 33.4/50.1/59.3 ms | 21/47 ms | 0.3 % (31b: 98.1 %) | 96 % |
+| tiny-skia | 2 | 166.6/200.0/253.4 ms | 120/657 ms | 31.5 % (31b: 100 %) | 51 % |
+| wgpu | 1 | 33.3/33.4/50.0 ms | 17/33 ms | 0.6 % (31b: 97.6 %) | 96 % |
+| wgpu | 2 | 83.4/116.7/208.5 ms | 73/602 ms | 35.9 % (31b: 100 %) | 55 % |
+
+At 1 a pan is current on all but a few frames, its latency a frame or
+two (31b: the gesture's length, 9.7–12.5 s). At 2 the headless readback
+of 3200 × 2000 px makes frames 83–167 ms long, so the replay's moves
+between two frames add up to 50–100 logical px (100–200 device px): a
+ring column (256 px) enters every one to three frames, the visible area
+outruns the ring's renders on the pool, and those frames show previews.
+
+**D31.2 in the widget** (`also`'s new row; the `scatter100k` plot area at
+1600 × 1000, single-threaded, medians of 5): filled 214.6 ms, splatted
+34.6 ms (6.20×) at 1, max 29/255; filled 336.9 ms, splatted 100.2 ms
+(3.36×) at 2, max 30/255. The first build composited every covered pixel
+with the general blend (3.96× and 1.80×); a fully covered pixel of an
+opaque color now takes the color as it is, the same pixels.
+
+**Viewed.** Headless screenshots (scratch, not committed) of the trace
+replica at 800 × 500, factors 1 and 2, `threads(1)` and `threads(4)`,
+both backends: after 8 drag frames of 37 px with 4 ms of results between
+them, and right after a wheel zoom-out: tiles seamless, the axis strips'
+labels on the ticks the data shows, no blank or outdated tile, the
+zoom-out's margin beyond the data's end blank as the data ends there.
+
+## D31.9 — Details of Phase 31c as built
+
+**Date:** 2026-10-28 · **Context:** Phase 31, e39be1b … · **Status:** open
+
+### Issue
+
+Steps 6–8 met calls the section does not make.
+
+1. **The style hash's content.** "paints, stroke styles, dashes, marker
+   shapes, glyph ids and fonts".
+2. **Dependency sets** for merging.
+3. **When runs are formed.**
+4. **A merged run's probe target.**
+5. **Overlays** (D31.5 (1)) beside merging.
+6. **Part ids**, whose value rustd3-figure keeps private.
+7. **The inline decision with a pool**, and "Phase 19's prediction divides
+   the modelled time of the work sent to the pool by n".
+8. **"The zoom anchor or cursor"** that orders the tiles.
+9. **The fitted cost model** (D22.4 (1)): its form.
+10. **The pool's restart** ("changing it restarts the pool").
+11. **Which renders splat** (D31.2: "screen renders of markers commands
+    with at least 10,000 points").
+12. **Verify's checks**: where they run, what they report.
+13. **Test placement.**
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | Per command: its kind, paints (a solid color's components; a gradient's stops and interpolation, not its geometry; an image brush's pixels and sampler), a stroke's width, joins, caps and dash pattern (not its offset, which the column grid moves), a marker's shape, whether it is sized and its paint table (not the per-point arrays, which points entering the overscan change), a run's font, size and glyph ids, an image's pixels; equal consecutive commands folded once, so a line split into more runs by a NaN gap keeps its hash. Consequence: a change of the per-point sizes or paint indices alone during a drag is not seen until the drag ends |
+| (2) | The handles of the axes whose ticks and labels (part role 4) reach into the cell, by `Resolved::axis`, and the legends (role 7) as themselves; spines, borders, titles, headings and the background change with the layout alone |
+| (3) | When the partition is built (the rects change); during a gesture the layout holds, so they hold; a run whose cells change apart renders more pixels than it must |
+| (4) | `Target::Cell(first cell)` with the pixels of the whole run (the probe docs say so); the plot tests read a run's cells back from its pixels |
+| (5) | Not merged: they render from the chrome without the figure's background and draw over tiles |
+| (6) | Decoded by a binary search over `part::Id::new(v) <= id` (64 comparisons) |
+| (7) | Render::Auto renders inline, in the pool's order, each job whose predicted time still fits half the frame budget with those before it (the rest to the pool); nothing reads a prediction of the pool's work, so it is not computed |
+| (8) | The position of the last gesture input (wheel, press, drag move), list px; each area's centre before one; the ring's tiles are ordered the same way |
+| (9) | `t = o + p · px / 65,536 + w · work / 256`, exponentially weighted least squares (each render 1/16 of the fit), a prior holding each coefficient at its seed (o = 0, p and w from the constants) with the weight of a tenth of a render, coefficients clamped at 0; timed renders only (D31.8) |
+| (10) | At the pool's next jobs: the old pool stops (its threads finish their job, every result lands), a pool of the new size starts |
+| (11) | Per job: the tiles of a plot area whose layer holds a markers command of at least 10,000 points render with `Renderer::splat(true)` (every splattable command of that layer splats); gutters and overlays never; inline renders too |
+| (12) | After the real jobs, inline under `Render::Inline`, on the pool otherwise; a check is a job for the image's own generation and content, landing as a comparison; checks report no `Raster` sample; a refresh whose plan is empty still checks; the benchmark names the variant (its flag is Step 9) |
+| (13) | Step 6's tests in `iced/tests/main/classify.rs`; the pool's in `pipeline.rs`; `newest_result_wins_per_tile` and `verify_replaces_a_differing_image` as unit tests (`area.rs`, `state.rs`); `verify_finds_translated_tiles_exact` beside Step 6's |
+
+### Recommendation
+
+A for all thirteen.
+
+### Decision
+
+Open.
+
+### Followups
+
+- (7): with D31.8 B the fit sees every render, which is what makes the
+  per-job decision right on machines without a probe.
