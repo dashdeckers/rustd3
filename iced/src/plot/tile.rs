@@ -6,14 +6,27 @@
 //! panels' edges cut into several cells still has one grid. Tile `(i, j)`
 //! is the square `[origin.x + SIZE·i, origin.x + SIZE·(i + 1)) ×
 //! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))` intersected with the
-//! bounds its area renders. A tile's image is 256 × 256 × 4 = 262,144 B at
-//! most, far under `BAND_BYTES`, so it is one band, and wgpu's 2048²
-//! atlas layers hold 64 of them (`wgpu/src/image/atlas.rs:13-14`).
+//! bounds its area renders: the plot area's device rect grown by one tile
+//! on each side, the overscan ring (without the grown rect the ring tiles
+//! would be empty). A tile's image is 256 × 256 × 4 = 262,144 B at most,
+//! far under `BAND_BYTES`, so it is one band, and wgpu's 2048² atlas
+//! layers hold 64 of them (`wgpu/src/image/atlas.rs:13-14`).
+//!
+//! A whole-pixel pan moves the grid's origin by the same device px: keys
+//! stay and their squares move. A tile's image lies where it was rendered,
+//! moved by how far the origin moved since; it stays valid while it covers
+//! the tile's square as it is now.
 
 use crate::plot::slot::Slot;
 
 /// The side of a tile, device px.
 pub(crate) const SIZE: i32 = 256;
+
+/// Device px the list reaches past the ring: a line drawn to the edge of
+/// what a list holds ends one sample beyond it, so within half its width
+/// of that edge it is not the line a wider list draws; the margin keeps
+/// that edge out of the ring's tiles for lines up to 16 device px wide.
+pub(crate) const MARGIN: i32 = 8;
 
 /// The tile grid of one plot area: device position of its data anchor
 /// and the scale density it was rendered at.
@@ -35,11 +48,16 @@ pub(crate) struct Key {
     pub(crate) j: i32,
 }
 
-/// One tile of a plot area's grid: its key, and the slot that holds its
-/// rect, the image it shows, the generation that image was rendered for
-/// and the render it waits for.
+/// One tile of a plot area's grid: its key, its square's part inside the
+/// area's grown rect as the grid lies now, and the slot that holds the
+/// image it shows (the slot's rect is where the image was rendered), the
+/// generation that image was rendered for and the render it waits for.
 pub(crate) struct Tile {
     key: Key,
+    /// Device px, on the grid as it lies now.
+    rect: [i32; 4],
+    /// The grid's origin when the image shown was planned.
+    at: [i32; 2],
     slot: Slot,
 }
 
@@ -50,6 +68,19 @@ impl Grid {
         Grid {
             origin,
             density: density.map(f64::to_bits),
+        }
+    }
+
+    /// The device position of the data anchor.
+    pub(crate) fn origin(self) -> [i32; 2] {
+        self.origin
+    }
+
+    /// The grid moved by `[dx, dy]` device px: a whole-pixel pan.
+    pub(crate) fn moved(self, [dx, dy]: [i32; 2]) -> Grid {
+        Grid {
+            origin: [self.origin[0] + dx, self.origin[1] + dy],
+            ..self
         }
     }
 
@@ -83,11 +114,13 @@ impl Grid {
 }
 
 impl Tile {
-    /// Tile `key` over device rect `rect`, holding content `hash`, with no
-    /// image yet.
-    pub(crate) fn new(key: Key, rect: [i32; 4], hash: u64) -> Tile {
+    /// Tile `key` over device rect `rect` of the grid at `origin`, holding
+    /// content `hash`, with no image yet.
+    pub(crate) fn new(key: Key, rect: [i32; 4], origin: [i32; 2], hash: u64) -> Tile {
         Tile {
             key,
+            rect,
+            at: origin,
             slot: Slot::new(rect, hash),
         }
     }
@@ -95,6 +128,57 @@ impl Tile {
     /// The tile's key.
     pub(crate) fn key(&self) -> Key {
         self.key
+    }
+
+    /// The tile's device rect on the grid as it lies now.
+    pub(crate) fn rect(&self) -> [i32; 4] {
+        self.rect
+    }
+
+    /// The grid moved its square: it is `rect` now.
+    pub(crate) fn place(&mut self, rect: [i32; 4]) {
+        self.rect = rect;
+    }
+
+    /// How far the image shown has moved with the grid, now at `origin`,
+    /// since it was planned.
+    pub(crate) fn shift(&self, origin: [i32; 2]) -> [i32; 2] {
+        [origin[0] - self.at[0], origin[1] - self.at[1]]
+    }
+
+    /// Whether the image shown, moved with the grid now at `origin`,
+    /// covers the tile's rect.
+    pub(crate) fn covers(&self, origin: [i32; 2]) -> bool {
+        if self.slot.is_missing() {
+            return false;
+        }
+        let [dx, dy] = self.shift(origin);
+        let [x0, y0, x1, y1] = self.slot.rect();
+        let [a0, b0, a1, b1] = self.rect;
+        x0 + dx <= a0 && y0 + dy <= b0 && a1 <= x1 + dx && b1 <= y1 + dy
+    }
+
+    /// Whether the image shown, moved with the grid now at `origin`,
+    /// covers the part of the tile's rect inside `within` (true when they
+    /// do not meet, false without an image).
+    pub(crate) fn covers_in(&self, origin: [i32; 2], within: [i32; 4]) -> bool {
+        if self.slot.is_missing() {
+            return false;
+        }
+        let [a0, b0, a1, b1] = intersect(self.rect, within);
+        if a0 >= a1 || b0 >= b1 {
+            return true;
+        }
+        let [dx, dy] = self.shift(origin);
+        let [x0, y0, x1, y1] = self.slot.rect();
+        x0 + dx <= a0 && y0 + dy <= b0 && a1 <= x1 + dx && b1 <= y1 + dy
+    }
+
+    /// An image rendered over `rect` of the grid at `origin` landed and is
+    /// the one shown.
+    pub(crate) fn shown_at(&mut self, rect: [i32; 4], origin: [i32; 2]) {
+        self.slot.reshape(rect);
+        self.at = origin;
     }
 
     /// The slot holding its image.

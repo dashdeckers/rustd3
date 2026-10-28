@@ -11,6 +11,12 @@
 //! value at p · k + offset. Transforms accumulate from the start, never
 //! step to step, so rounding does not compound; a step the scale rejects
 //! leaves the track's transform as it was.
+//!
+//! A drag snaps each track's offset to whole device pixels before it is
+//! applied, `x' = round(x · f) / f` at factor `f` (k untouched), so that a
+//! plot area's content moves by whole device pixels and its tiles can be
+//! translated; when the gesture ends its unsnapped transforms apply once
+//! ([`Gesture::exact`]).
 
 use iced_core::time::{Duration, Instant};
 use rustd3_core::interact::{self, Pointer};
@@ -38,6 +44,8 @@ pub(crate) struct Gesture {
     /// The plot area of the region's panel at the start, list px:
     /// pointers are fed relative to its corner.
     area: Rect,
+    /// Device px per list px that offsets snap to, for a drag.
+    snap: Option<f64>,
 }
 
 /// A drag pans until its release; a wheel gesture ends `WHEEL_END` after
@@ -56,6 +64,11 @@ pub(crate) struct Track {
     start: Box<dyn Scale>,
     /// The handle's preview map at the start, range shares.
     base: Affine1,
+    /// The (k, offset) last applied: the transform's, its offset snapped
+    /// during a drag.
+    applied: (f64, f64),
+    /// The position the last step zoomed around, list px along the axis.
+    anchor: f64,
 }
 
 /// An accepted step of one track: the handle, its new scale, and its
@@ -76,6 +89,8 @@ impl Track {
             transform: interact::Transform::IDENTITY,
             start,
             base,
+            applied: (1.0, 0.0),
+            anchor: 0.0,
         }
     }
 }
@@ -96,7 +111,15 @@ impl Gesture {
             tracks,
             held,
             area,
+            snap: None,
         }
+    }
+
+    /// Snaps the offsets applied to whole device pixels at `factor`
+    /// device px per list px: what a drag does.
+    pub(crate) fn snap(self, factor: f64) -> Gesture {
+        let snap = (factor.is_finite() && factor > 0.0).then_some(factor);
+        Gesture { snap, ..self }
     }
 
     /// What the gesture is over.
@@ -130,46 +153,81 @@ impl Gesture {
     }
 
     /// Feeds `pointer` (list px) to every track's zoom in `domains`; the
-    /// steps accepted.
+    /// steps accepted, their offsets snapped to whole device pixels during
+    /// a drag.
     pub(crate) fn feed(&mut self, pointer: Pointer, domains: &mut Domains) -> Vec<Step> {
         let local = local(pointer, self.area.origin());
-        let (width, height) = (self.area.width(), self.area.height());
+        let size = (self.area.width(), self.area.height());
+        let snap = self.snap;
         let mut changed = Vec::new();
         for track in &mut self.tracks {
             let Some(t) = domains.zoom(track.key).handle(local, track.transform) else {
                 continue;
             };
-            let (before, after) = match track.along {
-                Along::X => ((track.transform.k, track.transform.x), (t.k, t.x)),
-                Along::Y => ((track.transform.k, track.transform.y), (t.k, t.y)),
-            };
-            if before == after {
+            let (k, offset) = track.along.pick(t);
+            let after = (k, snap.map_or(offset, |f| (offset * f).round() / f));
+            let anchor = position(local).map(|p| match track.along {
+                Along::X => p.x,
+                Along::Y => p.y,
+            });
+            if after == track.applied {
                 track.transform = t;
                 continue;
             }
-            let (range, anchor) = match track.along {
-                Along::X => ([0.0, width], position(local).map(|p| p.x)),
-                Along::Y => ([height, 0.0], position(local).map(|p| p.y)),
-            };
-            let (k, offset) = after;
-            let rescaled =
-                anchor.and_then(|anchor| rescale(&*track.start, range, k, offset, anchor));
-            if let Some(scale) = rescaled {
+            let step = anchor.and_then(|anchor| track.step(after, anchor, size));
+            if let Some(step) = step {
                 track.transform = t;
-                // The transform in shares of the range: x runs from 0 to
-                // the width, y from the height to 0.
-                let shares = match track.along {
-                    Along::X => Affine1::new(k, offset / width),
-                    Along::Y => Affine1::new(k, 1.0 - k - offset / height),
-                };
-                changed.push(Step {
-                    key: track.key,
-                    scale,
-                    view: shares.after(track.base),
-                });
+                changed.push(step);
             }
         }
         changed
+    }
+
+    /// The steps that apply each track's unsnapped transform where a
+    /// drag's snapping applied another: what the gesture's end applies
+    /// once.
+    pub(crate) fn exact(&mut self) -> Vec<Step> {
+        let size = (self.area.width(), self.area.height());
+        self.tracks
+            .iter_mut()
+            .filter_map(|track| {
+                let exact = track.along.pick(track.transform);
+                (exact != track.applied)
+                    .then(|| track.step(exact, track.anchor, size))
+                    .flatten()
+            })
+            .collect()
+    }
+}
+
+impl Track {
+    /// The step that applies `(k, offset)`, zooming around `anchor` (list
+    /// px along the axis) over a plot area of `(width, height)` list px,
+    /// and records it as applied; `None` when the scale rejects it.
+    fn step(
+        &mut self,
+        (k, offset): (f64, f64),
+        anchor: f64,
+        (width, height): (f64, f64),
+    ) -> Option<Step> {
+        let range = match self.along {
+            Along::X => [0.0, width],
+            Along::Y => [height, 0.0],
+        };
+        let scale = rescale(&*self.start, range, k, offset, anchor)?;
+        self.applied = (k, offset);
+        self.anchor = anchor;
+        // The transform in shares of the range: x runs from 0 to the
+        // width, y from the height to 0.
+        let shares = match self.along {
+            Along::X => Affine1::new(k, offset / width),
+            Along::Y => Affine1::new(k, 1.0 - k - offset / height),
+        };
+        Some(Step {
+            key: self.key,
+            scale,
+            view: shares.after(self.base),
+        })
     }
 }
 

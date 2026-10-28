@@ -15,8 +15,8 @@ use crate::plot::{probe, slot};
 /// One cell or tile of one refresh to render, inline or on the worker.
 pub(crate) struct Job {
     pub(super) target: probe::Target,
-    /// For a tile, its area's grid number; 0 for a cell.
-    pub(super) grid: u64,
+    /// Where the image goes.
+    pub(super) spot: Spot,
     pub(super) generation: u64,
     /// The cell content hash this job renders.
     pub(super) hash: u64,
@@ -37,6 +37,24 @@ pub(crate) struct Job {
     pub(super) view: [Option<Basis>; 2],
 }
 
+/// Where a job's image goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Spot {
+    /// A cell outside the plot areas, by its index in the partition.
+    Cell(usize),
+    /// Tile `(i, j)` of plot area `area`'s grid numbered `grid`, planned
+    /// with the grid's origin at `at` (device px).
+    Tile {
+        area: usize,
+        grid: u64,
+        i: i32,
+        j: i32,
+        at: [i32; 2],
+    },
+    /// What stays put over plot area `area`'s tiles, over its job's rect.
+    Overlay { area: usize },
+}
+
 /// A probe clock and one reading of it.
 #[derive(Clone, Copy)]
 pub(crate) struct Stamp {
@@ -47,7 +65,7 @@ pub(crate) struct Stamp {
 /// A rendered job: one result per band, and its timing with a probe.
 pub(crate) struct Done {
     pub(super) target: probe::Target,
-    pub(super) grid: u64,
+    pub(super) spot: Spot,
     pub(super) generation: u64,
     pub(super) hash: u64,
     pub(super) rect: [i32; 4],
@@ -87,7 +105,7 @@ impl Job {
         let end = start.map(|stamp| Stamp::now(stamp.clock));
         Done {
             target: self.target,
-            grid: self.grid,
+            spot: self.spot,
             generation: self.generation,
             hash: self.hash,
             rect: self.rect,
@@ -163,7 +181,7 @@ mod tests {
         let rect = [0, 0, 960, 640];
         let job = Job {
             target: probe::Target::Cell(0),
-            grid: 0,
+            spot: super::Spot::Cell(0),
             generation: 1,
             hash: 0,
             list: Arc::new(list),

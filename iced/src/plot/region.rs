@@ -56,6 +56,14 @@ impl Along {
         }
     }
 
+    /// The (k, offset) of `t` along this direction.
+    pub(crate) fn pick(self, t: rustd3_core::interact::Transform) -> (f64, f64) {
+        match self {
+            Along::X => (t.k, t.x),
+            Along::Y => (t.k, t.y),
+        }
+    }
+
     /// The direction an axis on side `orient` maps along.
     fn of(orient: Orient) -> Along {
         match orient {

@@ -878,11 +878,11 @@ fn ten_hz_appends_stay_sharp() {
         append(&mut bottom, BOTTOM, APPEND);
         harness = parked.resume(live(&top, &bottom, follow, k, Render::Auto, None));
         let shot = harness.frame(t + Duration::from_millis(100) * step);
-        // Every changed cell rendered inline: no result for a worker to
-        // wake the UI with, and the frame is the sharp one, which differs
-        // from the PNG only where vello_cpu's output depends on a cell's
-        // origin where strokes cross (D18.3); a preview would be shifted.
-        assert_eq!(harness.wakes(), wakes, "{backend}, append {step}");
+        // Every changed cell and tile in view rendered inline (the ring
+        // goes to the worker after the frame, its results not drained
+        // here): the frame is the sharp one, which differs from the PNG
+        // only where vello_cpu's output depends on a cell's origin where
+        // strokes cross (D18.3); a preview would be shifted.
         let diff = against(&shot, &trace(&top, &bottom, follow).0, size, k);
         worst = worst.max(diff.max());
         assert_eq!(
@@ -893,7 +893,8 @@ fn ten_hz_appends_stay_sharp() {
         );
     }
     println!(
-        "ten appends a second, {backend}: ten sharp frames (max {worst}/255 against the PNG), {wakes} wakes before them, none after"
+        "ten appends a second, {backend}: ten sharp frames (max {worst}/255 against the PNG), {wakes} wakes before them, {} after (the rings)",
+        harness.wakes() - wakes
     );
 }
 
@@ -994,9 +995,18 @@ fn a_gesture_holds_a_windowed_handle() {
     harness = parked.resume(live(&top, &bottom, follow, k, Render::Inline, Some(&probe)));
     let held = harness.frame(t1 + Duration::from_millis(100));
     let samples: Vec<Sample> = rx.try_iter().collect();
-    let after = rendered(&samples, &trace(&top, &bottom, follow).0, LIVE, k);
+    let (fig, _) = trace(&top, &bottom, follow);
+    let after = rendered(&samples, &fig, LIVE, k);
+    let (_, cells) = partition(&fig, LIVE, k);
+    let areas = [0, 1].map(|panel| area_cell(&fig, LIVE, k, &cells, panel));
     println!("held window, {backend}: an append renders {after:?}");
-    assert!(after.is_empty(), "{backend}: {after:?}");
+    // The x domain stays: no axis moves, and no gutter cell renders. The
+    // samples appended past the view lie in the upper plot area's ring,
+    // whose tiles render again (D31.5); the frame shows the same pixels.
+    assert!(
+        after.iter().all(|cell| areas.contains(cell)),
+        "{backend}: {after:?}"
+    );
     assert_eq!(held.rgba, dragged.rgba, "{backend}");
     // A double click over the panel: the window follows the data again.
     let click = |harness: &mut Harness<'_, ()>| {

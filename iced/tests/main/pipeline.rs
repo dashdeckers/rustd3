@@ -205,15 +205,37 @@ fn last_frame(samples: &[Sample]) -> (u64, u32, u32, u32) {
 }
 
 /// The cost model's time for the cells the raster samples among
-/// `samples` rendered, ms.
-fn modelled(samples: &[Sample]) -> f64 {
+/// `samples` rendered, ms; with `ring`, the tiles of the overscan ring
+/// (see [`in_view`]) too.
+fn modelled(samples: &[Sample], view: Option<&[[i64; 4]]>) -> f64 {
     samples
         .iter()
         .filter_map(|sample| match sample {
-            Sample::Raster { pixels, work, .. } => Some(cost::model_ms(u64::from(*pixels), *work)),
+            Sample::Raster {
+                pixels,
+                work,
+                target,
+                ..
+            } => view
+                .is_none_or(|areas| in_view(*target, areas))
+                .then(|| cost::model_ms(u64::from(*pixels), *work)),
             Sample::Stage { .. } | Sample::Frame { .. } => None,
         })
         .sum()
+}
+
+/// Whether `target` shows in the canvas: a cell, or a tile whose square
+/// meets its plot area (device rect among `areas`) on a grid anchored at
+/// the area's corner; not a tile of the overscan ring.
+fn in_view(target: probe::Target, areas: &[[i64; 4]]) -> bool {
+    match target {
+        probe::Target::Cell(_) => true,
+        probe::Target::Tile { area, i, j } => {
+            let [x0, y0, x1, y1] = areas[area as usize];
+            let side = |a: i64, b: i64| (b - a + 255) / 256;
+            (0..side(x0, x1)).contains(&i64::from(i)) && (0..side(y0, y1)).contains(&i64::from(j))
+        }
+    }
 }
 
 /// What each `Frame` sample among `samples` reported: (missing, previews).
@@ -376,10 +398,14 @@ fn newest_result_wins() {
     let (generation, images, missing, previews) = last_frame(&settled.samples);
     assert_eq!((generation, missing, previews), (2, 0, 0), "{backend}");
     let rendered = rasters(&settled.samples);
-    let newest = rendered.iter().filter(|(_, g, _)| *g == 2).count();
+    let view = crate::tiles::areas(&tinted(0xf2e6d9), MEDIUM, k);
+    let newest = rendered
+        .iter()
+        .filter(|(target, g, _)| *g == 2 && in_view(*target, &view))
+        .count();
     assert_eq!(
         newest, images as usize,
-        "{backend}: every cell of generation 2"
+        "{backend}: every cell and tile in view of generation 2"
     );
     let diff = against_png(&settled.shot, &tinted(0xf2e6d9), MEDIUM, k);
     println!(
@@ -475,7 +501,14 @@ fn previous_image_stays_until_the_new_one_arrives() {
             "{backend}, k = {k}: the old title stays until the new one lands"
         );
         let settled = settle(&mut harness, &rx, t);
-        let rendered = rasters(&settled.samples);
+        // Tiles of the first frame's ring may still render, after it
+        // settled: of generation 2 when the new set requeued them.
+        let rendered: Vec<_> = rasters(&settled.samples)
+            .into_iter()
+            .filter(|&(target, generation, _)| {
+                generation == 2 && matches!(target, probe::Target::Cell(_))
+            })
+            .collect();
         let [(probe::Target::Cell(index), 2, false)] = rendered[..] else {
             panic!("{backend}, k = {k}: one cell of generation 2, {rendered:?}");
         };
@@ -523,12 +556,21 @@ fn cheap_refresh_renders_inline() {
     let _ = harness.frame(headless::epoch());
     let samples: Vec<Sample> = rx.try_iter().collect();
     let (generation, images, missing, previews) = last_frame(&samples);
-    let model = modelled(&samples);
-    println!("cheap refresh, {backend}: {images} cells, model {model:.2} ms, inline");
+    let model = modelled(&samples, None);
+    println!(
+        "cheap refresh, {backend}: {images} cells and tiles, model {model:.2} ms with the ring, inline"
+    );
     assert_eq!((generation, missing, previews), (1, 0, 0), "{backend}");
     assert!(model <= 8.35, "{backend}: model {model} ms");
+    // The tiles of the overscan ring render too, after those in view.
     let rendered = rasters(&samples);
-    assert_eq!(rendered.len(), images as usize);
+    let view = crate::tiles::areas(&tinted(0xffffff), SMALL, k);
+    let shown = rendered
+        .iter()
+        .filter(|&&(target, ..)| in_view(target, &view))
+        .count();
+    assert_eq!(shown, images as usize);
+    assert!(rendered.len() > shown);
     assert!(
         rendered.iter().all(|&(_, _, inline)| inline),
         "{rendered:?}"
@@ -573,20 +615,37 @@ fn expensive_refresh_uses_the_worker() {
         samples.extend(settle(&mut harness, &rx, t).samples);
     }
     let rendered = rasters(&samples);
+    let view = crate::tiles::areas(&scatter(DOTS), LARGE, k);
+    let shown = rendered
+        .iter()
+        .filter(|&&(target, ..)| in_view(target, &view))
+        .count();
     assert_eq!(
-        rendered.len(),
-        missing as usize,
-        "{backend}: every cell once"
+        shown, missing as usize,
+        "{backend}: every cell and tile once"
     );
     assert!(
         rendered.iter().all(|&(_, _, inline)| !inline),
         "{rendered:?}"
     );
-    let model = modelled(&samples);
-    println!("expensive refresh, {backend}: {missing} cells on the worker, model {model:.1} ms");
-    // 6.4e6 px / 5e5 + 200k dots / 400 ≈ 513 ms, and the axes' labels.
+    let model = modelled(&samples, Some(&view));
+    // The plot area's tiles reach past it by up to a tile less a pixel:
+    // their pixels on top of the area's.
+    let past: i64 = view
+        .iter()
+        .map(|[x0, y0, x1, y1]| {
+            let side = |a: i64, b: i64| (b - a + 255) / 256 * 256;
+            side(*x0, *x1) * side(*y0, *y1) - (x1 - x0) * (y1 - y0)
+        })
+        .sum();
+    let section = 513.0 + past as f64 / cost::PIXELS_PER_MS;
+    println!(
+        "expensive refresh, {backend}: {missing} cells and tiles in view on the worker, model {model:.1} ms ({section:.1} expected)"
+    );
+    // 6.4e6 px / 5e5 + 200k dots / 400 ≈ 513 ms, and the axes' labels;
+    // the tiles' pixels past the area on top.
     assert!(
-        (model / 513.0 - 1.0).abs() < 0.01,
+        (model / section - 1.0).abs() < 0.01,
         "{backend}: model {model} ms"
     );
 }

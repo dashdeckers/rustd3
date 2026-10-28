@@ -73,6 +73,21 @@ impl Slot {
         self.hash
     }
 
+    /// The image shown lies over `rect` now: a tile's latest render, of
+    /// its square where the grid then lay.
+    pub(crate) fn reshape(&mut self, rect: [i32; 4]) {
+        self.rect = rect;
+    }
+
+    /// The image shown is of content `hash`, the current one: what a
+    /// translated tile's image shows after a whole-pixel pan.
+    pub(crate) fn relabel(&mut self, hash: u64) {
+        self.hash = hash;
+        if let Some(shown) = &mut self.shown {
+            shown.hash = hash;
+        }
+    }
+
     /// The generation a render is pending for.
     pub(crate) fn pending(&self) -> Option<u64> {
         self.pending
@@ -290,12 +305,13 @@ impl Slot {
     }
 
     /// Logical bounds that land exactly on a band's device pixels: its
-    /// device position plus `NUDGE`, and its device size, over the factor.
+    /// device position nudged toward zero's side ([`nudged`]), and its
+    /// device size, over the factor.
     pub(crate) fn bounds(&self, rows: &Range<i32>, origin: [i32; 2], factor: f32) -> Rectangle {
         let [x0, y0, x1, _] = self.rect;
         Rectangle {
-            x: ((origin[0] + x0) as f32 + NUDGE) / factor,
-            y: ((origin[1] + y0 + rows.start) as f32 + NUDGE) / factor,
+            x: nudged(origin[0] + x0) / factor,
+            y: nudged(origin[1] + y0 + rows.start) / factor,
             width: (x1 - x0) as f32 / factor,
             height: rows.len() as f32 / factor,
         }
@@ -303,14 +319,27 @@ impl Slot {
 }
 
 /// Logical bounds that land exactly on device rect `[x0, y0, x1, y1]` of a
-/// widget whose device origin is `origin`: its device position plus
-/// `NUDGE`, and its device size, over the factor.
+/// widget whose device origin is `origin`: its device position nudged
+/// ([`nudged`]), and its device size, over the factor.
 pub(crate) fn logical([x0, y0, x1, y1]: [i32; 4], origin: [i32; 2], factor: f32) -> Rectangle {
     Rectangle {
-        x: ((origin[0] + x0) as f32 + NUDGE) / factor,
-        y: ((origin[1] + y0) as f32 + NUDGE) / factor,
+        x: nudged(origin[0] + x0) / factor,
+        y: nudged(origin[1] + y0) / factor,
         width: (x1 - x0) as f32 / factor,
         height: (y1 - y0) as f32 / factor,
+    }
+}
+
+/// Device position `p` nudged by `NUDGE` away from its pixel's edge on the
+/// side that lands on `p`: tiny-skia truncates toward zero (`as i32`,
+/// `tiny_skia/src/raster.rs:63-64`) and wgpu adds 0.001 and rounds, so a
+/// quarter pixel above lands on `p` for `p ≥ 0`, and a quarter pixel below
+/// for a tile of the overscan ring left of or above the window's origin.
+pub(crate) fn nudged(p: i32) -> f32 {
+    if p < 0 {
+        p as f32 - NUDGE
+    } else {
+        p as f32 + NUDGE
     }
 }
 
@@ -421,6 +450,16 @@ mod tests {
         assert_eq!((bounds.x * k) as i32, 15);
         assert_eq!((bounds.x * k + 0.001).round(), 15.0);
         assert_eq!(((15.0 + 0.5) / k * k + 0.001_f32).round(), 16.0);
+    }
+
+    #[test]
+    fn negative_positions_nudge_toward_zero() {
+        // tiny-skia truncates toward zero, wgpu adds 0.001 and rounds.
+        for p in [-140, -1, 0, 1, 140] {
+            let at = super::nudged(p);
+            assert_eq!(at as i32, p, "tiny-skia");
+            assert_eq!((at + 0.001).round() as i32, p, "wgpu");
+        }
     }
 
     #[test]
