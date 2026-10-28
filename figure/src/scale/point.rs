@@ -29,6 +29,12 @@ impl<K: PartialEq + Clone + 'static> Scale for Point<K> {
     fn zoom_px(&self, _range: [f64; 2], _anchor: f64, _factor: f64) -> Option<Box<dyn Scale>> {
         None
     }
+
+    /// `at` when `from` places every key over `range` as this scale does.
+    fn remap(&self, from: &dyn Scale, range: [f64; 2], at: [f64; 2]) -> Option<[f64; 2]> {
+        let from = from.as_any().downcast_ref::<Self>()?;
+        (from.clone().range(range) == self.clone().range(range)).then_some(at)
+    }
 }
 
 /// Fitting keeps the keys the scale was built with.

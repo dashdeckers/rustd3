@@ -29,6 +29,12 @@ impl<K: PartialEq + Clone + 'static> Scale for Band<K> {
     fn zoom_px(&self, _range: [f64; 2], _anchor: f64, _factor: f64) -> Option<Box<dyn Scale>> {
         None
     }
+
+    /// `at` when `from` places every key over `range` as this scale does.
+    fn remap(&self, from: &dyn Scale, range: [f64; 2], at: [f64; 2]) -> Option<[f64; 2]> {
+        let from = from.as_any().downcast_ref::<Self>()?;
+        (from.clone().range(range) == self.clone().range(range)).then_some(at)
+    }
 }
 
 /// Fitting keeps the keys the scale was built with.
@@ -92,5 +98,23 @@ mod tests {
             (ranged.position(&"b"), ranged.bandwidth()),
             (Some(110.0), 90.0)
         );
+    }
+
+    #[test]
+    fn band_scales_remap_only_where_they_place_keys_alike() {
+        let b = scale::band(["a", "b"]).padding(0.1);
+        let range = [0.0, 210.0];
+        assert_eq!(b.remap(&b, range, [0.0, 210.0]), Some([0.0, 210.0]));
+        // Other padding or other keys: no map, a change.
+        let wider = scale::band(["a", "b"]).padding(0.2);
+        assert_eq!(wider.remap(&b, range, [0.0, 210.0]), None);
+        let more = scale::band(["a", "b", "c"]).padding(0.1);
+        assert_eq!(more.remap(&b, range, [0.0, 210.0]), None);
+        let point = scale::point(["a", "b"]);
+        assert_eq!(
+            Scale::remap(&point, &point, range, [3.0, 4.0]),
+            Some([3.0, 4.0])
+        );
+        assert_eq!(Scale::remap(&point, &b, range, [3.0, 4.0]), None);
     }
 }

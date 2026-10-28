@@ -72,6 +72,48 @@ pub trait Scale: Any {
     /// around `anchor` px; `None` for scales without it and for a step
     /// core rejects.
     fn zoom_px(&self, range: [f64; 2], anchor: f64, factor: f64) -> Option<Box<dyn Scale>>;
+
+    /// Where the domain values that `from` places at the positions `at`
+    /// lie on this scale, both set to `range`. A widget that keeps a
+    /// picture drawn with `from` compares it with the scale now at two
+    /// points: positions that moved by the same whole number of device
+    /// pixels at both are a translation of the picture, anything else a
+    /// change.
+    ///
+    /// Continuous and time scales take each position through `from`'s
+    /// inverse; band and point scales, which do not pan, give `at` when
+    /// both place every key alike. `None` when `from` is another type,
+    /// when band or point scales place keys differently, where an inverse
+    /// is not finite, and for scales whose range is not positional (color
+    /// scales, the default).
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::scale::Scale;
+    ///
+    /// let x = scale::linear().domain([0.0, 100.0]);
+    /// let range = [0.0, 960.0];
+    /// // Panned by 96 px: both edges move by 96 px, a translation.
+    /// let panned = x.pan_px(range, 96.0).expect("a linear scale pans");
+    /// assert_eq!(panned.remap(&x, range, [0.0, 960.0]), Some([96.0, 1056.0]));
+    /// // Zoomed ×2 about the middle: the edges move apart, a change.
+    /// let zoomed = x.zoom_px(range, 480.0, 2.0).expect("a linear scale zooms");
+    /// assert_eq!(zoomed.remap(&x, range, [0.0, 960.0]), Some([-480.0, 1440.0]));
+    /// // A log scale places nothing a linear one drew.
+    /// assert_eq!(scale::log().remap(&x, range, [0.0, 960.0]), None);
+    /// ```
+    fn remap(&self, from: &dyn Scale, range: [f64; 2], at: [f64; 2]) -> Option<[f64; 2]> {
+        let _ = (from, range, at);
+        None
+    }
+}
+
+/// The positions `at` of `from` taken through its inverse to `to`'s
+/// positions: the domain values `from` places there, where `to` places
+/// them.
+fn through<S: Invert>(from: &S, to: &S, [a, b]: [f64; 2]) -> Option<[f64; 2]> {
+    let map = |p: f64| to.position(&from.invert(p)?);
+    Some([map(a)?, map(b)?])
 }
 
 /// `ends` spread over `N` stops: the first and last are `ends` exactly, and

@@ -8,7 +8,9 @@ use rustd3_core::interact::Rescale;
 use rustd3_core::scale::{self, Continuous, Pad};
 use rustd3_core::series::{Points, m4};
 
-use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stops, stuck};
+use crate::scale::{
+    Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stops, stuck, through,
+};
 use crate::thin;
 
 /// A piecewise scale's inner stops keep their share of the way between its
@@ -34,6 +36,11 @@ impl<T: scale::Transform + 'static, const N: usize> Scale for Continuous<T, f64,
     fn zoom_px(&self, range: [f64; 2], anchor: f64, factor: f64) -> Option<Box<dyn Scale>> {
         let zoomed = Rescale::zoom_px(&ranged(self, range), anchor, factor)?;
         Some(Box::new(zoomed))
+    }
+
+    fn remap(&self, from: &dyn Scale, range: [f64; 2], at: [f64; 2]) -> Option<[f64; 2]> {
+        let from = from.as_any().downcast_ref::<Self>()?;
+        through(&ranged(from, range), &ranged(self, range), at)
     }
 }
 
@@ -320,6 +327,48 @@ mod tests {
             .expect("its type");
         assert_eq!(zoomed.get_domain(), [25.0, 75.0]);
         assert!(Scale::zoom_px(&x, [0.0, 960.0], 480.0, 1e13).is_none());
+    }
+
+    #[test]
+    fn remap_takes_positions_through_the_domain() {
+        let range = [0.0, 960.0];
+        let edges = [0.0, 960.0];
+        let log = scale::log().domain([1.0, 1e4]);
+        // A pan by whole px moves both edges by as much, on any transform.
+        for (from, panned) in [
+            (
+                Scale::boxed(&log),
+                Scale::pan_px(&log, range, -37.0).expect("pans"),
+            ),
+            (
+                Scale::boxed(&scale::linear().domain([1e9, 1e9 + 60.0])),
+                Scale::pan_px(&scale::linear().domain([1e9, 1e9 + 60.0]), range, 5.0)
+                    .expect("pans"),
+            ),
+        ] {
+            let moved = panned.remap(&*from, range, edges).expect("same type");
+            let shift = [moved[0] - edges[0], moved[1] - edges[1]];
+            let expected = if shift[0] < 0.0 { -37.0 } else { 5.0 };
+            // Within the rounding of values near 1e9 (an ulp is 1.2e-7,
+            // 2e-6 px here).
+            assert!(
+                shift.iter().all(|s| (s - expected).abs() < 1e-5),
+                "{shift:?}"
+            );
+        }
+        // A zoom moves the edges apart about its anchor.
+        let x = scale::linear().domain([0.0, 100.0]);
+        let zoomed = Scale::zoom_px(&x, range, 240.0, 2.0).expect("zooms");
+        assert_eq!(zoomed.remap(&x, range, edges), Some([-240.0, 1680.0]));
+        // The same scale over another range places the same values alike.
+        assert_eq!(
+            x.remap(&x, [100.0, 300.0], [150.0, 250.0]),
+            Some([150.0, 250.0])
+        );
+        // Another type, or a color scale, maps nothing.
+        assert_eq!(Scale::remap(&x, &log, range, edges), None);
+        let color = scale::sequential([0.0, 1.0], rustd3_core::scheme::viridis);
+        assert_eq!(Scale::remap(&color, &color, range, edges), None);
     }
 
     #[test]

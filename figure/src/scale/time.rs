@@ -10,7 +10,7 @@ use rustd3_core::scale::Pad;
 use rustd3_core::series::{Points, m4};
 use rustd3_core::time::Time;
 
-use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stuck};
+use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stuck, through};
 use crate::thin;
 
 /// Time scales pan and zoom in nanoseconds from the domain's start.
@@ -35,6 +35,12 @@ impl Scale for Time {
     fn zoom_px(&self, range: [f64; 2], anchor: f64, factor: f64) -> Option<Box<dyn Scale>> {
         let zoomed = Rescale::zoom_px(&self.clone().range(range), anchor, factor)?;
         Some(Box::new(zoomed))
+    }
+
+    /// Through the instants `from` places at `at`, to the nanosecond.
+    fn remap(&self, from: &dyn Scale, range: [f64; 2], at: [f64; 2]) -> Option<[f64; 2]> {
+        let from = from.as_any().downcast_ref::<Time>()?;
+        through(&from.clone().range(range), &self.clone().range(range), at)
     }
 }
 
@@ -190,6 +196,16 @@ mod tests {
             Some(at("2026-10-25T03:00:00Z"))
         );
         assert_eq!(Invert::invert(ranged, f64::NAN), None);
+        // Panned by 96 px, the instants at the edges moved by 96 px.
+        let range = [0.0, 960.0];
+        assert_eq!(
+            Scale::pan_px(&x, range, 96.0)
+                .expect("pans")
+                .remap(&x, range, [0.0, 960.0]),
+            Some([96.0, 1056.0])
+        );
+        let linear = rustd3_core::scale::linear();
+        assert_eq!(Scale::remap(&x, &linear, range, [0.0, 960.0]), None);
     }
 
     #[test]
