@@ -392,7 +392,7 @@ margins; gutters keep their last image until theirs land.
 
 ## D31.4 — The plot areas' edges: thinned lines through the overscan against the file output
 
-**Date:** 2026-10-28 · **Context:** Phase 31, step 4–5, b2d0cdd, ddfd934 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, step 4–5, b2d0cdd, ddfd934 · **Status:** decided
 
 ### Issue
 
@@ -429,6 +429,13 @@ pixel columns, and translation needs the continuation. B is the cleaner
 long-term answer if the files should match the screen exactly; it is a
 Phase 15 change outside this phase.
 
+### Decision
+
+A (architect, 2026-10-28): with overscan a thinned line continues
+through the plot area's edge where the PNG ends it; the widget's
+references compose plot areas from the overscanned list, and the edge
+columns' difference against the PNG (up to 32/255) is documented.
+
 ### Followups
 
 - Testing's agreement table: a row for thinned lines at a plot area's
@@ -436,7 +443,7 @@ Phase 15 change outside this phase.
 
 ## D31.5 — Details of Phase 31b as built
 
-**Date:** 2026-10-28 · **Context:** Phase 31, d12886b … ded81af · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, d12886b … ded81af · **Status:** decided
 
 ### Issue
 
@@ -482,13 +489,17 @@ Steps 3–5 met eleven calls the section does not make.
 
 A for all eleven.
 
+### Decision
+
+A for all eleven (architect, 2026-10-28), as built.
+
 ### Followups
 
 - (6) and (3) together are D31.6's cost.
 
 ## D31.6 — The leading ring column re-renders every frame of a pan
 
-**Date:** 2026-10-28 · **Context:** Phase 31, step 5, ddfd934 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, step 5, ddfd934 · **Status:** decided
 
 ### Issue
 
@@ -518,6 +529,14 @@ volume). With B, steady pans render a column of tiles per 256 px; the
 remaining per-frame work is the gutter cells and overlays that show the
 panned handle (4–10 renders of about 4 ms here), which D22.4's item 1
 (the overhead term) and Step 6's merging address.
+
+### Decision
+
+B (architect, 2026-10-28): ring tiles render over their whole square,
+with an overscan of two tiles plus the margin, so a continuous pan
+renders one new column per 256 px instead of the leading ring column
+every frame; the −37 px spot check changes accordingly and the entry
+records the new numbers. First commit of session 31c.
 
 ### Followups
 
