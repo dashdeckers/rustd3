@@ -544,3 +544,19 @@ records the new numbers. First commit of session 31c.
   worker under `Render::Auto` today, so the benchmark's preview share
   (which counts an outdated axis strip) stays near 98 % until they render
   inline or merge.
+- **Built (31c, the session's first commit).** An area's keys are those
+  whose squares meet its rect grown by one tile, as before; every tile
+  renders its whole square (`tile::Grid::cover`), and the layers are drawn
+  with an overscan of two tiles and the margin (`tile::OVERSCAN`, 520
+  device px). A moved image always covers its square, so `Area::change`
+  keeps every current tile on a translation and the entering-from-the-ring
+  case of D31.5 (6) no longer occurs. The spot checks, both backends at 1
+  (`pan_renders_only_entering_tiles`, 900 × 600): +37 px renders column
+  −2's 5 tiles over [−475, −219) and no visible tile; −37 px renders no
+  tile (column 4 lies at [987, 1243), its square); at 2 on 1792 × 1324,
+  +37 px renders column −2's 8 tiles; each frame against a fresh render of
+  the snapped domain 1/255, 7 gutter cells and overlays alongside. The
+  trace replay (`a_pan_over_a_trace_keeps_the_plot_areas_current`, 30
+  frames): 0.2 ring tiles a frame at 1 and 0.6 at 2 (31b: 6.0 and 8.6),
+  0 frames outdated. `tiles_cover_the_area_once` counts (columns + 2) ×
+  (rows + 2) whole squares; the ×1.2 zoom-out still misses nothing.

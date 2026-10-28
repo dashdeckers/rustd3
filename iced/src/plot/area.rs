@@ -5,10 +5,10 @@
 //! A refresh moves each area to the views its axes show now (D20.3: each
 //! lead handle's view in shares of its range). Measured from the views
 //! the grid began at, a move by whole device pixels on both axes moves the
-//! grid's origin by as much: keys stay, squares move, and a tile whose
-//! image, moved along, still covers its square stays valid, so a pan
-//! renders only the tiles entering the area's grown rect and those whose
-//! image falls short of their square. Any other move begins the grid anew
+//! grid's origin by as much: keys stay, squares move, and every tile's
+//! image, rendered over its whole square, moves along and stays valid, so
+//! a pan renders only the keys entering the area's grown rect, a column
+//! per 256 px (D31.6). Any other move begins the grid anew
 //! at the area's corner: every key is new, and the old tiles become the
 //! area's preview layer, drawn mapped from the views each was planned at
 //! to the views now (one affine map per axis, linear filtering, clipped
@@ -16,7 +16,7 @@
 //! layer is kept: a second change before the first is sharp keeps the
 //! first and maps it on.
 //!
-//! The tiles cover the area grown by one tile on every side: the overscan
+//! The keys cover the area grown by one tile on every side: the overscan
 //! ring, rendered after the visible tiles, which a pan brings into view
 //! and a zoom-out maps into the preview. What stays put inside the area
 //! (the inner halves of axis lines, a border, an inset legend) is not in
@@ -51,7 +51,7 @@ pub(crate) struct Area {
     anchor: [Option<Basis>; 2],
     /// Hash of the area's current layer.
     hash: u64,
-    /// The grid's tiles over the grown rect, row by row.
+    /// The grid's keys that meet the grown rect, row by row.
     tiles: Vec<Tile>,
     /// Tiles of an earlier grid, drawn mapped while the grid's visible
     /// ones are not all sharp.
@@ -81,8 +81,7 @@ pub(crate) struct Shown {
     /// Those that show neither: the theme background.
     pub(crate) missing: u32,
     /// Those that show other content than the current: an outdated image
-    /// of their own, one that falls short of their square, or the preview
-    /// layer.
+    /// of their own, or the preview layer.
     pub(crate) previews: u32,
 }
 
@@ -118,7 +117,7 @@ impl Area {
         self.rect
     }
 
-    /// The rect the tiles cover: the area grown by one tile on each side.
+    /// The rect the keys meet: the area grown by one tile on each side.
     pub(crate) fn grown(&self) -> [i32; 4] {
         let [x0, y0, x1, y1] = self.rect;
         [x0 - SIZE, y0 - SIZE, x1 + SIZE, y1 + SIZE]
@@ -162,8 +161,8 @@ impl Area {
 
     /// Whether `tile` shows its part inside the area exact: an image of
     /// the current layer, moved with the grid, covering that part. A
-    /// pending render of such a tile (or of a ring tile) goes after the
-    /// rest.
+    /// pending render of such a tile (one every slot re-renders for, or a
+    /// ring tile) goes after the rest.
     pub(crate) fn is_exact(&self, tile: &Tile) -> bool {
         tile.slot().is_current() && tile.covers_in(self.grid.origin(), self.rect)
     }
@@ -236,38 +235,25 @@ impl Area {
 
     /// The area's layer is `hash` at `generation`, its grid having
     /// `moved`: after a translation an image that showed the layer before
-    /// and still covers its tile shows it now; one that covers the tile's
-    /// part inside the area but not the rest (a tile entering the area
-    /// from the ring, whose square the grown rect cut) shows it there and
-    /// is marked pending, its render going with the ring's; every other
-    /// tile that does not show it, whose image falls short of its square,
-    /// or that has no image and no pending render, is marked pending
-    /// (every tile with `every`). True when one was.
+    /// and covers its tile shows it now; every other tile that does not
+    /// show it, or that has no image and no pending render, is marked
+    /// pending (every tile with `every`). True when one was.
     pub(crate) fn change(
         &mut self,
         hash: u64,
         generation: u64,
         (moved, every): (Moved, bool),
     ) -> bool {
+        let translated = moved == Moved::Translated && !every;
         self.hash = hash;
         let origin = self.grid.origin();
-        let area = self.rect;
         let mut changed = false;
         for tile in &mut self.tiles {
             let covers = tile.covers(origin);
-            let inside = tile.covers_in(origin, area);
             let slot = tile.slot_mut();
-            if moved == Moved::Translated && slot.is_current() && !every {
-                if covers {
-                    slot.relabel(hash);
-                    continue;
-                }
-                if inside {
-                    slot.relabel(hash);
-                    slot.change(hash, generation);
-                    changed = true;
-                    continue;
-                }
+            if translated && slot.is_current() && covers {
+                slot.relabel(hash);
+                continue;
             }
             let idle = slot.pending().is_none();
             let stale = slot.hash() != hash || (!covers && idle);
@@ -485,7 +471,7 @@ impl Area {
         Some(offset)
     }
 
-    /// The grid's tiles over the grown rect, holding layer `hash`, without
+    /// The grid's keys that meet the grown rect, holding layer `hash`, without
     /// images.
     fn cover(&self, hash: u64) -> Vec<Tile> {
         let origin = self.grid.origin();
@@ -605,6 +591,32 @@ mod tests {
         area
     }
 
+    /// Lands an image for every tile pending a render, of content `hash`
+    /// on the grid as it lies now.
+    fn land_pending(area: &mut Area, hash: u64) {
+        let jobs: Vec<_> = area
+            .tiles()
+            .iter()
+            .filter_map(|tile| Some((tile.key(), tile.rect(), tile.slot().pending()?)))
+            .collect();
+        let (serial, at) = (area.serial(), area.origin());
+        for (key, rect, generation) in jobs {
+            let [x0, y0, x1, y1] = rect;
+            let (w, h) = ((x1 - x0) as u32, (y1 - y0) as u32);
+            let band = Band::new(
+                0..y1 - y0,
+                Handle::from_rgba(w, h, vec![0; (w * h * 4) as usize]),
+            );
+            let tile = (serial, key.i, key.j, at);
+            area.land(
+                tile,
+                (generation, hash),
+                (rect, Some(vec![band])),
+                [None; 2],
+            );
+        }
+    }
+
     /// The keys of the tiles pending a render.
     fn pending(area: &Area) -> Vec<(i32, i32)> {
         area.tiles()
@@ -629,7 +641,7 @@ mod tests {
         let mut area = rendered();
         assert_eq!(area.follow(panned(37.0 / 900.0), 1.0, 2), Moved::Translated);
         assert_eq!(area.origin(), [37, 0]);
-        // Column −1, [−256, 0) rendered, now [−219, 37): covered.
+        // Column −1, [−256, 0) rendered, now [−219, 37): its square.
         let left = area
             .tiles()
             .iter()
@@ -637,57 +649,52 @@ mod tests {
         assert_eq!(left.map(|t| t.rect()), Some([-219, 0, 37, 256]));
         assert!(left.is_some_and(|t| t.covers([37, 0])));
         assert!(area.change(2, 2, (Moved::Translated, false)));
-        // The new key i = −2, [−256, −219), in 5 rows; nothing visible.
+        // The new key i = −2, its whole square [−475, −219), in 5 rows;
+        // nothing visible.
         let entering: Vec<(i32, i32)> = (-1..=3).map(|j| (-2, j)).collect();
         assert_eq!(pending(&area), entering);
         let new = area
             .tiles()
             .iter()
             .find(|t| (t.key().i, t.key().j) == (-2, 0));
-        assert_eq!(new.map(|t| t.rect()), Some([-256, 0, -219, 256]));
+        assert_eq!(new.map(|t| t.rect()), Some([-475, 0, -219, 256]));
     }
 
     #[test]
-    fn a_37_px_drag_left_re_renders_the_right_ring_column() {
+    fn a_37_px_drag_left_renders_no_tile() {
         let mut area = rendered();
         assert_eq!(
             area.follow(panned(-37.0 / 900.0), 1.0, 2),
             Moved::Translated
         );
         assert_eq!(area.origin(), [-37, 0]);
-        assert!(area.change(2, 2, (Moved::Translated, false)));
-        // Column 3: [768, 1024) → [731, 987) covers its new rect; column 4,
-        // [1024, 1156) rendered, [987, 1156) now, falls short at the right;
-        // no new key (i = −2 would be [−549, −293)).
-        let right: Vec<(i32, i32)> = (-1..=3).map(|j| (4, j)).collect();
-        assert_eq!(pending(&area), right);
+        // Column 4, rendered over its square [1024, 1280), is at [987,
+        // 1243): still its square; no new key (i = −2 would be [−549,
+        // −293)).
+        assert!(!area.change(2, 2, (Moved::Translated, false)));
+        assert!(pending(&area).is_empty());
         assert_eq!(area.tiles().len(), 30);
     }
 
     #[test]
-    fn a_tile_entering_from_the_ring_stays_exact_inside_the_area() {
+    fn a_steady_pan_renders_a_column_per_tile() {
         let mut area = rendered();
-        let now = panned(-132.0 / 900.0);
-        assert_eq!(area.follow(now, 1.0, 2), Moved::Translated);
-        assert!(area.change(2, 2, (Moved::Translated, false)));
-        // Column 4, rendered over [1024, 1156), is at [892, 1024) and its
-        // square at [892, 1148): it covers the 8 px inside the area, not
-        // the rest, so it renders with the ring and shows exact meanwhile;
-        // column 5 enters the grown rect at [1148, 1156).
-        let column = |i: i32| (-1..=3).map(move |j| (i, j));
-        let mut expected: Vec<(i32, i32)> = column(4).chain(column(5)).collect();
-        let mut waiting = pending(&area);
-        expected.sort_unstable();
-        waiting.sort_unstable();
-        assert_eq!(waiting, expected);
-        let entering = area
-            .tiles()
-            .iter()
-            .find(|t| (t.key().i, t.key().j) == (4, 0))
-            .expect("column 4");
-        assert!(area.shows(entering) && area.is_exact(entering));
-        let shown = area.shown(1.0, now);
-        assert_eq!((shown.missing, shown.previews), (0, 0));
+        // Left by 4 px a frame: the column i = 5 enters at the frame whose
+        // origin brings its square [1280 + o, …) inside the grown rect,
+        // o < −124, and nothing else renders on the way.
+        let mut entered = Vec::new();
+        for frame in 1..=40_u64 {
+            let offset = -4 * frame as i32;
+            let now = panned(f64::from(offset) / 900.0);
+            let hash = 1 + frame;
+            assert_eq!(area.follow(now, 1.0, 2), Moved::Translated);
+            if area.change(hash, 1 + frame, (Moved::Translated, false)) {
+                entered.push((offset, pending(&area)));
+                land_pending(&mut area, hash);
+            }
+        }
+        let column: Vec<(i32, i32)> = (-1..=3).map(|j| (5, j)).collect();
+        assert_eq!(entered, [(-128, column)]);
     }
 
     #[test]

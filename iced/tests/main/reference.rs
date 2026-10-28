@@ -3,7 +3,7 @@
 //! factor and composited onto the screenshot's background, its plot areas
 //! as the widget draws them.
 //!
-//! The widget draws its plot areas with an overscan of one tile (256
+//! The widget draws its plot areas with an overscan of two tiles (512
 //! device px), so that a pan can bring in what lies beyond the view: a
 //! thinned line crossing a plot area's left or right edge continues past
 //! it there, where the file output ends it one sample beyond the edge
@@ -18,8 +18,8 @@ use rustd3_figure::list::{Bounds, Command, List, Outlines, part};
 use rustd3_figure::raster::{self, Settings, Simd};
 use rustd3_figure::{Cache, Figure, Held, Target, layout, thin};
 
-/// The widget's overscan: one tile and a margin, device px.
-const OVERSCAN: f64 = 264.0;
+/// The widget's overscan: two tiles and a margin, device px.
+const OVERSCAN: f64 = 520.0;
 
 /// `fig` at `size` logical px and `scale` device px per px, as the PNG
 /// output renders it (single-threaded, baseline SIMD), its plot areas

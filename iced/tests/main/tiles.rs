@@ -172,7 +172,7 @@ fn tiles_cover_the_area_once() {
         let rendered = tiles(&samples);
         // Tile (0, 0) starts at the area's corner: columns and rows of
         // 256 px over the area grown by one tile on each side (the ring),
-        // the last ones shorter, each key once.
+        // each key once and over its whole square.
         let (columns, rows) = ((x1 - x0 + TILE - 1) / TILE, (y1 - y0 + TILE - 1) / TILE);
         let keys: HashSet<(u32, i32, i32)> =
             rendered.iter().map(|&(a, i, j, _)| (a, i, j)).collect();
@@ -180,7 +180,7 @@ fn tiles_cover_the_area_once() {
             .flat_map(|j| (-1..=columns).map(move |i| (0, i as i32, j as i32)))
             .collect();
         let pixels: i64 = rendered.iter().map(|&(.., p)| i64::from(p)).sum();
-        let (w, h) = (x1 - x0 + 2 * TILE, y1 - y0 + 2 * TILE);
+        let (w, h) = ((columns + 2) * TILE, (rows + 2) * TILE);
         println!(
             "keys, {backend}, k = {k}: {columns} × {rows} tiles and a ring over {} × {} px",
             x1 - x0,
@@ -349,18 +349,22 @@ struct Dragged {
 #[test]
 fn pan_renders_only_entering_tiles() {
     // The spot checks: a 900 × 600 device-px plot area, its ring of 6 × 5
-    // keys resident. +37 px: no visible tile renders, the column i = −2
-    // enters (its 5 rows); −37 px: no key enters, and the ring column
-    // i = 4, rendered over [1024, 1156), shifted to [987, 1119), leaves
-    // [1119, 1156) uncovered, so its 5 tiles render.
+    // keys resident, each rendered over its whole square (D31.6). +37 px:
+    // no visible tile renders, the column i = −2 enters (its 5 rows, each
+    // its square [−475, −219)); −37 px: no key enters, and the ring column
+    // i = 4, rendered over [1024, 1280), lies at [987, 1243), its square:
+    // no tile renders.
     let size = sized(900, 600, 1.0);
-    for (d, i) in [(37, -2), (-37, 4)] {
+    for (d, entering) in [(37, Some(-2)), (-37, None)] {
         let Some(drag) = drag_by(1.0, size, d) else {
             return;
         };
-        let expected: HashSet<(i32, i32)> = (-1..=3).map(|j| (i, j)).collect();
+        let expected: HashSet<(i32, i32)> = entering
+            .into_iter()
+            .flat_map(|i| (-1..=3).map(move |j| (i, j)))
+            .collect();
         assert_eq!(drag.keys, expected, "{}: {d} px", drag.backend);
-        assert_eq!(drag.rendered, 5, "{}: {d} px", drag.backend);
+        assert_eq!(drag.rendered, expected.len(), "{}: {d} px", drag.backend);
         assert!(drag.cells > 0, "the gutter cells showing x render");
         assert!(
             drag.max <= bound(&drag.backend),

@@ -5,28 +5,35 @@
 //! Plot areas, not partition cells, carry tiles: a plot area that other
 //! panels' edges cut into several cells still has one grid. Tile `(i, j)`
 //! is the square `[origin.x + SIZE·i, origin.x + SIZE·(i + 1)) ×
-//! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))` intersected with the
-//! bounds its area renders: the plot area's device rect grown by one tile
-//! on each side, the overscan ring (without the grown rect the ring tiles
-//! would be empty). A tile's image is 256 × 256 × 4 = 262,144 B at most,
-//! far under `BAND_BYTES`, so it is one band, and wgpu's 2048² atlas
-//! layers hold 64 of them (`wgpu/src/image/atlas.rs:13-14`).
+//! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))`, and an area has the keys
+//! whose squares meet its device rect grown by one tile on each side: the
+//! overscan ring. Every tile renders its whole square (D31.6), so a ring
+//! tile reaches up to two tiles beyond the area, which the list's overscan
+//! covers. A tile's image is 256 × 256 × 4 = 262,144 B, far under
+//! `BAND_BYTES`, so it is one band, and wgpu's 2048² atlas layers hold 64
+//! of them (`wgpu/src/image/atlas.rs:13-14`).
 //!
 //! A whole-pixel pan moves the grid's origin by the same device px: keys
 //! stay and their squares move. A tile's image lies where it was rendered,
-//! moved by how far the origin moved since; it stays valid while it covers
-//! the tile's square as it is now.
+//! moved by how far the origin moved since, so it covers its square until
+//! the key leaves the grown rect: a steady pan renders one new column of
+//! keys per 256 px.
 
 use crate::plot::slot::Slot;
 
 /// The side of a tile, device px.
 pub(crate) const SIZE: i32 = 256;
 
-/// Device px the list reaches past the ring: a line drawn to the edge of
-/// what a list holds ends one sample beyond it, so within half its width
-/// of that edge it is not the line a wider list draws; the margin keeps
-/// that edge out of the ring's tiles for lines up to 16 device px wide.
+/// Device px the list reaches past the farthest ring tile, two tiles
+/// beyond the area: a line drawn to the edge of what a list holds ends one
+/// sample beyond it, so within half its width of that edge it is not the
+/// line a wider list draws; the margin keeps that edge out of the ring's
+/// tiles for lines up to 16 device px wide.
 pub(crate) const MARGIN: i32 = 8;
+
+/// Device px the plot areas' layers are drawn beyond each area: two tiles,
+/// as far as a ring tile's square reaches, and the margin.
+pub(crate) const OVERSCAN: i32 = 2 * SIZE + MARGIN;
 
 /// The tile grid of one plot area: device position of its data anchor
 /// and the scale density it was rendered at.
@@ -48,13 +55,13 @@ pub(crate) struct Key {
     pub(crate) j: i32,
 }
 
-/// One tile of a plot area's grid: its key, its square's part inside the
-/// area's grown rect as the grid lies now, and the slot that holds the
-/// image it shows (the slot's rect is where the image was rendered), the
-/// generation that image was rendered for and the render it waits for.
+/// One tile of a plot area's grid: its key, its square as the grid lies
+/// now, and the slot that holds the image it shows (the slot's rect is
+/// where the image was rendered), the generation that image was rendered
+/// for and the render it waits for.
 pub(crate) struct Tile {
     key: Key,
-    /// Device px, on the grid as it lies now.
+    /// Its square, device px, on the grid as it lies now.
     rect: [i32; 4],
     /// The grid's origin when the image shown was planned.
     at: [i32; 2],
@@ -96,7 +103,7 @@ impl Grid {
     }
 
     /// Every `(i, j)` whose square meets `bounds` (device px), row by row,
-    /// with the square's part inside `bounds`.
+    /// with its whole square.
     pub(crate) fn cover(self, bounds: [i32; 4]) -> Vec<(i32, i32, [i32; 4])> {
         let [x0, y0, x1, y1] = bounds;
         if x1 <= x0 || y1 <= y0 {
@@ -108,7 +115,7 @@ impl Grid {
         let (j0, j1) = (first(y0, self.origin[1]), last(y1, self.origin[1]));
         (j0..=j1)
             .flat_map(|j| (i0..=i1).map(move |i| (i, j)))
-            .map(|(i, j)| (i, j, intersect(self.square(i, j), bounds)))
+            .map(|(i, j)| (i, j, self.square(i, j)))
             .collect()
     }
 }
@@ -211,13 +218,13 @@ mod tests {
         let cover = grid.cover([0, 0, 900, 600]);
         assert_eq!(cover.len(), 12);
         assert_eq!(cover[0], (0, 0, [0, 0, 256, 256]));
-        assert_eq!(cover[3], (3, 0, [768, 0, 900, 256]));
-        assert_eq!(cover[11], (3, 2, [768, 512, 900, 600]));
-        // With a ring of one tile: 6 × 5 = 30 keys.
+        assert_eq!(cover[3], (3, 0, [768, 0, 1024, 256]));
+        assert_eq!(cover[11], (3, 2, [768, 512, 1024, 768]));
+        // With a ring of one tile: 6 × 5 = 30 keys, each its whole square.
         let ring = grid.cover([-256, -256, 1156, 856]);
         assert_eq!(ring.len(), 30);
-        assert_eq!((ring[0].0, ring[0].1), (-1, -1));
-        assert_eq!(ring[29], (4, 3, [1024, 768, 1156, 856]));
+        assert_eq!(ring[0], (-1, -1, [-256, -256, 0, 0]));
+        assert_eq!(ring[29], (4, 3, [1024, 768, 1280, 1024]));
     }
 
     #[test]
@@ -225,8 +232,11 @@ mod tests {
         let grid = Grid::new([37, 0], [1.0; 2]);
         assert_eq!(grid.square(-2, 0), [-475, 0, -219, 256]);
         let cover = grid.cover([-256, 0, 1156, 256]);
-        assert_eq!(cover[0], (-2, 0, [-256, 0, -219, 256]));
-        assert_eq!(cover.last().copied(), Some((4, 0, [1061, 0, 1156, 256])));
+        assert_eq!(cover[0], (-2, 0, [-475, 0, -219, 256]));
+        assert_eq!(cover.last().copied(), Some((4, 0, [1061, 0, 1317, 256])));
+        // The farthest squares stay inside a 900 px area's overscan.
+        let (first, last) = (cover[0].2, cover[cover.len() - 1].2);
+        assert!(first[0] >= -super::OVERSCAN && last[2] <= 900 + super::OVERSCAN);
     }
 
     #[test]

@@ -746,7 +746,7 @@ impl State {
     /// as messages for `listeners` and draws nothing in this pass.
     /// Otherwise first moves each plot area's tile grid to the views now
     /// (by whole device pixels during a drag), draws the figure with an
-    /// overscan of one tile and, during a drag, the column grids of the
+    /// overscan of two tiles and, during a drag, the column grids of the
     /// moved areas, and renders what changed (see
     /// [`repaint`](State::repaint)): inline, shown at once, or as a job set
     /// that replaces the worker's pending one, as `pipeline.render` asks or,
@@ -785,7 +785,7 @@ impl State {
         let moves = if rescaled { Vec::new() } else { self.follow(k) };
         self.cache.begin();
         let mut held = self.domains.held();
-        held.overscan(f64::from(tile::SIZE + tile::MARGIN) / k)
+        held.overscan(f64::from(tile::OVERSCAN) / k)
             .grids(self.thin_grids(k));
         let areas = self
             .gesture

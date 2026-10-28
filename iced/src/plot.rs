@@ -59,12 +59,13 @@
 //! when the figure was rebuilt, the widget resized, the factor changed or
 //! a gesture changed a domain. It splits the list into each plot area's
 //! layer (the figure's background, the panel's background, grid lines
-//! and marks, drawn with an overscan of one tile beyond the area) and the
+//! and marks, drawn with an overscan of two tiles beyond the area) and the
 //! chrome, and cuts the chrome into the cells of the canvas's partition
 //! by every plot-area edge; each plot area, however the partition cuts
 //! it, is one grid of tiles of 256 device px anchored at its data anchor
 //! (its corner until a drag moves it), with a ring of tiles around it,
-//! and shows its part of the chrome over them. It renders only the cells,
+//! each rendered over its whole square, and shows its part of the chrome
+//! over them. It renders only the cells,
 //! tiles and overlays whose content hash changed (every one when the
 //! partition's rects change), the ring after the rest, and draws each as
 //! images placed on whole device pixels.
@@ -114,10 +115,8 @@
 //! applies the exact offset once at its release: the grids of the plot
 //! areas it pans move by as many pixels, lines thin on columns anchored
 //! to the moved grid and dashes keep their phase, so a tile's image moves
-//! with it unchanged and only the tiles entering the ring render (a tile
-//! whose image covers its part of the plot area shows it exact until its
-//! render lands); the gutter cells showing the panned handle render
-//! whole. Any other change of a plot area's view (a zoom) begins its grid
+//! with it unchanged and only the tiles entering the ring render, a column
+//! per 256 px; the gutter cells showing the panned handle render whole. Any other change of a plot area's view (a zoom) begins its grid
 //! anew: while the new tiles' sharp renders are pending, the old tiles,
 //! ring included, are drawn scaled by one affine map per axis, soft until
 //! the new ones land; gutters keep their last image. A double click
