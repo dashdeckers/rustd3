@@ -34,6 +34,8 @@ pub enum Command {
     },
     /// Print scenarios, workloads and plans.
     List(Options),
+    /// Measure the raster variants on the plan's workloads (CPU only).
+    Raster(Options),
     /// Print the user's procedure and the flags.
     Help,
 }
@@ -178,6 +180,9 @@ Commands:
                           replay (relative to the first event; Escape stops)
   report  DIR             rebuild the CSVs and report.md of a run
   list    [run's flags]   scenarios, workloads, plans and a plan's cells
+  raster  [--plan P] [--workload A,B] [--data-scale F] [--out DIR]
+          the raster variants (envelope fills, marker splatting) against
+          the cells as drawn, CPU only, into DIR/raster.csv
 ";
 
 impl Command {
@@ -196,6 +201,7 @@ impl Command {
         match command {
             "run" => Ok(Command::Run(Options::parse(rest, &[])?)),
             "list" => Ok(Command::List(Options::parse(rest, &[])?)),
+            "raster" => Ok(Command::Raster(Options::parse(rest, &[])?)),
             "child" => Child::parse(rest).map(Command::Child),
             "replay" => Ok(Command::Replay {
                 out: single_out(rest)?,
@@ -626,6 +632,7 @@ mod tests {
             "record --out f.jsonl",
             "report d",
             "list",
+            "raster --plan default --out target/bench-raster",
             "--help",
         ] {
             assert!(Command::parse(&args(line)).is_ok(), "{line}");

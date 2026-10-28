@@ -11,6 +11,7 @@ mod driver;
 mod headless;
 mod metrics;
 mod plan;
+mod raster;
 mod record;
 mod recorder;
 mod replay;
@@ -55,6 +56,7 @@ fn main() -> ExitCode {
             Ok(())
         }
         Command::List(options) => list(&options),
+        Command::Raster(options) => raster::run(&options),
         Command::Replay { out } => write_replays(&out),
         Command::Record { out } => recorder::record(out).map_err(Into::into),
         Command::Run(options) => run(&options, &args),
