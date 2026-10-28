@@ -307,6 +307,53 @@ fn a_side_colorbar_spans_every_row_beside_it() {
 }
 
 #[test]
+fn vertical_titles_read_bottom_to_top_on_either_side() {
+    // A right axis's title and a right colorbar's, as matplotlib draws
+    // every vertical label: a quarter turn counter-clockwise (the run's
+    // x axis points up the page), past the labels it titles.
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::linear().domain([0.0, 10.0]));
+    let heat = fig.scale(scale::sequential([0.0, 80.0], scheme::viridis));
+    fig.panel(0, 0)
+        .axis(axis::left(y).label("left"))
+        .axis(axis::right(y).label("right"));
+    fig.legend(Slot::Right, colorbar(heat).title("bar"));
+    let (list, area) = vector(&fig);
+    let all = runs(&list.commands);
+    let title = |text: &str| {
+        let run = all.iter().find(|r| &*r.text == text).expect("a title");
+        run.transform.as_coeffs()
+    };
+    for text in ["left", "right", "bar"] {
+        let t = title(text);
+        assert!(t[1] < -0.99 && t[2] > 0.99, "{text}: {t:?}");
+    }
+    // The right axis's title lies right of its labels, its ascenders (its
+    // ink above the baseline, left of the run's origin) toward them; the
+    // left one's left of the plot area.
+    let id = part::Id::new(4 << 56 | 1);
+    let axis = list
+        .parts
+        .iter()
+        .find(|p| p.id == id)
+        .expect("the right axis");
+    let labels = runs(&list.commands[axis.commands.clone()]);
+    let rightmost = labels
+        .iter()
+        .filter(|r| &*r.text != "right")
+        .map(|r| span(r)[1])
+        .fold(f64::NEG_INFINITY, f64::max);
+    let [right, left] = [title("right"), title("left")];
+    let ascent = 0.6 * 16.0;
+    assert!(right[4] - ascent > rightmost, "{right:?} {rightmost}");
+    assert!(left[4] < area.x0, "{left:?}");
+    let colorbar = runs(slotted(&list, 0));
+    let bar = colorbar.last().expect("the bar's title");
+    assert_eq!(&*bar.text, "bar");
+    assert!(bar.transform.as_coeffs()[4] > right[4]);
+}
+
+#[test]
 fn an_inset_colorbar_runs_along_the_longer_side_for_40_percent_of_it() {
     let (mut fig, heat) = panel(scale::sequential([0.0, 80.0], scheme::viridis));
     fig.panel(0, 0).legend(Inset::TopRight, colorbar(heat));

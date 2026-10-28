@@ -137,8 +137,10 @@ impl Placed {
     /// the top end of a vertical one); rotated labels are turned about their
     /// first baseline's left end, placed by [`Labels::oriented`]; and its
     /// title a label pad past all of them, turned a quarter
-    /// counter-clockwise on the left and clockwise on the right. Labels
-    /// keep their positions on raster targets.
+    /// counter-clockwise beside a vertical axis so that it reads bottom to
+    /// top on either side, as matplotlib draws every vertical label (its
+    /// descenders toward a left axis, its ascenders toward a right one).
+    /// Labels keep their positions on raster targets.
     pub(crate) fn texts(&self, area: Rect, text: &text::Cache, theme: &Theme, list: &mut List) {
         let labels = &self.labels;
         let orient = labels.orient;
@@ -181,15 +183,10 @@ impl Placed {
                 0.0
             };
             let beyond = gap + extent + raise + theme.label_pad();
-            let angle = match orient {
-                Orient::Top | Orient::Bottom => 0.0,
-                Orient::Left => -FRAC_PI_2,
-                Orient::Right => FRAC_PI_2,
-            };
-            let v = if orient == Orient::Bottom {
-                text::anchor::Vertical::Top
-            } else {
-                text::anchor::Vertical::Bottom
+            let angle = if across(orient) { 0.0 } else { -FRAC_PI_2 };
+            let v = match orient {
+                Orient::Bottom | Orient::Right => text::anchor::Vertical::Top,
+                Orient::Top | Orient::Left => text::anchor::Vertical::Bottom,
             };
             let anchor = Anchor {
                 h: text::anchor::Horizontal::Middle,
