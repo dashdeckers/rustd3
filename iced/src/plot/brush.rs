@@ -16,6 +16,9 @@
 mod listener;
 mod machine;
 
+use iced_core::renderer::{self, Quad};
+use iced_core::{Color, Point, Rectangle, Size};
+use rustd3_core::color::Rgb;
 use rustd3_core::interact::{BrushEvent, Pointer};
 use rustd3_figure::brush::{Dim, Placed};
 use rustd3_figure::kurbo::Rect;
@@ -23,6 +26,7 @@ use rustd3_figure::layout;
 use rustd3_figure::scale::Scale;
 
 use crate::plot::domains::Key;
+use crate::plot::overlay;
 
 pub(crate) use listener::Listener;
 use machine::Machine;
@@ -30,6 +34,12 @@ use machine::Machine;
 /// How close to over's whole range, px, a target's window counts as all of
 /// it.
 const WHOLE: f64 = 1e-6;
+
+/// The band's fill: its share of the ink's opacity.
+const FILL_ALPHA: f32 = 0.1;
+
+/// The band's outline: its share of the ink's opacity.
+const OUTLINE_ALPHA: f32 = 0.4;
 
 /// A placed brush as one refresh resolved it.
 pub(crate) struct Spot<'r> {
@@ -204,6 +214,87 @@ impl Brush {
         }
         self.machine.set_selection(None);
         self.selected = None;
+    }
+
+    /// Draws the selection, the live rectangle during a gesture and the
+    /// band between gestures alike, for a widget whose device origin is
+    /// `origin` at `factor`: across the plot area (its full height for an
+    /// x brush, its full width for a y brush), filled with `ink` at 10% and
+    /// outlined one device px wide at 40%, in a layer clipped to the plot
+    /// area. Its edges are rounded to device px; the outline's sides and
+    /// the fill are quads that do not overlap, so both renderers composite
+    /// each pixel once.
+    pub(crate) fn draw<Renderer>(
+        &self,
+        renderer: &mut Renderer,
+        origin: [i32; 2],
+        factor: f32,
+        ink: Rgb,
+    ) where
+        Renderer: renderer::Renderer,
+    {
+        let Some([a, b]) = self.machine.selection() else {
+            return;
+        };
+        let k = f64::from(factor);
+        let device = |v: f64| (v * k).round() as i32;
+        let area = [
+            self.extent.x0,
+            self.extent.y0,
+            self.extent.x1,
+            self.extent.y1,
+        ]
+        .map(device);
+        let [x0, y0, x1, y1] = area;
+        let [x0, y0, x1, y1] = match self.placed.dim() {
+            Dim::X => [device(a).max(x0), y0, device(b).min(x1), y1],
+            Dim::Y => [x0, device(a).max(y0), x1, device(b).min(y1)],
+        };
+        if x1 <= x0 || y1 <= y0 {
+            return;
+        }
+        let rect = |[x0, y0, x1, y1]: [i32; 4]| {
+            Rectangle::new(
+                Point::new(
+                    (origin[0] + x0) as f32 / factor,
+                    (origin[1] + y0) as f32 / factor,
+                ),
+                Size::new((x1 - x0) as f32 / factor, (y1 - y0) as f32 / factor),
+            )
+        };
+        let ink = overlay::color(ink);
+        let fill = Color {
+            a: ink.a * FILL_ALPHA,
+            ..ink
+        };
+        let line = Color {
+            a: ink.a * OUTLINE_ALPHA,
+            ..ink
+        };
+        // Top and bottom rows, then the side columns between them, then
+        // the inside.
+        let mut quads = vec![([x0, y0, x1, y0 + 1], line)];
+        if y1 - y0 > 1 {
+            quads.push(([x0, y1 - 1, x1, y1], line));
+        }
+        if y1 - y0 > 2 {
+            quads.push(([x0, y0 + 1, x0 + 1, y1 - 1], line));
+            if x1 - x0 > 1 {
+                quads.push(([x1 - 1, y0 + 1, x1, y1 - 1], line));
+            }
+            if x1 - x0 > 2 {
+                quads.push(([x0 + 1, y0 + 1, x1 - 1, y1 - 1], fill));
+            }
+        }
+        renderer.with_layer(rect(area), |renderer| {
+            for (bounds, color) in quads {
+                let quad = Quad {
+                    bounds: rect(bounds),
+                    ..Quad::default()
+                };
+                renderer.fill_quad(quad, color);
+            }
+        });
     }
 
     /// The selection to publish once, if the frame reported one, and the

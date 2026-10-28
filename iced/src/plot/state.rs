@@ -1136,8 +1136,9 @@ impl State {
 
     /// Draws every slot's image (the theme background where a slot has
     /// none), a plot-area cell whose sharp render is pending as a preview
-    /// mapped from the views it was planned at to the views now, then the
-    /// overlay in the theme's ink, for a widget laid out at `bounds`.
+    /// mapped from the views it was planned at to the views now, then each
+    /// brush's selection and the hover overlay in the theme's ink, for a
+    /// widget laid out at `bounds`.
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
@@ -1152,6 +1153,9 @@ impl State {
                 Some(maps) => slot.draw_mapped(renderer, origin, factor, maps, background),
                 None => slot.draw(renderer, origin, factor, background),
             }
+        }
+        for brush in &self.brushes {
+            brush.draw(renderer, origin, factor, theme.get_ink());
         }
         self.overlay.draw(renderer, origin, factor, theme.get_ink());
     }
