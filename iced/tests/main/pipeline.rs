@@ -594,12 +594,13 @@ fn expensive_refresh_uses_the_worker() {
     let _ = harness.frame(t0);
     let planned: Vec<Sample> = rx.try_iter().collect();
     let (_, images, missing, _) = last_frame(&planned);
-    assert_eq!(images, 0, "{backend}");
-    assert!(
-        missing > 0,
-        "{backend}: the first frame waits for the worker"
-    );
-    assert!(rasters(&planned).is_empty());
+    assert!(missing > 0, "{backend}: the first frame waits for the pool");
+    // What the frame renders inline fits half the first frame's budget,
+    // in order: the gutters and overlays, cheap beside the dense tiles.
+    let ahead = rasters(&planned);
+    let inline = modelled(&planned, None);
+    assert!(ahead.iter().all(|&(_, _, inline)| inline), "{ahead:?}");
+    assert!(inline <= 8.35, "{backend}: {inline} ms inline");
     assert!(harness.wait_for_wake(Duration::from_secs(10)));
     harness.events(&[Event::Waken]);
     assert_eq!(
@@ -615,19 +616,22 @@ fn expensive_refresh_uses_the_worker() {
         samples.extend(settle(&mut harness, &rx, t).samples);
     }
     let rendered = rasters(&samples);
-    let view = crate::tiles::areas(&scatter(DOTS), LARGE, k);
-    let shown = rendered
-        .iter()
-        .filter(|&&(target, ..)| in_view(target, &view))
-        .count();
-    assert_eq!(
-        shown, missing as usize,
-        "{backend}: every cell and tile once"
-    );
     assert!(
         rendered.iter().all(|&(_, _, inline)| !inline),
         "{rendered:?}"
     );
+    let view = crate::tiles::areas(&scatter(DOTS), LARGE, k);
+    let shown = ahead
+        .iter()
+        .chain(&rendered)
+        .filter(|&&(target, ..)| in_view(target, &view))
+        .count();
+    assert_eq!(
+        shown,
+        (images + missing) as usize,
+        "{backend}: every cell and tile once"
+    );
+    samples.extend(planned);
     let model = modelled(&samples, Some(&view));
     // The plot area's tiles reach past it by up to a tile less a pixel:
     // their pixels on top of the area's.
@@ -640,7 +644,7 @@ fn expensive_refresh_uses_the_worker() {
         .sum();
     let section = 513.0 + past as f64 / cost::PIXELS_PER_MS;
     println!(
-        "expensive refresh, {backend}: {missing} cells and tiles in view on the worker, model {model:.1} ms ({section:.1} expected)"
+        "expensive refresh, {backend}: {images} cells and tiles inline ({inline:.2} ms), {missing} in view on the pool, model {model:.1} ms ({section:.1} expected)"
     );
     // 6.4e6 px / 5e5 + 200k dots / 400 ≈ 513 ms, and the axes' labels;
     // the tiles' pixels past the area on top.
@@ -648,4 +652,168 @@ fn expensive_refresh_uses_the_worker() {
         (model / section - 1.0).abs() < 0.01,
         "{backend}: model {model} ms"
     );
+}
+
+#[test]
+fn threads_sets_the_pool_size() {
+    // Each size starts a pool of as many threads at its first jobs, the
+    // last pool stopped; its threads render single-threaded, so no pool of
+    // vello_cpu's own takes their name. Sizes clamp to 1..=64.
+    let _workers = workers();
+    let before = threads(WORKER);
+    let k = 1.0;
+    let plot = |n: usize, revision: u64| {
+        Plot::<()>::new(tinted(0xffffff))
+            .scale_factor(k)
+            .render(Render::Worker)
+            .threads(n)
+            .revision(revision)
+    };
+    let Some(mut harness) = Harness::new(plot(1, 0), SMALL, k) else {
+        return;
+    };
+    let backend = harness.backend();
+    let t0 = headless::epoch();
+    let mut seen = Vec::new();
+    for (revision, (n, size)) in [(1, 1), (2, 2), (3, 3), (0, 1), (65, 64)]
+        .into_iter()
+        .enumerate()
+    {
+        // A new revision renders every slot again, on the pool.
+        harness.rebuild(plot(n, revision as u64));
+        let _ = harness.frame(t0 + Duration::from_millis(16) * revision as u32);
+        let count = threads(WORKER) - before;
+        seen.push((n, count));
+        assert_eq!(count, size, "{backend}: threads({n})");
+    }
+    drop(harness);
+    println!("pool sizes, {backend}: (asked, threads) {seen:?}");
+}
+
+/// The tiles in view of plot area 0 of `area` (device px, its grid at its
+/// corner) among the raster samples of `samples`, in arrival order, each
+/// with its square's centre's distance from `at` (device px).
+fn nearest(samples: &[Sample], area: [i64; 4], at: (f64, f64)) -> Vec<f64> {
+    let side = |a: i64, b: i64| (b - a + 255) / 256;
+    let (columns, rows) = (side(area[0], area[2]), side(area[1], area[3]));
+    samples
+        .iter()
+        .filter_map(|sample| match sample {
+            Sample::Raster {
+                target: probe::Target::Tile { area: 0, i, j },
+                ..
+            } if (0..columns).contains(&i64::from(*i)) && (0..rows).contains(&i64::from(*j)) => {
+                let x = area[0] as f64 + 256.0 * f64::from(*i) + 128.0;
+                let y = area[1] as f64 + 256.0 * f64::from(*j) + 128.0;
+                Some((x - at.0).hypot(y - at.1))
+            }
+            Sample::Raster { .. } | Sample::Stage { .. } | Sample::Frame { .. } => None,
+        })
+        .collect()
+}
+
+#[test]
+fn tiles_near_the_cursor_render_first() {
+    // A wheel step begins every plot area's grid anew: the pool takes the
+    // new tiles in view nearest the cursor first. With one thread they
+    // land in that order; with two, each lands at most one place early.
+    let _workers = workers();
+    let k = 1.0;
+    let fig = || crate::tiles::figure([0.0, 100.0]);
+    let area = crate::tiles::areas(&fig(), crate::tiles::BIG, k)[0];
+    let at = ((area[0] + 60) as f64, (area[1] + 50) as f64);
+    for n in [1, 2] {
+        let (tx, rx) = mpsc::channel();
+        let plot = Plot::<()>::new(fig())
+            .scale_factor(k)
+            .render(Render::Worker)
+            .threads(n)
+            .crosshair(false)
+            .highlight(false)
+            .probe(Probe::new(clock, tx));
+        let Some(mut harness) = Harness::new(plot, crate::tiles::BIG, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let t0 = headless::epoch();
+        let _ = harness.frame(t0);
+        let _ = settle(&mut harness, &rx, t0);
+        let _ = rx.try_iter().count();
+        let cursor = iced::Point::new(at.0 as f32 / k, at.1 as f32 / k);
+        harness.point_at(cursor);
+        let _ = harness.events(&[
+            Event::Mouse(iced::mouse::Event::CursorMoved { position: cursor }),
+            Event::Mouse(iced::mouse::Event::WheelScrolled {
+                delta: iced::mouse::ScrollDelta::Pixels { x: 0.0, y: -40.0 },
+            }),
+        ]);
+        let _ = harness.frame(t0 + Duration::from_millis(1_000));
+        // Results only: no frame, so the wheel gesture stays open and
+        // nothing plans again.
+        let mut samples = Vec::new();
+        while harness.wait_for_wake(Duration::from_millis(500)) {
+            let _ = harness.events(&[Event::Waken]);
+            samples.extend(rx.try_iter());
+        }
+        let order = nearest(&samples, area, at);
+        let mut sorted = order.clone();
+        sorted.sort_by(f64::total_cmp);
+        let ranks: Vec<usize> = order
+            .iter()
+            .map(|d| {
+                sorted
+                    .iter()
+                    .position(|s| s == d)
+                    .expect("a distance of the set")
+            })
+            .collect();
+        println!(
+            "zoom at {at:?}, {backend}, {n} thread(s): tiles in view by rank of distance, in arrival order {ranks:?}"
+        );
+        assert!(order.len() >= 6, "{backend}: {} tiles in view", order.len());
+        for (place, &rank) in ranks.iter().enumerate() {
+            assert!(
+                rank < place + n,
+                "{backend}, {n} thread(s): rank {rank} landed {place}th, {ranks:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn large_marker_sets_splat_on_screen() {
+    // A markers command of 10,000 points or more renders from stamps on
+    // screen (within D31.2's 32/255 of the PNG, which fills every dot);
+    // one point fewer fills them as the PNG does.
+    let k = 1.0;
+    for (n, bound_of) in [(9_999, None), (10_000, Some(32))] {
+        let plot = Plot::<()>::new(scatter(n))
+            .scale_factor(k)
+            .render(Render::Inline)
+            .crosshair(false)
+            .highlight(false);
+        let Some(mut harness) = Harness::new(plot, MEDIUM, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let shot = harness.frame(headless::epoch());
+        let diff = against_png(&shot, &scatter(n), MEDIUM, k);
+        println!(
+            "{n} dots, {backend}: against the PNG max {}/255, {} channels over 16",
+            diff.max(),
+            diff.over()
+        );
+        let limit = bound_of.unwrap_or_else(|| bound(&backend));
+        assert!(
+            diff.max() <= limit,
+            "{backend}, {n} dots: max {}/255",
+            diff.max()
+        );
+        if bound_of.is_some() {
+            assert!(
+                diff.max() > bound(&backend),
+                "{backend}: splatted dots differ a little"
+            );
+        }
+    }
 }

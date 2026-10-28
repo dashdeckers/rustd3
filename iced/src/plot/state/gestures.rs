@@ -69,6 +69,7 @@ fn redraw<Message>(
         revision: 0,
         probe: None,
         waker: &Waker::noop(),
+        threads: 1,
     };
     state.redraw(fig, 1.0, now, &pipeline, (listeners, &[]))
 }

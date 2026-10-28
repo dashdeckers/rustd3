@@ -12,7 +12,7 @@ use rustd3_figure::raster;
 use crate::plot::preview::Basis;
 use crate::plot::{probe, slot};
 
-/// One cell or tile of one refresh to render, inline or on the worker.
+/// One cell or tile of one refresh to render, inline or on the pool.
 pub(crate) struct Job {
     pub(super) target: probe::Target,
     /// Where the image goes.
@@ -30,6 +30,10 @@ pub(crate) struct Job {
     pub(super) scale: f64,
     /// The cell's work items, echoed into its `Raster` sample.
     pub(super) work: u64,
+    /// Whether its markers are splatted (`raster::Renderer::splat`): a
+    /// plot area's tiles over a markers command of at least
+    /// [`SPLAT`](crate::plot::state::SPLAT) points.
+    pub(super) splat: bool,
     /// The probe's clock and its reading at planning time.
     pub(super) enqueued: Option<Stamp>,
     /// For a plot-area cell, the view of the handle leading each axis at
@@ -86,11 +90,13 @@ impl Stamp {
 }
 
 impl Job {
-    /// Renders every band with `renderer`: each band is the list area of
-    /// its device rows divided by the scale, which renders exactly the
-    /// rows' device size. With a stamp, the render is timed by its clock.
+    /// Renders every band with `renderer`, splatting markers as the job
+    /// says: each band is the list area of its device rows divided by the
+    /// scale, which renders exactly the rows' device size. With a stamp,
+    /// the render is timed by its clock.
     pub(crate) fn run(self, renderer: &mut raster::Renderer) -> Done {
         let start = self.enqueued.map(|stamp| Stamp::now(stamp.clock));
+        renderer.splat(self.splat);
         let k = self.scale;
         let [x0, y0, x1, _] = self.rect.map(f64::from);
         let bands = self
@@ -190,6 +196,7 @@ mod tests {
             bands: slot::bands(rect),
             scale: 2.0,
             work: 0,
+            splat: false,
             enqueued: None,
             view: [None; 2],
         };

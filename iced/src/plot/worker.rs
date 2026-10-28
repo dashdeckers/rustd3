@@ -1,73 +1,76 @@
-//! [`Worker`]: the thread that rasterizes job sets off the UI thread, its
-//! queue of at most one pending set, the results channel and the wake
+//! [`Pool`]: the threads that rasterize jobs off the UI thread, each with
+//! its own single-threaded renderer, the results channel and the wake
 //! flag.
+//!
+//! The pool's threads are the only parallelism of its renders: each owns a
+//! `raster::Renderer` with no thread pool of vello_cpu's own (`threads:
+//! 0`), so the two never run together and oversubscribe the cores. By
+//! default the pool has a thread per core but one (the UI's), 1 to 8,
+//! counted by `available_parallelism`, which respects the process's CPU
+//! affinity; with one thread the pool is Phase 19's single worker.
 
 use std::io;
+use std::num::NonZero;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard, PoisonError, mpsc};
+use std::sync::{Arc, mpsc};
 use std::thread::{self, JoinHandle};
 
 use iced_core::shell::Waker;
 use rustd3_figure::raster;
 
 use crate::plot::job::{Done, Job};
+use crate::plot::queue::Queue;
 
-/// The worker thread's name, which tests count threads by.
+/// The pool's threads' name, which tests count threads by.
 pub(crate) const NAME: &str = "rustd3-plot";
 
-/// One thread rendering the newest job set with vello_cpu's own pool.
-pub(crate) struct Worker {
+/// The most threads `Plot::threads` asks for.
+pub(crate) const MAX: usize = 64;
+
+/// Threads rendering the newest jobs, nearest first.
+pub(crate) struct Pool {
     queue: Arc<Queue>,
     done: mpsc::Receiver<Done>,
-    /// Set by the worker before `wake`, cleared by the UI on drain: many
-    /// finished cells cost one `Event::Waken`.
+    /// Set by a thread before `wake`, cleared by the UI on drain: many
+    /// finished jobs cost one `Event::Waken`.
     woken: Arc<AtomicBool>,
-    thread: Option<JoinHandle<()>>,
+    threads: Vec<JoinHandle<()>>,
 }
 
-/// The pending job set, shared by the UI and the thread.
-struct Queue {
-    inbox: Mutex<Inbox>,
-    ready: Condvar,
-}
-
-/// What the queue holds: a set waiting to be taken, and whether the
-/// worker was dropped.
-struct Inbox {
-    jobs: Option<Vec<Job>>,
-    closed: bool,
-}
-
-impl Worker {
-    /// Starts the thread, which wakes the UI through `waker` after each
-    /// result; an error when the OS cannot start it.
-    pub(crate) fn start(waker: Waker) -> io::Result<Worker> {
-        let queue = Arc::new(Queue {
-            inbox: Mutex::new(Inbox {
-                jobs: None,
-                closed: false,
-            }),
-            ready: Condvar::new(),
-        });
+impl Pool {
+    /// Starts `size` threads (at least one), which wake the UI through
+    /// `waker` after each result; an error when the OS cannot start one
+    /// (the threads started are stopped).
+    pub(crate) fn start(size: usize, waker: &Waker) -> io::Result<Pool> {
+        let queue = Arc::new(Queue::new());
         let woken = Arc::new(AtomicBool::new(false));
         let (sender, done) = mpsc::channel();
-        let thread = thread::Builder::new().name(NAME.to_owned()).spawn({
-            let (queue, woken) = (Arc::clone(&queue), Arc::clone(&woken));
-            move || run(&queue, &sender, &woken, &waker)
-        })?;
-        Ok(Worker {
+        let mut pool = Pool {
             queue,
             done,
             woken,
-            thread: Some(thread),
-        })
+            threads: Vec::with_capacity(size),
+        };
+        for _ in 0..size.max(1) {
+            let (queue, woken) = (Arc::clone(&pool.queue), Arc::clone(&pool.woken));
+            let (sender, waker) = (sender.clone(), waker.clone());
+            let thread = thread::Builder::new()
+                .name(NAME.to_owned())
+                .spawn(move || run(&queue, &sender, &woken, &waker))?;
+            pool.threads.push(thread);
+        }
+        Ok(pool)
     }
 
-    /// Replaces the pending set with `jobs`; the thread abandons what is
-    /// left of the set it is rendering after its current job.
+    /// How many threads it has.
+    pub(crate) fn size(&self) -> usize {
+        self.threads.len()
+    }
+
+    /// Replaces the waiting jobs with `jobs`, rendered in their order;
+    /// each thread finishes the job it is rendering first.
     pub(crate) fn replace(&self, jobs: Vec<Job>) {
-        self.queue.lock().jobs = Some(jobs);
-        self.queue.ready.notify_all();
+        self.queue.replace(jobs);
     }
 
     /// The results that arrived, in arrival order. The wake flag clears
@@ -76,69 +79,68 @@ impl Worker {
         self.woken.store(false, Ordering::Release);
         self.done.try_iter().collect()
     }
-}
 
-impl Drop for Worker {
-    /// Closes the queue and joins the thread, which finishes the render in
-    /// flight (one cell) and abandons the rest.
-    fn drop(&mut self) {
-        self.queue.lock().closed = true;
-        self.queue.ready.notify_all();
-        if let Some(thread) = self.thread.take() {
-            // A worker that panicked has nothing left to clean up.
+    /// Stops the threads, which finish the jobs they are rendering, and
+    /// returns every result not drained yet.
+    pub(crate) fn stop(mut self) -> Vec<Done> {
+        self.join();
+        self.done.try_iter().collect()
+    }
+
+    /// Closes the queue and joins the threads.
+    fn join(&mut self) {
+        self.queue.close();
+        for thread in self.threads.drain(..) {
+            // A thread that panicked has nothing left to clean up.
             let _ = thread.join();
         }
     }
 }
 
-impl Queue {
-    /// The inbox; a lock poisoned by a panicking thread still holds a
-    /// consistent inbox, since no code panics while holding it.
-    fn lock(&self) -> MutexGuard<'_, Inbox> {
-        self.inbox.lock().unwrap_or_else(PoisonError::into_inner)
-    }
-
-    /// Waits for a job set and takes it; `None` once the worker is closed.
-    fn take(&self) -> Option<Vec<Job>> {
-        let mut inbox = self.lock();
-        loop {
-            if inbox.closed {
-                return None;
-            }
-            if let Some(jobs) = inbox.jobs.take() {
-                return Some(jobs);
-            }
-            inbox = self
-                .ready
-                .wait(inbox)
-                .unwrap_or_else(PoisonError::into_inner);
-        }
-    }
-
-    /// Whether a newer set replaced the one being rendered, or the worker
-    /// closed.
-    fn is_interrupted(&self) -> bool {
-        let inbox = self.lock();
-        inbox.closed || inbox.jobs.is_some()
+impl Drop for Pool {
+    /// Closes the queue and joins the threads, which finish the renders in
+    /// flight (one job each) and abandon the rest.
+    fn drop(&mut self) {
+        self.join();
     }
 }
 
-/// The thread: renders each set's jobs in order with one renderer on
-/// vello_cpu's own pool, sends each result and wakes the UI unless a wake
-/// is already pending, and abandons a set once a newer one replaced it.
+/// The pool size when the app sets none: the available parallelism less
+/// the UI thread, 1 to 8.
+pub(crate) fn default_size() -> usize {
+    size_for(thread::available_parallelism().map_or(1, NonZero::get))
+}
+
+/// The default pool size on `cores` cores.
+fn size_for(cores: usize) -> usize {
+    cores.saturating_sub(1).clamp(1, 8)
+}
+
+/// One thread: renders the queue's jobs in order with a single-threaded
+/// renderer, sends each result and wakes the UI unless a wake is already
+/// pending, until the queue closes.
 fn run(queue: &Queue, sender: &mpsc::Sender<Done>, woken: &AtomicBool, waker: &Waker) {
-    let mut renderer = raster::Renderer::new(raster::Settings::parallel());
-    while let Some(jobs) = queue.take() {
-        for job in jobs {
-            if sender.send(job.run(&mut renderer)).is_err() {
-                return;
-            }
-            if !woken.swap(true, Ordering::AcqRel) {
-                waker.wake();
-            }
-            if queue.is_interrupted() {
-                break;
-            }
+    let mut renderer = raster::Renderer::new(raster::Settings {
+        threads: 0,
+        ..raster::Settings::default()
+    });
+    while let Some(job) = queue.take() {
+        if sender.send(job.run(&mut renderer)).is_err() {
+            return;
         }
+        if !woken.swap(true, Ordering::AcqRel) {
+            waker.wake();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::size_for;
+
+    #[test]
+    fn the_default_pool_leaves_a_core_to_the_ui() {
+        // The spot rows: available parallelism 2 gives 1 thread, 16 give 8.
+        assert_eq!([1, 2, 4, 9, 16, 64].map(size_for), [1, 1, 3, 8, 8, 8]);
     }
 }

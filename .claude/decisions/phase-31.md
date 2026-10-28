@@ -617,3 +617,52 @@ Open.
 
 - If B: one `feat(figure)` commit for `Scale::remap`, then the widget's
   classification and a test `a_refit_during_a_pan_re_renders`.
+
+## D31.8 — The cost model cannot time renders without the probe's clock
+
+**Date:** 2026-10-28 · **Context:** Phase 31, step 7 · **Status:** open
+
+### Issue
+
+D22.4 (1): each widget's cost model is "updated from every render
+whether or not a `Probe` is attached". Conventions item 5 (rustd3.md:2566)
+and CLAUDE.md: "Library code never calls `TimeZone::system`,
+`Zoned::now`, `Timestamp::now`, `SystemTime::now` or `Instant::now`";
+"stage timings come only from an app-supplied clock (`Plot::probe`)";
+clippy's `disallowed-methods` (`clippy.toml`) enforces it. A render's
+duration needs two clock readings; the widget's only times are the
+`RedrawRequested` instants, a frame apart whatever the renders took.
+Both statements cannot hold.
+
+### Investigation
+
+`iced_core::time::Instant` is `std::time::Instant` on native targets, so
+any reading is the disallowed call. The pool's threads and inline renders
+are timed today through `job::Stamp` (the probe's `fn() -> Instant`). The
+interval between `RedrawRequested` instants includes vsync waits and the
+app's own work, so it cannot stand in for a render's time.
+
+### Options
+
+| | A — the probe's clock only (as built) | **B — the widget reads the monotonic clock for its cost model** | C — `Plot::clock(fn() -> Instant)` |
+| --- | --- | --- | --- |
+| Approach | The fit (`budget.rs`) folds every render timed by a probe's clock; without a probe it keeps its seed | `Instant::now` around each render, in one function of `job.rs` behind `#[expect(clippy::disallowed_methods, reason = "D31.8")]`; the probe's clock still times what the probe reports | An app passes a clock; without one the seed stays |
+| D22.4 (1) | Holds with a probe only | Holds | Holds when the app opts in |
+| Convention 5 | Holds | A fourth exception beside the `OnceLock` fonts, the id counters and typst's cache; only the inline/pool split depends on it, which already depends on frame timing | Holds |
+| Cost | — | A few lines | A builder and a field |
+
+### Recommendation
+
+B: the machines D22.4 is for (two cores, no GPU) are where apps attach no
+probe; reading the clock changes nothing a test can observe except which
+renders run inline, which the frame interval already decides. Until it is
+decided the widget calibrates from probe-timed renders (A).
+
+### Decision
+
+Open.
+
+### Followups
+
+- If B: the clock reading in `Job::run` and the conventions' exception
+  list; `Done.duration` always set, the probe's samples unchanged.

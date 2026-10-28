@@ -4,7 +4,7 @@
 //! A `Plot` with a probe sends, per `RedrawRequested`, a [`Sample::Stage`]
 //! for each UI-thread stage it ran, a [`Sample::Raster`] for each cell it
 //! rendered inline, and one [`Sample::Frame`] describing the following
-//! draw; cells rendered on the worker report their `Raster` sample when
+//! draw; cells rendered on the pool report their `Raster` sample when
 //! their result is drained, on `Event::Waken`. Without a probe nothing is
 //! sent and no clock is read.
 //!

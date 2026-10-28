@@ -7,13 +7,12 @@ use iced_core::shell::Waker;
 use iced_core::time::Instant;
 use iced_core::{Event, Point, Rectangle, Size, image, mouse};
 use rustd3_core::interact::{self, BrushEvent, Button, Modifiers, Pointer};
-use rustd3_figure::list::{self, List, Outlines};
+use rustd3_figure::list::{self, Command, List, Outlines};
 use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster, thin};
 
 use crate::plot::area::{Area, Moved};
 use crate::plot::brush::{self, Brush};
 use crate::plot::budget::Budget;
-use crate::plot::cost;
 use crate::plot::domains::{Domains, Key};
 use crate::plot::gesture::{self, Gesture, Track};
 use crate::plot::hover::{self, Hover};
@@ -28,7 +27,7 @@ use crate::plot::probe::{self, Probe, Sample, Stage};
 use crate::plot::region::{self, Along, Region};
 use crate::plot::slot::{self, Band, Slot};
 use crate::plot::tile::{self, Tile};
-use crate::plot::worker::Worker;
+use crate::plot::worker::Pool;
 use crate::plot::{Caching, Render, handle};
 use crate::pointer::Tracker;
 
@@ -83,8 +82,11 @@ pub(crate) struct State {
     pointer: Option<Point>,
     /// The crosshair and highlight where the pointer is.
     overlay: Overlay,
-    /// The render thread, started with the first job set it gets.
-    worker: Option<Worker>,
+    /// The render pool, started with the first jobs it gets.
+    pool: Option<Pool>,
+    /// Where the last gesture input was, list px: the pool renders the
+    /// tiles nearest it first.
+    focus: Option<kurbo::Point>,
     /// Turns iced events into pointer input in the widget's logical px.
     tracker: Tracker,
     /// Pointer input waiting for the next `RedrawRequested`.
@@ -128,8 +130,11 @@ pub(crate) struct Pipeline<'a> {
     pub(crate) revision: u64,
     /// Where stage timings and frame reports go, if anywhere.
     pub(crate) probe: Option<&'a Probe>,
-    /// Wakes the UI when the worker has results; the worker keeps a clone.
+    /// Wakes the UI when the pool has results; each of its threads keeps
+    /// a clone.
     pub(crate) waker: &'a Waker,
+    /// The render pool's size.
+    pub(crate) threads: usize,
 }
 
 impl Default for State {
@@ -155,7 +160,8 @@ impl Default for State {
             hits: hover::Hits::default(),
             pointer: None,
             overlay: Overlay::default(),
-            worker: None,
+            pool: None,
+            focus: None,
             tracker: Tracker::default(),
             input: Input::default(),
             domains: Domains::default(),
@@ -348,6 +354,14 @@ impl State {
             changed |= self.reset(self.map.at(at), listeners);
         }
         let queued = if double.is_some() { Vec::new() } else { queued };
+        for pointer in &queued {
+            if let Pointer::Wheel { x, y, .. }
+            | Pointer::Pressed { x, y, .. }
+            | Pointer::Moved { x, y } = *pointer
+            {
+                self.focus = Some(kurbo::Point::new(x, y));
+            }
+        }
         for pointer in queued {
             match pointer {
                 Pointer::Wheel { .. } if self.is_brushing() => {}
@@ -756,8 +770,8 @@ impl State {
     /// (by whole device pixels during a drag), draws the figure with an
     /// overscan of two tiles and, during a drag, the column grids of the
     /// moved areas, and renders what changed (see
-    /// [`repaint`](State::repaint)): inline, shown at once, or as a job set
-    /// that replaces the worker's pending one, as `pipeline.render` asks or,
+    /// [`repaint`](State::repaint)): inline, shown at once, or as jobs
+    /// that replace the pool's waiting ones, as `pipeline.render` asks or,
     /// for `Auto`, as the cost model predicts against the frame budget.
     /// Returns how many cells, tiles and overlays changed. A new
     /// `pipeline.revision` refreshes as a rebuilt figure does.
@@ -875,9 +889,9 @@ impl State {
     /// cells at every plot-area edge; plans the gutter runs, the plot
     /// areas' tiles (their grids having moved as `moves` says) and the
     /// overlays of the chrome over the plot areas; and renders what
-    /// changed: the visible tiles, then the gutters and overlays, then the
-    /// ring of tiles around each area (on the worker under `Auto` when it
-    /// can start). Returns how many changed.
+    /// changed ([`render`](State::render)): the visible tiles, then the
+    /// gutters and overlays, then the ring of tiles around each area.
+    /// Returns how many changed.
     fn repaint(
         &mut self,
         figure: &Figure<'_>,
@@ -942,68 +956,84 @@ impl State {
             .zip(&layers.layers)
             .map(|(&rect, layer)| work(&layer.source.list, rect, k))
             .collect();
+        let splat = layers
+            .layers
+            .iter()
+            .map(|layer| {
+                layer
+                    .source
+                    .list
+                    .commands
+                    .iter()
+                    .any(|command| match command {
+                        Command::Markers { at, .. } => at.len() >= SPLAT,
+                        Command::Fill { .. }
+                        | Command::Stroke { .. }
+                        | Command::Glyphs(_)
+                        | Command::Image { .. }
+                        | Command::Push { .. }
+                        | Command::Pop
+                        // `Command` is #[non_exhaustive] in rustd3-figure.
+                        | _ => false,
+                    })
+            })
+            .collect();
         self.drawn = Some(Drawn {
             cells: cells.cells.iter().map(|cell| cell.work).collect(),
             areas,
+            splat,
             layers,
             k,
         });
+        self.render(pipeline);
+        plan.len()
+    }
+
+    /// Renders everything waiting, what the last refresh changed and what
+    /// an earlier job set left, at the current generation, in
+    /// [`waiting`](State::waiting)'s order: inline under `Render::Inline`,
+    /// on the pool under `Render::Worker`, and under `Render::Auto` inline
+    /// each job whose predicted time still fits half the frame budget with
+    /// those before it, the rest on the pool, whose waiting jobs they
+    /// replace (it abandons them). Everything renders inline when the pool
+    /// cannot start.
+    fn render(&mut self, pipeline: &Pipeline<'_>) {
+        let probe = pipeline.probe;
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
         let generation = self.generation;
-        // Everything waiting renders, what this refresh changed and what
-        // an earlier job set left: under `Auto`, all of it inline when the
-        // model allows; else what shows in the canvas does when it alone
-        // fits, and the ring goes to the worker after the frame; else all
-        // of it does.
         let todo = self.waiting();
         // An earlier set's jobs render again at this generation.
         for &at in &todo {
             self.requeue(at, generation);
         }
-        let model = |ats: &[At], state: &State| -> f64 {
-            ats.iter()
-                .filter_map(|&at| state.job(at, generation, None))
-                .map(|job| cost::model_ms(slot::pixels(job.rect), job.work))
-                .sum()
-        };
-        let now: Vec<At> = todo
-            .iter()
-            .copied()
-            .filter(|&at| !self.is_ring(at))
+        let jobs: Vec<Job> = todo
+            .into_iter()
+            .filter_map(|at| self.job(at, generation, enqueued))
             .collect();
-        let here: Vec<At> = match pipeline.render {
-            Render::Inline => todo.clone(),
-            Render::Worker => Vec::new(),
-            Render::Auto if self.budget.is_inline(model(&todo, self)) => todo.clone(),
-            Render::Auto if self.budget.is_inline(model(&now, self)) => now,
-            Render::Auto => Vec::new(),
+        let mut predicted = 0.0;
+        let (mut here, mut there): (Vec<Job>, Vec<Job>) = match pipeline.render {
+            Render::Inline => (jobs, Vec::new()),
+            Render::Worker => (Vec::new(), jobs),
+            Render::Auto => jobs.into_iter().partition(|job| {
+                let ms = self.budget.predict(slot::pixels(job.rect), job.work);
+                let fits = self.budget.is_inline(predicted + ms);
+                if fits {
+                    predicted += ms;
+                }
+                fits
+            }),
         };
-        let here = if here.len() < todo.len() && !self.start(pipeline.waker) {
+        if !there.is_empty() && !self.start(pipeline) {
             // No thread: everything renders here.
-            todo
-        } else {
-            here
-        };
-        for at in here {
-            if let Some(job) = self.job(at, generation, enqueued) {
-                let done = job.run(&mut self.raster);
-                self.land(done, true, probe);
-            }
+            here.append(&mut there);
         }
-        // What is left replaces the worker's pending set, whose unfinished
-        // jobs it abandons: everything still waiting renders again, visible
-        // tiles first, the ring last; nothing when all rendered inline.
-        if self.worker.is_some() {
-            let jobs: Vec<Job> = self
-                .waiting()
-                .into_iter()
-                .filter_map(|at| self.job(at, generation, enqueued))
-                .collect();
-            if let Some(worker) = &self.worker {
-                worker.replace(jobs);
-            }
+        for job in here {
+            let done = job.run(&mut self.raster);
+            self.land(done, true, probe);
         }
-        plan.len()
+        if let Some(pool) = &self.pool {
+            pool.replace(there);
+        }
     }
 
     /// The job that renders `at` for `generation` from what the last
@@ -1012,6 +1042,10 @@ impl State {
     fn job(&self, at: At, generation: u64, enqueued: Option<Stamp>) -> Option<Job> {
         let drawn = self.drawn.as_ref()?;
         let k = drawn.k;
+        let splat = match at {
+            At::Tile(p, _) => drawn.splat.get(p).copied().unwrap_or(false),
+            At::Gutter(_) | At::Overlay(..) => false,
+        };
         let (target, spot, rect, hash, source, work, view) = match at {
             At::Gutter(g) => {
                 let run = self.gutters.get(g)?;
@@ -1099,18 +1133,26 @@ impl State {
             bands: slot::bands(rect),
             scale: k,
             work,
+            splat,
             enqueued,
             view,
         })
     }
 
-    /// Starts the worker unless it runs, waking the UI through `waker`.
-    /// False when the OS cannot start a thread: cells then render inline.
-    fn start(&mut self, waker: &Waker) -> bool {
-        if self.worker.is_none() {
-            self.worker = Worker::start(waker.clone()).ok();
+    /// Starts the pool of `pipeline.threads` threads unless it runs at
+    /// that size, waking the UI through `pipeline.waker`; a pool of another
+    /// size stops first, its results landing. False when the OS cannot
+    /// start a thread: everything then renders inline.
+    fn start(&mut self, pipeline: &Pipeline<'_>) -> bool {
+        if let Some(pool) = self.pool.take_if(|pool| pool.size() != pipeline.threads) {
+            for done in pool.stop() {
+                self.land(done, false, pipeline.probe);
+            }
         }
-        self.worker.is_some()
+        if self.pool.is_none() {
+            self.pool = Pool::start(pipeline.threads, pipeline.waker).ok();
+        }
+        self.pool.is_some()
     }
 
     /// The views of the handles leading each axis of `panel` now, each
@@ -1140,19 +1182,28 @@ impl State {
     /// Everything waiting for a render, in the order it renders: the
     /// tiles that meet their plot area and do not show their part of it
     /// exact, then the gutters and the overlays, then the ring of tiles
-    /// around each area and the tiles whose part inside it is exact.
+    /// around each area and the tiles whose part inside it is exact; the
+    /// tiles of each group nearest the last gesture input first (each
+    /// area's centre without one).
     fn waiting(&self) -> Vec<At> {
         let tiles = |ring: bool| {
-            self.areas.iter().enumerate().flat_map(move |(p, area)| {
-                area.tiles()
-                    .iter()
-                    .enumerate()
-                    .filter(move |(_, tile)| {
-                        let late = !area.shows(tile) || area.is_exact(tile);
-                        tile.slot().pending().is_some() && late == ring
-                    })
-                    .map(move |(t, _)| At::Tile(p, t))
-            })
+            let mut tiles: Vec<(f64, At)> = self
+                .areas
+                .iter()
+                .enumerate()
+                .flat_map(move |(p, area)| {
+                    area.tiles()
+                        .iter()
+                        .enumerate()
+                        .filter(move |(_, tile)| {
+                            let late = !area.shows(tile) || area.is_exact(tile);
+                            tile.slot().pending().is_some() && late == ring
+                        })
+                        .map(move |(t, tile)| (self.distance(area, tile), At::Tile(p, t)))
+                })
+                .collect();
+            tiles.sort_by(|a, b| a.0.total_cmp(&b.0));
+            tiles.into_iter().map(|(_, at)| at)
         };
         let gutters = (0..self.gutters.len())
             .filter(|&g| self.gutters[g].slot().pending().is_some())
@@ -1169,16 +1220,20 @@ impl State {
             .collect()
     }
 
-    /// Whether `at` is a tile of a plot area's ring, or one whose part
-    /// inside the area is exact, which renders after everything else.
-    fn is_ring(&self, at: At) -> bool {
-        match at {
-            At::Tile(p, t) => {
-                let (area, tile) = (&self.areas[p], &self.areas[p].tiles()[t]);
-                !area.shows(tile) || area.is_exact(tile)
-            }
-            At::Gutter(_) | At::Overlay(..) => false,
-        }
+    /// How far `tile`'s centre lies from the last gesture input, or from
+    /// `area`'s centre without one, device px.
+    fn distance(&self, area: &Area, tile: &Tile) -> f64 {
+        let centre = |[x0, y0, x1, y1]: [i32; 4]| {
+            kurbo::Point::new(
+                (f64::from(x0) + f64::from(x1)) / 2.0,
+                (f64::from(y0) + f64::from(y1)) / 2.0,
+            )
+        };
+        let k = self.factor.map_or(1.0, f64::from);
+        let focus = self
+            .focus
+            .map_or_else(|| centre(area.rect()), |at| (at.to_vec2() * k).to_point());
+        centre(tile.rect()).distance(focus)
     }
 
     /// A pending render of `at` moves to `generation`: the job set it was
@@ -1192,14 +1247,14 @@ impl State {
         slot.requeue(generation);
     }
 
-    /// Applies the worker's results in arrival order, each reported to
+    /// Applies the pool's results in arrival order, each reported to
     /// `probe`. True when any was shown, so the widget redraws.
     pub(crate) fn drain(&mut self, probe: Option<&Probe>) -> bool {
-        let Some(worker) = &self.worker else {
+        let Some(pool) = &self.pool else {
             return false;
         };
         let mut shown = false;
-        for done in worker.drain() {
+        for done in pool.drain() {
             shown |= self.land(done, false, probe);
         }
         shown
@@ -1328,8 +1383,7 @@ impl State {
     /// slot's image. True when it is shown.
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
         if let Some(duration) = done.duration {
-            self.budget
-                .calibrate(duration, cost::model_ms(done.pixels(), done.work));
+            self.budget.calibrate(duration, done.pixels(), done.work);
         }
         if let Some(probe) = probe {
             probe.send(Sample::Raster {
@@ -1576,13 +1630,19 @@ struct Planned<'a> {
 /// What a repaint drew from: the lists every job renders (each plot
 /// area's layer, the chrome, the chrome without the figure's background)
 /// at `k` device px per list px, the raster work of each partition cell,
-/// and of each layer over its plot area.
+/// and of each layer over its plot area, and whether each layer's tiles
+/// splat their markers.
 struct Drawn {
     layers: Layers,
     k: f64,
     cells: Vec<u64>,
     areas: Vec<u64>,
+    splat: Vec<bool>,
 }
+
+/// The points of a markers command from which the widget splats it
+/// (`raster::Renderer::splat`, D31.2): the large marker sets on screen.
+pub(crate) const SPLAT: usize = 10_000;
 
 /// Where the parts of `fixed` (the chrome without the figure's
 /// background) reach into the plot area at device rect `area` at `k`:
@@ -1736,6 +1796,7 @@ mod tests {
             revision: 0,
             probe: None,
             waker: &Waker::noop(),
+            threads: 1,
         };
         state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[])).0
     }
@@ -1751,6 +1812,7 @@ mod tests {
             revision: 0,
             probe: Some(&probe),
             waker: &Waker::noop(),
+            threads: 1,
         };
         state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[]));
         rx.try_iter().collect()
@@ -1768,7 +1830,7 @@ mod tests {
         (waker, wakes)
     }
 
-    /// Drains the worker's results into `state` after each wake, reported
+    /// Drains the pool's results into `state` after each wake, reported
     /// to `probe`, until no slot waits for a render; at most ten seconds
     /// per wake.
     fn settle(state: &mut State, wakes: &AtomicUsize, probe: Option<&Probe>) {
@@ -2056,6 +2118,7 @@ mod tests {
             revision: 0,
             probe: Some(&probe),
             waker: &waker,
+            threads: 1,
         };
         let mut state = self::state(640.0, 480.0);
         state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
@@ -2124,6 +2187,7 @@ mod tests {
             revision: 0,
             probe: None,
             waker: &waker,
+            threads: 1,
         };
         let mut state = state(480.0, 320.0);
         state.redraw::<()>(&fixture::pair(dots), 2.0, clock(), &pipeline, (&[], &[]));

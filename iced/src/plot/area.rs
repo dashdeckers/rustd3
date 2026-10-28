@@ -701,6 +701,53 @@ mod tests {
         assert_eq!((shown.missing, shown.previews), (0, 12));
     }
 
+    /// A render of tile (0, 0) for `generation`, of content `hash`,
+    /// planned on the grid at `origin` over its square there.
+    fn render_00(area: &mut Area, (generation, hash): (u64, u64), origin: [i32; 2]) -> bool {
+        let rect = [origin[0], origin[1], origin[0] + 256, origin[1] + 256];
+        let band = Band::new(0..256, Handle::from_rgba(256, 256, vec![0; 256 * 256 * 4]));
+        let tile = (area.serial(), 0, 0, origin);
+        area.land(
+            tile,
+            (generation, hash),
+            (rect, Some(vec![band])),
+            [None; 2],
+        )
+    }
+
+    #[test]
+    fn newest_result_wins_per_tile() {
+        // Generation 3 changes the content, 4 pans it by 37 px, 5 changes
+        // it again; their results for tile (0, 0) land as 3, 5, 4.
+        let mut area = rendered();
+        assert!(area.change((3, 0), 3, (Moved::Still, false)));
+        assert_eq!(area.follow(panned(37.0 / 900.0), 1.0, 2), Moved::Translated);
+        assert!(area.change((4, 0), 4, (Moved::Translated, false)));
+        assert!(area.change((5, 0), 5, (Moved::Still, false)));
+        let tile = |area: &Area| {
+            let found = area
+                .tiles()
+                .iter()
+                .find(|t| (t.key().i, t.key().j) == (0, 0));
+            let tile = found.expect("tile (0, 0)");
+            (
+                tile.slot().generation(),
+                area.is_exact(tile),
+                tile.shift(area.origin()),
+            )
+        };
+        // 3 is newer than what shows: shown, a preview of the grid it was
+        // planned on, moved with it since.
+        assert!(render_00(&mut area, (3, 3), [0, 0]));
+        assert_eq!(tile(&area), (Some(3), false, [37, 0]));
+        // 5 is the pending one: sharp.
+        assert!(render_00(&mut area, (5, 5), [37, 0]));
+        assert_eq!(tile(&area), (Some(5), true, [0, 0]));
+        // 4 is older than what shows: dropped.
+        assert!(!render_00(&mut area, (4, 4), [37, 0]));
+        assert_eq!(tile(&area), (Some(5), true, [0, 0]));
+    }
+
     #[test]
     fn a_steady_pan_renders_a_column_per_tile() {
         let mut area = rendered();

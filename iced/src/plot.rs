@@ -85,14 +85,19 @@
 //! and [`Plot::caching`] with [`Caching::Off`] re-renders every cell
 //! whenever any cell changed, a diagnostic for the benchmark.
 //!
-//! Changed cells render inline when the [`cost`] model predicts they take
-//! at most half the frame budget, and otherwise on one thread the widget
-//! owns, with vello_cpu's own pool; [`Plot::render`] forces either path.
+//! Changed tiles, cells and overlays render in order (visible tiles
+//! nearest the last gesture input first, then the gutters and overlays,
+//! then the ring): inline each one whose predicted time still fits half
+//! the frame budget with those before it, by a cost model each widget fits
+//! to its own renders (seeded by [`cost`]), and the rest on a pool of
+//! threads the widget owns ([`Plot::threads`]), newest wins per tile;
+//! [`Plot::render`] forces either path. Plot areas of at least 10,000
+//! markers splat them on screen (`raster::Renderer::splat`).
 //! Until a cell's new image arrives it keeps its previous one, a preview
 //! of outdated content, and a cell that never had one shows the theme's
 //! background. Results wake the runtime through its waker and land on
 //! `Event::Waken`, newest generation first: an older result never
-//! replaces a newer image. Dropping the widget's state joins the thread.
+//! replaces a newer image. Dropping the widget's state joins the threads.
 //! [`Plot::probe`] reports what each frame cost and what it showed, timed
 //! by a clock the app supplies: the library reads none.
 //!
@@ -214,6 +219,7 @@ mod merge;
 mod overlay;
 mod preview;
 pub mod probe;
+mod queue;
 mod region;
 mod render;
 mod scale_factor;
@@ -269,6 +275,7 @@ pub struct Plot<'a, Message> {
     render: Render,
     caching: Caching,
     revision: u64,
+    threads: Option<usize>,
     probe: Option<Probe>,
     listeners: Vec<Listener<'a, Message>>,
     brushes: Vec<brush::Listener<'a, Message>>,
@@ -288,6 +295,7 @@ impl<'a, Message> Plot<'a, Message> {
             render: Render::default(),
             caching: Caching::default(),
             revision: 0,
+            threads: None,
             probe: None,
             listeners: Vec::new(),
             brushes: Vec::new(),
@@ -376,6 +384,28 @@ impl<'a, Message> Plot<'a, Message> {
     /// ```
     pub fn revision(self, revision: u64) -> Self {
         Plot { revision, ..self }
+    }
+
+    /// Render pool size, clamped to 1..=64; changing it restarts the pool
+    /// (at its next jobs). By default the available parallelism less the
+    /// UI thread, 1 to 8, which respects the process's CPU affinity: one
+    /// thread on a 2-core machine, 8 on 16 cores. Each of the pool's
+    /// threads renders single-threaded, so the pool is the only
+    /// parallelism of the renders it takes.
+    ///
+    /// ```no_run
+    /// use rustd3_figure::Figure;
+    /// use rustd3_iced::Plot;
+    ///
+    /// // Leave the other cores to the app's own work.
+    /// let plot = Plot::<()>::new(Figure::new()).threads(2);
+    /// # let _ = plot;
+    /// ```
+    pub fn threads(self, threads: usize) -> Self {
+        Plot {
+            threads: Some(threads.clamp(1, worker::MAX)),
+            ..self
+        }
     }
 
     /// Reports per-stage durations, per-cell raster times and what each
@@ -645,6 +675,7 @@ where
                     revision: self.revision,
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
+                    threads: self.threads.unwrap_or_else(worker::default_size),
                 };
                 let listeners = (self.listeners.as_slice(), self.brushes.as_slice());
                 let (_, messages) = state.redraw(&self.figure, factor, *now, &pipeline, listeners);

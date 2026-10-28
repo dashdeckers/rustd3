@@ -5,9 +5,10 @@
 //! millisecond; the rest, 2,918,400 px and about 760 items, about 6.7 ms,
 //! of which about 1.9 ms are items, which leaves about 6.1e5 px per
 //! millisecond, rounded down to 5e5. Checked back, the model gives 21.7 ms
-//! for the whole figure and 7.7 ms without the dots. On a machine with
-//! more cores for vello_cpu's pool it overestimates; a `Probe` calibrates
-//! it (public so the benchmark can record it).
+//! for the whole figure and 7.7 ms without the dots. They seed each
+//! widget's own fit, which adds a fixed overhead per render and follows
+//! the machine from its timed renders (D22.4); public so the benchmark can
+//! record them.
 
 /// Device pixels rasterized per millisecond.
 pub const PIXELS_PER_MS: f64 = 5.0e5;
