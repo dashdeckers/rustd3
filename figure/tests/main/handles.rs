@@ -1,14 +1,16 @@
 //! Figure handles of every scale kind: how each fits, resolves, places or
 //! paints its values, and ticks.
 
+use rustd3_core::color::Rgb;
 use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_core::scale::{self, Band, Point};
+use rustd3_core::scheme;
 use rustd3_core::series::{Clock, Recording};
 use rustd3_core::time::{self, Time};
 use rustd3_figure::kurbo::{PathEl, Size};
 use rustd3_figure::list::{Command, List};
 use rustd3_figure::mark::{dots, line, rule_x};
-use rustd3_figure::scale::{Fit, Invert, Kind, Position, Scale};
+use rustd3_figure::scale::{Fit, Invert, Kind, Paint, Position, Scale};
 use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 
 use crate::figure::{self, cache};
@@ -425,4 +427,129 @@ fn a_visible_time_handle_steps_in_whole_nanoseconds() {
     let shrunk = domain([4.0, 6.0]);
     assert_eq!(shrunk, [wide[0] + eighth * 3, wide[1] - eighth * 3]);
     assert_eq!(domain([0.0, 10.0]), wide);
+}
+
+/// `color`'s hex form, when there is one.
+fn hex(color: Option<Rgb>) -> Option<String> {
+    color.map(|c| c.format_hex())
+}
+
+/// d3's `schemeBlues[5]`, as a literal array: core has no k-color schemes.
+fn blues5() -> [Rgb; 5] {
+    ["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"].map(|c| c.parse().expect("a color"))
+}
+
+#[test]
+fn sequential_handles_paint_as_d3_and_fit_without_margin() {
+    let mut fig = Figure::new();
+    let heat = fig.scale(scale::sequential([0.0, 80.0], scheme::viridis));
+    let fitted = fig.fit(scale::sequential([0.0, 80.0], scheme::viridis));
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0)
+        .mark(figure::line(fitted, [3.0, 7.0]))
+        .mark(dots([(0.5, 0.5)], x, x).fill(heat, 40.0));
+    let r = resolve(&fig, canvas(300.0, 200.0));
+    // d3 in Node: scaleSequential([0, 80], interpolateViridis).
+    let paints = [0.0, 20.0, 40.0, 80.0, 100.0].map(|v| hex(r.scale(heat).paint(&v)));
+    let d3 = ["#440154", "#3b528b", "#21918c", "#fde725", "#fde725"];
+    assert_eq!(paints, d3.map(|c| Some(c.to_string())));
+    // No margin on color: [3, 7] exactly, 5 at the middle of the ramp.
+    assert_eq!(r.scale(fitted).get_domain(), [3.0, 7.0]);
+    assert_eq!(hex(r.scale(fitted).paint(&5.0)).as_deref(), Some("#21918c"));
+    assert_eq!(r.scale(heat).paint(&f64::NAN), None);
+    assert_eq!(
+        scale::Ticks::tick_set(r.scale(heat), 4).values(),
+        [0.0, 20.0, 40.0, 60.0, 80.0]
+    );
+    // A palette key on a dot reaches the drawn paint.
+    let list = draw(&fig, canvas(300.0, 200.0));
+    let painted = list.commands.iter().find_map(|c| {
+        if let Command::Markers { paint, .. } = c {
+            Some(paint.clone())
+        } else {
+            None
+        }
+    });
+    let expected = rustd3_figure::peniko::Color::from_rgb8(0x21, 0x91, 0x8c);
+    assert_eq!(painted, Some(rustd3_figure::peniko::Brush::Solid(expected)));
+}
+
+#[test]
+fn diverging_handles_paint_as_d3_and_keep_their_middle() {
+    let mut fig = Figure::new();
+    let rd_bu = fig.scale(scale::diverging([-1.0, 0.0, 1.0], scheme::rd_bu));
+    let fitted = fig.fit(scale::diverging([-1.0, 0.0, 1.0], scheme::rd_bu));
+    fig.panel(0, 0).mark(figure::line(fitted, [2.0, 5.0]));
+    let r = resolve(&fig, canvas(300.0, 200.0));
+    // d3 in Node: scaleDiverging([-1, 0, 1], interpolateRdBu).
+    let paints = [-1.0, 0.0, 0.5].map(|v| r.scale(rd_bu).paint(&v).map(|c| c.to_string()));
+    let d3 = [
+        "rgb(103, 0, 31)",
+        "rgb(242, 239, 238)",
+        "rgb(107, 172, 208)",
+    ];
+    assert_eq!(paints, d3.map(|c| Some(c.to_string())));
+    // D33.2: data on one side of the middle keeps it, so the ramp does
+    // not reverse.
+    assert_eq!(r.scale(fitted).get_domain(), [0.0, 0.0, 5.0]);
+    assert_eq!(Kind::domain(r.scale(fitted)), Some([0.0, 5.0]));
+    assert_eq!(
+        scale::Ticks::tick_set(r.scale(rd_bu), 4).values(),
+        [-1.0, -0.5, 0.0, 0.5, 1.0]
+    );
+}
+
+#[test]
+fn linear_color_handles_interpolate_their_range_and_fit_without_margin() {
+    let red = Rgb::new(255.0, 0.0, 0.0);
+    let blue = Rgb::new(0.0, 0.0, 255.0);
+    let mut fig = Figure::new();
+    let ramp = fig.fit(scale::linear().range([red, blue]));
+    fig.panel(0, 0).mark(figure::line(ramp, [2.0, 4.0, 3.0]));
+    let r = resolve(&fig, canvas(300.0, 200.0));
+    assert_eq!(r.scale(ramp).get_domain(), [2.0, 4.0]);
+    let middle = r.scale(ramp).paint(&3.0).expect("a color");
+    assert_eq!(middle.to_string(), "rgb(128, 0, 128)");
+    assert_eq!(
+        scale::Ticks::tick_set(r.scale(ramp), 4).values(),
+        [2.0, 2.5, 3.0, 3.5, 4.0]
+    );
+}
+
+#[test]
+fn binned_handles_paint_their_bins_as_d3() {
+    let red = Rgb::new(255.0, 0.0, 0.0);
+    let white = Rgb::new(255.0, 255.0, 255.0);
+    let blue = Rgb::new(0.0, 0.0, 255.0);
+    let mut fig = Figure::new();
+    let q = fig.scale(scale::quantize([0.0, 100.0], blues5()));
+    let fitted = fig.fit(scale::quantize([0.0, 100.0], blues5()));
+    let t = fig.fit(scale::threshold([0.0, 1.0], [red, white, blue]));
+    let sample = [1.0, 2.0, 3.0, 10.0];
+    let quantile = fig.scale(scale::quantile(sample, [red, blue]));
+    fig.panel(0, 0)
+        .mark(figure::line(fitted, [10.0, 60.0]))
+        .mark(figure::line(t, [-5.0, 5.0]));
+    let r = resolve(&fig, canvas(300.0, 200.0));
+    // d3 in Node: scaleQuantize([0, 100], schemeBlues[5]).
+    assert_eq!(r.scale(q).thresholds(), [20.0, 40.0, 60.0, 80.0]);
+    let paints = [10.0, 30.0, 99.0].map(|v| hex(r.scale(q).paint(&v)));
+    assert_eq!(
+        paints,
+        ["#eff3ff", "#bdd7e7", "#08519c"].map(|c| Some(c.to_string()))
+    );
+    assert_eq!(r.scale(fitted).get_domain(), [10.0, 60.0]);
+    // d3: scaleThreshold([0, 1], [red, white, blue]); its thresholds stay.
+    let bins = [-1.0, 0.0, 0.5, 1.0].map(|v| r.scale(t).paint(&v));
+    assert_eq!(bins, [Some(red), Some(white), Some(white), Some(blue)]);
+    assert_eq!(r.scale(t).get_domain(), [0.0, 1.0]);
+    // The sample is the quantile scale's domain.
+    assert_eq!(r.scale(quantile).quantiles(), [2.5]);
+    assert_eq!(r.scale(quantile).paint(&3.0), Some(blue));
+    // Binned scales tick at their edges.
+    assert_eq!(
+        scale::Ticks::tick_set(r.scale(q), 5).values(),
+        [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]
+    );
+    assert_eq!(scale::Ticks::tick_set(r.scale(t), 5).values(), [0.0, 1.0]);
 }
