@@ -54,6 +54,10 @@ pub(crate) struct Laid {
 /// One pass's axes: per panel, per axis, its labels and plan.
 type Axes = Vec<Vec<(Labels, Plan)>>;
 
+/// One pass's tick counts: per panel, per axis; then per guide in a
+/// figure slot and in a panel corner, `None` for legends.
+type Counts = (Vec<Vec<usize>>, Vec<Option<usize>>);
+
 /// A placement: the plot areas, and what the tracks needed and had across
 /// the columns and down the rows ([`Layout::room`]).
 type Placement = (Vec<Rect>, [[f64; 2]; 2]);
@@ -103,12 +107,12 @@ impl Layout {
             Key::new(&Text::from("0"), &style)
         });
         let roles = plan::roles(panels);
-        let slotted: Vec<(Slot, Content)> = figure
+        let mut slotted: Vec<(Slot, Content)> = figure
             .legends()
             .iter()
             .map(|(slot, g)| (*slot, Content::new(g, resolved, theme)))
             .collect();
-        let insets: Vec<Vec<(Inset, Content)>> = panels
+        let mut insets: Vec<Vec<(Inset, Content)>> = panels
             .iter()
             .map(|p| {
                 p.insets()
@@ -117,25 +121,32 @@ impl Layout {
                     .collect()
             })
             .collect();
-        let legend_keys: Vec<Key> = slotted
-            .iter()
-            .map(|(_, c)| c)
-            .chain(insets.iter().flatten().map(|(_, c)| c))
-            .flat_map(|c| c.keys())
-            .cloned()
-            .collect();
         let snap = Snap::of(resolved.target());
         let (mut areas, mut room) = match held {
             Some(rects) => (rects.to_vec(), [[0.0; 2]; 2]),
             None => first(figure, size, snap),
         };
-        let mut last: Option<Vec<Vec<usize>>> = None;
+        let mut last: Option<Counts> = None;
         let mut axes: Axes = Vec::new();
         let mut reaches: Vec<(Reach, f64)> = Vec::new();
         let mut passes = 0;
         for pass in 1..=PASSES {
             passes = pass;
             let counts = counts(figure, &areas);
+            let extent = union(&areas).unwrap_or_else(|| inner(size, theme.em(), [0.0; 4]));
+            // The colorbars' tick counts and labels for this pass's lengths.
+            let bars: Vec<Option<usize>> = {
+                let text = &*text;
+                let slots = slotted
+                    .iter_mut()
+                    .map(|(slot, c)| c.measure_slot(*slot, extent, resolved, theme, text));
+                let corners = insets.iter_mut().zip(&areas).flat_map(|(insets, area)| {
+                    insets
+                        .iter_mut()
+                        .map(move |(_, c)| c.measure_inset(*area, resolved, theme, text))
+                });
+                slots.chain(corners).collect()
+            };
             let labels: Vec<Vec<Labels>> = panels
                 .iter()
                 .zip(&roles)
@@ -161,7 +172,8 @@ impl Layout {
                     .chain(&title)
                     .chain(&zero)
                     .chain(extra)
-                    .chain(&legend_keys),
+                    .chain(slotted.iter().flat_map(|(_, c)| c.keys()))
+                    .chain(insets.iter().flatten().flat_map(|(_, c)| c.keys())),
             );
             let text = &*text;
             let slack = zero
@@ -210,14 +222,14 @@ impl Layout {
                     reach
                 })
                 .collect();
-            let extent = union(&areas).unwrap_or_else(|| inner(size, theme.em(), [0.0; 4]));
             let slots = slots(&slotted, extent, text, theme);
             let reserve = reserve(&slots, title.as_ref(), text, theme);
             (areas, room) = place(figure, inner(size, theme.em(), reserve), &titled, snap);
-            if last.as_ref() == Some(&counts) {
+            let settled = (counts, bars);
+            if last.as_ref() == Some(&settled) {
                 break;
             }
-            last = Some(counts);
+            last = Some(settled);
         }
         let text = &*text;
         let em = theme.em();

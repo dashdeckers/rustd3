@@ -102,19 +102,8 @@ impl Placed {
     }
 
     /// Appends the rest of the axis beside plot area `area` to `list`: its
-    /// ticks in the styles that draw tick marks (those whose label the
-    /// scale's format blanks at the minor size and width, d3's log ticks
-    /// between labelled ones), its kept tick
-    /// labels a tick pad past the ticks on the
-    /// baselines their line box gives ([`Labels::baseline`]), its
-    /// offset or multiplier label (at the right end of a horizontal axis, a
-    /// tick pad beyond the labels; above the top end of a vertical one);
-    /// rotated labels are turned about their first baseline's left end,
-    /// placed by [`Labels::oriented`]; and
-    /// its title a label pad past all of them, turned a quarter
-    /// counter-clockwise on the left and clockwise on the right. On raster
-    /// targets (`snap`) the ticks lie on whole device pixels; labels keep
-    /// their positions.
+    /// tick marks in the styles that draw them ([`marks`](Placed::marks)),
+    /// then its labels and title ([`texts`](Placed::texts)).
     pub(crate) fn draw(
         &self,
         area: Rect,
@@ -123,13 +112,34 @@ impl Placed {
         snap: Snap,
         list: &mut List,
     ) {
+        if theme.ticks() {
+            self.marks(area, theme, snap, list);
+        }
+        self.texts(area, text, theme, list);
+    }
+
+    /// Appends the axis's tick marks beside plot area `area` to `list`:
+    /// those whose label the scale's format blanks at the minor size and
+    /// width (d3's log ticks between labelled ones), on whole device pixels
+    /// on raster targets (`snap`).
+    pub(crate) fn marks(&self, area: Rect, theme: &Theme, snap: Snap, list: &mut List) {
+        self.ticks(&self.spine(area, theme), theme, snap, list);
+    }
+
+    /// Appends the axis's kept tick labels beside plot area `area` to
+    /// `list`, a tick pad past the ticks on the baselines their line box
+    /// gives ([`Labels::baseline`]), its offset or multiplier label (at the
+    /// right end of a horizontal axis, a tick pad beyond the labels; above
+    /// the top end of a vertical one); rotated labels are turned about their
+    /// first baseline's left end, placed by [`Labels::oriented`]; and its
+    /// title a label pad past all of them, turned a quarter
+    /// counter-clockwise on the left and clockwise on the right. Labels
+    /// keep their positions on raster targets.
+    pub(crate) fn texts(&self, area: Rect, text: &text::Cache, theme: &Theme, list: &mut List) {
         let labels = &self.labels;
         let orient = labels.orient;
         let spine = self.spine(area, theme);
         let length = spine.length();
-        if theme.ticks() {
-            self.ticks(&spine, theme, snap, list);
-        }
         let gap = theme.tick() + theme.tick_pad();
         let baseline = Anchor {
             h: align(orient),

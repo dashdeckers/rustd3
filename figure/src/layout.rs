@@ -22,7 +22,7 @@ pub(crate) mod collide;
 mod hold;
 mod obb;
 mod passes;
-mod plan;
+pub(crate) mod plan;
 mod protrusion;
 mod slots;
 mod snap;

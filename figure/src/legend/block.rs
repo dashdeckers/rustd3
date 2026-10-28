@@ -15,7 +15,7 @@ pub(crate) enum Block {
     /// A legend of an ordinal palette's keys.
     Keys(keys::Block),
     /// A colorbar.
-    Bar(colorbar::Block),
+    Bar(Box<colorbar::Block>),
 }
 
 impl Block {
@@ -48,7 +48,7 @@ impl Block {
     ) {
         match self {
             Block::Keys(block) => block.draw(at, text, theme, list),
-            Block::Bar(block) => block.draw(at, theme, snap, list),
+            Block::Bar(block) => block.draw(at, text, theme, snap, list),
         }
     }
 }

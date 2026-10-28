@@ -104,7 +104,9 @@ impl<R> Ticks for Threshold<R> {
 
     /// The default placement, equal-width bins with the open ends as wide
     /// as the others: the i-th of n thresholds at `(i + 1)/(n + 1)`. `None`
-    /// for a value that is not a threshold, NaN included.
+    /// for a value that is not a threshold, NaN included. This is the
+    /// geometry of a threshold scale's colorbar in rustd3-figure: its open
+    /// ends have no edge in domain units, and equal rows invent none.
     fn position(&self, value: &f64, _offset: f64) -> Option<f64> {
         let i = self.domain.iter().position(|d| d == value)?;
         Some((i + 1) as f64 / (self.domain.len() + 1) as f64)

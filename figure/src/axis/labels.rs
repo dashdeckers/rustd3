@@ -16,6 +16,7 @@ use crate::theme::Theme;
 /// with their ticks' absolute indices and their rotation, which ticks the
 /// scale's format blanks, the line box its tick labels share, and the keys
 /// of its offset or multiplier label and of its title, set in that color.
+#[derive(Clone)]
 pub(crate) struct Labels {
     pub(super) orient: Orient,
     /// The tick labels' rotation, radians counter-clockwise; 0 unrotated.
@@ -91,7 +92,6 @@ impl Labels {
     }
 
     /// The title's key, when labelled with one.
-    #[cfg(feature = "fonts")]
     pub(crate) fn title(&self) -> Option<&Key> {
         self.title.as_ref()
     }

@@ -7,6 +7,7 @@ use peniko::{Blob, ImageAlphaType, ImageData, ImageFormat};
 use rustd3_core::color::Rgb;
 
 use crate::colorbar::{Ramp, Samples};
+use crate::scale::{Kind, Paint};
 use crate::text;
 
 /// Image rows per px of bar for bins of unequal widths: their edges fall
@@ -21,25 +22,35 @@ const MAX_ROWS: f64 = 16_384.0;
 /// be drawn as equal rows.
 const EQUAL: f64 = 1e-9;
 
+/// The end color of a strip without colors: transparent.
+const NONE: Rgb = Rgb {
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+    opacity: 0.0,
+};
+
 /// A colorbar's colors over one resolve, from the low end of its bar:
 /// equal rows, or bins and where each ends along the bar (shares of its
-/// length, ascending from 0 to 1) when their widths differ.
+/// length, ascending from 0 to 1) when their widths differ; whether they
+/// are a binned scale's; and the colors of its end triangles.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Strip {
     colors: Vec<Rgb>,
     bounds: Option<Vec<f64>>,
+    binned: bool,
+    ends: [Rgb; 2],
 }
 
 impl Strip {
     /// The strip of `scale`: its samples, binned ones placed by the scale's
-    /// tick positions of their edges. Bins whose edges have no position or
-    /// do not ascend are drawn as equal rows.
-    pub(crate) fn of<S: Ramp>(scale: &S) -> Strip {
-        match scale.samples() {
-            Samples::Even(colors) => Strip {
-                colors,
-                bounds: None,
-            },
+    /// tick positions of their edges (bins whose edges have no position or
+    /// do not ascend are drawn as equal rows); its end triangles in the
+    /// colors it clamps to, those of its domain's ends, or of its first and
+    /// last bins.
+    pub(crate) fn of<S: Paint<Domain = f64> + Ramp>(scale: &S) -> Strip {
+        let (colors, bounds, binned) = match scale.samples() {
+            Samples::Even(colors) => (colors, None, false),
             Samples::Bins { colors, edges } => {
                 let inner: Option<Vec<f64>> = edges
                     .iter()
@@ -54,9 +65,34 @@ impl Strip {
                     })
                     .filter(|b| b.len() == colors.len() + 1 && b.windows(2).all(|w| w[0] <= w[1]))
                     .filter(|b| !equal(b));
-                Strip { colors, bounds }
+                (colors, bounds, true)
             }
+        };
+        let first = colors.first().copied().unwrap_or(NONE);
+        let last = colors.last().copied().unwrap_or(NONE);
+        let ends = match Kind::domain(scale) {
+            Some([low, high]) => [
+                scale.paint(&low).unwrap_or(first),
+                scale.paint(&high).unwrap_or(last),
+            ],
+            None => [first, last],
+        };
+        Strip {
+            colors,
+            bounds,
+            binned,
+            ends,
         }
+    }
+
+    /// Whether the colors are a binned scale's.
+    pub(crate) fn binned(&self) -> bool {
+        self.binned
+    }
+
+    /// The colors of the end triangles, [low end, high end].
+    pub(crate) fn ends(&self) -> [Rgb; 2] {
+        self.ends
     }
 
     /// The strip's image for a bar `length` px long, nearest-sampled over
@@ -195,6 +231,18 @@ mod tests {
         // Edge 9 at 6/17: row 141's centre 141.5/400 = 0.35375 is past it.
         assert_eq!((rows[140][0], rows[141][0]), (10, 20));
         assert_eq!(rows[399][0], 30);
+    }
+
+    #[test]
+    fn end_triangles_take_the_colors_the_scale_clamps_to() {
+        let s = scale::sequential([0.0, 80.0], rustd3_core::scheme::viridis);
+        let strip = Strip::of(&s);
+        assert!(!strip.binned());
+        assert_eq!(strip.ends().map(|c| c.format_hex()), ["#440154", "#fde725"]);
+        let q = scale::quantize([0.0, 100.0], colors(5));
+        let strip = Strip::of(&q);
+        assert!(strip.binned());
+        assert_eq!(strip.ends(), [colors(5)[0], colors(5)[4]]);
     }
 
     #[test]
