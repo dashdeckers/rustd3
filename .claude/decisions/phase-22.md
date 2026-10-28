@@ -255,3 +255,67 @@ rule; (3), (9), (14) and (15) are the closest readings.
   runs (the container has no display): the optional windowed smoke in
   D22.1's command checks it in 5 minutes.
 - Phase 34: the wheel workload and the label-churn rerun.
+
+## Label churn rerun with real time formats (Phase 34)
+
+2026-10-28, ee179bf. Report-only, as every headless number is; D22.1
+stays open for the user's windowed run.
+
+**What changed.** `label-churn` no longer labels a linear x `t+{v:.4} s`
+at 16 ticks (D22.2 (9)): `trace`'s three channels run on a 10 kHz clock
+of instants centred on 2026-10-28T00:00Z under a `time::utc()` handle
+labelled by its own ticks in the figure's locale (the neutral ISO ladder:
+the date at midnight, seconds or milliseconds around it, the figure's
+default tick count), so pans cross the day boundary and zooms change the
+rung. The verdict's plan is unchanged: `default` keeps the 28 cells and
+136 runs registered here (the new `wheels` workload runs in `smoke` and
+`full` only; D34.4 (9)).
+
+**The rerun.** `target/release/rustd3-bench run --headless --workload
+label-churn --backend tiny-skia` (smoke: factor 2, 1600 × 1000, durations
+÷ 5, data ÷ 100, n = 1 per cell), against the stand-in's rows in the
+smoke report `scripts/check.sh full` wrote earlier the same day on the
+same container (`target/bench-smoke/20261028T030003Z`). Medians:
+
+| Cell | frame p50/p95/p99 ms | latency p50/p95 ms | previews | UI p99 frame ms | resolve/list ms |
+| --- | --- | --- | --- | --- | --- |
+| hover, stand-in → time | 83/117/126 → 100/117/126 | 52/124 → 50/118 | 12% → 12% | 6.5 → 7.7 | 5.5/4.0 → 6.1/4.8 |
+| pan-x | 83/117/135 → 84/117/127 | 1554/2630 → 1521/2597 | 100% → 100% | 12.9 → 14.5 | 0.3/2.8 → 0.4/3.7 |
+| pan-y | 100/117/143 → 100/117/135 | 1321/2397 → 1369/2446 | 92% → 93% | 52.7 → 48.5 | 0.3/2.3 → 0.3/3.2 |
+| zoom-lines | 100/184/211 → 100/188/211 | 800/1228 → 834/1261 | 86% → 84% | 14.5 → 15.5 | 0.3/2.5 → 0.3/3.7 |
+| zoom-pixels | 100/167/177 → 100/183/204 | 842/1305 → 742/1222 | 91% → 84% | 10.8 → 14.7 | 0.2/2.8 → 0.2/3.5 |
+| live | 100/133/140 → 109/140/150 | 558/3072 → 1067/3722 | 100% → 98% | 9.6 → 13.2 | 0.5/2.7 → 0.6/3.4 |
+| 4k | 117/232/244 → 117/250/250 | 1747/2395 → 1780/2428 | 95% → 100% | 14.4 → 17.2 | 0.6/2.8 → 0.7/3.4 |
+| resize | 50/83/103 → 50/100/100 | 209/302 → 158/299 | 50% → 39% | 5.0 → 8.5 | 0.4/2.1 → 0.5/2.8 |
+| cold | 83/100/113 → 100/115/117 | n/a | 17% → 17% | 8.1 → 9.6 | 5.0/3.6 → 5.2/4.6 |
+| soak | 100/136/153 → 100/135/150 | 700/4362 → 4156/10495 | 73% → 68% | 18.5 → 20.1 | 0.5/5.6 → 0.6/6.4 |
+
+Real time labels cost about 1 ms more list building per frame here
+(stage medians 2.1–2.8 → 2.8–3.7 ms; soak 5.6 → 6.4) and 1–4 ms more UI
+time at the frame p99 on most cells. Frame intervals, latencies and
+preview shares move within what n = 1 shows as run-to-run noise: the
+`trace` rows of the same stand-in report differ from its `label-churn`
+rows by as much (its soak latency p95 10,228 ms against label-churn's
+4,362 ms; the time axis's 10,495 ms is the same spread). The rule's
+outcome line is unchanged: "no verdict yet: some budget is inconclusive
+and none missed".
+
+**Whether Phase 22's conclusion holds:** yes. Headless frames stay paced
+by the readback, pans stay previews until the gesture ends (the pipeline
+as designed when a render outlasts a frame), and real time formats add
+about a millisecond of list building, far below what decides any budget.
+The label-churn rows are no longer provisional; the report's flag now says
+what the workload labels. The exit criterion's form, `cargo run -p
+rustd3-bench -- --headless --workload label-churn` (debug, wgpu on
+lavapipe), also runs all ten cells and prints its report.
+
+**The wheel workload's first smoke** (same command with `--workload
+wheels`; 960 × 760 at 2, 1920 × 1520 device px; 8 cells, live and soak
+n/a): frame p50 50–67 ms (133 ms at 4k), latency p95 59–180 ms on pans and
+zooms (228 ms at 4k), previews 6–20%, list stage about 1.5 ms, cold start
+169 ms; outcome "no verdict yet".
+
+**The closing line** is not written: the user's run has not given the
+verdict, and Phase 31 is neither skipped nor done, so it is left for
+Phase 31's part (built with its rerun appended, or recorded as skipped)
+once the verdict arrives (Phase 34's section; Order of work).

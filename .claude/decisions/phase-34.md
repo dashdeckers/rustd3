@@ -190,3 +190,134 @@ variant and error variants.
   `mark::Error`; `fig.check` already reports `Issue::Mark`.
 - Phase 36: hits for bars, areas and ribbons if hover needs them.
 - Phase 38: shared bin edges for dodged and stacked numeric histograms.
+
+## Measurements, session 34b
+
+2026-10-28, session 34b (D34.3's hit change and steps 5–7, 41c2370 …
+ee179bf). `scripts/check.sh full` green at ee179bf in 11 min 10 s
+(warm; the benchmark smoke now 60 cells, 54 run).
+
+**Harness** unchanged: 16 suites, 6,722 assertions, 5,292 passing, 1,430
+skipped, 0 failing, 179 floors.
+
+**Lines** (7d0551d..ee179bf): figure library +840 / −73 in 10 files,
+figure tests +596 / −2; examples +334 (the wheel module and its main) and
+tests +199, snapshots 541 lines (the list dump; the SVG is one 378 KB
+line); testkit +70 / −3; bench +317 / −92; fixtures `wheels.py` 146 and
+`wheels.json` 178.
+
+**Spot checks**, each asserted. A 2 × 2 grid is one 2 × 2 RGBA8 image,
+unsmoothed, at the device rect of its extent (`[w/4, 3w/4] × [h/4,
+3h/4]` for [1, 3]² on [0, 4]²; on device pixels at 1.5×), row 1 on top;
+`Grid::new(3, 2, 5 values)` is `GridLength { cols: 3, rows: 2, len: 5 }`.
+`fill_by` over viridis [0, 3] with values 0, 3, 3, NaN, 1 gives 4 points,
+the table [c(0), c(3), c(1)] and indices [0, 1, 1, 2]; `size_by` through
+[0, 10] → [2, 12] px gives radii 2, 7, 12 on a unit circle; three points
+with two values keep `ChannelLength { points: 3, values: 2 }` and
+`fig.check` reports it. The wheel figure: 5,600 samples, 52 marks, 12
+markers commands of 600, 600, 200 points per wheel, 232 histogram bars;
+domains vib [−0.080022, 3.053438], temp [31.701220, 65.650696], count [0,
+90.3] (within 1e-4 of `dev/fixtures/wheels.json`, itself checked against
+matplotlib 3.11.2's autoscaling; `python3 dev/fixtures/wheels.py` run
+twice, byte-identical); `fig.check` empty at 960 × 760 and 1600 × 1200,
+with and without the inset legend, in at most 4 layout passes. Measured
+where the section says "record the actual numbers": 64 labels as 64
+glyph runs (only "Wheel: RL" splits, "Wheel: FL" stays one) of 365 glyphs
+in one font (Part I's sketch: 65 labels, 66 runs, 371 glyphs, two fonts);
+the list has 428 commands in 111 parts, and lowering its markers gives
+6,016 (+5,588 = 5,600 − 12; the sketch 468 → 6,056); the SVG is 378 KB
+(the sketch 344 KB).
+
+**Viewed** (vello_cpu PNGs, scratch, not committed): the wheel figure at
+960 × 760 at 1× and 2× and at 1600 × 1200 with the inset legend, and
+resvg's render of the snapshot SVG at 2×, against Part I's description
+(shared speed axis 0–160 on the histograms only, the green temperature
+axis stacked outside vibration on the outer panels, dodged and jittered
+dots with dashed trend lines in their sub-bands, densities on both y
+scales, dodged bars under the dashed "min. count" rule, RL in red, title
+above and legend below, centred, or inset top left in FL); a 400-dot
+spiral colored through viridis and sized through a sqrt handle with NaN
+gaps and two notes; a 40 × 25 heatmap filling its plot area with crisp
+cells, row 0 at the bottom and three transparent NaN cells.
+
+**Benchmark** (headless, report-only): see `decisions/phase-22.md`, "Label
+churn rerun with real time formats (Phase 34)".
+
+**"Decisions this phase may meet"**: met, the wheel function's text; its
+departures are D34.4 (7).
+
+## D34.4 — Details of Phase 34b as built
+
+**Date:** 2026-10-28 · **Context:** Phase 34, D34.3's change and steps 5–7, 41c2370 … ee179bf · **Status:** open
+
+### Issue
+
+1. **`size_by`'s bound.** The section writes `S: Kind<Domain = f64,
+   Output = f64>`, but `Kind` has no way to apply a scale: only
+   `Position::position` and `Paint::paint` do.
+2. **Channel details** the section leaves open: a channel set twice, two
+   channels that both mismatch, `.fill` beside `fill_by`, `.opacity`,
+   the `Markers` command's own `paint` and shape, which dots are dropped
+   near the plot area, how a fitted size handle fits.
+3. **Images**: whether the extent is held, what a fitted color handle
+   sees, cells without a color, an extent far outside the plot area,
+   snapping, a reversed x, hits.
+4. **Notes**: fitting, size and color, the default anchor, the offset's
+   sign, clipping, issues.
+5. **`GridLength`** is listed as an error a mark keeps, but `image` takes
+   a `Grid` that `Grid::new` already validated.
+6. **Bar hits** (D34.3's change): which end of a span is the value end,
+   bars ending outside the plot area, empty bins.
+7. **The wheel function's text** (Figures, lines 1235–1383) cannot stay
+   verbatim: `_ => vib` (line 1265) is a wildcard arm on a workspace enum
+   (forbidden, and clippy's `wildcard_enum_match_arm` denies it);
+   `Figure<'static>` (line 1239) cannot stand where the bench's
+   `Data::figure(&self) -> Figure<'_>` returns borrowed figures, because
+   `Figure` is invariant in its lifetime; rustfmt would reflow the
+   vertical style; `trend` unwraps.
+8. **Fixtures in examples.** "Tests read both JSON files through testkit's
+   tolerant `Obs` compare", but rustd3-examples has no serde_json and its
+   manifest is final (Phase 1's table, Phase 11's iced).
+9. **The benchmark**: the window of a workload with a size of its own,
+   whether `wheels` joins the verdict's `default` plan (D22.1 registered
+   its cells), the label-churn time axis's data, zone and tick count.
+10. **Commits**: seven code commits and the docs, not three.
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | `S: Position<Domain = f64>`: every `Kind<Output = f64>` of the crate (continuous, band, point, time) is a `Position`; the radius is the handle's resolved scale applied as built (`Ctx::scale`, its own range, not a panel's) |
+| (2) | A later `fill_by`/`size_by` replaces the earlier channel and its error; `fill_by`'s error is reported first; `.fill(c, key)` still picks the dodge slot; `.opacity` multiplies channel colors; `paint` holds the dots' own color (unused under `paints`); sized dots stamp a unit circle followed to 1e-3 px at the largest radius; a dot is dropped when more than its own radius outside the plot area; a fitted size handle pads by the theme's margin like any numeric handle (`fig.scale` maps exactly); hits skip what draw skips |
+| (3) | The extent's edges enter fitting and are held (matplotlib's `imshow` sticky edges: a heatmap fills its plot area); the values fit a fitted color handle; a cell whose value has no color is transparent; only cells reaching into the guard band are drawn (bounded coordinates, Conventions item 6; the outermost may extend up to one cell past it); edges on device pixels on raster targets (D34.3 (4)); columns flip on a reversed x as rows do on y up; no hits (D34.3); no `LargeOwned` issue for grids; an extent with an end that is not finite is ignored |
+| (4) | The point enters fitting (as rules do, and Observable Plot's text; matplotlib's text does not); 12 pt (matplotlib's `font.size` at seaborn's notebook) in ink, crate-private `Theme::note`; default anchor start/baseline (matplotlib's `ha="left"`, `va="baseline"`); `.offset(dx, dy)` in px with dy down (Observable Plot's `dx`, `dy`); clipped to the plot area like every mark (matplotlib's text is not); drawn when its point is within the guard band; a band or point key outside its domain is `OutsideDomain`; no hits |
+| (5) | `Grid::new` returns `GridLength`; no mark keeps it |
+| (6) | The value end is a bar's second end: the value of a bar from a base, `y1`/`x1` of a span; reported only inside the plot area (edges included), as lines are; an empty bin reports at its base |
+| (7) | `Source::AccelX \| Source::AccelZ => vib`; `figure<'a>`/`figure_with<'a>` return `Figure<'a>` (a `Figure<'static>` to any caller that keeps it); `#[rustfmt::skip]` with its reason keeps the vertical style line for line; `scale::ordinal(SOURCES, palette)` is `figure_with`'s parameter (proto/dlist); `trend` is private and returns no points without data |
+| (8) | testkit gains `fixture::Fixture` (parse, `get(pointer)` → `Obs`, `fixture::Error`); manifests unchanged |
+| (9) | `Cell::window`: the wheel figure at 960 × 760 wherever the scenario uses the standard window (the 4k scenario keeps its device px; resize starts there). `wheels` is in `smoke` and `full`, not in `quick`/`default` (`plan::REGISTERED` = the four D22.1 named), so the verdict's plan stays 28 cells and 136 runs; the README's optional runs name `--workload wheels`. Label churn: `trace` on a 10 kHz clock of instants centred on 2026-10-28T00:00Z (half the samples before midnight at any data scale), `time::utc()`, the figure's default tick count and locale (the stand-in's 16 ticks went with its formatter) |
+| (10) | 41c2370 D34.3's hits; e418bbd step 5; bfcdfda testkit's fixtures; 49967c9 step 6; a56a95c the wheel figure's lifetime (found by step 7); ee179bf step 7; then the docs |
+
+### Decision
+
+Recommended: A for all ten.
+
+### Why
+
+(1), (5) and (8) are the smallest readings that compile against what
+Phases 1–33 built and keep the manifests; (2)–(4) and (6) follow
+matplotlib, seaborn or Observable Plot where the section points to them
+and D34.3's rules elsewhere; (7) changes four lines of Figures' text,
+each forced by a workspace rule or the compiler, and none of what the
+figure draws; (9) keeps D22.1's registered plan intact while the wheel
+figure runs everywhere else; (10) separates the crates.
+
+### Followups
+
+- Phase 35: colorbars over `fill_by`'s and `image`'s color handles; size
+  legends are Phase 39's.
+- Phase 36: hover over bars uses D34.3's candidates; notes and images
+  stay without hits.
+- Phase 39: value labels may build on `note`.
+- If the user wants the wheel figure in the verdict's run, it is a new
+  entry against D22.1 before the run.
