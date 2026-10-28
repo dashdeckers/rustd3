@@ -263,7 +263,7 @@ is framed as an inset legend (D35.6 (6)).
 
 ## D35.4 — Strips on raster targets have a row per device pixel
 
-**Date:** 2026-10-28 · **Context:** Phase 35, step 3, 5493663 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 35, step 3, 5493663 · **Status:** decided
 
 ### Issue
 
@@ -288,7 +288,9 @@ pixels were one entry off.
 
 ### Decision
 
-A, recommended (as built).
+A (architect, 2026-10-28): raster targets sample one colorbar image row
+per device pixel, so every pixel shows the colour at its centre; vector
+output keeps the 256-row strip.
 
 ### Why
 
@@ -297,7 +299,7 @@ arithmetic; vector outputs keep the section's 256 rows.
 
 ## D35.5 — Labels of binned colorbars
 
-**Date:** 2026-10-28 · **Context:** Phase 35, step 4, 0228e0b · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 35, step 4, 0228e0b · **Status:** decided
 
 ### Issue
 
@@ -326,8 +328,10 @@ rounding. It gives "3.00 7.25 9.00 14.50 20.00", "0 20 40 60 80 100",
 
 ### Decision
 
-A, recommended (as built), in `colorbar/edges.rs`; `.format(f)` still
-overrides it. Quantize's even edges read as before in the section's row.
+A (architect, 2026-10-28): binned colorbars label with matplotlib's
+ScalarFormatter precision, raised until every label is distinct
+(quantile edges read 3.00, 7.25, 9.00, 14.50, 20.00). This closes D25.3's
+followup.
 
 ### Why
 
@@ -336,7 +340,7 @@ distinctness the architect asked for added.
 
 ## D35.6 — Details of Phase 35b as built
 
-**Date:** 2026-10-28 · **Context:** Phase 35, steps 3–5, 5493663 … 05aaad4 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 35, steps 3–5, 5493663 … 05aaad4 · **Status:** decided
 
 ### Issue
 
@@ -389,7 +393,7 @@ distinctness the architect asked for added.
 
 ### Decision
 
-A for all twelve, recommended (as built).
+A for all twelve (architect, 2026-10-28), as built.
 
 ### Why
 
