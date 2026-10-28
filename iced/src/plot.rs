@@ -128,8 +128,11 @@
 //! with it unchanged and only the tiles entering the ring render, a column
 //! per 256 px, while the plot area looks the same apart from where things
 //! are (its paints, strokes, markers and glyphs: a figure rebuilt in
-//! another color renders every tile); the gutter cells showing the panned
-//! handle render whole. Any other change of a plot area's view (a zoom) begins its grid
+//! another color renders every tile) and the scales leading its axes moved
+//! by the same whole pixels at both its edges (`Scale::remap`: a
+//! `Fit::Visible` y that refits as x pans renders every tile); the gutter
+//! cells showing the panned handle render whole. Any other change of a
+//! plot area's view (a zoom) begins its grid
 //! anew: while the new tiles' sharp renders are pending, the old tiles,
 //! ring included, are drawn scaled by one affine map per axis, soft until
 //! the new ones land; gutters keep their last image. A double click

@@ -8,6 +8,7 @@ use iced_core::time::Instant;
 use iced_core::{Event, Point, Rectangle, Size, image, mouse};
 use rustd3_core::interact::{self, BrushEvent, Button, Modifiers, Pointer};
 use rustd3_figure::list::{self, Command, List, Outlines};
+use rustd3_figure::scale::Scale;
 use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster, thin};
 
 use crate::plot::area::{Area, Moved};
@@ -767,9 +768,10 @@ impl State {
     /// double click reset published handles, returns their fitted domains
     /// as messages for `listeners` and draws nothing in this pass.
     /// Otherwise first moves each plot area's tile grid to the views now
-    /// (by whole device pixels during a drag), draws the figure with an
-    /// overscan of two tiles and, during a drag, the column grids of the
-    /// moved areas, and renders what changed (see
+    /// (by whole device pixels during a drag), resolves with an overscan of
+    /// two tiles and, during a drag, the column grids of the moved areas,
+    /// keeps each translation only where the lead handles' scales moved as
+    /// the grid did ([`confirm`](State::confirm)), and renders what changed (see
     /// [`repaint`](State::repaint)): inline, shown at once, or as jobs
     /// that replace the pool's waiting ones, as `pipeline.render` asks or,
     /// for `Auto`, as the cost model predicts against the frame budget.
@@ -837,9 +839,48 @@ impl State {
             self.resolved = Some(resolved);
             return (0, fitted);
         }
+        let moves = self.confirm(moves, &resolved, k);
         let changed = self.repaint(figure, &resolved, (k, &moves), pipeline, start);
+        for p in 0..self.areas.len() {
+            let leads = self.leads(p, &resolved);
+            self.areas[p].lead(leads.map(|lead| lead.map(|(key, scale)| (key, scale.boxed()))));
+        }
         self.resolved = Some(resolved);
         (changed, Vec::new())
+    }
+
+    /// The two-point test of each area [`follow`](State::follow)
+    /// translated by the views (D31.7): the scales `resolved` gives its
+    /// lead handles, against those its layer was last drawn with, must
+    /// have moved by the grid's whole pixels at `k` at its edges. An area
+    /// whose scales moved otherwise (a `Fit::Visible` y refitting during
+    /// an x pan, a domain the app changed mid-drag) begins its grid anew
+    /// where it lies, so every tile renders.
+    fn confirm(&mut self, mut moves: Vec<Moved>, resolved: &Resolved, k: f64) -> Vec<Moved> {
+        for (p, moved) in moves.iter_mut().enumerate() {
+            let Moved::Translated(by) = *moved else {
+                continue;
+            };
+            let now = self.leads(p, resolved);
+            let Some(area) = self.areas.get_mut(p) else {
+                continue;
+            };
+            if !area.keeps(now, by, k) {
+                self.grids += 1;
+                area.restart(self.grids);
+                *moved = Moved::Anew;
+            }
+        }
+        moves
+    }
+
+    /// The scales `resolved` gives the handles leading each axis of
+    /// `panel`, by handle.
+    fn leads<'r>(&self, panel: usize, resolved: &'r Resolved) -> [Option<(Key, &'r dyn Scale)>; 2] {
+        [Along::X, Along::Y].map(|along| {
+            let key = self.map.lead(panel, along)?;
+            Some((key, resolved.scale_at(key.index())?))
+        })
     }
 
     /// Moves each plot area's grid to the views its axes show now at `k`;

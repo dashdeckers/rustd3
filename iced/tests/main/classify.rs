@@ -10,9 +10,10 @@ use std::time::Duration;
 use iced::time::Instant;
 use iced::{Color, Event, Point, mouse};
 use rustd3_core::color::Rgb;
-use rustd3_core::scale;
+use rustd3_core::scale::{self, Linear};
 use rustd3_figure::list;
 use rustd3_figure::mark::line;
+use rustd3_figure::scale::{Fit, ScaleRef};
 use rustd3_figure::{Cache, Figure, Held, Target, axis, kurbo};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::{self, Sample};
@@ -60,6 +61,46 @@ fn colored(x: [f64; 2], color: Rgb) -> Figure<'static> {
     let hy = fig.scale(scale::linear().domain([-1.2, 1.2]));
     fig.panel(0, 0)
         .mark(line(curve(), hx, hy).color(color).width(2.0))
+        .axis(axis::left(hy))
+        .axis(axis::bottom(hx))
+        .zoom_x(hx);
+    fig
+}
+
+/// One panel: a rising curve over x `x` (data from 0 to 100), y fitted to
+/// what x shows (`Fit::Visible`), with left and bottom axes; the panel
+/// zooms x only. Its y handle.
+fn rising(x: [f64; 2]) -> (Figure<'static>, ScaleRef<Linear>) {
+    let mut fig = Figure::new();
+    let hx = fig.scale(scale::linear().domain(x));
+    let hy = fig.fit_with(scale::linear(), Fit::Visible);
+    let ramp: Vec<(f64, f64)> = (0..=400)
+        .map(|i| {
+            let t = f64::from(i) * 0.25;
+            (t, t + (t * 0.7).sin())
+        })
+        .collect();
+    fig.panel(0, 0)
+        .mark(line(ramp, hx, hy).width(2.0))
+        .axis(axis::left(hy))
+        .axis(axis::bottom(hx))
+        .zoom_x(hx);
+    (fig, hy)
+}
+
+/// [`rising`] with y fixed at `y`.
+fn risen(x: [f64; 2], y: [f64; 2]) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let hx = fig.scale(scale::linear().domain(x));
+    let hy = fig.scale(scale::linear().domain(y));
+    let ramp: Vec<(f64, f64)> = (0..=400)
+        .map(|i| {
+            let t = f64::from(i) * 0.25;
+            (t, t + (t * 0.7).sin())
+        })
+        .collect();
+    fig.panel(0, 0)
+        .mark(line(ramp, hx, hy).width(2.0))
         .axis(axis::left(hy))
         .axis(axis::bottom(hx))
         .zoom_x(hx);
@@ -259,6 +300,68 @@ fn style_change_during_a_pan_re_renders() {
         );
         assert!(kept < all, "{backend}, k = {k}: the translation kept tiles");
         assert_eq!(restyled, all, "{backend}, k = {k}: every tile renders");
+        assert!(max <= bound(&backend), "{backend}, k = {k}: max {max}/255");
+    }
+}
+
+#[test]
+fn visible_y_refit_during_a_pan_re_renders() {
+    // A drag by whole pixels moves x, and the y handle, fitted to what x
+    // shows, grows to the data entering on the right in the same refresh:
+    // the views say translation, the scales do not (D31.7), so every tile
+    // of the area renders at once and the frame is the refitted figure.
+    let (x, drag_px) = ([0.0, 50.0], -37.0_f32);
+    for k in [1.0_f32, 2.0] {
+        let (tx, rx) = mpsc::channel();
+        let probe = Probe::new(clock, tx);
+        let size = tiles::SIZE;
+        let Some(mut harness) = Harness::new(plot(rising(x).0, k, &probe), size, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let t0 = headless::epoch();
+        let _ = harness.frame(t0);
+        let all = tiles::tiles(&rx.try_iter().collect::<Vec<_>>()).len();
+        let area = tiles::areas(&rising(x).0, size, k)[0];
+        let from = Point::new(
+            (area[0] + area[2]) as f32 / 2.0 / k,
+            (area[1] + area[3]) as f32 / 2.0 / k,
+        );
+        let to = Point::new(from.x + drag_px, from.y);
+        let (samples, shot) = drag(&mut harness, &rx, (from, to), t0);
+        let rendered = tiles::tiles(&samples).len();
+        // What the widget resolves: the first view, then the panned x,
+        // through one cache that remembers y's fit.
+        let logical = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
+        let target = Target::Screen {
+            scale: f64::from(k),
+        };
+        let w = (area[2] - area[0]) as f64 / f64::from(k);
+        let panned = tiles::panned(x, w, f64::from(drag_px));
+        let mut cache = Cache::default();
+        let (first, hy) = rising(x);
+        cache.begin();
+        let resolved = first.resolve(logical, &mut cache, &Held::default(), target);
+        let (held, y0) = (resolved.areas(), resolved.scale(hy).get_domain());
+        let (moved, hy) = rising(panned);
+        cache.begin();
+        let y1 = moved
+            .resolve(logical, &mut cache, &Held::default(), target)
+            .scale(hy)
+            .get_domain();
+        let reference = reference::png_held(
+            &risen(panned, y1),
+            logical,
+            f64::from(k),
+            Color::WHITE,
+            &held,
+        );
+        let max = against(&shot, &reference);
+        println!(
+            "a Fit::Visible y refit during a pan, {backend}, k = {k}: y {y0:?} → {y1:?}; {all} tiles at first, {rendered} on the drag's frame; against the refitted figure max {max}/255"
+        );
+        assert_ne!(y0, y1, "{backend}, k = {k}: y refits during the pan");
+        assert_eq!(rendered, all, "{backend}, k = {k}: every tile renders");
         assert!(max <= bound(&backend), "{backend}, k = {k}: max {max}/255");
     }
 }

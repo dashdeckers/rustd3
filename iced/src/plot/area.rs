@@ -8,7 +8,12 @@
 //! grid's origin by as much: keys stay, squares move, and every tile's
 //! image, rendered over its whole square, moves along and stays valid, so
 //! a pan renders only the keys entering the area's grown rect, a column
-//! per 256 px (D31.6). Any other move begins the grid anew
+//! per 256 px (D31.6). Once the figure is resolved, the lead handles'
+//! scales confirm it (D31.7): compared with the scales the area's layer
+//! was last drawn with at the area's two edges, each must have moved by
+//! the grid's whole pixels; a scale that moved otherwise (a `Fit::Visible`
+//! y refitting during an x pan, a domain the app changed mid-drag)
+//! begins the grid anew where it lies. Any other move begins the grid anew
 //! at the area's corner: every key is new, and the old tiles become the
 //! area's preview layer, drawn mapped from the views each was planned at
 //! to the views now (one affine map per axis, linear filtering, clipped
@@ -27,7 +32,9 @@ use iced_core::Color;
 use iced_core::image;
 use iced_core::renderer::Quad;
 use rustd3_figure::kurbo::Rect;
+use rustd3_figure::scale::Scale;
 
+use crate::plot::domains;
 use crate::plot::preview::{Affine1, Basis};
 use crate::plot::region::Along;
 use crate::plot::slot::{self, Band, Slot};
@@ -62,6 +69,9 @@ pub(crate) struct Area {
     /// What stays put over the tiles, each over the device rect it reaches
     /// into the area.
     overlays: Vec<Slot>,
+    /// The scale of the handle leading each axis, by handle, as the last
+    /// refresh that drew the area's layer resolved it.
+    leads: [Option<(domains::Key, Box<dyn Scale>)>; 2],
 }
 
 /// How a refresh moved an area's grid.
@@ -69,11 +79,20 @@ pub(crate) struct Area {
 pub(crate) enum Moved {
     /// Not at all.
     Still,
-    /// By whole device pixels: its tiles' images move along.
-    Translated,
+    /// By these whole device pixels along x and y: its tiles' images move
+    /// along.
+    Translated([i32; 2]),
     /// Otherwise: the grid began anew.
     Anew,
 }
+
+/// How far, device px, a lead scale's move at an area's edge may be from
+/// its grid's whole pixels and still be the same translation: a 256th of a
+/// pixel, which moves an antialiased edge's coverage by at most 1/255 (a
+/// half-pixel shift differs by up to 109/255), far above the rounding of a
+/// position taken through the domain (2e-6 px for values near 1e9 at 16
+/// px per unit; a time scale's whole nanoseconds).
+const TRANSLATED: f64 = 1.0 / 256.0;
 
 /// What an area shows in the following draw, counted over its visible
 /// tiles and its overlays.
@@ -112,6 +131,7 @@ impl Area {
             tiles: Vec::new(),
             preview: Vec::new(),
             overlays: Vec::new(),
+            leads: [None, None],
         };
         area.tiles = area.cover(hash);
         area
@@ -182,17 +202,7 @@ impl Area {
     /// there is one).
     pub(crate) fn follow(&mut self, now: [Option<Basis>; 2], factor: f64, serial: u64) -> Moved {
         let Some(offset) = self.translation(now, factor) else {
-            let old = std::mem::take(&mut self.tiles);
-            let complete = old
-                .iter()
-                .filter(|tile| self.shows(tile))
-                .all(|tile| !tile.slot().is_missing());
-            if complete || self.preview.is_empty() {
-                self.preview = old
-                    .into_iter()
-                    .filter(|tile| !tile.slot().is_missing())
-                    .collect();
-            }
+            self.retire();
             self.grid = Grid::new([self.rect[0], self.rect[1]], density(now));
             self.serial = serial;
             self.anchor = now;
@@ -204,9 +214,8 @@ impl Area {
         if corner == origin {
             return Moved::Still;
         }
-        let grid = self
-            .grid
-            .moved([corner[0] - origin[0], corner[1] - origin[1]]);
+        let by = [corner[0] - origin[0], corner[1] - origin[1]];
+        let grid = self.grid.moved(by);
         self.grid = grid;
         let mut old = std::mem::take(&mut self.tiles);
         let (hash, index) = (self.hash, self.index);
@@ -225,7 +234,55 @@ impl Area {
                 }
             })
             .collect();
-        Moved::Translated
+        Moved::Translated(by)
+    }
+
+    /// Whether the lead scales `now` (each by its handle) moved from those
+    /// the layer was last drawn with as the grid moved, by `by` device px
+    /// at `factor`: the two-point test of a translation (D31.7), at the
+    /// area's two edges along each axis, each scale set to the area's
+    /// range in list px. An axis led by no handle before and now passes;
+    /// another handle, or a scale that cannot place what the other drew
+    /// ([`Scale::remap`] gives `None`), does not.
+    pub(crate) fn keeps(
+        &self,
+        now: [Option<(domains::Key, &dyn Scale)>; 2],
+        by: [i32; 2],
+        factor: f64,
+    ) -> bool {
+        [Along::X, Along::Y].into_iter().all(|along| {
+            let i = along.index();
+            let (range, at) = match along {
+                Along::X => ([self.list.x0, self.list.x1], [self.list.x0, self.list.x1]),
+                Along::Y => ([self.list.y1, self.list.y0], [self.list.y0, self.list.y1]),
+            };
+            match (&self.leads[i], now[i]) {
+                (None, None) => true,
+                (Some((was, from)), Some((is, to))) if *was == is => {
+                    to.remap(&**from, range, at).is_some_and(|moved| {
+                        moved.iter().zip(at).all(|(&m, a)| {
+                            ((m - a) * factor - f64::from(by[i])).abs() <= TRANSLATED
+                        })
+                    })
+                }
+                (Some(_), _) | (None, Some(_)) => false,
+            }
+        })
+    }
+
+    /// Keeps `leads`, the lead scales a refresh drew the layer with.
+    pub(crate) fn lead(&mut self, leads: [Option<(domains::Key, Box<dyn Scale>)>; 2]) {
+        self.leads = leads;
+    }
+
+    /// Begins the grid anew where it lies, numbered `serial`: every key
+    /// new and the old tiles the preview layer, as a move that is not a
+    /// translation does. Its origin, density and anchor stay, so the
+    /// columns this refresh's lines thinned on stay the grid's.
+    pub(crate) fn restart(&mut self, serial: u64) {
+        self.retire();
+        self.serial = serial;
+        self.tiles = self.cover(self.hash);
     }
 
     /// Whether layer `hash` needs a render: another hash, or a tile
@@ -252,7 +309,7 @@ impl Area {
         generation: u64,
         (moved, every): (Moved, bool),
     ) -> bool {
-        let translated = moved == Moved::Translated && style == self.style && !every;
+        let translated = matches!(moved, Moved::Translated(_)) && style == self.style && !every;
         self.hash = hash;
         self.style = style;
         let origin = self.grid.origin();
@@ -519,6 +576,23 @@ impl Area {
         Some(offset)
     }
 
+    /// The tiles leave the grid for the preview layer: all of them when
+    /// each visible one had an image, else the earlier preview stays if
+    /// there is one.
+    fn retire(&mut self) {
+        let old = std::mem::take(&mut self.tiles);
+        let complete = old
+            .iter()
+            .filter(|tile| self.shows(tile))
+            .all(|tile| !tile.slot().is_missing());
+        if complete || self.preview.is_empty() {
+            self.preview = old
+                .into_iter()
+                .filter(|tile| !tile.slot().is_missing())
+                .collect();
+        }
+    }
+
     /// The grid's keys that meet the grown rect, holding layer `hash`, without
     /// images.
     fn cover(&self, hash: u64) -> Vec<Tile> {
@@ -687,7 +761,10 @@ mod tests {
     #[test]
     fn a_37_px_drag_renders_only_the_entering_ring_column() {
         let mut area = rendered();
-        assert_eq!(area.follow(panned(37.0 / 900.0), 1.0, 2), Moved::Translated);
+        assert_eq!(
+            area.follow(panned(37.0 / 900.0), 1.0, 2),
+            Moved::Translated([37, 0])
+        );
         assert_eq!(area.origin(), [37, 0]);
         // Column −1, [−256, 0) rendered, now [−219, 37): its square.
         let left = area
@@ -696,7 +773,7 @@ mod tests {
             .find(|t| (t.key().i, t.key().j) == (-1, 0));
         assert_eq!(left.map(|t| t.rect()), Some([-219, 0, 37, 256]));
         assert!(left.is_some_and(|t| t.covers([37, 0])));
-        assert!(area.change((2, 0), 2, (Moved::Translated, false)));
+        assert!(area.change((2, 0), 2, (Moved::Translated([37, 0]), false)));
         // The new key i = −2, its whole square [−475, −219), in 5 rows;
         // nothing visible.
         let entering: Vec<(i32, i32)> = (-1..=3).map(|j| (-2, j)).collect();
@@ -713,13 +790,13 @@ mod tests {
         let mut area = rendered();
         assert_eq!(
             area.follow(panned(-37.0 / 900.0), 1.0, 2),
-            Moved::Translated
+            Moved::Translated([-37, 0])
         );
         assert_eq!(area.origin(), [-37, 0]);
         // Column 4, rendered over its square [1024, 1280), is at [987,
         // 1243): still its square; no new key (i = −2 would be [−549,
         // −293)).
-        assert!(!area.change((2, 0), 2, (Moved::Translated, false)));
+        assert!(!area.change((2, 0), 2, (Moved::Translated([-37, 0]), false)));
         assert!(pending(&area).is_empty());
         assert_eq!(area.tiles().len(), 30);
     }
@@ -729,11 +806,11 @@ mod tests {
         let mut area = rendered();
         assert_eq!(
             area.follow(panned(-37.0 / 900.0), 1.0, 2),
-            Moved::Translated
+            Moved::Translated([-37, 0])
         );
         // The positions moved and the style hash changed: no image shows
         // the new layer, so all 30 tiles render.
-        assert!(area.change((2, 1), 2, (Moved::Translated, false)));
+        assert!(area.change((2, 1), 2, (Moved::Translated([-37, 0]), false)));
         assert_eq!(pending(&area).len(), 30);
         // Every image moved with the grid and still shows old content.
         let shown = area.shown(1.0, panned(-37.0 / 900.0));
@@ -760,8 +837,11 @@ mod tests {
         // it again; their results for tile (0, 0) land as 3, 5, 4.
         let mut area = rendered();
         assert!(area.change((3, 0), 3, (Moved::Still, false)));
-        assert_eq!(area.follow(panned(37.0 / 900.0), 1.0, 2), Moved::Translated);
-        assert!(area.change((4, 0), 4, (Moved::Translated, false)));
+        assert_eq!(
+            area.follow(panned(37.0 / 900.0), 1.0, 2),
+            Moved::Translated([37, 0])
+        );
+        assert!(area.change((4, 0), 4, (Moved::Translated([37, 0]), false)));
         assert!(area.change((5, 0), 5, (Moved::Still, false)));
         let tile = |area: &Area| {
             let found = area
@@ -798,8 +878,8 @@ mod tests {
             let offset = -4 * frame as i32;
             let now = panned(f64::from(offset) / 900.0);
             let hash = 1 + frame;
-            assert_eq!(area.follow(now, 1.0, 2), Moved::Translated);
-            if area.change((hash, 0), 1 + frame, (Moved::Translated, false)) {
+            assert_eq!(area.follow(now, 1.0, 2), Moved::Translated([-4, 0]));
+            if area.change((hash, 0), 1 + frame, (Moved::Translated([-4, 0]), false)) {
                 entered.push((offset, pending(&area)));
                 land_pending(&mut area, hash);
             }
@@ -825,5 +905,46 @@ mod tests {
         // so every new tile is covered: previews, none missing.
         let shown = area.shown(1.0, now);
         assert_eq!((shown.missing, shown.previews), (0, 12));
+    }
+
+    #[test]
+    fn the_lead_scales_confirm_a_translation_or_restart_the_grid() {
+        use rustd3_core::scale;
+        use rustd3_figure::scale::Scale;
+
+        // x [0, 100] and y [0, 10] over the 900 × 600 area; a drag of 37
+        // px to the right.
+        let mut area = rendered();
+        let (kx, ky) = (Key::of::<scale::Linear>(0), Key::of::<scale::Linear>(1));
+        let x = scale::linear().domain([0.0, 100.0]).boxed();
+        let y = scale::linear().domain([0.0, 10.0]).boxed();
+        area.lead([Some((kx, x.boxed())), Some((ky, y.boxed()))]);
+        assert_eq!(
+            area.follow(panned(37.0 / 900.0), 1.0, 2),
+            Moved::Translated([37, 0])
+        );
+        let x37 = x.pan_px([0.0, 900.0], 37.0).expect("pans");
+        let both = [Some((kx, &*x37)), Some((ky, &*y))];
+        assert!(area.keeps(both, [37, 0], 1.0));
+        // Not by 36 px, nor at factor 2 (74 device px).
+        assert!(!area.keeps(both, [36, 0], 1.0));
+        assert!(!area.keeps(both, [37, 0], 2.0));
+        // y refitted to [0, 12] while x panned: a change; so is another
+        // handle leading y, and a lead that appeared.
+        let refit = scale::linear().domain([0.0, 12.0]).boxed();
+        assert!(!area.keeps([Some((kx, &*x37)), Some((ky, &*refit))], [37, 0], 1.0));
+        let kz = Key::of::<scale::Linear>(2);
+        assert!(!area.keeps([Some((kx, &*x37)), Some((kz, &*y))], [37, 0], 1.0));
+        area.lead([Some((kx, x.boxed())), None]);
+        assert!(!area.keeps(both, [37, 0], 1.0));
+        // The restart keeps the origin the lines thinned on: 7 × 5 keys
+        // meet the grown rect from there, each new and pending, and the
+        // old tiles, moved by 37 px, preview all 5 × 3 visible ones.
+        area.restart(3);
+        assert_eq!((area.serial(), area.origin()), (3, [37, 0]));
+        assert!(area.change((2, 0), 2, (Moved::Anew, false)));
+        assert_eq!(pending(&area).len(), 35);
+        let shown = area.shown(1.0, panned(37.0 / 900.0));
+        assert_eq!((shown.missing, shown.previews), (0, 15));
     }
 }
