@@ -6,13 +6,13 @@ use kurbo::{Point, Rect, Shape, Size, Vec2};
 use rustd3_core::color::Rgb;
 
 use crate::figure::Resolved;
-use crate::legend::Draw;
+use crate::legend::{Draw, Swatch, swatch};
 use crate::list::{self, Command, List};
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
-/// A swatch's side, em: `legend.handleheight`.
-const SWATCH: f64 = 0.7;
+/// A swatch's height, em: `legend.handleheight`.
+const SWATCH: f64 = swatch::SIDE;
 
 /// From a swatch to its label, and from a row's title to its first
 /// swatch, em: `legend.handletextpad`.
@@ -34,19 +34,22 @@ const EDGE: f64 = 1.0;
 /// Tolerance of a rectangle's path: exact, rectangles have no curves.
 const TOLERANCE: f64 = 0.1;
 
-/// A legend's content for one resolve: its title's key, and each entry's
-/// color and label key, in domain order.
+/// A legend's content for one resolve: its title's key, each entry's
+/// color and label key, in domain order, and what its swatches show.
 pub(crate) struct Content {
     title: Option<Key>,
     entries: Vec<(Rgb, Key)>,
+    glyph: Swatch,
 }
 
 /// A legend laid out, relative to its top-left corner: its size, whether
-/// it is framed, its swatches and where its labels' first baselines start
-/// (or, for a centred title, are centred).
+/// it is framed, what its swatches show, their boxes and colors, and where
+/// its labels' first baselines start (or, for a centred title, are
+/// centred).
 pub(crate) struct Block {
     size: Size,
     framed: bool,
+    glyph: Swatch,
     swatches: Vec<(Rect, Rgb)>,
     labels: Vec<(Key, Point, anchor::Horizontal)>,
 }
@@ -76,7 +79,11 @@ impl Content {
                 (color.unwrap_or(theme.gray()), key)
             })
             .collect();
-        Content { title, entries }
+        Content {
+            title,
+            entries,
+            glyph: legend.glyph(),
+        }
     }
 
     /// Every key, for the text cache's batch.
@@ -87,12 +94,14 @@ impl Content {
     }
 
     /// The legend as one row on a shared baseline: the title, 0.8 em, then
-    /// each entry (a swatch 0.7 em square standing on the baseline, 0.8 em,
-    /// its label) 2 em after the last. Its height is the line boxes of its
-    /// labels (the text face's ascender and descender at their size)
-    /// united with their ink and the swatches.
+    /// each entry (its swatch's box, 0.7 em tall standing on the baseline
+    /// and 0.7 em wide, 2 em for a line, then 0.8 em and its label) 2 em
+    /// after the last. Its height is the line boxes of its labels (the
+    /// text face's ascender and descender at their size) united with their
+    /// ink and the swatches.
     pub(crate) fn row(&self, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
+        let side = self.glyph.width(em);
         let entry = text.fonts().line(theme.tick_text());
         let mut rows = Rows {
             top: -SWATCH * em,
@@ -117,8 +126,8 @@ impl Content {
                 x += ENTRIES * em;
             }
             rows.swatches
-                .push((Rect::new(x, -SWATCH * em, x + SWATCH * em, 0.0), *color));
-            x += (SWATCH + LABEL) * em;
+                .push((Rect::new(x, -SWATCH * em, x + side, 0.0), *color));
+            x += side + LABEL * em;
             x += rows.label(
                 text,
                 key,
@@ -129,15 +138,17 @@ impl Content {
         }
         let size = Size::new(x, rows.bottom - rows.top);
         let by = Vec2::new(0.0, -rows.top);
-        rows.block(size, by)
+        rows.block(size, by, self.glyph)
     }
 
     /// The legend as a column: the title centred on top, then one entry per
-    /// row (a swatch 0.7 em square standing on the row's baseline, 0.8 em,
-    /// its label), each row the height of its label's line box united with
-    /// its ink and swatch, rows 0.5 em apart.
+    /// row (its swatch's box standing on the row's baseline as in a
+    /// [`row`](Content::row), 0.8 em, its label), each row the height of
+    /// its label's line box united with its ink and swatch, rows 0.5 em
+    /// apart.
     pub(crate) fn column(&self, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
+        let side = self.glyph.width(em);
         let entry = text.fonts().line(theme.tick_text());
         let width = |key: &Key| get(text, key).map_or(0.0, Shaped::width);
         let labels = self
@@ -148,7 +159,7 @@ impl Content {
         let entries = if self.entries.is_empty() {
             0.0
         } else {
-            (SWATCH + LABEL) * em + labels
+            side + LABEL * em + labels
         };
         let w = self.title.as_ref().map_or(0.0, width).max(entries);
         let mut rows = Rows::default();
@@ -173,17 +184,17 @@ impl Content {
             let (top, bottom) = (top.min(-SWATCH * em), bottom.max(0.0));
             let baseline = y - top;
             rows.swatches.push((
-                Rect::new(0.0, baseline - SWATCH * em, SWATCH * em, baseline),
+                Rect::new(0.0, baseline - SWATCH * em, side, baseline),
                 *color,
             ));
             if shaped.is_some() {
-                let at = Point::new((SWATCH + LABEL) * em, baseline);
+                let at = Point::new(side + LABEL * em, baseline);
                 rows.labels
                     .push((key.clone(), at, anchor::Horizontal::Start));
             }
             y += bottom - top;
         }
-        rows.block(Size::new(w, y), Vec2::ZERO)
+        rows.block(Size::new(w, y), Vec2::ZERO, self.glyph)
     }
 }
 
@@ -210,11 +221,13 @@ impl Rows {
         shaped.width()
     }
 
-    /// The block of `size` holding what was added, moved by `by`.
-    fn block(self, size: Size, by: Vec2) -> Block {
+    /// The block of `size` holding what was added, moved by `by`, its
+    /// swatches showing `glyph`.
+    fn block(self, size: Size, by: Vec2, glyph: Swatch) -> Block {
         Block {
             size,
             framed: false,
+            glyph,
             swatches: self
                 .swatches
                 .into_iter()
@@ -243,6 +256,7 @@ impl Block {
         Block {
             size: Size::new(self.size.width + 2.0 * pad, self.size.height + 2.0 * pad),
             framed: true,
+            glyph: self.glyph,
             swatches: self
                 .swatches
                 .into_iter()
@@ -257,7 +271,8 @@ impl Block {
     }
 
     /// Appends the block with its top-left corner at `at`: the frame (the
-    /// theme's legend face, an edge of 1 px), each swatch, then each label.
+    /// theme's legend face, an edge of 1 px), each swatch in its box, then
+    /// each label.
     pub(crate) fn draw(&self, at: Point, text: &text::Cache, theme: &Theme, list: &mut List) {
         let by = at.to_vec2();
         if self.framed {
@@ -273,10 +288,7 @@ impl Block {
             });
         }
         for (rect, color) in &self.swatches {
-            list.commands.push(Command::Fill {
-                path: (*rect + by).to_path(TOLERANCE),
-                paint: list::brush(*color),
-            });
+            self.glyph.draw(*rect + by, *color, theme, list);
         }
         for (key, p, h) in &self.labels {
             if let Some(shaped) = get(text, key) {

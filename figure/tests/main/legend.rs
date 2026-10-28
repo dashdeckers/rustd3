@@ -6,7 +6,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Ordinal};
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::kurbo::{Rect, Shape, Size};
-use rustd3_figure::legend::{Inset, Legend, Slot, legend};
+use rustd3_figure::legend::{Inset, Legend, Slot, Swatch, legend};
 use rustd3_figure::list::{Command, List, part};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::ScaleRef;
@@ -134,6 +134,76 @@ fn a_legend_has_one_square_per_key_in_domain_order() {
         .map(|(t, ..)| t)
         .collect();
     assert_eq!(texts, ["accel x", "accel z", "bearing temp"]);
+}
+
+#[test]
+fn legend_glyphs_draw_dots_and_dashed_lines_in_the_squares_place() {
+    let (mut fig, color) = sources();
+    fig.legend(Slot::Bottom, legend(color))
+        .legend(Slot::Bottom, legend(color).glyph(Swatch::Dot))
+        .legend(
+            Slot::Bottom,
+            legend(color).glyph(Swatch::Line {
+                dash: Some([6.0, 3.0]),
+            }),
+        )
+        .legend(
+            Slot::Bottom,
+            legend(color).glyph(Swatch::Line { dash: None }),
+        );
+    let list = draw(&fig);
+    let squares = fills(commands(&list, slotted(0)));
+    let label_starts = |k: u64| -> Vec<(f64, f64)> {
+        labels(commands(&list, slotted(k)))
+            .into_iter()
+            .map(|(_, x, y)| (x, y))
+            .collect()
+    };
+    // Squares and dots stand in a box 0.7 em square on the baseline, 0.8
+    // em before their labels; dots are the theme's marker diameter (6 pt,
+    // 8 px), centred in it. Legends in one slot stack, each on its row.
+    let dots = fills(commands(&list, slotted(1)));
+    assert_eq!(dots.len(), 3);
+    for (k, swatches) in [(0, &squares), (1, &dots)] {
+        for ((swatch, paint), (x, y)) in swatches.iter().zip(label_starts(k)) {
+            let center = swatch.center();
+            assert!((center.y - (y - 0.35 * EM)).abs() < 1e-9, "{swatch:?} {y}");
+            assert!(
+                (x - (center.x + 0.35 * EM) - 0.8 * EM).abs() < 1e-9,
+                "{x} {swatch:?}"
+            );
+            let side = if k == 0 { 0.7 * EM } else { 8.0 };
+            assert!((swatch.width() - side).abs() < 2e-3, "{swatch:?}");
+            assert!((swatch.height() - side).abs() < 2e-3, "{swatch:?}");
+            assert!(squares.iter().any(|(_, color)| color == paint));
+        }
+    }
+    // Lines: 2 em long at the square's centre height, the line width (1.5
+    // pt), dashed [6, 3] px or solid, labels 0.8 em after them.
+    for (k, dash) in [(2, vec![6.0, 3.0]), (3, vec![])] {
+        let lines: Vec<_> = commands(&list, slotted(k))
+            .iter()
+            .filter_map(|c| {
+                if let Command::Stroke { path, style, paint } = c {
+                    Some((path.bounding_box(), style.clone(), paint.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(lines.len(), 3);
+        let starts = label_starts(k);
+        for (((bounds, style, paint), (_, color)), (x, y)) in
+            lines.iter().zip(&squares).zip(&starts)
+        {
+            assert_eq!(paint, color);
+            assert!((bounds.width() - 2.0 * EM).abs() < 1e-9 && bounds.height() == 0.0);
+            assert!((bounds.y0 - (y - 0.35 * EM)).abs() < 1e-9, "{bounds:?} {y}");
+            assert!((x - bounds.x1 - 0.8 * EM).abs() < 1e-9);
+            assert_eq!(style.width, 1.5 * (4.0 / 3.0));
+            assert_eq!(style.dash_pattern.as_slice(), dash.as_slice());
+        }
+    }
 }
 
 #[test]

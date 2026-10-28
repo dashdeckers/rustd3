@@ -480,7 +480,7 @@ fn stroke(width: f64, dash: &[f64]) -> kurbo::Stroke {
 
 /// A dash pattern of on and off lengths in px: `None` unless every length
 /// is finite and not negative and their sum is positive.
-fn dashes(pattern: impl IntoIterator<Item = f64>) -> Option<Vec<f64>> {
+pub(crate) fn dashes(pattern: impl IntoIterator<Item = f64>) -> Option<Vec<f64>> {
     let pattern: Vec<f64> = pattern.into_iter().collect();
     let valid = pattern.iter().all(|v| v.is_finite() && *v >= 0.0);
     (valid && pattern.iter().sum::<f64>() > 0.0).then_some(pattern)

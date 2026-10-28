@@ -8,7 +8,8 @@ use rustd3_figure::check::size;
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::list::{self, Command, List, part};
 use rustd3_figure::lower::{self, Caps};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, svg};
+use rustd3_figure::theme::{Context, Style};
+use rustd3_figure::{Cache, Figure, Held, Resolved, Target, Theme, svg};
 use rustd3_testkit::fixture::Fixture;
 use rustd3_testkit::obs::{Obs, ToObs, Tolerance};
 use rustd3_testkit::snapshot::Store;
@@ -149,6 +150,41 @@ fn the_wheel_figure_checks_clean_in_at_most_four_layout_passes() {
             assert!(resolved.passes() <= 4, "{} passes", resolved.passes());
         }
     }
+}
+
+/// seaborn's five styles.
+const STYLES: [Style; 5] = [
+    Style::DarkGrid,
+    Style::WhiteGrid,
+    Style::Dark,
+    Style::White,
+    Style::Ticks,
+];
+
+#[test]
+fn every_style_checks_clean_at_paper_and_notebook_on_960_by_760() {
+    let samples = wheels::simulate();
+    for inset in [false, true] {
+        for style in STYLES {
+            for context in [Context::Paper, Context::Notebook] {
+                let mut fig = wheels::figure(&samples, inset);
+                fig.theme(Theme::seaborn(style, context));
+                let issues = fig.check(size(960.0, 760.0));
+                assert!(issues.is_empty(), "{style:?} {context:?}: {issues:#?}");
+            }
+        }
+    }
+}
+
+// Part I's test (Text and math): talk is too big for 960 × 760, and fits
+// 1600 × 1200.
+#[test]
+fn wheels_fit_at_talk() {
+    let samples = wheels::simulate();
+    let mut fig = wheels::figure(&samples, false);
+    fig.theme(Theme::seaborn(Style::Ticks, Context::Talk));
+    let issues = fig.check(size(1600.0, 1200.0));
+    assert!(issues.is_empty(), "{issues:#?}");
 }
 
 #[test]

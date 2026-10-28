@@ -20,6 +20,7 @@
 mod draw;
 mod inset;
 mod slot;
+mod swatch;
 
 use std::fmt::Display;
 
@@ -33,13 +34,16 @@ use crate::text::Text;
 pub(crate) use draw::{Block, Content};
 pub use inset::Inset;
 pub use slot::Slot;
+pub use swatch::Swatch;
 
 /// A legend of an ordinal palette: one entry per key of its domain, in
-/// domain order, a square swatch in the key's color beside the key's
-/// `Display` text, under an optional title.
+/// domain order, a swatch in the key's color (a square unless
+/// [`glyph`](Legend::glyph) says otherwise) beside the key's `Display`
+/// text, under an optional title.
 pub struct Legend<K> {
     palette: ScaleRef<Ordinal<K, Rgb>>,
     title: Option<Text>,
+    glyph: Swatch,
 }
 
 impl<K> Clone for Legend<K> {
@@ -47,6 +51,7 @@ impl<K> Clone for Legend<K> {
         Legend {
             palette: self.palette,
             title: self.title.clone(),
+            glyph: self.glyph,
         }
     }
 }
@@ -59,6 +64,7 @@ where
     Legend {
         palette,
         title: None,
+        glyph: Swatch::Square,
     }
 }
 
@@ -70,6 +76,12 @@ impl<K> Legend<K> {
             ..self
         }
     }
+
+    /// What each entry shows in its key's color: a square (the default),
+    /// a dot or a line.
+    pub fn glyph(self, g: Swatch) -> Self {
+        Legend { glyph: g, ..self }
+    }
 }
 
 /// A legend with its key type erased: what layout and drawing ask of it.
@@ -80,6 +92,9 @@ pub(crate) trait Draw {
 
     /// The title.
     fn title(&self) -> Option<&Text>;
+
+    /// What each entry shows.
+    fn glyph(&self) -> Swatch;
 }
 
 impl<K> Draw for Legend<K>
@@ -97,5 +112,9 @@ where
 
     fn title(&self) -> Option<&Text> {
         self.title.as_ref()
+    }
+
+    fn glyph(&self) -> Swatch {
+        self.glyph
     }
 }
