@@ -8,11 +8,23 @@ use std::fs;
 use std::path::Path;
 
 use crate::metrics::{Half, Metrics};
+use crate::plan::Plan;
 use crate::record;
 use crate::rule::{self, Budget, Check, Outcome};
 use crate::scenario::Scenario;
 use crate::stats::{Interval, Verdict, percentile};
 use crate::system::{Meta, Planned};
+
+/// What the smoke plan is, said before its verdicts.
+const SMOKE: &str = "one run per cell, a check of the windowed path only (windows open, the \
+                     replayed input pans, zooms and hovers the plots, every run writes its \
+                     records; Flags lists windows the window manager resized). Every budget \
+                     reads \"inconclusive\" by design: a verdict needs a 95% interval, from the \
+                     default plan's 5 runs per cell.";
+
+/// The smoke plan's outcome line, in place of the rule's.
+const SMOKE_OUTCOME: &str = "no verdict by design: smoke only checks the windowed path; \
+                             verdicts need the default plan's 5 runs per cell";
 
 /// One planned cell and its runs.
 struct Cell<'a> {
@@ -98,9 +110,20 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
     } else {
         ""
     };
-    let mut table = String::new();
-    budgets(&mut table, &cells, &checks);
-    Ok(format!("{table}Rule outcome{headless}: {}", outcome.line()))
+    let mut summary = String::new();
+    let line = if smoke(&meta) {
+        let _ = writeln!(summary, "Smoke plan: {SMOKE}\n");
+        SMOKE_OUTCOME
+    } else {
+        outcome.line()
+    };
+    budgets(&mut summary, &cells, &checks);
+    Ok(format!("{summary}Rule outcome{headless}: {line}"))
+}
+
+/// Whether the run is the smoke plan at one run per cell.
+fn smoke(meta: &Meta) -> bool {
+    meta.plan == Plan::Smoke.name() && meta.cells.iter().all(|cell| cell.runs <= 1)
 }
 
 /// Every frame pass of every run.
@@ -363,12 +386,17 @@ fn markdown(
         .iter()
         .filter(|c| c.2.verdict == Verdict::Inconclusive)
         .count();
+    let line = if smoke(meta) {
+        let _ = writeln!(md, "**Smoke plan:** {SMOKE}\n");
+        SMOKE_OUTCOME
+    } else {
+        outcome.line()
+    };
     let _ = writeln!(
         md,
-        "{} checks: {} met, {missed} missed, {inconclusive} inconclusive.\n\n**{}**",
+        "{} checks: {} met, {missed} missed, {inconclusive} inconclusive.\n\n**{line}**",
         checks.len(),
         checks.len() - missed - inconclusive,
-        outcome.line()
     );
     md
 }

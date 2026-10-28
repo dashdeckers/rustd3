@@ -30,6 +30,10 @@ target/release/rustd3-bench run --plan smoke --refresh-hz <HZ> \
     --native-factor <F> --out ~/bench-out
 ```
 
+Smoke runs each cell once, so its report reads "inconclusive" everywhere
+by design: verdicts need the default plan's 5 runs per cell, and smoke only
+checks that windows open, take the replayed input and close.
+
 Then the verdict's run:
 
 ```bash
