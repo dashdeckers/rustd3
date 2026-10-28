@@ -99,12 +99,21 @@ release() {
     echo "release: the dry run needs a clean tree" >&2; return 1
   fi
   cargo publish --dry-run --workspace --exclude rustd3-iced
+  # cargo 1.97's dry run leaves the packages it built in tmp-crate/;
+  # `cargo package` writes them to target/package/ itself.
   for p in "${PUBLISHED[@]}"; do
-    local n
-    n=$(tar -xzOf "target/package/$p-0.1.0.crate" "$p-0.1.0/Cargo.lock" | grep -c 'git+' || true)
-    if [ "$n" != 0 ]; then
-      echo "release: $p's packaged Cargo.lock has a git source" >&2; return 1
+    local file="$p-0.1.0.crate" crate="" lock n
+    for at in target/package/tmp-crate target/package; do
+      if [ -f "$at/$file" ]; then crate="$at/$file"; break; fi
+    done
+    if [ -z "$crate" ] || ! lock=$(tar -xzOf "$crate" "$p-0.1.0/Cargo.lock"); then
+      echo "release: no packaged Cargo.lock for $p" >&2; return 1
     fi
+    n=$(grep -c 'git+' <<< "$lock" || true)
+    if [ "$n" != 0 ]; then
+      echo "release: $p's packaged Cargo.lock has $n git sources" >&2; return 1
+    fi
+    echo "release: $crate: Cargo.lock without git sources"
   done
   echo "release: ready; the five package lists are target/package-*.txt"
 }
