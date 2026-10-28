@@ -190,3 +190,90 @@ A for all sixteen.
 - Phase 31's rerun, when it returns, may change the README's performance
   paragraph only if its outcome is "GPU data layer recommended"; the
   paragraph states no numbers.
+
+## D40.3 — Fixes from a customer evaluation before release
+
+**Date:** 2026-10-28 · **Context:** after 7c46b36, an independent evaluation that used rustd3 from its README and rustdoc alone to build five customer tasks (sources and renders kept in the architect's scratch, `/tmp/claude-0/customer/`) · **Status:** decided
+
+### Issue
+
+The evaluation built every task. Line and scatter on a log axis with a
+typst title and a legend, saved to SVG, PNG and PDF, worked first time,
+as did the README's examples, the core's d3 behaviour, the statistics
+helpers and the heatmap. It also found:
+
+1. **A fitted time axis keeps one label.** `fig.fit(time::time(berlin))`
+   over two weeks of hourly data, an axis 500–800 px wide: 7 ticks, one
+   label ("2026-11"); `fig.check()` is empty. Fitting pads past
+   1 November, d3's two-day ticks then hold 10-31 and 11-01 one day
+   apart, and the collision passes drop the whole row instead of one of
+   the pair. Core's axis labels all eight.
+2. **Legends:** one `Swatch` for every key, so a line and a scatter in
+   one palette both show squares; two inset legends in the same corner
+   draw on top of each other, and `fig.check()` is silent.
+3. **A ribbon hides its line:** ribbons and areas take the palette's
+   first colour opaque and have no `.color`/`.opacity`, unlike `Line`
+   and `Dots`.
+4. **Doc examples use the component crates' names** (`rustd3_core`,
+   `rustd3_figure`, `rustd3_iced`; 551 lines in 170 files) while the
+   README says to depend on `rustd3` alone; pasting one fails with E0432.
+5. **No way to put a bundled time table on the d3 ladder:**
+   `time::Locale::DE_DE` uses the ISO ladder and has no setter; German
+   day-month labels need a hand-written `.format`.
+6. **Headless capture of `Plot`:** iced_test captures at factor 2, the
+   tiny-skia renderer gives the widget no scale, so it renders at 1×,
+   upscaled: blurry text and each axis line split by a 1 px seam.
+   `.scale_factor(2.0)` fixes it; the docs do not say so.
+7. **`fmt!("$,.2f")` compiles and prints no `$`** under the neutral
+   locale, which has no currency (documented under `format`, not on
+   `fmt!`).
+8. **Cosmetics:** titles on right-hand axes and colorbars read top to
+   bottom, where matplotlib and seaborn read every vertical label bottom
+   to top.
+
+### Decision
+
+(architect, 2026-10-28) All eight are fixed before release, one commit
+each (with a test that fails without it), in a session after Phase 40:
+
+1. The collision passes drop labels, never a whole row, except the
+   parity stride's planned removals; a time axis whose ticks are
+   unevenly spaced (month or year boundaries) drops the colliding label
+   nearer the boundary. `fig.check()` reports an axis left with fewer
+   than two labels. Test: the evaluation's two-week Berlin case at 500,
+   650 and 800 px keeps every label that fits.
+2. Legends default to a glyph per key from the marks that report it (a
+   line key draws a line, a dots key a dot, an area or bar key a square,
+   as hatches are recorded through `Fits` today); `legend.glyph(…)`
+   still overrides. Inset legends in one corner stack inward as slot
+   legends stack outward; `fig.check()` reports legends that overlap.
+3. Ribbons default to the palette colour at 0.25 opacity (a band);
+   areas stay opaque; `Ribbon` and `Area` gain `.color(Rgb)` and
+   `.opacity(f64)` as `Line` and `Dots` have them.
+4. The facade's crate doc and the README state, before the first
+   example, that the component crates' examples use their own names and
+   that `rustd3_core::x` is `rustd3::x`, `rustd3_figure::x` is
+   `rustd3::figure::x` and `rustd3_iced` is used directly; the figure
+   crate's top-level doc says the same.
+5. `time::Locale` gains the builder `ladder(self, Ladder) -> Self`, and
+   `locale::Locale` a way to swap its time half (`with_time`), so
+   `Locale::DE_DE` with `Ladder::D3` labels German days and months.
+6. Investigate first: run the README's `Plot` app in a real window under
+   Xvfb with tiny-skia at a scale factor of 2 (`WINIT_X11_SCALE_FACTOR=2`)
+   and screenshot it. If a windowed tiny-skia app renders at the wrong
+   factor, make the widget learn the window's factor (its window events)
+   so it does not; if only headless capture is affected, document
+   `.scale_factor(k)` for `iced_test` on `Plot` and in the README. In
+   either case no cell may leave a seam at a mismatched factor:
+   find why the spine splits and fix the placement or the clip.
+7. `fmt!`'s docs say it formats under `Locale::NEUTRAL`, which has no
+   currency symbol, and show `.locale(…)` for currency.
+8. Vertical titles read bottom to top on every side (axis titles of
+   right axes, colorbar titles), as matplotlib draws them; snapshots are
+   re-blessed after reading the diffs and viewing the renders.
+
+### Why
+
+Each is a first-hour experience for a customer; items 1–3 produce wrong
+or unreadable figures from default code, and item 6 can show a seam in a
+real app. They are small next to what the evaluation found working.
