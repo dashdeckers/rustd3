@@ -257,7 +257,7 @@ labels; colorbars carry more ticks than matplotlib's (D35.6 (7)).
 
 ## D39.3 — The text kit and the presets still read crate-private items
 
-**Date:** 2026-10-28 · **Context:** Phase 39b, fc3ae57 and steps 3–4 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 39b, fc3ae57 and steps 3–4 · **Status:** decided
 
 ### Issue
 
@@ -293,11 +293,10 @@ dispatch name the four. As built after fc3ae57, the helpers still call:
 
 ### Decision
 
-Recommendation B: the fit-time twins make D39.1's `Ctx::locale` usable
-for labels at all (a key reported while fitting must equal the one drawn),
-and the palette reader is what every keyed preset needs; text sizes stay
-a mark's own choice. Nothing built depends on the answer: each option is
-a visibility change on items that exist.
+B (architect, 2026-10-28): `Fits::locale`, `Fits::theme` and
+`Theme::get_palette` become public, documented for custom marks, so the
+labels and presets use only public items. One visibility commit at the
+start of Phase 31's session.
 
 ### Why
 
@@ -312,7 +311,7 @@ text rather than widening the public API unasked.
 
 ## D39.4 — The keys of unnamed series
 
-**Date:** 2026-10-28 · **Context:** Phase 39b, steps 3–4, f34b302, 3d8a31f · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 39b, steps 3–4, f34b302, 3d8a31f · **Status:** decided
 
 ### Issue
 
@@ -332,7 +331,9 @@ columns without names; the section names no key for either.
 
 ### Decision
 
-Recommendation A, as built; C is additive and can follow if asked for.
+A (architect, 2026-10-28), as built: unnamed series are keyed "0", "1",
+… as pandas names unnamed columns; `Line::key` and `Area::keys` builders
+can come later, additively.
 
 ### Why
 
@@ -359,7 +360,7 @@ documents (at the bottom on an upward y).
 
 ## D39.6 — Details of Phase 39b as built
 
-**Date:** 2026-10-28 · **Context:** Phase 39b, fc3ae57 … 94cfd0c · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 39b, fc3ae57 … 94cfd0c · **Status:** decided
 
 ### Issue
 
@@ -397,7 +398,8 @@ documents (at the bottom on an upward y).
 
 ### Decision
 
-Recommendation A for all eight, as built.
+A for all eight (architect, 2026-10-28), as built, except the margins
+below 0, which D39.7 replaces.
 
 ### Why
 
@@ -413,3 +415,33 @@ behaviour.
   followup) would let stacked charts stand on the axis.
 - (6): public `Grid` readers (`cols`, `rows`) would let the heatmap
   report mismatched keys through `fig.check`.
+
+## D39.7 — Stacked bars and areas stand on the axis
+
+**Date:** 2026-10-28 · **Context:** the architect's view of the presets contact sheet after Phase 39b (94cfd0c) · **Status:** decided
+
+### Issue
+
+The stacked bar, diverging bar and stacked area presets (and D38.2 (3)'s
+stacked histograms) draw through span bars, `rect` and ribbons, which
+stick nothing, so a value axis whose data starts at 0 gets the theme's
+5 % margin below it and the bars float above the axis. matplotlib's
+`bar` puts a sticky edge at its baseline and `fill_between` at its
+lower edge, so stacked bars, `stackplot` and `hist(histtype='bar',
+stacked=True)` stand on the axis.
+
+### Decision
+
+(architect, 2026-10-28) The span bars (`bar_y_spans`, `bar_x_spans`) and
+the ribbon (`ribbon`, `ribbon_series`, and the area forms built on it)
+stick each end of a span that is exactly 0 on the value axis, as
+matplotlib's sticky edges do; `rect` stays as it is (it has no
+baseline). A span that does not touch 0 sticks nothing, so diverging
+bars keep both margins. One `fix(figure)` commit at the start of Phase
+31's session, with the presets' and helpers' snapshots re-blessed after
+reading the diffs and viewing the renders.
+
+### Why
+
+Floating bars read as a rendering error; this is the look every
+matplotlib and seaborn user expects.

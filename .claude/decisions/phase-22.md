@@ -406,3 +406,71 @@ bench step makes the change and the README says it.
 
 The verdict (D22.1) does not depend on these cells; the rerun should
 measure what each cell names.
+
+## D22.4 — Performance on weaker machines and without a GPU
+
+**Date:** 2026-10-28 · **Context:** the user, after D22.1's run: "we also want good performance on less powerful machines, as well as machines without a gpu" · **Status:** decided
+
+### Issue
+
+D22.1's run measured a 16-thread Ryzen 7 5800X with an RTX 3090. The
+widget must also hold up on machines with 2–4 cores, integrated GPUs, or
+no GPU at all (iced's tiny-skia backend: software rasterizing and
+compositing). Three facts from the run matter there: the cost model's
+constants are machine-specific (median measured/modelled raster time
+2.78 over the run's renders against 0.179 for one large cell with the
+pool); the worker pool's speedup depends on the core count; and list
+building for 1M dots already takes 51 ms on the UI thread of the fast
+machine.
+
+### Decision
+
+(architect, 2026-10-28) Phase 31's scope gains four items, and the rerun
+it owes gains two profiles, registered here before any data:
+
+1. **The cost model calibrates itself.** Each widget keeps a running
+   estimate (an exponentially weighted mean) of its measured raster
+   time per pixel and per work item, plus a fixed per-render overhead,
+   seeded by `cost::PIXELS_PER_MS` and `ITEMS_PER_MS`, updated from every
+   render whether or not a `Probe` is attached, and used for the inline
+   or worker decision. Per-widget state only (no global).
+2. **Threads follow the machine.** `Plot::threads` defaults to the
+   available parallelism minus one, 1 to 8 (which respects CPU
+   affinity), and with one thread the pool is the single worker; tests
+   run at 1 and 2 threads.
+3. **Software compositing stays cheap.** Translated tiles draw at whole
+   device pixels without resampling, so tiny-skia blits them; Phase 31
+   measures a 1600 × 1000 plot area of tiles drawn by tiny-skia per frame
+   and reports it.
+4. **The list stage for large scatters is measured and cut.** Target:
+   panning `scatter100k` keeps resolve plus list under 8 ms on the UI
+   thread of the fast machine (it is 0.6 + 5.2 ms now; keep it there or
+   better), and `scatter1m` drops what it can (culling to the plot area,
+   no per-point allocation); what remains is recorded for 0.2 (list
+   building off the UI thread).
+
+**The rerun** runs, from `dev/bench/run.sh`, after the default plan
+(the verdict's profile, rule unchanged, sizes per D22.3):
+
+- **weak profile cells** (a new plan `weak`): `hover`, `pan-x` and
+  `zoom-lines` on `trace`, and `pan-x` and `zoom-lines` on `scatter100k`,
+  native factor, five runs each;
+- **no GPU:** `weak` with `--backend tiny-skia`;
+- **4 cores and 2 cores:** `weak` on wgpu under `taskset -c 0-3` and
+  `taskset -c 0-1`.
+
+Their budgets, registered now: p99 frame interval ≤ 2 T; pan latency p95
+≤ 150 ms; zoom latency p95 ≤ 250 ms; preview share ≤ 25 % during pans.
+Each profile is reported met, missed or inconclusive by the same
+readings; a miss is attributed as in D22.1 and becomes work for Phase 31
+if that phase is still open, or a recorded 0.2 item if not. These
+profiles never reopen the GPU-layer question, which stays with the
+desktop profile.
+
+### Why
+
+The fast desktop hides costs a laptop or a GPU-less machine pays. A cost
+model fixed at compile time misjudges every machine but one, and a pool
+sized for 16 threads oversubscribes 2; both are cheap to get right now,
+and the weak profiles make "good performance" a measured claim instead
+of a hope.
