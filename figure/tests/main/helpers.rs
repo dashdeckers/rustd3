@@ -8,6 +8,7 @@ mod ecdf;
 mod errorbar;
 mod hist;
 mod labels;
+mod presets;
 mod subplots;
 mod violin;
 

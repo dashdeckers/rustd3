@@ -3,8 +3,9 @@
 //! shared per column and y per row; in [`stats`] the statistical charts
 //! (box plots, violins, histogram options, ECDF, error bars) with the
 //! statistics behind them as pure functions; value labels on bars and
-//! pies ([`labels`]); and size and color legends of a scatter's channels
-//! ([`legend`]).
+//! pies ([`labels`]); size and color legends of a scatter's channels
+//! ([`legend`]); axis defaults ([`axes`]); and one-call chart presets
+//! ending in a figure or a file ([`chart`]).
 //!
 //! Each helper is ordinary code over the figure's handles, marks and
 //! drawing list, written to be copied and changed: a chart a helper does
@@ -31,6 +32,7 @@
 //! ```
 
 pub mod axes;
+pub mod chart;
 pub mod labels;
 pub mod legend;
 pub mod stats;

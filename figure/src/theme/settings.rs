@@ -322,6 +322,13 @@ impl Theme {
             .expect("invariant: a theme's palette is not empty")
     }
 
+    /// The palette, in order: the colors the helpers' presets give their
+    /// series' keys.
+    #[cfg(feature = "helpers")]
+    pub(crate) fn get_palette(&self) -> &[Rgb] {
+        &self.palette
+    }
+
     /// seaborn's gray, `#949494`. A custom mark whose key its palette lacks
     /// draws in it, as the built-in marks do (and
     /// [`Figure::check`](crate::Figure::check) reports the key).

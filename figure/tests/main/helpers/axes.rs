@@ -24,12 +24,12 @@ fn draw(fig: &Figure<'_>) -> List {
 }
 
 /// A stroke as its width and its segments.
-type Stroke = (f64, Vec<[Point; 2]>);
+pub type Stroke = (f64, Vec<[Point; 2]>);
 
 /// The strokes of axis `axis` of panel 0 in `list` (its tick marks: major
 /// ticks first, then minor ones when it has any), and the texts of its
 /// glyph runs.
-fn axis_part(list: &List, axis: u64) -> (Vec<Stroke>, Vec<String>) {
+pub fn axis_part(list: &List, axis: u64) -> (Vec<Stroke>, Vec<String>) {
     let id = part::Id::new(4 << 56 | axis);
     let p = list
         .parts
@@ -70,7 +70,7 @@ fn near(a: f64, b: f64) -> bool {
 }
 
 /// The minor tick size and width at notebook: 4 pt and 1 pt, px.
-const MINOR: [f64; 2] = [16.0 / 3.0, 4.0 / 3.0];
+pub const MINOR: [f64; 2] = [16.0 / 3.0, 4.0 / 3.0];
 
 #[test]
 fn minor_ticks_fill_fifths_of_a_linear_step_at_the_minor_size_without_labels() {
