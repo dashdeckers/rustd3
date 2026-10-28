@@ -38,14 +38,15 @@ impl Lines {
     /// M4 over column `edges` (sample indices e₀ … e_c, non-decreasing) for
     /// the `runs` that overlap the view [e₀, e_c). Each run yields one
     /// polyline: the sample before the view when the run holds it, then per
-    /// column the sorted, deduplicated first, minimum, maximum and last of
-    /// the run's samples in it (`extremes` gives the minimum and maximum, or
-    /// `None` when no sample qualifies), then the sample after the view when
-    /// the run holds it. A gap is never crossed.
+    /// column the sorted, deduplicated first and last of the run's samples
+    /// in it and the minimum and maximum of each channel `extremes` gives
+    /// (one channel, or a joint query's two; `None` when no sample
+    /// qualifies), then the sample after the view when the run holds it. A
+    /// gap is never crossed.
     pub(crate) fn thin(
         runs: &[Range<usize>],
         edges: &[usize],
-        mut extremes: impl FnMut(Range<usize>) -> Option<Extremes>,
+        mut extremes: impl FnMut(Range<usize>) -> [Option<Extremes>; 2],
     ) -> Self {
         let mut lines = Self {
             indices: Vec::new(),
@@ -68,10 +69,11 @@ impl Lines {
                 if a >= b {
                     continue;
                 }
-                let mut picks = [a, a, b - 1, b - 1];
-                if let Some(found) = extremes(a..b) {
-                    picks[1] = found.min.0;
-                    picks[2] = found.max.0;
+                let mut picks = [a, b - 1, a, a, a, a];
+                for (pair, found) in picks[2..].chunks_exact_mut(2).zip(extremes(a..b)) {
+                    if let Some(found) = found {
+                        pair.copy_from_slice(&[found.min.0, found.max.0]);
+                    }
                 }
                 picks.sort_unstable();
                 for pick in picks {

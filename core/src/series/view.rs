@@ -3,7 +3,7 @@
 use std::ops::Range;
 
 use crate::series::channel::Channel;
-use crate::series::{Columns, Coordinate, Error, Recording, m4};
+use crate::series::{Columns, Coordinate, Error, Recording, m4, runs};
 
 /// One channel of a recording, borrowed; `Copy`, passed by value from `view`.
 ///
@@ -97,6 +97,64 @@ impl<'a, X: Coordinate> Series<'a, X> {
     /// holds them. Columns built for another recording or revision are
     /// [`Error::Stale`].
     pub fn m4(self, columns: &Columns, valid: impl Fn(f64) -> bool) -> Result<m4::Lines, Error<X>> {
+        self.stale(columns)?;
+        let stored = self.stored();
+        let runs = stored.runs().overlapping(columns.samples());
+        Ok(m4::Lines::thin(runs, columns.edges(), |samples| {
+            [stored.extremes(samples, &valid), None]
+        }))
+    }
+
+    /// M4 over two channels of one recording, e.g. a ribbon's lower and
+    /// upper edge: both edges keep their extremes in every column. The
+    /// query walks the runs where neither channel is NaN; per column of a
+    /// joint run it keeps the run's first and last sample there and both
+    /// channels' minimum and maximum (among the values that pass `valid`),
+    /// sorted and deduplicated, plus the samples just outside the columns
+    /// when the joint run holds them, as [`m4`](Series::m4) does for one
+    /// channel. Channels of two recordings are [`Error::Recordings`];
+    /// columns built for another recording or revision [`Error::Stale`].
+    ///
+    /// ```
+    /// use rustd3_core::series::{Clock, Recording};
+    ///
+    /// let a = [0.0, 5.0, -1.0, 3.0, 1.0, 2.0, 2.0, 8.0, 1.0, 4.0];
+    /// let b = [2.0, 2.0, 2.0, f64::NAN, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0];
+    /// let rec = Recording::new(Clock::Regular { start: 0.0, period: 1.0 }, [a, b])?;
+    /// let (lower, upper) = (rec.series(0).expect("a"), rec.series(1).expect("b"));
+    /// let lines = lower.m4_joint(upper, &rec.columns(&[0.0, 5.0, 10.0])?, |_| true)?;
+    /// // b's NaN at 3 splits the run.
+    /// assert_eq!(lines.iter().collect::<Vec<_>>(), [&[0, 1, 2][..], &[4, 5, 7, 8, 9]]);
+    /// # Ok::<(), rustd3_core::series::Error>(())
+    /// ```
+    pub fn m4_joint(
+        self,
+        upper: Series<'a, X>,
+        columns: &Columns,
+        valid: impl Fn(f64) -> bool,
+    ) -> Result<m4::Lines, Error<X>> {
+        let (left, right) = (self.recording.id(), upper.recording.id());
+        if left != right {
+            return Err(Error::Recordings { left, right });
+        }
+        self.stale(columns)?;
+        let (lower, upper) = (self.stored(), upper.stored());
+        let samples = columns.samples();
+        let runs = runs::intersect(
+            lower.runs().overlapping(samples.clone()),
+            upper.runs().overlapping(samples),
+        );
+        Ok(m4::Lines::thin(&runs, columns.edges(), |samples| {
+            [
+                lower.extremes(samples.clone(), &valid),
+                upper.extremes(samples, &valid),
+            ]
+        }))
+    }
+
+    /// [`Error::Stale`] when `columns` were built for another recording or
+    /// revision.
+    fn stale(self, columns: &Columns) -> Result<(), Error<X>> {
         let recording = self.recording;
         if columns.recording() != recording.id() || columns.revision() != recording.revision() {
             return Err(Error::Stale {
@@ -105,11 +163,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
                 current: recording.revision(),
             });
         }
-        let stored = self.stored();
-        let runs = stored.runs().overlapping(columns.samples());
-        Ok(m4::Lines::thin(runs, columns.edges(), |samples| {
-            stored.extremes(samples, &valid)
-        }))
+        Ok(())
     }
 
     fn stored(self) -> &'a Channel {

@@ -53,11 +53,23 @@ fn m4_scan<X: PartialOrd>(
     edges: &[X],
     valid: impl Fn(f64) -> bool,
 ) -> (Vec<usize>, Vec<Vec<usize>>) {
+    scan(x, &[y], edges, valid)
+}
+
+/// The raw-scan reference of a joint query (Phase 34): runs where no
+/// channel of `ys` is NaN, and per column each channel's extremes.
+fn scan<X: PartialOrd>(
+    x: &[X],
+    ys: &[&[f64]],
+    edges: &[X],
+    valid: impl Fn(f64) -> bool,
+) -> (Vec<usize>, Vec<Vec<usize>>) {
     let edges: Vec<usize> = edges.iter().map(|e| x.partition_point(|t| t < e)).collect();
     let mut runs = Vec::new();
     let mut start = None;
-    for (i, v) in y.iter().enumerate() {
-        match (v.is_nan(), start) {
+    let gap = |i: usize| ys.iter().any(|y| y[i].is_nan());
+    for i in 0..x.len() {
+        match (gap(i), start) {
             (false, None) => start = Some(i),
             (true, Some(s)) => {
                 runs.push((s, i));
@@ -66,7 +78,7 @@ fn m4_scan<X: PartialOrd>(
             (false, Some(_)) | (true, None) => {}
         }
     }
-    runs.extend(start.map(|s| (s, y.len())));
+    runs.extend(start.map(|s| (s, x.len())));
     let (view_a, view_b) = (edges[0], edges[edges.len() - 1]);
     let mut lines = Vec::new();
     for (ra, rb) in runs {
@@ -82,17 +94,19 @@ fn m4_scan<X: PartialOrd>(
             if a >= b {
                 continue;
             }
-            let (mut min, mut max) = (None::<usize>, None::<usize>);
-            for i in (a..b).filter(|&i| valid(y[i])) {
-                if min.is_none_or(|m| y[i] < y[m]) {
-                    min = Some(i);
-                }
-                if max.is_none_or(|m| y[i] > y[m]) {
-                    max = Some(i);
-                }
-            }
             let mut picks = vec![a, b - 1];
-            picks.extend(min.into_iter().chain(max));
+            for y in ys {
+                let (mut min, mut max) = (None::<usize>, None::<usize>);
+                for i in (a..b).filter(|&i| valid(y[i])) {
+                    if min.is_none_or(|m| y[i] < y[m]) {
+                        min = Some(i);
+                    }
+                    if max.is_none_or(|m| y[i] > y[m]) {
+                        max = Some(i);
+                    }
+                }
+                picks.extend(min.into_iter().chain(max));
+            }
             picks.sort_unstable();
             picks.dedup();
             line.extend(picks);
@@ -626,6 +640,92 @@ fn columns_from_another_revision_or_recording_are_stale() {
             .expect("channel 0")
             .m4(&columns, |_| true)
             .is_ok()
+    );
+}
+
+/// The joint spot checks' second channel b: one NaN, at 3.
+const B: [f64; 10] = [2.0, 2.0, 2.0, f64::NAN, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0];
+
+#[test]
+fn joint_m4_splits_where_either_channel_has_a_gap() {
+    let rec = regular(0.0, 1.0, &[&A, &B]);
+    let (a, b) = (rec.series(0).expect("a"), rec.series(1).expect("b"));
+    let columns = rec.columns(&[0.0, 5.0, 10.0]).expect("valid edges");
+    let lines = a.m4_joint(b, &columns, |_| true).expect("one recording");
+    let lines: Vec<Vec<usize>> = lines.iter().map(<[usize]>::to_vec).collect();
+    assert_eq!(lines, [vec![0, 1, 2], vec![4, 5, 7, 8, 9]]);
+    let x = xs(&rec);
+    assert_eq!(
+        scan(&x, &[&A, &B], &[0.0, 5.0, 10.0], |_| true).1,
+        lines,
+        "the raw scan"
+    );
+    let reversed = b.m4_joint(a, &columns, |_| true).expect("one recording");
+    assert_eq!(
+        reversed.iter().map(<[usize]>::to_vec).collect::<Vec<_>>(),
+        lines
+    );
+}
+
+#[test]
+fn joint_m4_agrees_with_a_raw_scan_of_both_channels() {
+    let mut lcg = Lcg(34);
+    for case in 0..40 {
+        let n = 50 + (lcg.next() * 3000.0) as usize;
+        let mut channel = |gaps: f64| -> Vec<f64> {
+            (0..n)
+                .map(|_| {
+                    let v = lcg.next() * 2.0 - 1.0;
+                    if lcg.next() < gaps { f64::NAN } else { v }
+                })
+                .collect()
+        };
+        let (lower, upper) = (channel(0.02), channel(0.05));
+        let rec = regular(0.0, 1.0, &[&lower, &upper]);
+        let x = xs(&rec);
+        let count = 1 + (lcg.next() * 40.0) as usize;
+        let (from, to) = (lcg.next() * n as f64 * 0.5, n as f64 * (0.5 + lcg.next()));
+        let edges: Vec<f64> = (0..=count)
+            .map(|i| from + (to - from) * i as f64 / count as f64)
+            .collect();
+        let columns = rec.columns(&edges).expect("valid edges");
+        let (a, b) = (rec.series(0).expect("a"), rec.series(1).expect("b"));
+        let tests: [fn(f64) -> bool; 2] = [|v| v > -2.0, |v| v > 0.0];
+        for valid in tests {
+            let lines = a.m4_joint(b, &columns, valid).expect("one recording");
+            let lines: Vec<Vec<usize>> = lines.iter().map(<[usize]>::to_vec).collect();
+            let expected = scan(&x, &[&lower, &upper], &edges, valid);
+            assert_eq!((columns.edges().to_vec(), lines), expected, "case {case}");
+        }
+    }
+}
+
+#[test]
+fn joint_m4_over_two_recordings_is_an_error() {
+    let rec = regular(0.0, 1.0, &[&A, &B]);
+    let other = regular(0.0, 1.0, &[&B]);
+    let columns = rec.columns(&[0.0, 10.0]).expect("valid edges");
+    let (a, b) = (rec.series(0).expect("a"), other.series(0).expect("b"));
+    assert_eq!(
+        a.m4_joint(b, &columns, |_| true),
+        Err(Error::Recordings {
+            left: rec.id(),
+            right: other.id()
+        })
+    );
+    let stale = other.columns(&[0.0, 10.0]).expect("valid edges");
+    assert!(matches!(
+        a.m4_joint(rec.series(1).expect("b"), &stale, |_| true),
+        Err(Error::Stale { .. })
+    ));
+    let message = Error::<f64>::Recordings {
+        left: rec.id(),
+        right: other.id(),
+    }
+    .to_string();
+    assert!(
+        message.starts_with("joint query over two recordings: "),
+        "{message}"
     );
 }
 

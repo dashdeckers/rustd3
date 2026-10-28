@@ -53,6 +53,25 @@ impl Runs {
     }
 }
 
+/// The non-empty intersections of two lists of sorted, disjoint ranges, in
+/// order: where samples lie in a range of both.
+pub(crate) fn intersect(a: &[Range<usize>], b: &[Range<usize>]) -> Vec<Range<usize>> {
+    let mut out = Vec::new();
+    let (mut i, mut j) = (0, 0);
+    while let (Some(x), Some(y)) = (a.get(i), b.get(j)) {
+        let (start, end) = (x.start.max(y.start), x.end.min(y.end));
+        if start < end {
+            out.push(start..end);
+        }
+        if x.end <= y.end {
+            i += 1;
+        } else {
+            j += 1;
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,5 +110,18 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn intersections_keep_what_both_lists_cover() {
+        let one = |r: Range<usize>| vec![r];
+        assert_eq!(intersect(&one(0..10), &[0..3, 4..10]), [0..3, 4..10]);
+        assert_eq!(
+            intersect(&[0..2, 3..6, 8..10], &one(1..9)),
+            [1..2, 3..6, 8..9]
+        );
+        assert_eq!(intersect(&one(0..4), &one(4..8)), []);
+        assert_eq!(intersect(&one(2..5), &[]), []);
+        assert_eq!(intersect(&[0..5, 6..9], &one(4..7)), [4..5, 6..7]);
     }
 }

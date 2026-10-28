@@ -71,6 +71,15 @@ pub enum Error<X: Coordinate = f64> {
         /// The queried recording's revision.
         current: u64,
     },
+    /// A joint query ([`Series::m4_joint`](crate::series::Series::m4_joint))
+    /// over channels of two recordings.
+    #[error("joint query over two recordings: {left:?} and {right:?}")]
+    Recordings {
+        /// The recording of the channel queried.
+        left: Id,
+        /// The recording of the channel passed with it.
+        right: Id,
+    },
     /// More retained samples than the index's offsets can address.
     #[error("a recording holds at most {max} samples, got {len}")]
     Capacity {
