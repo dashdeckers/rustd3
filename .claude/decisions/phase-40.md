@@ -280,7 +280,7 @@ real app. They are small next to what the evaluation found working.
 
 ## D40.4 — Details of the D40.3 fixes as built, and the label a month boundary drops
 
-**Date:** 2026-10-29 · **Context:** the D40.3 fixes, 26a1586 … de9d3e8 · **Status:** open
+**Date:** 2026-10-29 · **Context:** the D40.3 fixes, 26a1586 … de9d3e8 · **Status:** decided
 
 ### Issue
 
@@ -351,9 +351,14 @@ rustd3.md:
 
 ### Decision
 
-Recommended: C for (1), a small follow-up commit (the decision's
-"nearer the boundary" read as the pair's finer label, so the year and
-the month's name survive); A for (2)–(6), as built.
+(architect, 2026-10-29) C for (1): the label on the finer rung gives way,
+so a month's or day's label stays ("2026-11", "November", 00:00 at a
+clock change); `restarts` reports which tick of a colliding pair starts
+its parent unit, and the fortnight test expects the coarser label. A for
+(2)–(6), as built, including `NUDGE` = 1/16 (Part I's and Phase 11's
+0.25 and their 100.2 spot row become 1/16 and 100.05; rustd3.md is not
+edited, this entry carries the change). (1) is one commit in the next
+session.
 
 ### Why
 

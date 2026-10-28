@@ -509,3 +509,83 @@ here (image path sufficient, or GPU layer recommended), each weak
 profile's outcome beside it (D22.4: a miss is Phase 31 work while it is
 open, else a 0.2 item), and, since Phase 34 has appended its label-churn
 rerun, the closing line is written then.
+
+## The rerun after Phase 31 (appended to D22.1)
+
+**Date:** 2026-10-29 · the user's run `bench-results/20261028T212847Z` at
+`m4-complete` (3dc1b51), same machine and display as D22.1 (RTX 3090,
+1920 × 1080 at 60 Hz, COSMIC on Wayland, native factor 1).
+
+**Desktop (`default`, rule unchanged, D22.3's sizes):** 52 checks, 31
+met, 21 missed, 0 inconclusive. **Every pan is met** on `trace`,
+`grid16`, `label-churn` and `scatter100k` at every factor: latency p95
+15.8–16.2 ms (D22.1: 2.8–11.4 s), preview share 0.0–0.3 % (D22.1: 91–97 %),
+frame p99 18.3 ms. Missed: **every zoom** (latency p95 993–1,121 ms,
+about the wheel burst's length; frame p99 50–76 ms with 310–470 dropped
+frames per run, D22.1 had 18 ms), and `pan-x × scatter1m` (frame p99
+132 ms; list 24.5 ms and the hit index rebuilt each frame on the UI
+thread). The zoom latencies attribute to raster. **Outcome under the
+rule: "still raster/upload bound after Phase 31 → GPU data layer
+recommended"** (a 0.2 item; nothing in v0.1 builds it).
+
+**Weak profiles (D22.4's budgets):**
+
+| Profile | Pans (trace, scatter100k) | Zooms |
+| --- | --- | --- |
+| 4 cores, wgpu | met: 15.8 ms, previews ≤ 0.4 %, frame p99 18.4 ms | missed: 1,004–1,022 ms, frame p99 55–67 ms |
+| 2 cores, wgpu | met: 16.1–16.2 ms, previews ≤ 0.7 %, frame p99 18.3 ms | missed: 1,018–1,021 ms, frame p99 67 ms |
+| no GPU (tiny-skia) | latency met (122 ms) and previews met (0–2 %); **frame p99 134 ms missed** (p50 25.5 ms) | missed: 12.4–12.8 s, frames 1.3–1.4 s |
+
+**What the records show about zooms and software compositing.** Each
+wheel step (about 20 a second) invalidates every tile, and with D31.6's
+two-tile overscan a step queues about 80 tiles where about 30 are
+visible; newest-wins per tile then leaves no generation complete until
+the burst ends. Part of the tiles render inline (4–16 %), on the UI
+thread, which is where the dropped frames come from (UI p99 27–49 ms a
+frame), and every pool worker runs vello_cpu's own thread pool inside it
+(CPU 4.4 cores busy on the desktop). Under tiny-skia every drawn image
+clears a frame-sized clip mask (D22.4 item 3's measurement), and the
+ring's tiles are drawn too.
+
+## D22.5 — The zoom path and software compositing before release
+
+**Date:** 2026-10-29 · **Context:** the rerun above · **Status:** decided
+
+### Decision
+
+(architect, 2026-10-29) The rule's outcome stands (a GPU data layer is
+recommended for 0.2). The rerun also shows CPU-side waste that a GPU
+layer would not remove, so one more session (Phase 31e) fixes it before
+release, then the user reruns the zoom and weak cells (report-only, the
+rule's question being answered):
+
+1. **During a gesture, render only visible tiles;** the ring renders
+   after the gesture settles (and for pans as today, one column per 256
+   px).
+2. **Coalesce zoom steps:** one queued generation (the newest); a tile
+   already rendering finishes and is shown through the per-tile preview
+   mapping instead of being dropped, so a burst shows sharp-but-stale
+   tiles every render time rather than none.
+3. **No inline tile renders during a gesture:** the UI thread composes;
+   inline renders resume when idle.
+4. **No nested parallelism:** with two or more pool threads, each worker
+   renders single-threaded; vello_cpu's own pool serves the
+   single-worker case only.
+5. **Progressive resolution during a zoom:** while the wheel is active,
+   tiles render at half device resolution and are drawn scaled; full
+   resolution follows on settle. The registered latency metric keeps
+   its meaning (full resolution); the bench adds latency to current
+   content at any resolution beside it, report-only.
+6. **Software compositing:** draw only images that intersect the
+   visible plot area, and none of the ring; skip per-image clipping
+   where an image lies inside its clip; measure tiny-skia's frame time
+   on a pan of `trace` and `scatter100k` before and after.
+7. **`scatter1m`'s hit index** is rebuilt only when hover is enabled and
+   not during a gesture (rebuilt on settle).
+
+### Why
+
+Pans now meet every budget on every profile, including two cores;
+zooms and software compositing are the remaining first-impression
+problems on exactly the machines the user named, and each item above
+removes work, which helps every machine, GPU layer or not.
