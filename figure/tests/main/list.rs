@@ -564,6 +564,47 @@ fn marker_bounds_are_the_union_of_the_scaled_shapes() {
     assert_eq!(b.get(0), Some(Rect::new(8.0, 8.0, 55.0, 25.0)));
 }
 
+/// Bounds take the points' extremes once, not a rectangle per point: the
+/// result equals the union of every placed shape's box, with points and
+/// sizes that are not finite left out as that union leaves them.
+#[test]
+fn marker_bounds_equal_the_union_of_every_placed_box() {
+    let shape = rustd3_figure::kurbo::Circle::new(Point::ORIGIN, 3.7).to_path(1e-3);
+    let unit = shape.bounding_box();
+    let mut state = 0x9e37_79b9_u64;
+    let mut unit_rand = || {
+        state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1);
+        (state >> 11) as f64 / (1_u64 << 53) as f64
+    };
+    let mut at: Vec<Point> = (0..500)
+        .map(|_| Point::new(unit_rand() * 1e3 - 300.0, unit_rand() * 0.01 + 1e7))
+        .collect();
+    at[17] = Point::new(f64::NAN, 4.0);
+    let mut sizes: Vec<f64> = (0..500).map(|_| unit_rand() * 4.0 - 1.0).collect();
+    sizes[3] = f64::INFINITY;
+    sizes[4] = f64::NAN;
+    for sizes in [None, Some(sizes)] {
+        let union = at
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                let s = sizes.as_ref().map_or(1.0, |s| s[i]);
+                (Affine::translate(p.to_vec2()) * Affine::scale(s)).transform_rect_bbox(unit)
+            })
+            .reduce(|a, b| a.union(b));
+        let b = bounds(vec![Command::Markers {
+            shape: shape.clone(),
+            at: at.clone(),
+            paint: red(),
+            sizes: sizes.clone(),
+            paints: None,
+        }]);
+        assert_eq!(b.get(0), union, "sizes {:?}", sizes.is_some());
+    }
+}
+
 #[test]
 fn glyph_bounds_are_the_placed_outlines() {
     let title = sink::run("Wheel: RL", 11.0, Affine::translate((40.0, 270.0)), red());

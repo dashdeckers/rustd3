@@ -58,7 +58,8 @@ pub struct Part {
     /// Union of the commands' bounds, in list px.
     pub bounds: Rect,
     /// FNV-1a 64 of what the part drew and of the groups open at its
-    /// start: equal when a figure draws it again from equal data, different
+    /// start (marker points, sizes and paint indices a 64-bit word per
+    /// step): equal when a figure draws it again from equal data, different
     /// when it draws other content or the same content elsewhere. The
     /// figure's list builder fills it; hand-built lists may leave it 0.
     pub hash: u64,

@@ -320,16 +320,28 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     /// is. Sized dots stamp a unit circle at per-point radii; colored dots
     /// index a table of their distinct colors (8-bit, in first-seen order).
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let dots: Vec<Placed> = self.placed(ctx).collect();
-        if dots.is_empty() {
+        // One pass over the points into the command's own vectors: the
+        // centres, and the radii and colors only when a channel sets them.
+        let mut at: Vec<Point> = Vec::with_capacity(self.points.len());
+        let mut sizes: Option<Vec<f64>> = self.size_by.is_some().then(Vec::new);
+        let mut fills: Option<Vec<Rgb>> = self.fill_by.is_some().then(Vec::new);
+        for dot in self.placed(ctx) {
+            at.push(dot.at);
+            if let Some(sizes) = &mut sizes {
+                sizes.push(dot.r);
+            }
+            if let Some(fills) = &mut fills {
+                fills.push(
+                    dot.fill
+                        .expect("invariant: placed dots of fill_by have a color"),
+                );
+            }
+        }
+        if at.is_empty() {
             return;
         }
         let color = self.color.resolve(ctx);
         let shown = |c: Rgb| c.with_opacity(c.opacity * self.opacity);
-        let sizes = self
-            .size_by
-            .is_some()
-            .then(|| dots.iter().map(|d| d.r).collect::<Vec<f64>>());
         // Sized dots stamp a unit circle, followed as closely at their
         // largest radius as a plain dot's circle is.
         let (r, tolerance) = match &sizes {
@@ -339,17 +351,10 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
             ),
             None => (self.radius(ctx), TOLERANCE),
         };
-        let paints = self.fill_by.is_some().then(|| {
-            paints(dots.iter().map(|d| {
-                shown(
-                    d.fill
-                        .expect("invariant: placed dots of fill_by have a color"),
-                )
-            }))
-        });
+        let paints = fills.map(|fills| paints(fills.into_iter().map(shown)));
         list.commands.push(Command::Markers {
             shape: kurbo::Circle::new(Point::ORIGIN, r).to_path(tolerance),
-            at: dots.iter().map(|d| d.at).collect(),
+            at,
             paint: list::brush(shown(color)),
             sizes,
             paints,
@@ -406,7 +411,14 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
         let area = ctx.rect().with_origin(Point::ORIGIN);
         let slot = self.color.slot(ctx).filter(|_| self.dodge);
         let along_y = sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0;
-        let share = move |i: usize| 0.5 + self.jitter * (jitter(i) - 0.5);
+        // Unjittered dots skip the hash: 0.5 + 0 × (u − 0.5) is 0.5.
+        let share = move |i: usize| {
+            if self.jitter == 0.0 {
+                0.5
+            } else {
+                0.5 + self.jitter * (jitter(i) - 0.5)
+            }
+        };
         let count = if self.error().is_some() {
             0
         } else {

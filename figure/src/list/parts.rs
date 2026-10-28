@@ -285,6 +285,16 @@ impl Fnv {
         self.bytes(&v.to_le_bytes());
     }
 
+    /// Hashes `words` a whole 64-bit word at a time (FNV-1a's step on a
+    /// word instead of a byte), for the long arrays of marker commands:
+    /// an eighth of the steps, and a sequence that differs from another in
+    /// one word still hashes differently, as each step is a bijection.
+    fn words(&mut self, words: impl IntoIterator<Item = u64>) {
+        for w in words {
+            self.0 = (self.0 ^ w).wrapping_mul(PRIME);
+        }
+    }
+
     /// Hashes `v`'s bits.
     pub(crate) fn f64(&mut self, v: f64) {
         self.u64(v.to_bits());
@@ -415,9 +425,12 @@ impl Fnv {
             self.brush(brush);
         }
         self.len(paints.index.len());
-        for i in &paints.index {
-            self.bytes(&i.to_le_bytes());
-        }
+        self.words(
+            paints
+                .index
+                .chunks(2)
+                .map(|pair| pair.iter().fold(0, |w, &i| w << 32 | u64::from(i))),
+        );
     }
 
     /// A run's face (its font data's identity, not its place in the
@@ -464,16 +477,12 @@ impl Fnv {
                 self.bytes(b"markers");
                 self.path(shape);
                 self.len(at.len());
-                for p in at {
-                    self.point(*p);
-                }
+                self.words(at.iter().flat_map(|p| [p.x.to_bits(), p.y.to_bits()]));
                 self.brush(paint);
                 match sizes {
                     Some(sizes) => {
                         self.len(sizes.len());
-                        for s in sizes {
-                            self.f64(*s);
-                        }
+                        self.words(sizes.iter().map(|s| s.to_bits()));
                     }
                     None => self.bytes(b"-"),
                 }
@@ -511,7 +520,8 @@ impl Fnv {
 /// another place or under another clip hashes differently) and over every
 /// command in its range, as drawn (paths, paints, strokes, marker points
 /// and channels, glyph runs' faces, sizes, transforms, ids and positions,
-/// images by their blob ids). A part drawn again from equal data hashes
+/// images by their blob ids); a markers command's points, sizes and paint
+/// indices a 64-bit word per step. A part drawn again from equal data hashes
 /// equally. Parts are in order and inside the commands, as a figure
 /// builds them.
 pub(crate) fn hash(list: &mut List) {
@@ -584,6 +594,44 @@ mod tests {
         let xs = [200.0, 0.0, 99.7, 100.2, f64::NAN, -3.0];
         assert_eq!(edges(&xs, 1.0), [0, 100, 200]);
         assert_eq!(edges(&[10.3, 10.5], 1.5), [15, 16]);
+    }
+
+    #[test]
+    fn markers_hash_every_point_size_and_paint_index_a_word_at_a_time() {
+        let markers = |x: f64, size: f64, index: u32| {
+            let red = Brush::Solid(peniko::Color::from_rgba8(255, 0, 0, 255));
+            let mut list = List {
+                commands: vec![Command::Markers {
+                    shape: Rect::new(-1.0, -1.0, 1.0, 1.0).to_path(0.1),
+                    at: vec![
+                        Point::new(1.0, 2.0),
+                        Point::new(x, 4.0),
+                        Point::new(5.0, 6.0),
+                    ],
+                    paint: red.clone(),
+                    sizes: Some(vec![1.0, size, 1.0]),
+                    paints: Some(Paints {
+                        table: vec![red.clone(), red],
+                        index: vec![0, 1, index],
+                    }),
+                }],
+                parts: vec![crate::list::Part {
+                    id: crate::list::part::Id::new(0),
+                    commands: 0..1,
+                    bounds: Rect::ZERO,
+                    hash: 0,
+                }],
+                ..List::default()
+            };
+            hash(&mut list);
+            list.parts[0].hash
+        };
+        let base = markers(3.0, 2.0, 1);
+        assert_eq!(base, markers(3.0, 2.0, 1));
+        // One ulp in a point, a size, the last (odd) paint index.
+        assert_ne!(base, markers(f64::from_bits(3.0_f64.to_bits() + 1), 2.0, 1));
+        assert_ne!(base, markers(3.0, 2.5, 1));
+        assert_ne!(base, markers(3.0, 2.0, 0));
     }
 
     #[test]

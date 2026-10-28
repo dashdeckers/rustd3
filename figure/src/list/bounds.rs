@@ -117,11 +117,37 @@ fn reach(style: &kurbo::Stroke) -> f64 {
 /// it; `None` without points.
 fn markers(shape: &BezPath, at: &[Point], sizes: Option<&[f64]>) -> Option<Rect> {
     let unit = shape.bounding_box();
-    at.iter()
-        .enumerate()
-        .map(|(i, p)| {
-            let size = sizes.and_then(|s| s.get(i)).copied().unwrap_or(1.0);
-            (Affine::translate(p.to_vec2()) * Affine::scale(size)).transform_rect_bbox(unit)
-        })
-        .reduce(|a, b| a.union(b))
+    // The union of the shape placed at every point, its size applied: per
+    // point the extremes of `p + s × corner`, NaN coordinates (and points
+    // of a size that is not finite) ignored by `min` and `max` as the
+    // placed rectangles' union ignores them. Addition is monotonic, so
+    // adding the shape's extent once to the points' extremes is exact.
+    let (mut x0, mut y0, mut x1, mut y1) = (
+        f64::INFINITY,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::NEG_INFINITY,
+    );
+    match sizes {
+        None => {
+            for p in at {
+                (x0, x1) = (x0.min(p.x), x1.max(p.x));
+                (y0, y1) = (y0.min(p.y), y1.max(p.y));
+            }
+            (x0, y0, x1, y1) = (x0 + unit.x0, y0 + unit.y0, x1 + unit.x1, y1 + unit.y1);
+        }
+        Some(sizes) => {
+            for (i, p) in at.iter().enumerate() {
+                let s = sizes.get(i).copied().unwrap_or(1.0);
+                if !s.is_finite() {
+                    continue;
+                }
+                let (a, b) = (p.x + s * unit.x0, p.x + s * unit.x1);
+                let (c, d) = (p.y + s * unit.y0, p.y + s * unit.y1);
+                (x0, x1) = (x0.min(a.min(b)), x1.max(a.max(b)));
+                (y0, y1) = (y0.min(c.min(d)), y1.max(c.max(d)));
+            }
+        }
+    }
+    (x0 <= x1 && y0 <= y1).then(|| Rect::new(x0, y0, x1, y1))
 }
