@@ -105,7 +105,7 @@ when smooth.
 
 ## D37.1 — The PDF pixel bound cannot hold for text rendered by pdftoppm
 
-**Date:** 2026-10-28 · **Context:** Phase 37, step 2, after bb3c0d7 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 37, step 2, after bb3c0d7 · **Status:** decided
 
 ### Issue
 
@@ -144,9 +144,11 @@ glyph's origin to whole device px in y and to a coarse grid in x.
 
 ### Decision
 
-Recommended: A, as built in `figure/tests/main/pdf.rs`
-(`assert_round_trip`) and `dev/examples/tests/main/wheels.rs`
-(`wheels_pdf`).
+A (architect, 2026-10-28): the 0.05 tile-score rule applies to PDFs
+written with glyphs as outlines, which share the text path's placement;
+PDFs with real text are checked by `pdftotext` and `pdffonts` and held to
+1.25× their own measured score, since poppler snaps glyph origins to
+device pixels.
 
 ### Why
 
@@ -162,7 +164,7 @@ Neither tool nor a looser cap measures the writer better.
 
 ## D37.2 — Details of Phase 37 that the section leaves open, or that do not hold as written
 
-**Date:** 2026-10-28 · **Context:** Phase 37, bb3c0d7 … 85381d5 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 37, bb3c0d7 … 85381d5 · **Status:** decided
 
 ### Issue
 
@@ -231,7 +233,9 @@ Neither tool nor a looser cap measures the writer better.
 
 ### Decision
 
-Recommended: A for all fourteen, as built.
+A for all fourteen (architect, 2026-10-28), as built, including
+`pdf::Error::List`, `gif::Error::Raster`, and `gif::Writer` requiring
+`fonts` as `save_png` does.
 
 ### Why
 
