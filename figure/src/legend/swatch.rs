@@ -85,7 +85,7 @@ impl Swatch {
                 return;
             }
             Swatch::Dot => {
-                let r = theme.marker().min(rect.height()) / 2.0;
+                let r = theme.get_marker().min(rect.height()) / 2.0;
                 Command::Fill {
                     path: kurbo::Circle::new(rect.center(), r).to_path(TOLERANCE),
                     paint,
@@ -99,7 +99,7 @@ impl Swatch {
                 let dash = dash.and_then(mark::dashes).unwrap_or_default();
                 Command::Stroke {
                     path,
-                    style: list::stroke(theme.line_width()).with_dashes(0.0, dash),
+                    style: list::stroke(theme.get_line_width()).with_dashes(0.0, dash),
                     paint,
                 }
             }

@@ -52,8 +52,8 @@ impl Fill {
     /// palette lacks, the theme palette's first color without a key.
     pub(super) fn resolve(&self, ctx: &Ctx<'_>) -> Rgb {
         match &self.0 {
-            None => ctx.theme().color(),
-            Some(lookup) => lookup.paint(ctx).unwrap_or_else(|| ctx.theme().gray()),
+            None => ctx.theme().get_color(),
+            Some(lookup) => lookup.paint(ctx).unwrap_or_else(|| ctx.theme().get_gray()),
         }
     }
 

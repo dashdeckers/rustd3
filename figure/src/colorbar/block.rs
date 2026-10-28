@@ -8,9 +8,10 @@ use rustd3_core::axis::Orient;
 use crate::axis::{self, Labels, Placed};
 use crate::colorbar::{Draw, Side, Strip, extend, side};
 use crate::figure::Resolved;
-use crate::layout::{Plan, Snap, plan};
+use crate::layout::{Plan, plan};
 use crate::legend::keys;
 use crate::list::{self, Command, List};
+use crate::mark::Snap;
 use crate::text::{self, Key};
 use crate::theme::Theme;
 

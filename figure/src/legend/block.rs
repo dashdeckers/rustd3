@@ -3,9 +3,9 @@
 use kurbo::{Point, Rect, Size};
 
 use crate::colorbar;
-use crate::layout::Snap;
 use crate::legend::keys;
 use crate::list::List;
+use crate::mark::Snap;
 use crate::text;
 use crate::theme::Theme;
 

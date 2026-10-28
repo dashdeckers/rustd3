@@ -82,7 +82,7 @@ impl Content {
             .into_iter()
             .map(|(color, label, hatch)| {
                 let key = Key::new(&Text::from(label), &style);
-                (color.unwrap_or(theme.gray()), key, hatch)
+                (color.unwrap_or(theme.get_gray()), key, hatch)
             })
             .collect();
         Content {

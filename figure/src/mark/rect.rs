@@ -157,7 +157,7 @@ pub(super) fn fill(
 fn outline(list: &mut List, ctx: &Ctx<'_>, r: kurbo::Rect, paint: &Brush) {
     let band = guard::band(ctx.rect().width(), ctx.rect().height());
     let r = r.abs().intersect(band);
-    let (snap, width) = (ctx.snap(), ctx.theme().patch_width());
+    let (snap, width) = (ctx.snap(), ctx.theme().get_patch_width());
     let at = |v: f64| snap.line(v, width);
     let r = kurbo::Rect::new(at(r.x0), at(r.y0), at(r.x1), at(r.y1));
     list.commands.push(Command::Stroke {

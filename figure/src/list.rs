@@ -99,8 +99,10 @@ pub const fn stroke(width: f64) -> kurbo::Stroke {
         .with_miter_limit(4.0)
 }
 
-/// A solid brush of `color`, its channels rounded to 8 bits.
-pub(crate) fn brush(color: Rgb) -> Brush {
+/// A solid brush of `color`, its channels rounded to 8 bits: the paint of
+/// every fill and stroke the figure's own marks append, so a custom mark's
+/// commands in the same color render, and hash, as theirs do.
+pub fn brush(color: Rgb) -> Brush {
     let [r, g, b, a] = text::channels(color);
     Brush::Solid(Color::from_rgba8(r, g, b, a))
 }

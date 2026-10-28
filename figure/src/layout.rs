@@ -25,7 +25,6 @@ mod passes;
 pub(crate) mod plan;
 mod protrusion;
 mod slots;
-mod snap;
 mod tracks;
 
 pub use cell::Cell;
@@ -34,7 +33,6 @@ pub(crate) use obb::Obb;
 pub(crate) use passes::{Laid, Layout, first_counts};
 pub use plan::Plan;
 pub(crate) use protrusion::Reach;
-pub(crate) use snap::Snap;
 pub(crate) use tracks::tracks;
 
 /// The canvas's padding, em.

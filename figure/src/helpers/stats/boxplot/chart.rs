@@ -229,7 +229,7 @@ impl<'c> Shapes<'c> {
         Shapes {
             ctx,
             band: guard::band(ctx.rect().width(), ctx.rect().height()),
-            edge: ctx.theme().patch_width(),
+            edge: ctx.theme().get_patch_width(),
             notch,
             boxes: BezPath::new(),
             lines: BezPath::new(),
@@ -318,7 +318,7 @@ impl<'c> Shapes<'c> {
     /// Fliers at `ys` (px) on the line `x = centre`, those within a
     /// marker's radius of the plot area.
     fn fliers(&mut self, centre: f64, ys: impl Iterator<Item = f64>) {
-        let r = self.ctx.theme().marker() / 2.0;
+        let r = self.ctx.theme().get_marker() / 2.0;
         let h = self.ctx.rect().height();
         let shown = |y: &f64| (-r..=h + r).contains(y);
         self.fliers
@@ -327,7 +327,7 @@ impl<'c> Shapes<'c> {
 
     /// The mean at `y` (px), when placed, on the line `x = centre`.
     fn mean(&mut self, centre: f64, y: Option<f64>) {
-        let r = self.ctx.theme().marker() / 2.0;
+        let r = self.ctx.theme().get_marker() / 2.0;
         let h = self.ctx.rect().height();
         if let Some(y) = y.filter(|y| (-r..=h + r).contains(y)) {
             self.means.push(Point::new(centre, y));
@@ -364,7 +364,7 @@ impl<'c> Shapes<'c> {
                 paint: ink.clone(),
             });
         }
-        let r = theme.marker() / 2.0;
+        let r = theme.get_marker() / 2.0;
         if !self.fliers.is_empty() {
             let ring = CircleSegment::new(Point::ORIGIN, r, r - self.edge, 0.0, TAU);
             list.commands.push(Command::Markers {

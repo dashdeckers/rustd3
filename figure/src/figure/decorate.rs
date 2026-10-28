@@ -8,9 +8,9 @@ use rustd3_core::color::Rgb;
 
 use crate::figure::part::{self, Role};
 use crate::figure::{Figure, Resolved};
-use crate::layout::{Laid, Snap};
+use crate::layout::Laid;
 use crate::list::{self, Clip, Command, List, Part};
-use crate::mark::Ctx;
+use crate::mark::{Ctx, Snap};
 use crate::panel::Panel;
 use crate::text::{self, Anchor, Key, Shaped, anchor};
 use crate::thin;

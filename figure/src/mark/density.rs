@@ -193,7 +193,7 @@ impl Density {
         }
         list.commands.push(Command::Stroke {
             path,
-            style: stroke(ctx.theme().density_width(), &[]),
+            style: stroke(ctx.theme().get_density_width(), &[]),
             paint: list::brush(color),
         });
     }

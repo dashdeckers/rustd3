@@ -5,6 +5,12 @@
 //! [`histogram()`], [`density_y`], [`density_x`], [`image()`],
 //! [`note()`], [`rule_x`] and [`rule_y`].
 //!
+//! A mark of your own draws as these do with the theme's readers
+//! ([`Theme::get_color`](crate::Theme::get_color),
+//! [`Theme::get_line_width`](crate::Theme::get_line_width), …),
+//! [`list::brush`](crate::list::brush), [`Ctx::snap`] and the [`guard`]
+//! band.
+//!
 //! ```
 //! use rustd3_core::scale;
 //! use rustd3_figure::Figure;
@@ -25,12 +31,13 @@ mod color;
 mod density;
 mod dots;
 mod error;
-pub(crate) mod guard;
+pub mod guard;
 mod histogram;
 mod image;
 mod line;
 mod rect;
 mod rule;
+mod snap;
 mod text;
 
 use std::any::Any;
@@ -43,7 +50,6 @@ use crate::check::{self, Issue};
 use crate::figure::{Fits, Resolved};
 use crate::hatch::Hatch;
 use crate::hit;
-use crate::layout::Snap;
 use crate::list::{Clip, List};
 use crate::mark::color::Color;
 use crate::scale::{Kind, Position, ScaleRef};
@@ -61,6 +67,7 @@ pub use image::{Grid, Image, image};
 pub use line::{Line, line};
 pub use rect::{Rect, rect};
 pub use rule::{Rule, rule_x, rule_y};
+pub use snap::Snap;
 pub use text::{Note, note};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data
@@ -174,8 +181,13 @@ impl Ctx<'_> {
         self.resolved.target().scale_factor()
     }
 
-    /// How the target lays hairlines on its pixel grid.
-    pub(crate) fn snap(&self) -> Snap {
+    /// How the target drawn for lays edges and hairlines on its pixel grid:
+    /// a custom mark snaps its filled boxes ([`Snap::rect`]), stroke widths
+    /// ([`Snap::width`]) and the centres of its axis-parallel lines
+    /// ([`Snap::line`]) through it to come out as crisp as the rect and
+    /// rule marks on raster targets; vector output keeps everything as it
+    /// is.
+    pub fn snap(&self) -> Snap {
         Snap::of(self.resolved.target())
     }
 

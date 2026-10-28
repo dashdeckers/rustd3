@@ -10,9 +10,35 @@ use crate::target::Target;
 /// borders, rules) on its pixel grid: raster targets put edges on device
 /// pixel boundaries and hairlines on whole device pixels
 /// ([`raster::snap`](crate::raster::snap)); vector output keeps both as
-/// they are.
+/// they are. A mark reads the target's from [`Ctx::snap`](crate::mark::Ctx::snap).
+///
+/// ```
+/// use rustd3_figure::kurbo::{Rect, Shape};
+/// use rustd3_figure::list::{self, Command, List};
+/// use rustd3_figure::mark::Ctx;
+///
+/// /// A custom mark's outlined box, as crisp as a rect mark's on raster
+/// /// targets: its fill on device pixel boundaries, its edge on whole
+/// /// device pixels.
+/// fn boxed(ctx: &Ctx<'_>, r: Rect, list: &mut List) {
+///     let (snap, theme) = (ctx.snap(), ctx.theme());
+///     let w = theme.get_patch_width();
+///     list.commands.push(Command::Fill {
+///         path: snap.rect(r).to_path(0.1),
+///         paint: list::brush(theme.get_color()),
+///     });
+///     let at = |v: f64| snap.line(v, w);
+///     let edge = Rect::new(at(r.x0), at(r.y0), at(r.x1), at(r.y1));
+///     list.commands.push(Command::Stroke {
+///         path: edge.to_path(0.1),
+///         style: list::stroke(snap.width(w)),
+///         paint: list::brush(theme.get_ink()),
+///     });
+/// }
+/// # let _ = boxed;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Snap {
+pub struct Snap {
     /// Device pixels per list px; `None` for vector output.
     scale: Option<f64>,
 }
@@ -32,8 +58,9 @@ impl Snap {
         self.scale
     }
 
-    /// A plot area with its edges on device pixel boundaries.
-    pub(crate) fn rect(self, r: Rect) -> Rect {
+    /// `r` with its edges on device pixel boundaries: a plot area, or a
+    /// filled box a mark draws without antialiased edges.
+    pub fn rect(self, r: Rect) -> Rect {
         let Some(s) = self.scale else { return r };
         Rect::new(
             snap::edge(r.x0, s),
@@ -43,14 +70,16 @@ impl Snap {
         )
     }
 
-    /// A hairline `w` px wide: at least one whole device pixel.
-    pub(crate) fn width(self, w: f64) -> f64 {
+    /// The width a hairline `w` px wide is stroked at: whole device pixels,
+    /// at least one.
+    pub fn width(self, w: f64) -> f64 {
         self.scale.map_or(w, |s| snap::width(w, s))
     }
 
     /// The centre `x` of a hairline `w` px wide (its unsnapped width), such
-    /// that it covers whole device pixels.
-    pub(crate) fn line(self, x: f64, w: f64) -> f64 {
+    /// that it covers whole device pixels: the x of a vertical line or the
+    /// y of a horizontal one.
+    pub fn line(self, x: f64, w: f64) -> f64 {
         self.scale.map_or(x, |s| snap::line(x, w, s))
     }
 

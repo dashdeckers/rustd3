@@ -1,13 +1,26 @@
-//! The guard band: polylines clipped in `f64` (Liang–Barsky) to the plot
-//! area grown by its own width and height on every side, so that no
-//! coordinate handed to a backend exceeds three times the panel's size,
-//! whatever the zoom.
+//! The guard band: geometry clipped in `f64` to the plot area grown by its
+//! own width and height on every side, so that no coordinate handed to a
+//! backend exceeds three times the panel's size, whatever the zoom. The
+//! figure's marks clip polylines (Liang–Barsky) and polygons
+//! (Sutherland–Hodgman) to it; a custom mark clips its filled shapes with
+//! [`polygon`] and clamps its points to [`band`].
+//!
+//! ```
+//! use rustd3_figure::kurbo::Point;
+//! use rustd3_figure::mark::guard;
+//!
+//! // A triangle reaching far past a 600 × 400 px plot area.
+//! let band = guard::band(600.0, 400.0);
+//! let points = [Point::new(300.0, 200.0), Point::new(1e7, 200.0), Point::new(300.0, 1e7)];
+//! let clipped = guard::polygon(&points, band);
+//! assert!(clipped.iter().all(|p| p.x <= 1200.0 && p.y <= 800.0));
+//! ```
 
 use kurbo::{Point, Rect};
 
-/// The guard band of a plot area `w × h` px in panel coordinates:
-/// `[−w, 2w] × [−h, 2h]`.
-pub(crate) fn band(w: f64, h: f64) -> Rect {
+/// The guard band of a plot area `w × h` px in panel coordinates
+/// (`ctx.rect()`'s width and height for a mark): `[−w, 2w] × [−h, 2h]`.
+pub fn band(w: f64, h: f64) -> Rect {
     Rect::new(-w, -h, 2.0 * w, 2.0 * h)
 }
 
@@ -64,10 +77,10 @@ pub(crate) fn clip(
 }
 
 /// The closed polygon through `points` clipped to `rect`
-/// (Sutherland–Hodgman): the vertices of its part inside, in order, with
-/// edges along `rect` where it was cut; empty when no part is inside.
-/// Points inside `rect` are kept bit for bit.
-pub(crate) fn polygon(points: &[Point], rect: Rect) -> Vec<Point> {
+/// (Sutherland–Hodgman), such as a [`band`]: the vertices of its part
+/// inside, in order, with edges along `rect` where it was cut; empty when
+/// no part is inside. Points inside `rect` are kept bit for bit.
+pub fn polygon(points: &[Point], rect: Rect) -> Vec<Point> {
     let mut out = points.to_vec();
     for side in [Side::Left, Side::Right, Side::Top, Side::Bottom] {
         let Some(&last) = out.last() else {

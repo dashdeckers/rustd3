@@ -8,8 +8,9 @@ use rustd3_core::axis::Orient;
 
 use crate::axis::labels::{align, get, notation};
 use crate::axis::{Labels, across};
-use crate::layout::{Obb, Plan, Snap};
+use crate::layout::{Obb, Plan};
 use crate::list::{self, Command, List};
+use crate::mark::Snap;
 use crate::text::{self, Anchor};
 use crate::theme::Theme;
 

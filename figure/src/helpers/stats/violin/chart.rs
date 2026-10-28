@@ -276,7 +276,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
             }
         }
         let color = self.fill.resolve(ctx);
-        let edge = ctx.theme().density_width();
+        let edge = ctx.theme().get_density_width();
         if !bodies.elements().is_empty() {
             list.commands.push(Command::Fill {
                 path: bodies.clone(),
@@ -349,7 +349,7 @@ impl<'c> Inside<'c> {
 
     /// The inner box width, px.
     fn box_width(&self) -> f64 {
-        BOX * LINE * self.ctx.theme().patch_width()
+        BOX * LINE * self.ctx.theme().get_patch_width()
     }
 
     /// A vertical line at `x` from `a` to `b` (px), clamped to the band.
@@ -407,7 +407,7 @@ impl<'c> Inside<'c> {
     /// lines with their dashes.
     fn finish(self, list: &mut List) {
         let theme = self.ctx.theme();
-        let (ink, line) = (list::brush(theme.get_ink()), LINE * theme.patch_width());
+        let (ink, line) = (list::brush(theme.get_ink()), LINE * theme.get_patch_width());
         let box_width = self.box_width();
         let strokes = [
             (self.whiskers, WHISKER * box_width, ink.clone()),
