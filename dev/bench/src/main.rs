@@ -154,6 +154,7 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     let replays = replays(options, plan, &cells, &dir)?;
     let meta = meta(options, &stamp, refresh_hz, native, &cells, args);
     fs::write(dir.join("meta.json"), serde_json::to_string_pretty(&meta)?)?;
+    fs::write(dir.join("system.txt"), system::diagnostics())?;
     println!(
         "rustd3-bench: plan {} into {} (about {:.0} min on real hardware)",
         plan.name(),

@@ -60,6 +60,7 @@ your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
 | File | Content |
 | --- | --- |
 | `meta.json` | machine, GPU and driver, session, present mode, backend, refresh, factors, compiler, revisions, the cost model's constants and its measured calibration |
+| `system.txt` | the session's variables, `xrandr --current`, `cosmic-randr list`, the GNOME scaling factors, `nvidia-smi`, `uname -a`, `/etc/os-release` (each if present, 5 s at most) |
 | `replays/*.jsonl` | the generated input, one event per line |
 | `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster and `sys` record of one run |
 | `frames.csv`, `inputs.csv`, `memory.csv` | per frame, per input (with its latency), RSS and GPU samples |

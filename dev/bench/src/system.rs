@@ -1,8 +1,11 @@
-//! The machine and the process: `/proc` counters, `nvidia-smi`, and
-//! [`Meta`], what `meta.json` records about a run.
+//! The machine and the process: `/proc` counters, `nvidia-smi`, [`Meta`],
+//! what `meta.json` records about a run, and the display diagnostics of
+//! `system.txt`.
 
+use std::fmt::Write as _;
 use std::fs;
-use std::process::Command;
+use std::io::{self, Read};
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread;
@@ -14,6 +17,41 @@ use crate::record::Record;
 
 /// The iced revision the workspace pins.
 pub const ICED_REV: &str = "3cbdacc3b0841c5145c766c3a758657d36b41ffe";
+
+/// How long each diagnostic command may take.
+const LIMIT: Duration = Duration::from_secs(5);
+
+/// The environment variables `system.txt` records.
+const SESSION: [&str; 4] = [
+    "XDG_SESSION_TYPE",
+    "XDG_CURRENT_DESKTOP",
+    "WAYLAND_DISPLAY",
+    "DISPLAY",
+];
+
+/// The commands `system.txt` records, each if present.
+const COMMANDS: [&[&str]; 6] = [
+    &["xrandr", "--current"],
+    &["cosmic-randr", "list"],
+    &[
+        "gsettings",
+        "get",
+        "org.gnome.desktop.interface",
+        "scaling-factor",
+    ],
+    &[
+        "gsettings",
+        "get",
+        "org.gnome.desktop.interface",
+        "text-scaling-factor",
+    ],
+    &[
+        "nvidia-smi",
+        "--query-gpu=name,driver_version",
+        "--format=csv,noheader",
+    ],
+    &["uname", "-a"],
+];
 
 /// What a run's `meta.json` holds.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -265,6 +303,99 @@ pub fn ram_mb() -> u64 {
         .map_or(0, |kb| kb / 1024)
 }
 
+/// `system.txt`: the session's variables, what the display, scaling and
+/// GPU commands that are present print, `uname -a` and `/etc/os-release`.
+pub fn diagnostics() -> String {
+    let mut text = String::from("# rustd3-bench diagnostics\n\n");
+    for name in SESSION {
+        let value = std::env::var(name).unwrap_or_else(|_| "(unset)".to_owned());
+        let _ = writeln!(text, "{name}={value}");
+    }
+    for command in COMMANDS {
+        let _ = writeln!(text, "\n$ {}", command.join(" "));
+        text.push_str(&limited(command[0], &command[1..], LIMIT));
+    }
+    let release = fs::read_to_string("/etc/os-release")
+        .unwrap_or_else(|error| format!("(cannot read: {error})\n"));
+    let _ = write!(text, "\n$ cat /etc/os-release\n{release}");
+    text
+}
+
+/// What `program` prints (standard output, then error) within `limit`,
+/// colours stripped, ending in a newline; or why it printed nothing.
+fn limited(program: &str, args: &[&str], limit: Duration) -> String {
+    let spawned = Command::new(program)
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn();
+    let mut child = match spawned {
+        Ok(child) => child,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return "(not present)\n".into(),
+        Err(error) => return format!("(cannot run: {error})\n"),
+    };
+    // Read on threads, so a full pipe cannot stall the child.
+    let (out, err) = (drain(child.stdout.take()), drain(child.stderr.take()));
+    let begin = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if begin.elapsed() < limit => thread::sleep(Duration::from_millis(10)),
+            Ok(None) | Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return format!("(timed out after {:.1} s)\n", limit.as_secs_f64());
+            }
+        }
+    };
+    let mut text = String::new();
+    for pipe in [out, err] {
+        text.push_str(&pipe.join().unwrap_or_default());
+    }
+    let mut text = plain(&text);
+    if !text.is_empty() && !text.ends_with('\n') {
+        text.push('\n');
+    }
+    if !status.success() {
+        let _ = writeln!(text, "({status})");
+    }
+    text
+}
+
+/// Reads `pipe` to its end on its own thread.
+fn drain(pipe: Option<impl Read + Send + 'static>) -> thread::JoinHandle<String> {
+    thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(mut pipe) = pipe {
+            let _ = pipe.read_to_end(&mut bytes);
+        }
+        String::from_utf8_lossy(&bytes).into_owned()
+    })
+}
+
+/// `text` without ANSI escape sequences (`cosmic-randr` colours its
+/// output even into a pipe).
+fn plain(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            // ESC [ parameters, ending at a letter.
+            if chars.next() == Some('[') {
+                for c in chars.by_ref() {
+                    if c.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 /// A command's standard output when it succeeds.
 fn output(program: &str, args: &[&str]) -> Option<String> {
     let out = Command::new(program).args(args).output().ok()?;
@@ -275,7 +406,36 @@ fn output(program: &str, args: &[&str]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{civil, cpu_ticks, rss_kb};
+    use std::time::{Duration, Instant};
+
+    use super::{civil, cpu_ticks, limited, plain, rss_kb};
+
+    #[test]
+    fn diagnostic_commands_are_optional_and_time_limited() {
+        assert_eq!(
+            limited("printf", &["one\\ntwo"], Duration::from_secs(5)),
+            "one\ntwo\n"
+        );
+        assert_eq!(
+            limited("rustd3-bench-no-such-program", &[], Duration::from_secs(5)),
+            "(not present)\n"
+        );
+        assert_eq!(
+            limited("false", &[], Duration::from_secs(5)),
+            "(exit status: 1)\n"
+        );
+        let begin = Instant::now();
+        assert_eq!(
+            limited("sleep", &["10"], Duration::from_millis(200)),
+            "(timed out after 0.2 s)\n"
+        );
+        assert!(begin.elapsed() < Duration::from_secs(5));
+        // cosmic-randr's colours.
+        assert_eq!(
+            plain("\u{1b}[35m2560x1600\u{1b}[0m @ \u{1b}[1;36m165.000 Hz\u{1b}[0m"),
+            "2560x1600 @ 165.000 Hz"
+        );
+    }
 
     #[test]
     fn days_since_1970_become_dates() {
