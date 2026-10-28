@@ -69,7 +69,7 @@ extremes per column, which keeps `Series::m4` as it was.
 
 ## D34.2 — Histogram bin counts past core's tick cap
 
-**Date:** 2026-10-28 · **Context:** Phase 34, step 2, 27499fb · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 34, step 2, 27499fb · **Status:** decided
 
 ### Issue
 
@@ -103,7 +103,9 @@ and `marks::histogram::a_histogram_asking_for_more_nice_bins_than_ticks_allow_ke
 
 ### Decision
 
-Recommended: A, as built.
+A (architect, 2026-10-28), as built: `Bins::Nice(n)` asks for at most
+6,000 bins and `Bins::Count(n)` makes at most 10,000, both documented
+and tested, so a histogram never collapses into one bin.
 
 ### Why
 
@@ -117,7 +119,7 @@ None; Phase 38's `Bins::Auto` and `Edges` follow the same caps.
 
 ## D34.3 — Details of Phase 34a as built
 
-**Date:** 2026-10-28 · **Context:** Phase 34, steps 1–4, 3e752bf … 1e34953 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 34, steps 1–4, 3e752bf … 1e34953 · **Status:** decided
 
 ### Issue
 
@@ -166,7 +168,12 @@ None; Phase 38's `Bins::Auto` and `Edges` follow the same caps.
 
 ### Decision
 
-Recommended: A for all twelve, as built.
+A for all twelve (architect, 2026-10-28), as built, with one change:
+bars (`bar_y`, `bar_x`, their span forms) and histogram bars report one
+hit candidate each, at the centre of the bar's value end (the top of a
+`bar_y`, the right end of a `bar_x`), so hover finds the nearest bar;
+areas, ribbons, densities, rects and images report none. Done in Phase
+34b's session.
 
 ### Why
 
