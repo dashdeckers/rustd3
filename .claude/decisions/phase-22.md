@@ -63,9 +63,9 @@ The resolve's rounds are not observable through public API: a lookup is
 one label in one layout pass of one round, so the fresh resolve looks up
 3.1 times the labels of the steady one; its time is 5–6 times.
 
-## D22.1 — The benchmark verdict: pending the user's run
+## D22.1 — The benchmark verdict
 
-**Date:** 2026-10-27 · **Context:** Phase 22, step 5 · **Status:** open — waiting for the user's windowed run
+**Date:** 2026-10-27, verdict 2026-10-28 · **Context:** Phase 22, step 5; the user's windowed run `bench-results/20261028T085234Z` at 8b6f1bf · **Status:** decided
 
 ### Issue
 
@@ -140,11 +140,68 @@ its 95% interval; the 10-minute memory run is one run per configuration.
 
 ### Decision
 
-Pending the user's run. When the results arrive the agent writes the
-verdict here from `report.md` and `summary.csv`, applying the readings as
-written; an ambiguity found in real data is noted beside the verdict and
-recorded as its own entry (the section's "Decisions this phase may
-meet"). Inconclusive cells are rerun with `--runs 10` before the verdict.
+**C — raster/upload bound → build Phase 31 (tiles, translation, pool,
+envelope fills, splatting) and rerun this benchmark** (architect,
+2026-10-28), applying the readings as written to the user's run.
+
+The run: `bench-results/20261028T085234Z/default` (the user's machine,
+`~/Projects/rustd3`), plan `default`, wgpu, AutoVsync, 59.96 Hz
+(T = 16.68 ms), native factor 1 (observed by the smoke run, 1.0); AMD
+Ryzen 7 5800X (16 threads), NVIDIA RTX 3090 (595.104.02), COSMIC on
+Wayland, one 1920 × 1080 display at 60 Hz; workspace 8b6f1bf. 56 checks:
+18 met, 35 missed, 3 inconclusive.
+
+Pan and zoom budgets missed and attributed to raster or upload, which
+alone decide C:
+
+| Cell | Budget | Mean [95% CI] | Bucket |
+| --- | --- | --- | --- |
+| pan-x × trace × 1 | preview share | 94.2% [92.8, 95.6] (≤ 10%) | raster |
+| pan-x × trace × 1 | frame p99 | 33.3 ms [33.3, 33.4] (≤ 25.0) | raster |
+| pan-x × scatter100k × 1 | pan latency p95 | 11,468 ms (≤ 100) | upload |
+| pan-x × label-churn × 1 | preview share | 91.3% (≤ 10%) | raster |
+| zoom-lines × trace × 1.25 and × 1.5 | zoom latency p95 | 969 and 976 ms (≤ 150) | upload |
+| 4k × trace × 1 | zoom latency p95 | 974 ms (≤ 150) | upload |
+
+Met: hover on every workload, `pan-y × trace` (31 ms, 91% inline), live,
+resize, and `pan-x × trace × 2` (16 ms, a 960 × 502 window rendered
+inline). The three inconclusive cells are frame-p99 cells; no outcome of
+theirs changes C, so they were not rerun.
+
+What the raw records show (`raw/pan-x__trace__f1__r1.jsonl`): during a
+continuous pan the plot-area cell renders on the worker in 10–25 ms,
+above the 8.35 ms inline threshold, a new generation starts every frame,
+and every result lands one generation late; images upload every frame
+(5–6 MB) yet no frame is current until the gesture ends, so latency is
+the gesture's length. Translation (only entering tiles render) and the
+pool are what Phase 31 builds for exactly this.
+
+### Notes beside the verdict
+
+- **The display is 1920 × 1080 at 60 Hz, not the 4K panel the plan
+  assumed.** The `4k` cells ran in a 1920 × 1004 window and the factor
+  cells (1.25, 1.5, 2) in windows the compositor clamped (1536 × 803,
+  1280 × 669, 960 × 502); every such run is flagged. C stands on the
+  native-factor `trace` cells alone. D22.3 sizes the rerun's factor cells
+  to fit the display.
+- **Attribution sums UI time over a latency window** (every frame's
+  update and draw inside it) against one raster critical path, so the
+  UI bucket wins most latency rows (e.g. pan-x × trace latency: UI 281,
+  raster 11.8, upload 77 ms). The rule is applied as written; the
+  preview-share and frame-p99 rows above attribute per frame and point
+  at raster.
+- **`scatter1m` is UI-thread bound as well**: list building takes a
+  median 51 ms per frame (resolve 4 ms), so its frame p99 on pans is 165 ms. Marker splatting (Phase 31) cuts its raster cost, not
+  its list; moving list building off the UI thread is recorded for 0.2
+  (rule B's consequence, here secondary to C).
+- **Cost model (D19.3):** median measured/modelled raster time 2.78
+  over the run's renders (small cells' fixed cost), while the 200k-dot
+  cell with vello_cpu's pool measured 0.179 of the model. Phase 31's
+  pool recalibrates `cost` with a per-render overhead term.
+- Memory: over the 10-minute soak RSS grew from 360 to 524 MB while the
+  replay appended 1,000 samples every 100 ms (6 M samples per channel,
+  three channels, about 160 MB with the index), so the growth is the data;
+  GPU memory peaked 114 MiB above baseline.
 
 ### Why
 
@@ -319,3 +376,33 @@ zooms (228 ms at 4k), previews 6–20%, list stage about 1.5 ms, cold start
 verdict, and Phase 31 is neither skipped nor done, so it is left for
 Phase 31's part (built with its rerun appended, or recorded as skipped)
 once the verdict arrives (Phase 34's section; Order of work).
+
+## D22.3 — The rerun after Phase 31 fits the user's display
+
+**Date:** 2026-10-28 · **Context:** D22.1's run on a 1920 × 1080 display · **Status:** decided
+
+### Issue
+
+The default plan assumed a 4K panel: its factor cells ask for a
+1600 × 1000 logical window at factors 1.25, 1.5 and 2 (up to 3200 × 2000
+device px), and `4k` for 3840 × 2160 device px. On the user's
+1920 × 1080 display the compositor clamped every one of them (D22.1's
+flags), so those cells measured smaller windows than they name.
+
+### Options
+
+| | **A — factor cells keep the device size** | B — as registered |
+| --- | --- | --- |
+| Approach | At factor k a factor cell's window is 1600 / k × 1000 / k logical px (1600 × 1000 device px at every factor), which fits a 1080p display; `4k` runs only on a display at least 3840 × 2160 and is reported `n/a` (display too small) otherwise | Windows the compositor clamps, flagged |
+| Fit | The factor cells test scale handling at a fixed raster size, which is what they are for | Cells whose names do not match what ran |
+
+### Decision
+
+A (architect, 2026-10-28), for the rerun Phase 31 owes; the rule, the
+readings, the budgets and the other cells stay as registered. Phase 31's
+bench step makes the change and the README says it.
+
+### Why
+
+The verdict (D22.1) does not depend on these cells; the rerun should
+measure what each cell names.
