@@ -2,3 +2,4 @@
 **/target/
 *.new
 !.claude/
+/bench-results/
