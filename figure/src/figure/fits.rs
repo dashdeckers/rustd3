@@ -27,10 +27,6 @@ pub struct Fits {
     /// The figure's theme, which label styles come from.
     theme: Theme,
     /// The figure's locale, which marks write their numbers in.
-    #[cfg_attr(
-        not(feature = "helpers"),
-        expect(dead_code, reason = "only the helpers' value labels read it")
-    )]
     locale: Locale,
     /// The labels marks draw.
     labels: Vec<Key>,
@@ -249,14 +245,19 @@ impl Fits {
             .expect("invariant: a handle's scale has the handle's type")
     }
 
-    /// The figure's theme.
-    pub(crate) fn theme(&self) -> &Theme {
+    /// The figure's theme, as [`Ctx::theme`](crate::mark::Ctx::theme) gives
+    /// it while drawing. A custom mark that reports labels builds their
+    /// [`Key`]s here from the theme's colors and sizes, so that the keys it
+    /// looks up while drawing are the ones it reported.
+    pub fn theme(&self) -> &Theme {
         &self.theme
     }
 
-    /// The figure's locale.
-    #[cfg(feature = "helpers")]
-    pub(crate) fn locale(&self) -> &Locale {
+    /// The figure's locale ([`Figure::locale`](crate::Figure::locale)), as
+    /// [`Ctx::locale`](crate::mark::Ctx::locale) gives it while drawing. A
+    /// custom mark that labels numbers writes them in it here, so that the
+    /// labels it reports are the ones it draws.
+    pub fn locale(&self) -> &Locale {
         &self.locale
     }
 

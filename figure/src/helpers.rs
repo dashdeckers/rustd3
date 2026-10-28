@@ -13,12 +13,14 @@
 //! sizes, its pixel snapping and the guard band, as the figure's own marks
 //! do, and value labels shape their text through the text kit custom
 //! marks use ([`Fits::label`](crate::Fits::label),
+//! [`Fits::locale`](crate::Fits::locale),
+//! [`Fits::theme`](crate::Fits::theme),
 //! [`Ctx::label`](crate::mark::Ctx::label),
 //! [`Ctx::locale`](crate::mark::Ctx::locale),
 //! [`Ctx::line`](crate::mark::Ctx::line)). Two things here reach what code
-//! outside this crate cannot: value labels read the figure's locale and
-//! theme while fitting and set their text in the theme's label style, and
-//! scatter legends lay out through the figure's legend layout.
+//! outside this crate cannot: value labels set their text in the theme's
+//! label style, and scatter legends lay out through the figure's legend
+//! layout.
 //!
 //! ```
 //! use rustd3_figure::helpers::{stats, subplots};

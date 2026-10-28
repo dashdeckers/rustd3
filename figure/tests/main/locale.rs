@@ -6,11 +6,49 @@
 use rustd3_core::jiff::{Timestamp, tz::TimeZone};
 use rustd3_core::locale::Locale;
 use rustd3_core::{scale, time};
-use rustd3_figure::kurbo::Size;
-use rustd3_figure::list::Command;
-use rustd3_figure::{Figure, Held, Target, axis};
+use rustd3_figure::kurbo::{Point, Size};
+use rustd3_figure::list::{self, Command, List};
+use rustd3_figure::mark::{Ctx, Mark};
+use rustd3_figure::text::{Anchor, Key, Style, Text, anchor};
+use rustd3_figure::{Figure, Fits, Held, Target, Theme, axis};
 
 use crate::figure::cache;
+
+/// A custom mark that labels a number: written in the figure's locale and
+/// colored from its theme's palette, while fitting through [`Fits`] and
+/// while drawing through [`Ctx`], so the key it draws is the one it
+/// reported.
+struct Total(f64);
+
+impl Total {
+    /// The label's key under `locale` and `theme`.
+    fn key(&self, locale: &Locale, theme: &Theme) -> Key {
+        let format = locale.number().format(",.1f").expect("a specifier");
+        let style = Style {
+            size: 12.0,
+            bold: false,
+            fill: theme.get_palette()[1],
+            align: anchor::Horizontal::Middle,
+        };
+        Key::new(&Text::from(format.format(self.0)), &style)
+    }
+}
+
+impl<'a> Mark<'a> for Total {
+    fn fit(&self, fits: &mut Fits) {
+        fits.label(self.key(fits.locale(), fits.theme()));
+    }
+
+    fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
+        if let Some(shaped) = ctx.label(&self.key(ctx.locale(), ctx.theme())) {
+            let anchor = Anchor {
+                h: anchor::Horizontal::Middle,
+                v: anchor::Vertical::Baseline,
+            };
+            shaped.place(list, Point::new(100.0, 50.0), anchor, 0.0);
+        }
+    }
+}
 
 /// The texts of the glyph runs `fig` draws at 640 × 480 for vector output,
 /// in order. The figures here have one axis and no other text, so these
@@ -112,6 +150,32 @@ fn time_axes_keep_the_iso_ladder_under_de_de() {
             .axis(axis::bottom(x).ticks(8));
         assert_eq!(labels(&fig), ladder);
     }
+}
+
+#[test]
+fn a_custom_mark_labels_in_the_figure_locale_and_palette_while_fitting() {
+    let mut fig = Figure::new();
+    fig.locale(Locale::DE_DE).panel(0, 0).mark(Total(1234.5));
+    assert_eq!(labels(&fig), ["1.234,5"]);
+    let list = fig.draw_with(
+        &mut cache(),
+        Size::new(640.0, 480.0),
+        Target::Vector,
+        &Held::default(),
+    );
+    let fills: Vec<_> = list
+        .commands
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.fill.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    let second = Theme::default().get_palette()[1];
+    assert_eq!(fills, [list::brush(second)]);
 }
 
 /// The rest of the section's de-DE rows, d3-format and d3-time-format

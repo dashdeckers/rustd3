@@ -322,10 +322,10 @@ impl Theme {
             .expect("invariant: a theme's palette is not empty")
     }
 
-    /// The palette, in order: the colors the helpers' presets give their
-    /// series' keys.
-    #[cfg(feature = "helpers")]
-    pub(crate) fn get_palette(&self) -> &[Rgb] {
+    /// The palette, in order. A custom chart that colors series by key
+    /// builds its ordinal scale over them from it, as the helpers' presets
+    /// do (`scale::ordinal(keys, theme.get_palette().to_vec())`).
+    pub fn get_palette(&self) -> &[Rgb] {
         &self.palette
     }
 

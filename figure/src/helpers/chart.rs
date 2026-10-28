@@ -12,13 +12,14 @@
 //! in `.figure()`, a [`Figure`](crate::Figure) to change further, or in a
 //! file at its size, `.save_svg(path)` or `.save_png(path, scale)`.
 //!
-//! Series take their colors from the theme's palette through an ordinal
+//! Series take their colors from the theme's palette
+//! ([`Theme::get_palette`](crate::Theme::get_palette)) through an ordinal
 //! scale over their keys, and a legend of the keys goes right of the plot
 //! area when there is more than one series. Each preset is ordinary code
 //! over the figure's handles and marks, a copy of which makes the chart a
-//! preset does not; the theme's palette and the pie's margin (half an em)
-//! are the two things the presets read from the theme that a copy outside
-//! this crate names itself.
+//! preset does not; the pie's margin (half an em) is the one thing the
+//! presets read from the theme that a copy outside this crate names
+//! itself.
 //!
 //! ```
 //! use rustd3_figure::helpers::chart;
