@@ -82,6 +82,15 @@ pub enum Issue {
         /// The mark's index in its panel.
         mark: usize,
     },
+    /// A mark that draws nothing, and why.
+    Mark {
+        /// The mark's panel.
+        panel: usize,
+        /// The mark's index in its panel.
+        mark: usize,
+        /// What the mark kept from when it was built.
+        error: crate::mark::Error,
+    },
     /// Data keys outside a band or point scale's domain, which draw
     /// nothing: one issue per handle, over every mark that uses it.
     OutsideDomain {

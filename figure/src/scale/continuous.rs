@@ -104,7 +104,18 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
         valid: &dyn Fn(f64) -> bool,
         frame: &mut thin::Frame,
     ) -> Option<m4::Lines> {
-        indexed::thin(points, edges, |e| [e.to_bits()], valid, frame)
+        indexed::thin(points, None, edges, |e| [e.to_bits()], valid, frame)
+    }
+
+    fn thin_joint(
+        &self,
+        lower: &Points<'_, f64, f64>,
+        upper: &Points<'_, f64, f64>,
+        edges: &[f64],
+        valid: &dyn Fn(f64) -> bool,
+        frame: &mut thin::Frame,
+    ) -> Option<m4::Lines> {
+        indexed::thin(lower, Some(upper), edges, |e| [e.to_bits()], valid, frame)
     }
 }
 

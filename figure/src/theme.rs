@@ -175,6 +175,11 @@ impl Theme {
         self.pt(1.5)
     }
 
+    /// Outlines of filled shapes: 1 pt, seaborn's `patch.linewidth`.
+    pub(crate) fn patch_width(&self) -> f64 {
+        self.pt(1.0)
+    }
+
     /// A marker's diameter: 6 pt.
     pub(crate) fn marker(&self) -> f64 {
         self.pt(6.0)

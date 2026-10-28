@@ -10,10 +10,10 @@ use crate::figure::Fits;
 use crate::hit;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, admits, at, dashes, guard, positive, stroke, within};
+use crate::mark::{Ctx, Mark, at, dashes, guard, positive, stroke, within};
 use crate::path;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
-use crate::thin::{self, Thin};
+use crate::thin::Thin;
 
 /// A line through points in their order: one `Stroke` command, broken
 /// where a point cannot be placed. A recording channel on an x scale with
@@ -192,12 +192,6 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// thins: [`Thin::Auto`], an x scale with an index bridge, and a
     /// recording channel for data.
     fn thinned(&self, ctx: &Ctx<'_>, sx: &X, sy: &Y) -> Option<m4::Lines> {
-        if self.thin == Thin::Off {
-            return None;
-        }
-        let channel = self.points.indexed()?;
-        let indexed = sx.indexed()?;
-        let edges = thin::edges(indexed, ctx.rect().width(), ctx.columns())?;
-        indexed.thin(&channel, &edges, &|v| admits(sy, v), &mut ctx.frame())
+        super::thinned(&self.points, self.thin, ctx, sx, sy)
     }
 }

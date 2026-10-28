@@ -63,6 +63,65 @@ pub(crate) fn clip(
     out
 }
 
+/// The closed polygon through `points` clipped to `rect`
+/// (Sutherland–Hodgman): the vertices of its part inside, in order, with
+/// edges along `rect` where it was cut; empty when no part is inside.
+/// Points inside `rect` are kept bit for bit.
+pub(crate) fn polygon(points: &[Point], rect: Rect) -> Vec<Point> {
+    let mut out = points.to_vec();
+    for side in [Side::Left, Side::Right, Side::Top, Side::Bottom] {
+        let Some(&last) = out.last() else {
+            break;
+        };
+        let input = std::mem::take(&mut out);
+        let mut previous = last;
+        for p in input {
+            match (side.keeps(previous, rect), side.keeps(p, rect)) {
+                (true, true) => out.push(p),
+                (true, false) => out.push(side.cut(previous, p, rect)),
+                (false, true) => out.extend([side.cut(previous, p, rect), p]),
+                (false, false) => {}
+            }
+            previous = p;
+        }
+    }
+    out
+}
+
+/// A side of the clip rectangle, which keeps the half-plane inside it.
+#[derive(Clone, Copy)]
+enum Side {
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
+impl Side {
+    /// Whether `p` lies on `rect`'s side of this edge, the edge included.
+    fn keeps(self, p: Point, rect: Rect) -> bool {
+        match self {
+            Side::Left => p.x >= rect.x0,
+            Side::Right => p.x <= rect.x1,
+            Side::Top => p.y >= rect.y0,
+            Side::Bottom => p.y <= rect.y1,
+        }
+    }
+
+    /// Where the segment from `a` to `b`, which crosses this edge of
+    /// `rect`, crosses it.
+    fn cut(self, a: Point, b: Point, rect: Rect) -> Point {
+        let at_x = |x: f64| Point::new(x, a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x));
+        let at_y = |y: f64| Point::new(a.x + (b.x - a.x) * (y - a.y) / (b.y - a.y), y);
+        match self {
+            Side::Left => at_x(rect.x0),
+            Side::Right => at_x(rect.x1),
+            Side::Top => at_y(rect.y0),
+            Side::Bottom => at_y(rect.y1),
+        }
+    }
+}
+
 /// The part of the segment from `a` to `b` inside `rect` (Liang–Barsky),
 /// with `a` and `b` themselves where they lie inside; `None` when no part
 /// is inside or the clipped ends are not finite.
@@ -205,6 +264,32 @@ mod tests {
     fn a_lone_point_is_kept_inside_and_dropped_outside() {
         assert_eq!(clip([Some(p(0.5, 0.5))], unit()), [Some(p(0.5, 0.5))]);
         assert!(clip([Some(p(5.0, 0.5)), None], unit()).is_empty());
+    }
+
+    #[test]
+    fn a_polygon_inside_is_kept_bit_for_bit() {
+        let square = [p(0.1, 0.1), p(0.9, 0.1), p(0.9, 0.7), p(0.1, 0.7)];
+        assert_eq!(polygon(&square, unit()), square);
+    }
+
+    #[test]
+    fn a_polygon_crossing_the_band_is_cut_along_its_edges() {
+        let tall = [p(0.25, -1.0), p(0.75, -1.0), p(0.75, 2.0), p(0.25, 2.0)];
+        assert_eq!(
+            polygon(&tall, unit()),
+            [p(0.25, 1.0), p(0.25, 0.0), p(0.75, 0.0), p(0.75, 1.0)]
+        );
+        let corner = [p(0.5, 0.5), p(3.0, 0.5), p(0.5, 3.0)];
+        let clipped = polygon(&corner, unit());
+        assert!(clipped.iter().all(|q| within(unit(), *q)), "{clipped:?}");
+        assert_eq!(clipped.len(), 4);
+    }
+
+    #[test]
+    fn a_polygon_wholly_outside_is_empty() {
+        let away = [p(2.0, 2.0), p(3.0, 2.0), p(3.0, 3.0)];
+        assert!(polygon(&away, unit()).is_empty());
+        assert!(polygon(&[], unit()).is_empty());
     }
 
     #[test]

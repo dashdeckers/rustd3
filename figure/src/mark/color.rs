@@ -22,6 +22,10 @@ pub(crate) trait Lookup {
     /// The key's color in the resolved palette; `None` when the palette
     /// has none for it.
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb>;
+
+    /// The key's slot among the palette's keys and their count, which
+    /// dodged marks sit in; `None` when the palette has none.
+    fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)>;
 }
 
 /// A palette handle and a key of its domain.
@@ -33,6 +37,10 @@ struct Keyed<C: Paint> {
 impl<C: Paint> Lookup for Keyed<C> {
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb> {
         ctx.scale(self.palette).paint(&self.key)
+    }
+
+    fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
+        ctx.scale(self.palette).slot(&self.key)
     }
 }
 
@@ -47,6 +55,15 @@ impl Color {
         match self {
             Color::Theme | Color::Fixed(_) => true,
             Color::Keyed(lookup) => lookup.paint(ctx).is_some(),
+        }
+    }
+
+    /// The key's slot among its palette's keys and their count, for
+    /// [`dodge`](super::dodge); `None` without a key.
+    pub(crate) fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
+        match self {
+            Color::Theme | Color::Fixed(_) => None,
+            Color::Keyed(lookup) => lookup.slot(ctx),
         }
     }
 

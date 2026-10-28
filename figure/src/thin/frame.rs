@@ -76,23 +76,30 @@ impl Frame {
 
     /// M4 of `series` over the columns between consecutive `edges`
     /// (increasing), whose bits hash to `grid`, keeping the samples that
-    /// pass `valid`: from the memo when this recording, revision, channel,
-    /// grid and test were thinned before, else from the index over column
-    /// boundaries computed once per draw for the recording, its revision
-    /// and the grid. `None` when `edges` are fewer than two, out of order or
-    /// not valid coordinates.
+    /// pass `valid`, jointly with `upper` when given (core's
+    /// `Series::m4_joint`): from the memo when this recording, revision,
+    /// channels, grid and test were thinned before, else from the index over
+    /// column boundaries computed once per draw for the recording, its
+    /// revision and the grid. `None` when `upper` belongs to another
+    /// recording, or `edges` are fewer than two, out of order or not valid
+    /// coordinates.
     pub(crate) fn lines<X: Coordinate>(
         &mut self,
         series: Series<'_, X>,
+        upper: Option<Series<'_, X>>,
         edges: &[X],
         grid: u64,
         valid: &dyn Fn(f64) -> bool,
     ) -> Option<m4::Lines> {
         let recording = series.recording();
+        if upper.is_some_and(|upper| upper.recording().id() != recording.id()) {
+            return None;
+        }
         let key = Key {
             recording: recording.id(),
             revision: recording.revision(),
             channel: series.channel(),
+            upper: upper.map(Series::channel),
             grid,
             valid: fingerprint(valid),
         };
@@ -108,9 +115,11 @@ impl Frame {
                 slot.insert(recording.columns(edges).ok()?)
             }
         };
-        let lines = series
-            .m4(columns, valid)
-            .expect("invariant: columns built for this series' recording and revision");
+        let lines = match upper {
+            Some(upper) => series.m4_joint(upper, columns, valid),
+            None => series.m4(columns, valid),
+        }
+        .expect("invariant: columns built for one recording's revision, both channels its own");
         self.memo.insert(key, lines.clone());
         Some(lines)
     }
@@ -157,8 +166,8 @@ mod tests {
         let rec = ramp();
         let (edges, grid) = edges();
         let mut frame = Frame::new(Memo::default());
-        let a = frame.lines(rec.series(0).expect("a"), &edges, grid, &|_| true);
-        let b = frame.lines(rec.series(1).expect("b"), &edges, grid, &|_| true);
+        let a = frame.lines(rec.series(0).expect("a"), None, &edges, grid, &|_| true);
+        let b = frame.lines(rec.series(1).expect("b"), None, &edges, grid, &|_| true);
         assert_eq!(frame.hits(), 1);
         assert_eq!(frame.into_memo().queries(), 2);
         let columns = rec.columns(&edges).expect("valid edges");
@@ -174,13 +183,13 @@ mod tests {
         for _ in 0..2 {
             memo.begin();
             let mut frame = Frame::new(memo);
-            frame.lines(rec.series(0).expect("a"), &edges, grid, &|_| true);
+            frame.lines(rec.series(0).expect("a"), None, &edges, grid, &|_| true);
             memo = frame.into_memo();
         }
         assert_eq!(memo.queries(), 1);
         rec.extend(&[], [[1.0], [2.0]]).expect("an append");
         let mut frame = Frame::new(memo);
-        frame.lines(rec.series(0).expect("a"), &edges, grid, &|_| true);
+        frame.lines(rec.series(0).expect("a"), None, &edges, grid, &|_| true);
         assert_eq!(frame.into_memo().queries(), 2);
     }
 
@@ -194,8 +203,8 @@ mod tests {
         let rec = Recording::new(clock, [y]).expect("a valid recording");
         let (edges, grid) = edges();
         let mut frame = Frame::new(Memo::default());
-        let all = frame.lines(rec.series(0).expect("a"), &edges, grid, &|_| true);
-        let positive = frame.lines(rec.series(0).expect("a"), &edges, grid, &|v| v > 0.0);
+        let all = frame.lines(rec.series(0).expect("a"), None, &edges, grid, &|_| true);
+        let positive = frame.lines(rec.series(0).expect("a"), None, &edges, grid, &|v| v > 0.0);
         assert_ne!(all, positive);
         assert_eq!(frame.into_memo().queries(), 2);
     }
@@ -207,7 +216,7 @@ mod tests {
         let mut memo = Memo::default();
         memo.begin();
         let mut frame = Frame::new(memo);
-        frame.lines(rec.series(0).expect("a"), &edges, grid, &|_| true);
+        frame.lines(rec.series(0).expect("a"), None, &edges, grid, &|_| true);
         memo = frame.into_memo();
         for _ in 0..32 {
             memo.begin();
@@ -224,12 +233,40 @@ mod tests {
     }
 
     #[test]
+    fn a_joint_query_is_memoized_apart_from_its_channels() {
+        let rec = ramp();
+        let (edges, grid) = edges();
+        let (a, b) = (rec.series(0).expect("a"), rec.series(1).expect("b"));
+        let mut frame = Frame::new(Memo::default());
+        let joint = frame.lines(a, Some(b), &edges, grid, &|_| true);
+        let alone = frame.lines(a, None, &edges, grid, &|_| true);
+        let again = frame.lines(a, Some(b), &edges, grid, &|_| true);
+        assert_eq!(joint, again);
+        assert_eq!(frame.into_memo().queries(), 2);
+        let columns = rec.columns(&edges).expect("valid edges");
+        assert_eq!(joint, a.m4_joint(b, &columns, |_| true).ok());
+        assert_eq!(alone, a.m4(&columns, |_| true).ok());
+    }
+
+    #[test]
+    fn a_joint_query_over_two_recordings_thins_nothing() {
+        let (rec, other) = (ramp(), ramp());
+        let (edges, grid) = edges();
+        let mut frame = Frame::new(Memo::default());
+        let (a, b) = (rec.series(0).expect("a"), other.series(1).expect("b"));
+        assert_eq!(frame.lines(a, Some(b), &edges, grid, &|_| true), None);
+    }
+
+    #[test]
     fn invalid_edges_thin_nothing() {
         let rec = ramp();
         let mut frame = Frame::new(Memo::default());
         let series = rec.series(0).expect("a");
-        assert_eq!(frame.lines(series, &[2.0, 1.0], 7, &|_| true), None);
-        assert_eq!(frame.lines(series, &[f64::NAN, 1.0], 8, &|_| true), None);
+        assert_eq!(frame.lines(series, None, &[2.0, 1.0], 7, &|_| true), None);
+        assert_eq!(
+            frame.lines(series, None, &[f64::NAN, 1.0], 8, &|_| true),
+            None
+        );
     }
 
     #[test]

@@ -1,6 +1,8 @@
 //! Marks: the [`Mark`] trait every mark implements, [`Ctx`], what a mark
 //! sees while it draws one panel, and the figure's marks: [`dots`],
-//! [`line()`], [`rule_x`] and [`rule_y`].
+//! [`line()`], [`area()`], [`ribbon`], [`ribbon_series`], [`bar_y`],
+//! [`bar_x`], [`bar_y_spans`], [`bar_x_spans`], [`rect()`], [`rule_x`] and
+//! [`rule_y`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -15,17 +17,21 @@
 //!     .mark(rule_y(1.5, y).dash([6.0, 3.0]).label("limit"));
 //! ```
 
+mod area;
+mod bar;
 mod color;
 mod dots;
+mod error;
 mod guard;
 mod line;
+mod rect;
 mod rule;
 
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 
-use kurbo::{Cap, Join, Point, Rect};
-use rustd3_core::series::Points;
+use kurbo::{BezPath, Cap, Join, Point};
+use rustd3_core::series::{Points, m4};
 
 use crate::check::{self, Issue};
 use crate::figure::{Fits, Resolved};
@@ -36,10 +42,14 @@ use crate::mark::color::Color;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{self, Key, Shaped};
 use crate::theme::Theme;
-use crate::thin;
+use crate::thin::{self, Thin};
 
+pub use area::{Area, Ribbon, area, ribbon, ribbon_series};
+pub use bar::{BarX, BarY, bar_x, bar_x_spans, bar_y, bar_y_spans};
 pub use dots::{Dots, dots};
+pub use error::Error;
 pub use line::{Line, line};
+pub use rect::{Rect, rect};
 pub use rule::{Rule, rule_x, rule_y};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data
@@ -281,6 +291,25 @@ fn visible<'a, X: Position, Y: Position>(
     }
 }
 
+/// M4's sample indices per column of the plot area for `points` on `sx`
+/// and `sy`, when they thin: [`Thin::Auto`], an x scale with an index
+/// bridge, and a recording channel for data.
+fn thinned<X: Position, Y: Position>(
+    points: &Points<'_, <X as Kind>::Domain, <Y as Kind>::Domain>,
+    thin: Thin,
+    ctx: &Ctx<'_>,
+    sx: &X,
+    sy: &Y,
+) -> Option<m4::Lines> {
+    if thin == Thin::Off {
+        return None;
+    }
+    let channel = points.indexed()?;
+    let indexed = sx.indexed()?;
+    let edges = thin::edges(indexed, ctx.rect().width(), ctx.columns())?;
+    indexed.thin(&channel, &edges, &|v| admits(sy, v), &mut ctx.frame())
+}
+
 /// The issues every mark over `points` in `color` may have: collected data
 /// over 100,000 points, and a key its palette lacks.
 fn issues<X, Y>(points: &Points<'_, X, Y>, color: &Color, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
@@ -292,8 +321,23 @@ fn issues<X, Y>(points: &Points<'_, X, Y>, color: &Color, ctx: &Ctx<'_>, issues:
             points: points.len(),
         });
     }
+    unknown(color, ctx, issues);
+}
+
+/// A key `color`'s palette lacks.
+fn unknown(color: &Color, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
     if !color.known(ctx) {
-        issues.push(Issue::UnknownKey { panel, mark });
+        issues.push(Issue::UnknownKey {
+            panel: ctx.panel(),
+            mark: ctx.mark(),
+        });
+    }
+}
+
+/// Reports `count` keys outside `handle`'s band or point domain.
+fn outside_count(handle: usize, count: usize, issues: &mut Vec<Issue>) {
+    if count > 0 {
+        issues.push(Issue::OutsideDomain { handle, count });
     }
 }
 
@@ -316,16 +360,89 @@ fn outside<X: Position, Y: Position>(
         across += usize::from(sx.position(&a).is_none());
         up += usize::from(sy.position(&b).is_none());
     }
-    for (handle, count) in [(x.index(), across), (y.index(), up)] {
-        if count > 0 {
-            issues.push(Issue::OutsideDomain { handle, count });
-        }
-    }
+    outside_count(x.index(), across, issues);
+    outside_count(y.index(), up, issues);
 }
 
 /// Whether `p` lies in `bounds`, edges included.
-fn within(bounds: Rect, p: Point) -> bool {
+fn within(bounds: kurbo::Rect, p: Point) -> bool {
     (bounds.x0..=bounds.x1).contains(&p.x) && (bounds.y0..=bounds.y1).contains(&p.y)
+}
+
+/// Where `v` lies along `scale`, a value axis, clamped to `[lo, hi]` (a
+/// guard band's extent along it). A value the scale's transform does not
+/// take (0 or less on a log scale) lies at the end of the guard band on
+/// the side of the domain it lies beyond, as matplotlib clips it. `None`
+/// for NaN.
+fn reach<S: Position<Domain = f64>>(scale: &S, v: f64, [lo, hi]: [f64; 2]) -> Option<f64> {
+    if v.is_nan() {
+        return None;
+    }
+    let p = scale.position(&v)?;
+    if !p.is_nan() {
+        return Some(p.clamp(lo, hi));
+    }
+    let [d0, d1] = Kind::domain(scale)?;
+    let (low, high) = (d0.min(d1), d0.max(d1));
+    let (beyond, other) = if v < low {
+        (low, high)
+    } else if v > high {
+        (high, low)
+    } else {
+        return None;
+    };
+    let toward = scale.position(&beyond)? > scale.position(&other)?;
+    Some(if toward { hi } else { lo })
+}
+
+/// The part of the band `(start, width)` a dodged mark takes in slot
+/// `(k, n)`: the k-th of n equal sub-bands, in the palette's order; the
+/// whole band without a slot.
+fn dodge((start, width): (f64, f64), slot: Option<(usize, usize)>) -> (f64, f64) {
+    match slot {
+        Some((k, n)) if n > 0 => {
+            let w = width / n as f64;
+            (start + k as f64 * w, w)
+        }
+        Some(_) | None => (start, width),
+    }
+}
+
+/// The runs of consecutive `Some` items, in order.
+fn runs<T>(items: impl IntoIterator<Item = Option<T>>) -> Vec<Vec<T>> {
+    let mut runs = vec![Vec::new()];
+    for item in items {
+        match item {
+            Some(item) => runs
+                .last_mut()
+                .expect("invariant: one run is open")
+                .push(item),
+            None => {
+                if runs.last().is_some_and(|run| !run.is_empty()) {
+                    runs.push(Vec::new());
+                }
+            }
+        }
+    }
+    runs.retain(|run| !run.is_empty());
+    runs
+}
+
+/// Appends the closed polygon through `points` to `path`, clipped to
+/// `band`; nothing when fewer than three vertices are left.
+fn polygon(path: &mut BezPath, points: &[Point], band: kurbo::Rect) {
+    let clipped = guard::polygon(points, band);
+    let Some((&first, rest)) = clipped.split_first() else {
+        return;
+    };
+    if rest.len() < 2 {
+        return;
+    }
+    path.move_to(first);
+    for &p in rest {
+        path.line_to(p);
+    }
+    path.close_path();
 }
 
 /// A mark's stroke: `width` px, butt caps, round joins (matplotlib's
@@ -373,6 +490,35 @@ mod tests {
         assert!(admits(&scale::log(), 3.0));
         assert!(!admits(&scale::log(), -3.0));
         assert!(!admits(&scale::band(["a"]), 0.0));
+    }
+
+    #[test]
+    fn dodged_marks_take_their_slot_of_the_band() {
+        assert_eq!(dodge((10.0, 30.0), Some((2, 3))), (30.0, 10.0));
+        assert_eq!(dodge((10.0, 30.0), None), (10.0, 30.0));
+        assert_eq!(dodge((10.0, 30.0), Some((0, 0))), (10.0, 30.0));
+    }
+
+    #[test]
+    fn reaches_clamp_to_the_guard_band_and_drop_nan() {
+        let band = [-100.0, 200.0];
+        let log = scale::log().domain([1.0, 10.0]).range([100.0, 0.0]);
+        assert_eq!(reach(&log, 0.0, band), Some(200.0));
+        assert_eq!(reach(&log, -1.0, band), Some(200.0));
+        assert_eq!(reach(&log, 10.0, band), Some(0.0));
+        assert_eq!(reach(&log, 1e9, band), Some(-100.0));
+        assert_eq!(reach(&log, f64::NAN, band), None);
+        let flipped = scale::log().domain([10.0, 1.0]).range([100.0, 0.0]);
+        assert_eq!(reach(&flipped, 0.0, band), Some(-100.0));
+        let negative = scale::log().domain([-10.0, -1.0]).range([100.0, 0.0]);
+        assert_eq!(reach(&negative, 0.0, band), Some(-100.0));
+    }
+
+    #[test]
+    fn runs_split_at_every_gap() {
+        let items = [None, Some(1), Some(2), None, None, Some(3), None];
+        assert_eq!(runs(items), [vec![1, 2], vec![3]]);
+        assert!(runs::<u8>([None, None]).is_empty());
     }
 
     #[test]

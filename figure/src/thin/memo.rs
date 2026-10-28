@@ -8,8 +8,8 @@ use rustd3_core::series::{self, m4};
 /// Entries unused for this many draws are dropped, as the text cache's.
 const MAX_AGE: u64 = 32;
 
-/// M4 output by recording, revision, channel, column grid and validity
-/// test, kept in the figure's cache across draws: a redraw of an unchanged
+/// M4 output by recording, revision, channel (two for a joint query),
+/// column grid and validity test, kept in the figure's cache across draws: a redraw of an unchanged
 /// view queries nothing, and an append bumps the revision and misses.
 /// Entries unused for 32 draws are dropped.
 #[derive(Default)]
@@ -28,6 +28,8 @@ pub(crate) struct Key {
     pub(crate) revision: u64,
     /// The channel.
     pub(crate) channel: usize,
+    /// The upper edge's channel of a joint query; `None` for one channel.
+    pub(crate) upper: Option<usize>,
     /// The column edges' hash.
     pub(crate) grid: u64,
     /// The validity test's fingerprint.

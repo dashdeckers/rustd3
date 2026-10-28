@@ -42,6 +42,23 @@ pub trait Indexed<D> {
         valid: &dyn Fn(f64) -> bool,
         frame: &mut thin::Frame,
     ) -> Option<m4::Lines>;
+
+    /// For two `Series` views of one recording, a ribbon's `lower` and
+    /// `upper` edge: M4 over both together (core's `Series::m4_joint`), so
+    /// both keep their extremes in every column, through `frame` as
+    /// [`thin`](Indexed::thin). `None` by default, and when either is not a
+    /// `Series` view, they belong to two recordings, or `edges` are not
+    /// valid.
+    fn thin_joint(
+        &self,
+        _lower: &Points<'_, D, f64>,
+        _upper: &Points<'_, D, f64>,
+        _edges: &[D],
+        _valid: &dyn Fn(f64) -> bool,
+        _frame: &mut thin::Frame,
+    ) -> Option<m4::Lines> {
+        None
+    }
 }
 
 /// What [`Indexed::series_extent`] reads from a recording. Plain data.
@@ -79,16 +96,22 @@ pub(crate) fn extent<X: Coordinate>(
     Some(SeriesExtent { x, y })
 }
 
-/// [`Indexed::thin`] for any coordinate: the edges put in increasing
-/// order, their grid keyed by `bits` of each edge.
+/// [`Indexed::thin`] for any coordinate, and [`Indexed::thin_joint`] with
+/// an `upper` edge: the edges put in increasing order, their grid keyed by
+/// `bits` of each edge.
 pub(crate) fn thin<X: Coordinate, B: IntoIterator<Item = u64>>(
     points: &Points<'_, X, f64>,
+    upper: Option<&Points<'_, X, f64>>,
     edges: &[X],
     bits: impl Fn(&X) -> B,
     valid: &dyn Fn(f64) -> bool,
     frame: &mut thin::Frame,
 ) -> Option<m4::Lines> {
     let series = points.series()?;
+    let upper = match upper {
+        Some(upper) => Some(upper.series()?),
+        None => None,
+    };
     let reversed: Vec<X>;
     let edges = if edges.first() > edges.last() {
         reversed = edges.iter().rev().copied().collect();
@@ -97,5 +120,5 @@ pub(crate) fn thin<X: Coordinate, B: IntoIterator<Item = u64>>(
         edges
     };
     let grid = thin::grid(edges.iter().flat_map(bits));
-    frame.lines(series, edges, grid, valid)
+    frame.lines(series, upper, edges, grid, valid)
 }

@@ -110,13 +110,26 @@ impl Indexed<Timestamp> for Time {
         valid: &dyn Fn(f64) -> bool,
         frame: &mut thin::Frame,
     ) -> Option<m4::Lines> {
-        // An instant's i128 nanoseconds as two words, low first.
-        let bits = |t: &Timestamp| {
-            let ns = t.as_nanosecond() as u128;
-            [ns as u64, (ns >> 64) as u64]
-        };
-        indexed::thin(points, edges, bits, valid, frame)
+        indexed::thin(points, None, edges, bits, valid, frame)
     }
+
+    fn thin_joint(
+        &self,
+        lower: &Points<'_, Timestamp, f64>,
+        upper: &Points<'_, Timestamp, f64>,
+        edges: &[Timestamp],
+        valid: &dyn Fn(f64) -> bool,
+        frame: &mut thin::Frame,
+    ) -> Option<m4::Lines> {
+        indexed::thin(lower, Some(upper), edges, bits, valid, frame)
+    }
+}
+
+/// An instant's i128 nanoseconds as two words, low first: a column grid's
+/// key.
+fn bits(t: &Timestamp) -> [u64; 2] {
+    let ns = t.as_nanosecond() as u128;
+    [ns as u64, (ns >> 64) as u64]
 }
 
 #[cfg(test)]
