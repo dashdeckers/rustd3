@@ -14,6 +14,7 @@ use crate::plot::budget::Budget;
 use crate::plot::cost;
 use crate::plot::domains::{Domains, Key};
 use crate::plot::gesture::{self, Gesture, Track};
+use crate::plot::hover::{self, Hover};
 use crate::plot::input::Input;
 use crate::plot::job::{Done, Job, Stamp};
 use crate::plot::listener::Listener;
@@ -59,8 +60,11 @@ pub(crate) struct State {
     budget: Budget,
     /// Plot areas in device px, relative to the widget's device origin.
     areas: Vec<[i32; 4]>,
-    /// The points the marks draw, list px, for hover.
-    hits: hit::Index,
+    /// The hit index of the last list, and the hover last reported.
+    hits: hover::Hits,
+    /// The pointer where the last move left it, logical px in the window;
+    /// `None` when it left or something above covers it.
+    pointer: Option<Point>,
     /// The crosshair and highlight where the pointer is.
     overlay: Overlay,
     /// The render thread, started with the first job set it gets.
@@ -125,7 +129,8 @@ impl Default for State {
             frame: 0,
             budget: Budget::default(),
             areas: Vec::new(),
-            hits: hit::Index::default(),
+            hits: hover::Hits::default(),
+            pointer: None,
             overlay: Overlay::default(),
             worker: None,
             tracker: Tracker::default(),
@@ -519,7 +524,7 @@ impl State {
         if !((size.width * k).round() >= 1.0 && (size.height * k).round() >= 1.0) {
             self.slots.clear();
             self.areas.clear();
-            self.hits = hit::Index::default();
+            self.hits.rebuild(hit::Index::default());
             self.map = region::Map::default();
             self.resolved = None;
             return (0, Vec::new());
@@ -590,7 +595,7 @@ impl State {
             .iter()
             .map(|area| [area.x0, area.y0, area.x1, area.y1].map(|edge| (edge * k).round() as i32))
             .collect();
-        self.hits = figure.hits(resolved, &mut self.cache);
+        self.hits.rebuild(figure.hits(resolved, &mut self.cache));
         let bounds = Arc::new(Bounds::of(&list, &mut self.outlines));
         let list = Arc::new(list);
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
@@ -841,25 +846,72 @@ impl State {
         }
     }
 
-    /// Hovers at `at` (logical, in the window; `None` when the pointer left
-    /// or something above covers it) over a widget laid out at `bounds`,
-    /// showing what `shown` asks for. True when the overlay changed, so the
-    /// widget redraws only then; no cell renders.
-    pub(crate) fn hover(
+    /// The pointer moved to `at` (logical, in the window; `None` when it
+    /// left or something above covers it) over a widget laid out at
+    /// `bounds`: hovers there as [`hover`](State::hover) does, and says
+    /// whether the widget should redraw; no cell renders.
+    pub(crate) fn moved(
         &mut self,
         at: Option<Point>,
         bounds: Rectangle,
         shown: overlay::Shown,
     ) -> bool {
+        self.pointer = at;
+        self.hover(bounds, shown)
+    }
+
+    /// Hit-tests the pointer's last position over a widget laid out at
+    /// `bounds` with the cached index: the panel whose plot area holds it,
+    /// and that panel's drawn point nearest it within 12 logical px, for
+    /// the overlay `shown` asks for and for `on_hover`. While a gesture is
+    /// active nothing is hit-tested: the overlay shows no ring and nothing
+    /// changes for `on_hover`. True when the overlay or the hovered point
+    /// changed.
+    pub(crate) fn hover(&mut self, bounds: Rectangle, shown: overlay::Shown) -> bool {
         let Some(factor) = self.factor else {
             return false;
         };
+        let busy = self.gesture.is_some();
         let [x0, y0] = origin(bounds, factor);
-        let device = at.map(|p| Point::new(p.x * factor - x0 as f32, p.y * factor - y0 as f32));
-        let next = Overlay::hover(device, &self.areas, &self.hits, factor, shown);
+        let k = f64::from(factor);
+        let mut hover = None;
+        let next = match self.pointer {
+            None => Overlay::default(),
+            Some(at) => {
+                let device = Point::new(at.x * factor - x0 as f32, at.y * factor - y0 as f32);
+                let inside = |&[x0, y0, x1, y1]: &[i32; 4]| {
+                    (x0 as f32..x1 as f32).contains(&device.x)
+                        && (y0 as f32..y1 as f32).contains(&device.y)
+                };
+                let panel = self.areas.iter().position(inside);
+                let near = kurbo::Point::new(f64::from(device.x) / k, f64::from(device.y) / k);
+                let hit = panel
+                    .filter(|_| !busy)
+                    .and_then(|panel| self.hits.nearest(near, panel));
+                hover = hit.map(|hit| Hover {
+                    panel: hit.panel,
+                    mark: hit.mark,
+                    index: hit.index,
+                    at: Point::new(at.x - bounds.x, at.y - bounds.y),
+                });
+                let point = hit.map(|hit| Point::new((hit.at.x * k) as f32, (hit.at.y * k) as f32));
+                Overlay::new(device, panel.map(|i| self.areas[i]), point, shown)
+            }
+        };
+        let pending = !busy && self.hits.set(hover);
         let changed = next != self.overlay;
         self.overlay = next;
-        changed
+        changed || pending
+    }
+
+    /// What `on_hover` hears after this frame, once per change of the
+    /// hovered point (`Some(None)` once when it was lost); nothing while a
+    /// gesture is active.
+    pub(crate) fn reported(&mut self) -> Option<Option<Hover>> {
+        if self.gesture.is_some() {
+            return None;
+        }
+        self.hits.report()
     }
 
     /// Draws every slot's image (the theme background where a slot has
@@ -1351,14 +1403,14 @@ mod tests {
         let bounds = Rectangle::new(Point::ORIGIN, Size::new(640.0, 480.0));
         let [x0, y0, x1, y1] = state.areas[0];
         let centre = Point::new((x0 + x1) as f32 / 2.5, (y0 + y1) as f32 / 2.5);
-        assert!(state.hover(Some(centre), bounds, shown));
-        assert!(!state.hover(Some(centre), bounds, shown), "the same place");
+        assert!(state.moved(Some(centre), bounds, shown));
+        assert!(!state.moved(Some(centre), bounds, shown), "the same place");
         // The redraw the hover asks for renders nothing, and neither does
         // the rebuild an app's message would cause.
         assert_eq!(refresh(&mut state, &fig, 1.25), 0);
         state.rebuilt();
         assert_eq!(refresh(&mut state, &fixture::grid(), 1.25), 0);
-        assert!(state.hover(None, bounds, shown), "the pointer left");
+        assert!(state.moved(None, bounds, shown), "the pointer left");
         assert_eq!(refresh(&mut state, &fig, 1.25), 0);
     }
 
@@ -1371,18 +1423,21 @@ mod tests {
             crosshair: true,
             highlight: true,
         };
-        assert!(!state.hover(Some(Point::new(1.0, 1.0)), bounds, shown));
+        assert!(!state.moved(Some(Point::new(1.0, 1.0)), bounds, shown));
         assert_eq!(state.overlay, Overlay::default());
-        // With nothing shown, moving inside a plot area changes no part.
+        // With nothing shown, moving inside a plot area changes no part
+        // (what is hovered may change, for `on_hover`).
         let none = Shown {
             crosshair: false,
             highlight: false,
         };
         let [x0, y0, ..] = state.areas[0];
         let inside = Point::new(x0 as f32 + 3.0, y0 as f32 + 3.0);
-        assert!(state.hover(Some(inside), bounds, none), "the panel changed");
+        assert!(state.moved(Some(inside), bounds, none), "the panel changed");
+        let before = state.overlay.clone();
         let further = Point::new(x0 as f32 + 9.0, y0 as f32 + 9.0);
-        assert!(!state.hover(Some(further), bounds, none));
+        state.moved(Some(further), bounds, none);
+        assert_eq!(state.overlay, before);
     }
 
     #[test]

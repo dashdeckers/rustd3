@@ -65,7 +65,9 @@
 //! horizontal bands below that size, so the GPU renderer uploads every
 //! image inside the frame that first draws it. Hovering renders no cell:
 //! the crosshair and the highlight are quads in a layer clipped to the
-//! hovered plot area, in the figure theme's ink.
+//! hovered plot area, in the figure theme's ink, and [`Plot::on_hover`]
+//! reports the hovered point ([`Hover`]) from an index of the drawn points
+//! the widget keeps with each drawing list.
 //!
 //! [`Plot::revision`] re-renders every cell once for a change the hashes
 //! cannot see (a paint image's pixels replaced in place, a font swapped),
@@ -170,6 +172,7 @@ mod domains;
 mod fixture;
 mod gesture;
 mod handle;
+mod hover;
 mod input;
 mod job;
 mod listener;
@@ -193,6 +196,7 @@ use rustd3_figure::Figure;
 use rustd3_figure::scale::{Kind, ScaleRef};
 
 pub use caching::Caching;
+pub use hover::Hover;
 use listener::Listener;
 use overlay::Shown;
 pub use probe::Probe;
@@ -203,6 +207,9 @@ use state::{Pipeline, State};
 /// under 2 MiB inside the frame (`wgpu/src/image/cache.rs:223-246`)
 /// and larger ones through a worker drained only by `Renderer::tick`.
 pub const BAND_BYTES: usize = 2 * 1024 * 1024;
+
+/// The app's message for what the pointer hovers.
+type Report<'a, Message> = Box<dyn Fn(Option<Hover>) -> Message + 'a>;
 
 /// Device px added to an image's origin before dividing by the factor:
 /// tiny-skia truncates an image's device position and wgpu adds 0.001
@@ -227,6 +234,7 @@ pub struct Plot<'a, Message> {
     revision: u64,
     probe: Option<Probe>,
     listeners: Vec<Listener<'a, Message>>,
+    on_hover: Option<Report<'a, Message>>,
 }
 
 impl<'a, Message> Plot<'a, Message> {
@@ -244,6 +252,7 @@ impl<'a, Message> Plot<'a, Message> {
             revision: 0,
             probe: None,
             listeners: Vec::new(),
+            on_hover: None,
         }
     }
 
@@ -419,6 +428,43 @@ impl<'a, Message> Plot<'a, Message> {
         self
     }
 
+    /// What the pointer is over becomes messages: `f(Some(hover))` when
+    /// the drawn point nearest the pointer (within 12 logical px, in the
+    /// panel whose plot area holds it) changes, `f(None)` once when there
+    /// is none any more or the pointer left the widget. Moving within one
+    /// point sends nothing. Moves between frames are hit-tested against an
+    /// index of the drawn points built with the drawing list, so hovering
+    /// resolves and renders nothing; at most one message goes out per
+    /// frame, and none during a gesture. The highlight ring shows the same
+    /// point; tooltips are the app's own widgets, built from these
+    /// messages.
+    ///
+    /// ```no_run
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::mark::dots;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_iced::Plot;
+    /// use rustd3_iced::plot::Hover;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// enum Message {
+    ///     Hovered(Option<Hover>),
+    /// }
+    ///
+    /// let mut fig = Figure::new();
+    /// let x = fig.fit(scale::linear());
+    /// let y = fig.fit(scale::linear());
+    /// fig.panel(0, 0).mark(dots([(1.0, 2.0), (3.0, 4.0)], x, y));
+    /// let plot: Plot<'_, Message> = Plot::new(fig).on_hover(Message::Hovered);
+    /// # let _ = plot;
+    /// ```
+    pub fn on_hover(self, f: impl Fn(Option<Hover>) -> Message + 'a) -> Self {
+        Plot {
+            on_hover: Some(Box::new(f)),
+            ..self
+        }
+    }
+
     /// The overlay parts this widget shows.
     fn shown(&self) -> Shown {
         Shown {
@@ -502,27 +548,30 @@ where
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
                 };
-                let (changed, messages) =
+                let (_, messages) =
                     state.redraw(&self.figure, factor, *now, &pipeline, &self.listeners);
                 // New cells may move the plot areas or the points under
-                // the pointer.
-                if changed > 0 {
-                    state.hover(cursor.position(), layout.bounds(), self.shown());
-                }
+                // the pointer, and a gesture may have ended.
+                state.hover(layout.bounds(), self.shown());
                 for message in messages {
                     shell.publish(message);
+                }
+                if let Some(hover) = state.reported()
+                    && let Some(report) = &self.on_hover
+                {
+                    shell.publish(report(hover));
                 }
                 if let Some(end) = state.wheel_end() {
                     shell.request_redraw_at(window::RedrawRequest::At(end));
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                if state.hover(cursor.position(), layout.bounds(), self.shown()) {
+                if state.moved(cursor.position(), layout.bounds(), self.shown()) {
                     shell.request_redraw();
                 }
             }
             Event::Mouse(mouse::Event::CursorLeft) => {
-                if state.hover(None, layout.bounds(), self.shown()) {
+                if state.moved(None, layout.bounds(), self.shown()) {
                     shell.request_redraw();
                 }
             }

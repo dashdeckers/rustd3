@@ -5,10 +5,6 @@ use iced_core::border;
 use iced_core::renderer::{self, Quad};
 use iced_core::{Color, Point, Rectangle, Size};
 use rustd3_core::color::Rgb;
-use rustd3_figure::{hit, kurbo};
-
-/// Logical px within which the nearest drawn point is highlighted.
-const RADIUS: f64 = 12.0;
 
 /// The highlight ring's radius, logical px.
 const RING: f32 = 4.0;
@@ -41,38 +37,24 @@ pub(crate) struct Shown {
 }
 
 impl Overlay {
-    /// The overlay for a pointer at `at` (device px; `None` when it left
-    /// or something above the widget covers it): the panel among `areas`
-    /// whose plot area holds it, the crosshair there, and the nearest point
-    /// of that panel's marks in `hits` (list px) within 12 logical px, at
-    /// `factor` device px per logical px. Parts `shown` leaves out stay
+    /// The overlay over the plot area `panel` (device rect) of the hovered
+    /// panel: the crosshair through `cursor` and the ring around `point`
+    /// (device px from the widget's device origin), each when `shown` asks
+    /// for it; empty over no plot area. Parts `shown` leaves out stay
     /// empty, so they never count as a change.
-    pub(crate) fn hover(
-        at: Option<Point>,
-        areas: &[[i32; 4]],
-        hits: &hit::Index,
-        factor: f32,
+    pub(crate) fn new(
+        cursor: Point,
+        panel: Option<[i32; 4]>,
+        point: Option<Point>,
         shown: Shown,
     ) -> Overlay {
-        let Some(at) = at else {
+        let Some(panel) = panel else {
             return Overlay::default();
         };
-        let inside = |[x0, y0, x1, y1]: &[i32; 4]| {
-            (*x0 as f32..*x1 as f32).contains(&at.x) && (*y0 as f32..*y1 as f32).contains(&at.y)
-        };
-        let Some((index, &panel)) = areas.iter().enumerate().find(|(_, area)| inside(area)) else {
-            return Overlay::default();
-        };
-        let k = f64::from(factor);
-        let near = kurbo::Point::new(f64::from(at.x) / k, f64::from(at.y) / k);
-        let point = hits
-            .nearest(near, RADIUS)
-            .filter(|hit| shown.highlight && hit.panel == index)
-            .map(|hit| Point::new((hit.at.x * k) as f32, (hit.at.y * k) as f32));
         Overlay {
-            cursor: shown.crosshair.then_some(at),
+            cursor: shown.crosshair.then_some(cursor),
             panel: Some(panel),
-            point,
+            point: point.filter(|_| shown.highlight),
         }
     }
 
