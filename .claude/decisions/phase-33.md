@@ -78,7 +78,7 @@ reversed for a descending domain, so the ramp never reverses.
 
 ## D33.3 — Details of Phase 33 as built
 
-**Date:** 2026-10-28 · **Context:** Phase 33, 2558a96 … d0583ed · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 33, 2558a96 … d0583ed · **Status:** decided
 
 ### Issue
 
@@ -136,7 +136,11 @@ reversed for a descending domain, so the ramp never reverses.
 
 ### Decision
 
-Recommended: A for all thirteen, as built.
+A for all thirteen (architect, 2026-10-28), as built. `Paint::paint`
+returns `None` for a value the scale does not admit and marks skip that
+datum (matplotlib's default "bad" colour is transparent); colour handles
+without data keep the domain they were built with; core gains the
+additive `Sequential::admits`, `Diverging::admits` and the `Pad` impls.
 
 ### Why
 
