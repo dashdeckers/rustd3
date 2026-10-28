@@ -2,8 +2,9 @@
 
 use crate::series::{Coordinate, Points, Series, Slices};
 
-/// Mark data: collected pairs, a borrowed indexed view, or borrowed slices.
-/// No bound on `X` or `Y`: band keys (`PartialEq` only) work.
+/// Mark data: collected pairs, a borrowed indexed view, borrowed slices, or
+/// [`Points`] as another builder kept them. No bound on `X` or `Y`: band
+/// keys (`PartialEq` only) work.
 ///
 /// A borrowed `Vec` yields references, not pairs, so it is rejected (E0271):
 ///
@@ -59,5 +60,23 @@ impl<'a, X: Coordinate> Data<'a, X, f64> for Series<'a, X> {
 impl<'a, X, Y> Data<'a, X, Y> for Slices<'a, X, Y> {
     fn into_points(self) -> Points<'a, X, Y> {
         Points::borrowed(self)
+    }
+}
+
+/// As they are: data a builder took as `impl Data` and kept passes on to
+/// a mark unchanged, still collected, borrowed or indexed.
+///
+/// ```
+/// use rustd3_core::series::{self, Data, Points};
+///
+/// let (x, y) = ([0.0, 1.0], [2.0, 3.0]);
+/// let kept: Points<'_, f64, f64> = series::slices(&x, &y).into_points();
+/// let passed = kept.into_points();
+/// assert!(!passed.is_collected());
+/// assert_eq!(passed.get(1), Some((1.0, 3.0)));
+/// ```
+impl<'a, X, Y> Data<'a, X, Y> for Points<'a, X, Y> {
+    fn into_points(self) -> Points<'a, X, Y> {
+        self
     }
 }
