@@ -10,7 +10,7 @@ use crate::figure::Fits;
 use crate::hit;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, at, dashes, guard, positive, stroke, within};
+use crate::mark::{Ctx, Mark, across, at, dashes, guard, positive, stroke, within};
 use crate::path;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::thin::Thin;
@@ -27,6 +27,7 @@ pub struct Line<'a, X: Position, Y: Position> {
     dash: Vec<f64>,
     curve: Curve,
     thin: Thin,
+    dodge: bool,
 }
 
 /// A line through `data` (pairs, a recording channel or two slices) on `x`
@@ -62,6 +63,7 @@ pub fn line<'a, X: Position, Y: Position>(
         dash: Vec::new(),
         curve: Curve::Linear,
         thin: Thin::Auto,
+        dodge: false,
     }
 }
 
@@ -111,6 +113,16 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     pub fn thin(self, t: Thin) -> Self {
         Self { thin: t, ..self }
     }
+
+    /// Vertices at the centre of the stroke key's sub-band (band x only):
+    /// the band split into one sub-band per palette key, in the palette's
+    /// order, so that a line runs through the dodged dots of its key.
+    pub fn dodge(self) -> Self {
+        Self {
+            dodge: true,
+            ..self
+        }
+    }
 }
 
 impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
@@ -124,7 +136,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     /// and joined by the curve; nothing when no segment is left.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let place = |(a, b)| Some(Point::new(at(&sx, &a)?, at(&sy, &b)?));
+        let slot = self.slot(ctx);
+        let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
         let band = guard::band(ctx.rect().width(), ctx.rect().height());
         let (items, curve) = match self.thinned(ctx, &sx, &sy) {
             Some(lines) => {
@@ -158,7 +171,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     /// otherwise.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let place = |(a, b)| Some(Point::new(at(&sx, &a)?, at(&sy, &b)?));
+        let slot = self.slot(ctx);
+        let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
         let area = ctx.rect().with_origin(Point::ORIGIN);
         let mut push = |i: usize, p: Option<Point>| {
             if let Some(p) = p.filter(|p| within(area, *p)) {
@@ -193,5 +207,10 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// recording channel for data.
     fn thinned(&self, ctx: &Ctx<'_>, sx: &X, sy: &Y) -> Option<m4::Lines> {
         super::thinned(&self.points, self.thin, ctx, sx, sy)
+    }
+
+    /// The stroke key's slot, when the line is dodged.
+    fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
+        self.color.slot(ctx).filter(|_| self.dodge)
     }
 }

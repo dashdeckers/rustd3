@@ -209,7 +209,21 @@ impl Ctx<'_> {
 /// Where `v` lies on `scale`: at the middle of its band on band scales;
 /// `None` for a key outside the domain or a position that is not finite.
 fn at<S: Position>(scale: &S, v: &<S as Kind>::Domain) -> Option<f64> {
-    let p = scale.position(v)? + scale.bandwidth() / 2.0;
+    across(scale, v, None, 0.5)
+}
+
+/// Where `v` lies across its band on `scale`, dodged into `slot` (see
+/// [`dodge`]): `share` of the way across the slot (0.5: its middle); the
+/// position itself on scales without bands. `None` for a key outside the
+/// domain or a position that is not finite.
+fn across<S: Position>(
+    scale: &S,
+    v: &<S as Kind>::Domain,
+    slot: Option<(usize, usize)>,
+    share: f64,
+) -> Option<f64> {
+    let (start, width) = dodge((scale.position(v)?, scale.bandwidth()), slot);
+    let p = start + width * share;
     p.is_finite().then_some(p)
 }
 

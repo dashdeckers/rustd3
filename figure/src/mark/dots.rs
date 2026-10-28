@@ -9,7 +9,7 @@ use crate::figure::Fits;
 use crate::hit;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, at, positive, within};
+use crate::mark::{Ctx, Mark, across, at, positive, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// How closely a dot's circle follows the true circle, in px.
@@ -24,6 +24,8 @@ pub struct Dots<'a, X: Position, Y: Position> {
     color: Color,
     r: Option<f64>,
     opacity: f64,
+    dodge: bool,
+    jitter: f64,
 }
 
 /// A scatter of `data` (pairs, a recording channel or two slices) through
@@ -105,6 +107,8 @@ pub fn dots<'a, X: Position, Y: Position>(
         color: Color::Theme,
         r: None,
         opacity: 1.0,
+        dodge: false,
+        jitter: 0.0,
     }
 }
 
@@ -157,6 +161,50 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     pub fn r(self, px: f64) -> Self {
         Self {
             r: positive(px).or(self.r),
+            ..self
+        }
+    }
+
+    /// Places the dots in their fill key's slot of the band: the band
+    /// split into one sub-band per palette key, in the palette's order, so
+    /// that dots, bars and lines of one key line up. It acts along x when
+    /// x has bands, else along y when y has; scales without bands place
+    /// dots at their value.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_core::scheme::COLORBLIND;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::dots;
+    ///
+    /// let mut fig = Figure::new();
+    /// let day = fig.scale(scale::band(["mon", "tue"]).padding(0.1));
+    /// let y = fig.fit(scale::linear());
+    /// let color = fig.scale(scale::ordinal(["a", "b"], COLORBLIND));
+    /// fig.panel(0, 0)
+    ///     .mark(dots([("mon", 1.0), ("mon", 2.0)], day, y).fill(color, "a").dodge().jitter(0.8))
+    ///     .mark(dots([("tue", 1.5)], day, y).fill(color, "b").dodge());
+    /// ```
+    pub fn dodge(self) -> Self {
+        Self {
+            dodge: true,
+            ..self
+        }
+    }
+
+    /// Spreads the dots across `share` of their band (or dodged slot), as
+    /// seaborn's `stripplot` does: each at `0.5 + share·(j − 0.5)` of the
+    /// way across, with `j` in [0, 1) a hash of the point's index, so the
+    /// same data jitters the same way in every render and on every
+    /// platform. Clamped to [0, 1]; 0 by default (the band's middle). NaN
+    /// leaves it as it was.
+    pub fn jitter(self, share: f64) -> Self {
+        Self {
+            jitter: if share.is_nan() {
+                self.jitter
+            } else {
+                share.clamp(0.0, 1.0)
+            },
             ..self
         }
     }
@@ -227,10 +275,46 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let r = self.radius(ctx);
         let bounds = ctx.rect().with_origin(Point::ORIGIN).inflate(r, r);
+        let slot = self.color.slot(ctx).filter(|_| self.dodge);
+        let along_y = sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0;
+        let share = move |i: usize| 0.5 + self.jitter * (jitter(i) - 0.5);
         self.points
             .iter()
             .enumerate()
-            .filter_map(move |(i, (a, b))| Some((i, Point::new(at(&sx, &a)?, at(&sy, &b)?))))
+            .filter_map(move |(i, (a, b))| {
+                let p = if along_y {
+                    Point::new(at(&sx, &a)?, across(&sy, &b, slot, share(i))?)
+                } else {
+                    Point::new(across(&sx, &a, slot, share(i))?, at(&sy, &b)?)
+                };
+                Some((i, p))
+            })
             .filter(move |(_, p)| within(bounds, *p))
+    }
+}
+
+/// Point `i`'s jitter in [0, 1): a splitmix64-style hash of its index
+/// (`proto/figmodel`'s), the same on every run and platform.
+fn jitter(i: usize) -> f64 {
+    let mut z = (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    z ^= z >> 29;
+    z = z.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z ^= z >> 32;
+    (z >> 11) as f64 / (1_u64 << 53) as f64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn jitter_is_a_fixed_hash_of_the_index_in_the_unit_interval() {
+        assert_eq!(jitter(0), 0.0);
+        let first: Vec<f64> = (0..1000).map(jitter).collect();
+        assert!(first.iter().all(|j| (0.0..1.0).contains(j)));
+        let mean = first.iter().sum::<f64>() / 1000.0;
+        assert!((mean - 0.5).abs() < 0.03, "{mean}");
+        assert_eq!(first, (0..1000).map(jitter).collect::<Vec<_>>());
+        assert_eq!(format!("{:.12}", jitter(1)), format!("{:.12}", first[1]));
     }
 }
