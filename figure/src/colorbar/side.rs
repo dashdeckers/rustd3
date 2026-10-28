@@ -78,6 +78,11 @@ impl<'g, 'a: 'g> axis::Draw<'g> for Side<'g, 'a> {
         (0..self.bar.shares(resolved, count).len() as i64).collect()
     }
 
+    /// None: no colorbar ticks are instants.
+    fn restarts(&self, _resolved: &Resolved, _count: usize) -> Vec<bool> {
+        Vec::new()
+    }
+
     /// None: colorbars label their ticks in full.
     fn notation(&self, _resolved: &Resolved, _count: usize) -> Option<String> {
         None

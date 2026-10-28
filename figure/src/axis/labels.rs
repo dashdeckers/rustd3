@@ -13,7 +13,8 @@ use crate::theme::Theme;
 
 /// One axis's labels for a layout pass: its side and color, the keys of its
 /// tick labels (none when it is not labelled; `None` for an empty label)
-/// with their ticks' absolute indices and their rotation, which ticks the
+/// with their ticks' absolute indices, which of them restart a run of a
+/// time interval's steps, and their rotation, which ticks the
 /// scale's format blanks, the line box its tick labels share, and the keys
 /// of its offset or multiplier label and of its title, set in that color.
 #[derive(Clone)]
@@ -25,6 +26,7 @@ pub(crate) struct Labels {
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Option<Key>>,
     pub(super) indices: Vec<i64>,
+    pub(super) restarts: Vec<bool>,
     /// Ticks whose label the scale's own format leaves empty (d3's log
     /// blanking), in tick order whether labelled or not: drawn as minor
     /// ticks.
@@ -54,14 +56,15 @@ impl Labels {
         let texts = axis.texts(resolved, count);
         let blanking = !axis.formats();
         let minor = texts.iter().map(|t| blanking && t.is_empty()).collect();
-        let (ticks, indices) = if labeled {
+        let (ticks, indices, restarts) = if labeled {
             let keys = texts
                 .into_iter()
                 .map(|t| (!t.is_empty()).then(|| Key::new(&Text::from(t), &style)))
                 .collect();
-            (keys, axis.indices(resolved, count))
+            let restarts = axis.restarts(resolved, count);
+            (keys, axis.indices(resolved, count), restarts)
         } else {
-            (Vec::new(), Vec::new())
+            (Vec::new(), Vec::new(), Vec::new())
         };
         let notation = axis
             .notation(resolved, count)
@@ -78,6 +81,7 @@ impl Labels {
             tinted: tint.is_some(),
             ticks,
             indices,
+            restarts,
             minor,
             line: text.fonts().line(theme.tick_text()),
             notation,
@@ -99,6 +103,12 @@ impl Labels {
     /// Each tick label's tick's absolute index.
     pub(crate) fn indices(&self) -> &[i64] {
         &self.indices
+    }
+
+    /// Whether each tick label's tick restarts a run of its time
+    /// interval's steps ([`Draw::restarts`]); empty for other axes.
+    pub(crate) fn restarts(&self) -> &[bool] {
+        &self.restarts
     }
 
     /// Every key, for the text cache's batch.

@@ -51,6 +51,17 @@ pub enum Issue {
         /// The px the tracks have.
         available: f64,
     },
+    /// An axis that the collision passes left fewer than two of its tick
+    /// labels: labels too long, or rotated too little, for its length.
+    FewLabels {
+        /// The axis's panel.
+        panel: usize,
+        /// The axis's index among its panel's axes, in the order they
+        /// were added.
+        axis: usize,
+        /// The tick labels drawn: 0 or 1.
+        kept: usize,
+    },
     /// Owned data over 100,000 points: use a Series.
     LargeOwned {
         /// The mark's panel.

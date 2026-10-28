@@ -129,6 +129,22 @@ fn a_canvas_too_small_for_its_decorations_has_no_room() {
 }
 
 #[test]
+fn an_axis_left_with_one_tick_label_is_reported() {
+    let (mut fig, x, y) = panel();
+    fig.panel(0, 0)
+        .axis(axis::left(y))
+        .axis(axis::bottom(x).format(|v| format!("{v} metres per second")));
+    let issues = fig.check(size(240.0, 240.0));
+    let one = Issue::FewLabels {
+        panel: 0,
+        axis: 1,
+        kept: 1,
+    };
+    assert_eq!(issues, [one]);
+    assert_eq!(fig.check(size(1600.0, 240.0)), []);
+}
+
+#[test]
 fn owned_data_over_100000_points_belongs_in_a_recording() {
     let (mut fig, x, y) = panel();
     let many: Vec<(f64, f64)> = (0..150_000).map(|i| (f64::from(i) * 1e-4, 1.0)).collect();

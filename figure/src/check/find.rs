@@ -13,7 +13,8 @@ use crate::text::{self, Key};
 impl Figure<'_> {
     /// The figure resolved for `size` with a fresh cache over the bundled
     /// fonts for vector output, nothing drawn, and what it finds: grid axes
-    /// with no room left for plot areas, text longer than what it labels
+    /// with no room left for plot areas, axes left with fewer than two of
+    /// their tick labels, text longer than what it labels
     /// (axis and panel titles, the figure title, legends), labels with
     /// glyphs the fonts lack or markup typst rejects, and what each mark
     /// reports ([`Mark::issues`](crate::mark::Mark::issues): collected data
@@ -37,6 +38,7 @@ impl Figure<'_> {
         let held = crate::Held::default();
         let resolved = self.resolve(size, &mut cache, &held, crate::Target::Vector);
         let mut issues = room(&resolved);
+        issues.extend(few(&resolved));
         issues.extend(overflow(self, &resolved, cache.text()));
         issues.extend(labels(cache.text()));
         let (text, frame) = cache.start();
@@ -92,6 +94,27 @@ fn room(resolved: &Resolved) -> Vec<Issue> {
             available,
         })
         .collect()
+}
+
+/// Labelled axes with two or more tick labels placed of which the
+/// collision passes kept fewer than two, in panel and axis order.
+fn few(resolved: &Resolved) -> Vec<Issue> {
+    let mut issues = Vec::new();
+    for (panel, laid) in resolved.panels().iter().enumerate() {
+        for (axis, placed) in laid.axes.iter().enumerate() {
+            let placed_boxes = placed.boxes.iter().flatten().count();
+            let kept = placed
+                .boxes
+                .iter()
+                .zip(&placed.keep)
+                .filter(|(b, k)| b.is_some() && **k)
+                .count();
+            if placed.plan.shown && placed_boxes >= 2 && kept < 2 {
+                issues.push(Issue::FewLabels { panel, axis, kept });
+            }
+        }
+    }
+    issues
 }
 
 /// Text larger than its room: the figure title, then per panel its title,

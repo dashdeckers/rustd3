@@ -7,7 +7,7 @@ use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
 use rustd3_core::jiff::Timestamp;
 use rustd3_core::scale::Ticks;
-use rustd3_core::time::Time;
+use rustd3_core::time::{Interval, Time};
 
 use crate::axis::{Axis, across};
 use crate::figure::Resolved;
@@ -67,6 +67,13 @@ pub(crate) trait Draw<'a>: 'a {
     /// for band and point scales; the position in the set otherwise (log
     /// ticks).
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64>;
+
+    /// For a time scale, whether each of about `count` ticks follows the
+    /// one before it by fewer units than its tick interval's step (the
+    /// first stepped day of a month after a month's last, the first stepped
+    /// hour after a clock change), aligned with [`texts`](Draw::texts); empty
+    /// for other scales.
+    fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<bool>;
 
     /// The offset or multiplier label of about `count` ticks
     /// (`Axis::offset`), when the axis has one.
@@ -139,14 +146,10 @@ where
 
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64> {
         let scale = resolved.scale(self.scale);
-        if let Some(time) = scale.as_any().downcast_ref::<Time>() {
-            let set = self.set(scale, count);
-            let instants = set.values().iter().map(|v| (v as &dyn Any).downcast_ref());
-            let instants: Option<Vec<Timestamp>> =
-                instants.map(Option::<&Timestamp>::copied).collect();
-            if let Some(indices) = instants.and_then(|t| intervals(time, &t, count)) {
-                return indices;
-            }
+        if let Some((time, instants)) = self.instants(resolved, count)
+            && let Some(indices) = intervals(time, &instants, count)
+        {
+            return indices;
         }
         let numbers = self.numbers(scale, count);
         if let Some(grid) = numbers
@@ -182,6 +185,25 @@ where
             .collect()
     }
 
+    fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<bool> {
+        let Some((time, instants)) = self.instants(resolved, count) else {
+            return Vec::new();
+        };
+        let interval = time.tick_interval(count);
+        let zone = time.get_zone();
+        let step = i64::from(step(interval));
+        let follows = |pair: &[Timestamp]| {
+            interval
+                .count(pair[0], pair[1], zone)
+                .is_some_and(|units| units < step)
+        };
+        let after = instants.windows(2).map(follows);
+        std::iter::once(false)
+            .chain(after)
+            .take(instants.len())
+            .collect()
+    }
+
     fn notation(&self, resolved: &Resolved, count: usize) -> Option<String> {
         let locale = resolved.locale().number();
         Axis::notation(self, resolved.scale(self.scale), count).map(|n| n.label(locale))
@@ -196,6 +218,21 @@ impl<S> Axis<'_, S>
 where
     S: Position + Ticks<Domain = <S as Kind>::Domain>,
 {
+    /// The resolved time scale and its about `count` ticks' instants, when
+    /// the axis's scale is a time scale.
+    fn instants<'r>(
+        &self,
+        resolved: &'r Resolved,
+        count: usize,
+    ) -> Option<(&'r Time, Vec<Timestamp>)> {
+        let scale = resolved.scale(self.scale);
+        let time = scale.as_any().downcast_ref::<Time>()?;
+        let set = self.set(scale, count);
+        let instants = set.values().iter().map(|v| (v as &dyn Any).downcast_ref());
+        let instants: Option<Vec<Timestamp>> = instants.map(Option::<&Timestamp>::copied).collect();
+        Some((time, instants?))
+    }
+
     /// The resolved scale over a panel `length` px long: across [0,
     /// length] for a horizontal axis, up [length, 0] for a vertical one.
     fn ranged(&self, resolved: &Resolved, length: f64) -> S {
@@ -211,6 +248,24 @@ where
             .downcast_ref::<S>()
             .expect("invariant: a scale's with_range keeps its type")
             .clone()
+    }
+}
+
+/// The step of `interval`: how many of its units a stepped interval's
+/// boundaries lie apart when no month, day or clock change restarts them.
+fn step(interval: Interval) -> u32 {
+    match interval {
+        Interval::Nanosecond(k)
+        | Interval::Microsecond(k)
+        | Interval::Millisecond(k)
+        | Interval::Second(k)
+        | Interval::Minute(k)
+        | Interval::Hour(k)
+        | Interval::Day(k)
+        | Interval::UnixDay(k)
+        | Interval::Week(_, k)
+        | Interval::Month(k)
+        | Interval::Year(k) => k,
     }
 }
 

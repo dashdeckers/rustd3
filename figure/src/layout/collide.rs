@@ -1,7 +1,10 @@
 //! Tick labels that would still collide are dropped, in two passes. Within
 //! an axis, every k-th label is kept for the smallest k without overlap
 //! (Vega's parity strategy), counted from each tick's absolute index so
-//! that labels do not flicker while the axis pans; across axes, labels of
+//! that labels do not flicker while the axis pans; a stride never drops
+//! more than k − 1 labels in a row, and a time tick that follows its
+//! predecessor closer than the interval's step (a run restarted at a month
+//! boundary) gives way alone when the two collide. Across axes, labels of
 //! larger panels are placed first and later ones that overlap them are
 //! dropped. Both passes test oriented boxes ([`Obb`]), so rotated labels
 //! collide as what they draw.
@@ -14,8 +17,8 @@ use crate::layout::Obb;
 const EXACT: f64 = 9_007_199_254_740_992.0;
 
 /// One axis's tick labels as collision candidates: each label's box in list
-/// px (`None` for one that is not drawn) and its tick's absolute index, and
-/// the area of its panel's plot area.
+/// px (`None` for one that is not drawn), its tick's absolute index and
+/// whether its tick restarts a run, and the area of its panel's plot area.
 pub(crate) struct Axis<'b> {
     /// The plot area of the axis's panel, px²: larger panels go first.
     pub(crate) area: f64,
@@ -23,22 +26,30 @@ pub(crate) struct Axis<'b> {
     pub(crate) boxes: &'b [Option<Obb>],
     /// Each tick's absolute index, aligned with the boxes.
     pub(crate) indices: &'b [i64],
+    /// Whether each tick follows the one before it closer than its time
+    /// interval's step, aligned with the boxes; empty for other axes.
+    pub(crate) restarts: &'b [bool],
 }
 
 /// Which labels of `axes` (given in panel order, then axis order) layout
-/// keeps. Within each axis, the candidates are the labels whose index is a
-/// multiple of the smallest stride k ≥ 1 for which those labels pairwise
-/// do not overlap (touching is not overlap); when no stride leaves one,
-/// the indices are taken as the labels' positions in the set. Across axes,
-/// candidates go in order of their panel's plot area (larger first), then
-/// panel, axis and label order, and one is kept when its box overlaps no
-/// kept box.
+/// keeps. Within each axis, a label whose tick restarts a run gives way
+/// first when its box overlaps the label before it: of the two, its tick
+/// is the nearer to the boundary that made their spacing uneven (the
+/// first day of a month after a month's last stepped day). The candidates
+/// are then the labels whose index is a multiple of the smallest stride
+/// k ≥ 1 for which those labels pairwise do not overlap (touching is not
+/// overlap) and no k labels in a row are left out; when no stride leaves
+/// one, the indices are taken as the labels' positions in the set. Across
+/// axes, candidates go in order of their panel's plot area (larger first),
+/// then panel, axis and label order, and one is kept when its box overlaps
+/// no kept box.
 pub(crate) fn collide(axes: &[Axis<'_>]) -> Vec<Vec<bool>> {
     let mut keep: Vec<Vec<bool>> = axes.iter().map(|a| vec![false; a.boxes.len()]).collect();
     let mut candidates: Vec<(usize, usize)> = Vec::new();
     for (i, axis) in axes.iter().enumerate() {
-        let positions: Vec<i64> = (0..axis.boxes.len()).map(|j| j as i64).collect();
-        let chosen = parity(axis.boxes, axis.indices).or_else(|| parity(axis.boxes, &positions));
+        let boxes = restart(axis.boxes, axis.restarts);
+        let positions: Vec<i64> = (0..boxes.len()).map(|j| j as i64).collect();
+        let chosen = parity(&boxes, axis.indices).or_else(|| parity(&boxes, &positions));
         candidates.extend(chosen.into_iter().flatten().map(|j| (i, j)));
     }
     candidates.sort_by(|a, b| axes[b.0].area.total_cmp(&axes[a.0].area));
@@ -89,10 +100,26 @@ pub(crate) fn grid(values: &[f64], [a, b]: [f64; 2], count: usize) -> Option<Vec
     even.then_some(indices)
 }
 
+/// `boxes` without the labels whose tick restarts a run (`restarts`) and
+/// whose box overlaps the box before it.
+fn restart(boxes: &[Option<Obb>], restarts: &[bool]) -> Vec<Option<Obb>> {
+    let mut out = boxes.to_vec();
+    for (j, pair) in boxes.windows(2).enumerate() {
+        if let [Some(before), Some(this)] = pair
+            && restarts.get(j + 1) == Some(&true)
+            && before.overlaps(this)
+        {
+            out[j + 1] = None;
+        }
+    }
+    out
+}
+
 /// The labels of one axis kept by the smallest stride: those with a box
 /// whose index is a multiple of the smallest k ≥ 1 that leaves at least
-/// one and no two overlapping; `None` when no k up to one past the span
-/// of the indices does.
+/// one, no two overlapping and no k in a row out (indices not evenly
+/// spaced would otherwise let a stride keep one label of a row); `None`
+/// when no k up to one past the span of the indices does.
 fn parity(boxes: &[Option<Obb>], indices: &[i64]) -> Option<Vec<usize>> {
     let placed: Vec<(usize, i64, Obb)> = boxes
         .iter()
@@ -104,13 +131,14 @@ fn parity(boxes: &[Option<Obb>], indices: &[i64]) -> Option<Vec<usize>> {
     let high = placed.iter().map(|p| p.1).max()?;
     let span = high.saturating_sub(low).saturating_add(1);
     (1..=span.saturating_add(1)).find_map(|k| {
-        let chosen: Vec<&(usize, i64, Obb)> =
-            placed.iter().filter(|p| p.1.rem_euclid(k) == 0).collect();
+        let on = |p: &(usize, i64, Obb)| p.1.rem_euclid(k) == 0;
+        let chosen: Vec<&(usize, i64, Obb)> = placed.iter().filter(|p| on(p)).collect();
         let apart = chosen
             .iter()
             .enumerate()
             .all(|(n, a)| chosen[n + 1..].iter().all(|b| !a.2.overlaps(&b.2)));
-        (!chosen.is_empty() && apart).then(|| chosen.iter().map(|p| p.0).collect())
+        let planned = placed.split(|p| on(p)).all(|out| (out.len() as i64) < k);
+        (!chosen.is_empty() && apart && planned).then(|| chosen.iter().map(|p| p.0).collect())
     })
 }
 
@@ -188,6 +216,47 @@ mod tests {
     }
 
     #[test]
+    fn a_stride_never_leaves_k_labels_in_a_row_out() {
+        // Two-day ticks 30 px apart, labels 40 px wide: every day of one
+        // month odd, the next month's first even. k = 2 would keep that
+        // one alone, k = 3, 5 leave three and five out in a row; k = 7
+        // keeps 7 and 14.
+        let boxes = row(&[40.0; 8], 30.0);
+        let indices = [1, 3, 5, 7, 9, 11, 13, 14];
+        assert_eq!(parity(&boxes, &indices), Some(vec![3, 7]));
+    }
+
+    #[test]
+    fn a_tick_that_restarts_a_run_gives_way_alone() {
+        // Seven ticks 54 px apart and an eighth 27 px after the seventh,
+        // labels 36 px wide: the eighth drops, the seven keep a stride of 1.
+        let mut boxes = row(&[36.0; 7], 54.0);
+        boxes.push(Some(Obb::rect(Rect::new(
+            6.0 * 54.0 + 9.0,
+            0.0,
+            6.0 * 54.0 + 45.0,
+            10.0,
+        ))));
+        let indices = [1, 3, 5, 7, 9, 11, 13, 14];
+        let mut restarts = [false; 8];
+        restarts[7] = true;
+        let axes = [Axis {
+            area: 1.0,
+            boxes: &boxes,
+            indices: &indices,
+            restarts: &restarts,
+        }];
+        let kept = [true, true, true, true, true, true, true, false];
+        assert_eq!(collide(&axes), [kept]);
+        // Without the restart, the stride drops all of them but the last.
+        let axes = [Axis {
+            restarts: &[],
+            ..axes[0]
+        }];
+        assert_ne!(collide(&axes), [kept]);
+    }
+
+    #[test]
     fn indices_that_leave_no_label_fall_back_to_set_positions() {
         let boxes = row(&[30.0, 30.0, 30.0], 10.0);
         // Indices 1, 7, 13: k = 7 keeps 7 alone.
@@ -199,6 +268,7 @@ mod tests {
             area: 1.0,
             boxes: &boxes,
             indices: &[1009, 1013],
+            restarts: &[],
         }];
         assert_eq!(collide(&axes), [[true, false]]);
     }
@@ -212,11 +282,13 @@ mod tests {
                 area: 100.0,
                 boxes: &small,
                 indices: &[0],
+                restarts: &[],
             },
             Axis {
                 area: 400.0,
                 boxes: &large,
                 indices: &[0],
+                restarts: &[],
             },
         ];
         assert_eq!(collide(&axes), [[false], [true]]);

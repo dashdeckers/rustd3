@@ -372,6 +372,7 @@ fn keep(panels: &mut [Laid], areas: &[Rect]) {
                 area: area.area(),
                 boxes: &a.boxes,
                 indices: a.labels.indices(),
+                restarts: a.labels.restarts(),
             })
         })
         .collect();

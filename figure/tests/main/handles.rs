@@ -261,6 +261,57 @@ fn kept(fig: &Figure<'_>, size: Size) -> Vec<Timestamp> {
         .collect()
 }
 
+/// The evaluation's figure: two weeks of hourly samples in Berlin from
+/// local midnight on 18 October 2026 over a fitted time handle, on bottom
+/// and left axes, `width` px of canvas 250 px tall.
+fn fortnight(width: f64) -> (Figure<'static>, Size) {
+    let start = at("2026-10-17T22:00:00Z");
+    let samples: Vec<(Timestamp, f64)> = (0..14 * 24)
+        .map(|h: i64| {
+            (
+                start + SignedDuration::from_hours(h),
+                (h as f64 / 4.0).sin(),
+            )
+        })
+        .collect();
+    let mut fig = Figure::new();
+    let x = fig.fit(time::time(rustd3_testkit::zone("Europe/Berlin")));
+    let y = fig.fit(scale::linear());
+    fig.panel(0, 0)
+        .mark(line(samples, x, y))
+        .axis(axis::bottom(x))
+        .axis(axis::left(y));
+    (fig, Size::new(width, 250.0))
+}
+
+#[test]
+fn a_fitted_fortnight_keeps_every_label_that_fits() {
+    // Two-day ticks from 10-19 to 10-31, and 11-01 a day after 10-31:
+    // its label ("2026-11"), the nearer the month boundary, gives way
+    // alone, and the rest keep a stride of 1.
+    let days = [
+        "10-19", "10-21", "10-23", "10-25", "10-27", "10-29", "10-31",
+    ];
+    for width in [500.0, 650.0, 800.0] {
+        let (fig, size) = fortnight(width);
+        let r = resolve(&fig, size);
+        let count = r.plan(0, 0).expect("a bottom axis").count;
+        assert_eq!(
+            r.scale_at(0)
+                .and_then(|s| s.as_any().downcast_ref::<Time>())
+                .map(|t| t.tick_interval(count)),
+            Some(time::Interval::Day(2))
+        );
+        let dates: Vec<String> = texts(&draw(&fig, size))
+            .into_iter()
+            .filter(|t| t.contains('-'))
+            .collect();
+        assert_eq!(dates, days, "at {width} px");
+        #[cfg(feature = "fonts")]
+        assert_eq!(fig.check(size), [], "at {width} px");
+    }
+}
+
 #[test]
 fn time_ticks_keep_parity_while_panning() {
     let day = berlin_day();
