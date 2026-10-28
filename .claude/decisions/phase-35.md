@@ -191,3 +191,220 @@ figure where it suffices and never lets a title leave its room.
   bar needs a rule (none, or the ink).
 - Phase 39's `Axis::minor` draws at `minor_tick`/`minor_width`, which
   now follow the context.
+
+## Measurements, session 35b
+
+2026-10-28, session 35b (steps 3–5, 5493663 … 05aaad4). `scripts/check.sh
+quick` green on every commit; `full` green at 05aaad4 in 11 min 55 s
+(warm, the benchmark smoke included).
+
+**Harness** unchanged (core changed one doc comment): 16 suites, 6,722
+assertions, 5,292 passing, 1,430 skipped, 0 failing, 179 floors.
+
+**Lines** (267e777..05aaad4): library code +2,307 / −188 in 36 files
+(unit tests included), figure tests +820 in 3 files, the wheel example,
+its library and tests +108 / −14.
+
+**Exit criteria.** (1) `cargo test -p rustd3-figure --features raster
+--test main -- colorbar hatch theme`: 28 pass (13 colorbar, 4 hatch, 11
+theme). (2) `colorbar::a_table_strip_equals_its_scale_at_every_pixel_of_a_300_px_bar`
+(viridis and magma, right and bottom slots: every pixel equals
+`apply(value at its centre)`) and
+`an_interpolator_strip_shows_the_interpolator_at_each_row_centre` (turbo
+and RdBu, left and top). (3) `cargo test -p rustd3-examples -- wheels`: 10
+pass; `cargo run -p rustd3-examples --example wheels -- --hatch` writes
+`wheels_hatched.{svg,png}` and `wheels_inset_hatched.{svg,png}`. (4)
+`cargo test -p rustd3-figure --doc -- colorbar`: the E0277 `compile_fail`
+row and its twin pass; compiled once in a scratch example, rustc reports
+E0277 (`Ordinal<&str, Rgb>: Ramp`) and E0271 (`Domain == f64`) for
+`colorbar(ordinal)`.
+
+**Spot checks**, each asserted: pixel 150 of a 300-px viridis bar is
+#21918c (40.13, row 128), pixels 0 and 299 #440154 and #fde725; viridis
+rows equal `scheme::viridis(i/256)` for all 256; symlog [0, 1e6]
+(constant 1): `apply(1000)` #21918c, ticks 0 1 10 … 1000000 (8), 1000 at
+0.50007 of the bar; quantize blues5 [0, 100]: 5 rows, labels 0 20 40 60 80
+100; threshold [0, 1]: 3 equal rows, ticks at 1/3 and 2/3, labels 0 1;
+`Extend::Both` on a 300-px interior: two triangles of 15 px (a bar of 330
+px with them), in #440154 and #fde725; hatch over [100, 200] × [300, 400]
+at notebook: k = 36 … 53, 18 lines, one stroke 1.067 px wide; neighbouring
+bars: every line at a whole k·8 px from the figure's origin, k 45 … 53
+on both sides of the shared edge.
+
+**Wheel figure hatched** (release build, vector, warm cache, best of 20):
+the draw takes 1.62 ms plain and 1.75 ms hatched (+0.13 ms); 211 of the
+232 histogram bars get a hatch group (21 bars are too small for a 45°
+line 8 px apart to cross them), 442 lines, 3 legend squares; the list
+grows from 428 to 1,070 commands; SVG 377,754 → 430,027 bytes (+51 KB).
+Part I's sketch hatched 190 bars by a size filter: 0.39 ms, +91 KB.
+
+**Viewed** (PNGs at 1× and 2×, scratch, not committed): sequential
+viridis (right, both triangles, title) and symlog magma (bottom, max
+triangle), diverging RdBu over two rows (left, min triangle), quantize,
+quantile and threshold side by side (right), inset bars along a wide and
+a tall panel, each under ticks and darkgrid; matplotlib 3.11.2 / seaborn
+0.13.2 colorbars of the same scales drawn beside them (same quantile
+labels, same tick marks in darkgrid, an outline only in ticks); hatched
+dodged bars (45°, cross 0°, white −45°), a cross-hatched area, a hatched
+density, legends in a slot and an inset, and the hatched wheel figure,
+beside matplotlib's hatched bars. `fig.check` is empty on every figure.
+
+## D35.3 — The colorbar inset length
+
+**Date:** 2026-10-28 · **Context:** Phase 35, step 3, 5493663 · **Status:** decided
+
+### Decision
+
+The section's answer: an inset colorbar is 40% of its panel's long side.
+Phase 17's inset legends are sized by their content (a framed column 0.5
+em from the corner), which suggests no length for a bar, so the
+section's 40% stands; the bar runs along the plot area's longer side and
+is framed as an inset legend (D35.6 (6)).
+
+## D35.4 — Strips on raster targets have a row per device pixel
+
+**Date:** 2026-10-28 · **Context:** Phase 35, step 3, 5493663 · **Status:** open
+
+### Issue
+
+The section's strip is "one `Command::Image`, `smooth: false`, `N × 1` (or
+`1 × N`) pixels stretched to the bar", 256 rows for interpolators and
+tables, and exit criterion 2 asks that "every pixel of the rendered strip
+equals the scale's color at that pixel's center value, exactly". With 256
+rows over 300 px, the centres of pixels 37, 112, 187 and 262 (from the low
+end) fall exactly on row edges (t = 32/256, 96/256, …), where d3's
+`table[⌊256 t⌋]` takes the upper entry. vello_cpu 0.3.0 sampled the lower
+one there, on vertical and horizontal bars alike (its nearest painter
+steps in `f32`, `vello_cpu-0.3.0/src/fine/lowp/image.rs:73`), so those four
+pixels were one entry off.
+
+### Options
+
+| | **A — a row per device pixel on raster targets (as built)** | B — 256 rows, nudged | C — 256 rows as written |
+| --- | --- | --- | --- |
+| Approach | `Target::File` and `Screen`: one image row per device px of the snapped bar, each the sample under its centre (d3's floor); vector output keeps one row per sample (256), binned unequal bins 4 rows per px | Shift the image 1/1024 px toward the low end and clip it to the bar, so ties fall upward | Keep 256 rows; the criterion fails at ties |
+| Correctness | Exact at every pixel whatever the renderer's ties; SVG and PDF keep the 256 samples | Exact unless a pixel centre lies within the nudge of an edge; an extra group per strip | 4 of 300 pixels one entry off |
+| Cost | The image depends on the scale factor (600 rows at 2× for 300 px) | A push and pop per strip | — |
+
+### Decision
+
+A, recommended (as built).
+
+### Why
+
+It makes the criterion hold by construction instead of by a renderer's
+arithmetic; vector outputs keep the section's 256 rows.
+
+## D35.5 — Labels of binned colorbars
+
+**Date:** 2026-10-28 · **Context:** Phase 35, step 4, 0228e0b · **Status:** open
+
+### Issue
+
+D25.3 (8): core labels binned tick sets with d3's `,f` at the smallest
+gap's precision, so the quantile edges 3, 7.25, 9, 14.5, 20 read 3, 7, 9,
+15, 20. The architect asked for the smallest precision that keeps every
+label distinct and exact to the edges' own digits, the rule chosen
+recorded here. Edges such as sample quantiles can have unbounded digits,
+so "exact" needs a bound.
+
+### Investigation
+
+matplotlib 3.11.2 labels a `BoundaryNorm` colorbar with
+`ScalarFormatter._set_format`: from `3 − ⌊log₁₀ range⌋` places down, the
+fewest at which every location lies within `1e-3 × 10^⌊log₁₀ range⌋` of its
+rounding. It gives "3.00 7.25 9.00 14.50 20.00", "0 20 40 60 80 100",
+"0.000 0.333 0.667 1.000" for thirds, "0.0010 0.0025 0.0040", and "1.0 1.0
+1.5 2.0" for 1, 1.0004, 1.5, 2 (two labels alike; scratch script).
+
+### Options
+
+| | **A — matplotlib's precision, raised until distinct (as built)** | B — exact shortest digits | C — only where d3's labels collide |
+| --- | --- | --- | --- |
+| Approach | `,f` in the figure's locale at matplotlib's precision for the edge set, plus places while two labels read alike (at most 20); for all three binned scales | The most places any edge's shortest form needs | d3's rule, more places only when labels repeat |
+| Correctness | Reads every edge to a thousandth of the range's decade; matches matplotlib's labels where they are distinct | 3.1415926535 for a quantile of real data | 7.25 still reads 7 (distinct from its neighbours) |
+
+### Decision
+
+A, recommended (as built), in `colorbar/edges.rs`; `.format(f)` still
+overrides it. Quantize's even edges read as before in the section's row.
+
+### Why
+
+It is the rule of the library the colorbars follow, with the
+distinctness the architect asked for added.
+
+## D35.6 — Details of Phase 35b as built
+
+**Date:** 2026-10-28 · **Context:** Phase 35, steps 3–5, 5493663 … 05aaad4 · **Status:** open
+
+### Issue
+
+1. **`Guide<'a>`'s shape.** The section leaves its body open ("measure
+   and draw"); a public trait whose methods take crate-private layout
+   types fails `private_interfaces`.
+2. **`Ramp`'s bound and kinds.** The colorbar needs its scale's tick set
+   and positions; the section implements `Ramp` for `Linear<Rgb>`, while
+   D33.3 (5) made `Continuous<T, Rgb, N>` the color handle.
+3. **`Samples::Bins { edges }`**: "the bin edges in domain units" — all
+   edges, or the inner ones a threshold scale has.
+4. **End colors.** "The scale's clamped end colors" for interpolators,
+   and the triangles' place: inside the length the slot gives, or
+   beyond it.
+5. **What the dark styles draw.** No edge color for the outline (D35.2's
+   followup); tick marks, which the styles turn off on axes.
+6. **Where ticks and titles go.** Slots put ticks away from the grid; an
+   inset bar's orientation, its frame; the title's turn on a right bar
+   (matplotlib reads it bottom to top, rustd3's right axes top to
+   bottom).
+7. **Colorbar labels**: thinning by collisions, offset notation.
+8. **How legends learn hatches.** "A legend whose marks are hatched draws
+   the hatch in each square" names no API; marks are public trait
+   objects.
+9. **Hatch geometry details**: shapes no line crosses, the density's
+   outline, a dense hatch, rejected builder input.
+10. **The wheel figure's hatch**: `figure_with(samples, inset, palette)`
+    has no hatch.
+11. **Crate-private changes**: `Placed::draw` splits into `marks` and
+    `texts`; `Labels: Clone`; `Snap::scale`; `layout::plan` and
+    `Theme::pt` crate-visible.
+12. **Commits**: three, one per step.
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | `pub trait Guide<'a> { #[doc(hidden)] fn erase(self) -> Erased<'a>; }`, `Erased` public but unnameable (a private module), holding the crate's `Stored::{Keys, Bar}`; implemented for `Legend<K>` and `Colorbar<'a, S>` only; `legend::Content` and `legend::Block` dispatch between `keys::{Content, Block}` (Phase 17's, moved to `legend/keys.rs`) and `colorbar::{Content, Block}` |
+| (2) | `Ramp: Ticks<Domain = f64, Step = f64>`, so `colorbar`'s signature stays the section's; implemented for `Sequential<Rgb, T>`, `Diverging<Rgb, T>`, `Continuous<T, Rgb, N>` (`Linear<Rgb>`, piecewise, transformed), `Quantize<Rgb>`, `Quantile<Rgb>`, `Threshold<Rgb>`; interpolator rows through the scale with an identity transform over [0, 1] (exact), color ranges through `range(stop positions).invert(t)` |
+| (3) | The inner edges, n − 1 for n bins (thresholds, quantiles); the bar's ends close the first and last bins; a threshold bin the range has no color for is transparent |
+| (4) | `paint` at the domain's ends (`Kind::domain`), the first and last bins' colors for binned scales; the bar with its triangles keeps the length its place gives (matplotlib shrinks the interior), each triangle 5% of the interior |
+| (5) | No outline where `Theme::edge` is `None` (matplotlib's white outline is invisible on a white figure); colorbar tick marks in every style (matplotlib's colorbar turns its long axis's ticks on; seaborn's grid styles keep them) |
+| (6) | Right and left slots: vertical, ticks right and left; top and bottom: horizontal, ticks up and down; insets: vertical with ticks right when the plot area is at least as tall as wide, else horizontal with ticks below, framed as an inset legend (face and edge); titles as axis titles, so a right bar's reads top to bottom as rustd3's right axes do |
+| (7) | Labels are not thinned and have no offset notation; blanked log labels draw minor ticks as on axes; counts follow the interior's length (one per 35 px up, 80 px across) and join layout's settling test |
+| (8) | The figure's own marks report a hatched palette key through `Fits` (crate-private, as they report labels); `Resolved` keeps (palette, key as `Box<dyn Any>`, hatch); a legend's square takes the first hatch reported for its key, anchored to the figure; dots and lines are not hatched; user marks do not report |
+| (9) | A shape no line crosses gets no group (21 of the wheel's 232 bars); a density's hatch lies between its fill and its outline; a family of more than 4,096 lines over one shape is left out; a non-finite angle hatches nothing; spacing, width and color rejected as the theme's builders reject |
+| (10) | `figure_with(samples, inset, palette, hatch: Option<&Hatch>)`, `wheels::hatched(samples, inset)` (45°), the example's `--hatch` adds `_hatched` to the names |
+| (11) | As listed; no public item changes |
+| (12) | 5493663 step 3, 0228e0b step 4 (with core's `Ticks for Threshold::position` doc), 05aaad4 step 5 |
+
+### Decision
+
+A for all twelve, recommended (as built).
+
+### Why
+
+(1) keeps the section's public surface (`Guide<'a>`, `impl
+legend::Guide<'a>`) and the existing calls without exposing layout
+types; (2)–(4) are the readings closest to the section and matplotlib;
+(5) and (6) follow matplotlib under seaborn where the section points to
+it and rustd3's own axes where it has a rule; (8) needs no public API the
+section does not name and keys hatches per palette key; (9)–(12) change
+no behaviour the section states.
+
+### Followups
+
+- Phase 38–39: helpers that build heatmaps get colorbars from the same
+  handle; a `Legend::hatch` builder only if per-legend hatches are asked
+  for.
+- Phase 37: the PDF bound compares a list with itself (D17.2); colorbar
+  strips there are 256-row images (vector target).
