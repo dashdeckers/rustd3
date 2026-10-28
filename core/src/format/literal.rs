@@ -62,13 +62,25 @@ pub const fn is_valid(spec: &str) -> bool {
 /// [`format::format`](crate::format::format), which returns a `Result`; a
 /// locale's own formats through [`Locale::format`](crate::format::Locale::format).
 ///
+/// `fmt!` formats under [`Locale::NEUTRAL`](crate::format::Locale::NEUTRAL),
+/// which has no currency symbol: `$` in a specifier writes nothing there.
+/// For currency, format under a locale that has one, through the
+/// locale's own `.format(…)` (the specifier then checked at run time):
+/// `Locale::EN_US.format("$,.2f")` writes "$1,234.50".
+///
 /// ```
 /// use rustd3_core::fmt;
+/// use rustd3_core::format::Locale;
 ///
+/// // No currency under the neutral locale.
 /// let money = fmt!("$,.2f");
 /// assert_eq!(money.format(-1234.5), "−1234.50");
+/// // A locale with a currency writes it.
+/// assert_eq!(Locale::EN_US.format("$,.2f")?.format(1234.5), "$1,234.50");
+/// assert_eq!(Locale::DE_DE.format("$,.2f")?.format(1234.5), "1.234,50\u{a0}€");
 /// assert_eq!(fmt!(",.1f").format(1234567.5), "1\u{202f}234\u{202f}567.5");
 /// assert_eq!(fmt!(".3s").format(0.000_042), "42.0µ");
+/// # Ok::<(), rustd3_core::format::InvalidFormat>(())
 /// ```
 ///
 /// ```compile_fail

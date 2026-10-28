@@ -467,6 +467,34 @@ fn degenerate_values_under_the_tables_match_d3() {
     }
 }
 
+/// `fmt!`'s doc says it writes no currency, as the neutral locale has
+/// none, and shows the route that writes one; the route does.
+#[test]
+fn fmt_docs_say_the_neutral_locale_has_no_currency_and_show_one_that_does() {
+    let source = include_str!("../../src/format/literal.rs");
+    let end = source.find("macro_rules! fmt").expect("the macro");
+    let mut lines: Vec<&str> = source[..end]
+        .lines()
+        .rev()
+        .take_while(|l| l.starts_with("///") || l.starts_with("#["))
+        .collect();
+    lines.reverse();
+    let words: Vec<&str> = lines
+        .iter()
+        .flat_map(|l| l.trim_start_matches("///").split_whitespace())
+        .collect();
+    let doc = words.join(" ");
+    for words in [
+        "`fmt!` formats under [`Locale::NEUTRAL`](crate::format::Locale::NEUTRAL), which has no currency symbol",
+        "`Locale::EN_US.format(\"$,.2f\")` writes \"$1,234.50\"",
+    ] {
+        assert!(doc.contains(words), "{words:?}");
+    }
+    let money = Locale::EN_US.format("$,.2f").expect("a specifier");
+    assert_eq!(money.format(1234.5), "$1,234.50");
+    assert_eq!(rustd3_core::fmt!("$,.2f").format(1234.5), "1234.50");
+}
+
 #[test]
 fn fmt_takes_the_empty_specifier_and_the_neutral_default() {
     assert_eq!(rustd3_core::fmt!("").format(0.1 + 0.2), "0.3");
