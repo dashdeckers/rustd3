@@ -4,9 +4,9 @@
 //!
 //! An axis needs a scale that places values and has ticks; band keys are
 //! labelled through `Display`, so an axis on a band whose key has none
-//! does not compile (E0277):
+//! does not compile (E0277, `Bin` doesn't implement `Display`):
 //!
-//! ```compile_fail
+//! ```compile_fail,E0277
 //! use rustd3_core::scale;
 //! use rustd3_figure::{Figure, axis};
 //!

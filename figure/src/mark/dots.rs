@@ -43,6 +43,56 @@ pub struct Dots<'a, X: Position, Y: Position> {
 ///     .mark(dots([(0.0, 1.0), (1.0, 3.0)], x, y).fill(color, "a"))
 ///     .mark(dots([(0.5, 2.0)], x, y).fill(color, "b").r(6.0).opacity(0.5));
 /// ```
+///
+/// The data's types are the handles' domains: timestamps on a linear
+/// handle do not compile (E0271, `<Linear as Kind>::Domain ==
+/// Timestamp`), on a time handle they do.
+///
+/// ```compile_fail,E0271
+/// # use rustd3_figure::{Figure, mark::dots};
+/// # use rustd3_core::scale;
+/// let mut fig = Figure::new();
+/// let x = fig.fit(scale::linear());
+/// let y = fig.fit(scale::linear());
+/// let t = rustd3_core::jiff::Timestamp::UNIX_EPOCH;
+/// fig.panel(0, 0).mark(dots([(t, 1.0)], x, y)); // E0271
+/// ```
+/// ```
+/// # use rustd3_figure::{Figure, mark::dots};
+/// # use rustd3_core::{scale, time};
+/// let mut fig = Figure::new();
+/// let x = fig.fit(time::utc());
+/// let y = fig.fit(scale::linear());
+/// let t = rustd3_core::jiff::Timestamp::UNIX_EPOCH;
+/// fig.panel(0, 0).mark(dots([(t, 1.0)], x, y));
+/// ```
+///
+/// A palette is not a position: an ordinal color handle as y does not
+/// compile (E0277, `Ordinal<Source, Rgb>: Position` is not satisfied);
+/// it colors dots through [`fill`](Dots::fill).
+///
+/// ```compile_fail,E0277
+/// # use rustd3_figure::{Figure, mark::dots};
+/// # use rustd3_core::{scale, scheme};
+/// #[derive(Clone, PartialEq)]
+/// enum Source { Hub, Bearing }
+///
+/// let mut fig = Figure::new();
+/// let speed = fig.fit(scale::linear());
+/// let color = fig.scale(scale::ordinal([Source::Hub, Source::Bearing], scheme::COLORBLIND));
+/// fig.panel(0, 0).mark(dots([(0.0, Source::Hub)], speed, color)); // E0277
+/// ```
+/// ```
+/// # use rustd3_figure::{Figure, mark::dots};
+/// # use rustd3_core::{scale, scheme};
+/// #[derive(Clone, PartialEq)]
+/// enum Source { Hub, Bearing }
+///
+/// let mut fig = Figure::new();
+/// let (speed, value) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+/// let color = fig.scale(scale::ordinal([Source::Hub, Source::Bearing], scheme::COLORBLIND));
+/// fig.panel(0, 0).mark(dots([(0.0, 1.0)], speed, value).fill(color, Source::Hub));
+/// ```
 pub fn dots<'a, X: Position, Y: Position>(
     data: impl Data<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     x: ScaleRef<X>,
@@ -60,7 +110,33 @@ pub fn dots<'a, X: Position, Y: Position>(
 
 impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// Fills the dots with `palette`'s color for `key`, looked up when the
-    /// figure draws; a key the palette lacks draws the theme's gray.
+    /// figure draws; a key the palette lacks draws the theme's gray. The
+    /// key has the palette's key type: a key of another type does not
+    /// compile (E0308).
+    ///
+    /// ```compile_fail,E0308
+    /// # use rustd3_figure::{Figure, mark::dots};
+    /// # use rustd3_core::{scale, scheme};
+    /// #[derive(Clone, PartialEq)]
+    /// enum Source { Hub, Bearing }
+    /// enum Wheel { FL, FR }
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// let color = fig.scale(scale::ordinal([Source::Hub, Source::Bearing], scheme::COLORBLIND));
+    /// fig.panel(0, 0).mark(dots([(0.0, 1.0)], x, y).fill(color, Wheel::FL)); // E0308
+    /// ```
+    /// ```
+    /// # use rustd3_figure::{Figure, mark::dots};
+    /// # use rustd3_core::{scale, scheme};
+    /// #[derive(Clone, PartialEq)]
+    /// enum Source { Hub, Bearing }
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// let color = fig.scale(scale::ordinal([Source::Hub, Source::Bearing], scheme::COLORBLIND));
+    /// fig.panel(0, 0).mark(dots([(0.0, 1.0)], x, y).fill(color, Source::Bearing));
+    /// ```
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
