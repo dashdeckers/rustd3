@@ -212,8 +212,10 @@ impl App {
         match message {
             Message::Cue(cue) => match self.apply(cue) {
                 Effect::None => Task::none(),
+                // iced sizes windows in the app's logical px (the plot's):
+                // it applies the app's factor and the window's itself.
                 Effect::Resize(size) => match self.window {
-                    Some(id) => window::resize(id, self.window_size(size)),
+                    Some(id) => window::resize(id, size),
                     None => Task::none(),
                 },
                 Effect::Exit => {
@@ -256,25 +258,23 @@ impl App {
     pub fn scale(&self) -> f32 {
         self.config.child.cell.factor / self.window_factor.unwrap_or(self.config.native)
     }
-
-    /// The window size (in the window system's logical px) that gives a
-    /// plot of `size` logical px at the cell's factor.
-    fn window_size(&self, size: Size) -> Size {
-        size * self.scale()
-    }
 }
 
 /// Runs `config` in a window; the window factor is assumed to be the
 /// display's native factor until the window reports its own.
+///
+/// iced takes the window's size in the app's logical px and multiplies it
+/// by the app's factor (the cell's over the native one) into the window
+/// system's, so the plot's own size opens a window of that size × factor ÷
+/// native there, and the cell's factor in device px.
 ///
 /// The window is not resizable, so tiling window managers float it at its
 /// size, except in `resize`, whose cues resize it (a non-resizable
 /// Wayland window keeps its first size).
 pub fn windowed(config: Config) -> iced::Result {
     let cell = config.child.cell;
-    let size = cell.window() * (cell.factor / config.native);
     let settings = window::Settings {
-        size,
+        size: cell.window(),
         resizable: cell.scenario == Scenario::Resize,
         ..window::Settings::default()
     };
