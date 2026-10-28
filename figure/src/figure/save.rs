@@ -11,6 +11,8 @@ use crate::figure::{Cache, Held};
 use crate::list;
 #[cfg(all(feature = "png", feature = "fonts"))]
 use crate::list::{Bounds, Outlines};
+#[cfg(feature = "pdf")]
+use crate::pdf;
 #[cfg(feature = "raster")]
 use crate::raster;
 #[cfg(all(feature = "png", feature = "fonts"))]
@@ -37,6 +39,10 @@ pub enum Error {
     #[cfg(feature = "raster")]
     #[error(transparent)]
     Raster(#[from] raster::Error),
+    /// The list could not be written as PDF.
+    #[cfg(feature = "pdf")]
+    #[error(transparent)]
+    Pdf(#[from] pdf::Error),
 }
 
 #[cfg(feature = "fonts")]
@@ -76,6 +82,16 @@ impl Figure<'_> {
         let mut renderer = raster::Renderer::new(raster::Settings::parallel());
         let image = renderer.render(&list, &bounds, area, scale)?;
         write(path.as_ref(), &raster::png::encode(&image)?)
+    }
+
+    /// Writes the figure as a one-page PDF of `size × 0.75` points to
+    /// `path`: drawn for vector output at `size` logical px with a fresh
+    /// cache ([`Figure::draw`]) and written by [`pdf::write`] with text as
+    /// selectable text in subset fonts.
+    #[cfg(feature = "pdf")]
+    pub fn save_pdf(&self, path: impl AsRef<Path>, size: kurbo::Size) -> Result<(), Error> {
+        let pdf = pdf::write(&self.draw(size), &pdf::Options::default())?;
+        write(path.as_ref(), &pdf)
     }
 }
 

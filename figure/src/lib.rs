@@ -23,6 +23,8 @@ pub mod lower;
 pub mod mark;
 mod panel;
 pub mod path;
+#[cfg(feature = "pdf")]
+pub mod pdf;
 mod pixels;
 pub mod raster;
 pub mod scale;

@@ -17,6 +17,10 @@ mod locale;
 mod lower;
 mod marks;
 mod parts;
+#[cfg(feature = "pdf")]
+mod pdf;
+#[cfg(feature = "pdf")]
+mod poppler;
 mod raster;
 #[cfg(feature = "raster")]
 mod resvg;
