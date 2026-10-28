@@ -3,6 +3,9 @@
 //! the wheel figure.
 
 mod focus_context;
+// poppler's tools, shared with rustd3-figure's PDF tests.
+#[path = "../../../../figure/tests/main/poppler.rs"]
+mod poppler;
 mod update_pattern;
 mod wheels;
 

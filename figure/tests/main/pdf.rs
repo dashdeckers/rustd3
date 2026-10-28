@@ -215,3 +215,145 @@ fn a_clip_of_no_area_clips_everything() {
         assert_eq!(black, 100, "only the fill after the group draws");
     }
 }
+
+/// The spec's bound for a measured tile score: 0.02 when the measurement
+/// meets it, else 1.25 × the measurement, never above 0.05.
+fn bound(measured: f64) -> f64 {
+    assert!(measured <= 0.05, "{measured} is a writer bug, not a bound");
+    if measured <= 0.02 {
+        0.02
+    } else {
+        1.25 * measured
+    }
+}
+
+/// The tile scores of `list`'s PDF with text and with outlined glyphs,
+/// each rendered by `pdftoppm -r 192` against vello_cpu's render of the
+/// list at 2× (single-threaded, baseline SIMD).
+#[cfg(feature = "raster")]
+fn round_trip(list: &List) -> [f64; 2] {
+    let reference = crate::raster::vello::whole(list, 2.0);
+    [false, true].map(|outlined| {
+        let pdf =
+            pdf::write(list, &Options::default().outlined(outlined)).expect("the list writes");
+        let d = crate::raster::vello::diff(&poppler::render(&pdf, 192.0), &reference);
+        eprintln!(
+            "pdf round trip (outlined {outlined}): tile score {:.4} at {:?}, max {}",
+            d.tile_score(),
+            d.worst_tile(),
+            d.max()
+        );
+        d.tile_score()
+    })
+}
+
+/// Asserts the round trip of `list` against the scores measured for it
+/// (D37.1): outlined glyphs within the spec's bound, text within 1.25 ×
+/// its measurement, which poppler's glyph placement drives.
+#[cfg(feature = "raster")]
+fn assert_round_trip(name: &str, list: &List, [text, outlined]: [f64; 2]) {
+    let [t, o] = round_trip(list);
+    assert!(o <= bound(outlined), "{name} outlined: tile score {o:.4}");
+    assert!(t <= 1.25 * text, "{name} text: tile score {t:.4}");
+}
+
+#[cfg(feature = "raster")]
+#[test]
+fn the_kitchen_sink_renders_back_through_poppler_within_the_bound() {
+    assert_round_trip("sink", &sink::with_sweep(), [0.0310, 0.0124]);
+}
+
+/// A heatmap of 24 × 16 cells on viridis with its colorbar, a bold title
+/// span and a math axis label: three fonts, two images.
+#[cfg(feature = "fonts")]
+fn heatmap() -> rustd3_figure::Figure<'static> {
+    use rustd3_core::{scale, scheme};
+    use rustd3_figure::colorbar::colorbar;
+    use rustd3_figure::legend::Slot;
+    use rustd3_figure::mark::{Grid, image};
+    use rustd3_figure::text::{self, Text, span};
+    use rustd3_figure::{Figure, axis};
+
+    let (cols, rows) = (24, 16);
+    let values = (0..cols * rows)
+        .map(|i| {
+            let (c, r) = ((i % cols) as f64, (i / cols) as f64);
+            40.0 + 30.0 * (c / 4.0).sin() * (r / 5.0).cos()
+        })
+        .collect();
+    let grid = Grid::new(cols, rows, values)
+        .expect("cols × rows values")
+        .extent([0.0, 240.0], [0.0, 3.0]);
+    let mut fig = Figure::new();
+    let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    let heat = fig.scale(scale::sequential([0.0, 80.0], scheme::viridis));
+    fig.title(Text::from("Bearing ").push(span("temperature").bold()));
+    fig.panel(0, 0)
+        .axis(axis::left(y).label(text::typst("RMS [$m slash s^2$]")))
+        .axis(axis::bottom(x).label("speed [km/h]"))
+        .mark(image(grid, x, y, heat));
+    fig.legend(Slot::Right, colorbar(heat).title("temp [°C]"));
+    fig
+}
+
+/// `fig` drawn at `size` for vector output.
+#[cfg(feature = "fonts")]
+fn vector(fig: &rustd3_figure::Figure<'_>, size: Size) -> List {
+    use rustd3_figure::{Held, Target};
+    fig.draw_with(
+        &mut crate::figure::cache(),
+        size,
+        Target::Vector,
+        &Held::default(),
+    )
+}
+
+#[cfg(all(feature = "raster", feature = "fonts"))]
+#[test]
+fn the_example_figures_render_back_through_poppler_within_the_bound() {
+    use crate::{scatter, trace};
+    let fig = scatter::scatter(scatter::POINTS);
+    assert_round_trip("scatter", &vector(&fig, scatter::SIZE), [0.0635, 0.0191]);
+    let rec = trace::recording(trace::SAMPLES);
+    let fig = trace::trace(&rec);
+    assert_round_trip("trace", &vector(&fig, trace::SIZE), [0.0620, 0.0246]);
+    let fig = heatmap();
+    assert_round_trip(
+        "heatmap",
+        &vector(&fig, Size::new(640.0, 480.0)),
+        [0.0740, 0.0161],
+    );
+}
+
+#[cfg(feature = "fonts")]
+#[test]
+fn every_label_is_extracted_and_every_font_embedded_as_a_subset() {
+    let list = vector(&heatmap(), Size::new(640.0, 480.0));
+    let pdf = written(&list);
+    let words = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let extracted = words(&poppler::text(&pdf));
+    for c in &list.commands {
+        if let Command::Glyphs(run) = c {
+            assert!(extracted.contains(&words(&run.text)), "{:?}", run.text);
+        }
+    }
+    assert!(extracted.contains("Bearing temperature"));
+    let mut names: Vec<String> = poppler::fonts(&pdf)
+        .into_iter()
+        .map(|f| {
+            assert!(f.embedded && f.subset, "{f:?}");
+            let (tag, name) = f.name.split_once('+').expect("a subset tag");
+            assert_eq!(tag.len(), 6);
+            name.to_string()
+        })
+        .collect();
+    names.sort();
+    assert_eq!(
+        names,
+        [
+            "DejaVuSans",
+            "DejaVuSans-Bold",
+            "NewCMMath-Regular-Identity-H"
+        ]
+    );
+}

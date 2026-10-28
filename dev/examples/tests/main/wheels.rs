@@ -1,18 +1,22 @@
 //! The wheel figure, Part I's worked example: its samples, marks, bars and
 //! fitted domains against `dev/fixtures/wheels.json` (written by
-//! `wheels.py`), its checks at two sizes, its labels and lowering, and
-//! text snapshots of its list and SVG.
+//! `wheels.py`), its checks at two sizes, its labels and lowering, text
+//! snapshots of its list and SVG, and its PDF through poppler.
 
 use rustd3_examples::wheels;
 use rustd3_figure::check::size;
 use rustd3_figure::kurbo::{Shape, Size, Vec2};
 use rustd3_figure::list::{self, Clip, Command, List, part};
 use rustd3_figure::lower::{self, Caps};
+use rustd3_figure::raster::{self, Image, Settings, Simd};
 use rustd3_figure::theme::{Context, Style};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, Theme, svg};
+use rustd3_figure::{Cache, Figure, Held, Resolved, Target, Theme, pdf, svg};
 use rustd3_testkit::fixture::Fixture;
 use rustd3_testkit::obs::{Obs, ToObs, Tolerance};
+use rustd3_testkit::pixels::{self, Diff};
 use rustd3_testkit::snapshot::Store;
+
+use crate::poppler;
 
 /// The fixture, read at compile time so the test needs no working directory.
 const FIXTURE: &str = include_str!(concat!(
@@ -352,4 +356,95 @@ fn the_wheel_list_and_svg_match_their_snapshots() {
     let lowered = lower::lower(&list, svg::CAPS).expect("a valid list");
     let svg = svg::write(&lowered.list, &svg::Options::default()).expect("a valid list");
     store.check("wheels.svg", &svg);
+}
+
+/// `list` at 2× on one thread at the baseline SIMD level: the pinned
+/// reference a PDF's poppler render is compared with.
+fn pinned(list: &List) -> Image {
+    let bounds = list::Bounds::of(list, &mut list::Outlines::default());
+    let area = rustd3_figure::kurbo::Rect::from_origin_size((0.0, 0.0), list.size);
+    raster::Renderer::new(Settings {
+        threads: 0,
+        simd: Simd::Baseline,
+    })
+    .render(list, &bounds, area, 2.0)
+    .expect("the list renders")
+}
+
+/// `pdf` rendered by `pdftoppm -r 192` against `reference`.
+fn round_trip(pdf: &[u8], reference: &Image) -> Diff {
+    let back = poppler::render(pdf, 192.0);
+    let a = pixels::Image::new(back.width, back.height, &back.rgba).expect("whole pixels");
+    let b = pixels::Image::new(reference.width, reference.height, &reference.rgba)
+        .expect("whole pixels");
+    Diff::between(&a, &b, 16).expect("one size")
+}
+
+/// Whitespace runs as one space, ends trimmed.
+fn words(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+#[test]
+fn wheels_pdf() {
+    // Tile scores measured with text and with outlined glyphs (D37.1); the
+    // text's are poppler's glyph placement, the outlines' the spec's bound.
+    for (name, fig, [text_score, outlined_score]) in [
+        ("wheels", wheel_figure(false), [0.0756, 0.0204]),
+        (
+            "hatched",
+            wheels::hatched(&wheels::simulate(), false),
+            [0.0756, 0.0224],
+        ),
+    ] {
+        let (_, list) = drawn(&fig);
+        let reference = pinned(&list);
+        let text = pdf::write(&list, &pdf::Options::default()).expect("the figure writes");
+        let outlined =
+            pdf::write(&list, &pdf::Options::default().outlined(true)).expect("the figure writes");
+        let (t, o) = (
+            round_trip(&text, &reference),
+            round_trip(&outlined, &reference),
+        );
+        eprintln!(
+            "{name} PDF: {} bytes (outlined {}); tile scores {:.4} at {:?}, outlined {:.4} at {:?}",
+            text.len(),
+            outlined.len(),
+            t.tile_score(),
+            t.worst_tile(),
+            o.tile_score(),
+            o.worst_tile()
+        );
+        assert!(t.tile_score() <= 1.25 * text_score, "{name}: text");
+        assert!(o.tile_score() <= 1.25 * outlined_score, "{name}: outlines");
+        assert!(outlined_score <= 0.05);
+
+        let extracted = words(&poppler::text(&text));
+        for label in [
+            "Hub vibration and bearing temperature",
+            "Wheel: RL",
+            "speed [km/h]",
+            "min. count",
+        ] {
+            assert!(extracted.contains(label), "{name}: {label:?}");
+        }
+        for command in &list.commands {
+            if let Command::Glyphs(run) = command {
+                assert!(
+                    extracted.contains(&words(&run.text)),
+                    "{name}: {:?}",
+                    run.text
+                );
+            }
+        }
+        // One font: Phase 34's 64 runs are all DejaVu Sans.
+        let fonts = poppler::fonts(&text);
+        assert_eq!(fonts.len(), 1, "{name}: {fonts:?}");
+        assert!(
+            fonts[0].name.ends_with("+DejaVuSans") && fonts[0].embedded && fonts[0].subset,
+            "{name}: {fonts:?}"
+        );
+        assert_eq!(words(&poppler::text(&outlined)), "");
+        assert_eq!(poppler::fonts(&outlined), []);
+    }
 }
