@@ -55,7 +55,7 @@ seaborn scales each to its own peak by default).
 
 ## D38.1 — The helpers draw through crate-private items
 
-**Date:** 2026-10-28 · **Context:** Phase 38, steps 2–4, 6a84e0f … 9369d33 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 38, steps 2–4, 6a84e0f … 9369d33 · **Status:** decided
 
 ### Issue
 
@@ -108,12 +108,15 @@ scales either (no figure at that point).
 
 ### Decision
 
-Recommendation A: it is what makes the section's "ordinary code over the
-public API" literally true, and Phase 39's presets (pie and donut
-geometry) will need the same readers. The helpers call these items by
-their current names, so A is a visibility change on them (with doc
-comments for public readers) and no change to helper code; B needs
-nothing. That is why the phase went on instead of stopping here.
+A (architect, 2026-10-28): the items become public, so the helpers are
+ordinary code over the public API and a user's own `Mark` can match the
+built-in marks. Theme readers follow the `get_` convention of D18.1
+(`Theme::get_color`, `get_gray`, `get_line_width`, `get_patch_width`,
+`get_density_width`, `get_marker`); `list::brush`, `mark::Ctx::snap`
+with `mark::Snap`, and `mark::guard::{band, polygon}` keep their names.
+Each gets a doc comment saying what a custom mark uses it for. Done as
+the first commit of Phase 39's session, with the helpers switched to the
+public paths.
 
 ### Why
 
@@ -129,7 +132,7 @@ toolkit becomes the public seam for that.
 
 ## D38.2 — Details of Phase 38 as built
 
-**Date:** 2026-10-28 · **Context:** Phase 38, 238f40b … 9369d33 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 38, 238f40b … 9369d33 · **Status:** decided
 
 ### Issue
 
@@ -187,7 +190,8 @@ toolkit becomes the public seam for that.
 
 ### Decision
 
-A for all thirteen is the recommendation, as built.
+A for all thirteen (architect, 2026-10-28), as built, including numpy
+2.5.3's `"auto"` bin rule as the fixture grades it.
 
 ### Why
 
