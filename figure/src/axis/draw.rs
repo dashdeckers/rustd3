@@ -35,6 +35,10 @@ pub(crate) trait Draw<'a>: 'a {
     /// The offset `.outward(px)` set, px from the plot area.
     fn outward(&self) -> Option<f64>;
 
+    /// The tick labels' rotation `.rotate(deg)` set, degrees
+    /// counter-clockwise; 0 by default.
+    fn rotation(&self) -> f64;
+
     /// The tick labels of the resolved scale's about `count` ticks, in the
     /// figure's locale.
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String>;
@@ -92,6 +96,10 @@ where
 
     fn outward(&self) -> Option<f64> {
         self.outward
+    }
+
+    fn rotation(&self) -> f64 {
+        self.rotate
     }
 
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String> {

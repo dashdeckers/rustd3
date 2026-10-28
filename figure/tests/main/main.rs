@@ -18,6 +18,7 @@ mod parts;
 mod raster;
 #[cfg(feature = "raster")]
 mod resvg;
+mod rotate;
 mod sink;
 #[cfg(feature = "tiny-skia")]
 mod skia;

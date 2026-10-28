@@ -93,6 +93,7 @@ pub struct Axis<'a, S: Kind> {
     outward: Option<f64>,
     labels: Option<bool>,
     offset: bool,
+    rotate: f64,
     tint: Option<Tint<'a>>,
 }
 
@@ -108,6 +109,7 @@ impl<S: Kind> Clone for Axis<'_, S> {
             outward: self.outward,
             labels: self.labels,
             offset: self.offset,
+            rotate: self.rotate,
             tint: self.tint.clone(),
         }
     }
@@ -232,6 +234,31 @@ impl<'a, S: Kind> Axis<'a, S> {
     pub fn offset(self, on: bool) -> Self {
         Axis { offset: on, ..self }
     }
+
+    /// Rotates tick labels counter-clockwise by `deg` (matplotlib's sign).
+    /// Labels anchor at their end for positive angles on bottom axes
+    /// (matplotlib's `autofmt_xdate`: 30°, `ha="right"`), at their start
+    /// for negative ones; top axes mirror; left and right axes rotate
+    /// about the label's center. Layout measures the turned boxes: a label
+    /// of ink size w × h reaches w·|sin θ| + h·|cos θ| past a bottom or
+    /// top axis, and both collision passes test the turned boxes. The run
+    /// is shaped once; the rotation is its transform. A `deg` that is not
+    /// finite leaves the rotation as it was.
+    ///
+    /// ```
+    /// use rustd3_core::time;
+    /// use rustd3_figure::{Figure, axis};
+    ///
+    /// let mut fig = Figure::new();
+    /// let x = fig.fit(time::utc());
+    /// fig.panel(0, 0).axis(axis::bottom(x).rotate(30.0));
+    /// ```
+    pub fn rotate(self, deg: f64) -> Self {
+        Axis {
+            rotate: if deg.is_finite() { deg } else { self.rotate },
+            ..self
+        }
+    }
 }
 
 impl<S> Axis<'_, S>
@@ -309,6 +336,7 @@ fn new<'a, S: Kind>(orient: Orient, h: ScaleRef<S>) -> Axis<'a, S> {
         outward: None,
         labels: None,
         offset: true,
+        rotate: 0.0,
         tint: None,
     }
 }

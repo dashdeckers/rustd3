@@ -20,6 +20,7 @@
 mod cell;
 pub(crate) mod collide;
 mod hold;
+mod obb;
 mod passes;
 mod plan;
 mod protrusion;
@@ -29,6 +30,7 @@ mod tracks;
 
 pub use cell::Cell;
 pub use hold::Areas;
+pub(crate) use obb::Obb;
 pub(crate) use passes::{Laid, Layout};
 pub use plan::Plan;
 pub(crate) use protrusion::Reach;

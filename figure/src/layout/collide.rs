@@ -3,10 +3,12 @@
 //! (Vega's parity strategy), counted from each tick's absolute index so
 //! that labels do not flicker while the axis pans; across axes, labels of
 //! larger panels are placed first and later ones that overlap them are
-//! dropped.
+//! dropped. Both passes test oriented boxes ([`Obb`]), so rotated labels
+//! collide as what they draw.
 
-use kurbo::Rect;
 use rustd3_core::ticks;
+
+use crate::layout::Obb;
 
 /// Indices this large lose integer precision in `f64`.
 const EXACT: f64 = 9_007_199_254_740_992.0;
@@ -18,7 +20,7 @@ pub(crate) struct Axis<'b> {
     /// The plot area of the axis's panel, px²: larger panels go first.
     pub(crate) area: f64,
     /// Each label's box, in tick order.
-    pub(crate) boxes: &'b [Option<Rect>],
+    pub(crate) boxes: &'b [Option<Obb>],
     /// Each tick's absolute index, aligned with the boxes.
     pub(crate) indices: &'b [i64],
 }
@@ -40,12 +42,12 @@ pub(crate) fn collide(axes: &[Axis<'_>]) -> Vec<Vec<bool>> {
         candidates.extend(chosen.into_iter().flatten().map(|j| (i, j)));
     }
     candidates.sort_by(|a, b| axes[b.0].area.total_cmp(&axes[a.0].area));
-    let mut kept: Vec<Rect> = Vec::new();
+    let mut kept: Vec<Obb> = Vec::new();
     for (i, j) in candidates {
         let Some(bounds) = axes[i].boxes[j] else {
             continue;
         };
-        if kept.iter().all(|k| !overlap(k, &bounds)) {
+        if kept.iter().all(|k| !k.overlaps(&bounds)) {
             kept.push(bounds);
             keep[i][j] = true;
         }
@@ -91,8 +93,8 @@ pub(crate) fn grid(values: &[f64], [a, b]: [f64; 2], count: usize) -> Option<Vec
 /// whose index is a multiple of the smallest k ≥ 1 that leaves at least
 /// one and no two overlapping; `None` when no k up to one past the span
 /// of the indices does.
-fn parity(boxes: &[Option<Rect>], indices: &[i64]) -> Option<Vec<usize>> {
-    let placed: Vec<(usize, i64, Rect)> = boxes
+fn parity(boxes: &[Option<Obb>], indices: &[i64]) -> Option<Vec<usize>> {
+    let placed: Vec<(usize, i64, Obb)> = boxes
         .iter()
         .zip(indices)
         .enumerate()
@@ -102,33 +104,30 @@ fn parity(boxes: &[Option<Rect>], indices: &[i64]) -> Option<Vec<usize>> {
     let high = placed.iter().map(|p| p.1).max()?;
     let span = high.saturating_sub(low).saturating_add(1);
     (1..=span.saturating_add(1)).find_map(|k| {
-        let chosen: Vec<&(usize, i64, Rect)> =
+        let chosen: Vec<&(usize, i64, Obb)> =
             placed.iter().filter(|p| p.1.rem_euclid(k) == 0).collect();
         let apart = chosen
             .iter()
             .enumerate()
-            .all(|(n, a)| chosen[n + 1..].iter().all(|b| !overlap(&a.2, &b.2)));
+            .all(|(n, a)| chosen[n + 1..].iter().all(|b| !a.2.overlaps(&b.2)));
         (!chosen.is_empty() && apart).then(|| chosen.iter().map(|p| p.0).collect())
     })
 }
 
-/// Whether `a` and `b` share interior: boxes that touch do not overlap.
-fn overlap(a: &Rect, b: &Rect) -> bool {
-    a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1
-}
-
 #[cfg(test)]
 mod tests {
+    use kurbo::{Rect, Vec2};
+
     use super::*;
 
     /// Boxes `width` wide centred `spacing` apart on one line.
-    fn row(widths: &[f64], spacing: f64) -> Vec<Option<Rect>> {
+    fn row(widths: &[f64], spacing: f64) -> Vec<Option<Obb>> {
         widths
             .iter()
             .enumerate()
             .map(|(i, w)| {
                 let x = i as f64 * spacing;
-                Some(Rect::new(x - w / 2.0, 0.0, x + w / 2.0, 10.0))
+                Some(Obb::rect(Rect::new(x - w / 2.0, 0.0, x + w / 2.0, 10.0)))
             })
             .collect()
     }
@@ -159,10 +158,22 @@ mod tests {
     }
 
     #[test]
-    fn touching_boxes_do_not_overlap() {
-        let a = Rect::new(0.0, 0.0, 10.0, 10.0);
-        assert!(!overlap(&a, &Rect::new(10.0, 0.0, 20.0, 10.0)));
-        assert!(overlap(&a, &Rect::new(9.9, 9.9, 20.0, 20.0)));
+    fn rotated_labels_keep_a_smaller_stride_than_flat_ones() {
+        // 60 × 15 px labels every 25 px: flat ones keep every third, at
+        // 45° (21.2 px apart at least) every one.
+        let at = |deg: f64| -> Vec<Option<Obb>> {
+            (0..8)
+                .map(|i| {
+                    let local = Rect::new(-30.0, -7.5, 30.0, 7.5);
+                    let rotated = Obb::rotated(local, f64::to_radians(deg));
+                    Some(rotated + Vec2::new(25.0 * f64::from(i), 0.0))
+                })
+                .collect()
+        };
+        let indices: Vec<i64> = (0..8).collect();
+        assert_eq!(parity(&at(0.0), &indices), Some(vec![0, 3, 6]));
+        assert_eq!(parity(&at(45.0), &indices), Some((0..8).collect()));
+        assert_eq!(parity(&at(30.0), &indices), Some(vec![0, 2, 4, 6]));
     }
 
     #[test]
@@ -194,8 +205,8 @@ mod tests {
 
     #[test]
     fn larger_panels_keep_their_labels_across_axes() {
-        let small = [Some(Rect::new(0.0, 0.0, 20.0, 10.0))];
-        let large = [Some(Rect::new(10.0, 5.0, 30.0, 15.0))];
+        let small = [Some(Obb::rect(Rect::new(0.0, 0.0, 20.0, 10.0)))];
+        let large = [Some(Obb::rect(Rect::new(10.0, 5.0, 30.0, 15.0)))];
         let axes = [
             Axis {
                 area: 100.0,

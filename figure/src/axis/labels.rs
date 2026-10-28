@@ -1,22 +1,25 @@
 //! [`Labels`]: one axis's tick labels and title as text-cache keys, and
 //! the boxes they take beside the axis.
 
-use kurbo::Rect;
+use kurbo::{Rect, Vec2};
 use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
 
 use crate::axis::{Draw, across};
 use crate::figure::Resolved;
+use crate::layout::Obb;
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
 /// One axis's labels for a layout pass: its side and color, the keys of its
 /// tick labels (none when it is not labelled; `None` for an empty label)
-/// with their ticks' absolute indices, which ticks the scale's format
-/// blanks, the line box its tick labels share, and the keys of its offset
-/// or multiplier label and of its title, set in that color.
+/// with their ticks' absolute indices and their rotation, which ticks the
+/// scale's format blanks, the line box its tick labels share, and the keys
+/// of its offset or multiplier label and of its title, set in that color.
 pub(crate) struct Labels {
     pub(super) orient: Orient,
+    /// The tick labels' rotation, radians counter-clockwise; 0 unrotated.
+    pub(super) angle: f64,
     pub(super) ink: Rgb,
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Option<Key>>,
@@ -69,6 +72,7 @@ impl Labels {
             .map(|t| Key::new(t, &theme.axis_label(ink)));
         Labels {
             orient,
+            angle: axis.rotation().to_radians(),
             ink,
             tinted: tint.is_some(),
             ticks,
@@ -168,11 +172,15 @@ impl Labels {
         }
     }
 
-    /// Tick label `shaped`'s box relative to its anchor point: its advance
-    /// width aligned by its side, by its line box (the text face's ascender
-    /// above its first baseline to its descender below the last) united
-    /// with its ink.
+    /// Tick label `shaped`'s box relative to its anchor point, axis-aligned:
+    /// for an unrotated label its advance width aligned by its side, by its
+    /// line box (the text face's ascender above its first baseline to its
+    /// descender below the last) united with its ink; for a rotated one the
+    /// bounding rectangle of its turned box ([`oriented`](Labels::oriented)).
     pub(crate) fn bounds(&self, shaped: &Shaped) -> Rect {
+        if self.angle != 0.0 {
+            return self.oriented(shaped).aabb();
+        }
         let [ascender, descender] = self.line;
         let width = shaped.width();
         let x0 = match align(self.orient) {
@@ -184,6 +192,47 @@ impl Labels {
         let top = (b - ascender).min(b - shaped.ascent());
         let bottom = (b + shaped.last() + descender).max(b + shaped.descent());
         Rect::new(x0, top, x0 + width, bottom)
+    }
+
+    /// Tick label `shaped`'s box relative to its anchor point as collisions
+    /// test it: [`bounds`](Labels::bounds) for an unrotated label; for a
+    /// rotated one its ink box (advance width by ink height) turned by the
+    /// angle, its bounding rectangle placed as matplotlib aligns a rotated
+    /// label's: on a bottom axis its top on the anchor, its right edge
+    /// there for positive angles (the label ends at its tick, as
+    /// `autofmt_xdate`'s `ha="right"`) and its left edge for negative ones;
+    /// a top axis mirrors that, its bottom on the anchor and its left edge
+    /// there for positive angles; beside a left or right axis it ends or
+    /// starts at the anchor, centred on it vertically.
+    pub(crate) fn oriented(&self, shaped: &Shaped) -> Obb {
+        if self.angle == 0.0 {
+            return Obb::rect(self.bounds(shaped));
+        }
+        self.turned(shaped) + self.origin(shaped)
+    }
+
+    /// Where rotated tick label `shaped` has its first baseline's left end
+    /// relative to its anchor point (see [`oriented`](Labels::oriented)).
+    pub(super) fn origin(&self, shaped: &Shaped) -> Vec2 {
+        let aabb = self.turned(shaped).aabb();
+        let positive = self.angle > 0.0;
+        let x = match (self.orient, positive) {
+            (Orient::Bottom, true) | (Orient::Top, false) | (Orient::Left, _) => -aabb.x1,
+            (Orient::Bottom, false) | (Orient::Top, true) | (Orient::Right, _) => -aabb.x0,
+        };
+        let y = match self.orient {
+            Orient::Bottom => -aabb.y0,
+            Orient::Top => -aabb.y1,
+            Orient::Left | Orient::Right => -(aabb.y0 + aabb.y1) / 2.0,
+        };
+        Vec2::new(x, y)
+    }
+
+    /// Rotated tick label `shaped`'s ink box turned about its first
+    /// baseline's left end.
+    fn turned(&self, shaped: &Shaped) -> Obb {
+        let ink = Rect::new(0.0, -shaped.ascent(), shaped.width(), shaped.descent());
+        Obb::rotated(ink, self.angle)
     }
 
     /// How far the tick labels at `positions` (aligned with the ticks)

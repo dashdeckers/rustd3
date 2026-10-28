@@ -111,14 +111,15 @@ impl Resolved {
     }
 
     /// The box of every tick label layout kept, in list px, in panel, axis
-    /// and tick order: the label's advance width by its ink height. No two
-    /// overlap.
+    /// and tick order: the label's advance width by its line box (its ink
+    /// box, turned, for a rotated label, whose box this is the bounding
+    /// rectangle of). No two labels overlap: rotated ones as turned boxes.
     pub fn label_boxes(&self) -> Vec<kurbo::Rect> {
         self.panels
             .iter()
             .flat_map(|laid| &laid.axes)
             .flat_map(|a| a.boxes.iter().zip(&a.keep))
-            .filter_map(|(b, keep)| b.filter(|_| *keep))
+            .filter_map(|(b, keep)| b.filter(|_| *keep).map(|b| b.aabb()))
             .collect()
     }
 

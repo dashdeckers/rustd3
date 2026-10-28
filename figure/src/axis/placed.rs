@@ -8,7 +8,7 @@ use rustd3_core::axis::Orient;
 
 use crate::axis::labels::{align, get, notation};
 use crate::axis::{Labels, across};
-use crate::layout::{Plan, Snap};
+use crate::layout::{Obb, Plan, Snap};
 use crate::list::{self, Command, List};
 use crate::text::{self, Anchor};
 use crate::theme::Theme;
@@ -23,8 +23,9 @@ pub(crate) struct Placed {
     pub(crate) plan: Plan,
     /// Its ticks' positions along the plot area.
     pub(crate) positions: Vec<Option<f64>>,
-    /// Its tick labels' boxes in list px; `None` for one not placed.
-    pub(crate) boxes: Vec<Option<Rect>>,
+    /// Its tick labels' boxes in list px, turned with rotated labels;
+    /// `None` for one not placed.
+    pub(crate) boxes: Vec<Option<Obb>>,
     /// Which tick labels are drawn.
     pub(crate) keep: Vec<bool>,
     /// How far above the plot area a vertical axis's offset or multiplier
@@ -36,8 +37,9 @@ pub(crate) struct Placed {
 impl Placed {
     /// The axis with `labels` and `plan` beside plot area `area`, its ticks
     /// at `positions`, every tick label kept: each label's box is its box
-    /// ([`Labels::bounds`]) at the end of its tick plus the tick pad, `None`
-    /// for a label that is not placed, empty, or that typst rejected.
+    /// ([`Labels::oriented`]) at the end of its tick plus the tick pad,
+    /// `None` for a label that is not placed, empty, or that typst
+    /// rejected.
     pub(crate) fn new(
         labels: Labels,
         plan: Plan,
@@ -60,7 +62,7 @@ impl Placed {
     }
 
     /// Each tick label's box beside plot area `area`.
-    fn measure(&self, area: Rect, text: &text::Cache, theme: &Theme) -> Vec<Option<Rect>> {
+    fn measure(&self, area: Rect, text: &text::Cache, theme: &Theme) -> Vec<Option<Obb>> {
         let spine = self.spine(area, theme);
         let gap = theme.tick() + theme.tick_pad();
         self.labels
@@ -70,7 +72,7 @@ impl Placed {
             .map(|(key, p)| {
                 let shaped = get(text, key.as_ref()?)?;
                 let at = spine.at((*p)?, gap);
-                Some(self.labels.bounds(shaped) + at.to_vec2())
+                Some(self.labels.oriented(shaped) + at.to_vec2())
             })
             .collect()
     }
@@ -106,7 +108,9 @@ impl Placed {
     /// labels a tick pad past the ticks on the
     /// baselines their line box gives ([`Labels::baseline`]), its
     /// offset or multiplier label (at the right end of a horizontal axis, a
-    /// tick pad beyond the labels; above the top end of a vertical one), and
+    /// tick pad beyond the labels; above the top end of a vertical one);
+    /// rotated labels are turned about their first baseline's left end,
+    /// placed by [`Labels::oriented`]; and
     /// its title a label pad past all of them, turned a quarter
     /// counter-clockwise on the left and clockwise on the right. On raster
     /// targets (`snap`) the ticks lie on whole device pixels; labels keep
@@ -154,10 +158,19 @@ impl Placed {
             v: text::anchor::Vertical::Baseline,
         };
         let kept = labels.ticks.iter().zip(&self.positions).zip(&self.keep);
+        let turned = Anchor {
+            h: text::anchor::Horizontal::Start,
+            v: text::anchor::Vertical::Baseline,
+        };
         for ((key, p), _) in kept.filter(|(_, keep)| **keep) {
             if let (Some(shaped), Some(p)) = (key.as_ref().and_then(|k| get(text, k)), p) {
-                let at = spine.at(*p, gap) + kurbo::Vec2::new(0.0, labels.baseline(shaped));
-                shaped.place(list, at, baseline, 0.0);
+                if labels.angle == 0.0 {
+                    let at = spine.at(*p, gap) + kurbo::Vec2::new(0.0, labels.baseline(shaped));
+                    shaped.place(list, at, baseline, 0.0);
+                } else {
+                    let at = spine.at(*p, gap) + labels.origin(shaped);
+                    shaped.place(list, at, turned, -labels.angle);
+                }
             }
         }
         let extent = labels.extent(text);
