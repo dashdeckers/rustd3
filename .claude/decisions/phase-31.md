@@ -196,3 +196,103 @@ variant missed.
 - If B: one `feat(figure)` commit before Step 3 or beside Step 7, with
   the switch set by the pool's renderers, and the rerun (step 9) measures
   it.
+
+## Measurements, D22.4's item 4 (the list stage of the scatters)
+
+222e9cb (the measurement, `rustd3-bench also`'s new row) and 0d97e24 (the
+cuts). What the widget does on the UI thread per frame of a pan on the
+bench's scatters at full size, 1600 × 1000 at 1: resolve with both handles
+held at the pan's domains and draw the list (the probe's resolve and list
+stages), then the list's bounds, its cells and the hit index the widget
+rebuilds after them; release, medians of 9 frames over a warm cache, the
+median of 3 runs, this container:
+
+| Stage, ms | scatter100k before | after | scatter1m before | after |
+| --- | --- | --- | --- | --- |
+| resolve | 0.61 | 0.55 | 3.17 | 3.05 |
+| list (`draw_resolved`) | 8.49 | 3.60 | 93.7 | 39.4 |
+| the widget's `Bounds::of` | 3.07 | 0.20 | 29.9 | 1.84 |
+| `list::cells` | 0.01 | 0.01 | 0.02 | 0.01 |
+| the hit index (`Figure::hits`) | 5.05 | 5.39 | 77.1 | 61.6 |
+
+Inside `draw_resolved` (instrumented once, scratch, scatter1m): the dots
+marks 40 → 33 ms, `Bounds::of` 30 → 3.2 ms, the part hashes 23 → 3.5 ms.
+The cuts: the dots mark writes centres (and radii and colors only when a
+channel sets them) straight into the command's vectors instead of a
+72-byte record per point, and skips the jitter hash of unjittered dots
+(culling to the plot area was already there); marker bounds add the
+shape's extent once to the points' extremes (exactly the per-point union);
+part hashes take a markers command's points, sizes and paint indices a
+64-bit word per FNV-1a step. A one-off probe of the dots loop: the two
+scale applications per point are about 14 ns of the remaining ~33 ns per
+point here.
+
+**Against the target.** The list stage fell to 0.42× on both scatters
+here. Applied to the user's machine (D22.1: resolve 0.6 + list 5.2 ms on
+`scatter100k`), resolve plus list is about 0.6 + 2.2 ms, under the 8 ms
+target; `scatter1m`'s list is about 51 × 0.42 ≈ 21 ms there.
+
+**What remains for 0.2** (list building off the UI thread): on
+`scatter1m` here a pan's frame still spends about 3 + 39 + 2 ms on resolve,
+list and bounds, and 62 ms rebuilding the hit index (the dots' placement
+again per point, then a bucket grid), which only hover reads; building the
+index lazily or on the worker is the larger cut. A counting-sort grid was
+tried and measured within the noise (not kept).
+
+**`scripts/check.sh full`** at 0d97e24: green in 13 min 50 s (warm, the
+benchmark smoke included), no warnings; its smoke report's "Also measured"
+carries the new row (`scatter100k` list 3.55 ms, `scatter1m` 42.7 ms).
+`quick` green on every commit (25 s to 1 min 1 s).
+
+## D31.3 — Details of Phase 31a as built
+
+**Date:** 2026-10-28 · **Context:** Phase 31, e1355bc … 0d97e24 · **Status:** open
+
+### Issue
+
+1. **The raster command's workloads.** "For each workload the verdict
+   named" beside `--plan default`.
+2. **Its rows.** The CSV has one `ms` per workload, factor and variant;
+   workloads have several plot-area cells, and `grid16` draws lines and
+   dots in each.
+3. **Where the variants live.** The bench has no vello_cpu (manifests are
+   frozen) and the variants may not enter the figure crate before they win.
+4. **Which strokes are thinned**, for the envelope.
+5. **"Grown by half the line width"**: vertically only, or on every side.
+6. **The splat's phase**: `proto/dlist/src/bin/stamps.rs` floors the
+   sub-pixel offset to a phase.
+7. **The list stage's measurement** (D22.4 (4)) has no home in the
+   section.
+8. **The part hash** of long marker arrays.
+9. **Commits.**
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | `raster --plan P` runs the plan's workloads (`default`: trace, scatter100k, scatter1m, grid16, label-churn) at its data size, `--workload` restricting them; the rule is read on the verdict's (`trace`, `label-churn`, `scatter100k`), the table prints it per row |
+| (2) | `ms` sums the median render of each plot-area cell; `stroke` and `markers` rows are the cells as drawn (one render, listed under both names for `grid16`); speedup, max diff and the share over 16/255 are against those renders over the cells the variant changes |
+| (3) | Envelope: the bench replaces each thinned stroke by a fill of its outline and renders the list with the figure's renderer. Splat: the runs of commands between markers render with the figure's renderer over a disjoint cover of where they reach (an axis spine's strip, not the cell), and the stamps (made by the same renderer) are composited in straight RGBA. An in-figure splat would render into one pixmap with `TargetInit::SrcOver` instead, so the bench's splat times are an upper bound |
+| (4) | A solid stroke whose path is a polyline with at least 90 % of its vertices in subpaths spanning at least 8 device columns with at least 2 vertices per column (M4 keeps up to 4; axis ticks are many 2-vertex subpaths) |
+| (5) | On every side: the band at each x takes the extremes of the columns within half the width, as a pen reaches sideways from a vertical stroke by half its width; grown vertically only, the band would leave that reach out on every steep stretch |
+| (6) | The nearest quarter phase (an offset of at most 1/8 px per axis), half the prototype's error |
+| (7) | A row of `also.rs` (`rustd3-bench also` prints the section; every headless run writes it): the resolve and list stages and what the widget does after them |
+| (8) | A markers command's points, sizes and paint indices are hashed a 64-bit word per FNV-1a step (`Part::hash`'s doc says so); one differing word still always changes the hash, as each step is a bijection |
+| (9) | e1355bc D39.3; 2fe8e79 D39.7; 1dab54b step 1; 584c5f1 step 2 (this file); 222e9cb the measurement; 0d97e24 the cuts; then the docs |
+
+### Decision
+
+Recommendation: A for all nine, as built.
+
+### Why
+
+(1), (2) and (7) are the readings that run what the section names and keep
+the table one row per variant; (3) follows the frozen manifests and the
+rule that a variant enters the figure crate only after it wins; (4)–(6) are
+the closest readings of the section's variants (and (6) gives the
+16-stamp splat its best chance); (8) keeps the hash's guarantee at an
+eighth of the steps.
+
+### Followups
+
+- D31.2 decides whether the 64-stamp splat is built.
