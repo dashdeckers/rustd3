@@ -34,6 +34,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ordinal;
 
 use crate::figure::Resolved;
+use crate::hatch::Hatch;
 use crate::scale::ScaleRef;
 use crate::text::Text;
 
@@ -47,8 +48,9 @@ pub use swatch::Swatch;
 
 /// A legend of an ordinal palette: one entry per key of its domain, in
 /// domain order, a swatch in the key's color (a square unless
-/// [`glyph`](Legend::glyph) says otherwise) beside the key's `Display`
-/// text, under an optional title.
+/// [`glyph`](Legend::glyph) says otherwise, hatched as the marks filled
+/// with the key are) beside the key's `Display` text, under an optional
+/// title.
 pub struct Legend<K> {
     palette: ScaleRef<Ordinal<K, Rgb>>,
     title: Option<Text>,
@@ -104,9 +106,9 @@ where
 
 /// A legend with its key type erased: what layout and drawing ask of it.
 pub(crate) trait Draw {
-    /// Each key's color (`None` when the palette has none for it) and
-    /// text, in domain order.
-    fn entries(&self, resolved: &Resolved) -> Vec<(Option<Rgb>, String)>;
+    /// Each key's color (`None` when the palette has none for it), text
+    /// and the hatch of the marks filled with it, in domain order.
+    fn entries(&self, resolved: &Resolved) -> Vec<(Option<Rgb>, String, Option<Hatch>)>;
 
     /// The title.
     fn title(&self) -> Option<&Text>;
@@ -119,12 +121,17 @@ impl<K> Draw for Legend<K>
 where
     K: PartialEq + Clone + Display + 'static,
 {
-    fn entries(&self, resolved: &Resolved) -> Vec<(Option<Rgb>, String)> {
+    fn entries(&self, resolved: &Resolved) -> Vec<(Option<Rgb>, String, Option<Hatch>)> {
         let palette = resolved.scale(self.palette);
         palette
             .get_domain()
             .iter()
-            .map(|key| (palette.apply(key).copied(), key.to_string()))
+            .map(|key| {
+                let hatch = resolved
+                    .hatch(self.palette.index(), |k| k.downcast_ref::<K>() == Some(key))
+                    .cloned();
+                (palette.apply(key).copied(), key.to_string(), hatch)
+            })
             .collect()
     }
 

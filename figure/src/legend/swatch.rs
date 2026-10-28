@@ -1,9 +1,10 @@
 //! [`Swatch`]: what a legend draws beside each label.
 
-use kurbo::{BezPath, Point, Rect, Shape};
+use kurbo::{BezPath, Point, Rect, Shape, Vec2};
 use rustd3_core::color::Rgb;
 
-use crate::list::{self, Command, List};
+use crate::hatch::Hatch;
+use crate::list::{self, Clip, Command, List};
 use crate::mark;
 use crate::theme::Theme;
 
@@ -18,7 +19,8 @@ const TOLERANCE: f64 = 1e-3;
 
 /// What a legend draws beside each label, in the key's color, standing on
 /// the label's baseline in a box 0.7 em tall (matplotlib's
-/// `legend.handleheight`).
+/// `legend.handleheight`). A square of a key whose marks are hatched
+/// repeats their [`Hatch`](crate::hatch::Hatch).
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -59,15 +61,29 @@ impl Swatch {
         }
     }
 
-    /// Appends the swatch in `color` to `list`, in its box `rect`, sized
-    /// by `theme`.
-    pub(crate) fn draw(self, rect: Rect, color: Rgb, theme: &Theme, list: &mut List) {
+    /// Appends the swatch in `color` to `list`, in its box `rect` in the
+    /// figure's coordinates, sized by `theme`; a square is hatched with
+    /// `hatch`, anchored to the figure as its marks' hatches are.
+    pub(crate) fn draw(
+        self,
+        rect: Rect,
+        color: Rgb,
+        hatch: Option<&Hatch>,
+        theme: &Theme,
+        list: &mut List,
+    ) {
         let paint = list::brush(color);
         let command = match self {
-            Swatch::Square => Command::Fill {
-                path: rect.to_path(TOLERANCE),
-                paint,
-            },
+            Swatch::Square => {
+                list.commands.push(Command::Fill {
+                    path: rect.to_path(TOLERANCE),
+                    paint,
+                });
+                if let Some(hatch) = hatch {
+                    hatch.draw(Clip::Rect(rect), rect, Vec2::ZERO, theme, list);
+                }
+                return;
+            }
             Swatch::Dot => {
                 let r = theme.marker().min(rect.height()) / 2.0;
                 Command::Fill {

@@ -13,6 +13,7 @@ pub mod axis;
 pub mod check;
 pub mod colorbar;
 mod figure;
+pub mod hatch;
 pub mod hit;
 pub mod layout;
 pub mod legend;

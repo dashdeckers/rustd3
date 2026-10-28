@@ -8,6 +8,7 @@ mod draw;
 mod figure;
 mod fit;
 mod handles;
+mod hatch;
 mod hit;
 mod layout;
 mod legend;

@@ -1,12 +1,13 @@
 //! [`Area`]: the region between a line and a base; [`Ribbon`]: the region
 //! between two lines.
 
-use kurbo::{BezPath, Point};
+use kurbo::{BezPath, Point, Shape};
 use rustd3_core::series::{self, Data, Points, Series, m4};
 
 use crate::check::Issue;
 use crate::figure::Fits;
-use crate::list::{self, Command, List};
+use crate::hatch::Hatch;
+use crate::list::{self, Clip, Command, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Error, Mark, admits, at, guard, polygon, reach, runs};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
@@ -22,6 +23,7 @@ pub struct Area<'a, X: Position, Y: Position<Domain = f64>> {
     y: ScaleRef<Y>,
     base: f64,
     color: Color,
+    hatch: Option<Hatch>,
 }
 
 /// The region between two lines with one x per row, a ribbon's lower and
@@ -32,6 +34,7 @@ pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     color: Color,
+    hatch: Option<Hatch>,
     thin: Thin,
     error: Option<Error>,
 }
@@ -64,6 +67,7 @@ where
         y,
         base: 0.0,
         color: Color::Theme,
+        hatch: None,
     }
 }
 
@@ -155,6 +159,15 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
             ..self
         }
     }
+
+    /// Hatches the region with `h`, after its fill; legend swatches of the
+    /// fill key repeat it.
+    pub fn hatch(self, h: Hatch) -> Self {
+        Self {
+            hatch: Some(h),
+            ..self
+        }
+    }
 }
 
 impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
@@ -162,12 +175,13 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
         super::fit(&self.points, self.x, self.y, fits);
         fits.add(self.y, &self.base);
         fits.stick(self.y, self.base);
+        self.color.hatched(self.hatch.as_ref(), fits);
     }
 
     /// One `Fill` command: per run of points placed on both scales (or of
     /// M4's samples of a thinned channel), the polygon down to the base,
-    /// clipped to the guard band; nothing when no run has two points or
-    /// the base cannot be placed.
+    /// clipped to the guard band, then its hatch when set; nothing when no
+    /// run has two points or the base cannot be placed.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let band = guard::band(ctx.rect().width(), ctx.rect().height());
@@ -191,7 +205,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
             outline.push(Point::new(last.x, base));
             polygon(&mut path, &outline, band);
         }
-        fill(list, path, &self.color, ctx);
+        fill(list, path, (&self.color, self.hatch.as_ref()), ctx);
     }
 
     /// Collected data over 100,000 points; a fill key the palette lacks;
@@ -218,6 +232,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
             x,
             y,
             color: Color::Theme,
+            hatch: None,
             thin: Thin::Auto,
             error,
         }
@@ -228,6 +243,15 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
+            ..self
+        }
+    }
+
+    /// Hatches the ribbon with `h`, after its fill; legend swatches of the
+    /// fill key repeat it.
+    pub fn hatch(self, h: Hatch) -> Self {
+        Self {
+            hatch: Some(h),
             ..self
         }
     }
@@ -262,12 +286,13 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
         }
         super::fit(&self.lower, self.x, self.y, fits);
         super::fit(&self.upper, self.x, self.y, fits);
+        self.color.hatched(self.hatch.as_ref(), fits);
     }
 
     /// One `Fill` command: per run of rows whose x and both edges are
     /// placed (M4's joint samples of thinned channels), the polygon along
     /// the upper edge and back along the lower one, clipped to the guard
-    /// band; nothing when no run has two rows.
+    /// band, then its hatch when set; nothing when no run has two rows.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         if self.error.is_some() {
             return;
@@ -296,7 +321,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
             let outline: Vec<Point> = upper.chain(lower).collect();
             polygon(&mut path, &outline, band);
         }
-        fill(list, path, &self.color, ctx);
+        fill(list, path, (&self.color, self.hatch.as_ref()), ctx);
     }
 
     /// A ribbon over two recordings; collected rows over 100,000; a fill
@@ -321,13 +346,19 @@ fn sequence(lines: &m4::Lines) -> impl Iterator<Item = Option<usize>> + '_ {
         .flat_map(|line| line.iter().map(|&i| Some(i)).chain([None]))
 }
 
-/// Pushes `path` filled in `color`, unless it is empty.
-fn fill(list: &mut List, path: BezPath, color: &Color, ctx: &Ctx<'_>) {
+/// Pushes `path` filled in `color`, then hatched with `hatch` (clipped to
+/// the path) when set, unless it is empty.
+fn fill(list: &mut List, path: BezPath, (color, hatch): (&Color, Option<&Hatch>), ctx: &Ctx<'_>) {
     if path.elements().is_empty() {
         return;
     }
+    let bounds = path.bounding_box();
+    let clip = hatch.map(|_| Clip::Path(path.clone()));
     list.commands.push(Command::Fill {
         path,
         paint: list::brush(color.resolve(ctx)),
     });
+    if let Some(clip) = clip {
+        super::hatch(hatch, clip, bounds, ctx, list);
+    }
 }

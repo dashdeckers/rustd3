@@ -5,8 +5,9 @@ use kurbo::Point;
 
 use crate::check::Issue;
 use crate::figure::Fits;
+use crate::hatch::Hatch;
 use crate::hit;
-use crate::list::{self, List};
+use crate::list::{self, Clip, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Mark, dodge, guard, positive, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
@@ -32,10 +33,11 @@ pub struct BarX<X: Position<Domain = f64>, Y: Position> {
 }
 
 /// What both orientations hold: rows of a key and a value or a span, and
-/// how they are filled and placed.
+/// how they are filled, hatched and placed.
 struct Bars<K> {
     rows: Rows<K>,
     color: Color,
+    hatch: Option<Hatch>,
     dodge: bool,
     width: Option<f64>,
 }
@@ -165,6 +167,7 @@ impl<K> Bars<K> {
         Bars {
             rows,
             color: Color::Theme,
+            hatch: None,
             dodge: false,
             width: None,
         }
@@ -195,6 +198,18 @@ impl<K> Bars<K> {
         if let Rows::Values { base, .. } = self.rows {
             fits.add(value, &base);
             fits.stick(value, base);
+        }
+        self.color.hatched(self.hatch.as_ref(), fits);
+    }
+
+    /// One `Fill` command per bar `rects` lists (panel coordinates), each
+    /// followed by its hatch's clip group when hatched.
+    fn fill(&self, ctx: &Ctx<'_>, rects: impl Iterator<Item = kurbo::Rect>, list: &mut List) {
+        let paint = list::brush(self.color.resolve(ctx));
+        for r in rects {
+            if let Some(r) = rect::fill(list, ctx, r, &paint) {
+                super::hatch(self.hatch.as_ref(), Clip::Rect(r), r, ctx, list);
+            }
         }
     }
 
@@ -293,6 +308,13 @@ macro_rules! builders {
                 self
             }
 
+            /// Hatches every bar with `h`, after its fill; legend swatches
+            /// of the fill key repeat it.
+            pub fn hatch(mut self, h: Hatch) -> Self {
+                self.bars.hatch = Some(h);
+                self
+            }
+
             /// Places the bars in their fill key's slot of the band, the
             /// band split into one sub-band per palette key in the palette's
             /// order, so that bars of several marks stand side by side.
@@ -337,15 +359,16 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
     }
 
     /// One `Fill` command per bar with area, clipped to the guard band, its
-    /// edges on device pixels on raster targets.
+    /// edges on device pixels on raster targets, and its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
         let band = guard::band(w, h);
-        let paint = list::brush(self.bars.color.resolve(ctx));
-        for (_, [x0, x1], [y0, y1]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
-            rect::fill(list, ctx, kurbo::Rect::new(x0, y0, x1, y1), &paint);
-        }
+        let placed = self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]);
+        let rects = placed
+            .into_iter()
+            .map(|(_, [x0, x1], [y0, y1])| kurbo::Rect::new(x0, y0, x1, y1));
+        self.bars.fill(ctx, rects, list);
     }
 
     /// Per bar, the centre of its value end (the top of a bar from a base
@@ -379,15 +402,16 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
     }
 
     /// One `Fill` command per bar with area, clipped to the guard band, its
-    /// edges on device pixels on raster targets.
+    /// edges on device pixels on raster targets, and its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
         let band = guard::band(w, h);
-        let paint = list::brush(self.bars.color.resolve(ctx));
-        for (_, [y0, y1], [x0, x1]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
-            rect::fill(list, ctx, kurbo::Rect::new(x0, y0, x1, y1), &paint);
-        }
+        let placed = self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]);
+        let rects = placed
+            .into_iter()
+            .map(|(_, [y0, y1], [x0, x1])| kurbo::Rect::new(x0, y0, x1, y1));
+        self.bars.fill(ctx, rects, list);
     }
 
     /// Per bar, the centre of its value end (the right end of a bar from a

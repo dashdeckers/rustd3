@@ -7,7 +7,8 @@
 //! (styles `darkgrid`, `whitegrid`, `dark`, `white`, `ticks`; contexts
 //! `paper`, `notebook`, `talk`, `poster`), adds `_<style>_<context>` to the
 //! file names and prints what `fig.check` finds at that size: talk and
-//! poster are too big for 960 × 760.
+//! poster are too big for 960 × 760. `--hatch` hatches the histograms'
+//! bars at 45° and adds `_hatched` to the file names.
 
 use std::path::PathBuf;
 
@@ -22,9 +23,12 @@ const SCALE: f64 = 2.0;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut dir = None;
     let mut preset = None;
+    let mut hatch = false;
     let mut args = std::env::args_os().skip(1);
     while let Some(arg) = args.next() {
-        if arg == "--theme" {
+        if arg == "--hatch" {
+            hatch = true;
+        } else if arg == "--theme" {
             let spec = args.next().ok_or("--theme takes <style>:<context>")?;
             let spec = spec.to_str().ok_or("--theme takes <style>:<context>")?;
             preset = Some(theme(spec)?);
@@ -38,7 +42,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(&dir)?;
     let samples = wheels::simulate();
     for (inset, name) in [(false, "wheels"), (true, "wheels_inset")] {
-        let mut fig = wheels::figure(&samples, inset);
+        let (mut fig, name) = if hatch {
+            (wheels::hatched(&samples, inset), format!("{name}_hatched"))
+        } else {
+            (wheels::figure(&samples, inset), name.to_string())
+        };
         let name = match &preset {
             Some((theme, suffix)) => {
                 fig.theme(theme.clone());
@@ -47,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 format!("{name}{suffix}")
             }
-            None => name.to_string(),
+            None => name,
         };
         for warning in fig.save_svg(dir.join(format!("{name}.svg")), wheels::SIZE)? {
             eprintln!("{name}.svg: {warning:?}");

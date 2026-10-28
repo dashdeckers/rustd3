@@ -6,8 +6,9 @@ use rustd3_core::scale::{self, Band, Continuous, Point};
 
 use crate::check::Issue;
 use crate::figure::Fits;
+use crate::hatch::Hatch;
 use crate::hit;
-use crate::list::{self, List};
+use crate::list::{self, Clip, List};
 use crate::mark::bar::Across;
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Mark, dodge, guard, reach, rect, within};
@@ -59,6 +60,7 @@ pub struct Histogram<X: Binned, Y: Position<Domain = f64>> {
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     color: Color,
+    hatch: Option<Hatch>,
     dodge: bool,
 }
 
@@ -127,6 +129,7 @@ where
         x,
         y,
         color: Color::Theme,
+        hatch: None,
         dodge: false,
     }
 }
@@ -146,6 +149,15 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
+            ..self
+        }
+    }
+
+    /// Hatches every bar with `h`, after its fill; legend swatches of the
+    /// fill key repeat it.
+    pub fn hatch(self, h: Hatch) -> Self {
+        Self {
+            hatch: Some(h),
             ..self
         }
     }
@@ -172,16 +184,20 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
         }
         fits.add(self.y, &0.0);
         fits.stick(self.y, 0.0);
+        self.color.hatched(self.hatch.as_ref(), fits);
     }
 
     /// One `Fill` command per bar with area, through the rectangle code of
     /// [`rect()`](crate::mark::rect): across its key's band (a width
     /// centred on a point key) or its bin's edges, dodged when asked, from
-    /// 0 up to its count.
+    /// 0 up to its count; each followed by its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let paint = list::brush(self.color.resolve(ctx));
         for (_, [x0, x1], [base, top]) in self.placed(ctx) {
-            rect::fill(list, ctx, kurbo::Rect::new(x0, top, x1, base), &paint);
+            let bar = kurbo::Rect::new(x0, top, x1, base);
+            if let Some(r) = rect::fill(list, ctx, bar, &paint) {
+                super::hatch(self.hatch.as_ref(), Clip::Rect(r), r, ctx, list);
+            }
         }
     }
 

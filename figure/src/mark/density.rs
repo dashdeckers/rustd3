@@ -1,11 +1,12 @@
 //! [`DensityY`] and [`DensityX`]: a Gaussian kernel density estimate drawn
 //! along y or along x.
 
-use kurbo::{BezPath, Point};
+use kurbo::{BezPath, Point, Shape};
 
 use crate::check::Issue;
 use crate::figure::Fits;
-use crate::list::{self, Command, List};
+use crate::hatch::Hatch;
+use crate::list::{self, Clip, Command, List};
 use crate::mark::color::Color;
 use crate::mark::{Ctx, Error, Mark, guard, polygon, positive, reach, stroke};
 use crate::scale::{Paint, Position, ScaleRef};
@@ -50,6 +51,7 @@ struct Density {
     /// over its peak; empty when there is no estimate.
     curve: Vec<(f64, f64)>,
     color: Color,
+    hatch: Option<Hatch>,
 }
 
 /// A kernel density estimate of `values` along `y`, Gaussian with Scott's
@@ -115,6 +117,7 @@ impl Density {
             adjust: 1.0,
             curve: Vec::new(),
             color: Color::Theme,
+            hatch: None,
         }
         .traced()
     }
@@ -152,12 +155,13 @@ impl Density {
         fits.add(size, &0.0);
         fits.add(size, &1.0);
         fits.stick(size, 0.0);
+        self.color.hatched(self.hatch.as_ref(), fits);
     }
 
-    /// A `Fill` of the region between the curve and size 0 at 0.35 opacity
-    /// and a `Stroke` of its outline, 0.75 pt, placed by `at` from a
-    /// position along the value axis and a size; nothing without an
-    /// estimate or when the region falls outside the guard band.
+    /// A `Fill` of the region between the curve and size 0 at 0.35 opacity,
+    /// its hatch when set, and a `Stroke` of its outline, 0.75 pt, placed by
+    /// `at` from a position along the value axis and a size; nothing
+    /// without an estimate or when the region falls outside the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List, at: impl Fn(f64, f64) -> Option<Point>) {
         let placed: Vec<(f64, Point)> = self
             .curve
@@ -183,6 +187,10 @@ impl Density {
             path: path.clone(),
             paint: list::brush(color.with_opacity(color.opacity * FILL)),
         });
+        let bounds = path.bounding_box();
+        if let Some(hatch) = &self.hatch {
+            super::hatch(Some(hatch), Clip::Path(path.clone()), bounds, ctx, list);
+        }
         list.commands.push(Command::Stroke {
             path,
             style: stroke(ctx.theme().density_width(), &[]),
@@ -219,6 +227,13 @@ macro_rules! builders {
                 self
             }
 
+            /// Hatches the region with `h`, between its fill and its
+            /// outline; legend swatches of the fill key repeat it.
+            pub fn hatch(mut self, h: Hatch) -> Self {
+                self.density.hatch = Some(h);
+                self
+            }
+
             /// An explicit bandwidth `h`, the kernel's standard deviation in
             /// the values' units, instead of Scott's; [`adjust`](Self::adjust)
             /// still multiplies it. A bandwidth that is not finite and
@@ -250,8 +265,8 @@ impl<'a, Y: Position<Domain = f64>, W: Position<Domain = f64>> Mark<'a> for Dens
         self.density.fit(self.y, self.w, fits);
     }
 
-    /// A `Fill` at 0.35 opacity and a `Stroke` of the region between the
-    /// curve and `w = 0`, clipped to the guard band.
+    /// A `Fill` at 0.35 opacity, the hatch when set, and a `Stroke` of the
+    /// region between the curve and `w = 0`, clipped to the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sy, sw) = (ctx.y(self.y), ctx.x(self.w));
         let band = guard::band(ctx.rect().width(), ctx.rect().height());
@@ -276,8 +291,8 @@ impl<'a, X: Position<Domain = f64>, H: Position<Domain = f64>> Mark<'a> for Dens
         self.density.fit(self.x, self.h, fits);
     }
 
-    /// A `Fill` at 0.35 opacity and a `Stroke` of the region between the
-    /// curve and `h = 0`, clipped to the guard band.
+    /// A `Fill` at 0.35 opacity, the hatch when set, and a `Stroke` of the
+    /// region between the curve and `h = 0`, clipped to the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sh) = (ctx.x(self.x), ctx.y(self.h));
         let band = guard::band(ctx.rect().width(), ctx.rect().height());

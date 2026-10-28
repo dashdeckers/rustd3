@@ -1,7 +1,11 @@
 //! [`Color`]: what a mark is drawn in.
 
+use std::any::Any;
+
 use rustd3_core::color::Rgb;
 
+use crate::figure::Fits;
+use crate::hatch::Hatch;
 use crate::mark::Ctx;
 use crate::scale::{Paint, ScaleRef};
 
@@ -26,6 +30,9 @@ pub(crate) trait Lookup {
     /// The key's slot among the palette's keys and their count, which
     /// dodged marks sit in; `None` when the palette has none.
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)>;
+
+    /// The palette's position in the scale table and the key, boxed.
+    fn key(&self) -> (usize, Box<dyn Any>);
 }
 
 /// A palette handle and a key of its domain.
@@ -41,6 +48,10 @@ impl<C: Paint> Lookup for Keyed<C> {
 
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
         ctx.scale(self.palette).slot(&self.key)
+    }
+
+    fn key(&self) -> (usize, Box<dyn Any>) {
+        (self.palette.index(), Box::new(self.key.clone()))
     }
 }
 
@@ -64,6 +75,15 @@ impl Color {
         match self {
             Color::Theme | Color::Fixed(_) => None,
             Color::Keyed(lookup) => lookup.slot(ctx),
+        }
+    }
+
+    /// Reports `hatch`, when set, for the key, so legend swatches of the
+    /// key repeat it; marks without a key report nothing.
+    pub(crate) fn hatched(&self, hatch: Option<&Hatch>, fits: &mut Fits) {
+        if let (Color::Keyed(lookup), Some(hatch)) = (self, hatch) {
+            let (palette, key) = lookup.key();
+            fits.hatch(palette, key, hatch);
         }
     }
 

@@ -134,15 +134,22 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
 /// Pushes `r`, a rectangle in the panel's coordinates, filled with `paint`:
 /// clipped to the guard band of `ctx`'s plot area, its edges on device
 /// pixel boundaries on raster targets; nothing when that leaves no area.
-pub(super) fn fill(list: &mut List, ctx: &Ctx<'_>, r: kurbo::Rect, paint: &Brush) {
+/// The rectangle filled, if any.
+pub(super) fn fill(
+    list: &mut List,
+    ctx: &Ctx<'_>,
+    r: kurbo::Rect,
+    paint: &Brush,
+) -> Option<kurbo::Rect> {
     let band = guard::band(ctx.rect().width(), ctx.rect().height());
     let r = ctx.snap().rect(r.abs().intersect(band));
-    if r.width() > 0.0 && r.height() > 0.0 {
+    (r.width() > 0.0 && r.height() > 0.0).then(|| {
         list.commands.push(Command::Fill {
             path: r.to_path(TOLERANCE),
             paint: paint.clone(),
         });
-    }
+        r
+    })
 }
 
 /// Pushes the outline of `r` stroked with `paint`, the theme's patch edge

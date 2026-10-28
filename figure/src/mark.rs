@@ -41,9 +41,10 @@ use rustd3_core::series::{Points, m4};
 
 use crate::check::{self, Issue};
 use crate::figure::{Fits, Resolved};
+use crate::hatch::Hatch;
 use crate::hit;
 use crate::layout::Snap;
-use crate::list::List;
+use crate::list::{Clip, List};
 use crate::mark::color::Color;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{Key, Shaped};
@@ -484,6 +485,16 @@ pub(crate) fn dashes(pattern: impl IntoIterator<Item = f64>) -> Option<Vec<f64>>
     let pattern: Vec<f64> = pattern.into_iter().collect();
     let valid = pattern.iter().all(|v| v.is_finite() && *v >= 0.0);
     (valid && pattern.iter().sum::<f64>() > 0.0).then_some(pattern)
+}
+
+/// Appends `hatch`, when set, over a shape of the panel `ctx` draws:
+/// clipped by `clip`, over its bounding box `bounds` in the panel's
+/// coordinates, its lines anchored to the figure.
+fn hatch(hatch: Option<&Hatch>, clip: Clip, bounds: kurbo::Rect, ctx: &Ctx<'_>, list: &mut List) {
+    if let Some(hatch) = hatch {
+        let origin = ctx.rect().origin().to_vec2();
+        hatch.draw(clip, bounds, origin, ctx.theme(), list);
+    }
 }
 
 /// A positive, finite length in px.

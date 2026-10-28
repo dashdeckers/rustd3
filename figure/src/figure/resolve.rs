@@ -3,8 +3,9 @@
 //! in passes.
 
 use std::any::Any;
+use std::rc::Rc;
 
-use crate::figure::fits::{Fits, Reports};
+use crate::figure::fits::{Fits, Hatched, Reports};
 use crate::figure::{Cache, Entry, Figure, Held, Resolved};
 use crate::layout::{self, Layout};
 use crate::scale::{Scale, visible};
@@ -24,13 +25,15 @@ const COUNT: usize = 10;
 /// windows and `Fit::Visible` handles settle: per table entry its scale
 /// (held, fitted, or as built), the largest x a window handle's marks
 /// admit, the panels whose marks place it across, and whether it is a
-/// `Fit::Visible` handle to settle; and the labels the marks draw.
+/// `Fit::Visible` handle to settle; the labels the marks draw; and the
+/// hatches of their fill keys.
 struct Fitted {
     scales: Vec<Box<dyn Scale>>,
     last: Vec<Option<Box<dyn Any>>>,
     across: Vec<Vec<usize>>,
     pending: Vec<bool>,
     labels: Vec<Key>,
+    hatches: Rc<[Hatched]>,
 }
 
 impl Figure<'_> {
@@ -149,6 +152,7 @@ impl Figure<'_> {
             let locale = self.locale.clone();
             let mut resolved = Resolved::new(self.id, scales, locale, target, size);
             resolved.bind(&self.panels, windowed.clone());
+            resolved.hatched(Rc::clone(&fitted.hatches));
             let layout = Layout::new(self, &resolved, cache.text(), &fitted.labels, size, rects);
             resolved.place(layout, title.clone(), rects.is_some());
             let laid = self.columns(&fitted, &windowed, &resolved);
@@ -276,6 +280,7 @@ impl Figure<'_> {
             across: reports.across,
             pending,
             labels: reports.labels,
+            hatches: reports.hatches.into(),
         }
     }
 

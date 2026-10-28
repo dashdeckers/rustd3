@@ -377,7 +377,7 @@ impl Theme {
     }
 
     /// `v` pt at this context, in px.
-    fn pt(&self, v: f64) -> f64 {
+    pub(crate) fn pt(&self, v: f64) -> f64 {
         v * PX_PER_PT * self.context.scale()
     }
 

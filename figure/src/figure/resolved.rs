@@ -1,10 +1,15 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
+use std::any::Any;
+use std::rc::Rc;
+
 use kurbo::Point;
 use rustd3_core::axis::Orient;
 use rustd3_core::locale::Locale;
 
 use crate::figure;
+use crate::figure::fits::Hatched;
+use crate::hatch::Hatch;
 use crate::layout::{self, Laid, Layout, Plan};
 use crate::legend::Block;
 use crate::panel::Panel;
@@ -36,6 +41,9 @@ pub struct Resolved {
     /// Per table entry, whether it is a `Fit::Window` handle some panel
     /// places across.
     windowed: Vec<bool>,
+    /// The hatches of marks filled through a palette, as they reported
+    /// them.
+    hatches: Rc<[Hatched]>,
 }
 
 impl Resolved {
@@ -64,6 +72,7 @@ impl Resolved {
             zooms: Vec::new(),
             axes: Vec::new(),
             windowed: Vec::new(),
+            hatches: Rc::from([]),
         }
     }
 
@@ -224,6 +233,20 @@ impl Resolved {
             .iter()
             .map(|p| p.axes().iter().map(|a| (a.orient(), a.handle())).collect())
             .collect();
+    }
+
+    /// Sets the hatches marks filled through a palette reported.
+    pub(super) fn hatched(&mut self, hatches: Rc<[Hatched]>) {
+        self.hatches = hatches;
+    }
+
+    /// The hatch of the first mark that reported one for palette `palette`
+    /// (its table position) and a key for which `is` holds.
+    pub(crate) fn hatch(&self, palette: usize, is: impl Fn(&dyn Any) -> bool) -> Option<&Hatch> {
+        self.hatches
+            .iter()
+            .find(|h| h.palette == palette && is(&*h.key))
+            .map(|h| &h.hatch)
     }
 
     /// Sets the layout, the figure title's key and whether the layout

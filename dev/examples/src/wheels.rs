@@ -10,6 +10,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_figure::Figure;
 use rustd3_figure::axis::{bottom, left};
+use rustd3_figure::hatch::Hatch;
 use rustd3_figure::layout::{Grid, em};
 use rustd3_figure::legend::{Inset, Slot, legend};
 use rustd3_figure::mark::{density_y, dots, histogram, line, rule_y};
@@ -80,17 +81,26 @@ const MIN_COUNT: f64 = 20.0;
 /// figure of any shorter lifetime beside figures that borrow (`Figure` is
 /// invariant in its lifetime).
 pub fn figure<'a>(samples: &[Sample], inset: bool) -> Figure<'a> {
-    figure_with(samples, inset, PALETTE)
+    figure_with(samples, inset, PALETTE, None)
 }
 
-/// The wheel figure of `samples` with the sources in `palette`'s colors.
+/// The wheel figure of `samples` with its histograms' bars hatched at 45°
+/// (6 pt apart, 0.8 pt wide in the theme's ink), the legend's squares
+/// repeating it.
+pub fn hatched<'a>(samples: &[Sample], inset: bool) -> Figure<'a> {
+    figure_with(samples, inset, PALETTE, Some(&Hatch::lines(45.0)))
+}
+
+/// The wheel figure of `samples` with the sources in `palette`'s colors,
+/// its histograms' bars hatched with `hatch` when given.
 // The body is Part I's worked example line for line, in its vertical
-// style, so rustfmt leaves it as written.
+// style, so rustfmt leaves it as written; the hatch is Phase 35's.
 #[rustfmt::skip]
 pub fn figure_with<'a>(
     samples: &[Sample],
     inset: bool,
     palette: [Rgb; 3],
+    hatch: Option<&Hatch>,
 ) -> Figure<'a> {
     let of = |w: Wheel, s: Source| {
         samples.iter().filter(move |d| {
@@ -213,11 +223,13 @@ pub fn figure_with<'a>(
         for s in SOURCES {
             let bins = of(wheel, s)
                 .map(|d| d.bin);
-            below.mark(
-                histogram(bins, speed, count)
-                    .fill(color, s)
-                    .dodge(),
-            );
+            let bars = histogram(bins, speed, count)
+                .fill(color, s)
+                .dodge();
+            below.mark(match hatch {
+                Some(h) => bars.hatch(h.clone()),
+                None => bars,
+            });
         }
         below.mark(
             rule_y(MIN_COUNT, count)

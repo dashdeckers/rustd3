@@ -5,8 +5,8 @@
 
 use rustd3_examples::wheels;
 use rustd3_figure::check::size;
-use rustd3_figure::kurbo::Size;
-use rustd3_figure::list::{self, Command, List, part};
+use rustd3_figure::kurbo::{Shape, Size, Vec2};
+use rustd3_figure::list::{self, Clip, Command, List, part};
 use rustd3_figure::lower::{self, Caps};
 use rustd3_figure::theme::{Context, Style};
 use rustd3_figure::{Cache, Figure, Held, Resolved, Target, Theme, svg};
@@ -25,6 +25,9 @@ const MARK: u64 = 6;
 
 /// The role a figure gives its panels' titles.
 const HEADING: u64 = 5;
+
+/// The role a figure gives its legends.
+const LEGEND: u64 = 7;
 
 /// The fixture's value at `pointer`.
 fn fixture(pointer: &str) -> Obs {
@@ -73,6 +76,77 @@ fn marked(list: &List) -> Vec<(u64, &Command)> {
         })
         .flatten()
         .collect()
+}
+
+#[test]
+fn the_hatched_wheel_figure_hatches_its_232_bars_and_legend_squares() {
+    let (resolved, list) = drawn(&wheels::hatched(&wheels::simulate(), false));
+    let marked = marked(&list);
+    let histograms: Vec<(u64, &Command)> = marked
+        .iter()
+        .filter(|(panel, _)| panel % 3 == 2)
+        .copied()
+        .collect();
+    // After each bar's fill: a group clipped to the bar, its 45° lines 8 px
+    // apart from the figure's origin, the group's end; a bar no such line
+    // crosses has none.
+    let n = Vec2::new(0.5_f64.sqrt(), 0.5_f64.sqrt());
+    let (mut bars, mut hatched) = (0, 0);
+    for (i, (panel, c)) in histograms.iter().enumerate() {
+        let Command::Fill { path, .. } = c else {
+            continue;
+        };
+        bars += 1;
+        let rect = path.bounding_box();
+        let next: Vec<&Command> = histograms[i + 1..]
+            .iter()
+            .take(3)
+            .map(|(_, c)| *c)
+            .collect();
+        if let [
+            Command::Push {
+                clip: Some(Clip::Rect(r)),
+                ..
+            },
+            Command::Stroke { .. },
+            Command::Pop,
+        ] = next[..]
+        {
+            assert_eq!(*r, rect);
+            hatched += 1;
+        } else {
+            let origin = resolved.plot_areas()[*panel as usize].origin().to_vec2();
+            let corners = [(rect.x0, rect.y0), (rect.x1, rect.y1)]
+                .map(|(x, y)| (Vec2::new(x, y) + origin).dot(n) / 8.0);
+            assert!(corners[0].ceil() > corners[1].floor(), "{rect:?}");
+        }
+    }
+    assert_eq!(bars.to_obs(), fixture("/bars"));
+    assert_eq!(hatched, 211);
+    // The scatters and densities are not hatched.
+    let others = marked
+        .iter()
+        .filter(|(panel, c)| panel % 3 != 2 && matches!(c, Command::Push { .. }))
+        .count();
+    assert_eq!(others, 0);
+    let legend = list
+        .parts
+        .iter()
+        .find(|p| role_and_panel(p.id).0 == LEGEND)
+        .expect("the legend");
+    let clips = list.commands[legend.commands.clone()]
+        .iter()
+        .filter(|c| {
+            matches!(
+                c,
+                Command::Push {
+                    clip: Some(Clip::Rect(_)),
+                    ..
+                }
+            )
+        })
+        .count();
+    assert_eq!(clips, 3);
 }
 
 #[test]
