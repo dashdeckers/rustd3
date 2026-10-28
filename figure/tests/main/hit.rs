@@ -1,8 +1,11 @@
 //! Hit testing: the points marks draw, found by position.
 
 use rustd3_core::scale::{self, Linear};
+use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::kurbo::{Point, Size};
-use rustd3_figure::mark::{dots, line, rule_y};
+use rustd3_figure::mark::{
+    Bins, area, bar_x, bar_y, bar_y_spans, density_y, dots, histogram, line, rect, ribbon, rule_y,
+};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Figure, Held, Target};
 
@@ -83,4 +86,84 @@ fn lines_report_their_points_and_thinned_ones_their_kept_samples_without_a_query
     // M4 keeps at most four samples per column of each line's panel.
     let columns: f64 = r.plot_areas().iter().map(|a| a.width()).sum();
     assert!(index.len() > 1000 && (index.len() as f64) <= 3.0 * 4.0 * columns + 12.0);
+}
+
+/// The hit index of `fig` resolved at 640 × 480 for vector output.
+fn indexed(fig: &Figure<'_>) -> rustd3_figure::hit::Index {
+    let mut cache = cache();
+    let size = Size::new(640.0, 480.0);
+    let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
+    fig.hits(&r, &mut cache)
+}
+
+#[test]
+fn bars_are_found_at_the_centre_of_their_value_end() {
+    let (mut fig, x, y) = identity();
+    fig.panel(0, 0)
+        .mark(bar_y(
+            [(100.0, 200.0), (300.0, 150.0), (400.0, 1000.0)],
+            x,
+            y,
+        ))
+        .mark(bar_x([(400.0, 50.0)], x, y))
+        .mark(bar_y_spans([(500.0, [300.0, 100.0])], x, y));
+    let index = indexed(&fig);
+    assert_eq!(index.len(), 4, "the third bar ends outside the plot area");
+    for (at, mark, i) in [
+        (Point::new(100.0, 200.0), 0, 0),
+        (Point::new(300.0, 150.0), 0, 1),
+        (Point::new(400.0, 50.0), 1, 0),
+        (Point::new(500.0, 100.0), 2, 0),
+    ] {
+        let hit = index.nearest(at, 1.0).expect("a bar");
+        assert_eq!((hit.mark, hit.index), (mark, i), "{at:?}");
+        assert!((hit.at - at).hypot() < 1e-9, "{hit:?}");
+    }
+}
+
+#[test]
+fn histogram_bars_are_found_at_the_centre_of_their_top_dodged_or_binned() {
+    let mut fig = Figure::new();
+    let keys = fig.scale(scale::band(["a", "b"]));
+    let numbers = fig.scale(scale::linear().domain([0.0, 4.0]));
+    let count = fig.scale(scale::linear().domain([0.0, 4.0]));
+    let color = fig.scale(scale::ordinal(["p", "q"], COLORBLIND));
+    fig.panel(0, 0).mark(
+        histogram(["b", "a", "b"], keys, count)
+            .fill(color, "q")
+            .dodge(),
+    );
+    fig.panel(1, 0)
+        .mark(histogram([0.5, 1.5, 1.5], numbers, count).bins(Bins::Count(2)));
+    let mut cache = cache();
+    let size = Size::new(640.0, 480.0);
+    let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
+    let index = fig.hits(&r, &mut cache);
+    assert_eq!(index.len(), 4);
+    let [top, bottom] = [r.plot_areas()[0], r.plot_areas()[1]];
+    let place = |area: rustd3_figure::kurbo::Rect, x: f64, y: f64| {
+        Point::new(area.x0 + x * area.width(), area.y0 + y * area.height())
+    };
+    for (at, panel, i) in [
+        (place(top, 7.0 / 8.0, 0.5), 0, 0),
+        (place(top, 3.0 / 8.0, 0.75), 0, 1),
+        (place(bottom, 0.75 / 4.0, 0.75), 1, 0),
+        (place(bottom, 1.25 / 4.0, 0.5), 1, 1),
+    ] {
+        let hit = index.nearest(at, 1.0).expect("a bar");
+        assert_eq!((hit.panel, hit.mark, hit.index), (panel, 0, i), "{at:?}");
+        assert!((hit.at - at).hypot() < 1e-9, "{hit:?} against {at:?}");
+    }
+}
+
+#[test]
+fn areas_ribbons_densities_and_rects_report_no_hits() {
+    let (mut fig, x, y) = identity();
+    fig.panel(0, 0)
+        .mark(area([(100.0, 100.0), (200.0, 200.0)], x, y))
+        .mark(ribbon([(100.0, 100.0, 200.0), (200.0, 150.0, 250.0)], x, y))
+        .mark(density_y([100.0, 150.0, 200.0, 260.0], y, x))
+        .mark(rect([([100.0, 200.0], [100.0, 200.0])], x, y));
+    let index = indexed(&fig);
+    assert!(index.is_empty(), "{} points", index.len());
 }

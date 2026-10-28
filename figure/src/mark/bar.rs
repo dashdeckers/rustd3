@@ -1,11 +1,14 @@
 //! [`BarY`] and [`BarX`]: bars from a base or over explicit spans, along y
 //! or along x.
 
+use kurbo::Point;
+
 use crate::check::Issue;
 use crate::figure::Fits;
+use crate::hit;
 use crate::list::{self, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, dodge, guard, positive, reach, rect};
+use crate::mark::{Ctx, Mark, dodge, guard, positive, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// The share of the gap between neighbouring keys a bar takes on a scale
@@ -195,24 +198,26 @@ impl<K> Bars<K> {
         }
     }
 
-    /// Each bar placed: its extent across the key axis of length `length`
-    /// (dodged into the fill key's sub-band when asked), and along the
-    /// value axis, clamped to `guard`; rows whose key or ends cannot be
-    /// placed are skipped.
+    /// Each bar placed, with its row's index: its extent across the key
+    /// axis of length `length` (dodged into the fill key's sub-band when
+    /// asked), and its two ends along the value axis (the base or the
+    /// span's first end, then the value or the span's second end), clamped
+    /// to `guard`; rows whose key or ends cannot be placed are skipped.
     fn placed<S: Position<Domain = K>, V: Position<Domain = f64>>(
         &self,
         ctx: &Ctx<'_>,
         (sk, sv): (&S, &V),
         length: f64,
         guard: [f64; 2],
-    ) -> Vec<([f64; 2], [f64; 2])> {
+    ) -> Vec<(usize, [f64; 2], [f64; 2])> {
         let across = Across::new(sk, self.rows().map(|(k, _)| k), self.width, length);
         let slot = self.color.slot(ctx).filter(|_| self.dodge);
         self.rows()
-            .filter_map(|(k, [v0, v1])| {
+            .enumerate()
+            .filter_map(|(i, (k, [v0, v1]))| {
                 let (start, width) = dodge(across.band(sk, k)?, slot);
                 let ends = [reach(sv, v0, guard)?, reach(sv, v1, guard)?];
-                Some(([start, start + width], ends))
+                Some((i, [start, start + width], ends))
             })
             .collect()
     }
@@ -338,8 +343,24 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
         let band = guard::band(w, h);
         let paint = list::brush(self.bars.color.resolve(ctx));
-        for ([x0, x1], [y0, y1]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
+        for (_, [x0, x1], [y0, y1]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
             rect::fill(list, ctx, kurbo::Rect::new(x0, y0, x1, y1), &paint);
+        }
+    }
+
+    /// Per bar, the centre of its value end (the top of a bar from a base
+    /// below its value; a span's second end) when it lies in the plot
+    /// area, with its row's index.
+    fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
+        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (w, h) = (ctx.rect().width(), ctx.rect().height());
+        let band = guard::band(w, h);
+        let area = ctx.rect().with_origin(Point::ORIGIN);
+        for (i, [x0, x1], [_, y]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
+            let p = Point::new((x0 + x1) / 2.0, y);
+            if within(area, p) {
+                sink.push(i, p);
+            }
         }
     }
 
@@ -364,8 +385,24 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
         let band = guard::band(w, h);
         let paint = list::brush(self.bars.color.resolve(ctx));
-        for ([y0, y1], [x0, x1]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
+        for (_, [y0, y1], [x0, x1]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
             rect::fill(list, ctx, kurbo::Rect::new(x0, y0, x1, y1), &paint);
+        }
+    }
+
+    /// Per bar, the centre of its value end (the right end of a bar from a
+    /// base left of its value; a span's second end) when it lies in the
+    /// plot area, with its row's index.
+    fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
+        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (w, h) = (ctx.rect().width(), ctx.rect().height());
+        let band = guard::band(w, h);
+        let area = ctx.rect().with_origin(Point::ORIGIN);
+        for (i, [y0, y1], [_, x]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
+            let p = Point::new(x, (y0 + y1) / 2.0);
+            if within(area, p) {
+                sink.push(i, p);
+            }
         }
     }
 

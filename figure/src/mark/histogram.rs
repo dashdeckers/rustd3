@@ -6,10 +6,11 @@ use rustd3_core::scale::{self, Band, Continuous, Point};
 
 use crate::check::Issue;
 use crate::figure::Fits;
+use crate::hit;
 use crate::list::{self, List};
 use crate::mark::bar::Across;
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, dodge, guard, reach, rect};
+use crate::mark::{Ctx, Mark, dodge, guard, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// The most bins `Bins::Nice` asks d3's ticks for: they round a count
@@ -178,35 +179,21 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
     /// centred on a point key) or its bin's edges, dodged when asked, from
     /// 0 up to its count.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let band = guard::band(w, h);
-        let Some(base) = reach(&sy, 0.0, [band.y0, band.y1]) else {
-            return;
-        };
-        let across = Across::new(&sx, self.bars.iter().map(|([k, _], _)| k), None, w);
-        let slot = self.color.slot(ctx).filter(|_| self.dodge);
         let paint = list::brush(self.color.resolve(ctx));
-        for ([first, last], count) in &self.bars {
-            let spanned = (|| {
-                let start = sx.position(first).filter(|p| p.is_finite())?;
-                let end = sx.position(last).filter(|p| p.is_finite())? + sx.bandwidth();
-                if end == start {
-                    across.band(&sx, first)
-                } else {
-                    Some((start, end - start))
-                }
-            })();
-            let (Some(span), Some(top)) = (spanned, reach(&sy, *count, [band.y0, band.y1])) else {
-                continue;
-            };
-            let (start, width) = dodge(span, slot);
-            rect::fill(
-                list,
-                ctx,
-                kurbo::Rect::new(start, top, start + width, base),
-                &paint,
-            );
+        for (_, [x0, x1], [base, top]) in self.placed(ctx) {
+            rect::fill(list, ctx, kurbo::Rect::new(x0, top, x1, base), &paint);
+        }
+    }
+
+    /// Per bar, the centre of its top when it lies in the plot area, with
+    /// the bar's index (in the order of [`Binned::bars`]).
+    fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
+        let area = ctx.rect().with_origin(kurbo::Point::ORIGIN);
+        for (i, [x0, x1], [_, top]) in self.placed(ctx) {
+            let p = kurbo::Point::new((x0 + x1) / 2.0, top);
+            if within(area, p) {
+                sink.push(i, p);
+            }
         }
     }
 
@@ -221,6 +208,39 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
             .map(|(_, count)| count)
             .sum();
         super::outside_count(self.x.index(), outside as usize, issues);
+    }
+}
+
+impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
+    /// Each bar placed, with its index: across its key's band (a width
+    /// centred on a point key) or its bin's edges, dodged when asked, and
+    /// from 0 up to its count along y, clamped to the guard band; bars
+    /// that cannot be placed are skipped, all of them when 0 cannot be.
+    fn placed(&self, ctx: &Ctx<'_>) -> Vec<(usize, [f64; 2], [f64; 2])> {
+        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (w, h) = (ctx.rect().width(), ctx.rect().height());
+        let band = guard::band(w, h);
+        let Some(base) = reach(&sy, 0.0, [band.y0, band.y1]) else {
+            return Vec::new();
+        };
+        let across = Across::new(&sx, self.bars.iter().map(|([k, _], _)| k), None, w);
+        let slot = self.color.slot(ctx).filter(|_| self.dodge);
+        self.bars
+            .iter()
+            .enumerate()
+            .filter_map(|(i, ([first, last], count))| {
+                let start = sx.position(first).filter(|p| p.is_finite())?;
+                let end = sx.position(last).filter(|p| p.is_finite())? + sx.bandwidth();
+                let span = if end == start {
+                    across.band(&sx, first)?
+                } else {
+                    (start, end - start)
+                };
+                let top = reach(&sy, *count, [band.y0, band.y1])?;
+                let (start, width) = dodge(span, slot);
+                Some((i, [start, start + width], [base, top]))
+            })
+            .collect()
     }
 }
 

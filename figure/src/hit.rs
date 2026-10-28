@@ -66,7 +66,10 @@ impl Figure<'_> {
     /// dots report every point drawn, lines the points they pass through
     /// inside the plot area (a thinned line its kept samples, read through
     /// `cache`'s M4 memo, so a figure drawn with the same cache queries
-    /// nothing again), rules none.
+    /// nothing again), bars and histogram bars the centre of each bar's
+    /// value end inside the plot area (the top of a vertical bar, the
+    /// right end of a horizontal one); rules, areas, ribbons, densities and
+    /// rects none.
     pub fn hits(&self, resolved: &Resolved, cache: &mut Cache) -> Index {
         let (text, frame) = cache.start();
         let frame = RefCell::new(frame);
