@@ -1,10 +1,11 @@
 //! Hit testing: the points marks draw, found by position.
 
 use rustd3_core::scale::{self, Linear};
-use rustd3_core::scheme::COLORBLIND;
+use rustd3_core::scheme::{self, COLORBLIND};
 use rustd3_figure::kurbo::{Point, Size};
 use rustd3_figure::mark::{
-    Bins, area, bar_x, bar_y, bar_y_spans, density_y, dots, histogram, line, rect, ribbon, rule_y,
+    Bins, Grid, area, bar_x, bar_y, bar_y_spans, density_y, dots, histogram, image, line, rect,
+    ribbon, rule_y,
 };
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Figure, Held, Target};
@@ -157,13 +158,21 @@ fn histogram_bars_are_found_at_the_centre_of_their_top_dodged_or_binned() {
 }
 
 #[test]
-fn areas_ribbons_densities_and_rects_report_no_hits() {
+fn areas_ribbons_densities_rects_and_images_report_no_hits() {
     let (mut fig, x, y) = identity();
+    let heat = fig.scale(scale::sequential([0.0, 1.0], scheme::viridis));
+    let grid = Grid::new(1, 1, vec![0.5]).expect("one value");
     fig.panel(0, 0)
         .mark(area([(100.0, 100.0), (200.0, 200.0)], x, y))
         .mark(ribbon([(100.0, 100.0, 200.0), (200.0, 150.0, 250.0)], x, y))
         .mark(density_y([100.0, 150.0, 200.0, 260.0], y, x))
-        .mark(rect([([100.0, 200.0], [100.0, 200.0])], x, y));
+        .mark(rect([([100.0, 200.0], [100.0, 200.0])], x, y))
+        .mark(image(
+            grid.extent([100.0, 300.0], [100.0, 300.0]),
+            x,
+            y,
+            heat,
+        ));
     let index = indexed(&fig);
     assert!(index.is_empty(), "{} points", index.len());
 }

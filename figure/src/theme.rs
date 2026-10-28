@@ -224,6 +224,12 @@ impl Theme {
         style(self.tick_text(), align, fill)
     }
 
+    /// A note's text: the axis-label size (matplotlib's `font.size` at
+    /// seaborn's notebook, 12 pt), its lines aligned by `align`, in `fill`.
+    pub(crate) fn note(&self, align: anchor::Horizontal, fill: Rgb) -> Style {
+        style(self.label_text(), align, fill)
+    }
+
     /// A legend entry's label: tick-label size (matplotlib's
     /// `legend.fontsize` at seaborn's notebook, 11 pt), in ink.
     pub(crate) fn legend_label(&self) -> Style {

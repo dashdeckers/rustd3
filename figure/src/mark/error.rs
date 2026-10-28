@@ -4,7 +4,8 @@ use rustd3_core::series;
 
 /// Why a mark draws nothing: the mark keeps the error from when it was
 /// built and [`Figure::check`](crate::Figure::check) reports it
-/// ([`Issue::Mark`](crate::check::Issue::Mark)).
+/// ([`Issue::Mark`](crate::check::Issue::Mark)); or why a mark's input
+/// could not be built ([`GridLength`](Error::GridLength)).
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum Error {
     /// A ribbon over channels of two recordings, which no joint query
@@ -21,6 +22,27 @@ pub enum Error {
     #[error("a density needs two or more finite values that differ, got {values} finite values")]
     Density {
         /// The finite values.
+        values: usize,
+    },
+    /// A grid whose values do not fill its cells
+    /// ([`Grid::new`](crate::mark::Grid::new)).
+    #[error("a grid of {cols} × {rows} cells got {len} values")]
+    GridLength {
+        /// Its columns.
+        cols: usize,
+        /// Its rows.
+        rows: usize,
+        /// The values given.
+        len: usize,
+    },
+    /// A per-point channel (`fill_by`, `size_by`) whose length differs
+    /// from the mark's point count: never truncated, the mark draws
+    /// nothing.
+    #[error("channel has {values} values for {points} points")]
+    ChannelLength {
+        /// The mark's points.
+        points: usize,
+        /// The channel's values.
         values: usize,
     },
 }

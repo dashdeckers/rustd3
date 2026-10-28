@@ -1,22 +1,27 @@
 //! [`Dots`]: a scatter of points.
 
+use std::collections::HashMap;
+
 use kurbo::{Point, Shape};
+use peniko::Brush;
 use rustd3_core::color::Rgb;
 use rustd3_core::series::{Data, Points};
 
 use crate::check::Issue;
 use crate::figure::Fits;
 use crate::hit;
-use crate::list::{self, Command, List};
+use crate::list::{self, Command, List, Paints};
+use crate::mark::channel::Channel;
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, across, at, positive, within};
+use crate::mark::{Ctx, Error, Mark, across, at, positive, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
+use crate::text;
 
 /// How closely a dot's circle follows the true circle, in px.
 const TOLERANCE: f64 = 1e-3;
 
-/// A scatter: one circle per point, all in one color, drawn as one
-/// `Markers` command.
+/// A scatter: one circle per point, in one color or colored and sized per
+/// point through handles, drawn as one `Markers` command.
 pub struct Dots<'a, X: Position, Y: Position> {
     points: Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     x: ScaleRef<X>,
@@ -26,6 +31,17 @@ pub struct Dots<'a, X: Position, Y: Position> {
     opacity: f64,
     dodge: bool,
     jitter: f64,
+    fill_by: Option<Result<Channel<Rgb>, Error>>,
+    size_by: Option<Result<Channel<f64>, Error>>,
+}
+
+/// One dot as drawn: its datum's index, where it is centred in the
+/// panel's coordinates, its color from `fill_by` and its radius in px.
+struct Placed {
+    index: usize,
+    at: Point,
+    fill: Option<Rgb>,
+    r: f64,
 }
 
 /// A scatter of `data` (pairs, a recording channel or two slices) through
@@ -109,6 +125,8 @@ pub fn dots<'a, X: Position, Y: Position>(
         opacity: 1.0,
         dodge: false,
         jitter: 0.0,
+        fill_by: None,
+        size_by: None,
     }
 }
 
@@ -221,76 +239,231 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
             ..self
         }
     }
+
+    /// Colors each dot through `palette`, a continuous or binned color
+    /// handle, from its value in `values` (one per point, in point order),
+    /// in place of [`fill`](Dots::fill)'s color, which still picks the
+    /// dodge slot. The colors resolve when the figure draws, into one
+    /// `Markers` command with a paint table; a fitted handle fits to the
+    /// values. A dot whose value has no color (NaN, a value the scale does
+    /// not take) is skipped. A channel of another length than the points
+    /// is never truncated: the mark draws nothing and
+    /// [`Figure::check`](crate::Figure::check) reports
+    /// [`Error::ChannelLength`].
+    ///
+    /// ```
+    /// use rustd3_core::{scale, scheme};
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::dots;
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// let heat = fig.fit(scale::sequential([0.0, 1.0], scheme::viridis));
+    /// let radius = fig.scale(scale::sqrt().domain([0.0, 100.0]).range([0.0, 12.0]));
+    /// fig.panel(0, 0).mark(
+    ///     dots([(0.0, 1.0), (1.0, 3.0), (2.0, 2.0)], x, y)
+    ///         .fill_by(heat, [20.0, 45.0, 80.0])
+    ///         .size_by(radius, [10.0, 50.0, 100.0]),
+    /// );
+    /// ```
+    pub fn fill_by<C>(self, palette: ScaleRef<C>, values: impl IntoIterator<Item = f64>) -> Self
+    where
+        C: Paint<Domain = f64>,
+    {
+        let channel = Channel::fill(palette, values.into_iter().collect());
+        Self {
+            fill_by: Some(channel.of(self.points.len())),
+            ..self
+        }
+    }
+
+    /// Sizes each dot through `radius`, a numeric handle whose output is a
+    /// radius in px, from its value in `values` (one per point, in point
+    /// order), in place of [`r`](Dots::r). A fitted handle fits to the
+    /// values with the theme's margin, as any numeric handle; give its
+    /// domain to map values exactly. A dot whose radius is not finite is
+    /// skipped. A channel of another length than the points is never
+    /// truncated: the mark draws nothing and
+    /// [`Figure::check`](crate::Figure::check) reports
+    /// [`Error::ChannelLength`].
+    pub fn size_by<S>(self, radius: ScaleRef<S>, values: impl IntoIterator<Item = f64>) -> Self
+    where
+        S: Position<Domain = f64>,
+    {
+        let channel = Channel::size(radius, values.into_iter().collect());
+        Self {
+            size_by: Some(channel.of(self.points.len())),
+            ..self
+        }
+    }
 }
 
 impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
+    /// The points, and the values of `fill_by` and `size_by` to their
+    /// handles; nothing when a channel's length differs from the points.
     fn fit(&self, fits: &mut Fits) {
+        if self.error().is_some() {
+            return;
+        }
         super::fit(&self.points, self.x, self.y, fits);
+        if let Some(Ok(channel)) = &self.fill_by {
+            channel.fit(fits);
+        }
+        if let Some(Ok(channel)) = &self.size_by {
+            channel.fit(fits);
+        }
     }
 
     /// One `Markers` command: a circle at every point placed on both
-    /// scales, finite, and at most a radius outside the plot area; nothing
-    /// when no point is.
+    /// scales, finite, with a color and a finite radius from its channels,
+    /// and at most its radius outside the plot area; nothing when no point
+    /// is. Sized dots stamp a unit circle at per-point radii; colored dots
+    /// index a table of their distinct colors (8-bit, in first-seen order).
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let r = self.radius(ctx);
-        let at: Vec<Point> = self.placed(ctx).map(|(_, p)| p).collect();
-        if at.is_empty() {
+        let dots: Vec<Placed> = self.placed(ctx).collect();
+        if dots.is_empty() {
             return;
         }
         let color = self.color.resolve(ctx);
+        let shown = |c: Rgb| c.with_opacity(c.opacity * self.opacity);
+        let sizes = self
+            .size_by
+            .is_some()
+            .then(|| dots.iter().map(|d| d.r).collect::<Vec<f64>>());
+        // Sized dots stamp a unit circle, followed as closely at their
+        // largest radius as a plain dot's circle is.
+        let (r, tolerance) = match &sizes {
+            Some(sizes) => (
+                1.0,
+                TOLERANCE / sizes.iter().fold(1.0, |m: f64, r| m.max(r.abs())),
+            ),
+            None => (self.radius(ctx), TOLERANCE),
+        };
+        let paints = self.fill_by.is_some().then(|| {
+            paints(dots.iter().map(|d| {
+                shown(
+                    d.fill
+                        .expect("invariant: placed dots of fill_by have a color"),
+                )
+            }))
+        });
         list.commands.push(Command::Markers {
-            shape: kurbo::Circle::new(Point::ORIGIN, r).to_path(TOLERANCE),
-            at,
-            paint: list::brush(color.with_opacity(color.opacity * self.opacity)),
-            sizes: None,
-            paints: None,
+            shape: kurbo::Circle::new(Point::ORIGIN, r).to_path(tolerance),
+            at: dots.iter().map(|d| d.at).collect(),
+            paint: list::brush(shown(color)),
+            sizes,
+            paints,
         });
     }
 
     /// Every point drawn, with its index in the data.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        for (i, p) in self.placed(ctx) {
-            sink.push(i, p);
+        for dot in self.placed(ctx) {
+            sink.push(dot.index, dot.at);
         }
     }
 
-    /// Collected data over 100,000 points; a fill key the palette lacks;
-    /// keys outside a band or point domain.
+    /// A channel whose length differs from the points; collected data over
+    /// 100,000 points; a fill key the palette lacks; keys outside a band or
+    /// point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
+        if let Some(error) = self.error() {
+            issues.push(Issue::Mark {
+                panel: ctx.panel(),
+                mark: ctx.mark(),
+                error: error.clone(),
+            });
+        }
         super::issues(&self.points, &self.color, ctx, issues);
         super::outside(&self.points, (self.x, self.y), ctx, issues);
     }
 }
 
 impl<X: Position, Y: Position> Dots<'_, X, Y> {
-    /// Each dot's radius in px.
+    /// Each dot's radius in px without `size_by`.
     fn radius(&self, ctx: &Ctx<'_>) -> f64 {
         self.r.unwrap_or(ctx.theme().marker() / 2.0)
     }
 
-    /// Each point placed on both scales, finite, and at most a radius
-    /// outside the plot area, with its index in the data, in the panel's
-    /// coordinates.
-    fn placed<'c>(&'c self, ctx: &Ctx<'_>) -> impl Iterator<Item = (usize, Point)> + 'c {
+    /// The error a channel keeps, `fill_by`'s first.
+    fn error(&self) -> Option<&Error> {
+        [
+            self.fill_by.as_ref().and_then(|c| c.as_ref().err()),
+            self.size_by.as_ref().and_then(|c| c.as_ref().err()),
+        ]
+        .into_iter()
+        .flatten()
+        .next()
+    }
+
+    /// Each dot drawn, in data order: placed on both scales, finite, with
+    /// a color and a finite radius when its channels give them, and at
+    /// most its radius outside the plot area; none when a channel keeps an
+    /// error.
+    fn placed<'c>(&'c self, ctx: &Ctx<'_>) -> impl Iterator<Item = Placed> + 'c {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let r = self.radius(ctx);
-        let bounds = ctx.rect().with_origin(Point::ORIGIN).inflate(r, r);
+        let area = ctx.rect().with_origin(Point::ORIGIN);
         let slot = self.color.slot(ctx).filter(|_| self.dodge);
         let along_y = sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0;
         let share = move |i: usize| 0.5 + self.jitter * (jitter(i) - 0.5);
+        let count = if self.error().is_some() {
+            0
+        } else {
+            self.points.len()
+        };
+        let fills = self
+            .fill_by
+            .as_ref()
+            .and_then(|c| c.as_ref().ok())
+            .map(|c| c.resolve(ctx));
+        let sizes = self
+            .size_by
+            .as_ref()
+            .and_then(|c| c.as_ref().ok())
+            .map(|c| c.resolve(ctx));
         self.points
             .iter()
             .enumerate()
+            .take(count)
             .filter_map(move |(i, (a, b))| {
-                let p = if along_y {
+                let fill = match &fills {
+                    Some(fills) => Some(fills.get(i).copied().flatten()?),
+                    None => None,
+                };
+                let r = match &sizes {
+                    Some(sizes) => sizes.get(i).copied().flatten()?,
+                    None => r,
+                };
+                let at = if along_y {
                     Point::new(at(&sx, &a)?, across(&sy, &b, slot, share(i))?)
                 } else {
                     Point::new(across(&sx, &a, slot, share(i))?, at(&sy, &b)?)
                 };
-                Some((i, p))
+                within(area.inflate(r.abs(), r.abs()), at).then_some(Placed {
+                    index: i,
+                    at,
+                    fill,
+                    r,
+                })
             })
-            .filter(move |(_, p)| within(bounds, *p))
     }
+}
+
+/// The paint table of `colors`, one per dot: their distinct 8-bit colors
+/// in first-seen order, and each dot's index into it.
+fn paints(colors: impl Iterator<Item = Rgb>) -> Paints {
+    let mut seen: HashMap<[u8; 4], u32> = HashMap::new();
+    let mut table: Vec<Brush> = Vec::new();
+    let index = colors
+        .map(|c| {
+            *seen.entry(text::channels(c)).or_insert_with(|| {
+                table.push(list::brush(c));
+                u32::try_from(table.len() - 1).expect("invariant: fewer than 2^32 distinct colors")
+            })
+        })
+        .collect();
+    Paints { table, index }
 }
 
 /// Point `i`'s jitter in [0, 1): a splitmix64-style hash of its index

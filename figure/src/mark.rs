@@ -2,8 +2,8 @@
 //! sees while it draws one panel, and the figure's marks: [`dots`],
 //! [`line()`], [`area()`], [`ribbon`], [`ribbon_series`], [`bar_y`],
 //! [`bar_x`], [`bar_y_spans`], [`bar_x_spans`], [`rect()`],
-//! [`histogram()`], [`density_y`], [`density_x`], [`rule_x`] and
-//! [`rule_y`].
+//! [`histogram()`], [`density_y`], [`density_x`], [`image()`],
+//! [`note()`], [`rule_x`] and [`rule_y`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -20,15 +20,18 @@
 
 mod area;
 mod bar;
+mod channel;
 mod color;
 mod density;
 mod dots;
 mod error;
 mod guard;
 mod histogram;
+mod image;
 mod line;
 mod rect;
 mod rule;
+mod text;
 
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
@@ -43,7 +46,7 @@ use crate::layout::Snap;
 use crate::list::List;
 use crate::mark::color::Color;
 use crate::scale::{Kind, Position, ScaleRef};
-use crate::text::{self, Key, Shaped};
+use crate::text::{Key, Shaped};
 use crate::theme::Theme;
 use crate::thin::{self, Thin};
 
@@ -53,9 +56,11 @@ pub use density::{DensityX, DensityY, density_x, density_y};
 pub use dots::{Dots, dots};
 pub use error::Error;
 pub use histogram::{Binned, Bins, Histogram, histogram};
+pub use image::{Grid, Image, image};
 pub use line::{Line, line};
 pub use rect::{Rect, rect};
 pub use rule::{Rule, rule_x, rule_y};
+pub use text::{Note, note};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data
 /// may borrow for `'a` (a recording's
@@ -88,7 +93,7 @@ pub struct Ctx<'r> {
     resolved: &'r Resolved,
     theme: &'r Theme,
     rect: kurbo::Rect,
-    text: &'r text::Cache,
+    text: &'r crate::text::Cache,
     frame: &'r RefCell<thin::Frame>,
     panel: usize,
     mark: usize,
@@ -101,7 +106,7 @@ impl<'r> Ctx<'r> {
         resolved: &'r Resolved,
         theme: &'r Theme,
         rect: kurbo::Rect,
-        text: &'r text::Cache,
+        text: &'r crate::text::Cache,
         frame: &'r RefCell<thin::Frame>,
     ) -> Ctx<'r> {
         Ctx {
