@@ -6,9 +6,8 @@ use rustd3_core::format;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Band, Linear};
 use rustd3_core::scheme;
-use rustd3_figure::check::Issue;
 use rustd3_figure::helpers::{labels, legend};
-use rustd3_figure::kurbo::{Point, Rect, Shape, Size};
+use rustd3_figure::kurbo::{Point, Rect, Shape};
 use rustd3_figure::legend::Slot;
 use rustd3_figure::list::{Command, GlyphRun, part};
 use rustd3_figure::mark::{bar_y, dots};
@@ -158,8 +157,8 @@ fn bar_labels_of_keys_outside_the_band_draw_nothing_and_are_reported() {
     assert_eq!(runs(marked(&list)).len(), 1);
     #[cfg(feature = "fonts")]
     {
-        let issues = fig.check(Size::new(640.0, 480.0));
-        let outside = Issue::OutsideDomain {
+        let issues = fig.check(rustd3_figure::kurbo::Size::new(640.0, 480.0));
+        let outside = rustd3_figure::check::Issue::OutsideDomain {
             handle: x.index(),
             count: 1,
         };
@@ -357,7 +356,7 @@ fn scatter_legends_sit_in_slots_and_insets_beside_a_scatter_that_fits() {
     assert_eq!(legends.count(), 2);
     #[cfg(feature = "fonts")]
     {
-        let issues = fig.check(Size::new(640.0, 480.0));
+        let issues = fig.check(rustd3_figure::kurbo::Size::new(640.0, 480.0));
         assert!(issues.is_empty(), "{issues:#?}");
     }
 }

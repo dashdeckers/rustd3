@@ -27,6 +27,10 @@ pub struct Fits {
     /// The figure's theme, which label styles come from.
     theme: Theme,
     /// The figure's locale, which marks write their numbers in.
+    #[cfg_attr(
+        not(feature = "helpers"),
+        expect(dead_code, reason = "only the helpers' value labels read it")
+    )]
     locale: Locale,
     /// The labels marks draw.
     labels: Vec<Key>,
@@ -251,6 +255,7 @@ impl Fits {
     }
 
     /// The figure's locale.
+    #[cfg(feature = "helpers")]
     pub(crate) fn locale(&self) -> &Locale {
         &self.locale
     }

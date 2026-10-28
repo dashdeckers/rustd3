@@ -44,7 +44,6 @@ use std::any::Any;
 use std::cell::{RefCell, RefMut};
 
 use kurbo::{BezPath, Cap, Join, Point};
-use rustd3_core::locale::Locale;
 use rustd3_core::series::{Points, m4};
 
 use crate::check::{self, Issue};
@@ -215,12 +214,14 @@ impl Ctx<'_> {
     }
 
     /// The figure's locale.
-    pub(crate) fn locale(&self) -> &Locale {
+    #[cfg(feature = "helpers")]
+    pub(crate) fn locale(&self) -> &rustd3_core::locale::Locale {
         self.resolved.locale()
     }
 
     /// The line box labels of `size` px share: the text face's ascender
     /// above the baseline and descender below it, px.
+    #[cfg(feature = "helpers")]
     pub(crate) fn line(&self, size: f64) -> [f64; 2] {
         self.text.fonts().line(size)
     }
