@@ -316,8 +316,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
 
     /// One `Markers` command: a circle at every point placed on both
     /// scales, finite, with a color and a finite radius from its channels,
-    /// and at most its radius outside the plot area; nothing when no point
-    /// is. Sized dots stamp a unit circle at per-point radii; colored dots
+    /// and at most its radius outside the plot area (grown by a widget's
+    /// overscan); nothing when no point is. Sized dots stamp a unit circle at per-point radii; colored dots
     /// index a table of their distinct colors (8-bit, in first-seen order).
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         // One pass over the points into the command's own vectors: the
@@ -325,7 +325,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
         let mut at: Vec<Point> = Vec::with_capacity(self.points.len());
         let mut sizes: Option<Vec<f64>> = self.size_by.is_some().then(Vec::new);
         let mut fills: Option<Vec<Rgb>> = self.fill_by.is_some().then(Vec::new);
-        for dot in self.placed(ctx) {
+        for dot in self.placed(ctx, ctx.view()) {
             at.push(dot.at);
             if let Some(sizes) = &mut sizes {
                 sizes.push(dot.r);
@@ -361,9 +361,10 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
         });
     }
 
-    /// Every point drawn, with its index in the data.
+    /// Every point drawn in the plot area (not past it into an overscan),
+    /// with its index in the data.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        for dot in self.placed(ctx) {
+        for dot in self.placed(ctx, ctx.rect().with_origin(Point::ORIGIN)) {
             sink.push(dot.index, dot.at);
         }
     }
@@ -403,12 +404,12 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
 
     /// Each dot drawn, in data order: placed on both scales, finite, with
     /// a color and a finite radius when its channels give them, and at
-    /// most its radius outside the plot area; none when a channel keeps an
-    /// error.
-    fn placed<'c>(&'c self, ctx: &Ctx<'_>) -> impl Iterator<Item = Placed> + 'c {
+    /// most its radius outside `area` (the panel's coordinates: the plot
+    /// area, or the view a widget grows it to); none when a channel keeps
+    /// an error.
+    fn placed<'c>(&'c self, ctx: &Ctx<'_>, area: kurbo::Rect) -> impl Iterator<Item = Placed> + 'c {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let r = self.radius(ctx);
-        let area = ctx.rect().with_origin(Point::ORIGIN);
         let slot = self.color.slot(ctx).filter(|_| self.dodge);
         let along_y = sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0;
         // Unjittered dots skip the hash: 0.5 + 0 × (u − 0.5) is 0.5.

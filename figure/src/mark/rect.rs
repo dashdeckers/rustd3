@@ -8,7 +8,7 @@ use crate::check::Issue;
 use crate::figure::Fits;
 use crate::list::{self, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, guard, reach};
+use crate::mark::{Ctx, Mark, reach};
 use crate::scale::{Paint, Position, ScaleRef};
 
 /// How closely a rectangle's path follows it, in px: exact, as it has no
@@ -97,7 +97,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
     /// on device pixels on raster targets; nothing for a row with no area.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let fill = match (&self.fill, &self.stroke) {
             (Some(color), _) => Some(color),
             (None, Some(_)) => None,
@@ -141,7 +141,7 @@ pub(super) fn fill(
     r: kurbo::Rect,
     paint: &Brush,
 ) -> Option<kurbo::Rect> {
-    let band = guard::band(ctx.rect().width(), ctx.rect().height());
+    let band = ctx.band();
     let r = ctx.snap().rect(r.abs().intersect(band));
     (r.width() > 0.0 && r.height() > 0.0).then(|| {
         list.commands.push(Command::Fill {
@@ -155,7 +155,7 @@ pub(super) fn fill(
 /// Pushes the outline of `r` stroked with `paint`, the theme's patch edge
 /// wide with mitred corners, on whole device pixels on raster targets.
 fn outline(list: &mut List, ctx: &Ctx<'_>, r: kurbo::Rect, paint: &Brush) {
-    let band = guard::band(ctx.rect().width(), ctx.rect().height());
+    let band = ctx.band();
     let r = r.abs().intersect(band);
     let (snap, width) = (ctx.snap(), ctx.theme().get_patch_width());
     let at = |v: f64| snap.line(v, width);

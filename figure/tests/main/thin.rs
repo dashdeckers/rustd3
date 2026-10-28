@@ -7,16 +7,16 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Continuous, Linear, Log};
 use rustd3_core::series::{Clock, Recording, m4};
 use rustd3_figure::kurbo::{BezPath, PathEl, Point, Rect, Size};
-use rustd3_figure::list::{self, Command, List};
+use rustd3_figure::list::{self, Clip, Command, List};
 use rustd3_figure::mark::line;
 #[cfg(feature = "raster")]
 use rustd3_figure::raster::Image;
 use rustd3_figure::scale::{Indexed, Position, Scale, ScaleRef};
-use rustd3_figure::thin::Thin;
+use rustd3_figure::thin::{Grid, Thin};
 use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 
 use crate::figure::cache;
-use crate::marks::marked;
+use crate::marks::{marked, role};
 #[cfg(feature = "raster")]
 use crate::raster::vello::render;
 use crate::trace;
@@ -436,4 +436,254 @@ fn the_trace_at_2x_keeps_the_bounds_per_device_pixel() {
         "screen: {:.2}% of columns off",
         100.0 * columns
     );
+}
+
+/// Channel 2 of [`recording`] (200 s at 1 kHz, a slow tone) on x fixed at
+/// `domain` and y at [−1, 2], dashed by `dash` when given, drawn on the
+/// screen at `k` with a column grid on x at `origin` list px and one
+/// column per device px; the list and the plot area.
+fn on_grid(
+    rec: &Recording<f64>,
+    domain: [f64; 2],
+    origin: f64,
+    k: f64,
+    dash: &[f64],
+) -> (List, Rect) {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain(domain));
+    let y = fig.scale(scale::linear().domain([-1.0, 2.0]));
+    let mut mark = line(rec.series(2).expect("channel 2"), x, y);
+    if !dash.is_empty() {
+        mark = mark.dash(dash.iter().copied());
+    }
+    fig.panel(0, 0).mark(mark);
+    let mut held = Held::default();
+    held.grids(vec![(x.index(), Grid { origin, density: k })]);
+    let size = Size::new(640.0, 400.0);
+    let target = Target::Screen { scale: k };
+    let mut cache = cache();
+    cache.begin();
+    let resolved = fig.resolve(size, &mut cache, &held, target);
+    let area = resolved.plot_areas()[0];
+    (fig.draw_resolved(&mut cache, &resolved), area)
+}
+
+/// The domain `[a, b]` over `width` list px panned by `px` list px, its
+/// content following: the scale's own `pan_px`.
+fn panned([a, b]: [f64; 2], width: f64, px: f64) -> [f64; 2] {
+    let x = scale::linear().domain([a, b]);
+    let moved = x.pan_px([0.0, width], px).expect("a linear scale pans");
+    moved
+        .as_any()
+        .downcast_ref::<Linear>()
+        .expect("its own type")
+        .get_domain()
+}
+
+#[test]
+fn anchored_columns_repeat_after_a_whole_pixel_pan() {
+    let rec = recording(200_000);
+    for k in [1.0, 1.25, 2.0] {
+        let domain = [50.0, 150.0];
+        let (before, area) = on_grid(&rec, domain, 0.0, k, &[]);
+        let w = area.width();
+        // 37 device px to the right: the content and the anchor follow.
+        let d = 37.0 / k;
+        let (after, moved) = on_grid(&rec, panned(domain, w, d), d, k, &[]);
+        assert_eq!(moved, area);
+        let inside = |x: f64| (d + 2.5..w - 2.5).contains(&x);
+        let a: Vec<Point> = points(paths(&before)[0])
+            .into_iter()
+            .map(|p| Point::new(p.x + d, p.y))
+            .filter(|p| inside(p.x))
+            .collect();
+        let b: Vec<Point> = points(paths(&after)[0])
+            .into_iter()
+            .filter(|p| inside(p.x))
+            .collect();
+        println!(
+            "k = {k}: {} points repeat after a pan of 37 device px",
+            a.len()
+        );
+        assert!(a.len() > 1000, "k = {k}: {} points", a.len());
+        assert_eq!(a.len(), b.len(), "k = {k}");
+        for (p, q) in a.iter().zip(&b) {
+            assert!((p.x - q.x).abs() < 1e-9 * w, "k = {k}: {p:?} against {q:?}");
+            assert_eq!(p.y, q.y, "k = {k}: the same samples");
+        }
+    }
+}
+
+/// The dash offset of a list's first stroke, and the arc length from the
+/// start of the run holding the first vertex in `[at, at + width)` to it,
+/// with that vertex.
+fn anchored(list: &List, at: f64, width: f64) -> (f64, f64, Point) {
+    let Some(Command::Stroke { path, style, .. }) = marked(list).into_iter().next() else {
+        panic!("a stroke");
+    };
+    let mut length = 0.0;
+    let mut last: Option<Point> = None;
+    for element in path.elements() {
+        let p = match *element {
+            PathEl::MoveTo(p) => {
+                length = 0.0;
+                p
+            }
+            PathEl::LineTo(p) => {
+                length += last.expect("a line starts with a move").distance(p);
+                p
+            }
+            PathEl::QuadTo(..) | PathEl::CurveTo(..) | PathEl::ClosePath => continue,
+        };
+        if (at..at + width).contains(&p.x) {
+            return (style.dash_offset, length, p);
+        }
+        last = Some(p);
+    }
+    panic!("no vertex in [{at}, {})", at + width);
+}
+
+#[test]
+fn dash_phase_is_zero_at_the_anchor() {
+    let rec = recording(200_000);
+    let pattern = [6.0, 3.0];
+    for k in [1.0, 1.25, 2.0] {
+        let domain = [50.0, 150.0];
+        let origin = 40.0;
+        let (before, area) = on_grid(&rec, domain, origin, k, &pattern);
+        let (offset, length, anchor) = anchored(&before, origin, 1.0 / k);
+        let phase = (offset + length).rem_euclid(9.0);
+        assert!(phase.min(9.0 - phase) < 1e-9, "k = {k}: phase {phase}");
+        // After a pan of 37 device px the same sample is the anchor, and
+        // the pattern is at 0 there again.
+        let d = 37.0 / k;
+        let (after, _) = on_grid(
+            &rec,
+            panned(domain, area.width(), d),
+            origin + d,
+            k,
+            &pattern,
+        );
+        let (offset, length, again) = anchored(&after, origin + d, 1.0 / k);
+        let phase = (offset + length).rem_euclid(9.0);
+        println!(
+            "k = {k}: anchor {anchor:?} → {again:?}, dash offsets {:.3} and {offset:.3}",
+            anchored(&before, origin, 1.0 / k).0
+        );
+        assert!(
+            (again.x - anchor.x - d).abs() < 1e-9 && again.y == anchor.y,
+            "k = {k}"
+        );
+        assert!(phase.min(9.0 - phase) < 1e-9, "k = {k}: phase {phase}");
+    }
+    // Without a grid the pattern starts at the first point, as before.
+    let mut fig = Figure::new();
+    let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    fig.panel(0, 0)
+        .mark(line(rec.series(2).expect("channel 2"), x, y).dash(pattern));
+    let list = fig.draw_with(
+        &mut cache(),
+        Size::new(640.0, 400.0),
+        Target::Screen { scale: 1.0 },
+        &Held::default(),
+    );
+    let Some(Command::Stroke { style, .. }) = marked(&list).into_iter().next() else {
+        panic!("a stroke");
+    };
+    assert_eq!(style.dash_offset, 0.0);
+}
+
+#[test]
+fn overscan_extends_the_view() {
+    let rec = recording(200_000);
+    let draw = |overscan: f64| {
+        let mut fig = Figure::new();
+        let x = fig.scale(scale::linear().domain([50.0, 150.0]));
+        let y = fig.scale(scale::linear().domain([-1.0, 2.0]));
+        // Two dots beyond the right end: 2% and 40% of the width past it.
+        let beyond = [(152.0, 0.5), (190.0, 0.5)];
+        fig.panel(0, 0)
+            .mark(line(rec.series(2).expect("channel 2"), x, y))
+            .mark(rustd3_figure::mark::dots(beyond, x, y))
+            .axis(axis::left(y))
+            .axis(axis::bottom(x));
+        let mut held = Held::default();
+        held.overscan(overscan);
+        let size = Size::new(640.0, 400.0);
+        let mut cache = cache();
+        cache.begin();
+        let resolved = fig.resolve(size, &mut cache, &held, Target::Screen { scale: 1.0 });
+        let area = resolved.plot_areas()[0];
+        (fig.draw_resolved(&mut cache, &resolved), area)
+    };
+    let (plain, area) = draw(0.0);
+    let (grown, same) = draw(30.0);
+    assert_eq!(same, area);
+    let (w, h) = (area.width(), area.height());
+    assert!((100.0..1500.0).contains(&w), "w {w}");
+    // The marks' clip grows by 30 px on every side.
+    let clip = |list: &List| {
+        list.commands.iter().find_map(|c| match c {
+            Command::Push {
+                clip: Some(Clip::Rect(r)),
+                ..
+            } => Some(*r),
+            Command::Fill { .. }
+            | Command::Stroke { .. }
+            | Command::Markers { .. }
+            | Command::Glyphs(_)
+            | Command::Image { .. }
+            | Command::Push { .. }
+            | Command::Pop
+            | _ => None,
+        })
+    };
+    assert_eq!(clip(&plain), Some(Rect::new(0.0, 0.0, w, h)));
+    assert_eq!(
+        clip(&grown),
+        Some(Rect::new(-30.0, -30.0, w + 30.0, h + 30.0))
+    );
+    // The line reaches past the grown view by one sample on each side.
+    let xs = |list: &List| -> (f64, f64) {
+        let ps = points(paths(list)[0]);
+        let lo = ps.iter().map(|p| p.x).fold(f64::INFINITY, f64::min);
+        let hi = ps.iter().map(|p| p.x).fold(f64::NEG_INFINITY, f64::max);
+        (lo, hi)
+    };
+    let ((lo, hi), (glo, ghi)) = (xs(&plain), xs(&grown));
+    println!("line x: [{lo:.3}, {hi:.3}] plain, [{glo:.3}, {ghi:.3}] grown over w {w}");
+    // Within one sample (0.006 px here) past each end of the view.
+    let left = |x: f64, edge: f64| x <= edge && x > edge - 1.0;
+    let right = |x: f64, edge: f64| x >= edge && x < edge + 1.0;
+    assert!(left(lo, 0.0) && right(hi, w));
+    assert!(left(glo, -30.0) && right(ghi, w + 30.0));
+    // The near dot is drawn with the overscan only; the far one never.
+    let dots = |list: &List| -> usize {
+        marked(list)
+            .into_iter()
+            .map(|c| match c {
+                Command::Markers { at, .. } => at.len(),
+                Command::Fill { .. }
+                | Command::Stroke { .. }
+                | Command::Glyphs(_)
+                | Command::Image { .. }
+                | Command::Push { .. }
+                | Command::Pop
+                | _ => 0,
+            })
+            .sum()
+    };
+    assert_eq!((dots(&plain), dots(&grown)), (0, 1));
+    // Everything but the plot area's layer (its background, grid and
+    // marks) is drawn as without an overscan.
+    let others = |list: &List| -> Vec<Command> {
+        list.parts
+            .iter()
+            .filter(|p| ![2, 6, 9].contains(&role(p.id)))
+            .flat_map(|p| list.commands[p.commands.clone()].iter().cloned())
+            .collect()
+    };
+    assert_eq!(others(&plain), others(&grown));
+    assert!(!others(&plain).is_empty());
+    list::check(&grown).expect("a valid list");
 }

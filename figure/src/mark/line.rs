@@ -13,7 +13,7 @@ use crate::mark::color::Color;
 use crate::mark::{Ctx, Mark, across, at, dashes, guard, positive, stroke, within};
 use crate::path;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
-use crate::thin::Thin;
+use crate::thin::{self, Thin};
 
 /// A line through points in their order: one `Stroke` command, broken
 /// where a point cannot be placed. A recording channel on an x scale with
@@ -95,8 +95,11 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     }
 
     /// Dashes: on and off lengths in px, from offset 0 at the first point
-    /// drawn. A pattern with a negative or non-finite length, or none
-    /// longer than 0, leaves the line as it was.
+    /// drawn; a thinned line on a column grid a widget holds
+    /// ([`Held::grids`](crate::Held::grids)) starts the pattern at the
+    /// first sample of the column containing the grid's origin instead. A
+    /// pattern with a negative or non-finite length, or none longer than 0,
+    /// leaves the line as it was.
     pub fn dash(self, pattern: impl IntoIterator<Item = f64>) -> Self {
         let dash = dashes(pattern).unwrap_or(self.dash);
         Self { dash, ..self }
@@ -133,13 +136,18 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     /// One `Stroke` command through every point placed on both scales, or
     /// through the samples M4 keeps per column of a thinned line, joined
     /// straight: each run of placed points is clipped to the guard band
-    /// and joined by the curve; nothing when no segment is left.
+    /// and joined by the curve; nothing when no segment is left. A dashed
+    /// thinned line on a held column grid sets its dash offset so that the
+    /// pattern's phase is 0 at the first point drawn in the column holding
+    /// the grid's origin, measured along its run.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
         let slot = self.slot(ctx);
         let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
-        let (items, curve) = match self.thinned(ctx, &sx, &sy) {
+        let band = ctx.band();
+        let thinned = self.thinned(ctx, &sx, &sy);
+        let anchored = thinned.is_some();
+        let (items, curve) = match thinned {
             Some(lines) => {
                 let placed = lines.iter().flat_map(|line| {
                     let points = line.iter().map(|&i| self.points.get(i).and_then(place));
@@ -158,9 +166,13 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
             return;
         }
         let width = self.width.unwrap_or(ctx.theme().get_line_width());
+        let mut style = stroke(width, &self.dash);
+        if let Some(grid) = ctx.grid(self.x.index()).filter(|_| anchored) {
+            style.dash_offset = phase(&items, grid, &self.dash);
+        }
         list.commands.push(Command::Stroke {
             path,
-            style: stroke(width, &self.dash),
+            style,
             paint: list::brush(self.color.resolve(ctx)),
         });
     }
@@ -206,11 +218,77 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// thins: [`Thin::Auto`], an x scale with an index bridge, and a
     /// recording channel for data.
     fn thinned(&self, ctx: &Ctx<'_>, sx: &X, sy: &Y) -> Option<m4::Lines> {
-        super::thinned(&self.points, self.thin, ctx, sx, sy)
+        super::thinned(&self.points, (self.thin, self.x), ctx, sx, sy)
     }
 
     /// The stroke key's slot, when the line is dodged.
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
         self.color.slot(ctx).filter(|_| self.dodge)
+    }
+}
+
+/// The dash offset that puts the phase of `pattern` at 0 on the first of
+/// `items` (runs of points broken by `None`, as the line draws them) that
+/// lies in the column of `grid` holding its origin, `[origin, origin + 1 /
+/// density)` across: the arc length from the start of that point's run,
+/// negated, modulo the pattern's length, as each run starts the pattern
+/// afresh at the offset. 0 without a pattern or such a point.
+fn phase(items: &[Option<Point>], grid: thin::Grid, pattern: &[f64]) -> f64 {
+    let period: f64 = pattern.iter().sum();
+    if period <= 0.0 || !period.is_finite() {
+        return 0.0;
+    }
+    let column = grid.origin..grid.origin + 1.0 / grid.density;
+    let mut length = 0.0;
+    let mut previous: Option<Point> = None;
+    for item in items {
+        let Some(p) = *item else {
+            previous = None;
+            continue;
+        };
+        length = match previous {
+            Some(q) => length + q.distance(p),
+            None => 0.0,
+        };
+        if column.contains(&p.x) {
+            return (-length).rem_euclid(period);
+        }
+        previous = Some(p);
+    }
+    0.0
+}
+
+#[cfg(test)]
+mod tests {
+    use kurbo::Point;
+
+    use super::phase;
+    use crate::thin::Grid;
+
+    #[test]
+    fn the_phase_is_measured_from_the_anchor_points_run() {
+        let grid = Grid {
+            origin: 10.0,
+            density: 1.0,
+        };
+        let p = |x: f64, y: f64| Some(Point::new(x, y));
+        // A first run, a break, then a run reaching the column [10, 11)
+        // 3 + 3.5 = 6.5 px after its start: the pattern of 4 px starts 1.5
+        // px in, so that 6.5 px later it is at 0.
+        let items = [
+            p(0.0, 0.0),
+            p(5.0, 0.0),
+            None,
+            p(4.0, 0.0),
+            p(7.0, 0.0),
+            p(10.5, 0.0),
+        ];
+        assert_eq!(phase(&items, grid, &[3.0, 1.0]), 1.5);
+        assert_eq!(phase(&items, grid, &[]), 0.0);
+        let elsewhere = Grid {
+            origin: 50.0,
+            density: 1.0,
+        };
+        assert_eq!(phase(&items, elsewhere, &[3.0, 1.0]), 0.0);
     }
 }

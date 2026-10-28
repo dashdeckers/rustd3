@@ -199,13 +199,20 @@ impl Placed {
         }
     }
 
-    /// Adds to `path` a grid line across plot area `area` at each of the
-    /// axis's ticks whose label the scale's format does not blank (major
-    /// ticks), as hairlines `width` px wide on whole device pixels on
-    /// raster targets (`snap`): vertical lines for a horizontal axis,
-    /// horizontal ones for a vertical axis.
-    pub(crate) fn grid(&self, area: Rect, width: f64, snap: Snap, path: &mut BezPath) {
+    /// Adds to `path` a grid line across plot area `area`, and `overscan`
+    /// px past its ends, at each of the axis's ticks whose label the
+    /// scale's format does not blank (major ticks), as hairlines `width` px
+    /// wide on whole device pixels on raster targets (`snap`): vertical
+    /// lines for a horizontal axis, horizontal ones for a vertical axis.
+    pub(crate) fn grid(
+        &self,
+        area: Rect,
+        overscan: f64,
+        (width, snap): (f64, Snap),
+        path: &mut BezPath,
+    ) {
         let horizontal = across(self.labels.orient);
+        let reach = area.inflate(overscan, overscan);
         for (i, p) in self.positions.iter().enumerate() {
             let Some(p) = p else { continue };
             if self.labels.minor.get(i).copied().unwrap_or(false) {
@@ -213,12 +220,12 @@ impl Placed {
             }
             if horizontal {
                 let x = snap.line(area.x0 + p, width);
-                path.move_to((x, area.y0));
-                path.line_to((x, area.y1));
+                path.move_to((x, reach.y0));
+                path.line_to((x, reach.y1));
             } else {
                 let y = snap.line(area.y0 + p, width);
-                path.move_to((area.x0, y));
-                path.line_to((area.x1, y));
+                path.move_to((reach.x0, y));
+                path.line_to((reach.x1, y));
             }
         }
     }

@@ -6,7 +6,7 @@ use rustd3_core::color::Rgb;
 use crate::check::Issue;
 use crate::figure::Fits;
 use crate::list::List;
-use crate::mark::{Ctx, Mark, at, guard, outside_count, within};
+use crate::mark::{Ctx, Mark, at, outside_count, within};
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{Anchor, Key, Text};
 use crate::theme::Theme;
@@ -113,7 +113,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
     /// plot area; nothing otherwise, or when typst rejected the text.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let Some(p) = at(&sx, &self.at.0).zip(at(&sy, &self.at.1)) else {
             return;
         };

@@ -11,7 +11,7 @@ use crate::hit;
 use crate::list::{self, Clip, List};
 use crate::mark::bar::Across;
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, dodge, guard, reach, rect, within};
+use crate::mark::{Ctx, Mark, dodge, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// The most bins `Bins::Nice` asks d3's ticks for: they round a count
@@ -234,8 +234,8 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// that cannot be placed are skipped, all of them when 0 cannot be.
     fn placed(&self, ctx: &Ctx<'_>) -> Vec<(usize, [f64; 2], [f64; 2])> {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let band = guard::band(w, h);
+        let w = ctx.rect().width();
+        let band = ctx.band();
         let Some(base) = reach(&sy, 0.0, [band.y0, band.y1]) else {
             return Vec::new();
         };

@@ -8,7 +8,7 @@ use crate::figure::Fits;
 use crate::hatch::Hatch;
 use crate::list::{self, Clip, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Error, Mark, guard, polygon, positive, reach, stroke};
+use crate::mark::{Ctx, Error, Mark, polygon, positive, reach, stroke};
 use crate::scale::{Paint, Position, ScaleRef};
 use crate::stats::Kde;
 
@@ -177,7 +177,7 @@ impl Density {
         let curve = placed.into_iter().map(|(_, p)| p);
         let outline: Vec<Point> = [start].into_iter().chain(curve).chain([end]).collect();
         let mut path = BezPath::new();
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         polygon(&mut path, &outline, band);
         if path.elements().is_empty() {
             return;
@@ -269,7 +269,7 @@ impl<'a, Y: Position<Domain = f64>, W: Position<Domain = f64>> Mark<'a> for Dens
     /// region between the curve and `w = 0`, clipped to the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sy, sw) = (ctx.y(self.y), ctx.x(self.w));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let at = |v: f64, d: f64| {
             let x = reach(&sw, d, [band.x0, band.x1])?;
             let y = sy.position(&v).filter(|p| p.is_finite())?;
@@ -295,7 +295,7 @@ impl<'a, X: Position<Domain = f64>, H: Position<Domain = f64>> Mark<'a> for Dens
     /// region between the curve and `h = 0`, clipped to the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sh) = (ctx.x(self.x), ctx.y(self.h));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let at = |v: f64, d: f64| {
             let x = sx.position(&v).filter(|p| p.is_finite())?;
             let y = reach(&sh, d, [band.y0, band.y1])?;

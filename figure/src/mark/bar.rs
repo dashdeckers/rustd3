@@ -9,7 +9,7 @@ use crate::hatch::Hatch;
 use crate::hit;
 use crate::list::{self, Clip, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Mark, dodge, guard, positive, reach, rect, within};
+use crate::mark::{Ctx, Mark, dodge, positive, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// The share of the gap between neighbouring keys a bar takes on a scale
@@ -370,8 +370,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
     /// edges on device pixels on raster targets, and its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let band = guard::band(w, h);
+        let w = ctx.rect().width();
+        let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]);
         let rects = placed
             .into_iter()
@@ -384,8 +384,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
     /// area, with its row's index.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let band = guard::band(w, h);
+        let w = ctx.rect().width();
+        let band = ctx.band();
         let area = ctx.rect().with_origin(Point::ORIGIN);
         for (i, [x0, x1], [_, y]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
             let p = Point::new((x0 + x1) / 2.0, y);
@@ -413,8 +413,8 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
     /// edges on device pixels on raster targets, and its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let band = guard::band(w, h);
+        let h = ctx.rect().height();
+        let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]);
         let rects = placed
             .into_iter()
@@ -427,8 +427,8 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
     /// plot area, with its row's index.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let band = guard::band(w, h);
+        let h = ctx.rect().height();
+        let band = ctx.band();
         let area = ctx.rect().with_origin(Point::ORIGIN);
         for (i, [y0, y1], [_, x]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
             let p = Point::new(x, (y0 + y1) / 2.0);

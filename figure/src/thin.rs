@@ -30,9 +30,11 @@
 //! ```
 
 mod frame;
+mod grid;
 mod memo;
 
 pub use frame::Frame;
+pub use grid::Grid;
 pub(crate) use memo::Memo;
 
 use crate::scale::Indexed;
@@ -61,6 +63,31 @@ pub(crate) fn edges<D>(indexed: &dyn Indexed<D>, width: f64, per_px: f64) -> Opt
     Some(
         (0..=n)
             .map(|i| indexed.invert(f64::from(i) / per_px))
+            .collect(),
+    )
+}
+
+/// Columns an edge on a grid is moved left by before it is inverted.
+const LEAD: f64 = 1e-6;
+
+/// The column edges on `grid` of every column that intersects the view
+/// `[lo, hi]` (list px along the plot area): edge `c` at `indexed`'s
+/// inverse of `grid.origin + c / grid.density`, from the first column's
+/// left edge to the last one's right edge, in the scale's order. `None`
+/// when no column intersects the view.
+///
+/// Each edge is taken a millionth of a column to the left first. A pan
+/// inverts the same edge through another scale, which can land it an ulp
+/// either side of a sample lying exactly on it (round domains and widths
+/// put many there), so the sample would change columns between the two
+/// draws; a millionth of a column is far above that error and puts such a
+/// sample in the column to its right in both.
+pub(crate) fn edges_on<D>(indexed: &dyn Indexed<D>, view: [f64; 2], grid: Grid) -> Option<Vec<D>> {
+    let (first, last) = grid.span(view)?;
+    let lead = LEAD / grid.density;
+    Some(
+        (first..=last + 1)
+            .map(|c| indexed.invert(grid.edge(c) - lead))
             .collect(),
     )
 }

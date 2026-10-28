@@ -52,15 +52,17 @@ impl Figure<'_> {
             .zip(areas)
             .enumerate()
         {
+            let overscan = resolved.overscan();
             part(list, part::id(Role::Panel, i, 0), |list| {
                 list.commands.push(Command::Fill {
-                    path: area.to_path(TOLERANCE),
+                    path: area.inflate(overscan, overscan).to_path(TOLERANCE),
                     paint: list::brush(theme.panel()),
                 });
             });
             if let Some(color) = theme.grid() {
                 part(list, part::id(Role::Grid, i, 0), |list| {
-                    grid(list, laid, *area, color, theme.grid_width(), snap);
+                    let style = (color, theme.grid_width(), snap);
+                    grid(list, laid, (*area, overscan), style);
                 });
             }
             let ctx = Ctx::new(resolved, theme, *area, text, frame);
@@ -124,14 +126,14 @@ impl Figure<'_> {
 }
 
 /// Appends the marks of `panel`, the `index`th, each a part, inside a group
-/// translated to its plot area and clipped to it; nothing when no mark
-/// draws.
+/// translated to its plot area and clipped to it (grown by a widget's
+/// overscan); nothing when no mark draws.
 fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
     let area = ctx.rect();
     let start = list.commands.len();
     list.commands.push(Command::Push {
         transform: Affine::translate(area.origin().to_vec2()),
-        clip: Some(Clip::Rect(area.with_origin(Point::ORIGIN))),
+        clip: Some(Clip::Rect(ctx.view())),
     });
     for (j, mark) in panel.marks().iter().enumerate() {
         part(list, part::id(Role::Mark, index, j), |list| {
@@ -146,11 +148,16 @@ fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
 }
 
 /// Appends the grid lines of the panel laid out as `laid` across its plot
-/// area `area`, in `color`, `width` px wide (snapped by `snap`): one line
-/// per major tick of its first shown horizontal axis and of its first
-/// shown vertical axis, as matplotlib draws one x and one y grid per axes;
-/// nothing without such ticks.
-fn grid(list: &mut List, laid: &Laid, area: Rect, color: Rgb, width: f64, snap: Snap) {
+/// area `area` and `overscan` px past its ends, in `color`, `width` px wide
+/// (snapped by `snap`): one line per major tick of its first shown
+/// horizontal axis and of its first shown vertical axis, as matplotlib
+/// draws one x and one y grid per axes; nothing without such ticks.
+fn grid(
+    list: &mut List,
+    laid: &Laid,
+    (area, overscan): (Rect, f64),
+    (color, width, snap): (Rgb, f64, Snap),
+) {
     let mut path = BezPath::new();
     for horizontal in [true, false] {
         let first = laid
@@ -158,7 +165,7 @@ fn grid(list: &mut List, laid: &Laid, area: Rect, color: Rgb, width: f64, snap: 
             .iter()
             .find(|a| a.plan.shown && a.horizontal() == horizontal);
         if let Some(axis) = first {
-            axis.grid(area, width, snap, &mut path);
+            axis.grid(area, overscan, (width, snap), &mut path);
         }
     }
     if !path.elements().is_empty() {

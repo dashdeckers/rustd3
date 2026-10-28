@@ -9,9 +9,9 @@ use crate::figure::Fits;
 use crate::hatch::Hatch;
 use crate::list::{self, Clip, Command, List};
 use crate::mark::color::Color;
-use crate::mark::{Ctx, Error, Mark, admits, at, guard, polygon, reach, runs};
+use crate::mark::{Ctx, Error, Mark, admits, at, polygon, reach, runs};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
-use crate::thin::{self, Thin};
+use crate::thin::Thin;
 
 /// The region between a line through points and a horizontal base: one
 /// `Fill` command, broken where a point cannot be placed. A recording
@@ -186,13 +186,13 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
     /// run has two points or the base cannot be placed.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let Some(base) = reach(&sy, self.base, [band.y0, band.y1]) else {
             return;
         };
         let place = |(a, b)| Some(Point::new(at(&sx, &a)?, at(&sy, &b)?));
         let placed: Vec<Option<Point>> =
-            match super::thinned(&self.points, Thin::Auto, ctx, &sx, &sy) {
+            match super::thinned(&self.points, (Thin::Auto, self.x), ctx, &sx, &sy) {
                 Some(lines) => sequence(&lines)
                     .map(|i| i.and_then(|i| self.points.get(i).and_then(place)))
                     .collect(),
@@ -273,7 +273,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
             return None;
         }
         let indexed = sx.indexed()?;
-        let edges = thin::edges(indexed, ctx.rect().width(), ctx.columns())?;
+        let edges = ctx.edges(indexed, self.x.index())?;
         let valid = |v| admits(sy, v);
         indexed.thin_joint(&self.lower, &self.upper, &edges, &valid, &mut ctx.frame())
     }
@@ -305,7 +305,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
             return;
         }
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let row = |i: usize| {
             let (a, low) = self.lower.get(i)?;
             let (_, high) = self.upper.get(i)?;

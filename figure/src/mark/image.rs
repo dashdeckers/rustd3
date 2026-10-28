@@ -7,7 +7,7 @@ use peniko::{Blob, ImageAlphaType, ImageData, ImageFormat};
 
 use crate::figure::Fits;
 use crate::list::{Command, List};
-use crate::mark::{Ctx, Error, Mark, guard};
+use crate::mark::{Ctx, Error, Mark};
 use crate::scale::{Paint, Position, ScaleRef};
 use crate::text;
 
@@ -157,7 +157,7 @@ where
     /// extent cannot be placed or has no area.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
+        let band = ctx.band();
         let across =
             ends(&sx, self.grid.x).and_then(|p| Span::new(p, self.grid.cols, [band.x0, band.x1]));
         let up =

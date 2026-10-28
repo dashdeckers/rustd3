@@ -55,7 +55,7 @@ use crate::hatch::Hatch;
 use crate::hit;
 use crate::list::{Clip, List};
 use crate::mark::color::Color;
-use crate::scale::{Kind, Position, ScaleRef};
+use crate::scale::{Indexed, Kind, Position, ScaleRef};
 use crate::text::{Key, Shaped};
 use crate::theme::Theme;
 use crate::thin::{self, Thin};
@@ -198,6 +198,46 @@ impl Ctx<'_> {
     /// per device pixel for files and per list pixel for vector output.
     pub(crate) fn columns(&self) -> f64 {
         self.resolved.target().columns()
+    }
+
+    /// What the marks draw data over, in the panel's coordinates: the plot
+    /// area `[0, w] × [0, h]`, grown on every side by the overscan a widget
+    /// holds ([`Held::overscan`](crate::Held::overscan)).
+    pub(crate) fn view(&self) -> kurbo::Rect {
+        let o = self.resolved.overscan();
+        self.rect.with_origin(kurbo::Point::ORIGIN).inflate(o, o)
+    }
+
+    /// The guard band geometry is clipped to: [`guard::band`] of the plot
+    /// area, grown by the overscan.
+    pub(crate) fn band(&self) -> kurbo::Rect {
+        let o = self.resolved.overscan();
+        guard::band(self.rect.width(), self.rect.height()).inflate(o, o)
+    }
+
+    /// The column grid lines on the x handle at table position `x` thin
+    /// on, when a widget holds one ([`Held::grids`](crate::Held::grids)).
+    pub(crate) fn grid(&self, x: usize) -> Option<thin::Grid> {
+        self.resolved.grid(x)
+    }
+
+    /// The thinning column edges of the plot area for a line on the x
+    /// handle at table position `x` whose scale's bridge is `indexed`: on
+    /// the grid held for it over the view, else from the plot area's left
+    /// edge at the target's density, over the view when it is grown, else
+    /// `round(w × columns)` columns across it (Phase 15's columns).
+    pub(crate) fn edges<D>(&self, indexed: &dyn Indexed<D>, x: usize) -> Option<Vec<D>> {
+        let view = self.view();
+        let grid = self.grid(x).or_else(|| {
+            (self.resolved.overscan() > 0.0).then_some(thin::Grid {
+                origin: 0.0,
+                density: self.columns(),
+            })
+        });
+        match grid {
+            Some(grid) => thin::edges_on(indexed, [view.x0, view.x1], grid),
+            None => thin::edges(indexed, self.rect.width(), self.columns()),
+        }
     }
 
     /// The draw's thinning frame.
@@ -351,12 +391,13 @@ fn visible<'a, X: Position, Y: Position>(
     }
 }
 
-/// M4's sample indices per column of the plot area for `points` on `sx`
-/// and `sy`, when they thin: [`Thin::Auto`], an x scale with an index
-/// bridge, and a recording channel for data.
+/// M4's sample indices per column of the view ([`Ctx::edges`]) for
+/// `points` on `sx` (the scale of handle `x`) and `sy`, when they thin:
+/// [`Thin::Auto`], an x scale with an index bridge, and a recording
+/// channel for data.
 fn thinned<X: Position, Y: Position>(
     points: &Points<'_, <X as Kind>::Domain, <Y as Kind>::Domain>,
-    thin: Thin,
+    (thin, x): (Thin, ScaleRef<X>),
     ctx: &Ctx<'_>,
     sx: &X,
     sy: &Y,
@@ -366,7 +407,7 @@ fn thinned<X: Position, Y: Position>(
     }
     let channel = points.indexed()?;
     let indexed = sx.indexed()?;
-    let edges = thin::edges(indexed, ctx.rect().width(), ctx.columns())?;
+    let edges = ctx.edges(indexed, x.index())?;
     indexed.thin(&channel, &edges, &|v| admits(sy, v), &mut ctx.frame())
 }
 

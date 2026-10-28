@@ -153,6 +153,7 @@ impl Figure<'_> {
             let mut resolved = Resolved::new(self.id, scales, locale, target, size);
             resolved.bind(&self.panels, windowed.clone());
             resolved.hatched(Rc::clone(&fitted.hatches));
+            resolved.thin_on(held.grid_table().clone(), held.overscanned());
             let layout = Layout::new(self, &resolved, cache.text(), &fitted.labels, size, rects);
             resolved.place(layout, title.clone(), rects.is_some());
             let laid = self.columns(&fitted, &windowed, &resolved);

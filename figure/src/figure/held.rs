@@ -1,18 +1,26 @@
-//! [`Held`]: the scales a gesture holds.
+//! [`Held`]: the scales a gesture holds, and how a widget's tiles thin
+//! and reach past the view.
 
 use std::any::TypeId;
 use std::collections::HashMap;
 
 use crate::figure::Figure;
 use crate::scale::{Kind, Scale, ScaleRef};
+use crate::thin;
 
 /// The scales a gesture holds, keyed by handle index and scale type, which
 /// survive a figure's rebuild: resolving uses a held scale as it is and
 /// skips fitting it, so new data does not pull the view away. An entry
 /// whose type differs from the figure's scale at that index is ignored.
+///
+/// A widget that translates rendered tiles also sets the column grids its
+/// lines thin on ([`grids`](Held::grids)) and how far plot areas reach past
+/// the view ([`overscan`](Held::overscan)).
 #[derive(Default)]
 pub struct Held {
     scales: HashMap<usize, (TypeId, Box<dyn Scale>)>,
+    grids: HashMap<usize, thin::Grid>,
+    overscan: f64,
 }
 
 impl Held {
@@ -57,6 +65,45 @@ impl Held {
                 .get(index)
                 .is_some_and(|entry| entry.scale.as_any().type_id() == *kind)
         });
+    }
+
+    /// Column grids to thin with, per handle index (additive): a line whose
+    /// x handle has one thins on its columns instead of columns from its
+    /// plot area's left edge at the target's density, and a dashed one
+    /// sets its dash offset so that the pattern's phase is 0 at the first
+    /// sample of the column containing the grid's origin, measured along
+    /// the emitted polyline. Replaces the grids set before.
+    pub fn grids(&mut self, grids: Vec<(usize, thin::Grid)>) -> &mut Held {
+        self.grids = grids.into_iter().collect();
+        self
+    }
+
+    /// The column grid of the handle at table position `handle`, if one is
+    /// set.
+    pub fn grids_for(&self, handle: usize) -> Option<thin::Grid> {
+        self.grids.get(&handle).copied()
+    }
+
+    /// Extends each plot area's data range and clip by `px` list px, for
+    /// plot-area tile jobs (additive): its background and grid lines cover
+    /// the grown area, its marks are clipped to it and draw the data there
+    /// (lines thin the columns of the grown view and keep one sample
+    /// beyond it), so tiles around the view show what a pan brings in. The
+    /// rest of the figure draws as it would without; a width that is not
+    /// finite and positive extends nothing.
+    pub fn overscan(&mut self, px: f64) -> &mut Held {
+        self.overscan = if px.is_finite() && px > 0.0 { px } else { 0.0 };
+        self
+    }
+
+    /// Every column grid, by handle index.
+    pub(super) fn grid_table(&self) -> &HashMap<usize, thin::Grid> {
+        &self.grids
+    }
+
+    /// How far plot areas reach past the view, list px.
+    pub(super) fn overscanned(&self) -> f64 {
+        self.overscan
     }
 
     /// The held scale for entry `index` of a table, if it has `scale`'s

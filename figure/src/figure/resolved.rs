@@ -1,6 +1,7 @@
 //! [`Resolved`]: a figure's fitted scales and its laid-out plot areas.
 
 use std::any::Any;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use kurbo::Point;
@@ -17,6 +18,7 @@ use crate::panel::Panel;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
 use crate::text::Key;
+use crate::thin;
 
 /// A figure resolved for one size and target: every scale with its domain
 /// fitted or held, every panel's plot area, and per panel its axes' tick
@@ -49,6 +51,10 @@ pub struct Resolved {
     /// The hatches of marks filled through a palette, as they reported
     /// them.
     hatches: Rc<[Hatched]>,
+    /// Column grids lines thin on, by handle index, as held.
+    grids: HashMap<usize, thin::Grid>,
+    /// How far plot areas reach past the view, list px, as held.
+    overscan: f64,
 }
 
 impl Resolved {
@@ -80,6 +86,8 @@ impl Resolved {
             brushes: Vec::new(),
             windowed: Vec::new(),
             hatches: Rc::from([]),
+            grids: HashMap::new(),
+            overscan: 0.0,
         }
     }
 
@@ -265,6 +273,23 @@ impl Resolved {
             .iter()
             .map(|p| p.axes().iter().map(|a| (a.orient(), a.handle())).collect())
             .collect();
+    }
+
+    /// Sets the column grids lines thin on and how far plot areas reach
+    /// past the view (list px), from what a widget held.
+    pub(super) fn thin_on(&mut self, grids: HashMap<usize, thin::Grid>, overscan: f64) {
+        self.grids = grids;
+        self.overscan = overscan;
+    }
+
+    /// The column grid of the handle at table position `index`, if held.
+    pub(crate) fn grid(&self, index: usize) -> Option<thin::Grid> {
+        self.grids.get(&index).copied()
+    }
+
+    /// How far plot areas reach past the view, list px: 0 unless held.
+    pub(crate) fn overscan(&self) -> f64 {
+        self.overscan
     }
 
     /// Sets the hatches marks filled through a palette reported.
