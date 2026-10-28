@@ -763,6 +763,9 @@ outruns the ring's renders on the pool, and those frames show previews.
 with the general blend (3.96× and 1.80×); a fully covered pixel of an
 opaque color now takes the color as it is, the same pixels.
 
+**`scripts/check.sh full`** at 3543c0f: green in 18 min 47 s (warm, the
+benchmark smoke included), no warnings. `quick` green on every commit.
+
 **Viewed.** Headless screenshots (scratch, not committed) of the trace
 replica at 800 × 500, factors 1 and 2, `threads(1)` and `threads(4)`,
 both backends: after 8 drag frames of 37 px with 4 ms of results between

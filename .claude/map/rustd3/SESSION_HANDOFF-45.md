@@ -130,8 +130,8 @@ target/release/rustd3-bench run --headless --plan quick --scenario pan-x --workl
 
 ## 9. End-of-session checklist
 
-- `scripts/check.sh quick` green on every commit; `full` at the closing
-  commit: see the session's report.
+- `scripts/check.sh quick` green on every commit; `full` at 3543c0f:
+  green in 18 min 47 s (warm, the benchmark smoke included), no warnings.
 - Disk: the headless pan runs under `target/bench-p31c-*` deleted.
 - D31.7–D31.9 open with their recommendations; D31.2 and D31.6 built.
 - Conventional commits, no attribution.
