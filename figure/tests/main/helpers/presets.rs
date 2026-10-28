@@ -8,12 +8,12 @@ use rustd3_core::series::{Clock, Recording};
 use rustd3_core::shape::{self, stack};
 use rustd3_figure::helpers::axes;
 use rustd3_figure::helpers::chart::{self, bar::Mode};
-use rustd3_figure::kurbo::{Rect, Shape};
+use rustd3_figure::kurbo::{Rect, Shape, Size};
 use rustd3_figure::legend::{Slot, Swatch, legend};
 use rustd3_figure::list::{Command, List, part};
-use rustd3_figure::mark::line;
+use rustd3_figure::mark::{Grid, line};
 use rustd3_figure::peniko::{Brush, Color};
-use rustd3_figure::{Figure, axis};
+use rustd3_figure::{Figure, Target, axis};
 
 use super::axes::{MINOR, axis_part};
 use crate::marks::{draw, role};
@@ -392,4 +392,201 @@ fn line_legends_show_line_swatches_as_a_written_out_legend_does() {
     };
     assert_eq!(strokes(&legend_of(&draw(&fig))), 2);
     assert_eq!(strokes(&legend_of(&draw(&manual))), 2);
+}
+
+#[test]
+fn a_stacked_area_is_one_ribbon_per_column_on_shape_stacks_edges() {
+    let fig = chart::area(
+        vec![vec![1.0; 3], vec![2.0; 3], vec![3.0; 3]],
+        vec![0.0, 1.0, 2.0],
+    )
+    .figure();
+    let list = draw(&fig);
+    let marks = mark_parts(&list);
+    assert_eq!(marks.len(), 3, "one ribbon per column");
+    let boxes: Vec<Rect> = marks
+        .iter()
+        .map(|m| {
+            let f = fills(m);
+            assert_eq!(f.len(), 1, "one polygon");
+            f[0]
+        })
+        .collect();
+    for (i, m) in marks.iter().enumerate() {
+        assert_eq!(paint(m), Some(&palette(i)));
+    }
+    // Column 0 spans [0, 1]: the other two stack on it.
+    let scale = [boxes[0].y1, boxes[0].y0];
+    assert_spans(&spans(&boxes, scale), &[[0.0, 1.0], [1.0, 3.0], [3.0, 6.0]]);
+    assert_eq!(
+        legend_texts(&list),
+        Some(vec!["0".into(), "1".into(), "2".into()])
+    );
+    assert_eq!(axis_part(&list, 0).0.len(), 2, "minor ticks on x");
+    assert_checks(&fig);
+}
+
+/// `fig` drawn for vector output at a size whose plot area is `w × h`
+/// (a figure without axes, whose padding does not depend on its size).
+fn drawn_with_area(fig: &Figure<'_>, w: f64, h: f64) -> (List, Rect) {
+    let area = crate::figure::resolve(fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    let size = Size::new(w + 640.0 - area.width(), h + 480.0 - area.height());
+    let mut cache = crate::figure::cache();
+    let held = rustd3_figure::Held::default();
+    let area = fig
+        .resolve(size, &mut cache, &held, Target::Vector)
+        .plot_areas()[0];
+    let list = fig.draw_with(&mut cache, size, Target::Vector, &held);
+    (list, area)
+}
+
+/// The union of the boxes of the filled paths among `commands`.
+fn union(commands: &[Command]) -> Rect {
+    fills(commands)
+        .into_iter()
+        .reduce(|a, b| a.union(b))
+        .expect("a filled path")
+}
+
+#[test]
+fn a_pie_fills_its_plot_area_less_half_an_em_with_labels_at_the_centroids() {
+    let fig = chart::pie([("a", 3.0), ("b", 1.0), ("c", 2.0), ("none", 0.0)]).figure();
+    let (list, area) = drawn_with_area(&fig, 600.0, 400.0);
+    assert!(near(area.width(), 600.0) && near(area.height(), 400.0));
+    let marks = mark_parts(&list);
+    assert_eq!(marks.len(), 1);
+    assert_eq!(fills(marks[0]).len(), 3, "no wedge without an angle");
+    // 200 − em(0.5), em = 11 pt = 14.667 px: 192.667.
+    let outer = 200.0 - 11.0 * 4.0 / 3.0 / 2.0;
+    let pie = union(marks[0]);
+    let tolerance = 0.1;
+    assert!((pie.width() - 2.0 * outer).abs() < tolerance, "{pie:?}");
+    assert!((pie.height() - 2.0 * outer).abs() < tolerance, "{pie:?}");
+    let centre = pie.center();
+    assert!((centre.x - 300.0).abs() < tolerance && (centre.y - 200.0).abs() < tolerance);
+    // Wedges in data order, each in its key's palette color.
+    let paints: Vec<&Brush> = marks[0]
+        .iter()
+        .filter_map(|c| {
+            if let Command::Fill { paint, .. } = c {
+                Some(paint)
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(paints, [&palette(0), &palette(1), &palette(2)]);
+    // One label per wedge, in data order (their centroids are the
+    // labels' own spot rows).
+    let texts: Vec<String> = marks[0]
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.text.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(texts, ["a", "b", "c"]);
+    assert_eq!(legend_texts(&list), None, "labelled inside: no legend");
+    assert_checks(&fig);
+}
+
+#[test]
+fn a_donut_takes_its_inner_share_of_the_outer_radius() {
+    let fig = chart::pie([("a", 1.0)]).inner(0.5).inner(1.5).figure();
+    let (list, _) = drawn_with_area(&fig, 600.0, 400.0);
+    let marks = mark_parts(&list);
+    let [Command::Fill { path, .. }, ..] = marks[0] else {
+        panic!("a wedge first: {:?}", marks[0]);
+    };
+    let outer = 200.0 - 11.0 * 4.0 / 3.0 / 2.0;
+    // A full ring: the path holds both circles; its winding at a point
+    // halfway out is 0 inside the hole and nonzero on the ring.
+    let centre = path.bounding_box().center();
+    let hole = centre + rustd3_figure::kurbo::Vec2::new(0.4 * outer, 0.0);
+    let ring = centre + rustd3_figure::kurbo::Vec2::new(0.75 * outer, 0.0);
+    assert_eq!(path.winding(hole), 0, "0.5 of the outer radius is empty");
+    assert_ne!(path.winding(ring), 0);
+    assert_checks(&fig);
+}
+
+/// The image command among `commands`: its rect, pixel size and pixels.
+fn image_of(commands: &[Command]) -> (Rect, [u32; 2], Vec<u8>) {
+    commands
+        .iter()
+        .find_map(|c| {
+            if let Command::Image { rect, image, .. } = c {
+                Some((
+                    *rect,
+                    [image.width, image.height],
+                    image.data.data().to_vec(),
+                ))
+            } else {
+                None
+            }
+        })
+        .expect("an image")
+}
+
+/// Whether the legend in figure slot 0 of `list` holds an image (a
+/// colorbar's strip).
+fn has_colorbar(list: &List) -> bool {
+    let id = part::Id::new(7 << 56 | 0xff_ffff << 32);
+    list.parts.iter().any(|p| {
+        p.id == id
+            && list.commands[p.commands.clone()]
+                .iter()
+                .any(|c| matches!(c, Command::Image { .. }))
+    })
+}
+
+/// A 3 × 2 grid whose row 0 holds 0 and row 1 holds 1.
+fn rows() -> Grid {
+    Grid::new(3, 2, vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0]).expect("a grid")
+}
+
+#[test]
+fn a_heatmap_fills_its_plot_area_with_its_grid_and_a_colorbar() {
+    let fig = chart::heatmap(rows()).figure();
+    let list = draw(&fig);
+    let marks = mark_parts(&list);
+    assert_eq!(marks.len(), 1);
+    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    let (rect, size, pixels) = image_of(marks[0]);
+    assert_eq!(size, [3, 2]);
+    assert!(near(rect.width(), area.width()) && near(rect.height(), area.height()));
+    // Row 0 at the bottom: the image's last row.
+    let (top, bottom) = (&pixels[..12], &pixels[12..]);
+    let low = rustd3_core::scheme::viridis(0.0);
+    let [r, g, b] = [low.r, low.g, low.b].map(|v| v.round() as u8);
+    assert_eq!(&bottom[..4], [r, g, b, 255]);
+    assert_ne!(top, bottom);
+    assert!(has_colorbar(&list));
+    assert_eq!(axis_part(&list, 0).0.len(), 2, "minor ticks on linear axes");
+    assert_checks(&fig);
+}
+
+#[test]
+fn heatmap_keys_give_band_axes_with_row_zero_on_top() {
+    let names = |n: &[&str]| n.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    let fig = chart::heatmap(rows())
+        .keys(names(&["first", "second"]), names(&["a", "b", "c"]))
+        .colors(rustd3_core::scheme::magma)
+        .figure();
+    let list = draw(&fig);
+    let (rect, size, pixels) = image_of(mark_parts(&list)[0]);
+    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    assert_eq!(size, [3, 2]);
+    assert!(near(rect.width(), area.width()) && near(rect.height(), area.height()));
+    let low = rustd3_core::scheme::magma(0.0);
+    let [r, g, b] = [low.r, low.g, low.b].map(|v| v.round() as u8);
+    assert_eq!(&pixels[..4], [r, g, b, 255], "row 0 on top");
+    let (strokes, texts) = axis_part(&list, 0);
+    assert_eq!((strokes.len(), texts), (1, names(&["a", "b", "c"])));
+    // A band axis lists its keys from the bottom up.
+    assert_eq!(axis_part(&list, 1).1, names(&["second", "first"]));
+    assert!(has_colorbar(&list));
+    assert_checks(&fig);
 }

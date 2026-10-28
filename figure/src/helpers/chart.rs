@@ -1,7 +1,8 @@
 //! One-call chart presets, matplotlib's and seaborn's conveniences as
 //! consuming builders that end in a figure: [`line()`] (one or more
-//! series), [`scatter()`] and [`bar()`] (grouped, stacked or diverging,
-//! see [`bar::Mode`]).
+//! series), [`scatter()`], [`bar()`] (grouped, stacked or diverging, see
+//! [`bar::Mode`]), [`area()`] (stacked), [`pie()`] (and donuts) and
+//! [`heatmap()`] (with a colorbar).
 //!
 //! Every preset takes the same finishing builders: `.title(t)` (the panel's
 //! title), `.x_label(t)` and `.y_label(t)` (the axes' labels), `.size(w, h)`
@@ -15,7 +16,9 @@
 //! scale over their keys, and a legend of the keys goes right of the plot
 //! area when there is more than one series. Each preset is ordinary code
 //! over the figure's handles and marks, a copy of which makes the chart a
-//! preset does not.
+//! preset does not; the theme's palette and the pie's margin (half an em)
+//! are the two things the presets read from the theme that a copy outside
+//! this crate names itself.
 //!
 //! ```
 //! use rustd3_figure::helpers::chart;
@@ -103,11 +106,17 @@ macro_rules! finish {
     };
 }
 
+mod area;
 pub mod bar;
+mod heatmap;
 mod line;
+mod pie;
 mod scatter;
 mod setup;
 
+pub use area::{Area, area};
 pub use bar::preset::{Bar, bar};
+pub use heatmap::{Heatmap, heatmap};
 pub use line::{Line, line};
+pub use pie::{Pie, pie};
 pub use scatter::{Scatter, scatter};
