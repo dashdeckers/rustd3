@@ -1,8 +1,10 @@
 //! Marks: what dots and rules fit and draw, their colors, and where they
-//! sit in a figure's list; areas, ribbons, bars and rects in submodules.
+//! sit in a figure's list; areas, ribbons, bars, rects and histograms in
+//! submodules.
 
 mod area;
 mod bar;
+mod histogram;
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Linear};

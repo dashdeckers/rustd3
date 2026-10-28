@@ -1,8 +1,8 @@
 //! Marks: the [`Mark`] trait every mark implements, [`Ctx`], what a mark
 //! sees while it draws one panel, and the figure's marks: [`dots`],
 //! [`line()`], [`area()`], [`ribbon`], [`ribbon_series`], [`bar_y`],
-//! [`bar_x`], [`bar_y_spans`], [`bar_x_spans`], [`rect()`], [`rule_x`] and
-//! [`rule_y`].
+//! [`bar_x`], [`bar_y_spans`], [`bar_x_spans`], [`rect()`],
+//! [`histogram()`], [`rule_x`] and [`rule_y`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -23,6 +23,7 @@ mod color;
 mod dots;
 mod error;
 mod guard;
+mod histogram;
 mod line;
 mod rect;
 mod rule;
@@ -48,6 +49,7 @@ pub use area::{Area, Ribbon, area, ribbon, ribbon_series};
 pub use bar::{BarX, BarY, bar_x, bar_x_spans, bar_y, bar_y_spans};
 pub use dots::{Dots, dots};
 pub use error::Error;
+pub use histogram::{Binned, Bins, Histogram, histogram};
 pub use line::{Line, line};
 pub use rect::{Rect, rect};
 pub use rule::{Rule, rule_x, rule_y};
