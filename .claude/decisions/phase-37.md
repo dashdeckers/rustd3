@@ -70,6 +70,31 @@ gives identical bytes. A 2 × 2 checker stretched over 200 px renders
 with at most two colors per 32-px tile when nearest, and more than two
 when smooth.
 
+**GIF** (`figure/tests/main/gif.rs`, gif 0.14.2's own decoder):
+
+- **Agreement.** A frame of the scatter example (640 × 480 at 1×,
+  `Frame::from_rgba_speed(…, 10)`: NeuQuant, its 5,600 translucent dots
+  far over 256 colors) against the pixels `save_png` encodes (the same
+  list, `Settings::parallel()`): max 60/255, tile score 0.0095 at
+  (288, 224), 0.162% of channels over 16. Asserted at 1.5 ×: max ≤ 90,
+  tile score ≤ 0.0143.
+- **Spot checks.** Delays of 40, 16.7 and 5 ms decode as 4, 2 and 2 cs;
+  a 40,000 px wide figure at 2× is `Error::Size { width: 80000, height:
+  20 }` before anything is written; 30 frames of a zooming window with
+  `Repeat::Forever` decode as 30 frames of 160 × 120 with
+  `Repeat::Infinite`, `Repeat::Times(3)` as `Finite(3)`; a theme
+  background at opacity 0.5 is `Error::Translucent`.
+- **Cost per frame** (report only; release, 2-core container, the wheel
+  figure at 1×, 960 × 760, 30 frames after a first): the list with its
+  text 2.1 ms (5.9 ms for the first, typst memoizing the repeated
+  labels after it), vello_cpu's render 15.8 ms (22.7 ms first; one
+  worker thread on two cores), `Writer::frame` 87.5 ms in all, so
+  NeuQuant and LZW about 70 ms; 2,520,789 bytes for the 30 frames.
+  Part I's sketch: 12.5 ms raster, 4.8 ms list, 2.0 ms text.
+- **Viewed**: a 30-frame window moving over a damped sine (480 × 320,
+  40 ms), frames 0, 15 and 29 decoded: axes, labels and the line as in
+  the PNGs, no palette banding visible.
+
 ## D37.1 — The PDF pixel bound cannot hold for text rendered by pdftoppm
 
 **Date:** 2026-10-28 · **Context:** Phase 37, step 2, after bb3c0d7 · **Status:** open

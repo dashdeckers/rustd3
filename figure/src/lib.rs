@@ -14,6 +14,8 @@ pub mod brush;
 pub mod check;
 pub mod colorbar;
 mod figure;
+#[cfg(feature = "gif")]
+pub mod gif;
 pub mod hatch;
 pub mod hit;
 pub mod layout;

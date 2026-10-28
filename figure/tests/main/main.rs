@@ -7,6 +7,8 @@ mod colorbar;
 mod draw;
 mod figure;
 mod fit;
+#[cfg(all(feature = "gif", feature = "fonts"))]
+mod gif;
 mod handles;
 mod hatch;
 mod hit;
@@ -40,8 +42,8 @@ mod visible;
 // examples draw.
 #[path = "../../../dev/examples/src/scatter.rs"]
 #[cfg_attr(
-    not(feature = "raster"),
-    expect(dead_code, reason = "only the raster agreement test reads SCALE")
+    not(all(feature = "png", feature = "fonts")),
+    expect(dead_code, reason = "only the PNG agreement test reads SCALE")
 )]
 mod scatter;
 #[path = "../../../dev/examples/src/trace.rs"]
