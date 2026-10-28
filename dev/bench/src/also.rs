@@ -1,11 +1,13 @@
 //! What earlier phases asked the benchmark to measure beside its
-//! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4): figure-level renders,
-//! resolves and lists, and the widget's tiles drawn on iced's headless
-//! renderers, timed in this build, written as the report's "Also
-//! measured" section.
+//! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4, Phase 31's gutters):
+//! figure-level renders, resolves and lists, the widget's tiles drawn on
+//! iced's headless renderers and its renders per frame of a pan, timed in
+//! this build, written as the report's "Also measured" section.
 
 use std::fmt::Write as _;
-use std::time::Instant;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::{Duration, Instant};
 
 use iced::advanced::renderer::{self as iced_renderer, Headless as _};
 use iced::advanced::{Renderer as _, shell};
@@ -16,15 +18,16 @@ use rustd3_core::scale;
 use rustd3_core::series::{Clock, Recording};
 use rustd3_examples::trace as example;
 use rustd3_figure::kurbo::{Point, Rect, Size};
-use rustd3_figure::list::{self, Bounds, List, Outlines};
+use rustd3_figure::list::{self, Bounds, Command, List, Outlines};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::raster::{self, Image, Settings, Simd};
 use rustd3_figure::thin::Thin;
 use rustd3_figure::{Cache, Figure, Held, Target, axis};
 use rustd3_iced::Plot;
-use rustd3_iced::plot::probe::Sample;
+use rustd3_iced::plot::probe::{Sample, Target as Slot};
 use rustd3_iced::plot::{Probe, Render, cost};
 
+use crate::scenario::WINDOW;
 use crate::stats::percentile;
 use crate::workload::Workload;
 
@@ -46,6 +49,9 @@ pub fn measure() -> String {
         windowed_resolve(),
         scatter_lists(),
         tile_draw(),
+        pan_frames(),
+        gutter_costs(),
+        splat_speed(),
     ];
     let mut md = String::from(
         "## Also measured\n\nFigure-level items earlier phases asked for, measured in this build \
@@ -516,6 +522,353 @@ fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
         [percentile(&draws, 50.0)?, percentile(&composes, 50.0)?],
         [f64::from(shown), percentile(&blank, 50.0)?],
     ))
+}
+
+/// Phase 31's gutters: per frame of a `pan-x` replay over the `trace`
+/// workload (full size, 1600 × 1000 logical at 1 and 2, `Render::Auto`,
+/// the default pool, headless without drawing), the renders of the frame,
+/// inline in its update and on the pool until the pool falls silent for
+/// 300 ms: tiles and cells (gutter runs and overlays) apart, their time,
+/// and the share of frames whose cells all rendered inline; means over 40
+/// frames after the press.
+fn pan_frames() -> Row {
+    let mut parts = Vec::new();
+    for backend in ["tiny-skia", "wgpu"] {
+        for k in [1.0_f32, 2.0] {
+            parts.push(match pan_counts(backend, k) {
+                Some(c) => format!(
+                    "{backend} at {k}: inline {:.1} tiles + {:.1} cells, {:.2} ms; pool {:.1} tiles + \
+                     {:.1} cells, {:.2} ms; cells all inline on {:.0}% of frames",
+                    c.inline[0], c.inline[1], c.inline[2], c.pool[0], c.pool[1], c.pool[2], c.share
+                ),
+                None => format!("{backend} at {k}: no headless renderer"),
+            });
+        }
+    }
+    Row {
+        item: "Phase 31: renders per frame of a pan-x over trace (1600 × 1000, Auto, pool drained)"
+            .to_owned(),
+        value: format!("{} (means of 40 frames)", parts.join("; ")),
+    }
+}
+
+/// What [`pan_counts`] measures: per frame, (tiles, cells, ms) inline and
+/// on the pool, and the share of frames whose cells all rendered inline,
+/// percent.
+struct Counts {
+    inline: [f64; 3],
+    pool: [f64; 3],
+    share: f64,
+}
+
+/// [`pan_frames`] on `backend` at factor `k`; `None` without a renderer
+/// for it.
+fn pan_counts(backend: &str, k: f32) -> Option<Counts> {
+    let mut renderer = iced::futures::executor::block_on(iced::Renderer::new(
+        iced_renderer::Settings::default(),
+        Some(backend),
+    ))?;
+    let data = Workload::Trace.data(1.0);
+    let (tx, rx) = std::sync::mpsc::channel();
+    let plot = Plot::<()>::new(data.figure(false))
+        .scale_factor(k)
+        .crosshair(false)
+        .highlight(false)
+        .probe(Probe::new(Instant::now, tx));
+    let bounds = iced::Size::new(WINDOW.width, WINDOW.height);
+    let mut ui = UserInterface::build(
+        plot,
+        bounds,
+        user_interface::Cache::default(),
+        &mut renderer,
+    );
+    let wakes = Arc::new(AtomicUsize::new(0));
+    let waker = shell::Waker::new({
+        let wakes = Arc::clone(&wakes);
+        move || {
+            wakes.fetch_add(1, Ordering::SeqCst);
+        }
+    });
+    let mut driven = Driven {
+        renderer,
+        bus: shell::Bus::new(),
+        waker,
+        wakes,
+    };
+    let length = 600.0_f32.min(0.6 * bounds.width);
+    let mut at = iced::Point::new(0.5 * bounds.width + 0.5 * length, 0.27 * bounds.height);
+    let mut now = Instant::now();
+    driven.update(
+        &mut ui,
+        &[Event::Window(window::Event::RedrawRequested(now))],
+        at,
+    );
+    driven.drain(&mut ui, at, Duration::from_secs(2));
+    now += Duration::from_millis(16);
+    let press = [
+        Event::Mouse(mouse::Event::CursorMoved { position: at }),
+        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+        Event::Window(window::Event::RedrawRequested(now)),
+    ];
+    driven.update(&mut ui, &press, at);
+    driven.drain(&mut ui, at, Duration::from_millis(300));
+    let _ = rx.try_iter().count();
+    let (mut direction, mut swept, mut moves) = (-1.0_f32, 0.0_f32, 2_u32);
+    let (mut inline, mut pool, mut all_inline) = ([0.0; 3], [0.0; 3], 0_u32);
+    let frames = 40;
+    for _ in 0..frames {
+        let mut events = Vec::new();
+        for _ in 0..2 {
+            if swept >= length {
+                direction = -direction;
+                swept = 0.0;
+            }
+            let step = ((5.0 + 3.0 * (f64::from(moves) * 0.7).sin()) as f32).min(length - swept);
+            at.x += direction * step;
+            swept += step;
+            moves += 1;
+            events.push(Event::Mouse(mouse::Event::CursorMoved { position: at }));
+        }
+        now += Duration::from_millis(16);
+        events.push(Event::Window(window::Event::RedrawRequested(now)));
+        driven.update(&mut ui, &events, at);
+        driven.drain(&mut ui, at, Duration::from_millis(300));
+        let mut pooled_cells = 0;
+        for sample in rx.try_iter() {
+            if let Sample::Raster {
+                target,
+                duration,
+                inline: here,
+                ..
+            } = sample
+            {
+                let sum = if here { &mut inline } else { &mut pool };
+                match target {
+                    Slot::Tile { .. } => sum[0] += 1.0,
+                    Slot::Cell(_) => sum[1] += 1.0,
+                }
+                sum[2] += duration.as_secs_f64() * 1e3;
+                if !here && matches!(target, Slot::Cell(_)) {
+                    pooled_cells += 1;
+                }
+            }
+        }
+        all_inline += u32::from(pooled_cells == 0);
+    }
+    let n = f64::from(frames);
+    Some(Counts {
+        inline: inline.map(|v| v / n),
+        pool: pool.map(|v| v / n),
+        share: 100.0 * f64::from(all_inline) / n,
+    })
+}
+
+/// A widget driven headlessly: its renderer, the messages it publishes,
+/// and a waker that counts its wakes.
+struct Driven {
+    renderer: iced::Renderer,
+    bus: shell::Bus<()>,
+    waker: shell::Waker,
+    wakes: Arc<AtomicUsize>,
+}
+
+impl Driven {
+    /// Updates `ui` with `events`, the pointer at `at`.
+    fn update(
+        &mut self,
+        ui: &mut UserInterface<'_, (), iced::Theme, iced::Renderer>,
+        events: &[Event],
+        at: iced::Point,
+    ) {
+        let _ = ui.update(
+            &window::Headless,
+            &self.waker,
+            events,
+            mouse::Cursor::Available(at),
+            &mut self.renderer,
+            &mut self.bus,
+        );
+    }
+
+    /// Lands the pool's results, an `Event::Waken` after each wake, until
+    /// no wake comes for `quiet`.
+    fn drain(
+        &mut self,
+        ui: &mut UserInterface<'_, (), iced::Theme, iced::Renderer>,
+        at: iced::Point,
+        quiet: Duration,
+    ) {
+        let mut seen = self.wakes.load(Ordering::SeqCst);
+        loop {
+            let begin = Instant::now();
+            while self.wakes.load(Ordering::SeqCst) == seen && begin.elapsed() < quiet {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            let wakes = self.wakes.load(Ordering::SeqCst);
+            if wakes == seen {
+                return;
+            }
+            seen = wakes;
+            self.update(ui, &[Event::Waken], at);
+        }
+    }
+}
+
+/// Phase 31's gutters: what one render of the `trace` workload's bottom
+/// axis strip (the cell under its bottom plot area, 1600 × 1000 at 1 and
+/// 2) spends its time on, as a pool thread renders it (single-threaded):
+/// the list as drawn, without its glyph runs, without its strokes, and no
+/// command at all (the fixed cost of a render of that size); and the same
+/// for the overlay over the plot area's bottom edge (two device rows);
+/// medians of 15.
+fn gutter_costs() -> Row {
+    let data = Workload::Trace.data(1.0);
+    let fig = data.figure(false);
+    let mut parts = Vec::new();
+    for k in [1.0, 2.0] {
+        let target = Target::Screen { scale: k };
+        let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
+        let mut cache = Cache::default();
+        let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
+        let Some(&area) = resolved.plot_areas().get(1) else {
+            return failed("Phase 31 gutters", "no bottom plot area");
+        };
+        let list = fig.draw_resolved(&mut cache, &resolved);
+        let (_, ys) = resolved.edges();
+        let below = ys
+            .iter()
+            .copied()
+            .filter(|&y| y > area.y1)
+            .fold(size.height, f64::min);
+        let strip = Rect::new(area.x0, area.y1, area.x1, below);
+        let edge = Rect::new(area.x0, area.y1 - 2.0 / k, area.x1, area.y1);
+        let without = |drop: fn(&Command) -> bool| List {
+            commands: list.commands.iter().filter(|c| !drop(c)).cloned().collect(),
+            parts: Vec::new(),
+            ..list.clone()
+        };
+        let lists = [
+            ("as drawn", list.clone()),
+            (
+                "without glyphs",
+                without(|c| matches!(c, Command::Glyphs(_))),
+            ),
+            (
+                "without strokes",
+                without(|c| matches!(c, Command::Stroke { .. })),
+            ),
+            ("no command", without(|_| true)),
+        ];
+        for (what, rect) in [("strip", strip), ("edge overlay", edge)] {
+            let times: Vec<String> = lists
+                .iter()
+                .map(|(name, list)| format!("{name} {:.2}", render_ms(list, rect, k)))
+                .collect();
+            let glyphs = runs_in(&list, rect);
+            parts.push(format!(
+                "{what} at {k} ({} × {} px, {glyphs} glyph runs): {} ms",
+                (rect.width() * k).round(),
+                (rect.height() * k).round(),
+                times.join(", ")
+            ));
+        }
+    }
+    Row {
+        item: "Phase 31: one axis gutter render of trace, single-threaded (1600 × 1000)".to_owned(),
+        value: format!("{} (medians of 15)", parts.join("; ")),
+    }
+}
+
+/// D31.2: the `scatter100k` plot area (1600 × 1000 at 1 and 2) rendered
+/// single-threaded as the pool renders it, its markers filled and
+/// splatted (`Renderer::splat`), medians of 5, and the largest channel
+/// difference.
+fn splat_speed() -> Row {
+    let data = Workload::Scatter100k.data(1.0);
+    let fig = data.figure(false);
+    let mut parts = Vec::new();
+    for k in [1.0, 2.0] {
+        let target = Target::Screen { scale: k };
+        let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
+        let mut cache = Cache::default();
+        let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
+        let Some(&area) = resolved.plot_areas().first() else {
+            return failed("D31.2", "no plot area");
+        };
+        let list = fig.draw_resolved(&mut cache, &resolved);
+        let bounds = Bounds::of(&list, &mut Outlines::default());
+        let mut renderer = raster::Renderer::new(Settings {
+            threads: 0,
+            simd: Simd::Detect,
+        });
+        let mut time = |splat: bool| {
+            renderer.splat(splat);
+            let mut last = None;
+            let times: Vec<f64> = (0..5)
+                .map(|_| {
+                    let begin = Instant::now();
+                    last = renderer.render(&list, &bounds, area, k).ok();
+                    begin.elapsed().as_secs_f64() * 1e3
+                })
+                .collect();
+            (percentile(&times, 50.0).unwrap_or(0.0), last)
+        };
+        let (filled, a) = time(false);
+        let (splatted, b) = time(true);
+        let (Some(a), Some(b)) = (a, b) else {
+            return failed("D31.2", "a render failed");
+        };
+        let max = a
+            .rgba
+            .iter()
+            .zip(&b.rgba)
+            .map(|(p, q)| p.abs_diff(*q))
+            .max()
+            .unwrap_or(0);
+        parts.push(format!(
+            "at {k}: filled {filled:.1} ms, splatted {splatted:.1} ms ({:.2}×), max {max}/255",
+            filled / splatted
+        ));
+    }
+    Row {
+        item: "D31.2: the scatter100k plot area, single-threaded, markers filled and splatted"
+            .to_owned(),
+        value: format!("{} (medians of 5)", parts.join("; ")),
+    }
+}
+
+/// The median time of 15 renders of `rect` (list px) of `list` at `k`
+/// with a single-threaded renderer, after one to warm it, ms.
+fn render_ms(list: &List, rect: Rect, k: f64) -> f64 {
+    let bounds = Bounds::of(list, &mut Outlines::default());
+    let mut renderer = raster::Renderer::new(Settings {
+        threads: 0,
+        simd: Simd::Detect,
+    });
+    let _ = renderer.render(list, &bounds, rect, k);
+    let times: Vec<f64> = (0..15)
+        .map(|_| {
+            let begin = Instant::now();
+            let _ = renderer.render(list, &bounds, rect, k);
+            begin.elapsed().as_secs_f64() * 1e3
+        })
+        .collect();
+    percentile(&times, 50.0).unwrap_or(0.0)
+}
+
+/// The glyph runs of `list` whose bounds meet `rect` (list px).
+fn runs_in(list: &List, rect: Rect) -> usize {
+    let bounds = Bounds::of(list, &mut Outlines::default());
+    list.commands
+        .iter()
+        .enumerate()
+        .filter(|(i, c)| {
+            matches!(c, Command::Glyphs(_))
+                && bounds
+                    .get(*i)
+                    .is_some_and(|b| b.intersect(rect).area() > 0.0)
+        })
+        .count()
 }
 
 /// The list of `fig` at `size` for the screen at `k`, and its cells.
