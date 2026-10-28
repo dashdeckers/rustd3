@@ -9,7 +9,7 @@ use crate::legend::{self, Slot, Swatch};
 use crate::mark;
 
 /// A line chart: one line per series on fitted x and y scales (see
-/// [`line`]).
+/// [`line()`]).
 pub struct Line<'a> {
     /// Each series' points and key, in order.
     series: Vec<(Points<'a, f64, f64>, String)>,
