@@ -36,6 +36,8 @@ pub enum Command {
     List(Options),
     /// Measure the raster variants on the plan's workloads (CPU only).
     Raster(Options),
+    /// Print the items earlier phases asked to be measured.
+    Also,
     /// Print the user's procedure and the flags.
     Help,
 }
@@ -183,6 +185,8 @@ Commands:
   raster  [--plan P] [--workload A,B] [--data-scale F] [--out DIR]
           the raster variants (envelope fills, marker splatting) against
           the cells as drawn, CPU only, into DIR/raster.csv
+  also                    the items earlier phases asked to be measured
+                          (the report's \"Also measured\"; release)
 ";
 
 impl Command {
@@ -202,6 +206,10 @@ impl Command {
             "run" => Ok(Command::Run(Options::parse(rest, &[])?)),
             "list" => Ok(Command::List(Options::parse(rest, &[])?)),
             "raster" => Ok(Command::Raster(Options::parse(rest, &[])?)),
+            "also" => match rest {
+                [] => Ok(Command::Also),
+                [first, ..] => Err(Error::Stray(first.clone())),
+            },
             "child" => Child::parse(rest).map(Command::Child),
             "replay" => Ok(Command::Replay {
                 out: single_out(rest)?,
@@ -633,6 +641,7 @@ mod tests {
             "report d",
             "list",
             "raster --plan default --out target/bench-raster",
+            "also",
             "--help",
         ] {
             assert!(Command::parse(&args(line)).is_ok(), "{line}");

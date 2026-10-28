@@ -57,6 +57,10 @@ fn main() -> ExitCode {
         }
         Command::List(options) => list(&options),
         Command::Raster(options) => raster::run(&options),
+        Command::Also => {
+            print!("{}", also::measure());
+            Ok(())
+        }
         Command::Replay { out } => write_replays(&out),
         Command::Record { out } => recorder::record(out).map_err(Into::into),
         Command::Run(options) => run(&options, &args),

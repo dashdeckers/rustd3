@@ -1,7 +1,7 @@
 //! What earlier phases asked the benchmark to measure beside its
-//! scenarios (D19.3, D18.3, D15.3, D21.1): figure-level renders and
-//! resolves timed in this build, written as the report's "Also measured"
-//! section.
+//! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4): figure-level renders,
+//! resolves and lists timed in this build, written as the report's "Also
+//! measured" section.
 
 use std::fmt::Write as _;
 use std::time::Instant;
@@ -37,6 +37,7 @@ pub fn measure() -> String {
         origin_dashes(),
         thin_line(),
         windowed_resolve(),
+        scatter_lists(),
     ];
     let mut md = String::from(
         "## Also measured\n\nFigure-level items earlier phases asked for, measured in this build \
@@ -264,6 +265,75 @@ fn windowed_resolve() -> Row {
             median(&fresh),
             median(&steady)
         ),
+    }
+}
+
+/// D22.4 (4): the UI thread's work per frame of a pan on the scatters at
+/// full size, 1600 × 1000 at 1, as the widget does it: resolving with both
+/// handles held at the pan's domains (3 px further each frame) and
+/// drawing the list (the probe's resolve and list stages), then the
+/// list's bounds, its cells and the hit index; medians of 9 frames over a
+/// warm cache.
+fn scatter_lists() -> Row {
+    let target = Target::Screen { scale: 1.0 };
+    let size = Size::new(1600.0, 1000.0);
+    let mut parts = Vec::new();
+    for workload in [Workload::Scatter100k, Workload::Scatter1m] {
+        let data = workload.data(1.0);
+        let fig = data.figure(false);
+        let mut cache = Cache::default();
+        let fresh = fig.resolve(size, &mut cache, &Held::default(), target);
+        let Some(&area) = fresh.plot_areas().first() else {
+            return failed("D22.4 (4)", "no plot area");
+        };
+        let ranges = [(0, [0.0, area.width()]), (1, [area.height(), 0.0])];
+        let mut stages: [Vec<f64>; 5] = Default::default();
+        for frame in 0..10 {
+            let mut held = Held::default();
+            for (index, range) in ranges {
+                let dx = if index == 0 {
+                    3.0 * f64::from(frame)
+                } else {
+                    0.0
+                };
+                let Some(scale) = fresh.scale_at(index).and_then(|s| s.pan_px(range, dx)) else {
+                    return failed("D22.4 (4)", "a handle that does not pan");
+                };
+                held.hold_erased(index, scale);
+            }
+            let mut clock = Instant::now();
+            let mut lap = |stage: &mut Vec<f64>| {
+                let now = Instant::now();
+                if frame > 0 {
+                    stage.push((now - clock).as_secs_f64() * 1e3);
+                }
+                clock = now;
+            };
+            cache.begin();
+            let resolved = fig.resolve(size, &mut cache, &held, target);
+            lap(&mut stages[0]);
+            let list = fig.draw_resolved(&mut cache, &resolved);
+            lap(&mut stages[1]);
+            let _ = Bounds::of(&list, &mut Outlines::default());
+            lap(&mut stages[2]);
+            let (xs, ys) = resolved.edges();
+            let _ = list::cells(&list, &xs, &ys, 1.0);
+            lap(&mut stages[3]);
+            let _ = fig.hits(&resolved, &mut cache);
+            lap(&mut stages[4]);
+        }
+        let [resolve, draw, bounds, cells, hits] =
+            stages.map(|times| percentile(&times, 50.0).unwrap_or(0.0));
+        parts.push(format!(
+            "{}: resolve {resolve:.2} ms, list {draw:.2} ms; then bounds {bounds:.2}, cells \
+             {cells:.2}, hits {hits:.2} ms",
+            workload.name()
+        ));
+    }
+    Row {
+        item: "D22.4 (4): a pan's UI-thread work on the scatters (1600 × 1000 at 1, full size)"
+            .to_owned(),
+        value: format!("{} (medians of 9 frames)", parts.join("; ")),
     }
 }
 
