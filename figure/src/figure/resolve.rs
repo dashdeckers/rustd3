@@ -10,10 +10,15 @@ use crate::layout::{self, Layout};
 use crate::scale::{Scale, visible};
 use crate::target::Target;
 use crate::text::Key;
+use crate::theme::Domains;
 
 /// Rounds of fitting and layout at most while windows' column counts
 /// move.
 const ROUNDS: usize = 3;
+
+/// The tick count nice domains round to for a handle no axis shows: d3's
+/// default.
+const COUNT: usize = 10;
 
 /// What fitting a figure's handles to all their marks' data gives, before
 /// windows and `Fit::Visible` handles settle: per table entry its scale
@@ -113,8 +118,9 @@ impl Figure<'_> {
         target: Target,
         areas: Option<&layout::Areas>,
     ) -> Resolved {
-        let fitted = self.fitted(held);
         let rects = areas.and_then(|a| a.fit(size, self.panels.len()));
+        let counts = self.nice_counts(size, target, rects);
+        let fitted = self.fitted(held, &counts);
         let title = self
             .title
             .as_ref()
@@ -162,13 +168,58 @@ impl Figure<'_> {
         }
     }
 
-    /// Every scale of the table held, fitted to all its marks' data, or as
-    /// built, `Fit::Visible` handles not yet settled; per entry the largest
-    /// x a window's marks admit and the panels whose marks place it across;
+    /// Per table entry, the tick count its domain is rounded to under
+    /// `Domains::Nice` (`None` under margins, and for entries that are not
+    /// `Fit::All` handles): the count layout's first pass gives the first
+    /// axis that shows it in panel order (its `.ticks(n)`, else from its
+    /// length in the first placement, or in `rects` when held), d3's
+    /// [`COUNT`] when no axis shows it. The rounded domains are settled
+    /// before the passes iterate.
+    fn nice_counts(
+        &self,
+        size: kurbo::Size,
+        target: Target,
+        rects: Option<&[kurbo::Rect]>,
+    ) -> Vec<Option<usize>> {
+        let rounded =
+            |entry: &Entry| entry.fitter.is_some() && entry.window.is_none() && !entry.visible;
+        if !matches!(self.theme.get_domains(), Domains::Nice) {
+            return vec![None; self.scales.len()];
+        }
+        let counts = layout::first_counts(self, size, target, rects);
+        self.scales
+            .iter()
+            .enumerate()
+            .map(|(i, entry)| {
+                rounded(entry).then(|| {
+                    self.panels
+                        .iter()
+                        .zip(&counts)
+                        .flat_map(|(p, counts)| p.axes().iter().zip(counts))
+                        .find(|(a, _)| a.handle() == i)
+                        .map_or(COUNT, |(_, &count)| count)
+                })
+            })
+            .collect()
+    }
+
+    /// The margin fitted domains get: the theme's under
+    /// `Domains::Margin`, none under `Domains::Nice`.
+    fn margin(&self) -> f64 {
+        match self.theme.get_domains() {
+            Domains::Margin(m) => m,
+            Domains::Nice => 0.0,
+        }
+    }
+
+    /// Every scale of the table held, fitted to all its marks' data (with
+    /// the theme's margin, or rounded for `counts`), or as built,
+    /// `Fit::Visible` handles not yet settled; per entry the largest x a
+    /// window's marks admit and the panels whose marks place it across;
     /// which entries are `Fit::Visible` handles to settle; and the labels
     /// the marks draw.
-    fn fitted(&self, held: &Held) -> Fitted {
-        let margin = self.theme.margin();
+    fn fitted(&self, held: &Held, counts: &[Option<usize>]) -> Fitted {
+        let margin = self.margin();
         let unheld = |i: usize, entry: &Entry| held.scale(i, &*entry.scale).is_none();
         let pending: Vec<bool> = self
             .scales
@@ -210,7 +261,10 @@ impl Figure<'_> {
                         if entry.window.is_some() {
                             last[i] = fitter.last(&*slot);
                         }
-                        fitter.finish(slot, margin)
+                        match counts.get(i).copied().flatten() {
+                            Some(count) => fitter.nice(slot, count),
+                            None => fitter.finish(slot, margin),
+                        }
                     }
                     (None, None) => entry.scale.boxed(),
                 }
@@ -264,7 +318,7 @@ impl Figure<'_> {
             let fits = Fits::new(self.id, slots, resolved, self.theme.clone())
                 .visible(fitted.pending.clone());
             let reports = self.report(fits);
-            let margin = self.theme.margin();
+            let margin = self.margin();
             for (i, (entry, slot)) in self.scales.iter().zip(reports.slots).enumerate() {
                 if let Some((fitter, slot)) = entry.fitter.zip(slot) {
                     scales[i] = fitter.settle(slot, margin, memory, i);

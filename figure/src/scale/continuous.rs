@@ -8,7 +8,7 @@ use rustd3_core::interact::Rescale;
 use rustd3_core::scale::{self, Continuous, Pad};
 use rustd3_core::series::{Points, m4};
 
-use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stops};
+use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stops, stuck};
 use crate::thin;
 
 /// A piecewise scale's inner stops keep their share of the way between its
@@ -54,6 +54,16 @@ impl<T: scale::Transform + 'static, const N: usize> Kind for Continuous<T, f64, 
 
     fn fitted(&self, extent: Option<&[f64; 2]>, sticky: &[f64], margin: f64) -> Self {
         let ends = self.pad(extent.copied(), margin, sticky);
+        self.clone().domain(stops(&self.get_domain(), ends))
+    }
+
+    /// Fitted without a margin, then core's `nice(count)` (the
+    /// transform's rule: decades on log scales), stopped by `sticky`
+    /// values.
+    fn niced(&self, extent: Option<&[f64; 2]>, sticky: &[f64], count: usize) -> Self {
+        let nice = self.fitted(extent, sticky, 0.0).nice(count);
+        let d = nice.get_domain();
+        let ends = stuck([d[0], d[N - 1]], extent, sticky);
         self.clone().domain(stops(&self.get_domain(), ends))
     }
 

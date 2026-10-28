@@ -27,13 +27,13 @@ pub mod stats;
 pub mod svg;
 mod target;
 pub mod text;
-mod theme;
+pub mod theme;
 pub mod thin;
 
 pub use figure::{Cache, Error, Figure, Fits, Held, Resolved};
 pub use panel::Panel;
 pub use target::Target;
-pub use theme::Theme;
+pub use theme::settings::Theme;
 
 /// What a figure's [`Cache`] reports.
 pub mod cache {

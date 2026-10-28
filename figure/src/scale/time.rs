@@ -10,7 +10,7 @@ use rustd3_core::scale::Pad;
 use rustd3_core::series::{Points, m4};
 use rustd3_core::time::Time;
 
-use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed};
+use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stuck};
 use crate::thin;
 
 /// Time scales pan and zoom in nanoseconds from the domain's start.
@@ -59,6 +59,15 @@ impl Kind for Time {
 
     fn fitted(&self, extent: Option<&[Timestamp; 2]>, sticky: &[Timestamp], margin: f64) -> Self {
         let ends = self.pad(extent.copied(), margin, sticky);
+        self.clone().domain(ends)
+    }
+
+    /// Fitted without a margin, then floored and ceiled to the tick
+    /// interval for `count` (core's `nice(count)`, in the scale's zone),
+    /// stopped by `sticky` instants.
+    fn niced(&self, extent: Option<&[Timestamp; 2]>, sticky: &[Timestamp], count: usize) -> Self {
+        let nice = self.fitted(extent, sticky, 0.0).nice(count);
+        let ends = stuck(nice.get_domain(), extent, sticky);
         self.clone().domain(ends)
     }
 

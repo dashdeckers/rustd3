@@ -26,6 +26,9 @@ pub(super) enum Role {
     /// new domain moves those and leaves the line, and the cells its
     /// square caps reach into beside the plot area.
     Spine = 8,
+    /// A panel's grid lines, drawn over its background and under its
+    /// marks.
+    Grid = 9,
 }
 
 /// The panel field of figure-level parts that panels' parts could share

@@ -31,7 +31,7 @@ mod tracks;
 pub use cell::Cell;
 pub use hold::Areas;
 pub(crate) use obb::Obb;
-pub(crate) use passes::{Laid, Layout};
+pub(crate) use passes::{Laid, Layout, first_counts};
 pub use plan::Plan;
 pub(crate) use protrusion::Reach;
 pub(crate) use snap::Snap;

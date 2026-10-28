@@ -11,6 +11,7 @@ use crate::layout::slots::Slots;
 use crate::layout::{self, INSET, PAD, Plan, Reach, Snap, collide, plan};
 use crate::legend::{Block, Content, Inset, Slot};
 use crate::panel::Panel;
+use crate::target::Target;
 use crate::text::{self, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
@@ -126,10 +127,7 @@ impl Layout {
         let snap = Snap::of(resolved.target());
         let (mut areas, mut room) = match held {
             Some(rects) => (rects.to_vec(), [[0.0; 2]; 2]),
-            None => {
-                let inner = inner(size, theme.em(), [0.0; 4]);
-                place(figure, inner, &bare(figure, &roles), snap)
-            }
+            None => first(figure, size, snap),
         };
         let mut last: Option<Vec<Vec<usize>>> = None;
         let mut axes: Axes = Vec::new();
@@ -273,6 +271,30 @@ impl Layout {
             room,
         }
     }
+}
+
+/// Each panel's axes' tick counts in layout's first pass for `size` and
+/// `target`: `.ticks(n)`, or from the axis's length in the first placement
+/// (every axis at its offset and tick alone, nothing measured), or in
+/// `held` plot areas.
+pub(crate) fn first_counts(
+    figure: &Figure<'_>,
+    size: Size,
+    target: Target,
+    held: Option<&[Rect]>,
+) -> Vec<Vec<usize>> {
+    match held {
+        Some(rects) => counts(figure, rects),
+        None => counts(figure, &first(figure, size, Snap::of(target)).0),
+    }
+}
+
+/// The first placement of `figure` on a canvas of `size`: every drawn axis
+/// at its offset and tick alone, nothing measured, no title or legend.
+fn first(figure: &Figure<'_>, size: Size, snap: Snap) -> Placement {
+    let roles = plan::roles(figure.panels());
+    let inner = inner(size, figure.get_theme().em(), [0.0; 4]);
+    place(figure, inner, &bare(figure, &roles), snap)
 }
 
 /// How far each panel of `figure` reaches with every drawn axis at its

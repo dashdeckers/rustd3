@@ -60,6 +60,9 @@ pub(super) struct Fitter {
     start: fn(&dyn Scale) -> Box<dyn Any>,
     /// The scale of a filled slot, fitted with a margin.
     finish: fn(Box<dyn Any>, f64) -> Box<dyn Scale>,
+    /// The scale of a filled slot, rounded outward to nice values for a
+    /// tick count.
+    nice: fn(Box<dyn Any>, usize) -> Box<dyn Scale>,
     /// The scale of a filled slot of a `Fit::Visible` handle, fitted with
     /// a margin and stepped from what the memory holds for its index.
     settle: Settle,
@@ -83,6 +86,7 @@ impl Fitter {
         Fitter {
             start: start::<S>,
             finish: finish::<S>,
+            nice: nice::<S>,
             settle: settle::<S>,
             last: last::<S>,
             window: window::<S>,
@@ -130,6 +134,12 @@ impl Fitter {
     /// The scale of `slot`, fitted with `margin`.
     pub(super) fn finish(self, slot: Box<dyn Any>, margin: f64) -> Box<dyn Scale> {
         (self.finish)(slot, margin)
+    }
+
+    /// The scale of `slot`, rounded outward to nice values for `count`
+    /// ticks ([`Kind::niced`]).
+    pub(super) fn nice(self, slot: Box<dyn Any>, count: usize) -> Box<dyn Scale> {
+        (self.nice)(slot, count)
     }
 }
 
@@ -345,4 +355,13 @@ fn finish<S: Kind>(slot: Box<dyn Any>, margin: f64) -> Box<dyn Scale> {
         slot.scale
             .fitted(slot.extent.as_ref(), &slot.sticky, margin),
     )
+}
+
+/// The scale of `slot`, a `Slot<S>`, fitted to its extent and sticky
+/// values with its ends rounded outward for `count` ticks.
+fn nice<S: Kind>(slot: Box<dyn Any>, count: usize) -> Box<dyn Scale> {
+    let slot = slot
+        .downcast::<Slot<S>>()
+        .expect("invariant: an entry's slot is made by its fitter");
+    Box::new(slot.scale.niced(slot.extent.as_ref(), &slot.sticky, count))
 }

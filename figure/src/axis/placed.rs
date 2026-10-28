@@ -81,17 +81,16 @@ impl Placed {
     /// theme's edge color (its own when tinted) with square caps, so two
     /// axes meet at a closed corner as matplotlib's projecting spines do;
     /// on raster targets (`snap`) the line and its square-capped ends lie
-    /// on whole device pixels.
+    /// on whole device pixels. Nothing in the styles without axis lines.
     pub(crate) fn line(&self, area: Rect, theme: &Theme, snap: Snap, list: &mut List) {
         let labels = &self.labels;
+        let Some(edge) = theme.edge() else {
+            return;
+        };
+        let edge = if labels.tinted { labels.ink } else { edge };
         let spine = self.spine(area, theme);
         let length = spine.length();
         let width = theme.axis_width();
-        let edge = if labels.tinted {
-            labels.ink
-        } else {
-            theme.edge()
-        };
         let mut path = BezPath::new();
         path.move_to(spine.snapped(0.0, 0.0, width, snap));
         path.line_to(spine.snapped(length, 0.0, width, snap));
@@ -103,8 +102,9 @@ impl Placed {
     }
 
     /// Appends the rest of the axis beside plot area `area` to `list`: its
-    /// ticks (those whose label the scale's format blanks at the minor
-    /// size and width, d3's log ticks between labelled ones), its kept tick
+    /// ticks in the styles that draw tick marks (those whose label the
+    /// scale's format blanks at the minor size and width, d3's log ticks
+    /// between labelled ones), its kept tick
     /// labels a tick pad past the ticks on the
     /// baselines their line box gives ([`Labels::baseline`]), its
     /// offset or multiplier label (at the right end of a horizontal axis, a
@@ -127,30 +127,8 @@ impl Placed {
         let orient = labels.orient;
         let spine = self.spine(area, theme);
         let length = spine.length();
-        let width = theme.axis_width();
-        let mut ticks = BezPath::new();
-        let mut minor = BezPath::new();
-        for (i, p) in self.positions.iter().enumerate() {
-            let Some(p) = p else { continue };
-            let (path, length, w) = if labels.minor.get(i).copied().unwrap_or(false) {
-                (&mut minor, theme.minor_tick(), theme.minor_width())
-            } else {
-                (&mut ticks, theme.tick(), width)
-            };
-            path.move_to(spine.snapped(*p, 0.0, w, snap));
-            path.line_to(spine.snapped(*p, length, w, snap));
-        }
-        list.commands.push(Command::Stroke {
-            path: ticks,
-            style: list::stroke(snap.width(width)),
-            paint: list::brush(labels.ink),
-        });
-        if !minor.elements().is_empty() {
-            list.commands.push(Command::Stroke {
-                path: minor,
-                style: list::stroke(snap.width(theme.minor_width())),
-                paint: list::brush(labels.ink),
-            });
+        if theme.ticks() {
+            self.ticks(&spine, theme, snap, list);
         }
         let gap = theme.tick() + theme.tick_pad();
         let baseline = Anchor {
@@ -204,6 +182,68 @@ impl Placed {
                 v,
             };
             title.place(list, spine.at(length / 2.0, beyond), anchor, angle);
+        }
+    }
+
+    /// Adds to `path` a grid line across plot area `area` at each of the
+    /// axis's ticks whose label the scale's format does not blank (major
+    /// ticks), as hairlines `width` px wide on whole device pixels on
+    /// raster targets (`snap`): vertical lines for a horizontal axis,
+    /// horizontal ones for a vertical axis.
+    pub(crate) fn grid(&self, area: Rect, width: f64, snap: Snap, path: &mut BezPath) {
+        let horizontal = across(self.labels.orient);
+        for (i, p) in self.positions.iter().enumerate() {
+            let Some(p) = p else { continue };
+            if self.labels.minor.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            if horizontal {
+                let x = snap.line(area.x0 + p, width);
+                path.move_to((x, area.y0));
+                path.line_to((x, area.y1));
+            } else {
+                let y = snap.line(area.y0 + p, width);
+                path.move_to((area.x0, y));
+                path.line_to((area.x1, y));
+            }
+        }
+    }
+
+    /// Whether the axis runs along the panel's width (top or bottom).
+    pub(crate) fn horizontal(&self) -> bool {
+        across(self.labels.orient)
+    }
+
+    /// Appends the tick marks along `spine` to `list`: major ticks at the
+    /// theme's tick size and width, those whose label the scale's format
+    /// blanks at the minor size and width, on whole device pixels on raster
+    /// targets (`snap`).
+    fn ticks(&self, spine: &Spine, theme: &Theme, snap: Snap, list: &mut List) {
+        let labels = &self.labels;
+        let width = theme.tick_width();
+        let mut ticks = BezPath::new();
+        let mut minor = BezPath::new();
+        for (i, p) in self.positions.iter().enumerate() {
+            let Some(p) = p else { continue };
+            let (path, length, w) = if labels.minor.get(i).copied().unwrap_or(false) {
+                (&mut minor, theme.minor_tick(), theme.minor_width())
+            } else {
+                (&mut ticks, theme.tick(), width)
+            };
+            path.move_to(spine.snapped(*p, 0.0, w, snap));
+            path.line_to(spine.snapped(*p, length, w, snap));
+        }
+        list.commands.push(Command::Stroke {
+            path: ticks,
+            style: list::stroke(snap.width(width)),
+            paint: list::brush(labels.ink),
+        });
+        if !minor.elements().is_empty() {
+            list.commands.push(Command::Stroke {
+                path: minor,
+                style: list::stroke(snap.width(theme.minor_width())),
+                paint: list::brush(labels.ink),
+            });
         }
     }
 

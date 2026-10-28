@@ -95,9 +95,44 @@ fn stops<const N: usize>(old: &[f64; N], [start, end]: [f64; 2]) -> [f64; N] {
     })
 }
 
+/// Nice `ends` stopped by `sticky` values as a margin is: the lower end
+/// rises to the largest sticky value at or below `extent`'s lower end, the
+/// upper falls to the smallest at or above its upper end; the order of
+/// `ends` is kept.
+fn stuck<T: PartialOrd + Clone>(ends: [T; 2], extent: Option<&[T; 2]>, sticky: &[T]) -> [T; 2] {
+    let [first, second] = ends;
+    let descending = second < first;
+    let [mut low, mut high] = if descending {
+        [second, first]
+    } else {
+        [first, second]
+    };
+    if let Some([lo, hi]) = extent {
+        for s in sticky {
+            if s <= lo && *s > low {
+                low = s.clone();
+            }
+            if s >= hi && *s < high {
+                high = s.clone();
+            }
+        }
+    }
+    if descending { [high, low] } else { [low, high] }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sticky_values_stop_nice_ends_as_they_stop_margins() {
+        assert_eq!(stuck([0.0, 10.0], Some(&[0.3, 9.7]), &[0.3]), [0.3, 10.0]);
+        assert_eq!(stuck([10.0, 0.0], Some(&[0.3, 9.7]), &[9.7]), [9.7, 0.0]);
+        // Inside the extent a sticky value stops nothing.
+        assert_eq!(stuck([0.0, 10.0], Some(&[0.3, 9.7]), &[5.0]), [0.0, 10.0]);
+        assert_eq!(stuck([0.0, 8.0], Some(&[0.0, 7.35]), &[0.0]), [0.0, 8.0]);
+        assert_eq!(stuck([0.0, 8.0], None, &[0.0]), [0.0, 8.0]);
+    }
 
     #[test]
     fn two_stops_are_the_ends_exactly() {

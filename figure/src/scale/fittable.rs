@@ -11,7 +11,8 @@ use crate::scale::Kind;
 /// A scale whose domain the figure can fit to its marks' data: what
 /// `Figure::fit` and `Figure::fit_with` take. Every kind is one except
 /// `Quantile`, whose domain is the data sample itself. Continuous and time
-/// scales are fitted with the theme's margin; color scales and quantize
+/// scales are fitted with the theme's margin, or rounded to nice values
+/// under `Domains::Nice` ([`Kind::niced`]); color scales and quantize
 /// to the data's extent with none; band, point, ordinal and threshold
 /// scales keep the domain they were built with, since their keys or
 /// thresholds are the domain.

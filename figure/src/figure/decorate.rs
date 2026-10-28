@@ -3,11 +3,12 @@
 
 use std::cell::RefCell;
 
-use kurbo::{Affine, Point, Rect, Shape};
+use kurbo::{Affine, BezPath, Point, Rect, Shape};
+use rustd3_core::color::Rgb;
 
 use crate::figure::part::{self, Role};
 use crate::figure::{Figure, Resolved};
-use crate::layout::Snap;
+use crate::layout::{Laid, Snap};
 use crate::list::{self, Clip, Command, List, Part};
 use crate::mark::Ctx;
 use crate::panel::Panel;
@@ -20,7 +21,8 @@ const TOLERANCE: f64 = 0.1;
 impl Figure<'_> {
     /// Appends the figure as `resolved` lays it out to `list`, each element
     /// wrapped in a part with bounds `Rect::ZERO` and hash 0: the figure
-    /// background, then per panel its background, its marks in insertion
+    /// background, then per panel its background, its grid lines in the
+    /// styles with a grid, its marks in insertion
     /// order inside one group translated to the plot area and clipped to
     /// it, its inset legends, its border, axes (each its line, then its
     /// ticks and labels) and title, then the figure
@@ -56,6 +58,11 @@ impl Figure<'_> {
                     paint: list::brush(theme.panel()),
                 });
             });
+            if let Some(color) = theme.grid() {
+                part(list, part::id(Role::Grid, i, 0), |list| {
+                    grid(list, laid, *area, color, theme.grid_width(), snap);
+                });
+            }
             let ctx = Ctx::new(resolved, theme, *area, text, frame);
             marks(list, i, panel, &ctx);
             for (j, (block, at)) in laid.insets.iter().enumerate() {
@@ -135,6 +142,31 @@ fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
         list.commands.truncate(start);
     } else {
         list.commands.push(Command::Pop);
+    }
+}
+
+/// Appends the grid lines of the panel laid out as `laid` across its plot
+/// area `area`, in `color`, `width` px wide (snapped by `snap`): one line
+/// per major tick of its first shown horizontal axis and of its first
+/// shown vertical axis, as matplotlib draws one x and one y grid per axes;
+/// nothing without such ticks.
+fn grid(list: &mut List, laid: &Laid, area: Rect, color: Rgb, width: f64, snap: Snap) {
+    let mut path = BezPath::new();
+    for horizontal in [true, false] {
+        let first = laid
+            .axes
+            .iter()
+            .find(|a| a.plan.shown && a.horizontal() == horizontal);
+        if let Some(axis) = first {
+            axis.grid(area, width, snap, &mut path);
+        }
+    }
+    if !path.elements().is_empty() {
+        list.commands.push(Command::Stroke {
+            path,
+            style: list::stroke(snap.width(width)),
+            paint: list::brush(color),
+        });
     }
 }
 

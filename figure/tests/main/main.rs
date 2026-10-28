@@ -25,6 +25,7 @@ mod skia;
 mod support;
 mod svg;
 mod text;
+mod theme;
 mod thin;
 mod visible;
 

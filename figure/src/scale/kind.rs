@@ -32,6 +32,22 @@ pub trait Kind: Scale + Clone {
         margin: f64,
     ) -> Self;
 
+    /// This scale fitted with its ends rounded outward to `count` nice
+    /// ticks instead of margins (the theme's `Domains::Nice`); sticky
+    /// values still stop the rounding. Default: `self.fitted(extent,
+    /// sticky, 0.0)`, which band, point, ordinal, color and binned scales
+    /// keep; continuous scales round with core's `nice(count)`, time
+    /// scales to the tick interval for `count`.
+    fn niced(
+        &self,
+        extent: Option<&[Self::Domain; 2]>,
+        sticky: &[Self::Domain],
+        count: usize,
+    ) -> Self {
+        let _ = count;
+        self.fitted(extent, sticky, 0.0)
+    }
+
     /// The end stops of a continuous domain, in its own type (numbers,
     /// instants, a color scale's end stops); `None` for band, point,
     /// ordinal and binned scales.
