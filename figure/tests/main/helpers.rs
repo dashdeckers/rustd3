@@ -3,7 +3,9 @@
 //! tolerant `Obs` compare, and its charts and grids as figures.
 
 mod boxplot;
+mod hist;
 mod subplots;
+mod violin;
 
 use rustd3_testkit::fixture::Fixture;
 use rustd3_testkit::obs::{Obs, ToObs, Tolerance};

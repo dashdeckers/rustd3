@@ -45,4 +45,22 @@ pub enum Error {
         /// The channel's values.
         values: usize,
     },
+    /// A histogram's bin edge that is not finite or not above the one
+    /// before it (the `helpers` feature's histograms): the first bad one.
+    #[error("bin edge {index} is not finite or not above the one before: {value}")]
+    Edge {
+        /// The edge's index.
+        index: usize,
+        /// Its value.
+        value: f64,
+    },
+    /// A histogram's weights whose count differs from its values' (the
+    /// `helpers` feature's histograms).
+    #[error("{weights} weights for {values} values")]
+    Weights {
+        /// The values given.
+        values: usize,
+        /// The weights given.
+        weights: usize,
+    },
 }

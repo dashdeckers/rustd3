@@ -5,10 +5,12 @@ Writes stats.json next to this file, for Phase 38's spot-check data X (n =
 15) and two small datasets: `cbook.boxplot_stats` with `whis=1.5` and
 `whis=(5, 95)` (and over a single value), numpy's default "linear"
 quantiles, `Axes.hist` with 10 and 5 equal bins, density, cumulative
-counts and weights, with numpy's "auto" bins (and their fallback to
-Sturges when the IQR is 0), over d3.bin's nice edges, and stacked over
-shared edges (with density); `cbook.violin_stats` with matplotlib's
-Gaussian KDE at 100 points; `Axes.ecdf`, plain and complementary.
+counts and weights, with numpy's "auto" bins (numpy 2's rule: the
+smaller of Sturges' width and Freedman–Diaconis', the latter at least
+half the square-root rule's, which decides when the IQR is 0), over
+d3.bin's nice edges, and stacked over shared edges (with density);
+`cbook.violin_stats` with matplotlib's Gaussian KDE at 100 points;
+`Axes.ecdf`, plain and complementary.
 rustd3-figure's tests/main/helpers compare through rustd3-testkit's `Obs`.
 
     python3 dev/fixtures/stats.py           # write stats.json
@@ -40,7 +42,7 @@ assert matplotlib.__version__ == "3.11.2", matplotlib.__version__
 assert scipy.__version__ == "1.18.1", scipy.__version__
 
 X = [1.2, 2.3, 2.9, 3.1, 3.4, 3.8, 4.0, 4.4, 4.7, 5.1, 5.6, 6.2, 7.9, 9.5, 14.0]
-# An IQR of 0: numpy's "auto" falls back to Sturges.
+# An IQR of 0: numpy 2's "auto" takes half the square-root rule's width.
 FLAT = [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 3.0, 9.0]
 A = [1.0, 2.0, 2.0, 3.0]
 B = [2.0, 3.0, 3.0]

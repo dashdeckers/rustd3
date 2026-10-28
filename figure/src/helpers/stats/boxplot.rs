@@ -1,5 +1,5 @@
 //! Box plot statistics: [`Summary`], [`summary`] and [`Whis`], matplotlib's
-//! `cbook.boxplot_stats`; the chart is [`stats::boxplot`](super::boxplot).
+//! `cbook.boxplot_stats`; the chart is [`stats::boxplot`](super::boxplot()).
 
 pub(super) mod chart;
 
