@@ -300,3 +300,228 @@ eighth of the steps.
 ### Followups
 
 - D31.2 decides whether the 64-stamp splat is built.
+
+## Measurements, session 31b
+
+2026-10-28, session 31b (Steps 3–5: d12886b, b2d0cdd, 6b9af5e, ddfd934,
+ded81af). Same machine (2 cores, release builds for every timing; single
+runs on a shared container, ±30 %). Harness unchanged throughout: 16
+suites, 6,722 assertions, 5,292 passing, 179 floors; nothing blessed.
+
+**Exactness (Steps 4–5; every iced test on tiny-skia and wgpu).** Tiles
+against the PNG at 1, 1.25 and 2: 1/255. `pan_renders_only_entering_tiles`
+on the spot checks' 900 × 600 area (30 keys with the ring): +37 px renders
+no visible tile, the 5 tiles of column −2 and 7 gutter cells; −37 px the
+5 tiles of column 4; at 2× on a 1792 × 1324 area, column −2's 8 rows; each
+frame against a fresh render of the snapped domain 1/255.
+`thinned_lines_match_a_fresh_render_after_a_pan` (pans of 20, 57, −30 and
+−300 device px at 1 and 2) and `dashed_lines_keep_their_phase_across_a_pan`
+(0, 20, 57, −30): 1/255, 0 channels over 16. `drag_settles_on_the_exact_domain`
+at 1.25: 10.3 logical px publishes the domain of 10.4 px mid-drag and of
+10.3 at the release; 1/255 against the PNG mid-drag and settled.
+`zoom_out_preview_uses_the_overscan_ring` (×1.2 out about the centre,
+`Render::Worker`, ring resident): missing 0 on every frame; (missing,
+previews) per frame on tiny-skia (0, 15), (0, 0) at 1 and (0, 24), (0, 0)
+at 2, on wgpu (0, 15) … (0, 0) and (0, 24) … (0, 0) over 5 and 6 frames.
+The references compose each plot area from the list drawn with the
+overscan (D31.4).
+
+**D18.3 on the trace.** `translated_tiles_match_re_rendered_ones_on_a_trace`:
+a replica of the benchmark's trace (three channels of 400,000 samples at
+10 kHz, 20 s in view, two panels; the iced tests cannot depend on the
+bench crate), dragged by 1, 2, 4, 37 and −300 device px at 1 and 2,
+`Caching::On` (tiles translated) against `Caching::Off` (all 36, resp. 64,
+tiles re-rendered at the same keys each frame): **0/255, 0 px over 2**, on
+both backends. A tile renders from its key's square, which moves with the
+data, so vello_cpu's origin-dependent dashes move with it; the bound is
+1/255 as for the other figures. The trace against its whole-canvas render
+is unchanged (also: 381 px over 2/255, max 237/255 at 2×).
+
+**D22.1's mechanism.** `a_pan_over_a_trace_keeps_the_plot_areas_current`
+(the trace replica without bottom axes, the benchmark's `pan-x` input,
+`Render::Worker`, each frame followed by the worker's renders, debug
+build): after the first frame, **0 of 29 frames** show outdated plot-area
+content at 1 and at 2 on both backends; 6.0 and 8.6 ring tiles render
+after each frame (the leading ring column, every frame: D31.6).
+
+The real-time share, headless (`target/release/rustd3-bench run --headless
+--plan quick --scenario pan-x --workload trace --factor 1,2 --runs 1
+--backend B`: full data, 1600 × 1000 logical, readback every frame; one
+run each; plot-area share = frames whose previews exceed the gutter cells
+and overlays rendered after them, from the raw records, an upper bound):
+
+| Backend | Factor | Frames | Frame p50 | Preview share | Plot-area share | Latency p95 |
+| --- | --- | --- | --- | --- | --- | --- |
+| tiny-skia | 1 | 316 | 33.3 ms | 98.1 % | 11.7 % | 11.1 s |
+| tiny-skia | 2 | 88 | 150.0 ms | 100 % | 43.2 % | 12.5 s |
+| wgpu | 1 | 339 | 33.3 ms | 97.6 % | 13.6 % | 9.7 s |
+| wgpu | 2 | 107 | 116.6 ms | 100 % | 42.1 % | 12.5 s |
+
+The plot areas are current on 86–88 % of frames at 1 (D22.1: 6 %); the
+preview share stays at 98 % because every frame re-renders 4–10 gutter
+cells and overlays that show the panned handle (the x axes' strips and
+the axis lines over the plot areas' bottom edges, about 4 ms each), which
+`Render::Auto`'s model sends to the worker together, so every frame shows
+an outdated axis strip, and the latency is the gesture's length. At 2 the
+headless readback makes frames 4–5 times longer, the pan moves about 60
+device px a frame, and one worker re-rendering the leading ring column
+every frame falls behind (D31.6).
+
+**D22.4's item 3** (`rustd3-bench also`, ded81af): a 1600 × 1000 device-px
+plot area of tiles drawn per frame of a pan at 1, medians of 30 frames.
+The widget's `draw` takes 0.02 ms on both. Composing the frame: tiny-skia
+25.1 ms for 38 images against 20.8 ms for an empty figure's frame of the
+same size (one image), wgpu 14.7 against 12.8 ms (both with the headless
+read-back). The tiles add about 4.3 ms on tiny-skia, 0.11 ms an image:
+iced's tiny-skia engine clears and refills a frame-sized clip mask before
+every raster image (`tiny_skia/src/engine.rs:532`, `adjust_clip_mask` at
+`:776`), whatever its clip; the tiles themselves blit with `Nearest` at
+whole pixels. Fewer images (Step 6's merging) are what cut it.
+
+**D22.4's item 4, again:** `scatter100k` resolve 0.54 ms, list 3.41 ms;
+`scatter1m` 3.06 and 38.4 ms (31a: 3.6 and 39 ms).
+
+**Viewed.** Headless screenshots of a curve-and-dots figure and the trace
+replica at 1 and 2 on both backends, at rest, 150 px into a drag, after a
+jump of 400 px (beyond the ring), settled, during a ×1.2 zoom-out and
+during a zoom-in: tiles seamless at full resolution; the ring fills the
+leading edge; only regions without data or beyond the ring stay blank
+until their tiles land (a dot cut at that boundary for one frame); the
+previews are the old tiles scaled, the ring filling the zoom-out's
+margins; gutters keep their last image until theirs land.
+
+## D31.4 — The plot areas' edges: thinned lines through the overscan against the file output
+
+**Date:** 2026-10-28 · **Context:** Phase 31, step 4–5, b2d0cdd, ddfd934 · **Status:** open
+
+### Issue
+
+Testing's agreement table (rustd3.md:1856) bounds iced against the PNG at
+1/255 on tiny-skia (2/255 on wgpu). Phase 31 ("Translation and overscan")
+draws the widget's plot-area layers with `Held::overscan`, "and thinning
+returns one sample beyond the grown view". A thinned line that crosses a
+plot area's left or right edge therefore continues through the edge in
+the widget, where the file output (Phase 15) thins the plot area alone and
+ends the line one sample beyond its edge: the last segment before the
+edge differs, and its end shows within half a line width inside the area.
+Measured on the tiles tests' figures: up to 32/255 on the edge columns,
+nowhere else. Both statements cannot hold for thinned lines.
+
+### Investigation
+
+Everything inside the area agrees within 1/255 once the reference draws
+the plot areas with the same overscan (tiles, pans to −300 px, dashes,
+zooms). Dots, bars, unthinned lines and grid lines agree at the edges as
+before: they are clipped, not ended.
+
+### Options
+
+| | **A — as built** | B — the files thin with a margin | C — the widget renders edge tiles without the overscan |
+| --- | --- | --- | --- |
+| Approach | The widget shows the overscan list; its reference (`iced/tests/main/reference.rs`) composes each plot area from the list drawn with the overscan, the rest from the PNG; the agreement table gains the edge's row | File outputs thin over the plot area grown by one column and half the line width, clipped to the area, so a line crosses the edge as on screen | A second list per refresh without the overscan for the tiles on the left and right edges |
+| Cost | — | Every snapshot of a thinned line changes at its edges (re-bless) | The list stage doubles for thinned figures; an edge tile translated after a pan no longer equals a fresh render |
+| Correctness | Screen and file differ within half a line width of an edge a thinned line crosses | Screen equals file | Screen equals file at rest; pans break exactness |
+
+### Recommendation
+
+A: the difference is an end cap against a continuation on one or two
+pixel columns, and translation needs the continuation. B is the cleaner
+long-term answer if the files should match the screen exactly; it is a
+Phase 15 change outside this phase.
+
+### Followups
+
+- Testing's agreement table: a row for thinned lines at a plot area's
+  left and right edges (A), or the Phase 15 change (B).
+
+## D31.5 — Details of Phase 31b as built
+
+**Date:** 2026-10-28 · **Context:** Phase 31, d12886b … ded81af · **Status:** open
+
+### Issue
+
+Steps 3–5 met eleven calls the section does not make.
+
+1. **What a tile renders.** The section keys tiles per plot area but not
+   which commands they draw, nor how chrome over the area (axis lines on
+   its edge pixels, a border, an inset legend) stays put when tiles move.
+2. **tiny-skia's image positions.** iced's tiny-skia backend truncates an
+   image's device position toward zero (`tiny_skia/src/raster.rs:63`), so
+   tiles left of or above the widget's origin landed a pixel off.
+3. **The overscan's width.** One tile, as the ring.
+4. **Grids at rest.** The section holds the column grid "during a
+   gesture"; outside it, the left-edge anchor.
+5. **The dash anchor.** "Phase 0 at the first sample of the column
+   containing origin."
+6. **A tile entering the area from the ring.** "A resident tile stays
+   valid when its rendered rect, shifted by d, covers its new rect;
+   otherwise it renders."
+7. **A tile's work** for the cost model.
+8. **Pending jobs of an earlier set.**
+9. **The snap.**
+10. **The tests' geometry and data.**
+11. **What the probe counts as current.**
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | The list splits by part id (`iced/src/plot/layer.rs`): an area's layer is the figure's background, the panel's background, grid lines and marks (one run of commands, the marks' group whole); the chrome is every other part; the chrome without the figure's background is drawn over each area as transparent overlays on disjoint rects covering where it reaches inside the area |
+| (2) | Draw positions are nudged by half a device pixel away from zero (`slot::nudged`) |
+| (3) | One tile and 8 px (`tile::MARGIN`): with exactly one tile, a thinned line's end (one sample beyond the grown view) fell on the ring's outer pixels and showed after pans of more than 256 px less half a line width |
+| (4) | Every plot area's x lead handle holds a grid from the first refresh, at origin 0 until a drag moves it; the figure falls back to that grid whenever the area is grown (6b9af5e), so the first frame, before the widget knows its areas, draws the same |
+| (5) | The column leads by a millionth of a column as thinning's do, and the phase reaches 0 a millionth of a px past the anchor (6b9af5e): an ulp before it the dash drew a join of the segment before, 17/255 at a tile seam |
+| (6) | A tile whose image, moved, covers its part inside the area but not the rest still renders, after the visible tiles, cells and overlays with the ring; meanwhile it shows that part exact and counts as current (the architect's note: a frame whose plot area is covered by resident tiles is current). Since the ring is one tile wide, every tile entering the area is such a tile |
+| (7) | Its layer's work times the share of the area's pixels it covers; ring tiles count pixels only |
+| (8) | A refresh that plans a new set re-sends every pending job of an earlier one at the current generation (newest wins per slot) |
+| (9) | Per track, in list px: `round(offset · k) / k`; the release applies the unsnapped transforms once (`Gesture::exact`), the layout staying held until then |
+| (10) | The spot checks' 900 × 600 area by sizing the window (`tiles.rs`'s `sized`); a replica of the bench's trace in the iced tests; D22.1's assertion with a worker that keeps up (a debug build cannot pace the real thing), the real-time share from the bench's headless run (Measurements) |
+| (11) | `Sample::Frame` keeps its fields; a visible tile is current when its image shows the current layer and, moved with the grid, covers its part inside the area |
+
+### Recommendation
+
+A for all eleven.
+
+### Followups
+
+- (6) and (3) together are D31.6's cost.
+
+## D31.6 — The leading ring column re-renders every frame of a pan
+
+**Date:** 2026-10-28 · **Context:** Phase 31, step 5, ddfd934 · **Status:** open
+
+### Issue
+
+The section renders a ring tile over its square cut by the grown rect
+(spot check: key −2's square [−475, −219) ∩ grown = [−256, −219)) and
+re-renders a tile whose moved image does not cover its new rect (the −37
+px row: column 4's 5 tiles). During a continuous pan the leading ring
+column's squares move into the grown rect by d px every frame, so that
+whole column re-renders every frame: 6.0 tiles a frame at 1 and 8.6 at 2
+in the replay (two panels), against one column per 256 px of pan if the
+images reached their squares. In the headless real-time run one worker
+keeps up at 1 (plot areas current on 86–88 % of frames) but not at 2 (57 %).
+
+### Options
+
+| | A — as specified | **B — ring tiles render their whole square** | C — grow the cut by a margin |
+| --- | --- | --- | --- |
+| Approach | As built | A ring tile renders its full square; the overscan grows to two tiles and the margin, so the list holds the data; a moved image then covers its rect until its square leaves | The cut is the grown rect plus 64 px, the overscan as much more |
+| Ring work during a pan | A column every frame | A column every 256 px | A column every 64 px |
+| Cost | — | The list's thinned columns grow by 2 × 256 px (+24 % at 1600 px); the first ring renders up to twice the pixels | Between A and B |
+| Spot checks | As written | −37 px renders no tile; +37 px renders column −2's 5 tiles whole | Rows change |
+
+### Recommendation
+
+B, decided before Step 7 (the pool and its order assume the ring's
+volume). With B, steady pans render a column of tiles per 256 px; the
+remaining per-frame work is the gutter cells and overlays that show the
+panned handle (4–10 renders of about 4 ms here), which D22.4's item 1
+(the overhead term) and Step 6's merging address.
+
+### Followups
+
+- Steps 6–7: the gutters and overlays of a panned handle render on the
+  worker under `Render::Auto` today, so the benchmark's preview share
+  (which counts an outdated axis strip) stays near 98 % until they render
+  inline or merge.
