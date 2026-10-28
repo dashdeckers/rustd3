@@ -403,8 +403,8 @@ pub(crate) fn logical([x0, y0, x1, y1]: [i32; 4], origin: [i32; 2], factor: f32)
 /// Device position `p` nudged by `NUDGE` away from its pixel's edge on the
 /// side that lands on `p`: tiny-skia truncates toward zero (`as i32`,
 /// `tiny_skia/src/raster.rs:63-64`) and wgpu adds 0.001 and rounds, so a
-/// quarter pixel above lands on `p` for `p ≥ 0`, and a quarter pixel below
-/// for a tile of the overscan ring left of or above the window's origin.
+/// nudge above lands on `p` for `p ≥ 0`, and a nudge below for a tile of
+/// the overscan ring left of or above the window's origin.
 pub(crate) fn nudged(p: i32) -> f32 {
     if p < 0 {
         p as f32 - NUDGE
@@ -501,9 +501,9 @@ mod tests {
     }
 
     #[test]
-    fn a_cell_at_device_x_125_at_factor_1_25_is_drawn_at_logical_x_100_2() {
+    fn a_cell_at_device_x_125_at_factor_1_25_is_drawn_at_logical_x_100_05() {
         let bounds = slot([125, 0, 250, 50]).bounds(&(0..50), [0, 0], 1.25);
-        assert_eq!(bounds.x, 100.2);
+        assert_eq!(bounds.x, 100.05);
         assert_eq!(bounds.width, 100.0);
     }
 
@@ -514,7 +514,7 @@ mod tests {
         assert_eq!(origin, 15);
         let bounds = slot([0, 0, 30, 30]).bounds(&(0..30), [origin, 0], k);
         assert_eq!(bounds.x, (15.0 + NUDGE) / 1.5);
-        assert!((bounds.x - 10.1667).abs() < 1e-4);
+        assert!((bounds.x - 10.0417).abs() < 1e-4);
         // Back to device px: tiny-skia truncates, wgpu adds 0.001 and
         // rounds; both land on 15, where a half-pixel bias rounds to 16.
         assert_eq!((bounds.x * k) as i32, 15);

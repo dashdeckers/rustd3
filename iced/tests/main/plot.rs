@@ -173,6 +173,85 @@ fn four_dots() -> Figure<'static> {
     fig
 }
 
+/// One panel of a damped wave with left and bottom axes, as the README's
+/// `Plot` app shows it, in a pure red ink.
+fn wave_in_red() -> Figure<'static> {
+    let mut fig = Figure::new();
+    fig.theme(Theme::default().ink(Rgb::hex(0xff0000)));
+    let wave: Vec<(f64, f64)> = (0..=2000)
+        .map(|i| {
+            let t = f64::from(i) / 100.0;
+            (t, (-t / 8.0).exp() * t.sin())
+        })
+        .collect();
+    let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    fig.panel(0, 0)
+        .mark(line(wave, x, y))
+        .axis(axis::bottom(x).label("time [s]"))
+        .axis(axis::left(y));
+    fig
+}
+
+/// Whether `pixel` is the red ink, as a spine draws it.
+fn is_red(pixel: [u8; 4]) -> bool {
+    pixel[0] > 200 && pixel[1] < 60 && pixel[2] < 60
+}
+
+/// The columns (`vertical`) or rows of `shot` within `span` that are red
+/// along at least 90% of `along`: a spine's, which must be one run.
+fn spine(
+    shot: &Shot,
+    vertical: bool,
+    span: std::ops::Range<u32>,
+    along: std::ops::Range<u32>,
+) -> Vec<u32> {
+    let n = along.len();
+    span.filter(|&a| {
+        let red = along
+            .clone()
+            .filter(|&b| {
+                let (x, y) = if vertical { (a, b) } else { (b, a) };
+                is_red(shot.pixel(x, y))
+            })
+            .count();
+        red * 10 >= n * 9
+    })
+    .collect()
+}
+
+#[test]
+fn spines_have_no_seam_whatever_factor_the_widget_assumes() {
+    // The widget told the window's factor (right) or another (wrong: 1
+    // on a scaled window, 2 on an unscaled one), as a headless capture
+    // without `.scale_factor` is wrong.
+    let mut seams = Vec::new();
+    for k in [1.0_f32, 1.25, 1.5, 2.0] {
+        for assumed in [k, if k == 1.0 { 2.0 } else { 1.0 }] {
+            let plot = Plot::<()>::new(wave_in_red())
+                .scale_factor(assumed)
+                .render(Render::Inline);
+            let Some(mut harness) = Harness::new(plot, SIZE, k) else {
+                return;
+            };
+            let backend = harness.backend();
+            let shot = harness.frame(headless::epoch());
+            let (w, h) = (shot.width, shot.height);
+            let left = spine(&shot, true, 0..w / 3, h / 5..h * 3 / 5);
+            let bottom = spine(&shot, false, h / 2..h, w / 3..w * 4 / 5);
+            for (side, lines) in [("left", left), ("bottom", bottom)] {
+                let run = lines.last().zip(lines.first()).map(|(l, f)| l - f + 1);
+                let seen =
+                    format!("{backend}, k = {k}, assumed {assumed}: {side} spine at {lines:?}");
+                println!("{seen}");
+                if lines.is_empty() || run != Some(lines.len() as u32) {
+                    seams.push(seen);
+                }
+            }
+        }
+    }
+    assert!(seams.is_empty(), "{seams:#?}");
+}
+
 /// Panel `i`'s plot area of `fig` at `k`, in device px.
 fn plot_area(fig: &Figure<'_>, k: f32, i: usize) -> [u32; 4] {
     let size = kurbo::Size::new(f64::from(SIZE.width), f64::from(SIZE.height));

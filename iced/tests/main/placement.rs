@@ -17,7 +17,7 @@ use crate::headless::{self, Harness, Shot};
 /// An RGBA image of fewer bytes uploads inside the frame on wgpu.
 pub const BAND_BYTES: usize = 2 * 1024 * 1024;
 /// Device px added to an image's origin before dividing by the factor.
-pub const NUDGE: f32 = 0.25;
+pub const NUDGE: f32 = 0.0625;
 
 /// The factors every placement is checked at.
 const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
@@ -228,8 +228,8 @@ fn images_land_on_device_pixels_at_every_factor() {
 }
 
 #[test]
-fn image_bounds_for_device_125_at_125_percent_are_100_2() {
-    assert_eq!((125.0 + NUDGE) / 1.25, 100.2);
+fn image_bounds_for_device_125_at_125_percent_are_100_05() {
+    assert_eq!((125.0 + NUDGE) / 1.25, 100.05);
 }
 
 #[test]

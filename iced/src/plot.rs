@@ -263,10 +263,17 @@ pub const BAND_BYTES: usize = 2 * 1024 * 1024;
 type Report<'a, Message> = Box<dyn Fn(Option<Hover>) -> Message + 'a>;
 
 /// Device px added to an image's origin before dividing by the factor:
-/// tiny-skia truncates an image's device position and wgpu adds 0.001
-/// and rounds, and a quarter pixel lands on the intended pixel on both
-/// where none truncates a hair early and a half rounds a pixel late.
-pub const NUDGE: f32 = 0.25;
+/// tiny-skia truncates an image's position in image pixels and wgpu adds
+/// 0.001 and rounds its device position, and a sixteenth of a pixel lands
+/// on the intended pixel on both where none truncates a hair early (the
+/// f32 round-off is under a hundredth of a pixel up to 40,000 px) and a
+/// half rounds a pixel late. It stays under half a device pixel when the
+/// renderer draws at up to seven times the factor the widget assumes (a
+/// capture at 2 of a widget told 1), so both renderers then place each
+/// image and its clip on the same device pixels: a quarter, doubled to
+/// half a pixel, moved wgpu's images and tiny-skia's clips a pixel later
+/// and left a one-pixel seam where cells meet.
+pub const NUDGE: f32 = 0.0625;
 
 /// A figure shown as images rendered from its drawing list.
 ///
@@ -327,9 +334,20 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Device pixels per logical pixel; wins over every fallback. An app
-    /// with its own scale factor on the software renderer, which reports
-    /// none, passes it here.
+    /// Device pixels per logical pixel; wins over every fallback. In a
+    /// window the widget learns the factor from the window's events (and
+    /// wgpu's renderer), so an app passes it only when it scales itself on
+    /// the software renderer, which reports none. `iced_test`'s
+    /// `Simulator` has no window: it snapshots at 2 and tells widgets no
+    /// factor, so a test that snapshots a `Plot` passes the snapshot's
+    /// factor here; without it the widget draws for 1 and the snapshot
+    /// shows each of its pixels doubled.
+    ///
+    /// ```text
+    /// let plot = Plot::new(fig).scale_factor(2.0); // as iced_test snapshots
+    /// let mut ui = Simulator::with_size(Settings::default(), (800.0, 500.0), plot);
+    /// ui.snapshot(&Theme::Light)?.matches_image("plot.png")?;
+    /// ```
     pub fn scale_factor(self, factor: f32) -> Self {
         Plot {
             scale_factor: Some(factor),

@@ -280,6 +280,12 @@ impl App {
 }
 ```
 
+The widget renders for the window's scale factor, which it learns from
+the window. `iced_test`'s `Simulator` has none: it snapshots at a factor
+of 2 and tells widgets no factor, so a test that snapshots a `Plot` sets
+it, `Plot::new(fig).scale_factor(2.0)`; without it the widget draws for
+1 and the snapshot shows each of its pixels doubled.
+
 `rustd3-iced` is not on docs.rs while it comes from git;
 `cargo doc -p rustd3-iced --open` in your project shows its
 documentation. When iced 0.15 is on crates.io, `rustd3-iced` is
