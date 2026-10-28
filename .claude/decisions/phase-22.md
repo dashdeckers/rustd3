@@ -474,3 +474,38 @@ model fixed at compile time misjudges every machine but one, and a pool
 sized for 16 threads oversubscribes 2; both are cheap to get right now,
 and the weak profiles make "good performance" a measured claim instead
 of a hope.
+
+## The rerun after Phase 31 (waiting for the user's run)
+
+2026-10-28. Phase 31 is built (31a–31d: tiles and pan translation, the
+render pool, the 64-stamp splat, the fitted cost model; D31.1–D31.10), so
+D22.1's rule asks for this benchmark again on the user's machine. The
+rule, the readings and the default plan's cells and budgets are as
+registered in D22.1, with D22.3's windows (factor cells at 1600 × 1000
+device px; `4k` "n/a: display too small" below 3840 × 2160) and D22.4's
+weak profiles (no GPU, 4 cores, 2 cores; their own budgets and report
+sections) after it. The report's outcome line reads as the rerun:
+"image path sufficient — Phase 31 built, no GPU data layer", "still
+raster/upload bound after Phase 31 → GPU data layer recommended", or
+"UI-thread bound → move list building off the UI thread (0.2)".
+
+**The command**, from the repository root at the commit that holds this
+section, on the machine of D22.1's run (on power, other GPU-heavy apps
+closed, mouse and keyboard untouched for about 75 minutes):
+
+```bash
+dev/bench/run.sh
+tar czf bench.tgz -C bench-results <the stamp the script prints>
+```
+
+It builds the release bench, detects the refresh rate and factor (`HZ=60
+FACTOR=1 dev/bench/run.sh` sets them), and writes
+`bench-results/<stamp>/{smoke,default,weak-nogpu,weak-4cores,weak-2cores}`
+with a log per plan. Checked here under Xvfb with `--smoke-only` and with
+a reduced copy of the whole flow (D31's Measurements, session 31d).
+
+**When it comes back:** the default plan's outcome is appended to D22.1
+here (image path sufficient, or GPU layer recommended), each weak
+profile's outcome beside it (D22.4: a miss is Phase 31 work while it is
+open, else a 0.2 item), and, since Phase 34 has appended its label-churn
+rerun, the closing line is written then.

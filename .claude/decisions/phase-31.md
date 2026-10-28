@@ -617,6 +617,23 @@ classifies handle changes by the section's two-point test, so a
 `Fit::Visible` refit during a pan is caught at once. First commit of
 session 31d.
 
+### Followups
+
+- **Built (31d, f6e611e and 0978b38).** `Scale::remap(&self, from,
+  range, at) -> Option<[f64; 2]>`, a provided method (default `None`, so
+  the trait stays additive), documented with a doctest; continuous and
+  time scales go through `Invert`, band and point scales give `at` when
+  both place every key alike. The widget runs the test after the resolve
+  on each area the views translated (`State::confirm`, `Area::keeps`):
+  the lead scales of the previous refresh against this one's, at the
+  area's two edges, within a 256th of a device px of the grid's move; an
+  area that fails restarts its grid where it lies (`Area::restart`).
+  `visible_y_refit_during_a_pan_re_renders` (a 37 px drag over a rising
+  curve, y `Fit::Visible` growing from [−2.48, 52.05] to [−2.48, 55.27])
+  renders all 20 tiles at 1 and 35 at 2 in the drag's frame, 1/255
+  against the refitted figure on tiny-skia and wgpu; with the test
+  disabled, 0 tiles and 254/255. Details in D31.10 (1)–(4).
+
 ## D31.8 — The cost model cannot time renders without the probe's clock
 
 **Date:** 2026-10-28 · **Context:** Phase 31, step 7 · **Status:** decided
@@ -665,6 +682,16 @@ nowhere else: one function, a scoped `#[expect(clippy::disallowed_methods,
 reason = "…D31.8")]`, and CLAUDE.md's rule names this exception. Output
 never depends on it (only where a job runs); tests that assert where jobs
 run keep forcing `Render::Inline` or `Render::Worker`. Session 31d.
+
+### Followups
+
+- **Built (31d, 0189f1b).** `job::timed` around the bands' renders in
+  `Job::run`, under `#[expect(clippy::disallowed_methods, reason = "the
+  Plot widget times its own renders for its cost model (D31.8)")]`;
+  `State::land` folds every render's `elapsed` into the fit. Test
+  `renders_calibrate_the_cost_model_without_a_probe`;
+  `ten_hz_appends_stay_sharp` forces `Render::Inline`. Details in D31.10
+  (5)–(6).
 
 ## Measurements, session 31c
 
@@ -823,3 +850,136 @@ A for all thirteen.
 
 A for all thirteen (architect, 2026-10-28), as built.
 
+
+## Measurements, session 31d
+
+2026-10-28, session 31d (D31.7, D31.8, Steps 9–10: f6e611e, 0978b38,
+acb8547, 0189f1b, e7c8c8c, then the docs). Same machine (2 cores, release
+builds for every timing; single runs on a shared container, ±30 %).
+Harness unchanged throughout: 16 suites, 6,722 assertions, 5,292 passing,
+1,430 skipped, 179 floors; nothing blessed.
+
+**Before the steps.** The architect's warm-up `scripts/check.sh full`
+(a cold `target/debug`) ran 34 min 9 s, green; this session's first cargo
+command waited for it. Free disk after it: 11–12 GB.
+
+**D31.7 (f6e611e, 0978b38).** Recorded under D31.7 ("Built"). The
+tolerance was measured before it was chosen: a linear domain near 1e9 at
+16 px per unit panned by 5 px moves its edges by 5.0000019 and 4.99999999
+px (2e-6 px of rounding), so a tolerance of a millionth would call such a pan a change; the
+256th chosen is the visibility bound (D31.10 (2)). Every iced test passes on tiny-skia and
+wgpu; the spot checks of 31b and 31c (`pan_renders_only_entering_tiles`,
+the trace replay) are unchanged, so pure pans still translate.
+
+**D31.8 (0189f1b).** Recorded under D31.8 ("Built"). One pre-existing
+race surfaced in `check.sh quick` and was fixed first (acb8547):
+`threads_sets_the_pool_size` counted the pool's threads by name right
+after it started, and std names a thread from inside it, so it once saw
+1 of 3.
+
+**Step 9 (e7c8c8c).** Headless, release:
+
+- The wheel workload's smoke cells (`--workload wheels`, tiny-skia): max
+  generation per run, before (the warm-up's smoke) and after: `pan-y` 1
+  → 47, `zoom-lines` 1 → 30, `zoom-pixels` 1 → 31, `4k` 1 → 8 (its zoom
+  half), `pan-x` n/a (was 1), `resize` 5 → 5, `hover` and `cold` 1.
+- A reduced `weak` plan (`pan-x`, `zoom-lines` on `trace`, 2 runs, data ÷
+  100, tiny-skia, `--threads 1`) with `--caching verify`: the report opens
+  "Weak profile: no GPU (tiny-skia), 2 cores", holds the cells to 2 T,
+  150 ms, 250 ms and 25 %, ends with the weak outcome line; Flags: "every
+  kept image matched a fresh render within 1/255 over 4 runs".
+- **Verify is a diagnostic, not a timing mode.** The same `pan-x × trace
+  × 2` with `--caching on` and `verify` (headless, 2 cores, one pool
+  thread): latency p50/p95 119/641 against 4,003/9,125 ms, previews 35 %
+  against 98 %, inline renders 54 % against 13 %, raster critical path
+  5.7 against 202 ms, CPU 1.03 against 1.89 s/s. The checks (every kept
+  tile and run, each refresh) keep the pool thread and the second core
+  busy; the real jobs come first in each set but wait behind the check in
+  progress, and the cost model, fed by every render (D31.8), learns the
+  contended times and sends more of them to the pool.
+
+Windowed under Xvfb (1280 × 1024 × 24, no window manager, wgpu on
+lavapipe), what the user runs:
+
+- `HZ=60 FACTOR=1 xvfb-run -a dev/bench/run.sh --smoke-only`: green in
+  6 min 2 s; 53 runs (60 cells, 7 n/a), every window as asked (X without
+  a window manager clamps none, `4k` included), window factor 1; the
+  wheel cells move windowed too (`pan-y` 178, `zoom-lines` 98,
+  `zoom-pixels` 111, `4k` 12).
+- The script's whole control flow, with a temporary copy whose plans
+  were cut to a few cells (not committed): smoke, default (`pan-x` at 1
+  and 2, `4k` at 1), `weak-nogpu`, "Skipping weak-4cores: this machine has
+  2 cores.", `weak-2cores` under `taskset -c 0-1` (its `meta.json` says 2
+  cores); each into its own directory with its own log; the summary
+  printed each report's outcome; 6 min 13 s. The factor cell at 2 opened
+  800 × 500 logical px, 1600 × 1000 device px (D22.3).
+- `4k`'s "n/a: display too small": a copy of the smoke run whose `4k ×
+  trace` header records a 1920 × 1004 device px window, rebuilt with
+  `rustd3-bench report`: the budget, metrics and summary rows read "n/a:
+  display too small", Flags name the size, no budget of the cell is
+  evaluated.
+- `rustd3-bench list`: `weak` 5 cells, 25 runs, about 6 min a profile;
+  smoke about 6, default about 46: about 75 minutes with the
+  also-measured items after each plan.
+
+**Viewed.** The reduced runs' reports (`report.md` of smoke, default and
+both weak profiles) read as described above; nothing else was rendered
+this session.
+
+## D31.10 — Details of Phase 31d as built
+
+**Date:** 2026-10-28 · **Context:** Phase 31, f6e611e … e7c8c8c · **Status:** open
+
+### Issue
+
+D31.7, D31.8 and Step 9 met calls neither the section nor the decisions
+make.
+
+1. **`Scale::remap` on band and point scales**, which have no inverse,
+   and on color scales.
+2. **The translation's tolerance**: "a constant integral device-pixel
+   offset" in floating point.
+3. **Which scales are compared, and against what.** "The scale a slot
+   was rendered with" against "the new one"; D31.7: "each lead handle's
+   scale per grid".
+4. **Where a failed test leaves the grid**: the list was already thinned
+   on the moved grid's columns when the test runs, after the resolve.
+5. **What D31.8's clock times**, and which renders feed the fit.
+6. **The tests whose render path the fit now decides.**
+7. **`--threads` and `--caching verify` in the benchmark**: range, record,
+   report.
+8. **Which cells are D22.3's "factor cells"**, and the wheel figure there.
+9. **`4k`'s "n/a: display too small"**: from which size, and what the
+   report does with the cell.
+10. **The weak plan in the bench**: its budgets, its report section and
+    outcome, and how the report knows the profile.
+11. **The desktop outcome lines** now that Phase 31 is built.
+12. **`run.sh`**: order, failures, and a machine without `taskset`.
+13. **The wheel workload's gestures.** No panel of the wheel figure zooms
+    x (its x is a band scale).
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | A provided method returning `None`, so the trait stays additive for implementors outside the crate; continuous and time scales go through `Invert` (`scale::through`); band and point scales give `at` when the two, set to `range`, are equal, else `None` (they do not pan, so any difference is a change); color scales keep the default |
+| (2) | Within a 256th of a device px of the grid's move, at both edges (`area::TRANSLATED`): an antialiased edge's coverage then moves by at most 1/255 (a half pixel: up to 109/255); the rounding through the domain is far below (2e-6 px measured near 1e9; a time scale's whole nanoseconds) |
+| (3) | Each axis's lead handle (`region::Map::lead`: the first handle the panel zooms that way, else its first axis's), as the previous refresh resolved it, against this refresh's, each set to the area's range in list px (x left to right, y bottom to top) and compared at the area's edges; only on areas the views translated (a still area's content hash already re-renders a refit). A `Fit::Visible` y on no axis and not zoomed leads nothing and stays unseen during a drag, as before |
+| (4) | The grid begins anew where it lies (`Area::restart`): its origin, density and the views it began at stay, so the thinned columns stay the grid's and the next drag step measures from them; every key new, the old tiles the preview layer, mapped by the views |
+| (5) | `job::timed` around the bands' renders in `Job::run` (the splat switch and the probe's stamps outside it); every render feeds the fit, the pool's and `Caching::Verify`'s checks included (measured: under Verify the contended checks lower the inline share, Measurements 31d); the probe still reports its own clock's durations |
+| (6) | `ten_hz_appends_stay_sharp` forces `Render::Inline` (the architect's note), the seed model's prediction for an append (≤ 8.35 ms) still asserted. No other test asserts where `Render::Auto` runs a job after the first frame, whose partition always uses the seed |
+| (7) | `--threads N` takes 1 to 64 (the widget's clamp), is passed to every child, recorded in `meta.json` (`threads`, absent in older runs) and the report's first line; `--caching verify` records each `Sample::Mismatch` as a `mismatch` record (frame, cell or tile, max), which the report's Flags count |
+| (8) | A cell whose factor is not the native one; the wheel figure keeps its own 960 × 760 at every factor, as before (it is in `smoke` and `full` only) |
+| (9) | Windowed only: a `4k` cell any of whose runs recorded a device size (the window's reported logical size × the cell's factor) more than 1 px short of 3840 × 2160 reads "n/a: display too small" in the budget, metrics and summary rows; its budgets are not evaluated (so they cannot decide the outcome); Flags name the size |
+| (10) | `Plan::Weak` (5 cells, 25 runs); `rule::Profile` (`Desktop`, `Weak`) gives each budget's limit, the plan's name picks it; a weak report opens a "Weak profile: …, N cores" section (no GPU for tiny-skia, else the backend and GPU; cores from `available_parallelism`, which follows `taskset`) with the registered budgets (`rule::WEAK`), and ends with the profile's outcome line: met; missed on raster/upload or on the UI thread → Phase 31 work while open, else a 0.2 item (never the GPU-layer question); or inconclusive |
+| (11) | The desktop lines read as the rerun: "image path sufficient — Phase 31 built, no GPU data layer"; "still raster/upload bound after Phase 31 → GPU data layer recommended"; "UI-thread bound → move list building off the UI thread (0.2); no GPU data layer" |
+| (12) | After the default plan, whatever its status: `weak-nogpu` (`--backend tiny-skia`), then `weak-4cores` and `weak-2cores` under `taskset -c 0-3` and `0-1`, each skipped with a message when `nproc --all` is smaller or `taskset` is missing; the script exits with a failure's status; its summary prints every report's outcome |
+| (13) | Per-workload gesture anchors (`scenario::Anchors`, plain data): the wheel figure's wheel and drags act near the middles of its front-left and rear-left scatters, which zoom vibration and temperature along y; `pan-x` is n/a on it (`Workload::pans_x`) and `4k`'s pan half moves nothing there; replays are named by workload too |
+
+### Recommendation
+
+A for all thirteen.
+
+### Decision
+
+Open: A for all thirteen recommended, until the architect answers.
