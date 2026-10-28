@@ -1,14 +1,12 @@
 //! [`Panel`]: one plot area in a grid cell.
 
-use std::fmt::Display;
-
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
 use crate::axis::{self, Axis};
 use crate::figure;
 use crate::layout::Cell;
-use crate::legend::{self, Inset, Legend};
+use crate::legend::{self, Inset};
 use crate::mark::Mark;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::Text;
@@ -20,7 +18,7 @@ pub struct Panel<'a> {
     cell: Cell,
     marks: Vec<Box<dyn Mark<'a>>>,
     axes: Vec<Box<dyn axis::Draw<'a>>>,
-    insets: Vec<(Inset, Box<dyn legend::Draw>)>,
+    insets: Vec<(Inset, legend::Stored<'a>)>,
     title: Option<Text>,
     border: Option<Rgb>,
     /// The handles zoomed along x, then along y, each once.
@@ -58,13 +56,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// Places legend `l` in corner `at` of the plot area: a framed column
-    /// 0.5 em from the corner, drawn over the marks.
-    pub fn legend<K>(&mut self, at: Inset, l: Legend<K>) -> &mut Self
-    where
-        K: PartialEq + Clone + Display + 'static,
-    {
-        self.insets.push((at, Box::new(l)));
+    /// Places guide `g` in corner `at` of the plot area, framed, 0.5 em
+    /// from the corner and drawn over the marks: a legend as a column, a
+    /// colorbar along the plot area's longer side, 40% of its length.
+    pub fn legend(&mut self, at: Inset, g: impl legend::Guide<'a>) -> &mut Self {
+        self.insets.push((at, g.erase().0));
         self
     }
 
@@ -119,8 +115,8 @@ impl<'a> Panel<'a> {
         &self.axes
     }
 
-    /// The inset legends, in the order they were added.
-    pub(crate) fn insets(&self) -> &[(Inset, Box<dyn legend::Draw>)] {
+    /// The inset guides, in the order they were added.
+    pub(crate) fn insets(&self) -> &[(Inset, legend::Stored<'a>)] {
         &self.insets
     }
 

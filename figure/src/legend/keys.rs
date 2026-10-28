@@ -1,6 +1,7 @@
-//! A legend laid out as a [`Block`]: a row for top and bottom slots, a
-//! column for side slots and insets, sized from matplotlib 3.11.2's legend
-//! rc in em of the legend's text (the tick-label size); and drawing it.
+//! A legend of keys laid out as a [`Block`]: a row for top and bottom
+//! slots, a column for side slots and insets, sized from matplotlib
+//! 3.11.2's legend rc in em of the legend's text (the tick-label size); and
+//! drawing it.
 
 use kurbo::{Point, Rect, Shape, Size, Vec2};
 use rustd3_core::color::Rgb;
@@ -26,7 +27,7 @@ const ENTRIES: f64 = 2.0;
 const ROWS: f64 = 0.5;
 
 /// Inside an inset's frame, em: `legend.borderpad`.
-const PAD: f64 = 0.4;
+pub(crate) const PAD: f64 = 0.4;
 
 /// The frame's edge, px.
 const EDGE: f64 = 1.0;
@@ -276,16 +277,7 @@ impl Block {
     pub(crate) fn draw(&self, at: Point, text: &text::Cache, theme: &Theme, list: &mut List) {
         let by = at.to_vec2();
         if self.framed {
-            let frame = self.size.to_rect() + by;
-            list.commands.push(Command::Fill {
-                path: frame.to_path(TOLERANCE),
-                paint: list::brush(theme.legend_face()),
-            });
-            list.commands.push(Command::Stroke {
-                path: frame.to_path(TOLERANCE),
-                style: list::stroke(EDGE),
-                paint: list::brush(theme.legend_edge()),
-            });
+            frame(self.size.to_rect() + by, theme, list);
         }
         for (rect, color) in &self.swatches {
             self.glyph.draw(*rect + by, *color, theme, list);
@@ -300,6 +292,20 @@ impl Block {
             }
         }
     }
+}
+
+/// Appends an inset's frame around `rect`: the theme's legend face, an
+/// edge of 1 px in its legend edge color.
+pub(crate) fn frame(rect: Rect, theme: &Theme, list: &mut List) {
+    list.commands.push(Command::Fill {
+        path: rect.to_path(TOLERANCE),
+        paint: list::brush(theme.legend_face()),
+    });
+    list.commands.push(Command::Stroke {
+        path: rect.to_path(TOLERANCE),
+        style: list::stroke(EDGE),
+        paint: list::brush(theme.legend_edge()),
+    });
 }
 
 /// How far `shaped` reaches above its first baseline (negative) and below

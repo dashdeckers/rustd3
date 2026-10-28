@@ -27,6 +27,11 @@ impl Snap {
         Snap { scale }
     }
 
+    /// Device pixels per list px; `None` for vector output.
+    pub(crate) fn scale(self) -> Option<f64> {
+        self.scale
+    }
+
     /// A plot area with its edges on device pixel boundaries.
     pub(crate) fn rect(self, r: Rect) -> Rect {
         let Some(s) = self.scale else { return r };

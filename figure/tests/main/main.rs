@@ -3,6 +3,7 @@
 
 #[cfg(feature = "fonts")]
 mod check;
+mod colorbar;
 mod draw;
 mod figure;
 mod fit;

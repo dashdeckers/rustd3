@@ -11,6 +11,7 @@ pub use peniko;
 
 pub mod axis;
 pub mod check;
+pub mod colorbar;
 mod figure;
 pub mod hit;
 pub mod layout;

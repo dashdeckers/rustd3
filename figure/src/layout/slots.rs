@@ -1,6 +1,6 @@
-//! Space reserved by figure slots: legends outside the grid, stacked
-//! outward from it per slot, and where they land once the plot areas are
-//! known.
+//! Space reserved by figure slots: legends and colorbars outside the grid,
+//! stacked outward from it per slot, and where they land once the plot
+//! areas are known.
 
 use kurbo::{Point, Rect};
 
@@ -32,12 +32,13 @@ impl Slots {
         reserve
     }
 
-    /// Each legend and its top-left corner, in the order they were added:
-    /// a slot's first legend 0.5 em outside `grid` (the box the tracks
+    /// Each guide and its top-left corner, in the order they were added:
+    /// a slot's first guide 0.5 em outside `grid` (the box the tracks
     /// fill), each further one 0.5 em past the one before; top and bottom
     /// legends centred across `extent` (the plot areas' union), left and
-    /// right ones centred on it vertically. A legend larger than the
-    /// extent overflows it equally on both ends.
+    /// right ones centred on it vertically, a legend larger than the
+    /// extent overflowing it equally on both ends; colorbars with their
+    /// bar along the extent, from its start.
     pub(crate) fn place(self, grid: Rect, extent: Rect, em: f64) -> Vec<(Block, Point)> {
         let gap = GAP * em;
         // How far each side's legends reach past the grid so far.
@@ -50,15 +51,17 @@ impl Slots {
                 let size = block.size();
                 let near = out[side] + gap;
                 out[side] = near + thickness;
+                // Where the block starts along the side: centred, or with
+                // a colorbar's bar at the extent's start.
+                let (x, y) = match block.bar() {
+                    Some(bar) => (extent.x0 - bar.x0, extent.y0 - bar.y0),
+                    None => (center.x - size.width / 2.0, center.y - size.height / 2.0),
+                };
                 let at = match slot {
-                    Slot::Top => {
-                        Point::new(center.x - size.width / 2.0, grid.y0 - near - size.height)
-                    }
-                    Slot::Bottom => Point::new(center.x - size.width / 2.0, grid.y1 + near),
-                    Slot::Left => {
-                        Point::new(grid.x0 - near - size.width, center.y - size.height / 2.0)
-                    }
-                    Slot::Right => Point::new(grid.x1 + near, center.y - size.height / 2.0),
+                    Slot::Top => Point::new(x, grid.y0 - near - size.height),
+                    Slot::Bottom => Point::new(x, grid.y1 + near),
+                    Slot::Left => Point::new(grid.x0 - near - size.width, y),
+                    Slot::Right => Point::new(grid.x1 + near, y),
                 };
                 (block, at)
             })

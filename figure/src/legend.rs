@@ -3,6 +3,9 @@
 //! placed in a figure [`Slot`] outside the grid
 //! ([`Figure::legend`](crate::Figure::legend)) or in a corner of a panel
 //! ([`Panel::legend`](crate::Panel::legend)); one value may go in both.
+//! Both take any [`Guide`]: a legend, or a
+//! [`Colorbar`](crate::colorbar::Colorbar) of a continuous or binned color
+//! scale.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -17,8 +20,11 @@
 //! fig.legend(Slot::Bottom, key);
 //! ```
 
-mod draw;
+mod block;
+mod content;
+mod guide;
 mod inset;
+pub(crate) mod keys;
 mod slot;
 mod swatch;
 
@@ -31,7 +37,10 @@ use crate::figure::Resolved;
 use crate::scale::ScaleRef;
 use crate::text::Text;
 
-pub(crate) use draw::{Block, Content};
+pub(crate) use block::Block;
+pub(crate) use content::Content;
+pub use guide::Guide;
+pub(crate) use guide::{Erased, Stored};
 pub use inset::Inset;
 pub use slot::Slot;
 pub use swatch::Swatch;
@@ -81,6 +90,15 @@ impl<K> Legend<K> {
     /// a dot or a line.
     pub fn glyph(self, g: Swatch) -> Self {
         Legend { glyph: g, ..self }
+    }
+}
+
+impl<'a, K> Guide<'a> for Legend<K>
+where
+    K: PartialEq + Clone + Display + 'static,
+{
+    fn erase(self) -> Erased<'a> {
+        Erased(Stored::Keys(Box::new(self)))
     }
 }
 

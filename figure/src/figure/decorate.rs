@@ -67,7 +67,7 @@ impl Figure<'_> {
             marks(list, i, panel, &ctx);
             for (j, (block, at)) in laid.insets.iter().enumerate() {
                 part(list, part::id(Role::Legend, i, j), |list| {
-                    block.draw(*at, text, theme, list);
+                    block.draw(*at, text, theme, snap, list);
                 });
             }
             if let Some(color) = panel.frame() {
@@ -117,7 +117,7 @@ impl Figure<'_> {
         }
         for (k, (block, at)) in resolved.legends().iter().enumerate() {
             part(list, part::id(Role::Legend, part::FIGURE, k), |list| {
-                block.draw(*at, text, theme, list);
+                block.draw(*at, text, theme, snap, list);
             });
         }
     }

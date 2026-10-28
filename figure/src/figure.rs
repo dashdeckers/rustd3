@@ -13,13 +13,12 @@ mod resolved;
 mod save;
 
 use std::any::{Any, TypeId};
-use std::fmt::Display;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use rustd3_core::locale::Locale;
 
 use crate::layout::{Cell, Grid};
-use crate::legend::{self, Legend, Slot};
+use crate::legend::{self, Slot};
 use crate::panel::Panel;
 use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef, window};
 use crate::text::Text;
@@ -70,7 +69,7 @@ pub struct Figure<'a> {
     title: Option<Text>,
     theme: Theme,
     locale: Locale,
-    legends: Vec<(Slot, Box<dyn legend::Draw>)>,
+    legends: Vec<(Slot, legend::Stored<'a>)>,
 }
 
 /// One scale of the table, how to fit it when it is fitted, whether to
@@ -240,19 +239,18 @@ impl<'a> Figure<'a> {
         self
     }
 
-    /// Places legend `l` in figure slot `slot`, outside the grid: a row
-    /// centred on the plot areas above or below it, a column beside it.
-    /// Legends in one slot stack outward in the order they are added.
-    pub fn legend<K>(&mut self, slot: Slot, l: Legend<K>) -> &mut Self
-    where
-        K: PartialEq + Clone + Display + 'static,
-    {
-        self.legends.push((slot, Box::new(l)));
+    /// Places guide `g` in figure slot `slot`, outside the grid: a legend
+    /// as a row centred on the plot areas above or below it, a column
+    /// beside it; a colorbar along the side, as long as the plot areas
+    /// beside it. Guides in one slot stack outward in the order they are
+    /// added.
+    pub fn legend(&mut self, slot: Slot, g: impl legend::Guide<'a>) -> &mut Self {
+        self.legends.push((slot, g.erase().0));
         self
     }
 
-    /// The legends in figure slots, in the order they were added.
-    pub(crate) fn legends(&self) -> &[(Slot, Box<dyn legend::Draw>)] {
+    /// The guides in figure slots, in the order they were added.
+    pub(crate) fn legends(&self) -> &[(Slot, legend::Stored<'a>)] {
         &self.legends
     }
 

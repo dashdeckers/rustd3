@@ -106,14 +106,14 @@ impl Layout {
         let slotted: Vec<(Slot, Content)> = figure
             .legends()
             .iter()
-            .map(|(slot, l)| (*slot, Content::new(&**l, resolved, theme)))
+            .map(|(slot, g)| (*slot, Content::new(g, resolved, theme)))
             .collect();
         let insets: Vec<Vec<(Inset, Content)>> = panels
             .iter()
             .map(|p| {
                 p.insets()
                     .iter()
-                    .map(|(at, l)| (*at, Content::new(&**l, resolved, theme)))
+                    .map(|(at, g)| (*at, Content::new(g, resolved, theme)))
                     .collect()
             })
             .collect();
@@ -121,7 +121,7 @@ impl Layout {
             .iter()
             .map(|(_, c)| c)
             .chain(insets.iter().flatten().map(|(_, c)| c))
-            .flat_map(Content::keys)
+            .flat_map(|c| c.keys())
             .cloned()
             .collect();
         let snap = Snap::of(resolved.target());
@@ -210,7 +210,9 @@ impl Layout {
                     reach
                 })
                 .collect();
-            let reserve = reserve(&slots(&slotted, text, theme), title.as_ref(), text, theme);
+            let extent = union(&areas).unwrap_or_else(|| inner(size, theme.em(), [0.0; 4]));
+            let slots = slots(&slotted, extent, text, theme);
+            let reserve = reserve(&slots, title.as_ref(), text, theme);
             (areas, room) = place(figure, inner(size, theme.em(), reserve), &titled, snap);
             if last.as_ref() == Some(&counts) {
                 break;
@@ -219,10 +221,10 @@ impl Layout {
         }
         let text = &*text;
         let em = theme.em();
-        let slots = slots(&slotted, text, theme);
+        let extent = union(&areas).unwrap_or_else(|| inner(size, em, [0.0; 4]));
+        let slots = slots(&slotted, extent, text, theme);
         let grid = inner(size, em, reserve(&slots, title.as_ref(), text, theme));
-        let extent = areas.iter().copied().reduce(|a, b| a.union(b));
-        let legends = slots.place(grid, extent.unwrap_or(grid), em);
+        let legends = slots.place(grid, union(&areas).unwrap_or(grid), em);
         let headings = headings(panels, &axes, text, theme);
         let mut panels: Vec<Laid> = panels
             .iter()
@@ -248,7 +250,7 @@ impl Layout {
                     let insets = insets
                         .into_iter()
                         .map(|(at, content)| {
-                            let block = content.column(text, theme).framed(em);
+                            let block = content.inset(*area, text, theme);
                             let corner = at.place(*area, block.size(), INSET * em);
                             (block, corner)
                         })
@@ -425,21 +427,20 @@ fn reach(
     (reach, top)
 }
 
-/// The legends of `slotted` laid out for their slots: rows on top and
-/// bottom, columns on the sides.
-fn slots(slotted: &[(Slot, Content)], text: &text::Cache, theme: &Theme) -> Slots {
+/// The guides of `slotted` laid out for their slots beside plot areas
+/// whose union is `extent` ([`Content::slotted`]).
+fn slots(slotted: &[(Slot, Content)], extent: Rect, text: &text::Cache, theme: &Theme) -> Slots {
     Slots::new(
         slotted
             .iter()
-            .map(|(slot, content)| {
-                let block = match slot {
-                    Slot::Top | Slot::Bottom => content.row(text, theme),
-                    Slot::Left | Slot::Right => content.column(text, theme),
-                };
-                (*slot, block)
-            })
+            .map(|(slot, content)| (*slot, content.slotted(*slot, extent, text, theme)))
             .collect(),
     )
+}
+
+/// The union of plot areas `areas`; `None` without panels.
+fn union(areas: &[Rect]) -> Option<Rect> {
+    areas.iter().copied().reduce(|a, b| a.union(b))
 }
 
 /// What the figure title (its ink height and 8 px, on top) and the legends
