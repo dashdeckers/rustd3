@@ -142,7 +142,8 @@ fn stamps(shape: &BezPath, linear: Affine, level: Level) -> Vec<Stamp> {
 
 /// Lays the stamp of the phase nearest `at` (device px) in `color`
 /// (premultiplied, 0–255 per channel) source-over onto the premultiplied
-/// RGBA `data`, `width` px a row, inside `clip`.
+/// RGBA `data`, `width` px a row, inside `clip`. A fully covered pixel of
+/// an opaque color takes the color as it is.
 fn lay(
     data: &mut [u8],
     width: usize,
@@ -167,22 +168,30 @@ fn lay(
     }
     let stamp = &set[fy * PHASES + fx];
     let (x0, y0) = (ix + stamp.offset[0], iy + stamp.offset[1]);
-    let xs = x0.max(clip[0])..(x0 + stamp.width as i64).min(clip[2]);
-    let ys = y0.max(clip[1])..(y0 + stamp.height as i64).min(clip[3]);
-    for y in ys {
+    let (xs, xe) = (x0.max(clip[0]), (x0 + stamp.width as i64).min(clip[2]));
+    let (ys, ye) = (y0.max(clip[1]), (y0 + stamp.height as i64).min(clip[3]));
+    if xs >= xe || ys >= ye {
+        return;
+    }
+    let solid = color.map(|c| c as u8);
+    let opaque = color[3] == 255;
+    for y in ys..ye {
         let row = (y - y0) as usize * stamp.width;
-        for x in xs.clone() {
-            let coverage = u32::from(stamp.coverage[row + (x - x0) as usize]);
-            if coverage == 0 {
-                continue;
-            }
-            let i = (y as usize * width + x as usize) * 4;
-            let pixel = &mut data[i..i + 4];
-            let alpha = div255(color[3] * coverage);
-            for (channel, source) in pixel.iter_mut().zip(color) {
-                let source = div255(source * coverage);
-                let under = div255(u32::from(*channel) * (255 - alpha));
-                *channel = (source + under).min(255) as u8;
+        let coverage = &stamp.coverage[row + (xs - x0) as usize..row + (xe - x0) as usize];
+        let start = (y as usize * width + xs as usize) * 4;
+        let pixels = &mut data[start..start + coverage.len() * 4];
+        for (&c, pixel) in coverage.iter().zip(pixels.chunks_exact_mut(4)) {
+            match c {
+                0 => {}
+                255 if opaque => pixel.copy_from_slice(&solid),
+                c => {
+                    let c = u32::from(c);
+                    let under = 255 - div255(color[3] * c);
+                    for (channel, source) in pixel.iter_mut().zip(color) {
+                        let value = div255(source * c) + div255(u32::from(*channel) * under);
+                        *channel = value.min(255) as u8;
+                    }
+                }
             }
         }
     }
