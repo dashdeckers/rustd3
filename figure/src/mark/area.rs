@@ -2,6 +2,7 @@
 //! between two lines.
 
 use kurbo::{BezPath, Point, Shape};
+use rustd3_core::color::Rgb;
 use rustd3_core::series::{self, Data, Points, Series, m4};
 
 use crate::check::Issue;
@@ -14,6 +15,11 @@ use crate::mark::{Ctx, Error, Mark, admits, at, polygon, reach, runs};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::thin::Thin;
 
+/// An opaque ribbon color's opacity unless set: a band that lines drawn
+/// over it show through (seaborn's error bands use 0.2, matplotlib's
+/// examples 0.2–0.3).
+const BAND: f64 = 0.25;
+
 /// The region between a line through points and a horizontal base: one
 /// `Fill` command, broken where a point cannot be placed. A recording
 /// channel on an x scale with an index bridge is thinned to M4's points
@@ -24,6 +30,7 @@ pub struct Area<'a, X: Position, Y: Position<Domain = f64>> {
     y: ScaleRef<Y>,
     base: f64,
     color: Color,
+    opacity: f64,
     hatch: Option<Hatch>,
 }
 
@@ -35,14 +42,16 @@ pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     color: Color,
+    /// `None`: a band ([`BAND`]).
+    opacity: Option<f64>,
     hatch: Option<Hatch>,
     thin: Thin,
     error: Option<Error>,
 }
 
 /// The region between `data` (pairs, a recording channel or two slices)
-/// and the base y = 0 on `x` and `y`, in the theme palette's first color.
-/// Its base is held: the y margin stops there.
+/// and the base y = 0 on `x` and `y`, in the theme palette's first color,
+/// opaque. Its base is held: the y margin stops there.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -68,15 +77,19 @@ where
         y,
         base: 0.0,
         color: Color::Theme,
+        opacity: 1.0,
         hatch: None,
     }
 }
 
 /// The region between `y0` and `y1` of rows `(x, y0, y1)` on `x` and
-/// `y`, in the theme palette's first color: `shape::stack`'s `[y0, y1]`
-/// plugs in directly. Both edges enter fitting; 0 is held when an edge
-/// reaches exactly 0 (matplotlib's sticky edge), so a stacked area stands
-/// on the axis, and nothing else is. Never thinned.
+/// `y`, a band in the theme palette's first color: an opaque color at 0.25
+/// opacity, so a line drawn over it shows, a translucent one at its own
+/// ([`opacity`](Ribbon::opacity) sets a factor instead):
+/// `shape::stack`'s `[y0, y1]` plugs in directly. Both edges enter
+/// fitting; 0 is held when an edge reaches exactly 0 (matplotlib's sticky
+/// edge), so a stacked area stands on the axis, and nothing else is.
+/// Never thinned.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -104,7 +117,8 @@ where
 }
 
 /// The region between two channels of one recording, `lower` and `upper`,
-/// thinned together ([`Thin::Auto`]): per column, M4 over both channels
+/// a band as [`ribbon`]'s, thinned together ([`Thin::Auto`]): per column,
+/// M4 over both channels
 /// at once (core's `Series::m4_joint`), so both edges keep their extremes
 /// and the lower edge stays below the upper one wherever the data does.
 /// 0 is held when a channel's least or greatest value is exactly 0, as
@@ -163,6 +177,23 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
         }
     }
 
+    /// Fills the region with `c`.
+    pub fn color(self, c: Rgb) -> Self {
+        Self {
+            color: Color::Fixed(c),
+            ..self
+        }
+    }
+
+    /// The fill's opacity, clamped to [0, 1], times its color's own; 1 by
+    /// default. NaN leaves it as it was.
+    pub fn opacity(self, a: f64) -> Self {
+        Self {
+            opacity: clamped(a, self.opacity),
+            ..self
+        }
+    }
+
     /// Hatches the region with `h`, after its fill; legend swatches of the
     /// fill key repeat it.
     pub fn hatch(self, h: Hatch) -> Self {
@@ -208,7 +239,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
             outline.push(Point::new(last.x, base));
             polygon(&mut path, &outline, band);
         }
-        fill(list, path, (&self.color, self.hatch.as_ref()), ctx);
+        let paint = (&self.color, Some(self.opacity), self.hatch.as_ref());
+        fill(list, path, paint, ctx);
     }
 
     /// Collected data over 100,000 points; a fill key the palette lacks;
@@ -235,6 +267,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
             x,
             y,
             color: Color::Theme,
+            opacity: None,
             hatch: None,
             thin: Thin::Auto,
             error,
@@ -246,6 +279,29 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
+            ..self
+        }
+    }
+
+    /// Fills the ribbon with `c`.
+    pub fn color(self, c: Rgb) -> Self {
+        Self {
+            color: Color::Fixed(c),
+            ..self
+        }
+    }
+
+    /// The fill's opacity, clamped to [0, 1], times its color's own, in
+    /// place of a band's (an opaque color at 0.25, a translucent one at its
+    /// own); 1 for an opaque ribbon, as stacked areas are. NaN leaves it as
+    /// it was.
+    pub fn opacity(self, a: f64) -> Self {
+        Self {
+            opacity: if a.is_nan() {
+                self.opacity
+            } else {
+                Some(a.clamp(0.0, 1.0))
+            },
             ..self
         }
     }
@@ -329,7 +385,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
             let outline: Vec<Point> = upper.chain(lower).collect();
             polygon(&mut path, &outline, band);
         }
-        fill(list, path, (&self.color, self.hatch.as_ref()), ctx);
+        let paint = (&self.color, self.opacity, self.hatch.as_ref());
+        fill(list, path, paint, ctx);
     }
 
     /// A ribbon over two recordings; collected rows over 100,000; a fill
@@ -375,17 +432,33 @@ fn sequence(lines: &m4::Lines) -> impl Iterator<Item = Option<usize>> + '_ {
         .flat_map(|line| line.iter().map(|&i| Some(i)).chain([None]))
 }
 
-/// Pushes `path` filled in `color`, then hatched with `hatch` (clipped to
-/// the path) when set, unless it is empty.
-fn fill(list: &mut List, path: BezPath, (color, hatch): (&Color, Option<&Hatch>), ctx: &Ctx<'_>) {
+/// `a` clamped to [0, 1]; `was` for NaN.
+fn clamped(a: f64, was: f64) -> f64 {
+    if a.is_nan() { was } else { a.clamp(0.0, 1.0) }
+}
+
+/// What a region is filled with: its color, the opacity it multiplies the
+/// color's by (`None`: a band's), and its hatch.
+type Filling<'p> = (&'p Color, Option<f64>, Option<&'p Hatch>);
+
+/// Pushes `path` filled in `paint`'s color at its opacity (a band's: an
+/// opaque color at 0.25, a translucent one at its own), then hatched
+/// (clipped to the path) when set, unless it is empty.
+fn fill(list: &mut List, path: BezPath, (color, opacity, hatch): Filling<'_>, ctx: &Ctx<'_>) {
     if path.elements().is_empty() {
         return;
     }
     let bounds = path.bounding_box();
     let clip = hatch.map(|_| Clip::Path(path.clone()));
+    let c = color.resolve(ctx);
+    let alpha = match opacity {
+        Some(a) => c.opacity * a,
+        None if c.opacity < 1.0 => c.opacity,
+        None => BAND,
+    };
     list.commands.push(Command::Fill {
         path,
-        paint: list::brush(color.resolve(ctx)),
+        paint: list::brush(c.with_opacity(alpha)),
     });
     if let Some(clip) = clip {
         super::hatch(hatch, clip, bounds, ctx, list);

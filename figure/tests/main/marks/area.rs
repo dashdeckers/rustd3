@@ -1,6 +1,7 @@
 //! Areas and ribbons: held bases, polygons, and ribbons over two channels
 //! of a recording thinned together.
 
+use rustd3_core::color::Rgb;
 use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::COLORBLIND;
@@ -44,6 +45,44 @@ fn polygons(list: &List) -> Vec<Vec<Point>> {
 /// `a` and `b` within 1e-9.
 fn close(a: [f64; 2], b: [f64; 2]) -> bool {
     (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9
+}
+
+#[test]
+fn ribbons_are_bands_at_a_quarter_opacity_and_areas_opaque() {
+    let (mut fig, x, y) = fitted();
+    let red = Rgb::hex(0xc44e52);
+    let (rows, points) = ([(0.0, 1.0, 2.0), (1.0, 0.5, 3.0)], [(0.0, 1.0), (1.0, 3.0)]);
+    fig.panel(0, 0)
+        .mark(area(points, x, y))
+        .mark(ribbon(rows, x, y))
+        .mark(area(points, x, y).color(red).opacity(0.4))
+        .mark(ribbon(rows, x, y).color(red.with_opacity(0.5)).opacity(0.5))
+        .mark(ribbon(rows, x, y).opacity(1.0).opacity(f64::NAN))
+        .mark(area(points, x, y).opacity(2.0))
+        .mark(ribbon(rows, x, y).color(red.with_opacity(0.5)));
+    let list = draw(&fig);
+    let paints: Vec<_> = marked(&list)
+        .into_iter()
+        .filter_map(|c| {
+            if let Command::Fill { paint, .. } = c {
+                Some(paint.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    let blue = COLORBLIND[0];
+    let expected = [
+        solid(blue),
+        solid(blue.with_opacity(0.25)),
+        solid(red.with_opacity(0.4)),
+        solid(red.with_opacity(0.25)),
+        solid(blue),
+        solid(blue),
+        // A translucent color keeps its own as a band.
+        solid(red.with_opacity(0.5)),
+    ];
+    assert_eq!(paints, expected);
 }
 
 #[test]

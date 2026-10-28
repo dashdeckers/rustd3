@@ -23,9 +23,9 @@ pub struct Area<'a> {
 
 /// A stacked area chart of `columns` over `x`, each column a series with a
 /// value per x, stacked from 0 in the columns' order by `shape::stack`
-/// (offset none; matplotlib's `stackplot`): one [`ribbon`] per column
-/// between its stacked edges, in its key's color, on linear x and y scales
-/// fitted to them, a bottom and a left axis with minor ticks, and a
+/// (offset none; matplotlib's `stackplot`): one opaque [`ribbon`] per
+/// column between its stacked edges, in its key's color, on linear x and
+/// y scales fitted to them, a bottom and a left axis with minor ticks, and a
 /// legend right of the plot area when there is more than one column.
 /// Columns are keyed by their index ("0", "1", …, pandas' names for
 /// unnamed columns); rows are the shortest of `x` and the columns.
@@ -62,7 +62,7 @@ impl<'a> Area<'a> {
         let panel = fig.panel(0, 0);
         for (layer, key) in shape::stack(&columns).iter().zip(&keys) {
             let rows = x.iter().zip(layer).map(|(x, [y0, y1])| (*x, *y0, *y1));
-            panel.mark(ribbon(rows, sx, sy).fill(color, key.clone()));
+            panel.mark(ribbon(rows, sx, sy).fill(color, key.clone()).opacity(1.0));
         }
         setup.axes(panel, sx, sy);
         if keys.len() > 1 {
