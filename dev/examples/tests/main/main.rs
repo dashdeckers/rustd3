@@ -1,11 +1,12 @@
 //! rustd3-examples' tests: the core-level use cases driven headlessly
-//! through `iced_test`'s simulator, on `ICED_TEST_BACKEND`'s renderer, and
-//! the wheel figure.
+//! through `iced_test`'s simulator, on `ICED_TEST_BACKEND`'s renderer, the
+//! wheel figure, and the root README's iced code.
 
 mod focus_context;
 // poppler's tools, shared with rustd3-figure's PDF tests.
 #[path = "../../../../figure/tests/main/poppler.rs"]
 mod poppler;
+mod readme;
 mod update_pattern;
 mod wheels;
 

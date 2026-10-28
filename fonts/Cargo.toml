@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license-file = "LICENSE"
 documentation = "https://docs.rs/rustd3-fonts"
+readme = "README.md"
 categories = ["visualization"]
 include = [
     "src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE",

@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 documentation = "https://docs.rs/rustd3-derive"
+readme = "README.md"
 categories = ["development-tools::procedural-macro-helpers"]
 include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE"]
 autotests = false

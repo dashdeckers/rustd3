@@ -1,8 +1,48 @@
 //! `#[derive(Interpolate)]`, which interpolates a struct field by field so
 //! that marks with several animated attributes transition as one value;
 //! enabled through `rustd3-core`'s `derive` feature, which re-exports it as
-//! `rustd3_core::interpolate::Interpolate` beside the trait. Examples and
-//! the shapes it rejects are documented there.
+//! `rustd3_core::interpolate::Interpolate` beside the trait (and the
+//! `rustd3` facade as `rustd3::interpolate::Interpolate`). Examples with
+//! the real trait, and the shapes the derive rejects, are documented there.
+//!
+//! The derive names the trait it implements by path: `Interpolate` as the
+//! code imports it, or `path::interpolate::Interpolate` with
+//! `#[interpolate(crate = "path")]`. Here a stand-in module plays rustd3's
+//! part, so the example runs without it:
+//!
+//! ```
+//! mod plot {
+//!     pub mod interpolate {
+//!         pub trait Interpolate: Clone {
+//!             fn lerp(&self, to: &Self, t: f64) -> Self;
+//!         }
+//!
+//!         impl Interpolate for f64 {
+//!             fn lerp(&self, to: &f64, t: f64) -> f64 {
+//!                 self * (1.0 - t) + to * t
+//!             }
+//!         }
+//!     }
+//! }
+//!
+//! use plot::interpolate::Interpolate;
+//!
+//! #[derive(Debug, Clone, PartialEq, rustd3_derive::Interpolate)]
+//! #[interpolate(crate = "plot")]
+//! struct Bar {
+//!     y: f64,
+//!     height: f64,
+//!     // Taken from the end at t = 1, as d3 jumps values it cannot blend.
+//!     #[interpolate(skip)]
+//!     label: String,
+//! }
+//!
+//! let a = Bar { y: 0.0, height: 10.0, label: "a".into() };
+//! let b = Bar { y: 40.0, height: 30.0, label: "b".into() };
+//! let quarter = Bar { y: 10.0, height: 15.0, label: "a".into() };
+//! assert_eq!(a.lerp(&b, 0.25), quarter);
+//! assert_eq!(a.lerp(&b, 1.0).label, "b");
+//! ```
 
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};

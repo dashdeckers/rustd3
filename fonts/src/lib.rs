@@ -2,7 +2,18 @@
 //!
 //! DejaVu Sans in two weights sets text and New Computer Modern Math sets
 //! math. Each constant carries the bytes of its font file, which keep
-//! their own licences (see this crate's `LICENSE`).
+//! their own licences (see this crate's `LICENSE`). rustd3-figure loads
+//! them through its default `fonts` feature.
+//!
+//! ```
+//! use rustd3_fonts::{ALL, DEJAVU_SANS, NEW_CM_MATH};
+//!
+//! assert_eq!(DEJAVU_SANS.family(), "DejaVu Sans");
+//! assert!(!DEJAVU_SANS.bold());
+//! assert_eq!(DEJAVU_SANS.data()[..4], [0, 1, 0, 0]); // TrueType
+//! assert_eq!(NEW_CM_MATH.data()[..4], *b"OTTO"); // OpenType with CFF outlines
+//! assert_eq!(ALL.len(), 3);
+//! ```
 
 // A `const` that held `include_bytes!` directly would be copied into every
 // crate that uses it; behind one static, a binary holds each file once.

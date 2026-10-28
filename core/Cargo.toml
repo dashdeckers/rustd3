@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 documentation = "https://docs.rs/rustd3-core"
+readme = "README.md"
 keywords = ["d3", "scale", "chart", "visualization", "time"]
 categories = ["visualization", "science", "date-and-time"]
 include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/LICENSE-d3"]

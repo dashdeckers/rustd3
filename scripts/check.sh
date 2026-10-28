@@ -19,6 +19,7 @@ touched() {  # packages with uncommitted changes or changed in HEAD
       iced/*) echo rustd3-iced ;;        dev/testkit/*) echo rustd3-testkit ;;
       dev/harness/*) echo rustd3-harness ;; dev/examples/*) echo rustd3-examples ;;
       dev/bench/*) echo rustd3-bench ;;  src/*|tests/*) echo rustd3 ;;
+      README.md) echo rustd3; echo rustd3-examples ;;
       Cargo.toml|Cargo.lock|clippy.toml|dev/clippy.toml) printf '%s\n' "${PACKAGES[@]}" ;;
     esac
   done | sort -u
