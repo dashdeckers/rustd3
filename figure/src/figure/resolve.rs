@@ -251,7 +251,13 @@ impl Figure<'_> {
                     .boxed()
             })
             .collect();
-        let reports = self.report(Fits::new(self.id, slots, built, self.theme.clone()));
+        let reports = self.report(Fits::new(
+            self.id,
+            slots,
+            built,
+            self.theme.clone(),
+            self.locale.clone(),
+        ));
         let mut last: Vec<Option<Box<dyn Any>>> = self.scales.iter().map(|_| None).collect();
         let scales = self
             .scales
@@ -320,8 +326,14 @@ impl Figure<'_> {
                 })
                 .collect();
             let resolved = scales.iter().map(|s| s.boxed()).collect();
-            let fits = Fits::new(self.id, slots, resolved, self.theme.clone())
-                .visible(fitted.pending.clone());
+            let fits = Fits::new(
+                self.id,
+                slots,
+                resolved,
+                self.theme.clone(),
+                self.locale.clone(),
+            )
+            .visible(fitted.pending.clone());
             let reports = self.report(fits);
             let margin = self.margin();
             for (i, (entry, slot)) in self.scales.iter().zip(reports.slots).enumerate() {

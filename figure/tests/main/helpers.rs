@@ -6,6 +6,7 @@ mod boxplot;
 mod ecdf;
 mod errorbar;
 mod hist;
+mod labels;
 mod subplots;
 mod violin;
 

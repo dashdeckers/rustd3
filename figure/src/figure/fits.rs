@@ -3,6 +3,8 @@
 
 use std::any::{Any, TypeId};
 
+use rustd3_core::locale::Locale;
+
 use crate::figure;
 use crate::hatch::Hatch;
 use crate::scale::{Kind, Position, Scale, ScaleRef, visible, window};
@@ -24,6 +26,8 @@ pub struct Fits {
     scales: Vec<Box<dyn Scale>>,
     /// The figure's theme, which label styles come from.
     theme: Theme,
+    /// The figure's locale, which marks write their numbers in.
+    locale: Locale,
     /// The labels marks draw.
     labels: Vec<Key>,
     /// The hatches of marks filled through a palette.
@@ -157,13 +161,14 @@ impl Fitter {
 }
 
 impl Fits {
-    /// Reports for figure `figure` drawn with `theme`: one slot and one
-    /// scale (as held, or as built) per table entry.
+    /// Reports for figure `figure` drawn with `theme` and `locale`: one
+    /// slot and one scale (as held, or as built) per table entry.
     pub(super) fn new(
         figure: figure::Id,
         slots: Vec<Option<Box<dyn Any>>>,
         scales: Vec<Box<dyn Scale>>,
         theme: Theme,
+        locale: Locale,
     ) -> Fits {
         let across = vec![Vec::new(); scales.len()];
         Fits {
@@ -171,6 +176,7 @@ impl Fits {
             slots,
             scales,
             theme,
+            locale,
             labels: Vec::new(),
             hatches: Vec::new(),
             pending: None,
@@ -242,6 +248,11 @@ impl Fits {
     /// The figure's theme.
     pub(crate) fn theme(&self) -> &Theme {
         &self.theme
+    }
+
+    /// The figure's locale.
+    pub(crate) fn locale(&self) -> &Locale {
+        &self.locale
     }
 
     /// A label a mark draws, shaped with the figure's other labels.

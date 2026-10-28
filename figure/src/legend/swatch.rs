@@ -63,12 +63,15 @@ impl Swatch {
 
     /// Appends the swatch in `color` to `list`, in its box `rect` in the
     /// figure's coordinates, sized by `theme`; a square is hatched with
-    /// `hatch`, anchored to the figure as its marks' hatches are.
+    /// `hatch`, anchored to the figure as its marks' hatches are, and a dot
+    /// is `size` px across when given (a size legend's), else the theme's
+    /// marker diameter at most the box's height.
     pub(crate) fn draw(
         self,
         rect: Rect,
         color: Rgb,
         hatch: Option<&Hatch>,
+        size: Option<f64>,
         theme: &Theme,
         list: &mut List,
     ) {
@@ -85,7 +88,8 @@ impl Swatch {
                 return;
             }
             Swatch::Dot => {
-                let r = theme.get_marker().min(rect.height()) / 2.0;
+                let d = size.unwrap_or_else(|| theme.get_marker().min(rect.height()));
+                let r = d / 2.0;
                 Command::Fill {
                     path: kurbo::Circle::new(rect.center(), r).to_path(TOLERANCE),
                     paint,

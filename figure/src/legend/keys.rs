@@ -36,29 +36,38 @@ const EDGE: f64 = 1.0;
 /// Tolerance of a rectangle's path: exact, rectangles have no curves.
 const TOLERANCE: f64 = 0.1;
 
-/// A legend's content for one resolve: its title's key, each entry's
-/// color, label key and hatch, in domain order, and what its swatches
-/// show.
+/// A legend's content for one resolve: its title's key, its entries in
+/// order, and what its swatches show.
 pub(crate) struct Content {
     title: Option<Key>,
-    entries: Vec<(Rgb, Key, Option<Hatch>)>,
+    entries: Vec<Keyed>,
     glyph: Swatch,
 }
 
+/// An entry for one resolve: its swatch's color, its label's key, the
+/// hatch of its marks and its dot's diameter, px (`None`: the theme's
+/// marker size).
+struct Keyed {
+    color: Rgb,
+    key: Key,
+    hatch: Option<Hatch>,
+    size: Option<f64>,
+}
+
 /// A legend laid out, relative to its top-left corner: its size, whether
-/// it is framed, what its swatches show, their boxes, colors and hatches,
-/// and where its labels' first baselines start (or, for a centred title,
-/// are centred).
+/// it is framed, what its swatches show, their boxes, colors, hatches and
+/// dot diameters, and where its labels' first baselines start (or, for a
+/// centred title, are centred).
 pub(crate) struct Block {
     size: Size,
     framed: bool,
     glyph: Swatch,
-    swatches: Vec<Entry>,
+    swatches: Vec<Swatched>,
     labels: Vec<(Key, Point, anchor::Horizontal)>,
 }
 
-/// A swatch: its box, color and hatch.
-type Entry = (Rect, Rgb, Option<Hatch>);
+/// A swatch: its box, color, hatch and dot diameter.
+type Swatched = (Rect, Rgb, Option<Hatch>, Option<f64>);
 
 /// A block being laid out: how far its labels and swatches reach above and
 /// below the baseline at y = 0, and what it holds so far.
@@ -66,23 +75,24 @@ type Entry = (Rect, Rgb, Option<Hatch>);
 struct Rows {
     top: f64,
     bottom: f64,
-    swatches: Vec<Entry>,
+    swatches: Vec<Swatched>,
     labels: Vec<(Key, Point, anchor::Horizontal)>,
 }
 
 impl Content {
     /// `legend`'s title and entries over the resolved scales, in `theme`'s
-    /// legend styles; keys the palette has no color for take the theme's
-    /// gray.
+    /// legend styles; entries without a color take the theme's gray.
     pub(crate) fn new(legend: &dyn Draw, resolved: &Resolved, theme: &Theme) -> Content {
         let title = legend.title().map(|t| Key::new(t, &theme.legend_title()));
         let style = theme.legend_label();
         let entries = legend
-            .entries(resolved)
+            .entries(resolved, theme)
             .into_iter()
-            .map(|(color, label, hatch)| {
-                let key = Key::new(&Text::from(label), &style);
-                (color.unwrap_or(theme.get_gray()), key, hatch)
+            .map(|entry| Keyed {
+                color: entry.color.unwrap_or(theme.get_gray()),
+                key: Key::new(&Text::from(entry.label), &style),
+                hatch: entry.hatch,
+                size: entry.size,
             })
             .collect();
         Content {
@@ -96,15 +106,16 @@ impl Content {
     pub(crate) fn keys(&self) -> impl Iterator<Item = &Key> {
         self.title
             .iter()
-            .chain(self.entries.iter().map(|(_, key, _)| key))
+            .chain(self.entries.iter().map(|entry| &entry.key))
     }
 
     /// The legend as one row on a shared baseline: the title, 0.8 em, then
     /// each entry (its swatch's box, 0.7 em tall standing on the baseline
-    /// and 0.7 em wide, 2 em for a line, then 0.8 em and its label) 2 em
-    /// after the last. Its height is the line boxes of its labels (the
-    /// text face's ascender and descender at their size) united with their
-    /// ink and the swatches.
+    /// and 0.7 em wide, 2 em for a line, or as wide and tall as a larger
+    /// dot ([`swatch`]), then 0.8 em and its label) 2 em after the last.
+    /// Its height is the line boxes of its labels (the text face's
+    /// ascender and descender at their size) united with their ink and the
+    /// swatches.
     pub(crate) fn row(&self, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
         let side = self.glyph.width(em);
@@ -127,16 +138,19 @@ impl Content {
                 x += LABEL * em;
             }
         }
-        for (i, (color, key, hatch)) in self.entries.iter().enumerate() {
+        for (i, e) in self.entries.iter().enumerate() {
             if i > 0 {
                 x += ENTRIES * em;
             }
-            let swatch = Rect::new(x, -SWATCH * em, x + side, 0.0);
-            rows.swatches.push((swatch, *color, hatch.clone()));
-            x += side + LABEL * em;
+            let width = side.max(e.size.unwrap_or(0.0));
+            let r = swatch(x, width, em, e.size);
+            rows.top = rows.top.min(r.y0);
+            rows.bottom = rows.bottom.max(r.y1);
+            rows.swatches.push((r, e.color, e.hatch.clone(), e.size));
+            x += width + LABEL * em;
             x += rows.label(
                 text,
-                key,
+                &e.key,
                 entry,
                 Point::new(x, 0.0),
                 anchor::Horizontal::Start,
@@ -149,18 +163,22 @@ impl Content {
 
     /// The legend as a column: the title centred on top, then one entry per
     /// row (its swatch's box standing on the row's baseline as in a
-    /// [`row`](Content::row), 0.8 em, its label), each row the height of
-    /// its label's line box united with its ink and swatch, rows 0.5 em
-    /// apart.
+    /// [`row`](Content::row), every box as wide as the widest, 0.8 em, its
+    /// label), each row the height of its label's line box united with its
+    /// ink and swatch, rows 0.5 em apart.
     pub(crate) fn column(&self, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
-        let side = self.glyph.width(em);
+        let side = self
+            .entries
+            .iter()
+            .filter_map(|e| e.size)
+            .fold(self.glyph.width(em), f64::max);
         let entry = text.fonts().line(theme.tick_text());
         let width = |key: &Key| get(text, key).map_or(0.0, Shaped::width);
         let labels = self
             .entries
             .iter()
-            .map(|(_, key, _)| width(key))
+            .map(|e| width(&e.key))
             .fold(0.0, f64::max);
         let entries = if self.entries.is_empty() {
             0.0
@@ -181,23 +199,21 @@ impl Content {
                 .push((key.clone(), at, anchor::Horizontal::Middle));
             y += bottom - top;
         }
-        for (i, (color, key, hatch)) in self.entries.iter().enumerate() {
+        for (i, e) in self.entries.iter().enumerate() {
             if i > 0 || title.is_some() {
                 y += ROWS * em;
             }
-            let shaped = get(text, key);
+            let shaped = get(text, &e.key);
             let [top, bottom] = shaped.map_or([0.0, 0.0], |s| extent(s, entry));
-            let (top, bottom) = (top.min(-SWATCH * em), bottom.max(0.0));
+            let r = swatch(0.0, side, em, e.size);
+            let (top, bottom) = (top.min(r.y0), bottom.max(r.y1));
             let baseline = y - top;
-            rows.swatches.push((
-                Rect::new(0.0, baseline - SWATCH * em, side, baseline),
-                *color,
-                hatch.clone(),
-            ));
+            let r = r + Vec2::new(0.0, baseline);
+            rows.swatches.push((r, e.color, e.hatch.clone(), e.size));
             if shaped.is_some() {
                 let at = Point::new(side + LABEL * em, baseline);
                 rows.labels
-                    .push((key.clone(), at, anchor::Horizontal::Start));
+                    .push((e.key.clone(), at, anchor::Horizontal::Start));
             }
             y += bottom - top;
         }
@@ -238,7 +254,7 @@ impl Rows {
             swatches: self
                 .swatches
                 .into_iter()
-                .map(|(r, c, h)| (r + by, c, h))
+                .map(|(r, c, h, d)| (r + by, c, h, d))
                 .collect(),
             labels: self
                 .labels
@@ -267,7 +283,7 @@ impl Block {
             swatches: self
                 .swatches
                 .into_iter()
-                .map(|(r, c, h)| (r + by, c, h))
+                .map(|(r, c, h, d)| (r + by, c, h, d))
                 .collect(),
             labels: self
                 .labels
@@ -285,9 +301,9 @@ impl Block {
         if self.framed {
             frame(self.size.to_rect() + by, theme, list);
         }
-        for (rect, color, hatch) in &self.swatches {
+        for (rect, color, hatch, size) in &self.swatches {
             self.glyph
-                .draw(*rect + by, *color, hatch.as_ref(), theme, list);
+                .draw(*rect + by, *color, hatch.as_ref(), *size, theme, list);
         }
         for (key, p, h) in &self.labels {
             if let Some(shaped) = get(text, key) {
@@ -313,6 +329,21 @@ pub(crate) fn frame(rect: Rect, theme: &Theme, list: &mut List) {
         style: list::stroke(EDGE),
         paint: list::brush(theme.legend_edge()),
     });
+}
+
+/// An entry's swatch box `width` px wide from `x`, relative to its row's
+/// baseline at y = 0: 0.7 em tall standing on the baseline, or, for a dot
+/// whose diameter `size` exceeds that, a square of that side centred where
+/// the 0.7-em box's centre is, so rows grow to hold it.
+fn swatch(x: f64, width: f64, em: f64, size: Option<f64>) -> Rect {
+    let h = SWATCH * em;
+    match size {
+        Some(d) if d > h => {
+            let (cx, cy) = (x + width / 2.0, -h / 2.0);
+            Rect::new(cx - d / 2.0, cy - d / 2.0, cx + d / 2.0, cy + d / 2.0)
+        }
+        Some(_) | None => Rect::new(x, -h, x + width, 0.0),
+    }
 }
 
 /// How far `shaped` reaches above its first baseline (negative) and below

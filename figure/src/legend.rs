@@ -22,6 +22,7 @@
 
 mod block;
 mod content;
+mod entry;
 mod guide;
 mod inset;
 pub(crate) mod keys;
@@ -34,12 +35,13 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ordinal;
 
 use crate::figure::Resolved;
-use crate::hatch::Hatch;
 use crate::scale::ScaleRef;
 use crate::text::Text;
+use crate::theme::Theme;
 
 pub(crate) use block::Block;
 pub(crate) use content::Content;
+pub(crate) use entry::Entry;
 pub use guide::Guide;
 pub(crate) use guide::{Erased, Stored};
 pub use inset::Inset;
@@ -106,9 +108,10 @@ where
 
 /// A legend with its key type erased: what layout and drawing ask of it.
 pub(crate) trait Draw {
-    /// Each key's color (`None` when the palette has none for it), text
-    /// and the hatch of the marks filled with it, in domain order.
-    fn entries(&self, resolved: &Resolved) -> Vec<(Option<Rgb>, String, Option<Hatch>)>;
+    /// The entries over the resolved scales, in `theme`'s colors: for a
+    /// legend of an ordinal palette, each key's color, text and the hatch
+    /// of the marks filled with it, in domain order.
+    fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry>;
 
     /// The title.
     fn title(&self) -> Option<&Text>;
@@ -121,7 +124,7 @@ impl<K> Draw for Legend<K>
 where
     K: PartialEq + Clone + Display + 'static,
 {
-    fn entries(&self, resolved: &Resolved) -> Vec<(Option<Rgb>, String, Option<Hatch>)> {
+    fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
         let palette = resolved.scale(self.palette);
         palette
             .get_domain()
@@ -130,7 +133,12 @@ where
                 let hatch = resolved
                     .hatch(self.palette.index(), |k| k.downcast_ref::<K>() == Some(key))
                     .cloned();
-                (palette.apply(key).copied(), key.to_string(), hatch)
+                Entry {
+                    color: palette.apply(key).copied(),
+                    label: key.to_string(),
+                    hatch,
+                    size: None,
+                }
             })
             .collect()
     }

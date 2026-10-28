@@ -44,6 +44,7 @@ use std::any::Any;
 use std::cell::{RefCell, RefMut};
 
 use kurbo::{BezPath, Cap, Join, Point};
+use rustd3_core::locale::Locale;
 use rustd3_core::series::{Points, m4};
 
 use crate::check::{self, Issue};
@@ -211,6 +212,17 @@ impl Ctx<'_> {
     /// `None` when typst rejected it.
     pub(crate) fn label(&self, key: &Key) -> Option<&Shaped> {
         self.text.get(key)?.ok()
+    }
+
+    /// The figure's locale.
+    pub(crate) fn locale(&self) -> &Locale {
+        self.resolved.locale()
+    }
+
+    /// The line box labels of `size` px share: the text face's ascender
+    /// above the baseline and descender below it, px.
+    pub(crate) fn line(&self, size: f64) -> [f64; 2] {
+        self.text.fonts().line(size)
     }
 
     /// `h`'s resolved scale over `range`.
@@ -402,7 +414,7 @@ fn outside<X: Position, Y: Position>(
 }
 
 /// Whether `p` lies in `bounds`, edges included.
-fn within(bounds: kurbo::Rect, p: Point) -> bool {
+pub(crate) fn within(bounds: kurbo::Rect, p: Point) -> bool {
     (bounds.x0..=bounds.x1).contains(&p.x) && (bounds.y0..=bounds.y1).contains(&p.y)
 }
 
@@ -411,7 +423,11 @@ fn within(bounds: kurbo::Rect, p: Point) -> bool {
 /// take (0 or less on a log scale) lies at the end of the guard band on
 /// the side of the domain it lies beyond, as matplotlib clips it. `None`
 /// for NaN.
-fn reach<S: Position<Domain = f64>>(scale: &S, v: f64, [lo, hi]: [f64; 2]) -> Option<f64> {
+pub(crate) fn reach<S: Position<Domain = f64>>(
+    scale: &S,
+    v: f64,
+    [lo, hi]: [f64; 2],
+) -> Option<f64> {
     if v.is_nan() {
         return None;
     }
