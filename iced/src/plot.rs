@@ -110,6 +110,17 @@
 //! shows a grab hand over a zoomable plot area, a grabbing hand during a
 //! drag, a resize arrow over a zoomable axis and a crosshair over other
 //! plot areas.
+//!
+//! **Brushes.** A drag over the plot area of a panel with a brush
+//! (`Panel::brush`) brushes instead of panning, through core's `BrushX`
+//! or `BrushY` over that plot area; [`Plot::on_brush`] publishes the
+//! selection in the handle's domain, and a brush that `.sets(target)`
+//! sets the target's domain as a zoom does. Between gestures each brush
+//! takes its selection from the domain it selects, so a zoom of the target
+//! moves the band, and during one it never does, so updates the app
+//! applies late lose nothing. Brushing changes no cell: only the overlay
+//! redraws, unless a target's domain changed. A double click clears the
+//! clicked panel's brush and resets its target with the handles it zooms.
 
 //! **Live data.** The widget keeps no recording state: the hashes are the
 //! dependency tracker. An append bumps the recording's revision, which
@@ -164,6 +175,7 @@
 //! }
 //! ```
 
+mod brush;
 mod budget;
 mod caching;
 pub mod cost;
@@ -193,7 +205,7 @@ use iced_core::renderer;
 use iced_core::widget::{Meta, Tree, tree};
 use iced_core::{Element, Event, Length, Rectangle, Shell, Size, Widget, window};
 use rustd3_figure::Figure;
-use rustd3_figure::scale::{Kind, ScaleRef};
+use rustd3_figure::scale::{Invert, Kind, ScaleRef};
 
 pub use caching::Caching;
 pub use hover::Hover;
@@ -234,6 +246,7 @@ pub struct Plot<'a, Message> {
     revision: u64,
     probe: Option<Probe>,
     listeners: Vec<Listener<'a, Message>>,
+    brushes: Vec<brush::Listener<'a, Message>>,
     on_hover: Option<Report<'a, Message>>,
 }
 
@@ -252,6 +265,7 @@ impl<'a, Message> Plot<'a, Message> {
             revision: 0,
             probe: None,
             listeners: Vec::new(),
+            brushes: Vec::new(),
             on_hover: None,
         }
     }
@@ -428,6 +442,65 @@ impl<'a, Message> Plot<'a, Message> {
         self
     }
 
+    /// The selections of brushes over `over` (`Panel::brush`) become
+    /// messages: `f(Some([a, b]))` with the values `over`'s scale inverts
+    /// the selection's ends to, in their order along the axis (left to
+    /// right, top to bottom), while a gesture changes it and when it ends;
+    /// `f(None)` when it ends empty (a click without a drag) or a double
+    /// click clears it. One message per brush per frame, the latest. A
+    /// later `on_brush` for the same handle replaces this one.
+    ///
+    /// A drag over a brushed plot area brushes (the wheel still zooms):
+    /// a press outside the selection starts a new one, on it moves it, on
+    /// its edges resizes it, as d3-brush does; the live rectangle and the
+    /// selection band are drawn over the panel's plot area, and only the
+    /// overlay redraws. With `.sets(target)` the selection sets the
+    /// target's domain as a zoom does (published by `on_change`, else the
+    /// widget's own, which fitting then skips until a double click), and
+    /// between gestures the band follows the target's domain: a zoom of the
+    /// target moves it, and a target showing all of `over`'s domain shows
+    /// none.
+    ///
+    /// Only handles with a typed inverse have brushes: a selection over a
+    /// band handle has no domain values, and `brush::x` does not take one.
+    ///
+    /// ```no_run
+    /// use rustd3_core::jiff::Timestamp;
+    /// use rustd3_core::time;
+    /// use rustd3_figure::{Figure, brush};
+    /// use rustd3_iced::Plot;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// enum Message {
+    ///     /// The window the focus panel shows.
+    ///     Window([Timestamp; 2]),
+    ///     /// What the overview selects, if anything.
+    ///     Brushed(Option<[Timestamp; 2]>),
+    /// }
+    ///
+    /// fn view(full: [Timestamp; 2], window: [Timestamp; 2]) -> Plot<'static, Message> {
+    ///     let mut fig = Figure::new();
+    ///     let focus = fig.scale(time::utc().domain(window));
+    ///     let context = fig.scale(time::utc().domain(full));
+    ///     fig.panel(0, 0).zoom_x(focus);
+    ///     fig.panel(1, 0).brush(brush::x(context).sets(focus));
+    ///     Plot::new(fig)
+    ///         .on_change(focus, Message::Window)
+    ///         .on_brush(context, Message::Brushed)
+    /// }
+    /// # let _ = view;
+    /// ```
+    pub fn on_brush<A: Invert>(
+        mut self,
+        over: ScaleRef<A>,
+        f: impl Fn(Option<[<A as Kind>::Domain; 2]>) -> Message + 'a,
+    ) -> Self {
+        let listener = brush::Listener::new(over, f);
+        self.brushes.retain(|other| other.key() != listener.key());
+        self.brushes.push(listener);
+        self
+    }
+
     /// What the pointer is over becomes messages: `f(Some(hover))` when
     /// the drawn point nearest the pointer (within 12 logical px, in the
     /// panel whose plot area holds it) changes, `f(None)` once when there
@@ -548,8 +621,8 @@ where
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
                 };
-                let (_, messages) =
-                    state.redraw(&self.figure, factor, *now, &pipeline, &self.listeners);
+                let listeners = (self.listeners.as_slice(), self.brushes.as_slice());
+                let (_, messages) = state.redraw(&self.figure, factor, *now, &pipeline, listeners);
                 // New cells may move the plot areas or the points under
                 // the pointer, and a gesture may have ended.
                 state.hover(layout.bounds(), self.shown());

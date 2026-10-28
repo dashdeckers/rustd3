@@ -6,10 +6,11 @@ use std::sync::Arc;
 use iced_core::shell::Waker;
 use iced_core::time::Instant;
 use iced_core::{Event, Point, Rectangle, Size, image, mouse};
-use rustd3_core::interact::{self, Button, Modifiers, Pointer};
+use rustd3_core::interact::{self, BrushEvent, Button, Modifiers, Pointer};
 use rustd3_figure::list::{self, Bounds, Outlines};
 use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster};
 
+use crate::plot::brush::{self, Brush};
 use crate::plot::budget::Budget;
 use crate::plot::cost;
 use crate::plot::domains::{Domains, Key};
@@ -75,8 +76,11 @@ pub(crate) struct State {
     input: Input,
     /// The scales gestures changed, and each handle's zoom.
     domains: Domains,
-    /// The gesture in progress.
+    /// The zoom or pan gesture in progress.
     gesture: Option<Gesture>,
+    /// The brushes the figure places, as the last refresh resolved them;
+    /// one of them may have a gesture in progress.
+    brushes: Vec<Brush>,
     /// The last resolve: the scales a gesture starts from.
     resolved: Option<Resolved>,
     /// Its plot areas and axis strips, and the handles each panel zooms.
@@ -137,6 +141,7 @@ impl Default for State {
             input: Input::default(),
             domains: Domains::default(),
             gesture: None,
+            brushes: Vec::new(),
             resolved: None,
             map: region::Map::default(),
             modifiers: Modifiers::NONE,
@@ -189,11 +194,14 @@ impl State {
     }
 
     /// Queues `pointer` for the next `RedrawRequested` when a gesture
-    /// reads it, and says what the shell should do: a left press or a
-    /// wheel step over a region with zoomable handles (or during a drag:
-    /// a press ends a drag whose release was lost) is captured and redraws;
-    /// a move during a drag, queued or active, and a left release redraw; a
-    /// modifier change waits for the next redraw.
+    /// reads it, and says what the shell should do: a left press over a
+    /// region with zoomable handles or a brushed plot area, or during a
+    /// gesture (a press ends a gesture whose release was lost), and a
+    /// wheel step over a region with zoomable handles or during a drag,
+    /// are captured and redraw; a move during a drag or a brush gesture,
+    /// queued or active, and a left release redraw; a modifier change
+    /// waits for the next redraw. Wheel steps during a brush gesture are
+    /// left alone.
     pub(crate) fn queue(&mut self, pointer: Pointer) -> Queued {
         let capture = Queued {
             capture: true,
@@ -204,15 +212,24 @@ impl State {
             redraw: true,
         };
         let dragging = self.is_dragging();
+        let brushing = self.is_brushing();
         let queued = match pointer {
-            Pointer::Wheel { x, y, .. }
-            | Pointer::Pressed {
+            Pointer::Wheel { x, y, .. } => (!brushing
+                && (dragging || self.zoomable(kurbo::Point::new(x, y))))
+            .then_some(capture),
+            Pointer::Pressed {
                 x,
                 y,
                 button: Button::Left,
                 ..
-            } => (dragging || self.zoomable(kurbo::Point::new(x, y))).then_some(capture),
-            Pointer::Moved { .. } => (dragging || self.input.has_press()).then_some(redraw),
+            } => {
+                let at = kurbo::Point::new(x, y);
+                (dragging || brushing || self.zoomable(at) || self.brush_at(at).is_some())
+                    .then_some(capture)
+            }
+            Pointer::Moved { .. } => {
+                (dragging || brushing || self.input.has_press()).then_some(redraw)
+            }
             Pointer::Released {
                 button: Button::Left,
             } => Some(redraw),
@@ -233,21 +250,21 @@ impl State {
     /// the widget resized, the factor changed or input changed a domain,
     /// and reports what the following draw shows to the pipeline's probe.
     /// Returns the number of cells whose content changed and the messages
-    /// for `listeners`. When applying the input published a message, the
-    /// list is not built in this pass: the runtime runs the app's `update`,
-    /// rebuilds the view and sends `RedrawRequested` again
-    /// (`winit/src/lib.rs:788-830`).
+    /// for `listeners` and the brush listeners `brushes`. When applying the
+    /// input published a message, the list is not built in this pass: the
+    /// runtime runs the app's `update`, rebuilds the view and sends
+    /// `RedrawRequested` again (`winit/src/lib.rs:788-830`).
     pub(crate) fn redraw<Message>(
         &mut self,
         figure: &Figure<'_>,
         factor: f32,
         now: Instant,
         pipeline: &Pipeline<'_>,
-        listeners: &[Listener<'_, Message>],
+        (listeners, brushes): (&[Listener<'_, Message>], &[brush::Listener<'_, Message>]),
     ) -> (usize, Vec<Message>) {
         self.frame += 1;
         self.budget.frame(now);
-        let mut messages = self.apply(now, listeners);
+        let mut messages = self.apply(now, listeners, brushes);
         let changed = if messages.is_empty() {
             let (changed, published) = self.refresh(figure, factor, pipeline, listeners);
             messages = published;
@@ -269,18 +286,21 @@ impl State {
     }
 
     /// Applies the queued input at `now`, once per `RedrawRequested`:
-    /// gesture boundaries, then each pointer fed to the gesture's tracks;
-    /// accepted steps are stored, pending for `listeners`' handles and
-    /// owned otherwise. A left press over a region with zoomable handles
-    /// starts a drag, which its release ends; a wheel step with no gesture
-    /// starts a wheel gesture on its region (during a drag it feeds the
-    /// drag's tracks), which ends at the first redraw `gesture::WHEEL_END`
-    /// after its last step. Returns one message per listened handle that
-    /// changed (the latest domain).
+    /// gesture boundaries, then each pointer fed to the gesture's tracks or
+    /// brush; accepted steps are stored, pending for `listeners`' handles
+    /// and owned otherwise. A left press over a brushed plot area starts a
+    /// brush gesture, elsewhere over a region with zoomable handles a drag,
+    /// which its release ends; a wheel step with no gesture starts a wheel
+    /// gesture on its region (during a drag it feeds the drag's tracks,
+    /// during a brush gesture nothing), which ends at the first redraw
+    /// `gesture::WHEEL_END` after its last step. Returns one message per
+    /// listened handle that changed (the latest domain) and one per brush
+    /// whose selection changed, for `brushes`.
     fn apply<Message>(
         &mut self,
         now: Instant,
         listeners: &[Listener<'_, Message>],
+        brushes: &[brush::Listener<'_, Message>],
     ) -> Vec<Message> {
         let mut messages = Vec::new();
         let mut fresh = Vec::new();
@@ -305,11 +325,13 @@ impl State {
                 }
             }
             self.end(&mut fresh, listeners, &mut messages);
+            changed |= self.unbrush(&mut fresh, listeners, &mut messages);
             changed |= self.reset(self.map.at(at), listeners);
         }
         let queued = if double.is_some() { Vec::new() } else { queued };
         for pointer in queued {
             match pointer {
+                Pointer::Wheel { .. } if self.is_brushing() => {}
                 Pointer::Wheel { x, y, .. } => {
                     let region = self.map.at(kurbo::Point::new(x, y));
                     let feeds = self
@@ -331,11 +353,27 @@ impl State {
                     button: Button::Left,
                     ..
                 } => {
-                    // A press ends a wheel gesture, and a drag whose
-                    // release was lost.
+                    // A press ends a wheel gesture, and a drag or a brush
+                    // gesture whose release was lost.
                     self.end(&mut fresh, listeners, &mut messages);
-                    self.begin(self.map.at(kurbo::Point::new(x, y)), gesture::Kind::Drag);
-                    changed |= self.feed(pointer, &mut fresh, listeners);
+                    changed |= self.unbrush(&mut fresh, listeners, &mut messages);
+                    let at = kurbo::Point::new(x, y);
+                    match self.brush_at(at) {
+                        Some(index) => {
+                            changed |=
+                                self.stroke(index, pointer, &mut fresh, listeners, &mut messages);
+                        }
+                        None => {
+                            self.begin(self.map.at(at), gesture::Kind::Drag);
+                            changed |= self.feed(pointer, &mut fresh, listeners);
+                        }
+                    }
+                }
+                Pointer::Moved { .. }
+                | Pointer::Released {
+                    button: Button::Left,
+                } if self.is_brushing() => {
+                    changed |= self.stroke_on(pointer, &mut fresh, listeners, &mut messages);
                 }
                 Pointer::Moved { .. } if self.is_dragging() => {
                     changed |= self.feed(pointer, &mut fresh, listeners);
@@ -349,6 +387,8 @@ impl State {
                 Pointer::Modifiers(modifiers) => {
                     self.modifiers = modifiers;
                     self.feed(pointer, &mut fresh, listeners);
+                    // Core's brush accepts them and changes nothing.
+                    changed |= self.stroke_on(pointer, &mut fresh, listeners, &mut messages);
                 }
                 Pointer::Pressed { .. }
                 | Pointer::Moved { .. }
@@ -362,6 +402,7 @@ impl State {
             self.end(&mut fresh, listeners, &mut messages);
         }
         self.flush(&mut fresh, listeners, &mut messages);
+        self.publish(brushes, &mut messages);
         if changed {
             self.generation += 1;
             self.stale = true;
@@ -369,17 +410,140 @@ impl State {
         messages
     }
 
-    /// Resets every handle the panel of `region` zooms that a gesture
-    /// touched: the widget's own scales go (the figure refits them and the
-    /// hold ends), published ones leave `pending` and the next resolve
-    /// publishes their fitted domains; their zooms and preview views start
-    /// afresh. True when any was reset.
+    /// Feeds `pointer` to brush `index`, a press that starts its gesture
+    /// holding the plot areas of the last resolve, and applies what it
+    /// reports: a selection is kept for `on_brush`, and with a target it
+    /// sets the target's domain as a gesture's step does (published for
+    /// `listeners`' handles, owned otherwise; the key goes to `fresh`); at
+    /// its end what it published goes out and is the app's from then on,
+    /// and the layout settles. True when it set a domain.
+    fn stroke<Message>(
+        &mut self,
+        index: usize,
+        pointer: Pointer,
+        fresh: &mut Vec<Key>,
+        listeners: &[Listener<'_, Message>],
+        messages: &mut Vec<Message>,
+    ) -> bool {
+        let pressed = matches!(pointer, Pointer::Pressed { .. });
+        let held = self
+            .resolved
+            .as_ref()
+            .filter(|_| pressed)
+            .map(Resolved::areas);
+        let Some(event) = self
+            .brushes
+            .get_mut(index)
+            .and_then(|brush| brush.feed(pointer, held))
+        else {
+            return false;
+        };
+        let (selection, end) = match event {
+            BrushEvent::Start(_) => return false,
+            BrushEvent::Brush(selection) => (selection, false),
+            BrushEvent::End(selection) => (selection, true),
+        };
+        let brush = &mut self.brushes[index];
+        brush.report(selection);
+        let set = self.resolved.as_ref().and_then(|resolved| {
+            let target = brush.placed().target()?;
+            let key = Key::new(target, resolved.scale_at(target)?);
+            let template = self.domains.current(key, resolved)?;
+            Some((key, brush.window(&*template, selection)?))
+        });
+        let changed = match set {
+            Some((key, window)) => {
+                let listened = listeners.iter().any(|listener| listener.key() == key);
+                self.domains.store(key, window, listened);
+                if !fresh.contains(&key) {
+                    fresh.push(key);
+                }
+                true
+            }
+            None => false,
+        };
+        if end {
+            self.flush(fresh, listeners, messages);
+            self.domains.release();
+            self.stale = true;
+        }
+        changed
+    }
+
+    /// Feeds `pointer` to the brush whose gesture is in progress, if one
+    /// is, as [`stroke`](State::stroke) does.
+    fn stroke_on<Message>(
+        &mut self,
+        pointer: Pointer,
+        fresh: &mut Vec<Key>,
+        listeners: &[Listener<'_, Message>],
+        messages: &mut Vec<Message>,
+    ) -> bool {
+        match self.brushes.iter().position(Brush::is_active) {
+            Some(index) => self.stroke(index, pointer, fresh, listeners, messages),
+            None => false,
+        }
+    }
+
+    /// Ends the brush gesture in progress, if any, as its left release
+    /// would.
+    fn unbrush<Message>(
+        &mut self,
+        fresh: &mut Vec<Key>,
+        listeners: &[Listener<'_, Message>],
+        messages: &mut Vec<Message>,
+    ) -> bool {
+        let release = Pointer::Released {
+            button: Button::Left,
+        };
+        self.stroke_on(release, fresh, listeners, messages)
+    }
+
+    /// One message per brush whose selection this frame changed, for the
+    /// listener of the handle it is over among `listeners`: the latest.
+    fn publish<Message>(
+        &mut self,
+        listeners: &[brush::Listener<'_, Message>],
+        messages: &mut Vec<Message>,
+    ) {
+        for brush in &mut self.brushes {
+            let over = brush.over();
+            let Some((selection, scale)) = brush.take() else {
+                continue;
+            };
+            if let Some(listener) = listeners.iter().find(|listener| listener.key() == over) {
+                messages.extend(listener.publish(scale, selection));
+            }
+        }
+    }
+
+    /// Resets every handle the panel of `region` zooms, and its brush's
+    /// target, that a gesture touched: the widget's own scales go (the
+    /// figure refits them and the hold ends), published ones leave
+    /// `pending` and the next resolve publishes their fitted domains; their
+    /// zooms and preview views start afresh. The panel's brush loses its
+    /// selection, reported to `on_brush` if it had one. True when a handle
+    /// was reset.
     fn reset<Message>(&mut self, region: Region, listeners: &[Listener<'_, Message>]) -> bool {
         let Some(panel) = region.panel() else {
             return false;
         };
+        let mut keys: Vec<Key> = self
+            .map
+            .tracks(Region::Area { panel })
+            .into_iter()
+            .map(|(key, _)| key)
+            .collect();
+        if let Some(brush) = self.brushes.iter_mut().find(|brush| brush.panel() == panel) {
+            brush.clear();
+            let target = brush.placed().target().and_then(|target| {
+                let resolved = self.resolved.as_ref()?;
+                Some(Key::new(target, resolved.scale_at(target)?))
+            });
+            keys.extend(target.filter(|key| !keys.contains(key)));
+        }
         let mut reset = false;
-        for (key, _) in self.map.tracks(Region::Area { panel }) {
+        for key in keys {
             if !self.domains.is_touched(key) {
                 continue;
             }
@@ -490,6 +654,56 @@ impl State {
         self.gesture.as_ref().is_some_and(Gesture::is_drag)
     }
 
+    /// Whether a brush gesture is in progress.
+    fn is_brushing(&self) -> bool {
+        self.brushes.iter().any(Brush::is_active)
+    }
+
+    /// The brush of the plot area at `at` (list px), if its panel has one.
+    fn brush_at(&self, at: kurbo::Point) -> Option<usize> {
+        let Region::Area { panel } = self.map.at(at) else {
+            return None;
+        };
+        self.brushes.iter().position(|brush| brush.panel() == panel)
+    }
+
+    /// Brings the brushes to `resolved`: one state per placed brush, kept
+    /// by its panel's grid cell, the handle it is over and its axis, and
+    /// made for brushes it did not have; states of brushes the figure no
+    /// longer places go. Between gestures each takes its selection from
+    /// the domain it selects (a target's as the widget shows it now).
+    fn sync(&mut self, resolved: &Resolved) {
+        let mut kept = Vec::with_capacity(self.brushes.len());
+        for (panel, &area) in resolved.plot_areas().iter().enumerate() {
+            let Some(&placed) = resolved.brush(panel) else {
+                continue;
+            };
+            let Some(scale) = resolved.scale_at(placed.over()) else {
+                continue;
+            };
+            let target = placed.target().and_then(|target| {
+                let key = Key::new(target, resolved.scale_at(target)?);
+                self.domains.current(key, resolved)
+            });
+            let spot = brush::Spot {
+                panel,
+                cell: resolved.panel_cell(panel),
+                placed,
+                over: Key::new(placed.over(), scale),
+                scale,
+                area,
+                target,
+            };
+            let mut brush = match self.brushes.iter().position(|brush| brush.is(&spot)) {
+                Some(index) => self.brushes.swap_remove(index),
+                None => Brush::new(&spot),
+            };
+            brush.sync(&spot);
+            kept.push(brush);
+        }
+        self.brushes = kept;
+    }
+
     /// Whether the region at `at` (list px) has zoomable handles.
     fn zoomable(&self, at: kurbo::Point) -> bool {
         !self.map.tracks(self.map.at(at)).is_empty()
@@ -534,12 +748,18 @@ impl State {
         let start = probe.map(Probe::now);
         self.cache.begin();
         let held = self.domains.held();
-        let resolved = match self.gesture.as_ref().and_then(Gesture::held) {
+        let areas = self
+            .gesture
+            .as_ref()
+            .and_then(Gesture::held)
+            .or_else(|| self.brushes.iter().find_map(Brush::held));
+        let resolved = match areas {
             Some(areas) => figure.resolve_held(size, &mut self.cache, &held, target, areas),
             None => figure.resolve(size, &mut self.cache, &held, target),
         };
         self.domains.prune(&resolved);
         self.map = region::Map::of(&resolved);
+        self.sync(&resolved);
         // A reset's published handles get their fitted domains; the app
         // rebuilds the view with them, and the next pass draws.
         let fitted: Vec<Message> = std::mem::take(&mut self.resets)
@@ -871,7 +1091,7 @@ impl State {
         let Some(factor) = self.factor else {
             return false;
         };
-        let busy = self.gesture.is_some();
+        let busy = self.gesture.is_some() || self.is_brushing();
         let [x0, y0] = origin(bounds, factor);
         let k = f64::from(factor);
         let mut hover = None;
@@ -908,7 +1128,7 @@ impl State {
     /// hovered point (`Some(None)` once when it was lost); nothing while a
     /// gesture is active.
     pub(crate) fn reported(&mut self) -> Option<Option<Hover>> {
-        if self.gesture.is_some() {
+        if self.gesture.is_some() || self.is_brushing() {
             return None;
         }
         self.hits.report()
@@ -938,12 +1158,16 @@ impl State {
 
     /// The cursor over a widget laid out at `bounds` with the pointer at
     /// `at` (logical, in the window): a grabbing hand during a drag, a
-    /// grab hand over a plot area with
-    /// zoomable handles, the resize arrow of the axis's direction over a
-    /// zoomable axis, a crosshair over other plot areas, none elsewhere.
+    /// crosshair during a brush gesture and over a brushed plot area (d3's
+    /// overlay cursor), a grab hand over a plot area with zoomable handles,
+    /// the resize arrow of the axis's direction over a zoomable axis, a
+    /// crosshair over other plot areas, none elsewhere.
     pub(crate) fn interaction(&self, at: Option<Point>, bounds: Rectangle) -> mouse::Interaction {
         if self.is_dragging() {
             return mouse::Interaction::Grabbing;
+        }
+        if self.is_brushing() {
+            return mouse::Interaction::Crosshair;
         }
         let Some(at) = at else {
             return mouse::Interaction::None;
@@ -951,7 +1175,9 @@ impl State {
         let at = kurbo::Point::new(f64::from(at.x - bounds.x), f64::from(at.y - bounds.y));
         let region = self.map.at(at);
         let zoomable = !self.map.tracks(region).is_empty();
+        let brushed = |panel: usize| self.brushes.iter().any(|brush| brush.panel() == panel);
         match region {
+            Region::Area { panel } if brushed(panel) => mouse::Interaction::Crosshair,
             Region::Area { .. } if zoomable => mouse::Interaction::Grab,
             Region::Area { .. } => mouse::Interaction::Crosshair,
             Region::Axis {
@@ -1030,7 +1256,7 @@ mod tests {
             probe: None,
             waker: &Waker::noop(),
         };
-        state.redraw::<()>(fig, k, clock(), &pipeline, &[]).0
+        state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[])).0
     }
 
     /// One inline `RedrawRequested` reported to a fresh probe; its
@@ -1045,7 +1271,7 @@ mod tests {
             probe: Some(&probe),
             waker: &Waker::noop(),
         };
-        state.redraw::<()>(fig, k, clock(), &pipeline, &[]);
+        state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[]));
         rx.try_iter().collect()
     }
 
@@ -1262,7 +1488,7 @@ mod tests {
             waker: &waker,
         };
         let mut state = self::state(640.0, 480.0);
-        state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, &[]);
+        state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
         let planned: Vec<Sample> = rx.try_iter().collect();
         let stages = planned
             .iter()
@@ -1304,7 +1530,7 @@ mod tests {
             wakes.load(Ordering::SeqCst),
             pixels as f64 / ms
         );
-        state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, &[]);
+        state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
         let shown: Vec<Sample> = rx.try_iter().collect();
         assert!(
             matches!(
@@ -1332,9 +1558,9 @@ mod tests {
             waker: &waker,
         };
         let mut state = state(480.0, 320.0);
-        state.redraw::<()>(&fixture::pair(dots), 2.0, clock(), &pipeline, &[]);
+        state.redraw::<()>(&fixture::pair(dots), 2.0, clock(), &pipeline, (&[], &[]));
         state.rebuilt();
-        state.redraw::<()>(&fixture::pair(moved), 2.0, clock(), &pipeline, &[]);
+        state.redraw::<()>(&fixture::pair(moved), 2.0, clock(), &pipeline, (&[], &[]));
         assert_eq!(state.generation, 2);
         settle(&mut state, &wakes, None);
         assert!(

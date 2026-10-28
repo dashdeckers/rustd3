@@ -70,7 +70,7 @@ fn redraw<Message>(
         probe: None,
         waker: &Waker::noop(),
     };
-    state.redraw(fig, 1.0, now, &pipeline, listeners)
+    state.redraw(fig, 1.0, now, &pipeline, (listeners, &[]))
 }
 
 /// One wheel line up (zoom in) at `at`, list px.
