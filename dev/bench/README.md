@@ -9,43 +9,54 @@ marker splatting) is built.
 
 ## Before you run
 
-1. Tell the agent your display's refresh rate and scale factor, and read
-   the operational readings (`target/release/rustd3-bench list` prints
-   them, then the plans and cells). They are fixed; numbers never change
-   them.
-2. Build: `cargo build --release -p rustd3-bench` from the repository
-   root (the first release build compiles iced, wgpu and typst: several
-   minutes).
-3. Plug in power, `system76-power profile performance`, close other
-   GPU-heavy apps. Leave the compositor as it is; the report records
-   `XDG_SESSION_TYPE` and `XDG_CURRENT_DESKTOP`.
+Plug in power and close other GPU-heavy apps. Leave the compositor as it
+is; `system.txt` records the session, the displays and the scaling.
+
+The operational readings are fixed before any run; numbers never change
+them. `target/release/rustd3-bench list` prints them, then the plans and
+cells.
 
 ## The run
 
-First, about 5 minutes: the smoke plan in windows, to see that windows
-open, run and close on your desktop (its numbers do not count):
+From the repository root (or anywhere: the script finds the root):
 
 ```bash
-target/release/rustd3-bench run --plan smoke --refresh-hz <HZ> \
-    --native-factor <F> --out ~/bench-out
+dev/bench/run.sh
 ```
+
+It prints what it will do, checks for `cargo`, builds the release bench
+(the first release build compiles iced, wgpu and typst: several minutes),
+reads the refresh rate (`xrandr --current`'s current mode, else
+`cosmic-randr list`'s) and the scale factor (GNOME's `scaling-factor` when
+above 0, else 1), and switches `system76-power` to `performance`,
+restoring your profile at the end. Then it runs, into
+`bench-results/<UTC stamp>/` under the repository root:
+
+1. `smoke/`, about 5 minutes: every scenario × workload once in windows at
+   your factor, to see that windows open, take the replayed input and
+   close. If iced reports another scale factor for those windows, the
+   script says so and the default plan uses that one.
+2. `default/`, about 46 minutes: the verdict's run.
+
+Each plan's console goes to `run-smoke.log` and `run-default.log`, and
+the diagnostics to `system.txt`, beside them. The script ends with the
+directory, each report's rule outcome and the `tar` command for sending it.
+
+- `HZ=144 FACTOR=1.25 dev/bench/run.sh` overrides detection; with no
+  refresh rate found, the script stops and asks for `HZ`.
+- `dev/bench/run.sh --smoke-only` stops after smoke.
 
 Smoke runs each cell once, so its report reads "inconclusive" everywhere
 by design: verdicts need the default plan's 5 runs per cell, and smoke only
 checks that windows open, take the replayed input and close.
 
-Then the verdict's run:
-
-```bash
-target/release/rustd3-bench run --plan default --refresh-hz <HZ> \
-    --native-factor <F> --out ~/bench-out
-```
-
-`--refresh-hz` and `--native-factor` are required for a windowed run; the
-benchmark never guesses them. Windows open and close for about 46 minutes
-(135 runs of about 16 s and one 10-minute soak); do not touch the mouse or
-keyboard. Real input is ignored during a run, but focus changes and
-pointer warps can still disturb the compositor.
+Windows open and close for about 46 minutes in the default plan (135 runs
+of about 16 s and one 10-minute soak); do not touch the mouse or keyboard.
+Real input is ignored during a run, but focus changes and pointer warps
+can still disturb the compositor. Bench windows are not resizable, so a
+tiling window manager should float them at their size; one that resizes
+a window anyway is flagged in the report ("window resized by the window
+manager"), and the replayed positions follow the window's real size.
 
 The default plan: (A) the nine scenarios other than `soak` on `trace` at
 your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
@@ -53,9 +64,28 @@ your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
 `zoom-lines` on `trace` at the other factors of 1, 1.25, 1.5 and 2; (D)
 `soak` once. Five runs per cell: 28 cells, 136 runs.
 
+### By hand
+
+The same steps without the script, from the repository root:
+
+```bash
+cargo build --release -p rustd3-bench
+system76-power profile performance
+target/release/rustd3-bench run --plan smoke --refresh-hz <HZ> \
+    --native-factor <F> --factor <F> --out ~/bench-out
+target/release/rustd3-bench run --plan default --refresh-hz <HZ> \
+    --native-factor <F> --out ~/bench-out
+```
+
+`--refresh-hz` and `--native-factor` are required for a windowed run; the
+benchmark never guesses them. `--factor <F>` runs smoke at your factor
+instead of 2. The `window_factor` in the first line of each file under
+`raw/` is the factor iced reported for that window.
+
 ## What it writes
 
-`~/bench-out/<UTC stamp>/`:
+Each plan's run directory (`bench-results/<stamp>/smoke/` and `default/`
+from the script, `<--out>/<UTC stamp>/` by hand):
 
 | File | Content |
 | --- | --- |
@@ -70,7 +100,7 @@ your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
 ## What to send back
 
 ```bash
-tar czf bench.tgz -C ~/bench-out <stamp>
+tar czf bench.tgz -C bench-results <stamp>    # by hand: -C ~/bench-out <stamp>
 ```
 
 At least `report.md`, `summary.csv` and `meta.json`; the whole directory
