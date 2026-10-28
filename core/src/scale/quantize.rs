@@ -4,7 +4,7 @@
 use crate::array;
 use crate::format::{self, Format, InvalidFormat};
 use crate::locale::Locale;
-use crate::scale::{self, Ticks};
+use crate::scale::{self, Pad, Ticks, transform};
 use crate::ticks;
 
 /// d3's scaleQuantize: the domain `[x0, x1]` cut into as many equal bins as
@@ -127,6 +127,24 @@ impl<R: PartialEq> Quantize<R> {
         let lower = i.checked_sub(1).map_or(x0, |j| self.thresholds[j]);
         let upper = self.thresholds.get(i).copied().unwrap_or(x1);
         Some([lower, upper])
+    }
+}
+
+/// The domain fitted as a linear scale's: with no margin, the data's
+/// extent, a flat one widened by matplotlib's `nonsingular`.
+///
+/// ```
+/// use rustd3_core::scale::{self, Pad};
+///
+/// let q = scale::quantize([0.0, 1.0], ["low", "high"]);
+/// assert_eq!(q.pad(Some([3.0, 7.0]), 0.0, &[]), [3.0, 7.0]);
+/// assert_eq!(q.pad(None, 0.0, &[]), [0.0, 1.0]);
+/// ```
+impl<R> Pad for Quantize<R> {
+    type Domain = f64;
+
+    fn pad(&self, extent: Option<[f64; 2]>, margin: f64, sticky: &[f64]) -> [f64; 2] {
+        super::pad::ends(&transform::Identity, self.domain, extent, margin, sticky)
     }
 }
 

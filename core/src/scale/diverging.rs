@@ -8,7 +8,7 @@ use crate::format::{InvalidFormat, Locale};
 use crate::interpolate::{self, Interpolate};
 use crate::js;
 use crate::locale;
-use crate::scale::{TickFormat, Ticks, Transform, transform};
+use crate::scale::{Pad, TickFormat, Ticks, Transform, transform};
 use crate::ticks;
 
 /// d3's scaleDiverging: [`Sequential`](crate::scale::Sequential) with a
@@ -146,6 +146,20 @@ impl<R: Clone, T: Transform> Diverging<R, T> {
         })
     }
 
+    /// Whether `x` is finite and the transform, as set for the current end
+    /// stops, maps it to a finite value: the data a domain can be fitted
+    /// to, as [`Continuous::admits`](crate::scale::Continuous::admits).
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    ///
+    /// let s = scale::diverging([-1.0, 0.0, 1.0], |t| t);
+    /// assert!(s.admits(-5.0) && !s.admits(f64::INFINITY));
+    /// ```
+    pub fn admits(&self, x: f64) -> bool {
+        x.is_finite() && self.transform.forward(x).is_finite()
+    }
+
     /// d3's `range()`: the interpolator at 0, 0.5 and 1.
     pub fn get_range(&self) -> [R; 3] {
         [0.0, 0.5, 1.0].map(|t| (self.interpolator)(t))
@@ -255,6 +269,28 @@ impl<R: Clone> Diverging<R, transform::Symlog> {
     /// logarithmic.
     pub fn constant(self, constant: f64) -> Self {
         self.transform(transform::Symlog::new(constant))
+    }
+}
+
+/// The end stops fitted as a continuous scale's under the same
+/// transform, in their order: with no margin, the data's extent, a flat
+/// one widened by matplotlib's `nonsingular`. The middle stop is the
+/// caller's to keep.
+///
+/// ```
+/// use rustd3_core::scale::{self, Pad};
+///
+/// let s = scale::diverging([-1.0, 0.0, 1.0], |t| t);
+/// assert_eq!(s.pad(Some([2.0, 5.0]), 0.0, &[]), [2.0, 5.0]);
+/// let reversed = s.domain([1.0, 0.0, -1.0]);
+/// assert_eq!(reversed.pad(Some([2.0, 5.0]), 0.0, &[]), [5.0, 2.0]);
+/// ```
+impl<R, T: Transform> Pad for Diverging<R, T> {
+    type Domain = f64;
+
+    fn pad(&self, extent: Option<[f64; 2]>, margin: f64, sticky: &[f64]) -> [f64; 2] {
+        let [start, _, stop] = self.domain;
+        super::pad::ends(&self.transform, [start, stop], extent, margin, sticky)
     }
 }
 

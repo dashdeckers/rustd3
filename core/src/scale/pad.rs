@@ -76,6 +76,18 @@ impl Pad for scale::Identity {
     }
 }
 
+/// [`Pad::pad`] of a domain whose end stops are `ends`, under `transform`
+/// set for them: what the color scales with a transform pad by.
+pub(super) fn ends<T: scale::Transform>(
+    transform: &T,
+    ends: [f64; 2],
+    extent: Option<[f64; 2]>,
+    margin: f64,
+    sticky: &[f64],
+) -> [f64; 2] {
+    oriented(fit(transform, extent, margin, sticky), ends[0] > ends[1])
+}
+
 /// matplotlib's `handle_single_axis` under `transform`, ascending.
 fn fit<T: scale::Transform>(
     transform: &T,

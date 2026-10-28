@@ -8,7 +8,7 @@ use crate::format::{InvalidFormat, Locale};
 use crate::interpolate::Interpolate;
 use crate::js;
 use crate::locale;
-use crate::scale::{TickFormat, Ticks, Transform, transform};
+use crate::scale::{Pad, TickFormat, Ticks, Transform, transform};
 use crate::ticks;
 
 /// d3's scaleSequential: the domain's two ends mapped to 0 and 1 through a
@@ -153,6 +153,21 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
         })
     }
 
+    /// Whether `x` is finite and the transform, as set for the current
+    /// domain, maps it to a finite value: the data a domain can be fitted
+    /// to, as [`Continuous::admits`](crate::scale::Continuous::admits).
+    ///
+    /// ```
+    /// use rustd3_core::scale::{self, transform};
+    ///
+    /// let s = scale::sequential([1.0, 100.0], |t| t).transform(transform::Log::new(10.0));
+    /// assert!(s.admits(0.5) && !s.admits(0.0) && !s.admits(-1.0));
+    /// assert!(!scale::sequential([0.0, 1.0], |t| t).admits(f64::NAN));
+    /// ```
+    pub fn admits(&self, x: f64) -> bool {
+        x.is_finite() && self.transform.forward(x).is_finite()
+    }
+
     /// d3's `range()`: the interpolator at 0 and at 1.
     pub fn get_range(&self) -> [R; 2] {
         [(self.interpolator)(0.0), (self.interpolator)(1.0)]
@@ -252,6 +267,27 @@ impl<R: Clone> Sequential<R, transform::Symlog> {
     /// logarithmic.
     pub fn constant(self, constant: f64) -> Self {
         self.transform(transform::Symlog::new(constant))
+    }
+}
+
+/// The domain fitted as a continuous scale's under the same transform:
+/// with no margin it is the data's extent, a flat one widened by
+/// matplotlib's `nonsingular`, as `Normalize.autoscale_None` fits a color
+/// map.
+///
+/// ```
+/// use rustd3_core::scale::{self, Pad};
+///
+/// let s = scale::sequential([0.0, 80.0], |t| t);
+/// assert_eq!(s.pad(Some([3.0, 7.0]), 0.0, &[]), [3.0, 7.0]);
+/// assert_eq!(s.pad(Some([3.0, 3.0]), 0.0, &[]), [2.85, 3.15]);
+/// assert_eq!(s.clone().domain([1.0, 0.0]).pad(Some([3.0, 7.0]), 0.0, &[]), [7.0, 3.0]);
+/// ```
+impl<R, T: Transform> Pad for Sequential<R, T> {
+    type Domain = f64;
+
+    fn pad(&self, extent: Option<[f64; 2]>, margin: f64, sticky: &[f64]) -> [f64; 2] {
+        super::pad::ends(&self.transform, self.domain, extent, margin, sticky)
     }
 }
 
