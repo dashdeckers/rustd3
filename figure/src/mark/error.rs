@@ -16,4 +16,11 @@ pub enum Error {
         /// The upper edge's recording.
         right: series::Id,
     },
+    /// A density over fewer than two finite values, or over values that
+    /// are all equal, which have no kernel density estimate.
+    #[error("a density needs two or more finite values that differ, got {values} finite values")]
+    Density {
+        /// The finite values.
+        values: usize,
+    },
 }

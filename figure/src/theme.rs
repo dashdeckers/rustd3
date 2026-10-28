@@ -180,6 +180,11 @@ impl Theme {
         self.pt(1.0)
     }
 
+    /// The outline of a density: 0.75 pt.
+    pub(crate) fn density_width(&self) -> f64 {
+        self.pt(0.75)
+    }
+
     /// A marker's diameter: 6 pt.
     pub(crate) fn marker(&self) -> f64 {
         self.pt(6.0)

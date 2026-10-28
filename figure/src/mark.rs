@@ -2,7 +2,8 @@
 //! sees while it draws one panel, and the figure's marks: [`dots`],
 //! [`line()`], [`area()`], [`ribbon`], [`ribbon_series`], [`bar_y`],
 //! [`bar_x`], [`bar_y_spans`], [`bar_x_spans`], [`rect()`],
-//! [`histogram()`], [`rule_x`] and [`rule_y`].
+//! [`histogram()`], [`density_y`], [`density_x`], [`rule_x`] and
+//! [`rule_y`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -20,6 +21,7 @@
 mod area;
 mod bar;
 mod color;
+mod density;
 mod dots;
 mod error;
 mod guard;
@@ -47,6 +49,7 @@ use crate::thin::{self, Thin};
 
 pub use area::{Area, Ribbon, area, ribbon, ribbon_series};
 pub use bar::{BarX, BarY, bar_x, bar_x_spans, bar_y, bar_y_spans};
+pub use density::{DensityX, DensityY, density_x, density_y};
 pub use dots::{Dots, dots};
 pub use error::Error;
 pub use histogram::{Binned, Bins, Histogram, histogram};

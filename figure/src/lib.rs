@@ -23,6 +23,7 @@ pub mod path;
 mod pixels;
 pub mod raster;
 pub mod scale;
+pub mod stats;
 pub mod svg;
 mod target;
 pub mod text;
