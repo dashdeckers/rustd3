@@ -34,6 +34,9 @@ pub(crate) struct Job {
     /// plot area's tiles over a markers command of at least
     /// [`SPLAT`](crate::plot::state::SPLAT) points.
     pub(super) splat: bool,
+    /// Whether it checks the image its slot shows (`Caching::Verify`)
+    /// instead of replacing it: `generation` and `hash` are the image's.
+    pub(super) check: bool,
     /// The probe's clock and its reading at planning time.
     pub(super) enqueued: Option<Stamp>,
     /// For a plot-area cell, the view of the handle leading each axis at
@@ -77,6 +80,7 @@ pub(crate) struct Done {
     pub(super) rows: Vec<Range<i32>>,
     pub(super) bands: Vec<Result<raster::Image, raster::Error>>,
     pub(super) work: u64,
+    pub(super) check: bool,
     pub(super) queued: Option<Duration>,
     pub(super) duration: Option<Duration>,
     pub(super) view: [Option<Basis>; 2],
@@ -118,6 +122,7 @@ impl Job {
             rows: self.bands,
             bands,
             work: self.work,
+            check: self.check,
             queued: self
                 .enqueued
                 .zip(start)
@@ -197,6 +202,7 @@ mod tests {
             scale: 2.0,
             work: 0,
             splat: false,
+            check: false,
             enqueued: None,
             view: [None; 2],
         };

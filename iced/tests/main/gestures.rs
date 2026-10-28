@@ -833,7 +833,7 @@ fn last_frame(samples: &[Sample]) -> Option<(u32, u32)> {
         Sample::Frame {
             missing, previews, ..
         } => Some((*missing, *previews)),
-        Sample::Stage { .. } | Sample::Raster { .. } => None,
+        Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
     })
 }
 

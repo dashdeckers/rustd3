@@ -14,4 +14,10 @@ pub enum Caching {
     /// Re-render every cell whenever the list changes: whenever any
     /// cell's hash changed. An unchanged list still renders nothing.
     Off,
+    /// As `On`, then re-render every kept or translated slot after the
+    /// real jobs, replace it if it differs by more than 1/255, and report
+    /// [`probe::Sample::Mismatch`](crate::plot::probe::Sample::Mismatch):
+    /// a check of what the hashes and translations keep, for the
+    /// benchmark and tests. The checks report no `Raster` sample.
+    Verify,
 }

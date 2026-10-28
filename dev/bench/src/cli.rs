@@ -541,6 +541,7 @@ pub fn caching_name(caching: Caching) -> &'static str {
     match caching {
         Caching::On => "on",
         Caching::Off => "off",
+        Caching::Verify => "verify",
     }
 }
 

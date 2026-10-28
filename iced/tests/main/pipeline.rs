@@ -180,7 +180,7 @@ fn rasters(samples: &[Sample]) -> Vec<(probe::Target, u64, bool)> {
                 inline,
                 ..
             } => Some((*target, *generation, *inline)),
-            Sample::Stage { .. } | Sample::Frame { .. } => None,
+            Sample::Stage { .. } | Sample::Frame { .. } | Sample::Mismatch { .. } => None,
         })
         .collect()
 }
@@ -199,7 +199,7 @@ fn last_frame(samples: &[Sample]) -> (u64, u32, u32, u32) {
                 previews,
                 ..
             } => Some((*generation, *images, *missing, *previews)),
-            Sample::Stage { .. } | Sample::Raster { .. } => None,
+            Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
         })
         .expect("a frame sample")
 }
@@ -219,7 +219,7 @@ fn modelled(samples: &[Sample], view: Option<&[[i64; 4]]>) -> f64 {
             } => view
                 .is_none_or(|areas| in_view(*target, areas))
                 .then(|| cost::model_ms(u64::from(*pixels), *work)),
-            Sample::Stage { .. } | Sample::Frame { .. } => None,
+            Sample::Stage { .. } | Sample::Frame { .. } | Sample::Mismatch { .. } => None,
         })
         .sum()
 }
@@ -246,7 +246,7 @@ fn frames(samples: &[Sample]) -> Vec<(u32, u32)> {
             Sample::Frame {
                 missing, previews, ..
             } => Some((*missing, *previews)),
-            Sample::Stage { .. } | Sample::Raster { .. } => None,
+            Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
         })
         .collect()
 }
@@ -707,7 +707,10 @@ fn nearest(samples: &[Sample], area: [i64; 4], at: (f64, f64)) -> Vec<f64> {
                 let y = area[1] as f64 + 256.0 * f64::from(*j) + 128.0;
                 Some((x - at.0).hypot(y - at.1))
             }
-            Sample::Raster { .. } | Sample::Stage { .. } | Sample::Frame { .. } => None,
+            Sample::Raster { .. }
+            | Sample::Stage { .. }
+            | Sample::Frame { .. }
+            | Sample::Mismatch { .. } => None,
         })
         .collect()
 }

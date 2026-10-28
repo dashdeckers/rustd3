@@ -83,7 +83,10 @@
 //! [`Plot::revision`] re-renders every cell once for a change the hashes
 //! cannot see (a paint image's pixels replaced in place, a font swapped),
 //! and [`Plot::caching`] with [`Caching::Off`] re-renders every cell
-//! whenever any cell changed, a diagnostic for the benchmark.
+//! whenever any cell changed, a diagnostic for the benchmark; with
+//! [`Caching::Verify`] every image kept or translated renders again after
+//! the real renders, replaces what shows when they differ by more than
+//! 1/255 and is reported (`probe::Sample::Mismatch`).
 //!
 //! Changed tiles, cells and overlays render in order (visible tiles
 //! nearest the last gesture input first, then the gutters and overlays,
@@ -355,7 +358,8 @@ impl<'a, Message> Plot<'a, Message> {
 
     /// How the widget reuses rendered images; defaults to
     /// [`Caching::On`]. [`Caching::Off`] re-renders every cell whenever
-    /// any changed, a diagnostic for the benchmark.
+    /// any changed, a diagnostic for the benchmark; [`Caching::Verify`]
+    /// renders what it keeps again and reports what differs.
     pub fn caching(self, caching: Caching) -> Self {
         Plot { caching, ..self }
     }

@@ -99,6 +99,18 @@ pub enum Sample {
         /// Bytes of handles drawn for the first time.
         uploaded: u64,
     },
+    /// Under `Caching::Verify`, a kept or translated slot whose image
+    /// differed from a fresh render by more than 1/255; the fresh render
+    /// replaced it.
+    Mismatch {
+        /// The frame it was reported in: the one that rendered it inline,
+        /// or the last before the drain that received the render.
+        frame: u64,
+        /// The cell or tile.
+        target: Target,
+        /// The largest channel difference, of 255.
+        max: u8,
+    },
 }
 
 /// A UI-thread stage of a refresh.

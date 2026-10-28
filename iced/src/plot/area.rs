@@ -353,6 +353,45 @@ impl Area {
         shown
     }
 
+    /// Checks a fresh render of tile `(i, j)` of grid `serial`, over
+    /// `rect` with the grid's origin at `at`, against the image it shows of
+    /// generation and content `shown` (see [`Slot::check`]); a replacing
+    /// render lies where it was rendered. `None` when the tile shows
+    /// another image now.
+    pub(crate) fn check(
+        &mut self,
+        (serial, i, j, at): (u64, i32, i32, [i32; 2]),
+        shown: (u64, u64),
+        (rect, bands): ([i32; 4], Vec<Band>),
+    ) -> Option<u8> {
+        if serial != self.serial {
+            return None;
+        }
+        let tile = self
+            .tiles
+            .iter_mut()
+            .find(|tile| (tile.key().i, tile.key().j) == (i, j))?;
+        let max = tile.slot_mut().check(shown, bands)?;
+        if max > 1 {
+            tile.shown_at(rect, at);
+        }
+        Some(max)
+    }
+
+    /// Checks a fresh render of the overlay over `rect` against the image
+    /// it shows (see [`Slot::check`]).
+    pub(crate) fn check_overlay(
+        &mut self,
+        rect: [i32; 4],
+        shown: (u64, u64),
+        bands: Vec<Band>,
+    ) -> Option<u8> {
+        self.overlays
+            .iter_mut()
+            .find(|slot| slot.rect() == rect)?
+            .check(shown, bands)
+    }
+
     /// Applies an overlay's rendered image, if the area still has an
     /// overlay over `rect`. True when shown.
     pub(crate) fn land_overlay(

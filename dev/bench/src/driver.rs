@@ -207,6 +207,8 @@ impl<'a, Message> Driver<'a, Message> {
                         self.send(undrawn);
                     }
                 }
+                // Only under `Caching::Verify`, which the child does not set.
+                Sample::Mismatch { .. } => {}
             }
         }
     }

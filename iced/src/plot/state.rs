@@ -944,10 +944,13 @@ impl State {
             },
             (pipeline.caching, pipeline.revision),
         );
-        if plan.is_empty() {
+        let verify = pipeline.caching == Caching::Verify;
+        if plan.is_empty() && !verify {
             return 0;
         }
-        self.hits.rebuild(figure.hits(resolved, &mut self.cache));
+        if !plan.is_empty() {
+            self.hits.rebuild(figure.hits(resolved, &mut self.cache));
+        }
         // A tile's work is its share of its layer's over the area, by the
         // pixels of the area it covers (the ring's tiles count pixels
         // only); an overlay's, its chrome's over its rect.
@@ -995,8 +998,9 @@ impl State {
     /// on the pool under `Render::Worker`, and under `Render::Auto` inline
     /// each job whose predicted time still fits half the frame budget with
     /// those before it, the rest on the pool, whose waiting jobs they
-    /// replace (it abandons them). Everything renders inline when the pool
-    /// cannot start.
+    /// replace (it abandons them). Under `Caching::Verify` every kept or
+    /// translated slot renders again after them, as a check. Everything
+    /// renders inline when the pool cannot start.
     fn render(&mut self, pipeline: &Pipeline<'_>) {
         let probe = pipeline.probe;
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
@@ -1023,6 +1027,16 @@ impl State {
                 fits
             }),
         };
+        if pipeline.caching == Caching::Verify {
+            let checks = self
+                .kept()
+                .into_iter()
+                .filter_map(|at| self.check(at, enqueued));
+            match pipeline.render {
+                Render::Inline => here.extend(checks),
+                Render::Worker | Render::Auto => there.extend(checks),
+            }
+        }
         if !there.is_empty() && !self.start(pipeline) {
             // No thread: everything renders here.
             here.append(&mut there);
@@ -1034,6 +1048,46 @@ impl State {
         if let Some(pool) = &self.pool {
             pool.replace(there);
         }
+    }
+
+    /// Every slot that shows its current content and waits for no render
+    /// (kept, or translated with its plot area): gutter runs, tiles,
+    /// overlays.
+    fn kept(&self) -> Vec<At> {
+        let idle = |slot: &Slot| slot.is_current() && slot.pending().is_none();
+        let gutters = (0..self.gutters.len())
+            .filter(|&g| idle(self.gutters[g].slot()))
+            .map(At::Gutter);
+        let tiles = self.areas.iter().enumerate().flat_map(move |(p, area)| {
+            area.tiles()
+                .iter()
+                .enumerate()
+                .filter(move |(_, tile)| idle(tile.slot()) && tile.covers(area.origin()))
+                .map(move |(t, _)| At::Tile(p, t))
+        });
+        let overlays = self.areas.iter().enumerate().flat_map(move |(p, area)| {
+            (0..area.overlays().len())
+                .filter(move |&o| idle(&area.overlays()[o]))
+                .map(move |o| At::Overlay(p, o))
+        });
+        gutters.chain(tiles).chain(overlays).collect()
+    }
+
+    /// The check of the image `at` shows: a job rendering it again for the
+    /// generation and content of that image.
+    fn check(&self, at: At, enqueued: Option<Stamp>) -> Option<Job> {
+        let slot = match at {
+            At::Gutter(g) => self.gutters.get(g)?.slot(),
+            At::Tile(p, t) => self.areas.get(p)?.tiles().get(t)?.slot(),
+            At::Overlay(p, o) => self.areas.get(p)?.overlays().get(o)?,
+        };
+        let (generation, hash) = slot.shows()?;
+        let job = self.job(at, generation, enqueued)?;
+        Some(Job {
+            hash,
+            check: true,
+            ..job
+        })
     }
 
     /// The job that renders `at` for `generation` from what the last
@@ -1134,6 +1188,7 @@ impl State {
             scale: k,
             work,
             splat,
+            check: false,
             enqueued,
             view,
         })
@@ -1341,7 +1396,7 @@ impl State {
                     || area.overlays_differ(&overlays[p])
             });
         let every = match caching {
-            Caching::On => revision != self.revision,
+            Caching::On | Caching::Verify => revision != self.revision,
             Caching::Off => revision != self.revision || dirty,
         };
         self.revision = revision;
@@ -1384,6 +1439,10 @@ impl State {
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
         if let Some(duration) = done.duration {
             self.budget.calibrate(duration, done.pixels(), done.work);
+        }
+        if done.check {
+            self.verify(done, probe);
+            return false;
         }
         if let Some(probe) = probe {
             probe.send(Sample::Raster {
@@ -1432,6 +1491,52 @@ impl State {
             Spot::Overlay { area } => self.areas.get_mut(area).is_some_and(|area| {
                 area.land_overlay(done.rect, (done.generation, done.hash), bands)
             }),
+        }
+    }
+
+    /// Applies a check (`Caching::Verify`): the fresh render against the
+    /// image its slot shows, which it replaces when they differ by more
+    /// than 1/255, reported to `probe` as a mismatch.
+    fn verify(&mut self, done: Done, probe: Option<&Probe>) {
+        if done.generation < self.floor {
+            return;
+        }
+        let Ok(bands) = done
+            .rows
+            .into_iter()
+            .zip(done.bands)
+            .map(|(rows, band)| band.map(|image| Band::new(rows, handle::from_image(image))))
+            .collect::<Result<Vec<Band>, raster::Error>>()
+        else {
+            return;
+        };
+        let shown = (done.generation, done.hash);
+        let max = match done.spot {
+            Spot::Gutter(g) => self
+                .gutters
+                .get_mut(g)
+                .and_then(|run| run.slot_mut().check(shown, bands)),
+            Spot::Tile {
+                area,
+                grid,
+                i,
+                j,
+                at,
+            } => self
+                .areas
+                .get_mut(area)
+                .and_then(|area| area.check((grid, i, j, at), shown, (done.rect, bands))),
+            Spot::Overlay { area } => self
+                .areas
+                .get_mut(area)
+                .and_then(|area| area.check_overlay(done.rect, shown, bands)),
+        };
+        if let (Some(max), Some(probe)) = (max.filter(|&max| max > 1), probe) {
+            probe.send(Sample::Mismatch {
+                frame: self.frame,
+                target: done.target,
+                max,
+            });
         }
     }
 
@@ -1862,7 +1967,7 @@ mod tests {
             .iter()
             .filter_map(|sample| match sample {
                 Sample::Raster { target, .. } => Some(*target),
-                Sample::Stage { .. } | Sample::Frame { .. } => None,
+                Sample::Stage { .. } | Sample::Frame { .. } | Sample::Mismatch { .. } => None,
             })
             .collect();
         targets.sort_by_key(|&target| order(target));
@@ -2029,7 +2134,10 @@ mod tests {
                 Sample::Stage {
                     frame: 1, stage, ..
                 } => Some(*stage),
-                Sample::Stage { .. } | Sample::Raster { .. } | Sample::Frame { .. } => None,
+                Sample::Stage { .. }
+                | Sample::Raster { .. }
+                | Sample::Frame { .. }
+                | Sample::Mismatch { .. } => None,
             })
             .collect();
         assert_eq!(stages, [Stage::Resolve, Stage::List]);
@@ -2082,7 +2190,7 @@ mod tests {
                     uploaded,
                     ..
                 } => Some((*frame, *generation, *images, *missing, *previews, *uploaded)),
-                Sample::Stage { .. } | Sample::Raster { .. } => None,
+                Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
             })
             .collect();
         let slots = u32::try_from(visible).unwrap();
@@ -2171,6 +2279,69 @@ mod tests {
             ),
             "{shown:?}"
         );
+    }
+
+    #[test]
+    fn verify_replaces_a_differing_image() {
+        let dots: Vec<(f64, f64)> = (1..=8).map(|i| (f64::from(i), f64::from(9 - i))).collect();
+        let (tx, rx) = mpsc::channel();
+        let probe = Probe::new(clock, tx);
+        let pipeline = Pipeline {
+            render: Render::Inline,
+            caching: Caching::Verify,
+            revision: 0,
+            probe: Some(&probe),
+            waker: &Waker::noop(),
+            threads: 1,
+        };
+        let mismatches = |samples: &[Sample]| -> Vec<(probe::Target, u8)> {
+            samples
+                .iter()
+                .filter_map(|sample| match sample {
+                    Sample::Mismatch { target, max, .. } => Some((*target, *max)),
+                    Sample::Stage { .. } | Sample::Raster { .. } | Sample::Frame { .. } => None,
+                })
+                .collect()
+        };
+        let mut state = state(480.0, 320.0);
+        state.redraw::<()>(
+            &fixture::pair(dots.clone()),
+            2.0,
+            clock(),
+            &pipeline,
+            (&[], &[]),
+        );
+        assert!(mismatches(&rx.try_iter().collect::<Vec<_>>()).is_empty());
+        // A rebuild of an equal figure keeps every slot: each is checked,
+        // and all agree.
+        state.rebuilt();
+        state.redraw::<()>(
+            &fixture::pair(dots.clone()),
+            2.0,
+            clock(),
+            &pipeline,
+            (&[], &[]),
+        );
+        assert!(mismatches(&rx.try_iter().collect::<Vec<_>>()).is_empty());
+        // A resident tile corrupted in place: the next check replaces it
+        // with a fresh render, the image it had.
+        let (p, t) = (1, 7);
+        let key = state.areas[p].tiles()[t].key();
+        let before = state.areas[p].tiles()[t].slot().images();
+        state.areas[p].tiles_mut()[t].slot_mut().corrupt();
+        assert_ne!(state.areas[p].tiles()[t].slot().images(), before);
+        state.rebuilt();
+        state.redraw::<()>(&fixture::pair(dots), 2.0, clock(), &pipeline, (&[], &[]));
+        let found = mismatches(&rx.try_iter().collect::<Vec<_>>());
+        let target = probe::Target::Tile {
+            area: key.area,
+            i: key.i,
+            j: key.j,
+        };
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].0, target);
+        assert!(found[0].1 > 1, "{found:?}");
+        assert_eq!(state.areas[p].tiles()[t].slot().images(), before);
     }
 
     #[test]

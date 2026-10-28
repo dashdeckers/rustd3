@@ -143,6 +143,67 @@ impl Slot {
         true
     }
 
+    /// The generation and content hash of the image on screen.
+    pub(crate) fn shows(&self) -> Option<(u64, u64)> {
+        self.shown
+            .as_ref()
+            .map(|shown| (shown.generation, shown.hash))
+    }
+
+    /// `bands`, a fresh render of the image on screen (generation and
+    /// content hash `shown`, the same rows), against it: the largest
+    /// channel difference, of 255; above 1 the fresh bands replace the
+    /// image, which is drawn for the first time again. `None` when the slot
+    /// shows another image now or the bands do not line up.
+    pub(crate) fn check(&mut self, shown: (u64, u64), bands: Vec<Band>) -> Option<u8> {
+        if self.shows() != Some(shown) {
+            return None;
+        }
+        let image = self.shown.as_mut()?;
+        if image.bands.len() != bands.len() {
+            return None;
+        }
+        let mut max = 0;
+        for (old, new) in image.bands.iter().zip(&bands) {
+            let (Some(a), Some(b)) = (rgba(&old.handle), rgba(&new.handle)) else {
+                return None;
+            };
+            if old.rows != new.rows || a.len() != b.len() {
+                return None;
+            }
+            max = a
+                .iter()
+                .zip(b)
+                .map(|(p, q)| p.abs_diff(*q))
+                .fold(max, u8::max);
+        }
+        if max > 1 {
+            image.bands = bands;
+            image.fresh = true;
+        }
+        Some(max)
+    }
+
+    /// Inverts every channel of the image on screen, so that a check
+    /// finds it wrong.
+    #[cfg(test)]
+    pub(crate) fn corrupt(&mut self) {
+        if let Some(shown) = &mut self.shown {
+            for band in &mut shown.bands {
+                if let image::Handle::Rgba {
+                    width,
+                    height,
+                    pixels,
+                    ..
+                } = &band.handle
+                {
+                    let inverted: Vec<u8> = pixels.iter().map(|v| 255 - v).collect();
+                    band.handle = image::Handle::from_rgba(*width, *height, inverted);
+                }
+            }
+        }
+    }
+
     /// The views the image on screen was planned at, from which a preview
     /// maps it; `None` without an image.
     pub(crate) fn planned(&self) -> Option<[Option<Basis>; 2]> {
@@ -315,6 +376,15 @@ impl Slot {
             width: (x1 - x0) as f32 / factor,
             height: rows.len() as f32 / factor,
         }
+    }
+}
+
+/// The straight RGBA of an image handle the widget made; `None` for the
+/// kinds it never makes.
+fn rgba(handle: &image::Handle) -> Option<&[u8]> {
+    match handle {
+        image::Handle::Rgba { pixels, .. } => Some(pixels),
+        image::Handle::Path(..) | image::Handle::Bytes(..) => None,
     }
 }
 

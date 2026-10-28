@@ -114,7 +114,10 @@ pub fn tiles(samples: &[Sample]) -> Vec<(u32, i32, i32, u32)> {
                 pixels,
                 ..
             } => Some((*area, *i, *j, *pixels)),
-            Sample::Raster { .. } | Sample::Stage { .. } | Sample::Frame { .. } => None,
+            Sample::Raster { .. }
+            | Sample::Stage { .. }
+            | Sample::Frame { .. }
+            | Sample::Mismatch { .. } => None,
         })
         .collect()
 }
@@ -563,7 +566,7 @@ fn zoom_out_preview_uses_the_overscan_ring() {
                 Sample::Frame {
                     missing, previews, ..
                 } => Some((*missing, *previews)),
-                Sample::Stage { .. } | Sample::Raster { .. } => None,
+                Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
             }));
             if frames.last() == Some(&(0, 0)) {
                 break;
@@ -903,7 +906,7 @@ fn pan_replay(rec: &Recording<f64>, k: f32, frames: u32) -> Option<(Vec<Replayed
             Sample::Frame {
                 missing, previews, ..
             } => Some((*missing, *previews)),
-            Sample::Raster { .. } | Sample::Stage { .. } => None,
+            Sample::Raster { .. } | Sample::Stage { .. } | Sample::Mismatch { .. } => None,
         });
         let (missing, previews) = shown.expect("a frame sample");
         seen.push((missing, previews, tiles(&samples).len()));

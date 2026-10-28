@@ -380,7 +380,7 @@ fn spans(samples: &[Sample], fig: &Figure<'_>, size: Size, k: f32) -> Vec<Vec<u3
                 target: probe::Target::Tile { area, .. },
                 ..
             } => Some(vec![of[*area as usize]]),
-            Sample::Stage { .. } | Sample::Frame { .. } => None,
+            Sample::Stage { .. } | Sample::Frame { .. } | Sample::Mismatch { .. } => None,
         })
         .collect()
 }
@@ -501,7 +501,7 @@ fn caching_off_renders_every_cell() {
         .cell_at([area[0] as i32 + 1, area[1] as i32 + 1])
         .and_then(|i| u32::try_from(i).ok())
         .expect("the plot area is a cell");
-    for caching in [Caching::On, Caching::Off] {
+    for caching in [Caching::On, Caching::Off, Caching::Verify] {
         let Some(mut harness) = Harness::new(plot((4.0, 5.0), caching), SIZE, k) else {
             return;
         };
@@ -523,8 +523,9 @@ fn caching_off_renders_every_cell() {
             "{caching:?}, {backend}: a moved dot renders {moved:?} of {} cells; an equal list {unchanged:?}",
             all.len()
         );
+        // Verify renders as On; its checks report no raster sample.
         match caching {
-            Caching::On => assert_eq!(moved, [inside], "{backend}"),
+            Caching::On | Caching::Verify => assert_eq!(moved, [inside], "{backend}"),
             Caching::Off => assert_eq!(moved, all, "{backend}"),
         }
         assert!(unchanged.is_empty(), "{backend}: {unchanged:?}");

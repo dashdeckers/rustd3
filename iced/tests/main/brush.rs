@@ -734,7 +734,7 @@ fn brushing_alone_renders_no_cell() {
             .iter()
             .filter_map(|sample| match sample {
                 Sample::Frame { generation, .. } => Some(*generation),
-                Sample::Stage { .. } | Sample::Raster { .. } => None,
+                Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
             })
             .collect()
     };

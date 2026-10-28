@@ -16,7 +16,7 @@ use rustd3_figure::mark::line;
 use rustd3_figure::{Cache, Figure, Held, Target, axis, kurbo};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::{self, Sample};
-use rustd3_iced::plot::{Probe, Render};
+use rustd3_iced::plot::{Caching, Probe, Render};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
@@ -83,7 +83,7 @@ fn targets(samples: &[Sample]) -> Vec<probe::Target> {
         .iter()
         .filter_map(|sample| match sample {
             Sample::Raster { target, .. } => Some(*target),
-            Sample::Stage { .. } | Sample::Frame { .. } => None,
+            Sample::Stage { .. } | Sample::Frame { .. } | Sample::Mismatch { .. } => None,
         })
         .collect()
 }
@@ -95,7 +95,7 @@ fn images(samples: &[Sample]) -> u32 {
         .rev()
         .find_map(|sample| match sample {
             Sample::Frame { images, .. } => Some(*images),
-            Sample::Stage { .. } | Sample::Raster { .. } => None,
+            Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
         })
         .expect("a frame sample")
 }
@@ -320,5 +320,44 @@ fn gutters_merge_into_fewer_images() {
         );
         assert!(runs < gutters, "{backend}, k = {k}: {runs} of {gutters}");
         assert!(max <= bound(&backend), "{backend}, k = {k}: max {max}/255");
+    }
+}
+
+#[test]
+fn verify_finds_translated_tiles_exact() {
+    // Under Caching::Verify every tile a drag translates is rendered again
+    // at its key and compared: a whole-pixel translation renders the same
+    // pixels, so no mismatch is reported at 1 or 2.
+    let blue = Rgb::new(30.0, 60.0, 140.0);
+    for k in [1.0_f32, 2.0] {
+        let (tx, rx) = mpsc::channel();
+        let probe = Probe::new(clock, tx);
+        let plot = plot(colored([0.0, 100.0], blue), k, &probe).caching(Caching::Verify);
+        let Some(mut harness) = Harness::new(plot, tiles::SIZE, k) else {
+            return;
+        };
+        let backend = harness.backend();
+        let t0 = headless::epoch();
+        let _ = harness.frame(t0);
+        let area = tiles::areas(&colored([0.0, 100.0], blue), tiles::SIZE, k)[0];
+        let from = Point::new(
+            (area[0] + area[2]) as f32 / 2.0 / k,
+            (area[1] + area[3]) as f32 / 2.0 / k,
+        );
+        let (samples, _) = drag(
+            &mut harness,
+            &rx,
+            (from, Point::new(from.x - 23.0, from.y)),
+            t0,
+        );
+        let mismatches: Vec<(probe::Target, u8)> = samples
+            .iter()
+            .filter_map(|sample| match sample {
+                Sample::Mismatch { target, max, .. } => Some((*target, *max)),
+                Sample::Stage { .. } | Sample::Raster { .. } | Sample::Frame { .. } => None,
+            })
+            .collect();
+        println!("verify over a drag of 23 px, {backend}, k = {k}: mismatches {mismatches:?}");
+        assert!(mismatches.is_empty(), "{backend}, k = {k}: {mismatches:?}");
     }
 }

@@ -477,7 +477,7 @@ fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
         .try_iter()
         .filter_map(|sample| match sample {
             Sample::Frame { images, .. } => Some(images),
-            Sample::Raster { .. } | Sample::Stage { .. } => None,
+            Sample::Raster { .. } | Sample::Stage { .. } | Sample::Mismatch { .. } => None,
         })
         .last()?;
     let mut empty = UserInterface::build(
