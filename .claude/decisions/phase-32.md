@@ -74,7 +74,7 @@ and no use-case test failed because of core behavior.
 
 ## D32.1 — The time-axis locale test has no figure time handle to use
 
-**Date:** 2026-10-28 · **Context:** Phase 32, step 4 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 32, step 4 · **Status:** decided
 
 ### Issue
 
@@ -110,10 +110,8 @@ in Phase 32 depends on the answer.
 
 ### Decision
 
-Recommended: A, as built. Phase 33's time-handle step replaces the core
-axis in `time_axes_keep_the_iso_ladder_under_de_de` with a figure panel
-on `fig.scale(time::time(berlin).domain(day))` and `axis::bottom(x)
-.ticks(8)`, reading the labels from the glyph runs like the other four.
+A (architect, 2026-10-28): the test goes through core's axis now;
+Phase 33 rewrites it on a figure time handle.
 
 ### Why
 
@@ -127,7 +125,7 @@ figure half to the phase that makes it possible.
 
 ## D32.2 — iced's `time::every` is not available to the use case 2 app
 
-**Date:** 2026-10-28 · **Context:** Phase 32, step 3 (35a324a) · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 32, step 3 (35a324a) · **Status:** decided
 
 ### Issue
 
@@ -164,7 +162,10 @@ receiver of a `futures` channel fed by a thread.
 
 ### Decision
 
-Recommended: A, as built (35a324a).
+A (architect, 2026-10-28): no manifest change; frames are subscribed
+only while animating, and the example binary's 1.5 s data clock is a
+thread behind `Subscription::run_with`, so the app library reads no
+clock.
 
 ### Why
 
@@ -181,7 +182,7 @@ clock back into `App::subscription` as Part I writes it.
 
 ## D32.3 — Details of Phase 32 as built
 
-**Date:** 2026-10-28 · **Context:** Phase 32, steps 1–4 (e5897c9, 1995eac, 35a324a, bc93514) · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 32, steps 1–4 (e5897c9, 1995eac, 35a324a, bc93514) · **Status:** decided
 
 ### Issue
 
@@ -224,7 +225,11 @@ clock back into `App::subscription` as Part I writes it.
 
 ### Decision
 
-Recommended: A for all eight, as built.
+A for all eight (architect, 2026-10-28), as built. One addition: use
+case 1 keeps the section's 860 px plot width and gains a right margin in
+its window (the canvas grows, the plot does not), so the rightmost x
+label never overflows the canvas edge; a `fix(examples)` commit at the
+start of Phase 33's session, checked by a screenshot.
 
 ### Why
 
