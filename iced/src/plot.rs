@@ -373,6 +373,38 @@ impl<'a, Message> Plot<'a, Message> {
     /// last published until it ends, so updates the app applies late lose
     /// no distance. Only continuous handles change. A later `on_change`
     /// for the same handle replaces this one.
+    ///
+    /// The message carries the domain in the scale's own type: a time
+    /// handle publishes instants, and a message of numbers for it does not
+    /// compile (E0631, expected `fn([Timestamp; 2]) -> _`).
+    ///
+    /// ```compile_fail,E0631
+    /// use rustd3_core::time;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_iced::Plot;
+    ///
+    /// enum Msg {
+    ///     Range([f64; 2]),
+    /// }
+    ///
+    /// let mut fig = Figure::new();
+    /// let x_time = fig.scale(time::utc());
+    /// let plot: Plot<'_, Msg> = Plot::new(fig).on_change(x_time, Msg::Range); // E0631
+    /// ```
+    ///
+    /// ```
+    /// use rustd3_core::time;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_iced::Plot;
+    ///
+    /// enum Msg {
+    ///     Range([rustd3_core::jiff::Timestamp; 2]),
+    /// }
+    ///
+    /// let mut fig = Figure::new();
+    /// let x_time = fig.scale(time::utc());
+    /// let plot: Plot<'_, Msg> = Plot::new(fig).on_change(x_time, Msg::Range);
+    /// ```
     pub fn on_change<S>(
         mut self,
         handle: ScaleRef<S>,
