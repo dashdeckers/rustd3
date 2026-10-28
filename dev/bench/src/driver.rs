@@ -146,25 +146,29 @@ impl<'a, Message> Driver<'a, Message> {
                     queued,
                     duration,
                     inline,
-                } => self.send(Record::Raster {
-                    frame,
-                    generation,
-                    cell: match target {
-                        Target::Cell(cell) => Some(cell),
-                        Target::Tile { .. } => None,
-                    },
-                    tile: match target {
-                        Target::Cell(_) => None,
-                        Target::Tile { area, i, j } => {
-                            Some([i32::try_from(area).unwrap_or(i32::MAX), i, j])
-                        }
-                    },
-                    pixels,
-                    work,
-                    queued_ms: queued.as_secs_f64() * 1e3,
-                    ms: duration.as_secs_f64() * 1e3,
-                    inline,
-                }),
+                } => {
+                    let (cell, tile) = spot(target);
+                    self.send(Record::Raster {
+                        frame,
+                        generation,
+                        cell,
+                        tile,
+                        pixels,
+                        work,
+                        queued_ms: queued.as_secs_f64() * 1e3,
+                        ms: duration.as_secs_f64() * 1e3,
+                        inline,
+                    });
+                }
+                Sample::Mismatch { frame, target, max } => {
+                    let (cell, tile) = spot(target);
+                    self.send(Record::Mismatch {
+                        frame,
+                        cell,
+                        tile,
+                        max,
+                    });
+                }
                 Sample::Frame {
                     frame,
                     at,
@@ -207,8 +211,6 @@ impl<'a, Message> Driver<'a, Message> {
                         self.send(undrawn);
                     }
                 }
-                // Only under `Caching::Verify`, which the child does not set.
-                Sample::Mismatch { .. } => {}
             }
         }
     }
@@ -507,6 +509,17 @@ fn place(x: f32, y: f32, planned: Size, bounds: Rectangle) -> iced::Point {
     )
 }
 
+/// A probe target as a raw record names it: a cell's index, or a tile's
+/// plot area, column and row.
+fn spot(target: Target) -> (Option<u32>, Option<[i32; 3]>) {
+    match target {
+        Target::Cell(cell) => (Some(cell), None),
+        Target::Tile { area, i, j } => {
+            (None, Some([i32::try_from(area).unwrap_or(i32::MAX), i, j]))
+        }
+    }
+}
+
 /// The bench's button as iced's.
 fn iced_button(button: replay::Button) -> mouse::Button {
     match button {
@@ -533,7 +546,7 @@ mod tests {
     use super::{Driver, place};
     use crate::record::Record;
     use crate::replay::Cue;
-    use crate::scenario::{Scenario, WINDOW};
+    use crate::scenario::{Anchors, Scenario, WINDOW};
     use crate::workload::{Data, Workload};
 
     /// What the test's app receives: the driver's cues and the x domain
@@ -567,7 +580,7 @@ mod tests {
         // gave 960 × 600: the press at x = 1100 would fall outside the
         // widget, and nothing would pan.
         let actual = Size::new(960.0, 600.0);
-        let replay = Scenario::PanX.replay(WINDOW, 480.0);
+        let replay = Scenario::PanX.replay(WINDOW, Anchors::STANDARD, 480.0);
         let data = Workload::Trace.data(0.01);
         let Data::Trace(trace) = &data else {
             panic!("trace data");

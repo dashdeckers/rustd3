@@ -66,6 +66,9 @@ pub struct Options {
     pub render: Render,
     /// `--caching`.
     pub caching: Caching,
+    /// `--threads`: the widget's render pool; `None` is its default (the
+    /// available parallelism less one, 1 to 8).
+    pub threads: Option<usize>,
     /// `--replay FILE`: replaces every selected scenario's input.
     pub replay: Option<PathBuf>,
     /// `--data-scale`: the plan's data size times this.
@@ -148,34 +151,43 @@ pub enum Error {
 pub const HELP: &str = "\
 rustd3-bench: the full-frame benchmark of rustd3's Plot widget.
 
-The user's procedure (Pop!_OS, real hardware):
-  1. Tell the agent the display's refresh rate and scale factor; read and
-     confirm the operational readings (`rustd3-bench list` prints them).
-  2. cargo build --release -p rustd3-bench
-  3. Plug in power, `system76-power profile performance`, close other
-     GPU-heavy apps; leave the desktop's compositor as it is (recorded).
-  4. target/release/rustd3-bench run --plan default --refresh-hz <HZ>
+The user's procedure (Pop!_OS, real hardware; dev/bench/README.md is the
+run sheet):
+  1. Plug in power, close other GPU-heavy apps; leave the desktop's
+     compositor as it is (recorded).
+  2. dev/bench/run.sh: builds, then the smoke plan, the default plan
+     (the verdict's) and D22.4's weak plan three times (tiny-skia, then
+     wgpu on 4 and on 2 cores), about 75 minutes; do not touch the mouse
+     or keyboard. HZ and FACTOR override the detected refresh rate and
+     scale factor.
+  3. By hand instead: cargo build --release -p rustd3-bench, then
+     target/release/rustd3-bench run --plan default --refresh-hz <HZ>
        --native-factor <F> --out ~/bench-out
-     Windows open and close for about 50 minutes; do not touch the mouse
-     or keyboard.
-  5. Optional: the same with --backend tiny-skia (report-only); `record`
-     then `run --scenario zoom-pixels --replay FILE` with your own
-     touchpad; --render inline to see the pure synchronous path.
-  6. Send back ~/bench-out/<stamp>/ (tar czf bench.tgz -C ~/bench-out
-     <stamp>); at least report.md, summary.csv, meta.json.
+  4. Optional: `record` then `run --scenario zoom-pixels --replay FILE`
+     with your own touchpad; --render inline to see the pure synchronous
+     path.
+  5. Send back the run's directory (the script prints the tar command);
+     at least report.md, summary.csv, meta.json of each plan.
 
 Commands:
-  run     [--plan smoke|quick|default|full] [--scenario A,B] [--workload A,B]
+  run     [--plan smoke|quick|default|weak|full] [--scenario A,B] [--workload A,B]
           [--factor 1,1.25] [--runs N] [--refresh-hz HZ] [--native-factor F]
           [--backend wgpu|tiny-skia]
           [--present-mode vsync|no_vsync|immediate|fifo|fifo_relaxed|mailbox]
           [--headless] [--readback every|last] [--render auto|inline|worker]
-          [--caching on|off] [--replay FILE] [--data-scale F] [--out DIR]
+          [--caching on|off|verify] [--threads N] [--replay FILE]
+          [--data-scale F] [--out DIR]
           `run` is the default command. Windowed, --refresh-hz and
           --native-factor are required; headless, they default to 60 and 2,
           and --headless without --plan is --plan smoke. --scenario,
           --workload and --factor restrict any plan (smoke runs at the
-          listed factors instead of 2).
+          listed factors instead of 2). `weak` is D22.4's plan for weaker
+          machines, held to its own budgets: run it with --backend
+          tiny-skia, and under `taskset -c 0-3` and `taskset -c 0-1`
+          (dev/bench/run.sh does). --threads sets the widget's render
+          pool (1 to 64; default the available parallelism less one, 1 to
+          8); --caching verify renders every kept image again and reports
+          what differs.
   child   (internal: one scenario × workload × factor × run)
   replay  --out DIR       write the generated replays
   record  --out FILE      record your own input in the trace window as a
@@ -311,8 +323,14 @@ impl Options {
                     options.caching = match value.as_str() {
                         "on" => Caching::On,
                         "off" => Caching::Off,
+                        "verify" => Caching::Verify,
                         _ => return Err(bad()),
                     };
+                }
+                "--threads" => {
+                    let threads = value.parse::<usize>().ok();
+                    let threads = threads.filter(|n| (1..=64).contains(n));
+                    options.threads = Some(threads.ok_or_else(bad)?);
                 }
                 "--replay" => options.replay = Some(PathBuf::from(value)),
                 "--data-scale" => {
@@ -392,6 +410,9 @@ impl Options {
         if let Some(scale) = self.data_scale {
             args.extend(["--data-scale".to_owned(), scale.to_string()]);
         }
+        if let Some(threads) = self.threads {
+            args.extend(["--threads".to_owned(), threads.to_string()]);
+        }
         if let Some(mode) = self.present_mode {
             args.extend(["--present-mode".to_owned(), mode.name().to_owned()]);
         }
@@ -415,6 +436,7 @@ impl Default for Options {
             readback: Readback::default(),
             render: Render::default(),
             caching: Caching::default(),
+            threads: None,
             replay: None,
             data_scale: None,
             out: PathBuf::from("bench-out"),
@@ -605,7 +627,8 @@ mod tests {
         let line = "run --plan quick --scenario pan-x,zoom-lines --workload trace,grid16 \
                     --factor 1,1.25 --runs 3 --refresh-hz 144 --native-factor 1.25 \
                     --backend tiny-skia --present-mode fifo_relaxed --headless --readback last \
-                    --render worker --caching off --replay in.jsonl --data-scale 0.5 --out o";
+                    --render worker --caching verify --threads 3 --replay in.jsonl \
+                    --data-scale 0.5 --out o";
         let Ok(Command::Run(options)) = Command::parse(&args(line)) else {
             panic!("a run");
         };
@@ -627,7 +650,8 @@ mod tests {
         assert!(options.headless);
         assert_eq!(options.readback, Readback::Last);
         assert_eq!(options.render, Render::Worker);
-        assert_eq!(options.caching, Caching::Off);
+        assert_eq!(options.caching, Caching::Verify);
+        assert_eq!(options.threads, Some(3));
         assert_eq!(options.replay, Some(PathBuf::from("in.jsonl")));
         assert_eq!(options.data_scale, Some(0.5));
         assert_eq!(options.out, PathBuf::from("o"));
@@ -648,7 +672,8 @@ mod tests {
             assert!(Command::parse(&args(line)).is_ok(), "{line}");
         }
         // A child round-trips through the flags `run` gives it.
-        let line = "child --plan smoke --headless --cell pan-x__trace__f1.25 --run 2 --dir d";
+        let line = "child --plan weak --headless --threads 2 --caching verify \
+                    --cell pan-x__trace__f1.25 --run 2 --dir d";
         let Ok(Command::Child(child)) = Command::parse(&args(line)) else {
             panic!("a child");
         };
@@ -662,21 +687,35 @@ mod tests {
         );
         assert_eq!(again.options.refresh_hz, Some(60.0));
         assert!(again.options.headless);
+        assert_eq!(
+            (
+                again.options.plan(),
+                again.options.threads,
+                again.options.caching
+            ),
+            (Plan::Weak, Some(2), Caching::Verify)
+        );
     }
 
     #[test]
     fn rejects_unknown_flags() {
         assert_eq!(
-            Command::parse(&args("run --threads 4")),
-            Err(Error::Unknown("--threads".to_owned()))
+            Command::parse(&args("run --pool 4")),
+            Err(Error::Unknown("--pool".to_owned()))
         );
-        assert_eq!(
-            Command::parse(&args("run --caching verify")),
-            Err(Error::Value {
-                flag: "--caching".to_owned(),
-                value: "verify".to_owned()
-            })
-        );
+        for (flag, value) in [
+            ("--threads", "0"),
+            ("--threads", "65"),
+            ("--caching", "always"),
+        ] {
+            assert_eq!(
+                Command::parse(&args(&format!("run {flag} {value}"))),
+                Err(Error::Value {
+                    flag: flag.to_owned(),
+                    value: value.to_owned()
+                })
+            );
+        }
         assert!(Command::parse(&args("run --plan")).is_err());
         assert!(Command::parse(&args("run --factor 0")).is_err());
         assert!(Command::parse(&args("run --workload wheel")).is_err());

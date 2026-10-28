@@ -105,6 +105,9 @@ pub struct Metrics {
     rasters: Vec<Raster>,
     stages: Vec<(String, f64)>,
     sys: Vec<Sys>,
+    /// The largest difference of each image `Caching::Verify` replaced, of
+    /// 255.
+    pub mismatches: Vec<u8>,
     /// When the run ended, ms since process start.
     pub end_ms: f64,
     /// Whether every slot was sharp at the end.
@@ -125,6 +128,7 @@ impl Metrics {
         let mut rasters = Vec::new();
         let mut stages = Vec::new();
         let mut sys = Vec::new();
+        let mut mismatches = Vec::new();
         let (mut end_ms, mut settled) = (None, false);
         for record in records {
             match record {
@@ -184,6 +188,7 @@ impl Metrics {
                     rss_kb: *rss_kb,
                     gpu_mb: *gpu_mb,
                 }),
+                Record::Mismatch { max, .. } => mismatches.push(*max),
                 Record::Harness { .. } => {}
                 Record::End {
                     at_ms,
@@ -215,6 +220,7 @@ impl Metrics {
             rasters,
             stages,
             sys,
+            mismatches,
             end_ms,
             settled,
             start_ms,

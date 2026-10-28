@@ -92,7 +92,7 @@ impl App {
         let data = config.child.cell.workload.data(config.data_scale);
         let (records, received) = mpsc::channel();
         let (sink, samples) = mpsc::channel();
-        let size = config.child.cell.window();
+        let size = config.child.cell.window(config.native);
         let sampler = (config.child.cell.scenario == Scenario::Soak)
             .then(|| Sampler::start(records.clone(), config.epoch));
         App {
@@ -122,10 +122,14 @@ impl App {
             .render(options.render)
             .caching(options.caching)
             .probe(Probe::new(clock, self.sink.clone()));
+        let plot = match options.threads {
+            Some(threads) => plot.threads(threads),
+            None => plot,
+        };
         Driver::new(
             plot,
             &self.config.replay,
-            cell.window(),
+            cell.window(self.config.native),
             self.records.clone(),
             Message::Cue,
             &self.samples,
@@ -174,7 +178,7 @@ impl App {
         self.sampler = None;
         let cell = self.config.child.cell;
         let options = &self.config.child.options;
-        let window = cell.window();
+        let window = cell.window(self.config.native);
         // The window's factor times the app's (the cell's over the
         // window's) is the cell's: logical px times it are device px.
         let device = self.reported.unwrap_or(window) * cell.factor;
@@ -274,7 +278,7 @@ impl App {
 pub fn windowed(config: Config) -> iced::Result {
     let cell = config.child.cell;
     let settings = window::Settings {
-        size: cell.window(),
+        size: cell.window(config.native),
         resizable: cell.scenario == Scenario::Resize,
         ..window::Settings::default()
     };

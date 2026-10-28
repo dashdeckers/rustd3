@@ -44,6 +44,29 @@ thread, not to a GPU layer. If every budget is met, Phase 31 is skipped.
    report shows all three.
 ";
 
+/// The weak profile's budgets and how its outcome reads (D22.4),
+/// registered before any run.
+pub const WEAK: &str = "\
+**Weak profile (D22.4).** The `weak` plan (`hover`, `pan-x` and
+`zoom-lines` on `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the
+native factor, five runs each) runs without a GPU (`--backend tiny-skia`)
+and on wgpu pinned to 4 and to 2 cores, each its own report. Budgets: p99
+frame interval ≤ 2 T; pan latency p95 ≤ 150 ms; zoom latency p95 ≤ 250
+ms; preview share ≤ 25% during pans. Each is met, missed or inconclusive
+by the readings above; a miss is attributed as above and becomes work for
+Phase 31 while it is open, else a recorded 0.2 item. These profiles never
+reopen the GPU-layer question, which stays with the desktop profile.
+";
+
+/// Which budgets a plan's cells are held to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Profile {
+    /// The verdict's (D22.1): the desktop.
+    Desktop,
+    /// D22.4's weaker machines (the `weak` plan).
+    Weak,
+}
+
 /// One of the budgets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Budget {
@@ -128,15 +151,41 @@ impl Budget {
     }
 }
 
+impl Profile {
+    /// The profile of the plan named `plan`.
+    pub fn of(plan: &str) -> Profile {
+        if plan == crate::plan::Plan::Weak.name() {
+            Profile::Weak
+        } else {
+            Profile::Desktop
+        }
+    }
+
+    /// `budget`'s limit at a frame period of `period_ms`: ms, or a share.
+    pub fn limit(self, budget: Budget, period_ms: f64) -> f64 {
+        match (self, budget) {
+            (Profile::Desktop, Budget::Frame) => 1.5 * period_ms,
+            (Profile::Desktop, Budget::PanLatency) => 100.0,
+            (Profile::Desktop, Budget::ZoomLatency) => 150.0,
+            (Profile::Desktop, Budget::Previews) => 0.10,
+            (Profile::Weak, Budget::Frame) => 2.0 * period_ms,
+            (Profile::Weak, Budget::PanLatency) => 150.0,
+            (Profile::Weak, Budget::ZoomLatency) => 250.0,
+            (Profile::Weak, Budget::Previews) => 0.25,
+        }
+    }
+}
+
 impl Check {
-    /// `budget` over `half` of `runs` at a frame period of `period_ms`.
-    pub fn evaluate(budget: Budget, half: Half, runs: &[Metrics], period_ms: f64) -> Check {
-        let limit = match budget {
-            Budget::Frame => 1.5 * period_ms,
-            Budget::PanLatency => 100.0,
-            Budget::ZoomLatency => 150.0,
-            Budget::Previews => 0.10,
-        };
+    /// `budget` over `half` of `runs` at a frame period of `period_ms`,
+    /// held to `profile`'s limit.
+    pub fn evaluate(
+        (budget, half): (Budget, Half),
+        runs: &[Metrics],
+        period_ms: f64,
+        profile: Profile,
+    ) -> Check {
+        let limit = profile.limit(budget, period_ms);
         let values: Vec<f64> = runs
             .iter()
             .filter_map(|run| match budget {
@@ -220,29 +269,44 @@ impl Outcome {
         }
     }
 
-    /// The outcome's line in the report.
-    pub fn line(self) -> &'static str {
-        match self {
-            Outcome::Sufficient => "image path sufficient — Phase 31 skipped",
-            Outcome::UiBound => {
-                "UI-thread bound → move list building off the UI thread; Phase 31 skipped"
+    /// The outcome's line in a report of `profile`. Phase 31 is built, so
+    /// a desktop run is the rerun the rule asks for: a raster or upload
+    /// miss now recommends the GPU data layer; the weak profiles never
+    /// decide it (D22.4).
+    pub fn line(self, profile: Profile) -> &'static str {
+        match (profile, self) {
+            (Profile::Desktop, Outcome::Sufficient) => {
+                "image path sufficient — Phase 31 built, no GPU data layer"
             }
-            Outcome::RasterBound => {
-                "raster/upload bound → build Phase 31 (tiles, translation, pool, envelope fills, \
-                 splatting) and rerun"
+            (Profile::Desktop, Outcome::UiBound) => {
+                "UI-thread bound → move list building off the UI thread (0.2); no GPU data layer"
             }
-            Outcome::Pending => {
+            (Profile::Desktop, Outcome::RasterBound) => {
+                "still raster/upload bound after Phase 31 → GPU data layer recommended"
+            }
+            (Profile::Weak, Outcome::Sufficient) => "weak profile: every budget met",
+            (Profile::Weak, Outcome::UiBound) => {
+                "weak profile: missed on the UI thread → Phase 31 work while it is open, else a \
+                 0.2 item"
+            }
+            (Profile::Weak, Outcome::RasterBound) => {
+                "weak profile: missed on raster/upload → Phase 31 work while it is open, else a \
+                 0.2 item (never the GPU-layer question)"
+            }
+            (Profile::Desktop | Profile::Weak, Outcome::Pending) => {
                 "no verdict yet: some budget is inconclusive and none missed; rerun the \
                  inconclusive cells with --runs 10"
             }
-            Outcome::Unmeasured => "no verdict: the selected cells hold no budget",
+            (Profile::Desktop | Profile::Weak, Outcome::Unmeasured) => {
+                "no verdict: the selected cells hold no budget"
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Budget, Check, Outcome};
+    use super::{Budget, Check, Outcome, Profile};
     use crate::metrics::tests::{frame, header, input};
     use crate::metrics::{Half, Metrics, Shares};
     use crate::scenario::Scenario;
@@ -252,14 +316,36 @@ mod tests {
     fn the_p99_budget_is_one_and_a_half_periods() {
         // 144 Hz: T = 6.94 ms, budget 10.4 ms; 60 Hz: T = 16.67, 25.0 ms.
         for (hz, budget) in [(144.0, 10.42), (60.0, 25.0)] {
-            let check = Check::evaluate(Budget::Frame, Half::Whole, &[], 1e3 / hz);
+            let frame = (Budget::Frame, Half::Whole);
+            let check = Check::evaluate(frame, &[], 1e3 / hz, Profile::Desktop);
             assert!((check.limit - budget).abs() < 0.01, "{}", check.limit);
             assert_eq!(check.verdict, Verdict::Inconclusive);
         }
     }
 
     #[test]
-    fn a_raster_bound_pan_miss_builds_phase_31() {
+    fn the_weak_profile_has_d22_4s_budgets() {
+        let t = 1e3 / 60.0;
+        let limits = [
+            Budget::Frame,
+            Budget::PanLatency,
+            Budget::ZoomLatency,
+            Budget::Previews,
+        ]
+        .map(|budget| Profile::Weak.limit(budget, t));
+        assert_eq!(limits, [2.0 * t, 150.0, 250.0, 0.25]);
+        assert_eq!(Profile::of("weak"), Profile::Weak);
+        assert_eq!(Profile::of("default"), Profile::Desktop);
+        // Its outcome never asks for the GPU layer.
+        let line = Outcome::RasterBound.line(Profile::Weak);
+        assert!(
+            line.contains("0.2 item") && !line.contains("recommended"),
+            "{line}"
+        );
+    }
+
+    #[test]
+    fn a_raster_bound_pan_miss_after_phase_31_recommends_the_gpu_layer() {
         // Five runs whose pan latencies are all about 200 ms, raster-bound.
         let runs: Vec<Metrics> = (0..5)
             .map(|k| {
@@ -283,13 +369,20 @@ mod tests {
                 Metrics::of(&records).unwrap()
             })
             .collect();
-        let check = Check::evaluate(Budget::PanLatency, Half::Whole, &runs, 16.67);
+        let pan = (Budget::PanLatency, Half::Whole);
+        let check = Check::evaluate(pan, &runs, 16.67, Profile::Desktop);
         assert_eq!(check.verdict, Verdict::Missed);
         assert_eq!(check.shares.bucket(), "raster");
-        assert_eq!(
-            Outcome::of(&[(Scenario::PanX, check.clone())]),
-            Outcome::RasterBound
+        let outcome = Outcome::of(&[(Scenario::PanX, check.clone())]);
+        assert_eq!(outcome, Outcome::RasterBound);
+        assert!(
+            outcome
+                .line(Profile::Desktop)
+                .contains("GPU data layer recommended")
         );
+        // The weak profile's budget is 150 ms: the same runs miss it too.
+        let weak = Check::evaluate(pan, &runs, 16.67, Profile::Weak);
+        assert_eq!((weak.limit, weak.verdict), (150.0, Verdict::Missed));
         // The same miss on the UI thread routes elsewhere.
         let ui = Check {
             shares: Shares {

@@ -3,9 +3,11 @@
 The full-frame benchmark drives the real `Plot` widget with replayed
 input, one cold process per run, and writes raw records, CSVs and a
 `report.md` that evaluates the decision rule registered in
-`.claude/decisions/phase-22.md` (D22.1). Its verdict decides whether
-Phase 31 (tiles, pan translation, the renderer pool, envelope fills,
-marker splatting) is built.
+`.claude/decisions/phase-22.md` (D22.1). Its first verdict built Phase 31
+(tiles, pan translation, the renderer pool, marker splatting); this is
+the rerun the rule asks for: its outcome says whether the image path now
+suffices or a GPU data layer is recommended, and D22.4's weak profiles
+say how the widget holds up on weaker machines and without a GPU.
 
 ## Before you run
 
@@ -35,23 +37,33 @@ restoring your profile at the end. Then it runs, into
 1. `smoke/`, about 5 minutes: every scenario × workload once in windows at
    your factor, to see that windows open, take the replayed input and
    close. If iced reports another scale factor for those windows, the
-   script says so and the default plan uses that one.
-2. `default/`, about 46 minutes: the verdict's run.
+   script says so and the plans after it use that one.
+2. `default/`, about 46 minutes: the verdict's rerun.
+3. `weak-nogpu/`, about 7 minutes: the `weak` plan on the software
+   renderer (`--backend tiny-skia`), as on a machine without a GPU.
+4. `weak-4cores/` and `weak-2cores/`, about 7 minutes each: the `weak`
+   plan on wgpu with the bench pinned to 4 and to 2 cores (`taskset -c
+   0-3`, `taskset -c 0-1`); the widget's render pool follows the cores it
+   may use. A pinning is skipped, with a message, on a machine with fewer
+   cores or without `taskset`.
 
-Each plan's console goes to `run-smoke.log` and `run-default.log`, and
-the diagnostics to `system.txt`, beside them. The script ends with the
-directory, each report's rule outcome and the `tar` command for sending it.
+About 75 minutes in all, plus the build. Each plan's console goes to
+`run-<plan>.log` (`run-smoke.log`, `run-default.log`, `run-weak-nogpu.log`,
+…) and the diagnostics to `system.txt`, beside them. The script ends with
+the directory, each report's rule outcome and the `tar` command for
+sending it.
 
 - `HZ=144 FACTOR=1.25 dev/bench/run.sh` overrides detection; with no
   refresh rate found, the script stops and asks for `HZ`.
 - `dev/bench/run.sh --smoke-only` stops after smoke.
 
 Smoke runs each cell once, so its report reads "inconclusive" everywhere
-by design: verdicts need the default plan's 5 runs per cell, and smoke only
-checks that windows open, take the replayed input and close.
+by design: verdicts need 5 runs per cell, and smoke only checks that
+windows open, take the replayed input and close.
 
-Windows open and close for about 46 minutes in the default plan (135 runs
-of about 16 s and one 10-minute soak); do not touch the mouse or keyboard.
+Windows open and close for about 70 minutes after smoke (the default
+plan's 135 runs of about 16 s and one 10-minute soak, then 3 × 25 runs);
+do not touch the mouse or keyboard.
 Real input is ignored during a run, but focus changes and pointer warps
 can still disturb the compositor. Bench windows are not resizable, so a
 tiling window manager should float them at their size; one that resizes
@@ -62,7 +74,20 @@ The default plan: (A) the nine scenarios other than `soak` on `trace` at
 your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
 `scatter1m`, `grid16` and `label-churn` at native; (C) `pan-x` and
 `zoom-lines` on `trace` at the other factors of 1, 1.25, 1.5 and 2; (D)
-`soak` once. Five runs per cell: 28 cells, 136 runs.
+`soak` once. Five runs per cell: 28 cells, 136 runs. The rule, readings
+and budgets are D22.1's, unchanged. Since D22.3 the factor cells (C) keep
+the standard window's 1600 × 1000 device px at every factor (a window of
+1600 / k × 1000 / k logical px at factor k), which fits a 1080p display,
+and `4k` reads "n/a: display too small" when the window the compositor
+gave is below 3840 × 2160 device px.
+
+The weak plan (D22.4): `hover`, `pan-x` and `zoom-lines` on `trace`,
+`pan-x` and `zoom-lines` on `scatter100k`, at the native factor, five
+runs each (5 cells, 25 runs). Its budgets, registered before any run: p99
+frame interval ≤ 2 T, pan latency p95 ≤ 150 ms, zoom latency p95 ≤ 250 ms,
+preview share ≤ 25% during pans; each profile's report has its own "Weak
+profile" section and outcome line. They never decide the GPU layer, which
+stays with the default plan.
 
 ### By hand
 
@@ -75,6 +100,12 @@ target/release/rustd3-bench run --plan smoke --refresh-hz <HZ> \
     --native-factor <F> --factor <F> --out ~/bench-out
 target/release/rustd3-bench run --plan default --refresh-hz <HZ> \
     --native-factor <F> --out ~/bench-out
+target/release/rustd3-bench run --plan weak --backend tiny-skia \
+    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
+taskset -c 0-3 target/release/rustd3-bench run --plan weak \
+    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
+taskset -c 0-1 target/release/rustd3-bench run --plan weak \
+    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
 ```
 
 `--refresh-hz` and `--native-factor` are required for a windowed run; the
@@ -89,10 +120,10 @@ from the script, `<--out>/<UTC stamp>/` by hand):
 
 | File | Content |
 | --- | --- |
-| `meta.json` | machine, GPU and driver, session, present mode, backend, refresh, factors, compiler, revisions, the cost model's constants and its measured calibration |
+| `meta.json` | machine, cores (as pinned), GPU and driver, session, present mode, backend, refresh, factors, render threads, caching, compiler, revisions, the cost model's constants and its measured calibration |
 | `system.txt` | the session's variables, `xrandr --current`, `cosmic-randr list`, the GNOME scaling factors, `nvidia-smi`, `uname -a`, `/etc/os-release` (each if present, 5 s at most) |
 | `replays/*.jsonl` | the generated input, one event per line |
-| `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster and `sys` record of one run |
+| `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster, `sys` and (under `--caching verify`) mismatch record of one run |
 | `frames.csv`, `inputs.csv`, `memory.csv` | per frame, per input (with its latency), RSS and GPU samples |
 | `summary.csv` | per cell and metric: n, median, mean, 95% CI, budget, verdict |
 | `report.md` | readings, budget table, metrics, attribution, memory, flags, also measured, the rule's outcome |
@@ -109,9 +140,15 @@ if you can (the raw files let the agent rebuild the report with
 
 ## Optional runs
 
-- `--backend tiny-skia`: the software renderer, report-only.
+- `--backend tiny-skia`: the software renderer (the `weak` plan's no-GPU
+  profile holds it to budgets; other plans report it).
 - `--render inline`: every changed cell rendered on the UI thread, the
   pure synchronous path.
+- `--threads N`: the widget's render pool of N threads (1 to 64) instead
+  of its default, the available parallelism less one, 1 to 8.
+- `--caching verify`: every image the widget keeps or translates renders
+  again after the real renders and is compared; the report's Flags count
+  the ones that differed by more than 1/255.
 - Your own touchpad: `rustd3-bench record --out zoom.jsonl` opens the
   `trace` window and records your input until Escape; then
   `rustd3-bench run --plan default --refresh-hz <HZ> --native-factor <F>
@@ -120,7 +157,9 @@ if you can (the raw files let the agent rebuild the report with
   `--workload`, `--factor` and `--runs 10`.
 - The wheel figure (Part I's worked example, 960 × 760, no recordings):
   `--workload wheels` with any plan; it is in `smoke` and `full`, not in
-  the verdict's `default` plan, which stays as registered.
+  the verdict's `default` plan, which stays as registered. Its gestures
+  act on the scatters, which zoom vibration and temperature along y; its
+  x is a band scale, so `pan-x` is n/a and `4k`'s pan half moves nothing.
 
 ## Headless
 

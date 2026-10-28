@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # The benchmark in one command: build, the smoke plan (about 5 minutes, a
-# check of the windowed path), then the default plan (about 46 minutes, the
-# verdict's run), into bench-results/<UTC stamp>/{smoke,default}/.
+# check of the windowed path), the default plan (about 46 minutes, the
+# verdict's run), then D22.4's weak plan three times (about 7 minutes
+# each): without a GPU (tiny-skia), and on wgpu pinned to 4 and to 2 cores.
+# About 75 minutes in all, into bench-results/<UTC stamp>/{smoke,default,
+# weak-nogpu,weak-4cores,weak-2cores}/.
 #
-#   dev/bench/run.sh               smoke, then default
+#   dev/bench/run.sh               smoke, default, the weak profiles
 #   dev/bench/run.sh --smoke-only  smoke only
 #
 # HZ (the display's refresh rate) and FACTOR (its scale factor) override
@@ -19,7 +22,8 @@ case "${1:-}" in
 esac
 
 plans="the smoke plan (about 5 min; its numbers do not count)"
-$smoke_only || plans="$plans, then the default plan (about 46 min, the verdict's run)"
+$smoke_only || plans="$plans, the default plan (about 46 min, the verdict's run), then the weak \
+profiles (about 21 min: no GPU, 4 cores, 2 cores); about 75 min in all"
 echo "rustd3-bench: build, then $plans, into bench-results/<UTC stamp>/."
 echo "Keep hands off the mouse and keyboard while windows open and close."
 
@@ -63,12 +67,15 @@ fi
 out="bench-results/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p bench-results && mkdir "$out"
 
-# plan NAME ARGS…: one plan into $out/NAME, its console in $out/run-NAME.log.
-# The bench writes into a stamped directory under --out, moved up here.
+# plan NAME [--pin CPUS] ARGS…: one plan into $out/NAME, its console in
+# $out/run-NAME.log; with --pin, the bench and its children run on CPUS
+# only (taskset), which the widget's default pool size follows. The bench
+# writes into a stamped directory under --out, moved up here.
 plan() {
-  local name=$1 status=0
+  local name=$1 status=0 pin=()
   shift
-  "$bench" run "$@" --out "$out/$name" 2>&1 | tee "$out/run-$name.log" || status=$?
+  if [ "${1:-}" = --pin ]; then pin=(taskset -c "$2"); shift 2; fi
+  "${pin[@]}" "$bench" run "$@" --out "$out/$name" 2>&1 | tee "$out/run-$name.log" || status=$?
   local stamped=("$out/$name"/*/)
   if [ -d "${stamped[0]}" ]; then mv "${stamped[0]}"* "$out/$name/" && rmdir "${stamped[0]}"; fi
   return "$status"
@@ -97,11 +104,25 @@ fi
 status=0
 if ! $smoke_only; then
   plan default --plan default --refresh-hz "$HZ" --native-factor "$factor" || status=$?
+  # D22.4's weak profiles, each held to the weak budgets in its own report.
+  plan weak-nogpu --plan weak --backend tiny-skia --refresh-hz "$HZ" --native-factor "$factor" \
+    || status=$?
+  cores=$(nproc --all 2>/dev/null || getconf _NPROCESSORS_ONLN)
+  for n in 4 2; do
+    if ! command -v taskset >/dev/null; then
+      echo "Skipping weak-${n}cores: taskset (util-linux) is not installed."
+    elif [ "$cores" -lt "$n" ]; then
+      echo "Skipping weak-${n}cores: this machine has $cores cores."
+    else
+      plan "weak-${n}cores" --pin "0-$((n - 1))" --plan weak --refresh-hz "$HZ" \
+        --native-factor "$factor" || status=$?
+    fi
+  done
 fi
 
 echo
 echo "Results: $out"
-for name in smoke default; do
+for name in smoke default weak-nogpu weak-4cores weak-2cores; do
   if [ -f "$out/$name/report.md" ]; then
     echo "== $name: rule outcome"
     sed -n '/^## Rule outcome/,$p' "$out/$name/report.md" | sed '1d;/^$/d'

@@ -13,7 +13,7 @@ use iced::Size;
 use rustd3_core::jiff::Timestamp;
 use rustd3_figure::Figure;
 
-use crate::scenario::Scenario;
+use crate::scenario::{Anchors, Scenario};
 
 /// One of the benchmark's figures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -102,9 +102,39 @@ impl Workload {
         }
     }
 
-    /// Whether it supports `scenario`; a cell it does not is "n/a".
+    /// Whether a panel of its figure zooms an x handle, which a
+    /// horizontal drag pans: the wheel figure's x is a band scale.
+    pub fn pans_x(self) -> bool {
+        match self {
+            Workload::Trace
+            | Workload::Scatter100k
+            | Workload::Scatter1m
+            | Workload::Grid16
+            | Workload::LabelChurn => true,
+            Workload::Wheels => false,
+        }
+    }
+
+    /// Whether it supports `scenario`; a cell it does not is "n/a": `live`
+    /// and `soak` need recordings, `pan-x` an x that pans. (`4k`'s pan
+    /// half on a figure whose x does not pan moves nothing; its zoom half
+    /// does.)
     pub fn supports(self, scenario: Scenario) -> bool {
-        self.has_recordings() || !scenario.needs_recordings()
+        (self.has_recordings() || !scenario.needs_recordings())
+            && (self.pans_x() || scenario != Scenario::PanX)
+    }
+
+    /// Where its scenarios' gestures act: the standard figures' panels,
+    /// or the wheel figure's scatters, which zoom.
+    pub fn anchors(self) -> Anchors {
+        match self {
+            Workload::Wheels => wheels::ANCHORS,
+            Workload::Trace
+            | Workload::Scatter100k
+            | Workload::Scatter1m
+            | Workload::Grid16
+            | Workload::LabelChurn => Anchors::STANDARD,
+        }
     }
 
     /// What its data holds at `scale` (1 = full size), for listings.

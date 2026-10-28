@@ -35,7 +35,7 @@ use crate::app::{App, Config};
 use crate::cli::{Child, Command, Options};
 use crate::plan::Cell;
 use crate::replay::Replay;
-use crate::scenario::Scenario;
+use crate::scenario::{Anchors, Scenario};
 use crate::system::{Meta, Planned};
 use crate::workload::Workload;
 
@@ -130,12 +130,13 @@ fn list(options: &Options) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Writes every scenario's generated input at full duration, `4k` at
-/// factor 2, into `out`.
+/// Writes every scenario's generated input at full duration for the
+/// standard figures, `4k` at factor 2, into `out`.
 fn write_replays(out: &Path) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(out)?;
     for scenario in Scenario::ALL {
-        let replay = scenario.replay(scenario.window(2.0), scenario.duration_ms());
+        let window = scenario.window(2.0);
+        let replay = scenario.replay(window, Anchors::STANDARD, scenario.duration_ms());
         let path = out.join(format!("{}.jsonl", scenario.name()));
         replay.write(&path)?;
         println!("{}: {} events", path.display(), replay.events.len());
@@ -157,7 +158,7 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     let dir = options.out.join(&stamp);
     fs::create_dir_all(dir.join("replays"))?;
     fs::create_dir_all(dir.join("raw"))?;
-    let replays = replays(options, plan, &cells, &dir)?;
+    let replays = replays(options, (plan, native), &cells, &dir)?;
     let meta = meta(options, &stamp, refresh_hz, native, &cells, args);
     fs::write(dir.join("meta.json"), serde_json::to_string_pretty(&meta)?)?;
     fs::write(dir.join("system.txt"), system::diagnostics())?;
@@ -212,11 +213,13 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     }
 }
 
-/// Writes each cell's input into `dir/replays` (the user's `--replay`
-/// file for every cell, when given) and returns the file per cell key.
+/// Writes each cell's input, for its window on a display of factor
+/// `native` and its workload's anchors, into `dir/replays` (the user's
+/// `--replay` file for every cell, when given) and returns the file per
+/// cell key.
 fn replays(
     options: &Options,
-    plan: plan::Plan,
+    (plan, native): (plan::Plan, f32),
     cells: &[Cell],
     dir: &Path,
 ) -> Result<BTreeMap<String, PathBuf>, Box<dyn Error>> {
@@ -234,17 +237,19 @@ fn replays(
         let path = match &given {
             Some(copy) => copy.clone(),
             None => {
-                let size = cell.window();
+                let size = cell.window(native);
                 let name = format!(
-                    "{}__{}x{}.jsonl",
+                    "{}__{}__{}x{}.jsonl",
                     cell.scenario.name(),
+                    cell.workload.name(),
                     size.width,
                     size.height
                 );
                 let path = dir.join("replays").join(name);
                 if !path.exists() {
                     let duration = plan.duration_ms(cell.scenario);
-                    cell.scenario.replay(size, duration).write(&path)?;
+                    let anchors = cell.workload.anchors();
+                    cell.scenario.replay(size, anchors, duration).write(&path)?;
                 }
                 path
             }
@@ -290,6 +295,7 @@ fn meta(
         factors,
         render: cli::render_name(options.render).to_owned(),
         caching: cli::caching_name(options.caching).to_owned(),
+        threads: options.threads,
         readback: match options.readback {
             cli::Readback::Every => "every",
             cli::Readback::Last => "last",
@@ -327,7 +333,10 @@ fn run_child(child: Child, epoch: Instant) -> Result<(), Box<dyn Error>> {
     let duration_ms = plan.duration_ms(scenario);
     let replay = match &options.replay {
         Some(path) => Replay::read(path)?,
-        None => scenario.replay(child.cell.window(), duration_ms),
+        None => {
+            let window = child.cell.window(options.native()?);
+            scenario.replay(window, child.cell.workload.anchors(), duration_ms)
+        }
     };
     let config = Config {
         refresh_hz: options.refresh_hz()?,

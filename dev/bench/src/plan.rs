@@ -19,6 +19,11 @@ pub enum Plan {
     Quick,
     /// The verdict's cells: five runs each, `soak` once.
     Default,
+    /// D22.4's weaker machines: `hover`, `pan-x` and `zoom-lines` on
+    /// `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the native
+    /// factor, five runs each, held to the weak profile's budgets; run
+    /// without a GPU (`--backend tiny-skia`) and on 4 and 2 cores.
+    Weak,
     /// Every scenario × workload × factor, five runs each.
     Full,
 }
@@ -69,7 +74,13 @@ const OVERHEAD_MS: f64 = 4_000.0;
 
 impl Plan {
     /// Every plan.
-    pub const ALL: [Plan; 4] = [Plan::Smoke, Plan::Quick, Plan::Default, Plan::Full];
+    pub const ALL: [Plan; 5] = [
+        Plan::Smoke,
+        Plan::Quick,
+        Plan::Default,
+        Plan::Weak,
+        Plan::Full,
+    ];
 
     /// The plan's name on the command line.
     pub fn name(self) -> &'static str {
@@ -77,6 +88,7 @@ impl Plan {
             Plan::Smoke => "smoke",
             Plan::Quick => "quick",
             Plan::Default => "default",
+            Plan::Weak => "weak",
             Plan::Full => "full",
         }
     }
@@ -92,7 +104,7 @@ impl Plan {
         let runs = match self {
             Plan::Smoke => 1,
             Plan::Quick => 2,
-            Plan::Default | Plan::Full => 5,
+            Plan::Default | Plan::Weak | Plan::Full => 5,
         };
         let cell = |scenario, workload, factor| Cell {
             scenario,
@@ -132,6 +144,14 @@ impl Plan {
                 }
                 cells.push(cell(Scenario::Soak, Workload::Trace, native));
             }
+            Plan::Weak => {
+                for scenario in [Scenario::Hover, Scenario::PanX, Scenario::ZoomLines] {
+                    cells.push(cell(scenario, Workload::Trace, native));
+                }
+                for scenario in [Scenario::PanX, Scenario::ZoomLines] {
+                    cells.push(cell(scenario, Workload::Scatter100k, native));
+                }
+            }
             Plan::Full => {
                 let mut factors = FACTORS.to_vec();
                 if !factors.contains(&native) {
@@ -166,7 +186,7 @@ impl Plan {
         match (self, scenario) {
             (Plan::Smoke, Scenario::Soak) => 20_000.0,
             (Plan::Smoke, _) => scenario.duration_ms() / 5.0,
-            (Plan::Quick | Plan::Default | Plan::Full, _) => scenario.duration_ms(),
+            (Plan::Quick | Plan::Default | Plan::Weak | Plan::Full, _) => scenario.duration_ms(),
         }
     }
 
@@ -174,7 +194,7 @@ impl Plan {
     pub fn data_scale(self) -> f64 {
         match self {
             Plan::Smoke => 0.01,
-            Plan::Quick | Plan::Default | Plan::Full => 1.0,
+            Plan::Quick | Plan::Default | Plan::Weak | Plan::Full => 1.0,
         }
     }
 
@@ -202,10 +222,13 @@ impl Cell {
         self.workload.supports(self.scenario)
     }
 
-    /// The window's logical size: the scenario's, except that a workload
-    /// with a size of its own (the wheel figure) keeps it wherever the
-    /// scenario does not ask for the 4k window.
-    pub fn window(&self) -> Size {
+    /// The window's logical size on a display of factor `native`: the
+    /// scenario's; at another factor k (the factor cells) the standard
+    /// window's 1600 × 1000 device px, 1600 / k × 1000 / k logical px, so
+    /// it fits a 1080p display (D22.3). A workload with a size of its own
+    /// (the wheel figure) keeps it wherever the scenario does not ask for
+    /// the 4k window.
+    pub fn window(&self, native: f32) -> Size {
         let window = self.scenario.window(self.factor);
         match self.scenario {
             Scenario::FourK => window,
@@ -217,7 +240,13 @@ impl Cell {
             | Scenario::Live
             | Scenario::Resize
             | Scenario::Cold
-            | Scenario::Soak => self.workload.size().unwrap_or(window),
+            | Scenario::Soak => match self.workload.size() {
+                Some(size) => size,
+                None if self.factor != native => {
+                    Size::new(window.width / self.factor, window.height / self.factor)
+                }
+                None => window,
+            },
         }
     }
 
@@ -278,11 +307,72 @@ mod tests {
     }
 
     #[test]
+    fn factor_cells_keep_1600_by_1000_device_px() {
+        // D22.3: on a display of factor 1 the factor cells at 1.25, 1.5
+        // and 2 ask for 1600 × 1000 device px, and the native cells keep
+        // the standard window.
+        let cells = Plan::Default.cells(1.0, &Selection::default());
+        for cell in &cells {
+            let window = cell.window(1.0);
+            let device = (window.width * cell.factor, window.height * cell.factor);
+            if cell.scenario == Scenario::FourK {
+                assert_eq!(device, (3840.0, 2160.0), "{cell}");
+            } else {
+                assert!(
+                    (device.0 - 1600.0).abs() < 1e-3 && (device.1 - 1000.0).abs() < 1e-3,
+                    "{cell}: {device:?}"
+                );
+            }
+        }
+        let at = |factor: f32| {
+            cells
+                .iter()
+                .find(|c| c.scenario == Scenario::PanX && c.factor == factor)
+                .expect("a pan cell")
+                .window(1.0)
+        };
+        assert_eq!(at(1.0), Size::new(1600.0, 1000.0));
+        assert_eq!(at(1.25), Size::new(1280.0, 800.0));
+        assert_eq!(at(2.0), Size::new(800.0, 500.0));
+        // On a display of factor 2 the native cells keep 1600 × 1000
+        // logical px.
+        let native = Plan::Default.cells(2.0, &Selection::default());
+        assert_eq!(native[1].window(2.0), Size::new(1600.0, 1000.0));
+    }
+
+    #[test]
+    fn weak_plan_has_d22_4s_cells() {
+        let cells = Plan::Weak.cells(1.25, &Selection::default());
+        let named: Vec<(Scenario, Workload)> =
+            cells.iter().map(|c| (c.scenario, c.workload)).collect();
+        assert_eq!(
+            named,
+            [
+                (Scenario::Hover, Workload::Trace),
+                (Scenario::PanX, Workload::Trace),
+                (Scenario::ZoomLines, Workload::Trace),
+                (Scenario::PanX, Workload::Scatter100k),
+                (Scenario::ZoomLines, Workload::Scatter100k),
+            ]
+        );
+        assert!(
+            cells
+                .iter()
+                .all(|c| c.factor == 1.25 && c.runs == 5 && c.applies())
+        );
+        assert_eq!(Plan::Weak.data_scale(), 1.0);
+        // About 6.5 minutes a profile on real hardware.
+        let minutes = Plan::Weak.estimate_s(&cells) / 60.0;
+        assert!((6.0..7.0).contains(&minutes), "{minutes}");
+    }
+
+    #[test]
     fn smoke_plan_covers_every_scenario_and_workload() {
         let cells = Plan::Smoke.cells(2.0, &Selection::default());
         assert_eq!(cells.len(), 60);
-        // `live` and `soak` need recordings: the scatters and `wheels` have none.
-        assert_eq!(cells.iter().filter(|c| c.applies()).count(), 54);
+        // `live` and `soak` need recordings: the scatters and `wheels` have
+        // none; `pan-x` needs an x that pans, which `wheels` lacks.
+        assert_eq!(cells.iter().filter(|c| c.applies()).count(), 53);
         assert!(cells.iter().all(|c| c.factor == 2.0 && c.runs == 1));
         assert_eq!(Plan::Smoke.duration_ms(Scenario::PanX), 2_400.0);
         assert_eq!(Plan::Smoke.duration_ms(Scenario::Soak), 20_000.0);
@@ -305,7 +395,7 @@ mod tests {
                 .iter()
                 .find(|c| c.scenario == scenario && c.workload == workload)
                 .expect("a cell");
-            cell.window()
+            cell.window(2.0)
         };
         assert_eq!(
             window(Scenario::PanX, Workload::Wheels),

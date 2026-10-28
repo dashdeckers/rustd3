@@ -86,8 +86,12 @@ pub struct Meta {
     pub factors: Vec<f32>,
     /// `auto`, `inline` or `worker`.
     pub render: String,
-    /// `on` or `off`.
+    /// `on`, `off` or `verify`.
     pub caching: String,
+    /// The widget's render pool asked for with `--threads`; `None` is the
+    /// widget's default (the available parallelism less one, 1 to 8).
+    #[serde(default)]
+    pub threads: Option<usize>,
     /// `every` or `last`.
     pub readback: String,
     /// `rustc --version`.

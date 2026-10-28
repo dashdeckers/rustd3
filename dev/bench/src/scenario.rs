@@ -1,10 +1,11 @@
 //! [`Scenario`]: what a run does to the plot, as generated input.
 //!
 //! Positions are logical px relative to the plot, as fractions of its
-//! size, so every window size gets the same gesture: the "top panel" is
-//! at 27% of the height (the trace's upper panel, the grid's second row),
-//! the "bottom panel" at 88%; sweeps are 600 px or 60% of the window,
-//! whichever is shorter.
+//! size ([`Anchors`]), so every window size gets the same gesture: for
+//! the standard figures the "top panel" is at 27% of the height (the
+//! trace's upper panel, the grid's second row), the "bottom panel" at 88%,
+//! both at the middle; a workload whose panels lie elsewhere names its
+//! own. Sweeps are 600 px or 60% of the window, whichever is shorter.
 
 use iced::Size;
 
@@ -51,9 +52,29 @@ const RESIZES: [Size; 3] = [
 /// The pointer's rate during drags and hovers: a 125 Hz mouse.
 const MOUSE_MS: f64 = 8.0;
 
-/// Height fractions of the panels gestures act on.
-const TOP: f32 = 0.27;
-const BOTTOM: f32 = 0.88;
+/// Where the gestures act, as fractions of the plot's size: the vertical
+/// drag and the wheel at `x` across, the wheel and the horizontal drag on
+/// the "top panel" at `top` down (the drag starting half its sweep right
+/// of `x`), the vertical drag on the "bottom panel" at `bottom` down.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Anchors {
+    /// Across, from the left.
+    pub x: f32,
+    /// Down, from the top: the wheel and the horizontal drag.
+    pub top: f32,
+    /// Down, from the top: the vertical drag.
+    pub bottom: f32,
+}
+
+impl Anchors {
+    /// The standard figures': the middle across, the trace's upper panel
+    /// at 27% of the height, its lower one at 88%.
+    pub const STANDARD: Anchors = Anchors {
+        x: 0.5,
+        top: 0.27,
+        bottom: 0.88,
+    };
+}
 
 impl Scenario {
     /// Every scenario, in report order.
@@ -132,20 +153,22 @@ impl Scenario {
     /// as a share of its duration; the rest is the zoom half.
     pub const PAN_HALF: f64 = 0.5;
 
-    /// The generated input for a plot of `size`, lasting `duration_ms`.
-    pub fn replay(self, size: Size, duration_ms: f64) -> Replay {
+    /// The generated input for a plot of `size` whose gestures act at
+    /// `anchors`, lasting `duration_ms`.
+    pub fn replay(self, size: Size, anchors: Anchors, duration_ms: f64) -> Replay {
         let mut events = Vec::new();
+        let at = Placed { size, anchors };
         match self {
             Scenario::Hover => hover(&mut events, size, duration_ms),
-            Scenario::PanX => drag(&mut events, size, 0.0, duration_ms, Axis::X, true),
-            Scenario::PanY => drag(&mut events, size, 0.0, duration_ms, Axis::Y, true),
-            Scenario::ZoomLines => wheel_lines(&mut events, size, 0.0, duration_ms),
-            Scenario::ZoomPixels => wheel_pixels(&mut events, size, duration_ms),
+            Scenario::PanX => drag(&mut events, at, (0.0, duration_ms), Axis::X, true),
+            Scenario::PanY => drag(&mut events, at, (0.0, duration_ms), Axis::Y, true),
+            Scenario::ZoomLines => wheel_lines(&mut events, at, 0.0, duration_ms),
+            Scenario::ZoomPixels => wheel_pixels(&mut events, at, duration_ms),
             Scenario::Live => appends(&mut events, duration_ms),
             Scenario::FourK => {
                 let half = duration_ms * Scenario::PAN_HALF;
-                drag(&mut events, size, 0.0, half, Axis::X, true);
-                wheel_lines(&mut events, size, half, duration_ms);
+                drag(&mut events, at, (0.0, half), Axis::X, true);
+                wheel_lines(&mut events, at, half, duration_ms);
             }
             Scenario::Resize => resizes(&mut events, duration_ms),
             Scenario::Cold => {}
@@ -154,7 +177,7 @@ impl Scenario {
                 let mut start = 10_000.0;
                 while start < duration_ms {
                     let end = (start + 2_000.0).min(duration_ms);
-                    drag(&mut events, size, start, end, Axis::X, false);
+                    drag(&mut events, at, (start, end), Axis::X, false);
                     start += 10_000.0;
                 }
             }
@@ -169,6 +192,13 @@ impl Scenario {
 enum Axis {
     X,
     Y,
+}
+
+/// A plot's size and where its gestures act.
+#[derive(Debug, Clone, Copy)]
+struct Placed {
+    size: Size,
+    anchors: Anchors,
 }
 
 /// Every 8 ms a move along x = 0.5 + 0.42·sin(2π·0.37·t),
@@ -198,17 +228,26 @@ fn hover(events: &mut Vec<Timed>, size: Size, duration_ms: f64) {
 /// A left-button drag from `from_ms` to `to_ms`: press, moves of 2–8 px
 /// every 8 ms along `axis`, sweeping 600 px (at most 60% of the window)
 /// one way, then back if `both`, and so on; release at the end. The x
-/// drag starts right of centre on the top panel and sweeps left first;
-/// the y drag starts low on the bottom panel and sweeps up first.
-fn drag(events: &mut Vec<Timed>, size: Size, from_ms: f64, to_ms: f64, axis: Axis, both: bool) {
+/// drag starts half its sweep right of the anchor on the top panel and
+/// sweeps left first; the y drag starts on the bottom panel and sweeps up
+/// first.
+fn drag(
+    events: &mut Vec<Timed>,
+    Placed { size, anchors }: Placed,
+    (from_ms, to_ms): (f64, f64),
+    axis: Axis,
+    both: bool,
+) {
     let (length, mut at) = match axis {
         Axis::X => {
             let length = 600.0_f32.min(0.6 * size.width);
-            (length, [0.5 * size.width + 0.5 * length, TOP * size.height])
+            let x = anchors.x * size.width + 0.5 * length;
+            (length, [x, anchors.top * size.height])
         }
         Axis::Y => {
             let length = 600.0_f32.min(0.6 * size.height);
-            (length, [0.5 * size.width, BOTTOM * size.height])
+            let at = [anchors.x * size.width, anchors.bottom * size.height];
+            (length, at)
         }
     };
     let along = match axis {
@@ -256,12 +295,12 @@ fn drag(events: &mut Vec<Timed>, size: Size, from_ms: f64, to_ms: f64, axis: Axi
 /// From `from_ms`: the pointer on the top panel, then bursts of 30 wheel
 /// lines in 1 s (30 Hz), alternately +1 (in) and −1 (out), a burst every
 /// 1.5 s, so each pause outlasts the 300 ms wheel end.
-fn wheel_lines(events: &mut Vec<Timed>, size: Size, from_ms: f64, to_ms: f64) {
+fn wheel_lines(events: &mut Vec<Timed>, at: Placed, from_ms: f64, to_ms: f64) {
     events.push(Timed {
         t_ms: from_ms,
         event: Event::Move {
-            x: 0.5 * size.width,
-            y: TOP * size.height,
+            x: at.anchors.x * at.size.width,
+            y: at.anchors.top * at.size.height,
         },
     });
     bursts(events, from_ms, to_ms, 30, |burst, _| {
@@ -273,12 +312,12 @@ fn wheel_lines(events: &mut Vec<Timed>, size: Size, from_ms: f64, to_ms: f64) {
 /// The pointer on the top panel, then bursts of 120 pixel deltas in 1 s
 /// (120 Hz), 2–12 px under a sinusoidal envelope, alternately up and
 /// down, a burst every 1.5 s.
-fn wheel_pixels(events: &mut Vec<Timed>, size: Size, duration_ms: f64) {
+fn wheel_pixels(events: &mut Vec<Timed>, at: Placed, duration_ms: f64) {
     events.push(Timed {
         t_ms: 0.0,
         event: Event::Move {
-            x: 0.5 * size.width,
-            y: TOP * size.height,
+            x: at.anchors.x * at.size.width,
+            y: at.anchors.top * at.size.height,
         },
     });
     bursts(events, 0.0, duration_ms, 120, |burst, k| {
@@ -349,12 +388,12 @@ fn resizes(events: &mut Vec<Timed>, duration_ms: f64) {
 
 #[cfg(test)]
 mod tests {
-    use super::{Scenario, WINDOW};
+    use super::{Anchors, Scenario, WINDOW};
     use crate::replay::{Delta, Event};
 
     #[test]
     fn hover_moves_every_8_ms() {
-        let replay = Scenario::Hover.replay(WINDOW, 10_000.0);
+        let replay = Scenario::Hover.replay(WINDOW, Anchors::STANDARD, 10_000.0);
         assert_eq!(replay.events.len(), 1_250);
         for pair in replay.events.windows(2) {
             assert!((pair[1].t_ms - pair[0].t_ms - 8.0).abs() < 1e-9);
@@ -370,7 +409,7 @@ mod tests {
 
     #[test]
     fn zoom_lines_pauses_exceed_the_wheel_end() {
-        let replay = Scenario::ZoomLines.replay(WINDOW, 12_000.0);
+        let replay = Scenario::ZoomLines.replay(WINDOW, Anchors::STANDARD, 12_000.0);
         let wheels: Vec<(f64, f32)> = replay
             .events
             .iter()
@@ -401,7 +440,7 @@ mod tests {
     #[test]
     fn pans_move_2_to_8_px_and_release() {
         for scenario in [Scenario::PanX, Scenario::PanY] {
-            let replay = scenario.replay(WINDOW, 12_000.0);
+            let replay = scenario.replay(WINDOW, Anchors::STANDARD, 12_000.0);
             let moves: Vec<[f32; 2]> = replay
                 .events
                 .iter()
@@ -426,14 +465,25 @@ mod tests {
 
     #[test]
     fn live_appends_every_100_ms_and_resizes_every_500() {
-        let live = Scenario::Live.replay(WINDOW, 30_000.0);
+        let live = Scenario::Live.replay(WINDOW, Anchors::STANDARD, 30_000.0);
         assert_eq!(live.events.len(), 300);
         assert!(
             live.events
                 .iter()
                 .all(|t| matches!(t.event, Event::Append(1_000)))
         );
-        assert_eq!(Scenario::Resize.replay(WINDOW, 10_000.0).events.len(), 20);
-        assert!(Scenario::Cold.replay(WINDOW, 0.0).events.is_empty());
+        assert_eq!(
+            Scenario::Resize
+                .replay(WINDOW, Anchors::STANDARD, 10_000.0)
+                .events
+                .len(),
+            20
+        );
+        assert!(
+            Scenario::Cold
+                .replay(WINDOW, Anchors::STANDARD, 0.0)
+                .events
+                .is_empty()
+        );
     }
 }

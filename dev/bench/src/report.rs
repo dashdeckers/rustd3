@@ -10,8 +10,8 @@ use std::path::Path;
 use crate::metrics::{Half, Metrics};
 use crate::plan::Plan;
 use crate::record;
-use crate::rule::{self, Budget, Check, Outcome};
-use crate::scenario::Scenario;
+use crate::rule::{self, Budget, Check, Outcome, Profile};
+use crate::scenario::{self, Scenario};
 use crate::stats::{Interval, Verdict, percentile};
 use crate::system::{Meta, Planned};
 
@@ -33,6 +33,10 @@ struct Cell<'a> {
     runs: Vec<Metrics>,
     /// Raw files that are missing or unreadable.
     failed: u32,
+    /// For a windowed `4k` cell, the smallest device size the compositor
+    /// gave its windows when one fell short of 3840 × 2160: the cell is
+    /// then "n/a: display too small" (D22.3).
+    small: Option<[f32; 2]>,
 }
 
 /// Rebuilds the CSVs and `report.md` of the run in `dir`, updates
@@ -51,6 +55,7 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
             scenario,
             runs: Vec::new(),
             failed: 0,
+            small: None,
         };
         if planned.applies {
             for run in 1..=planned.runs {
@@ -67,6 +72,16 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
                 }
             }
         }
+        if scenario == Scenario::FourK && !meta.headless {
+            cell.small = cell
+                .runs
+                .iter()
+                .map(|m| m.run.device)
+                .filter(|[w, h]| {
+                    *w < scenario::FOUR_K.width - 1.0 || *h < scenario::FOUR_K.height - 1.0
+                })
+                .reduce(|a, b| if a[0] * a[1] <= b[0] * b[1] { a } else { b });
+        }
         cells.push(cell);
     }
     let calibration: Vec<f64> = cells
@@ -79,20 +94,16 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
     fs::write(dir.join("inputs.csv"), inputs_csv(&cells))?;
     fs::write(dir.join("memory.csv"), memory_csv(&cells))?;
     let period = 1e3 / meta.refresh_hz;
+    let profile = Profile::of(&meta.plan);
     let checks: Vec<(usize, Scenario, Check)> = cells
         .iter()
         .enumerate()
-        .filter(|(_, c)| c.planned.applies)
+        .filter(|(_, c)| c.planned.applies && c.small.is_none())
         .flat_map(|(index, c)| {
-            Budget::of(c.scenario)
-                .into_iter()
-                .map(move |(budget, half)| {
-                    (
-                        index,
-                        c.scenario,
-                        Check::evaluate(budget, half, &c.runs, period),
-                    )
-                })
+            Budget::of(c.scenario).into_iter().map(move |budget| {
+                let check = Check::evaluate(budget, &c.runs, period, profile);
+                (index, c.scenario, check)
+            })
         })
         .collect();
     fs::write(dir.join("summary.csv"), summary_csv(&cells, &checks))?;
@@ -115,7 +126,7 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
         let _ = writeln!(summary, "Smoke plan: {SMOKE}\n");
         SMOKE_OUTCOME
     } else {
-        outcome.line()
+        outcome.line(profile)
     };
     budgets(&mut summary, &cells, &checks);
     Ok(format!("{summary}Rule outcome{headless}: {line}"))
@@ -229,6 +240,10 @@ fn summary_csv(cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)]) -> Strin
             let _ = writeln!(out, "{prefix},n/a,0,na,na,na,na,na,n/a");
             continue;
         }
+        if cell.small.is_some() {
+            let _ = writeln!(out, "{prefix},n/a: display too small,0,na,na,na,na,na,n/a");
+            continue;
+        }
         for (name, interval) in metric_rows(cell) {
             let check = checks
                 .iter()
@@ -330,10 +345,14 @@ fn markdown(
         "windowed"
     };
     let _ = writeln!(md, "# rustd3-bench {}\n", meta.stamp);
+    let threads = meta.threads.map_or_else(
+        || "the widget's default (available parallelism − 1, 1 to 8)".to_owned(),
+        |n| n.to_string(),
+    );
     let _ = writeln!(
         md,
         "Plan `{}`, {mode}; backend {}, present mode {}; {} Hz (T = {:.2} ms), native factor {}; \
-         render {}, caching {}, readback {}; data scale {}.\n",
+         render {}, caching {}, readback {}, render threads {threads}; data scale {}.\n",
         meta.plan,
         meta.backend,
         meta.present_mode,
@@ -362,6 +381,21 @@ fn markdown(
         meta.command
     );
     let _ = writeln!(md, "## The registered rule\n\n{}", rule::READINGS);
+    let profile = Profile::of(&meta.plan);
+    if profile == Profile::Weak {
+        let gpu = if meta.backend == "tiny-skia" {
+            "no GPU (tiny-skia)".to_owned()
+        } else {
+            format!("{}, {}", meta.backend, meta.gpu)
+        };
+        let _ = writeln!(
+            md,
+            "## Weak profile: {gpu}, {} cores\n\n{}\nThe budget table below holds this \
+             profile's cells to these budgets; its outcome closes the report.\n",
+            meta.cores,
+            rule::WEAK
+        );
+    }
     budgets(&mut md, cells, checks);
     metrics(&mut md, cells);
     attribution(&mut md, cells, checks);
@@ -390,7 +424,7 @@ fn markdown(
         let _ = writeln!(md, "**Smoke plan:** {SMOKE}\n");
         SMOKE_OUTCOME
     } else {
-        outcome.line()
+        outcome.line(profile)
     };
     let _ = writeln!(
         md,
@@ -407,7 +441,8 @@ fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Chec
         md,
         "## Budgets\n\nPer-run statistic: mean [95% CI] over n runs; verdict by reading 3. \
          \"—\": the budget does not apply to the scenario; \"n/a\": the workload has no such \
-         cell.\n"
+         cell; \"n/a: display too small\": a `4k` window the compositor gave below 3840 × 2160 \
+         device px (D22.3).\n"
     );
     let _ = writeln!(
         md,
@@ -418,6 +453,15 @@ fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Chec
         let name = cell_name(cell);
         if !cell.planned.applies {
             let _ = writeln!(md, "| {name} | n/a | n/a | n/a | n/a | n/a |");
+            continue;
+        }
+        if cell.small.is_some() {
+            let na = "n/a: display too small";
+            let _ = writeln!(
+                md,
+                "| {name} | {} | {na} | {na} | {na} | {na} |",
+                n_runs(cell)
+            );
             continue;
         }
         let column = |budget: Budget| {
@@ -483,6 +527,11 @@ fn metrics(md: &mut String, cells: &[Cell<'_>]) {
                 md,
                 "| {name} | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |"
             );
+            continue;
+        }
+        if cell.small.is_some() {
+            let rest = " — |".repeat(9);
+            let _ = writeln!(md, "| {name} | n/a: display too small |{rest}");
             continue;
         }
         if cell.runs.is_empty() {
@@ -624,6 +673,17 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
     let _ = writeln!(md, "## Flags\n");
     let mut any = false;
     for cell in cells {
+        if let Some([w, h]) = cell.small {
+            any = true;
+            let _ = writeln!(
+                md,
+                "- {}: the compositor gave a {w:.0}×{h:.0} device px window, below {}×{}: n/a \
+                 (display too small, D22.3)",
+                cell_name(cell),
+                scenario::FOUR_K.width,
+                scenario::FOUR_K.height
+            );
+        }
         if cell.failed > 0 {
             any = true;
             let _ = writeln!(
@@ -677,6 +737,30 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
             md,
             "- none: every run wrote its records, settled sharp and got the window it asked for"
         );
+    }
+    if meta.caching == "verify" {
+        let maxima: Vec<u8> = cells
+            .iter()
+            .flat_map(|c| c.runs.iter().flat_map(|m| m.mismatches.iter().copied()))
+            .collect();
+        let runs: usize = cells.iter().map(|c| c.runs.len()).sum();
+        match maxima.iter().max() {
+            Some(max) => {
+                let _ = writeln!(
+                    md,
+                    "- caching verify: {} kept images differed from a fresh render by more than \
+                     1/255 over {runs} runs (max {max}/255) and were replaced",
+                    maxima.len()
+                );
+            }
+            None => {
+                let _ = writeln!(
+                    md,
+                    "- caching verify: every kept image matched a fresh render within 1/255 over \
+                     {runs} runs"
+                );
+            }
+        }
     }
     let _ = writeln!(
         md,

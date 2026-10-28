@@ -82,6 +82,20 @@ pub enum Record {
         /// On the UI thread.
         inline: bool,
     },
+    /// A kept image `Caching::Verify` rendered again and found different
+    /// by more than 1/255, then replaced.
+    Mismatch {
+        /// The frame it was reported in.
+        frame: u64,
+        /// The cell's index, for a cell outside the plot areas.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cell: Option<u32>,
+        /// The plot area, column and row of a tile.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tile: Option<[i32; 3]>,
+        /// The largest channel difference, of 255.
+        max: u8,
+    },
     /// Process counters at a moment.
     Sys {
         /// When.
