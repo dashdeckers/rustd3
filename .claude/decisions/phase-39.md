@@ -183,3 +183,233 @@ what compiles; (8) and (9) follow D35.2, Part I and core as built.
 
 - (9): minor ticks for time axes need a rung rule in core (Phase 27's
   followup), not in v0.1.
+
+## Measurements, session 39b
+
+2026-10-28, session 39b (D39.1's commit, steps 3–4: fc3ae57, d8afd5a,
+f34b302, 3d8a31f, 94cfd0c). matplotlib 3.11.2, seaborn 0.13.2. The architect's
+warm-up `full` rebuilt `target/debug` before the first cargo command.
+
+`scripts/check.sh quick` green on every commit (about 1 min 25 s warm);
+`full` at 3d8a31f passed every test and stopped at `cargo doc -D
+warnings` on an ambiguous link (`line`, also std's `line!`), fixed in
+94cfd0c; `full` at 94cfd0c: green in 12 min 45 s (warm, the benchmark
+smoke included), no warnings.
+
+**Harness** unchanged (core gained one additive trait impl no d3 test
+reaches): 16 suites, 6,722 assertions, 5,292 passing, 1,430 skipped, 0
+failing, 179 floors; nothing blessed.
+
+**Lines** (ff9851c..3d8a31f): figure library +998 / −17 in 13 files
+(by commit: D39.1 +79 / −15, presets +922 / −5, doc examples
+included), core +21 /
+−2, the example +188, integration tests +596 / −3 in 3 files. The
+section estimated 1,400–1,800 for the whole phase; 39a and 39b together
+are about 2,000 library lines.
+
+**D39.1** (fc3ae57). One public path per item, read in the generated
+docs: `label`, `locale` and `line` on `mark/struct.Ctx.html`, `label` on
+`struct.Fits.html`; `Fits::locale` stays crate-private (D39.3).
+
+**Exit criteria.** (1) `cargo test -p rustd3-figure --features helpers
+--test main -- presets labels axes`: 68 pass (presets 13, the rest 39a's
+labels and axes and other modules' label tests the filter matches). (2) `cargo run -p rustd3-examples --example presets` writes 11 SVGs
+and 11 PNGs (1280 × 960) and prints no issue; each preset test asserts
+`fig.check` empty at 640 × 480. (3) `cargo test -p rustd3-figure
+--features helpers,png --doc`: 103 pass (95 merged, 8 standalone), with
+examples for `chart`, `line` (Part I's
+sketch, saving a 1280 × 960 PNG), `Line::series`, `Line::y_scale`,
+`scatter`, `bar`, `Bar::mode`, `area`, `pie`, `Pie::inner`, `heatmap`,
+`Heatmap::colors`, `Heatmap::keys`, `Fits::label` and core's `Data for
+Points`.
+
+**Spot checks**, each asserted (`figure/tests/main/helpers/presets.rs`):
+`shape::stack` of apples [3, 2, 1] and bananas [1, 1, 4] gives bananas
+[[3, 4], [2, 3], [1, 5]] and the stacked preset draws exactly two span
+marks with those spans; diverging a = [3, −2], b = [−1, 4], c = [2, 1]
+gives a [0, 3] [−2, 0], b [−1, 0] [0, 4], c [3, 5] [4, 5], in core and
+as drawn; the pie on a 600 × 400 plot area is 2 × 192.667 px across
+(200 − em(0.5), em 14.667 px) about its middle; the line sketch draws
+exactly its written-out composition (`fit` of `AnyContinuous` linear and
+symlog, a stroked `line`, `axes::defaults` on both axes, the title),
+has symlog ticks with minor ticks on y, and `save_png(path, 2.0)` writes
+1280 × 960. The pie and donut centroid rows and the label, legend and
+minor-tick rows are 39a's and still pass.
+
+**Viewed** (vello_cpu PNGs at 2×, scratch, not committed), every preset
+under ticks and whitegrid beside matplotlib 3.11.2 / seaborn 0.13.2
+drawing the same data: three lines with a legend (`plot`), the symlog
+sketch (`set_yscale("symlog", linthresh=1)`), a scatter, grouped bars
+(`barplot` with `hue`), stacked and diverging bars (`bar` with
+`bottom`), a stacked area (`stackplot`), a pie and a donut (`pie` with
+labels inside and a wedge width), a heatmap (`pcolormesh` and a
+colorbar) and a keyed one (seaborn's `heatmap` of a labelled frame); and
+the presets example's eleven PNGs on one contact sheet. `fig.check` is
+empty on every one. Agreement: line and dot placement, band positions
+and widths (seaborn's 0.8), stacking and diverging spans, wedge angles,
+labels at centroids, cell order (row 0 on top under keys) and colors,
+colorbar ranges. Differences: span bars and ribbons hold nothing, so
+stacked bars and areas keep a 5 % margin below 0 where matplotlib's
+stand on the axis (D38.2 (3)); symlog ticks are d3's linear ticks on
+[−50, 50] where matplotlib labels decades; seaborn's bars are
+desaturated and edged (D35.1); matplotlib's pie leaves room for outside
+labels; colorbars carry more ticks than matplotlib's (D35.6 (7)).
+
+## D39.3 — The text kit and the presets still read crate-private items
+
+**Date:** 2026-10-28 · **Context:** Phase 39b, fc3ae57 and steps 3–4 · **Status:** open
+
+### Issue
+
+D39.1 (A) publishes `Fits::label`, `Ctx::label`, `Ctx::locale` and
+`Ctx::line` "so value labels are ordinary code a user could write";
+Part I's Helpers: "Each helper is ordinary code over public APIs"; the
+section: "Everything except `Axis::minor` is ordinary code over public
+APIs". The decided option's table listed `Fits::locale` and "a
+note-style reader on `Theme`" as well; the decision's text and the
+dispatch name the four. As built after fc3ae57, the helpers still call:
+
+1. **Value labels**: `Fits::locale` and `Fits::theme` while fitting (a
+   label must be reported with the key it is drawn with, so the locale
+   and style that `Ctx` now gives at draw time are needed at fit time
+   too: `Ctx::locale` alone cannot be matched), the label style
+   `Theme::note` and size `Theme::label_text`, and `mark::reach`,
+   `mark::within` and `Fits::across` (small helpers whose behaviour the
+   labels' docs state).
+2. **Presets**: the theme's palette (a new crate-private
+   `Theme::get_palette`, behind `helpers`) for the ordinal scale over
+   series keys ("colors come from the theme palette"), and `Theme::em`
+   for the pie's margin ("outer radius = 0.5 × min(w, h) − em(0.5)").
+3. **Scatter legends**: the legend layout (`Guide` stays sealed, D39.1).
+
+### Options
+
+| | A — as built | **B — publish the fit-time twins and the palette** | C — B and the text readers |
+| --- | --- | --- | --- |
+| Approach | The four of D39.1 public; the rest crate-private, named in `helpers`' and `chart`'s module docs | `Fits::locale` and `Fits::theme` public (twins of `Ctx::locale` and `Ctx::theme`), `Theme::get_palette()` public (D38.1's reader convention) | B, plus `Theme::get_note(align, fill) -> text::Style` and `Theme::get_em()` |
+| Users' own marks | Can shape labels in their own style, but not in the figure's locale | Can label in the figure's locale and theme colors; pick their own text size | Can match the value labels and the pie exactly |
+| Helpers | Labels and presets copyable after replacing 4–6 calls | Labels after replacing the style; presets after the em | Copyable verbatim but for `reach`/`within`/`across` |
+| Public items | 4 (built) | +3 | +5 |
+
+### Decision
+
+Recommendation B: the fit-time twins make D39.1's `Ctx::locale` usable
+for labels at all (a key reported while fitting must equal the one drawn),
+and the palette reader is what every keyed preset needs; text sizes stay
+a mark's own choice. Nothing built depends on the answer: each option is
+a visibility change on items that exist.
+
+### Why
+
+The section and Part I ask for ordinary code; D39.1 chose a kit
+narrower than its own table, and this session followed the decision's
+text rather than widening the public API unasked.
+
+### Followups
+
+- If B or C: one visibility commit, the module docs' list of crate-private
+  reads shortened.
+
+## D39.4 — The keys of unnamed series
+
+**Date:** 2026-10-28 · **Context:** Phase 39b, steps 3–4, f34b302, 3d8a31f · **Status:** open
+
+### Issue
+
+"Colors come from the theme palette through an ordinal scale over the
+series keys; a legend goes into `Slot::Right` when there is more than one
+series." `chart::line(data)` takes its first series without a key (more
+come with `.series(data, key)`), and `chart::area(columns, x)` takes
+columns without names; the section names no key for either.
+
+### Options
+
+| | **A — keyed by index (as built)** | B — matplotlib's unlabelled series | C — builders |
+| --- | --- | --- | --- |
+| Approach | An unnamed series is keyed by its index as text: the line's first "0", the area's columns "0", "1", … (pandas' names for unnamed columns) | Unnamed series take the palette's colors in order but no legend entry; an area has no legend | `Line::key(k)` names the first series, `Area::keys(names)` the columns |
+| Legend | Every series has an entry | Only named series; areas none, against the section's legend rule | Every entry named by the user |
+| Public API | None added | None added | Two builders the section does not list |
+
+### Decision
+
+Recommendation A, as built; C is additive and can follow if asked for.
+
+### Why
+
+A keeps the section's legend rule for every preset and adds no API; B
+contradicts it for areas; C is a public addition, which the dispatch
+leaves to the architect.
+
+### Followups
+
+- If C: the builders replace the index keys where given.
+
+## D39.5 — Heatmap keys
+
+**Date:** 2026-10-28 · **Context:** Phase 39b, step 4, 3d8a31f · **Status:** decided
+
+### Decision
+
+The section's answer: `chart::Heatmap::keys(rows: Vec<String>, cols:
+Vec<String>)`, band axes when set and linear axes over the grid extent
+otherwise. With keys the rows run top to bottom (row 0 on top, seaborn's
+`heatmap` and a table's order) and the grid's extent becomes one unit per
+name; without them row 0 sits at the extent's first y, as `mark::Grid`
+documents (at the bottom on an upward y).
+
+## D39.6 — Details of Phase 39b as built
+
+**Date:** 2026-10-28 · **Context:** Phase 39b, fc3ae57 … 94cfd0c · **Status:** open
+
+### Issue
+
+1. **Paths.** The section's modules are `chart.rs` and
+   `chart/{line,scatter,bar,area,pie,heatmap}.rs`, with `chart::bar(…)`,
+   `chart::Bar<K>` and `chart::bar::Mode`.
+2. **Keeping `impl Data`.** `line(data: impl Data<'a, f64, f64>)` with
+   `.series(data, key)` must keep each series until `.figure()`, and
+   `Points` (what `into_points` gives) was not itself `Data`.
+3. **The finishing builders' signatures**: `.save_svg(path) ->
+   Result<(), figure::Error>` where `Figure::save_svg` returns lowering's
+   warnings; `.figure() -> Figure<'a>` on presets without a lifetime.
+4. **What each preset draws** where the section is silent: the title's
+   place, minor ticks' default, bar widths, missing values, pie legends
+   and axes, wedge edges, colorbar settings, scatter series, the line's
+   key type.
+5. **Margins** of stacked bars and areas.
+6. **Heatmap keys and the grid.** `mark::Grid` has no public readers.
+7. **Test helpers** shared between `helpers/axes.rs` and
+   `helpers/presets.rs`.
+8. **Commits.**
+
+### Options
+
+| | **A — as built** |
+| --- | --- |
+| (1) | `chart/bar.rs` is public and holds `Mode`; `Bar` and `bar()` live in the private `chart/bar/preset.rs`, re-exported from `chart` (D38.2 (5)'s pattern), so each has one path; the shared builders are a macro in `chart.rs` over a private `chart/setup.rs` (`Setup`: title, labels, size, theme, minor) |
+| (2) | Core gains `impl Data<'a, X, Y> for Points<'a, X, Y>` (the identity, d8afd5a), so kept data passes to `mark::line` still borrowed or indexed: slices are not copied (no `LargeOwned`), channels thin |
+| (3) | As the section writes: `save_svg` drops the warnings (presets draw nothing lowering changes; `Figure::save_svg` still returns them); presets without a lifetime have `figure<'a>(self) -> Figure<'a>` (D34.4 (7)) |
+| (4) | The title is the panel's (matplotlib's `ax.set_title`); minor ticks on by default (`axes::defaults`; band axes draw none); bars take 0.8 of each band step, half the gap outside the ends (`padding_inner(0.2)`, `padding_outer(0.1)`, seaborn's places); a row's missing values are NaN and draw no bar; the pie has no legend (labels inside, one series) and no axes, so `.x_label`, `.y_label` and `.minor` change nothing; wedges without edges (D35.1), colored in data order, labelled through `labels::pie` (reported while fitting, placed at the radii the plot area gives); `.inner` takes a share in [0, 1); heatmaps fit a sequential handle to the values and put `colorbar(handle)` with its defaults right; the scatter is one series without a legend (the section lists no `.series` for it); line keys are `impl Into<String>` and equal keys share a color |
+| (5) | Span bars and ribbons hold nothing (the section's marks), so stacked bars and areas keep a 5 % y margin below 0 where matplotlib's stand on it (D38.2 (3)); x keeps matplotlib's 5 % margins |
+| (6) | Keys set the image's extent to `[0, m] × [n, 0]` on linear handles fixed to `[0, m]` and `[0, n]`, under band handles of the names (rows reversed so row 0 is on top); the counts are documented as the grid's and not checked |
+| (7) | `axis_part`, `Stroke` and `MINOR` in `tests/main/helpers/axes.rs` become `pub` for `presets.rs` |
+| (8) | fc3ae57 D39.1; d8afd5a core's `Data for Points`; f34b302 step 3; 3d8a31f step 4 with the example; 94cfd0c a doc link `cargo doc -D warnings` found ambiguous (`line` and std's `line!`); then the docs |
+
+### Decision
+
+Recommendation A for all eight, as built.
+
+### Why
+
+(1) is the one-path rule as D38.2 (5) applied it; (2) is the smallest
+additive change that keeps `impl Data` meaning what it means for marks;
+(3) and (5) follow the section's text; (4) and (6) follow matplotlib and
+seaborn where the section points to them; (7) and (8) change no
+behaviour.
+
+### Followups
+
+- (5): a `rect`, span or ribbon builder that holds a value (D38.2 (3)'s
+  followup) would let stacked charts stand on the axis.
+- (6): public `Grid` readers (`cols`, `rows`) would let the heatmap
+  report mismatched keys through `fig.check`.
