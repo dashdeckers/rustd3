@@ -664,7 +664,8 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
     );
     let _ = writeln!(
         md,
-        "- label-churn rows are provisional until Phase 34 reruns them with real time formats\n"
+        "- label-churn labels a UTC time axis around midnight by its own ticks (Phase 34's real \
+         time formats, in place of Phase 22's stand-in labels)\n"
     );
 }
 

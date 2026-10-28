@@ -7,7 +7,10 @@ mod grid;
 mod label_churn;
 mod scatter;
 mod trace;
+mod wheels;
 
+use iced::Size;
+use rustd3_core::jiff::Timestamp;
 use rustd3_figure::Figure;
 
 use crate::scenario::Scenario;
@@ -23,19 +26,26 @@ pub enum Workload {
     Scatter1m,
     /// 4 × 4 panels, each a 100k-sample line and 2k dots.
     Grid16,
-    /// `trace` with x labels that change on every pan step.
+    /// `trace` on a UTC time axis around midnight: labels that change as
+    /// pans cross the day and on every zoom.
     LabelChurn,
+    /// Part I's wheel figure at 960 × 760.
+    Wheels,
 }
 
 /// A workload's data, owned by the app between frames.
 #[derive(Debug)]
 pub enum Data {
-    /// `trace` and `label-churn`.
-    Trace(trace::Trace),
+    /// `trace`.
+    Trace(trace::Trace<f64>),
+    /// `label-churn`.
+    Churn(trace::Trace<Timestamp>),
     /// The scatters.
     Scatter(scatter::Scatter),
     /// `grid16`.
     Grid(grid::Grid),
+    /// `wheels`.
+    Wheels(wheels::Wheels),
 }
 
 /// xorshift64* (Vigna 2016): the workloads' only source of noise.
@@ -44,12 +54,13 @@ pub struct Rng(u64);
 
 impl Workload {
     /// Every workload, in report order.
-    pub const ALL: [Workload; 5] = [
+    pub const ALL: [Workload; 6] = [
         Workload::Trace,
         Workload::Scatter100k,
         Workload::Scatter1m,
         Workload::Grid16,
         Workload::LabelChurn,
+        Workload::Wheels,
     ];
 
     /// The workload's name on the command line and in file names.
@@ -60,6 +71,7 @@ impl Workload {
             Workload::Scatter1m => "scatter1m",
             Workload::Grid16 => "grid16",
             Workload::LabelChurn => "label-churn",
+            Workload::Wheels => "wheels",
         }
     }
 
@@ -72,7 +84,21 @@ impl Workload {
     pub fn has_recordings(self) -> bool {
         match self {
             Workload::Trace | Workload::Grid16 | Workload::LabelChurn => true,
-            Workload::Scatter100k | Workload::Scatter1m => false,
+            Workload::Scatter100k | Workload::Scatter1m | Workload::Wheels => false,
+        }
+    }
+
+    /// The logical size of its figure where a scenario uses the standard
+    /// window: the wheel figure keeps its own; the others take the
+    /// scenario's.
+    pub fn size(self) -> Option<Size> {
+        match self {
+            Workload::Wheels => Some(wheels::SIZE),
+            Workload::Trace
+            | Workload::Scatter100k
+            | Workload::Scatter1m
+            | Workload::Grid16
+            | Workload::LabelChurn => None,
         }
     }
 
@@ -85,8 +111,12 @@ impl Workload {
     pub fn describe(self, scale: f64) -> String {
         let n = |full: usize| sized(full, scale);
         match self {
-            Workload::Trace | Workload::LabelChurn => format!(
+            Workload::Trace => format!(
                 "2 panels, 3 channels × {} samples at 10 kHz",
+                n(trace::SAMPLES)
+            ),
+            Workload::LabelChurn => format!(
+                "2 panels, 3 channels × {} samples at 10 kHz around midnight UTC",
                 n(trace::SAMPLES)
             ),
             Workload::Scatter100k => format!("1 panel, {} dots", n(100_000)),
@@ -96,14 +126,18 @@ impl Workload {
                 n(grid::SAMPLES),
                 n(grid::DOTS)
             ),
+            Workload::Wheels => {
+                "4 × 4 panels, 52 marks over 5,600 samples at 960 × 760 (fixed size)".to_owned()
+            }
         }
     }
 
     /// Its data at `scale` (1 = full size).
     pub fn data(self, scale: f64) -> Data {
         match self {
-            Workload::Trace | Workload::LabelChurn => {
-                Data::Trace(trace::Trace::new(sized(trace::SAMPLES, scale)))
+            Workload::Trace => Data::Trace(trace::Trace::new(sized(trace::SAMPLES, scale))),
+            Workload::LabelChurn => {
+                Data::Churn(trace::Trace::around_midnight(sized(trace::SAMPLES, scale)))
             }
             Workload::Scatter100k => Data::Scatter(scatter::Scatter::new(sized(100_000, scale))),
             Workload::Scatter1m => Data::Scatter(scatter::Scatter::new(sized(1_000_000, scale))),
@@ -111,31 +145,32 @@ impl Workload {
                 sized(grid::SAMPLES, scale),
                 sized(grid::DOTS, scale),
             )),
+            Workload::Wheels => Data::Wheels(wheels::Wheels::simulated()),
         }
     }
 }
 
 impl Data {
-    /// The figure of `workload` over this data; with `windowed`, x follows
-    /// the newest 10 s (`Fit::Window(10.0)`).
-    pub fn figure(&self, workload: Workload, windowed: bool) -> Figure<'_> {
+    /// The figure over this data; with `windowed`, x follows the newest
+    /// 10 s (`Fit::Window`) of the workloads with recordings.
+    pub fn figure(&self, windowed: bool) -> Figure<'_> {
         match self {
-            Data::Trace(trace) => {
-                let churn = workload == Workload::LabelChurn;
-                trace.figure(windowed, churn.then_some(label_churn::LABELS))
-            }
+            Data::Trace(trace) => trace.figure(windowed),
+            Data::Churn(trace) => trace.figure(windowed),
             Data::Scatter(scatter) => scatter.figure(),
             Data::Grid(grid) => grid.figure(windowed),
+            Data::Wheels(wheels) => wheels.figure(),
         }
     }
 
-    /// Appends `n` samples to every channel of every recording; a scatter
-    /// has none.
+    /// Appends `n` samples to every channel of every recording; the
+    /// scatters and the wheel figure have none.
     pub fn append(&mut self, n: usize) {
         match self {
             Data::Trace(trace) => trace.append(n),
+            Data::Churn(trace) => trace.append(n),
             Data::Grid(grid) => grid.append(n),
-            Data::Scatter(_) => {}
+            Data::Scatter(_) | Data::Wheels(_) => {}
         }
     }
 }
@@ -176,6 +211,10 @@ fn sized(full: usize, scale: f64) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use rustd3_core::jiff::{SignedDuration, Timestamp};
+    use rustd3_figure::kurbo::Size;
+    use rustd3_figure::list::Command;
+
     use super::{Data, Rng, Workload};
     use crate::scenario::Scenario;
 
@@ -204,6 +243,52 @@ mod tests {
             assert!(workload.supports(Scenario::PanX));
         }
         assert!(Workload::Grid16.supports(Scenario::Live));
+    }
+
+    #[test]
+    fn the_wheel_figure_has_no_recordings_and_does_not_scale() {
+        assert!(!Workload::Wheels.supports(Scenario::Live));
+        assert!(!Workload::Wheels.supports(Scenario::Soak));
+        assert!(Workload::Wheels.supports(Scenario::ZoomLines));
+        let Data::Wheels(wheels) = Workload::Wheels.data(0.01) else {
+            panic!("wheel data");
+        };
+        assert_eq!(format!("{wheels:?}"), "Wheels { samples: 5600 }");
+    }
+
+    #[test]
+    fn label_churn_spans_midnight_on_a_time_axis_labelled_with_the_date() {
+        let Data::Churn(churn) = Workload::LabelChurn.data(0.01) else {
+            panic!("label-churn data");
+        };
+        let rec = churn.recording();
+        let midnight: Timestamp = "2026-10-28T00:00:00Z".parse().expect("an instant");
+        assert_eq!(rec.len(), 10_000);
+        assert_eq!(rec.x(5_000), Some(midnight));
+        let first = rec.x(0).expect("a sample");
+        assert_eq!(
+            midnight.duration_since(first),
+            SignedDuration::from_millis(500)
+        );
+        let list = Workload::LabelChurn
+            .data(0.01)
+            .figure(false)
+            .draw(Size::new(1600.0, 1000.0));
+        let labels: Vec<&str> = list
+            .commands
+            .iter()
+            .filter_map(|c| {
+                if let Command::Glyphs(run) = c {
+                    Some(&*run.text)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        // The ISO ladder: the day at midnight, seconds and milliseconds
+        // around it.
+        assert!(labels.contains(&"10-28"), "{labels:?}");
+        assert!(labels.iter().any(|l| l.starts_with("59.")), "{labels:?}");
     }
 
     #[test]

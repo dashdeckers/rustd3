@@ -226,7 +226,7 @@ fn windowed_resolve() -> Row {
     let mut fresh = Vec::new();
     let (mut fresh_lookups, mut fresh_passes) = (0, 0);
     for _ in 0..5 {
-        let fig = data.figure(Workload::Trace, true);
+        let fig = data.figure(true);
         let mut cache = Cache::default();
         let begin = Instant::now();
         let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
@@ -236,13 +236,13 @@ fn windowed_resolve() -> Row {
     }
     let mut cache = Cache::default();
     let _ = data
-        .figure(Workload::Trace, true)
+        .figure(true)
         .resolve(size, &mut cache, &Held::default(), target);
     let mut steady = Vec::new();
     let (mut steady_lookups, mut steady_passes) = (0, 0);
     for _ in 0..5 {
         data.append(1_000);
-        let fig = data.figure(Workload::Trace, true);
+        let fig = data.figure(true);
         let before = lookups(&cache);
         cache.begin();
         let begin = Instant::now();

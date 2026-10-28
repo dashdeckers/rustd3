@@ -3,16 +3,15 @@
 //! in the top panel and 3 in the bottom one; x zoomed by both panels, y
 //! by its own; a left and a bottom axis per panel and a legend.
 
-use rustd3_core::scale;
+use rustd3_core::scale::{self, Ticks};
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_core::series::{Clock, Recording};
+use rustd3_core::series::{Clock, Coordinate, Recording};
 use rustd3_figure::legend::{self, Slot};
 use rustd3_figure::mark::line;
-use rustd3_figure::scale::Fit;
+use rustd3_figure::scale::{Fit, Kind, Position, ScaleRef};
 use rustd3_figure::{Figure, axis};
 
 use crate::workload::Rng;
-use crate::workload::label_churn::Labels;
 
 /// Samples per channel at full size: 100 s at 10 kHz.
 pub const SAMPLES: usize = 1_000_000;
@@ -37,11 +36,11 @@ pub struct Signal {
     impacts: Vec<usize>,
 }
 
-/// Three channels of [`Signal`] on one regular clock, the generators kept
-/// for appends.
+/// Three channels of [`Signal`] on one regular clock of `C` (seconds, or
+/// instants for `label-churn`), the generators kept for appends.
 #[derive(Debug)]
-pub struct Trace {
-    rec: Recording<f64>,
+pub struct Trace<C: Coordinate> {
+    rec: Recording<C>,
     signals: [Signal; 3],
 }
 
@@ -98,15 +97,36 @@ impl Signal {
     }
 }
 
-impl Trace {
-    /// `n` samples per channel, seeds 1, 2 and 3.
-    pub fn new(n: usize) -> Trace {
+impl Trace<f64> {
+    /// `n` samples per channel from 0 s, seeds 1, 2 and 3.
+    pub fn new(n: usize) -> Trace<f64> {
+        Trace::on(
+            Clock::Regular {
+                start: 0.0,
+                period: 1.0 / RATE,
+            },
+            n,
+        )
+    }
+
+    /// The figure; `windowed` puts x on `Fit::Window(10.0)`.
+    pub fn figure(&self, windowed: bool) -> Figure<'_> {
+        let mut fig = Figure::new();
+        let time = if windowed {
+            fig.fit_with(scale::linear(), Fit::Window(10.0))
+        } else {
+            fig.fit(scale::linear())
+        };
+        self.panels(&mut fig, time, "time [s]");
+        fig
+    }
+}
+
+impl<C: Coordinate> Trace<C> {
+    /// `n` samples per channel on `clock`, seeds 1, 2 and 3.
+    pub fn on(clock: Clock<C>, n: usize) -> Trace<C> {
         let mut signals = [1, 2, 3].map(|seed| Signal::new(seed, n));
         let channels = signals.each_mut().map(|signal| signal.take(n));
-        let clock = Clock::Regular {
-            start: 0.0,
-            period: 1.0 / RATE,
-        };
         let rec = Recording::new(clock, channels).expect("invariant: finite samples");
         Trace { rec, signals }
     }
@@ -119,15 +139,13 @@ impl Trace {
             .expect("invariant: finite samples on a regular clock");
     }
 
-    /// The figure; `windowed` puts x on `Fit::Window(10.0)`, and `labels`
-    /// replace both bottom axes' format and tick count (label churn).
-    pub fn figure(&self, windowed: bool, labels: Option<Labels>) -> Figure<'_> {
-        let mut fig = Figure::new();
-        let time = if windowed {
-            fig.fit_with(scale::linear(), Fit::Window(10.0))
-        } else {
-            fig.fit(scale::linear())
-        };
+    /// The two panels of the channels on the x handle `time`, with their
+    /// axes (the bottom one titled `label`), zooms and the legend, added to
+    /// `fig`.
+    pub fn panels<'a, X>(&'a self, fig: &mut Figure<'a>, time: ScaleRef<X>, label: &str)
+    where
+        X: Position<Domain = C> + Ticks<Domain = <X as Kind>::Domain>,
+    {
         let top = fig.fit(scale::linear());
         let bottom = fig.fit(scale::linear());
         let color = fig.scale(scale::ordinal(CHANNELS, COLORBLIND));
@@ -137,32 +155,24 @@ impl Trace {
                 .series(c)
                 .expect("invariant: the recording has three channels")
         };
-        let x_axis = || {
-            let x = axis::bottom(time);
-            match labels {
-                Some(labels) => x.format(labels.format).ticks(labels.ticks),
-                None => x,
-            }
-        };
         fig.panel(0, 0)
             .mark(line(channel(0), time, top).stroke(color, CHANNELS[0]))
             .mark(line(channel(1), time, top).stroke(color, CHANNELS[1]))
             .axis(axis::left(top).label("channels 1, 2"))
-            .axis(x_axis())
+            .axis(axis::bottom(time))
             .zoom_x(time)
             .zoom_y(top);
         fig.panel(1, 0)
             .mark(line(channel(2), time, bottom).stroke(color, CHANNELS[2]))
             .axis(axis::left(bottom).label("channel 3"))
-            .axis(x_axis().label("time [s]"))
+            .axis(axis::bottom(time).label(label))
             .zoom_x(time)
             .zoom_y(bottom);
-        fig
     }
 
     /// The recording.
     #[cfg(test)]
-    pub fn recording(&self) -> &Recording<f64> {
+    pub fn recording(&self) -> &Recording<C> {
         &self.rec
     }
 

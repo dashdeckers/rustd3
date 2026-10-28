@@ -4,6 +4,8 @@
 
 use std::fmt;
 
+use iced::Size;
+
 use crate::scenario::Scenario;
 use crate::workload::Workload;
 
@@ -50,6 +52,16 @@ pub struct Selection {
 
 /// The four factors the plans measure.
 pub const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
+
+/// The workloads besides `trace` that `quick` and `default` run `hover`,
+/// `pan-x` and `zoom-lines` on, as D22.1 registered them before any run;
+/// `wheels` (Phase 34) runs in `smoke` and `full`.
+const REGISTERED: [Workload; 4] = [
+    Workload::Scatter100k,
+    Workload::Scatter1m,
+    Workload::Grid16,
+    Workload::LabelChurn,
+];
 
 /// Process start, data, first frame and the 2 s settle, per run: the
 /// estimate's allowance on real hardware.
@@ -107,8 +119,8 @@ impl Plan {
                     }
                 }
                 for scenario in [Scenario::Hover, Scenario::PanX, Scenario::ZoomLines] {
-                    for workload in &Workload::ALL[1..] {
-                        cells.push(cell(scenario, *workload, native));
+                    for workload in REGISTERED {
+                        cells.push(cell(scenario, workload, native));
                     }
                 }
                 for scenario in [Scenario::PanX, Scenario::ZoomLines] {
@@ -190,6 +202,25 @@ impl Cell {
         self.workload.supports(self.scenario)
     }
 
+    /// The window's logical size: the scenario's, except that a workload
+    /// with a size of its own (the wheel figure) keeps it wherever the
+    /// scenario does not ask for the 4k window.
+    pub fn window(&self) -> Size {
+        let window = self.scenario.window(self.factor);
+        match self.scenario {
+            Scenario::FourK => window,
+            Scenario::Hover
+            | Scenario::PanX
+            | Scenario::PanY
+            | Scenario::ZoomLines
+            | Scenario::ZoomPixels
+            | Scenario::Live
+            | Scenario::Resize
+            | Scenario::Cold
+            | Scenario::Soak => self.workload.size().unwrap_or(window),
+        }
+    }
+
     /// The cell's key in file names: `<scenario>__<workload>__f<factor>`.
     pub fn key(&self) -> String {
         format!(
@@ -215,6 +246,8 @@ impl fmt::Display for Cell {
 
 #[cfg(test)]
 mod tests {
+    use iced::Size;
+
     use super::{Plan, Selection};
     use crate::scenario::Scenario;
     use crate::workload::Workload;
@@ -247,8 +280,9 @@ mod tests {
     #[test]
     fn smoke_plan_covers_every_scenario_and_workload() {
         let cells = Plan::Smoke.cells(2.0, &Selection::default());
-        assert_eq!(cells.len(), 50);
-        assert_eq!(cells.iter().filter(|c| c.applies()).count(), 46);
+        assert_eq!(cells.len(), 60);
+        // `live` and `soak` need recordings: the scatters and `wheels` have none.
+        assert_eq!(cells.iter().filter(|c| c.applies()).count(), 54);
         assert!(cells.iter().all(|c| c.factor == 2.0 && c.runs == 1));
         assert_eq!(Plan::Smoke.duration_ms(Scenario::PanX), 2_400.0);
         assert_eq!(Plan::Smoke.duration_ms(Scenario::Soak), 20_000.0);
@@ -261,5 +295,36 @@ mod tests {
         let cells = Plan::Smoke.cells(2.0, &one);
         assert_eq!(cells.len(), 20);
         assert!(cells.iter().all(|c| c.factor != 2.0));
+    }
+
+    #[test]
+    fn the_wheel_figure_keeps_its_size_except_in_the_4k_window() {
+        let cells = Plan::Smoke.cells(2.0, &Selection::default());
+        let window = |scenario, workload| {
+            let cell = cells
+                .iter()
+                .find(|c| c.scenario == scenario && c.workload == workload)
+                .expect("a cell");
+            cell.window()
+        };
+        assert_eq!(
+            window(Scenario::PanX, Workload::Wheels),
+            Size::new(960.0, 760.0)
+        );
+        assert_eq!(
+            window(Scenario::Resize, Workload::Wheels),
+            Size::new(960.0, 760.0)
+        );
+        assert_eq!(
+            window(Scenario::FourK, Workload::Wheels),
+            Size::new(1920.0, 1080.0)
+        );
+        assert_eq!(
+            window(Scenario::PanX, Workload::Trace),
+            Size::new(1600.0, 1000.0)
+        );
+        // The verdict's plan is the one registered: no wheel cell.
+        let default = Plan::Default.cells(2.0, &Selection::default());
+        assert!(default.iter().all(|c| c.workload != Workload::Wheels));
     }
 }

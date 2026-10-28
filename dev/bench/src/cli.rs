@@ -662,7 +662,8 @@ mod tests {
         );
         assert!(Command::parse(&args("run --plan")).is_err());
         assert!(Command::parse(&args("run --factor 0")).is_err());
-        assert!(Command::parse(&args("run --workload wheels")).is_err());
+        assert!(Command::parse(&args("run --workload wheel")).is_err());
+        assert!(Command::parse(&args("run --workload wheels,label-churn")).is_ok());
         assert!(Command::parse(&args("frobnicate")).is_err());
         // A windowed run needs the display's refresh rate and factor.
         let Ok(Command::Run(options)) = Command::parse(&args("run --plan default")) else {

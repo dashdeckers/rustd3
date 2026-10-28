@@ -44,7 +44,7 @@ pub fn record(out: PathBuf) -> iced::Result {
 
 impl Recorder {
     fn view(&self) -> Element<'_, Message> {
-        Plot::new(self.data.figure(Workload::Trace, false)).into()
+        Plot::new(self.data.figure(false)).into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

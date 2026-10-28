@@ -83,12 +83,15 @@ if you can (the raw files let the agent rebuild the report with
   --scenario zoom-pixels --replay zoom.jsonl --out ~/bench-out`.
 - A cell the report calls inconclusive: rerun it with `--scenario`,
   `--workload`, `--factor` and `--runs 10`.
+- The wheel figure (Part I's worked example, 960 × 760, no recordings):
+  `--workload wheels` with any plan; it is in `smoke` and `full`, not in
+  the verdict's `default` plan, which stays as registered.
 
 ## Headless
 
 Agents run `--headless` only (`--plan smoke` by default: every scenario ×
-workload once at factor 2, durations ÷ 5, data ÷ 100, `soak` 20 s, about
-4 minutes on a 2-core container). Headless frame intervals are not
+workload once at factor 2, durations ÷ 5, data ÷ 100 (the wheel figure's
+data is fixed), `soak` 20 s, about 5 minutes on a 2-core container). Headless frame intervals are not
 display intervals: every headless number is report-only.
 `scripts/check.sh full` runs the smoke plan on tiny-skia and fails only on
 errors.

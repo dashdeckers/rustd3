@@ -227,7 +227,7 @@ fn replays(
         let path = match &given {
             Some(copy) => copy.clone(),
             None => {
-                let size = cell.scenario.window(cell.factor);
+                let size = cell.window();
                 let name = format!(
                     "{}__{}x{}.jsonl",
                     cell.scenario.name(),
@@ -320,7 +320,7 @@ fn run_child(child: Child, epoch: Instant) -> Result<(), Box<dyn Error>> {
     let duration_ms = plan.duration_ms(scenario);
     let replay = match &options.replay {
         Some(path) => Replay::read(path)?,
-        None => scenario.replay(scenario.window(child.cell.factor), duration_ms),
+        None => scenario.replay(child.cell.window(), duration_ms),
     };
     let config = Config {
         refresh_hz: options.refresh_hz()?,

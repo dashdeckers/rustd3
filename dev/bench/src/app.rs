@@ -87,7 +87,7 @@ impl App {
         let data = config.child.cell.workload.data(config.data_scale);
         let (records, received) = mpsc::channel();
         let (sink, samples) = mpsc::channel();
-        let size = config.child.cell.scenario.window(config.child.cell.factor);
+        let size = config.child.cell.window();
         let sampler = (config.child.cell.scenario == Scenario::Soak)
             .then(|| Sampler::start(records.clone(), config.epoch));
         App {
@@ -109,9 +109,7 @@ impl App {
     pub fn view(&self) -> Element<'_, Message> {
         let cell = self.config.child.cell;
         let options = &self.config.child.options;
-        let figure = self
-            .data
-            .figure(cell.workload, cell.scenario.needs_recordings());
+        let figure = self.data.figure(cell.scenario.needs_recordings());
         let plot = Plot::new(figure)
             .scale_factor(cell.factor)
             .render(options.render)
@@ -164,7 +162,7 @@ impl App {
         self.sampler = None;
         let cell = self.config.child.cell;
         let options = &self.config.child.options;
-        let window = cell.scenario.window(cell.factor);
+        let window = cell.window();
         let device = self.device.unwrap_or(window * cell.factor);
         let mut records = vec![Record::Run(record::Run {
             scenario: cell.scenario.name().to_owned(),
@@ -252,7 +250,7 @@ impl App {
 /// display's native factor until the window reports its own.
 pub fn windowed(config: Config) -> iced::Result {
     let cell = config.child.cell;
-    let size = cell.scenario.window(cell.factor) * (cell.factor / config.native);
+    let size = cell.window() * (cell.factor / config.native);
     let settings = window::Settings {
         size,
         resizable: true,
