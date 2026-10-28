@@ -6,6 +6,6 @@ use rustd3_examples::focus_context::App;
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
         .title("rustd3: focus and context")
-        .window_size((900.0, 430.0))
+        .window_size((924.0, 430.0))
         .run()
 }

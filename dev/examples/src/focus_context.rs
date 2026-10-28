@@ -22,6 +22,9 @@ use rustd3_iced::pointer::Tracker;
 
 /// The left margin of both views, where the focus's y labels go.
 pub const MARGIN: f32 = 40.0;
+/// The right margin of both views, where half of the rightmost x label
+/// goes.
+pub const RIGHT: f32 = 24.0;
 /// The focus view's height in logical px.
 pub const FOCUS_HEIGHT: f32 = 340.0;
 /// The overview's height in logical px.
@@ -237,7 +240,7 @@ impl canvas::Program<Message> for Focus<'_> {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        let (w, h) = (bounds.width - MARGIN, bounds.height - AXIS_ROOM);
+        let (w, h) = (plot(bounds).width, bounds.height - AXIS_ROOM);
         let x = self.app.x(self.app.visible, w);
         let y = self.app.y(h);
         let mut frame = Frame::new(renderer, bounds.size());
@@ -250,8 +253,13 @@ impl canvas::Program<Message> for Focus<'_> {
                 self.app.draw_lines(f, &x, &y, 1.5);
             },
         );
-        // The software renderer clips no paths: mask the left margin too.
+        // The software renderer clips no paths: mask the margins too.
         frame.fill_rectangle(Point::ORIGIN, Size::new(MARGIN, h), Color::WHITE);
+        frame.fill_rectangle(
+            Point::new(MARGIN + w, 0.0),
+            Size::new(RIGHT, h),
+            Color::WHITE,
+        );
         frame.translate(Vector::new(MARGIN, 0.0));
         draw_axis(&mut frame, &axis::bottom(&x).ticks(8), Point::new(0.0, h));
         draw_axis(&mut frame, &axis::left(&y).ticks(5), Point::ORIGIN);
@@ -308,7 +316,7 @@ impl canvas::Program<Message> for Overview<'_> {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        let (w, h) = (bounds.width - MARGIN, bounds.height - AXIS_ROOM);
+        let (w, h) = (plot(bounds).width, bounds.height - AXIS_ROOM);
         let x = self.app.x(self.app.full, w);
         let y = self.app.y(h);
         let mut frame = Frame::new(renderer, bounds.size());
@@ -323,11 +331,11 @@ impl canvas::Program<Message> for Overview<'_> {
     }
 }
 
-/// A canvas's plot area: right of the margin, full height.
+/// A canvas's plot area: between the margins, full height.
 fn plot(bounds: Rectangle) -> Rectangle {
     Rectangle {
         x: bounds.x + MARGIN,
-        width: bounds.width - MARGIN,
+        width: bounds.width - MARGIN - RIGHT,
         ..bounds
     }
 }

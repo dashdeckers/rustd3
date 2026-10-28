@@ -10,8 +10,9 @@ use rustd3_examples::focus_context::{App, Message};
 
 use crate::simulator;
 
-/// The window: the focus above, the overview from y = 340.
-const SIZE: (f32, f32) = (900.0, 430.0);
+/// The window: the focus above, the overview from y = 340; plots 860 px
+/// wide between the 40 px and 24 px margins.
+const SIZE: (f32, f32) = (924.0, 430.0);
 /// A row through the overview's plot.
 const OVERVIEW_Y: f32 = 380.0;
 /// The data's 719 hours over the plot's 860 px.
