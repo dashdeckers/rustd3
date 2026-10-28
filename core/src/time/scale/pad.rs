@@ -6,22 +6,26 @@ use jiff::Timestamp;
 use crate::scale::Pad;
 use crate::time::{self, Time};
 
+/// One hour, in nanoseconds.
+const HOUR: i128 = 3_600 * 1_000_000_000;
 /// One day, in nanoseconds.
-const DAY: i128 = 86_400 * 1_000_000_000;
+const DAY: i128 = 24 * HOUR;
 /// No data: matplotlib's date axis without data, 1970-01-01 to 1970-01-02
 /// UTC, in nanoseconds from the epoch.
 const EMPTY: [i128; 2] = [0, DAY];
-/// How far a flat extent widens per side: two of matplotlib's years
-/// (`DateLocator.nonsingular`, `DAYS_PER_YEAR = 365.0`).
-const WIDEN: i128 = 2 * 365 * DAY;
+/// How far a flat extent widens per side: an hour, so one sample's axis
+/// reads in hours and minutes (matplotlib's `DateLocator.nonsingular`
+/// widens by two years, D33.1).
+const WIDEN: i128 = HOUR;
 /// How far inside the extent a sticky value still stops the margin,
 /// relative to the span, as Phase 10's `Pad`.
 const STICKY_TOLERANCE: f64 = 1e-5;
 
 /// matplotlib's autoscaling of a date axis: no data gives 1970-01-01 to
-/// 1970-01-02 UTC; equal ends widen by 730 days per side (matplotlib
+/// 1970-01-02 UTC; equal ends widen by an hour per side (matplotlib
 /// widens anything under 10⁻⁶ days, which would flatten every recording
-/// shorter than 0.1 s); each side then gets `margin` of the span, rounded
+/// shorter than 0.1 s, and by two years, which hides a sensor's one
+/// sample in a decade); each side then gets `margin` of the span, rounded
 /// to the nanosecond, except where a sticky instant stops it. The result
 /// keeps the domain's orientation and saturates at jiff's range.
 ///
@@ -34,6 +38,9 @@ const STICKY_TOLERANCE: f64 = 1e-5;
 /// let ten_days = [at("2026-01-01T00:00:00Z")?, at("2026-01-11T00:00:00Z")?];
 /// let padded = time::utc().pad(Some(ten_days), 0.05, &[]);
 /// assert_eq!(padded, [at("2025-12-31T12:00:00Z")?, at("2026-01-11T12:00:00Z")?]);
+/// let noon = at("2026-10-25T12:00:00Z")?;
+/// let flat = time::utc().pad(Some([noon, noon]), 0.05, &[]);
+/// assert_eq!(flat, [at("2026-10-25T10:54:00Z")?, at("2026-10-25T13:06:00Z")?]);
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
 impl Pad for Time {

@@ -352,10 +352,11 @@ fn pad_fits_dates_as_matplotlib() {
         x.pad(None, 0.05, &[]),
         [at("1970-01-01T00:00:00Z"), at("1970-01-02T00:00:00Z")]
     );
+    // D33.1: an hour per side, then 5% of the two hours.
     let noon = at("2026-01-01T12:00:00Z");
     assert_eq!(
         x.pad(Some([noon, noon]), 0.05, &[]),
-        [at("2023-10-21T12:00:00Z"), at("2028-03-14T12:00:00Z")]
+        [at("2026-01-01T10:54:00Z"), at("2026-01-01T13:06:00Z")]
     );
     let ten_days = [at("2026-01-01T00:00:00Z"), at("2026-01-11T00:00:00Z")];
     let padded = [at("2025-12-31T12:00:00Z"), at("2026-01-11T12:00:00Z")];
