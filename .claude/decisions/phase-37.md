@@ -2,9 +2,17 @@
 
 ## Measurements
 
-2026-10-28, bb3c0d7 and the commits after it, one session. krilla
-0.8.2, poppler 24.02 (`pdftoppm`, `pdftotext`, `pdffonts`; `pdftocairo`
-for cross-checks only), gif 0.14.2.
+2026-10-28, bb3c0d7 … 85381d5 and the closing docs commit, one session.
+krilla 0.8.2, poppler 24.02 (`pdftoppm`, `pdftotext`, `pdffonts`;
+`pdftocairo` for cross-checks only), gif 0.14.2. `scripts/check.sh
+full` green on 85381d5's tree in 12 min 47 s (the architect's cold rewarm
+before the session: 29 min 18 s).
+
+**Lines** (71c1158..fe27802): library +822 (`pdf.rs` 565, `pdf/image.rs`
+61, `gif.rs` 176, `save.rs` and `lib.rs` 20, docs included); tests +758
+(`figure/tests/main/{pdf,gif,poppler}.rs` 644, `wheels_pdf` and the
+helper's `#[path]` 104, `main.rs` 10). The section estimated about 800
+(500 + 300).
 
 **Harness** unchanged (no core change): 16 suites, 6,722 assertions,
 5,292 passing, 1,430 skipped, 0 failing, 179 floors; nothing blessed.
@@ -151,3 +159,90 @@ Neither tool nor a looser cap measures the writer better.
 
 - If a later poppler places glyphs at subpixel positions, assert the
   text PDFs under the section's rule too.
+
+## D37.2 — Details of Phase 37 that the section leaves open, or that do not hold as written
+
+**Date:** 2026-10-28 · **Context:** Phase 37, bb3c0d7 … 85381d5 · **Status:** open
+
+### Issue
+
+1. **`pdf::Error`** has no variant for a list that fails `list::check`,
+   which every backend runs first (Part I, Drawing and output).
+2. **`gif::Error`** has no variant for a frame vello_cpu cannot render:
+   a list that fails its check, a side between 65,409 and 65,535 device
+   px (vello_cpu's limit, D12.1 (1), which GIF's `u16` sides allow), a
+   size below one device px.
+3. **Features.** `Writer::new` makes the writer's `figure::Cache`, whose
+   `Default` needs `fonts` (D13.1 (6)); exit criterion 3 builds `gif`
+   without `fonts`.
+4. **The writer's state.** The section lists the encoder, size, scale and
+   cache; a renderer made per frame would start vello_cpu's pool per
+   frame, and `Bounds::of` reads glyph outlines.
+5. **"Points are grouped by paint index"**: grouped across the command,
+   dots of two paints would be drawn in another order than every other
+   backend draws them.
+6. **Commands that draw nothing** in the other backends but not in PDF:
+   a stroke of width 0 is a device hairline in PDF; markers of size 0,
+   runs of size 0 or under a singular transform, images and paths of no
+   area.
+7. **Clips of no area.** Splash (pdftoppm) draws everything under a clip
+   to a degenerate path: the first draft failed
+   `a_clip_of_no_area_clips_everything`.
+8. **Glyph text ranges.** krilla slices `text[range]` for each glyph and
+   panics on a range outside the run's text or off a char boundary
+   (`krilla-0.8.2/src/text/group.rs:114-115`, `src/content.rs:557`);
+   `list::check` does not check the ranges.
+9. **Errors mid-page.** krilla asserts on drop that every push was
+   popped (`krilla-0.8.2/src/surface.rs:611-627`), so a command that
+   fails inside a group would panic.
+10. **krilla's own details**: which list font a `KrillaError::Font` names;
+    gradients without stops; sweep angles (krilla's PostScript `atan` is
+    in degrees, peniko's in radians); radial gradients with repeat or
+    reflect (krilla pads them, `krilla-0.8.2/src/graphics/paint.rs:69-72`).
+11. **Spot checks as written.** pdf-writer writes `/MediaBox[0 0 720
+    570]`, without the space; "page 720 × 570 pt" is also read through
+    `pdftoppm -r 72`. The wheel figure lists one font (no run is bold,
+    Phase 34), not "DejaVuSans and DejaVuSans-Bold"; it is 122,179 bytes,
+    not about 114 KB.
+12. **"The test figure"** is not named.
+13. **Sharing the poppler helper** between rustd3-figure's and
+    rustd3-examples' tests without a manifest change.
+14. **The GIF agreement** "against the PNG": exit criterion 1's features
+    (`pdf,gif,raster`) have no `png`, so `save_png` is not there.
+
+### Options
+
+| | **A — as built** | B — as written or the alternative |
+| --- | --- | --- |
+| (1) | `Error::List(#[from] list::Error)` | Map check failures to `Unsupported` or `Krilla(String)` |
+| (2) | `Error::Raster(#[from] raster::Error)` | `Encoding(String)`; or `Size` at 65,408 with GIF's message |
+| (3) | `Writer` with `fonts`; `Repeat` and `Error` with `gif` alone (as `save_png`, D15.1 (8)); `save_pdf` with `fonts` | `Writer::new` taking a cache |
+| (4) | Private `raster::Renderer` and `Outlines` kept between frames | — |
+| (5) | The fill switches where the index changes along the points, in point order, as the vello_cpu replay and the SVG writer group them; per point for gradients, placed by the inverse of each point's placement (D12.1 (3)) | Sorted by index |
+| (6) | Skipped: PDF then draws what the other backends draw | A hairline in PDF only |
+| (7) | A group whose clip has a bounding box of no width or height skips its commands until its `Pop` | Leave it to the viewer |
+| (8) | Such a glyph maps to no text (`0..0`) | Panic, or a new `list::check` rule |
+| (9) | Open groups are popped before the surface drops, then the error returns | — |
+| (10) | `Error::Font { index }` of the font krilla names (else `Krilla`); no stops: transparent; degrees; pad, documented on `pdf::write` | — |
+| (11) | Tested as found: `/MediaBox[0 0 720 570]`, 720 × 570 px at 72 dpi, 1920 × 1520 at 192; one embedded subset font for the wheel figure, the bold and math faces on the heatmap; the size recorded | — |
+| (12) | Phase 12's kitchen sink with its sweep (every command, paint and clip), the scatter and trace examples and a heatmap (images, colorbar, bold, math); the wheel figures in rustd3-examples | — |
+| (13) | `figure/tests/main/poppler.rs`, compiled into rustd3-examples' tests by `#[path]` (as figure's tests compile the examples' figures); the tools read the PDF on stdin | A testkit module: testkit has no PNG decoder and its manifest would change |
+| (14) | The pixels `save_png` encodes, rendered in the test through the same target and settings | `save_png` under `png` only |
+
+### Decision
+
+Recommended: A for all fourteen, as built.
+
+### Why
+
+(1), (2), (8) and (9) keep every failure a typed error rather than a
+panic or a string; (3), (4) and (13) follow earlier decisions and the
+manifests as they are; (5)–(7) and (10) make PDF draw what the other
+backends draw; (11), (12) and (14) are the closest readings of the
+section that the crates and the figures allow.
+
+### Followups
+
+- Phase 40: the facade's `gif` and `pdf` features re-export these
+  modules; its README can say that `gif::Writer` needs the bundled
+  fonts.
