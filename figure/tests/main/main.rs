@@ -11,6 +11,8 @@ mod fit;
 mod gif;
 mod handles;
 mod hatch;
+#[cfg(feature = "helpers")]
+mod helpers;
 mod hit;
 mod layout;
 mod legend;

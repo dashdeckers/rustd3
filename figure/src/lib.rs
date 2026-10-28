@@ -17,6 +17,8 @@ mod figure;
 #[cfg(feature = "gif")]
 pub mod gif;
 pub mod hatch;
+#[cfg(feature = "helpers")]
+pub mod helpers;
 pub mod hit;
 pub mod layout;
 pub mod legend;

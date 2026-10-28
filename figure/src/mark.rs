@@ -25,7 +25,7 @@ mod color;
 mod density;
 mod dots;
 mod error;
-mod guard;
+pub(crate) mod guard;
 mod histogram;
 mod image;
 mod line;
