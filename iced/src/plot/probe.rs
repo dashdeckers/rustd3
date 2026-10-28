@@ -6,7 +6,8 @@
 //! rendered inline, and one [`Sample::Frame`] describing the following
 //! draw; cells rendered on the pool report their `Raster` sample when
 //! their result is drained, on `Event::Waken`. Without a probe nothing is
-//! sent and no clock is read.
+//! sent; the widget times its renders for its cost model either way, on
+//! the monotonic clock (D31.8), and reports none of those readings.
 //!
 //! ```
 //! use std::sync::mpsc;
@@ -14,7 +15,7 @@
 //! use iced_core::time::Instant;
 //! use rustd3_iced::plot::Probe;
 //!
-//! /// The app's clock: library code reads none.
+//! /// The app's clock, which every reported duration comes from.
 //! fn clock() -> Instant {
 //!     Instant::now()
 //! }

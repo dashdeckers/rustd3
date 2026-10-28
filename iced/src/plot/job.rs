@@ -69,7 +69,8 @@ pub(crate) struct Stamp {
     pub(super) at: Instant,
 }
 
-/// A rendered job: one result per band, and its timing with a probe.
+/// A rendered job: one result per band, the time it took, and its timing
+/// with a probe.
 pub(crate) struct Done {
     pub(super) target: probe::Target,
     pub(super) spot: Spot,
@@ -83,6 +84,9 @@ pub(crate) struct Done {
     pub(super) check: bool,
     pub(super) queued: Option<Duration>,
     pub(super) duration: Option<Duration>,
+    /// The render's time on the monotonic clock, which the cost model
+    /// fits whether or not a probe is attached (D31.8).
+    pub(super) elapsed: Duration,
     pub(super) view: [Option<Basis>; 2],
 }
 
@@ -96,22 +100,23 @@ impl Stamp {
 impl Job {
     /// Renders every band with `renderer`, splatting markers as the job
     /// says: each band is the list area of its device rows divided by the
-    /// scale, which renders exactly the rows' device size. With a stamp,
-    /// the render is timed by its clock.
+    /// scale, which renders exactly the rows' device size. The render is
+    /// timed for the cost model, and with a stamp by its clock too.
     pub(crate) fn run(self, renderer: &mut raster::Renderer) -> Done {
         let start = self.enqueued.map(|stamp| Stamp::now(stamp.clock));
         renderer.splat(self.splat);
         let k = self.scale;
         let [x0, y0, x1, _] = self.rect.map(f64::from);
-        let bands = self
-            .bands
-            .iter()
-            .map(|rows| {
-                let (top, bottom) = (y0 + f64::from(rows.start), y0 + f64::from(rows.end));
-                let area = Rect::new(x0 / k, top / k, x1 / k, bottom / k);
-                renderer.render(&self.list, &self.bounds, area, k)
-            })
-            .collect();
+        let (bands, elapsed) = timed(|| {
+            self.bands
+                .iter()
+                .map(|rows| {
+                    let (top, bottom) = (y0 + f64::from(rows.start), y0 + f64::from(rows.end));
+                    let area = Rect::new(x0 / k, top / k, x1 / k, bottom / k);
+                    renderer.render(&self.list, &self.bounds, area, k)
+                })
+                .collect()
+        });
         let end = start.map(|stamp| Stamp::now(stamp.clock));
         Done {
             target: self.target,
@@ -130,9 +135,25 @@ impl Job {
             duration: start
                 .zip(end)
                 .map(|(start, end)| end.at.saturating_duration_since(start.at)),
+            elapsed,
             view: self.view,
         }
     }
+}
+
+/// `render`'s result and how long it took on the monotonic clock. The
+/// `Plot` widget times its own renders for its cost model, and this is the
+/// one place it reads a clock it was not given (D31.8): what it renders
+/// never depends on the reading, only whether later jobs render inline or
+/// on the pool, which the frame interval already decides.
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the Plot widget times its own renders for its cost model (D31.8)"
+)]
+fn timed<T>(render: impl FnOnce() -> T) -> (T, Duration) {
+    let start = Instant::now();
+    let result = render();
+    (result, start.elapsed())
 }
 
 impl Done {
@@ -212,6 +233,8 @@ mod tests {
             (done.pixels(), done.queued, done.duration),
             (614_400, None, None)
         );
+        // Without a probe the render is still timed, for the cost model.
+        assert!(done.elapsed > std::time::Duration::ZERO);
         let bands: Vec<raster::Image> = done.bands.into_iter().map(Result::unwrap).collect();
         assert_eq!(bands[0].rgba.len(), 2_092_800);
         let stitched: Vec<u8> = bands.iter().flat_map(|image| image.rgba.clone()).collect();

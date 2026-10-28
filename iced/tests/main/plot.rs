@@ -24,7 +24,6 @@ use rustd3_iced::plot::{Caching, Probe, Render, cost};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
-use crate::pipeline;
 use crate::reference;
 
 /// The figure's logical size.
@@ -890,32 +889,28 @@ fn ten_hz_appends_stay_sharp() {
     );
     assert!(predicted <= 16.7 / 2.0, "{predicted} ms");
     drop(grown);
-    // No probe, so nothing calibrates the model; frames 100 ms apart.
-    let _workers = pipeline::workers();
-    let plot = live(&top, &bottom, follow, k, Render::Auto, None);
+    // Where the renders run is forced: the widget fits its cost model to
+    // its own renders (D31.8), here a debug build's, so `Render::Auto`'s
+    // choice is the machine's; the prediction above is the seed's.
+    // Frames 100 ms apart.
+    let plot = live(&top, &bottom, follow, k, Render::Inline, None);
     let Some(mut harness) = Harness::new(plot, size, k) else {
         return;
     };
     let backend = harness.backend();
     let t = headless::epoch();
     let _ = harness.frame(t);
-    // The first frame may wait for the worker; settle it.
-    while harness.wait_for_wake(Duration::from_secs(10)) {
-        let _ = harness.events(&[Event::Waken]);
-    }
-    let wakes = harness.wakes();
     let mut worst = 0;
     for step in 1..=10_u32 {
         let parked = harness.park();
         append(&mut top, TOP, APPEND);
         append(&mut bottom, BOTTOM, APPEND);
-        harness = parked.resume(live(&top, &bottom, follow, k, Render::Auto, None));
+        harness = parked.resume(live(&top, &bottom, follow, k, Render::Inline, None));
         let shot = harness.frame(t + Duration::from_millis(100) * step);
-        // Every changed cell and tile in view rendered inline (the ring
-        // goes to the worker after the frame, its results not drained
-        // here): the frame is the sharp one, which differs from the PNG
-        // only where vello_cpu's output depends on a cell's origin where
-        // strokes cross (D18.3); a preview would be shifted.
+        // Every changed cell and tile rendered in the frame: it is the
+        // sharp one, which differs from the PNG only where vello_cpu's
+        // output depends on a cell's origin where strokes cross (D18.3); a
+        // preview would be shifted.
         let diff = against(&shot, &trace(&top, &bottom, follow).0, size, k);
         worst = worst.max(diff.max());
         assert_eq!(
@@ -925,10 +920,7 @@ fn ten_hz_appends_stay_sharp() {
             diff.max()
         );
     }
-    println!(
-        "ten appends a second, {backend}: ten sharp frames (max {worst}/255 against the PNG), {wakes} wakes before them, {} after (the rings)",
-        harness.wakes() - wakes
-    );
+    println!("ten appends a second, {backend}: ten sharp frames (max {worst}/255 against the PNG)");
 }
 
 #[test]

@@ -1475,12 +1475,12 @@ impl State {
     }
 
     /// Applies a rendered job, reported to `probe` as rendered `inline` or
-    /// not: shown when it belongs to this partition and is newer than its
+    /// not: its time joins the cost model's fit (every render, D31.8); it is
+    /// shown when it belongs to this partition and is newer than its
     /// slot's image. True when it is shown.
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
-        if let Some(duration) = done.duration {
-            self.budget.calibrate(duration, done.pixels(), done.work);
-        }
+        self.budget
+            .calibrate(done.elapsed, done.pixels(), done.work);
         if done.check {
             self.verify(done, probe);
             return false;
@@ -1911,6 +1911,7 @@ mod tests {
 
     use super::{Pipeline, State};
     use crate::plot::area::Area;
+    use crate::plot::budget::Budget;
     use crate::plot::merge::Run;
     use crate::plot::overlay::{Overlay, Shown};
     use crate::plot::probe::{self, Probe, Sample, Stage};
@@ -2320,6 +2321,22 @@ mod tests {
             ),
             "{shown:?}"
         );
+    }
+
+    #[test]
+    fn renders_calibrate_the_cost_model_without_a_probe() {
+        // D31.8: the widget times its own renders, so one refresh that no
+        // probe watches moves the fit off its seed.
+        let mut state = state(480.0, 320.0);
+        assert!(refresh(&mut state, &fixture::grid(), 2.0) > 0);
+        let seeded = Budget::default();
+        for (pixels, work) in [(65_536, 0), (65_536, 400), (614_400, 2_000)] {
+            assert_ne!(
+                state.budget.predict(pixels, work),
+                seeded.predict(pixels, work),
+                "{pixels} px, {work} items"
+            );
+        }
     }
 
     #[test]

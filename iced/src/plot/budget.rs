@@ -1,7 +1,8 @@
 //! [`Budget`]: the frame budget from the last two `RedrawRequested`
 //! instants, and the widget's cost model: a fixed overhead per render plus
-//! a time per pixel and per work item, fitted to the widget's own timed
-//! renders and seeded by [`cost`]'s constants (D22.4). The constants were
+//! a time per pixel and per work item, fitted to every render the widget
+//! makes, each timed by the widget itself whether or not a probe is
+//! attached (D31.8), and seeded by [`cost`]'s constants (D22.4). The constants were
 //! fitted on one machine; the fit follows the one the widget runs on, its
 //! cores and its render paths, and learns the overhead small renders pay
 //! (D22.1 measured 2.78 times the constants' time over a run's renders,

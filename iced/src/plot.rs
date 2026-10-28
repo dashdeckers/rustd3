@@ -102,7 +102,9 @@
 //! `Event::Waken`, newest generation first: an older result never
 //! replaces a newer image. Dropping the widget's state joins the threads.
 //! [`Plot::probe`] reports what each frame cost and what it showed, timed
-//! by a clock the app supplies: the library reads none.
+//! by a clock the app supplies. The only clock the library reads itself is
+//! the monotonic one around each render, for the cost model (D31.8): what
+//! it renders never depends on it, only where later renders run.
 //!
 //! **Gestures.** A wheel over a plot area zooms every handle its panel
 //! zooms (`Panel::zoom_x`, `Panel::zoom_y`) around the cursor, a wheel
@@ -417,7 +419,8 @@ impl<'a, Message> Plot<'a, Message> {
 
     /// Reports per-stage durations, per-cell raster times and what each
     /// frame showed to `probe`, timed by its clock (see [`probe`]).
-    /// Without a probe nothing is sent and no clock is read.
+    /// Without a probe nothing is sent; the widget times its renders for
+    /// its cost model either way.
     ///
     /// ```no_run
     /// use std::sync::mpsc;
