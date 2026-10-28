@@ -38,7 +38,8 @@ use case 1's x labels` (24 px; plots stay 860 px; window and simulator
   collision passes on turned boxes.
 - ba2b67e `test(figure)`, d0583ed `test(iced)` — Step 5: the E0271,
   E0277 (ordinal), E0308 and E0631 rows; the band row carries E0277.
-- A `test(figure)` fix: `rule_x` imported inside the `fonts`-only test.
+- c43a58b `test(figure)`: `rule_x` imported inside the `fonts`-only test;
+  b9242d2 `docs(figure)`: `Kind::domain` and `Invert` name the new kinds.
 - The closing docs commit (`decisions/phase-33.md`, `DECISIONS.md`, this
   handoff).
 
@@ -61,8 +62,8 @@ Exit criteria, each checked this session:
 6. `cargo run -p rustd3-harness -- --check`: unchanged, 16 suites, 6,722
    assertions, 5,292 passing, 1,430 skipped, 0 failing, 179 floors.
 7. `scripts/check.sh quick` green on every commit; `full` green at
-   d0583ed in 10 min 51 s (warm) and again at the closing docs commit,
-   after a test fix for an import that warned without `fonts`.
+   d0583ed (10 min 51 s, warm), 436ad32 and b9242d2 (10 min 6 s), the
+   last code commit; the closing docs commits touch `.claude/` only.
 
 Decisions: D33.1 and D33.2 decided (the section's answers); D33.3 open,
 recommended A (thirteen details as built). D22.1 still waits for the user.
@@ -132,7 +133,6 @@ cargo run -p rustd3-harness [-- --check]
 
 ## 9. End-of-session checklist
 
-- `scripts/check.sh quick` green on every commit; `full` green at d0583ed
-  and at the closing docs commit.
+- `scripts/check.sh quick` green on every commit; `full` green at b9242d2.
 - D33.3 open with its recommendation; D22.1 waiting for the user.
 - Conventional commits, no attribution.

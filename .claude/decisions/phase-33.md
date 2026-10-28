@@ -2,10 +2,10 @@
 
 ## Measurements
 
-2026-10-28, 2558a96 … d0583ed, a test fix and the closing docs commit, one
-session (no cut after Step 3). `scripts/check.sh full` green at d0583ed in
-10 min 51 s (warm, the benchmark smoke included) and again at the closing
-docs commit.
+2026-10-28, 2558a96 … b9242d2 and the closing docs commits, one session
+(no cut after Step 3). `scripts/check.sh full` green at d0583ed in 10 min
+51 s (warm, the benchmark smoke included), at 436ad32 (after a test fix,
+9 min 57 s) and at b9242d2 (two doc comments, 10 min 6 s).
 
 **Harness** unchanged (exit criterion 6; the flat-time decision changed
 core's `Pad for Time`, which no d3 test reaches): 16 suites, 6,722
@@ -132,7 +132,7 @@ reversed for a descending domain, so the ramp never reverses.
 | (10) | A rotated label's box is its ink box turned about its first baseline, aligned by its bounding rectangle as matplotlib's default `rotation_mode` aligns: bottom axes top at the tick end plus pad, right edge at the tick for positive angles and left for negative; top axes mirrored; left and right axes ending or starting a gap from the axis, centred on the tick. Unrotated labels keep D16.4 |
 | (11) | The bounding rectangles of rotated labels' turned boxes (documented); the turned boxes stay crate-private |
 | (12) | Samples 37 µs off every column edge; the twin's x is seconds from a whole second, so both thin the same samples |
-| (13) | 2558a96 D32.3; 2e299e5 step 1; 3fbdb3b D33.1; 71f090e and d21517b step 2; a10914f and 09f236f step 3; f9207d3 step 4; ba2b67e and d0583ed step 5; a test fix (an import only the `fonts` test uses, which warned in `check.sh full`'s featureless build) |
+| (13) | 2558a96 D32.3; 2e299e5 step 1; 3fbdb3b D33.1; 71f090e and d21517b step 2; a10914f and 09f236f step 3; f9207d3 step 4; ba2b67e and d0583ed step 5; a test fix (c43a58b: an import only the `fonts` test uses, which warned in `check.sh full`'s featureless build); b9242d2 the docs of `Kind::domain` and `Invert` |
 
 ### Decision
 
