@@ -57,7 +57,7 @@ no symlog minors over [0, 5000]; see D39.2 (9).
 
 ## D39.1 — Value labels and scatter legends need what the public API does not offer
 
-**Date:** 2026-10-28 · **Context:** Phase 39, step 1, 149b8b9 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 39, step 1, 149b8b9 · **Status:** decided
 
 ### Issue
 
@@ -105,12 +105,14 @@ locale, and no public type implements `Guide`.
 
 ### Decision
 
-Recommended: A. The labels then are ordinary code over the public API, as
-the section and the architect's note ask, and a user's own mark can label
-its geometry as the figure's do; the two legends stay the documented
-in-crate exception until guides open (C, a 0.2 design). Built as B, so A
-is a visibility change with no behaviour change, as D38.1's was; under B
-nothing changes.
+A (architect, 2026-10-28): a small public text kit for custom marks,
+documented as such: the label-shaping entry points the figure's own
+marks use (`Fits::label` and `Ctx::label`) and the readers `Ctx::locale`
+and `Ctx::line`, under their current names, so value labels are
+ordinary code a user could write; `legend::Guide` stays sealed and the
+legend entries' dot diameter stays crate-internal, since legend kinds
+are a closed set. One visibility commit at the start of Phase 39b, with
+`helpers::labels` switched to the public paths.
 
 ### Why
 
@@ -128,7 +130,7 @@ labels outside "ordinary code".
 
 ## D39.2 — Details of Phase 39a as built
 
-**Date:** 2026-10-28 · **Context:** Phase 39, D38.1 and steps 1–2, 508cb45 … 6510a55 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 39, D38.1 and steps 1–2, 508cb45 … 6510a55 · **Status:** decided
 
 ### Issue
 
@@ -168,7 +170,7 @@ labels outside "ordinary code".
 
 ### Decision
 
-Recommended: A for all ten, as built.
+A for all ten (architect, 2026-10-28), as built.
 
 ### Why
 
