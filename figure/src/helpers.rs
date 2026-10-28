@@ -10,9 +10,14 @@
 //! drawing list, written to be copied and changed: a chart a helper does
 //! not offer is a copy of the nearest one. They draw with the theme's
 //! sizes, its pixel snapping and the guard band, as the figure's own marks
-//! do. Value labels and scatter legends are the exception: they shape
-//! their text through the figure and lay out through its legend layout,
-//! which code outside this crate cannot reach.
+//! do, and value labels shape their text through the text kit custom
+//! marks use ([`Fits::label`](crate::Fits::label),
+//! [`Ctx::label`](crate::mark::Ctx::label),
+//! [`Ctx::locale`](crate::mark::Ctx::locale),
+//! [`Ctx::line`](crate::mark::Ctx::line)). Two things here reach what code
+//! outside this crate cannot: value labels read the figure's locale and
+//! theme while fitting and set their text in the theme's label style, and
+//! scatter legends lay out through the figure's legend layout.
 //!
 //! ```
 //! use rustd3_figure::helpers::{stats, subplots};

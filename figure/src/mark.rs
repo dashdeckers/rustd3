@@ -9,7 +9,10 @@
 //! ([`Theme::get_color`](crate::Theme::get_color),
 //! [`Theme::get_line_width`](crate::Theme::get_line_width), …),
 //! [`list::brush`](crate::list::brush), [`Ctx::snap`] and the [`guard`]
-//! band.
+//! band, and labels what it draws through the text kit: it reports each
+//! label with [`Fits::label`] while fitting and places the shaped label
+//! from [`Ctx::label`] while drawing, numbers written in [`Ctx::locale`]
+//! and baselines set from [`Ctx::line`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -207,22 +210,29 @@ impl Ctx<'_> {
         self.resolved.scale(h)
     }
 
-    /// The shaped label of `key`, which the mark reported while fitting;
-    /// `None` when typst rejected it.
-    pub(crate) fn label(&self, key: &Key) -> Option<&Shaped> {
+    /// The shaped label of `key`, which the mark reported while fitting
+    /// ([`Fits::label`]); `None` when it was not reported or typst rejected
+    /// it. A custom mark places it into its list with
+    /// [`Shaped::place`], sized by [`Shaped::width`] and its line box
+    /// ([`Ctx::line`]).
+    pub fn label(&self, key: &Key) -> Option<&Shaped> {
         self.text.get(key)?.ok()
     }
 
-    /// The figure's locale.
-    #[cfg(feature = "helpers")]
-    pub(crate) fn locale(&self) -> &rustd3_core::locale::Locale {
+    /// The figure's locale ([`Figure::locale`](crate::Figure::locale)). A
+    /// custom mark that writes numbers (value labels, annotations) formats
+    /// them in it, as axes write their tick labels.
+    pub fn locale(&self) -> &rustd3_core::locale::Locale {
         self.resolved.locale()
     }
 
     /// The line box labels of `size` px share: the text face's ascender
-    /// above the baseline and descender below it, px.
-    #[cfg(feature = "helpers")]
-    pub(crate) fn line(&self, size: f64) -> [f64; 2] {
+    /// above the baseline and descender below it, px, as typst reads them.
+    /// A custom mark that sets labels by their line (as tick labels and the
+    /// helpers' value labels sit), not by each label's ink box, places
+    /// their baselines from it: labels with and without descenders then
+    /// line up.
+    pub fn line(&self, size: f64) -> [f64; 2] {
         self.text.fonts().line(size)
     }
 

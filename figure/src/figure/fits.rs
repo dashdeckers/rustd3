@@ -260,8 +260,57 @@ impl Fits {
         &self.locale
     }
 
-    /// A label a mark draws, shaped with the figure's other labels.
-    pub(crate) fn label(&mut self, key: Key) {
+    /// A label a mark draws, shaped with the figure's other labels in the
+    /// figure's one batch of typst text. A custom mark that draws text
+    /// reports each label's [`Key`] here while fitting and reads its shape
+    /// back with [`Ctx::label`](crate::mark::Ctx::label) while drawing, as
+    /// the rule marks' labels and the helpers' value labels do; a label not
+    /// reported is not shaped.
+    ///
+    /// ```
+    /// use rustd3_core::color::Rgb;
+    /// use rustd3_figure::list::List;
+    /// use rustd3_figure::mark::{Ctx, Mark};
+    /// use rustd3_figure::text::{Anchor, Key, Style, Text, anchor};
+    /// use rustd3_figure::kurbo::Point;
+    /// use rustd3_figure::{Figure, Fits};
+    ///
+    /// /// A word at the middle of the plot area.
+    /// struct Word(Key);
+    ///
+    /// impl<'a> Mark<'a> for Word {
+    ///     fn fit(&self, fits: &mut Fits) {
+    ///         fits.label(self.0.clone());
+    ///     }
+    ///
+    ///     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
+    ///         let Some(shaped) = ctx.label(&self.0) else { return };
+    ///         let [ascender, descender] = ctx.line(16.0);
+    ///         let r = ctx.rect();
+    ///         // The line box's middle at the plot area's.
+    ///         let baseline = r.height() / 2.0 + (ascender - descender) / 2.0;
+    ///         let at = Point::new(r.width() / 2.0, baseline);
+    ///         let anchor = Anchor { h: anchor::Horizontal::Middle, v: anchor::Vertical::Baseline };
+    ///         shaped.place(list, at, anchor, 0.0);
+    ///     }
+    /// }
+    ///
+    /// let style = Style {
+    ///     size: 16.0,
+    ///     bold: false,
+    ///     fill: Rgb::hex(0x262626),
+    ///     align: anchor::Horizontal::Middle,
+    /// };
+    /// let mut fig = Figure::new();
+    /// fig.panel(0, 0).mark(Word(Key::new(&Text::from("centre"), &style)));
+    /// # #[cfg(feature = "fonts")] {
+    /// use rustd3_figure::list::Command;
+    ///
+    /// let list = fig.draw(rustd3_figure::kurbo::Size::new(200.0, 100.0));
+    /// assert!(list.commands.iter().any(|c| matches!(c, Command::Glyphs(_))));
+    /// # }
+    /// ```
+    pub fn label(&mut self, key: Key) {
         self.labels.push(key);
     }
 
