@@ -11,6 +11,43 @@ use rustd3::jiff::Timestamp;
 use rustd3::jiff::tz::TimeZone;
 use rustd3::{axis, scale, time};
 
+/// `doc` (a README, or a crate's `//!` lines) as words one space apart.
+fn flat(doc: &str) -> String {
+    let lines = doc
+        .lines()
+        .map(|l| l.trim_start().trim_start_matches("//!"));
+    let words: Vec<&str> = lines.flat_map(str::split_whitespace).collect();
+    words.join(" ")
+}
+
+#[test]
+fn the_crate_docs_map_the_component_crates_names_before_their_first_example() {
+    // The README is the facade's crate doc.
+    let readme = flat(include_str!("../../README.md"));
+    let figure = flat(include_str!("../../figure/src/lib.rs"));
+    let notes = [
+        (&readme, "`rustd3_iced` is not re-exported"),
+        (
+            &figure,
+            "`rustd3_iced` (the `Plot` widget) is used directly",
+        ),
+    ];
+    for (doc, iced) in notes {
+        let first = doc
+            .find("```rust")
+            .or_else(|| doc.find("```"))
+            .expect("an example");
+        for note in [
+            "`rustd3_core::x` is `rustd3::x`",
+            "`rustd3_figure::x` is `rustd3::figure::x`",
+            iced,
+        ] {
+            let at = doc.find(note).unwrap_or_else(|| panic!("no {note:?}"));
+            assert!(at < first, "{note:?} after the first example");
+        }
+    }
+}
+
 #[test]
 fn a_linear_scale_maps_25_to_240_and_inverts_480_to_50() {
     let x = scale::linear().domain([0.0, 100.0]).range([0.0, 960.0]);

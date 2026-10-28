@@ -3,7 +3,9 @@
 //! array statistics, recordings of sampled data, keyed joins, and zoom,
 //! brush, drag and animation as plain values and state machines,
 //! renderer-agnostic and graded by d3's own tests. Applications usually
-//! depend on the `rustd3` facade, which re-exports these modules.
+//! depend on the `rustd3` facade, which re-exports these modules: the
+//! examples here use this crate's own name, and `rustd3_core::x` is
+//! `rustd3::x` with the facade.
 //!
 //! ```
 //! use rustd3_core::jiff::{Timestamp, tz::TimeZone};

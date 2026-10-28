@@ -30,6 +30,13 @@ graded by d3's own test suites, translated to Rust.
   it. `rustd3::axis::bottom` is core's axis for a scale; at the figure
   level `rustd3::figure::axis::bottom` places one on a panel.
 
+Depend on `rustd3` alone. The API documentation of the component crates
+(rustd3-core, rustd3-figure, rustd3-iced) shows examples under their own
+crate names; with the facade, `rustd3_core::x` is `rustd3::x` and
+`rustd3_figure::x` is `rustd3::figure::x`. `rustd3_iced` is not
+re-exported: an iced app depends on `rustd3-iced` and uses it directly
+(see [In an iced canvas](#in-an-iced-canvas)).
+
 ## A figure to PNG
 
 ```toml

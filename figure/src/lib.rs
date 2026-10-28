@@ -4,9 +4,13 @@
 //! PNG, GIF and PDF behind their features.
 //!
 //! The list's geometry is kurbo's and its paint is peniko's; both crates
-//! are re-exported so that callers name the same versions. Applications
-//! usually reach this crate as `rustd3::figure`, through the `rustd3`
-//! facade's `figure` feature.
+//! are re-exported so that callers name the same versions.
+//!
+//! Applications usually reach this crate as `rustd3::figure`, through the
+//! `rustd3` facade's `figure` feature. The examples here use the component
+//! crates' own names: with the facade as the one dependency,
+//! `rustd3_figure::x` is `rustd3::figure::x` and `rustd3_core::x` is
+//! `rustd3::x`; `rustd3_iced` (the `Plot` widget) is used directly.
 //!
 //! ```
 //! # #[cfg(feature = "fonts")] {
