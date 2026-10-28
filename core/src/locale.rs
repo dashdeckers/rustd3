@@ -146,6 +146,25 @@ impl Locale {
         Locale { number, time }
     }
 
+    /// The locale with its time half `time` and its number half as it was:
+    /// a constant writing dates on another ladder, or in another table.
+    ///
+    /// ```
+    /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+    /// use rustd3_core::locale::Locale;
+    /// use rustd3_core::scale::Ticks;
+    /// use rustd3_core::time::{self, Ladder};
+    ///
+    /// let de = Locale::DE_DE.with_time(time::Locale::DE_DE.ladder(Ladder::D3));
+    /// let span: [Timestamp; 2] = ["2026-10-29T00:00:00Z".parse()?, "2026-11-03T00:00:00Z".parse()?];
+    /// let t = time::utc().domain(span);
+    /// assert_eq!(t.labels(&t.tick_set(5), &de), ["Do 29", "Fr 30", "Sa 31", "November", "Mo 02", "Di 03"]);
+    /// # Ok::<(), rustd3_core::jiff::Error>(())
+    /// ```
+    pub fn with_time(self, time: time::Locale) -> Locale {
+        Locale { time, ..self }
+    }
+
     /// The number half, d3's `formatLocale`.
     pub fn number(&self) -> &format::Locale {
         &self.number

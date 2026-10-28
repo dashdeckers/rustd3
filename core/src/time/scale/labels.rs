@@ -97,7 +97,7 @@ impl Time {
     /// ```
     pub fn tick_label(&self, t: Timestamp, locale: &time::Locale) -> String {
         locale
-            .format(locale.ladder().rung(self.rung(t)))
+            .format(locale.get_ladder().rung(self.rung(t)))
             .format(t, &self.zone)
     }
 

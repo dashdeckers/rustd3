@@ -19,8 +19,9 @@ pub(crate) use ladder::Rung;
 /// tables for en-US and ten languages are constants generated from its
 /// JSON: `EN_US`, d3's default definition with d3's ladder, and `DE_DE`,
 /// `FR_FR`, `ES_ES`, `IT_IT`, `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`
-/// and `ZH_CN` with the ISO ladder. Its other 24 tables load at run time
-/// through [`Locale::new`].
+/// and `ZH_CN` with the ISO ladder ([`ladder`](Locale::ladder) puts one
+/// on d3's). Its other 24 tables load at run time through
+/// [`Locale::new`].
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -143,6 +144,26 @@ impl Locale {
         }
     }
 
+    /// The locale with its tick labels climbing `l`: a constant's names on
+    /// d3's ladder, or a runtime table's on the ISO one.
+    ///
+    /// ```
+    /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+    /// use rustd3_core::scale::Ticks;
+    /// use rustd3_core::time::{self, Ladder, Locale};
+    ///
+    /// let week: [Timestamp; 2] = ["2026-10-19T00:00:00Z".parse()?, "2026-10-24T00:00:00Z".parse()?];
+    /// let t = time::utc().domain(week);
+    /// let set = t.tick_set(5);
+    /// let labels = |l: Locale| t.labels(&set, &rustd3_core::locale::Locale::NEUTRAL.with_time(l));
+    /// assert_eq!(labels(Locale::DE_DE)[..2], ["10-19", "10-20"]);
+    /// assert_eq!(labels(Locale::DE_DE.ladder(Ladder::D3))[..2], ["Mo 19", "Di 20"]);
+    /// # Ok::<(), rustd3_core::jiff::Error>(())
+    /// ```
+    pub fn ladder(self, l: Ladder) -> Locale {
+        Locale { ladder: l, ..self }
+    }
+
     /// d3's `locale.format(specifier)`: `spec` compiled under this locale.
     /// Formatting cannot fail: an unknown directive writes its letter, as
     /// d3 does.
@@ -208,7 +229,7 @@ impl Locale {
     }
 
     /// The ladder tick labels climb.
-    pub(crate) fn ladder(&self) -> Ladder {
+    pub(crate) fn get_ladder(&self) -> Ladder {
         self.ladder
     }
 }

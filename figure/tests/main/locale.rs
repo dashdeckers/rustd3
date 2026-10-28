@@ -152,6 +152,24 @@ fn time_axes_keep_the_iso_ladder_under_de_de() {
     }
 }
 
+/// DE_DE with its time half on d3's ladder (`with_time`, `ladder`)
+/// labels the evaluation's German axis in German days and months, with
+/// no hand-written format.
+#[test]
+fn de_de_on_d3s_ladder_labels_german_days_and_months() {
+    let berlin = rustd3_testkit::zone("Europe/Berlin");
+    let span: [Timestamp; 2] =
+        ["2026-09-20T22:00:00Z", "2026-10-05T22:00:00Z"].map(|s| s.parse().expect("an instant"));
+    let de = Locale::DE_DE.with_time(time::Locale::DE_DE.ladder(time::Ladder::D3));
+    let mut fig = Figure::new();
+    let x = fig.scale(time::time(berlin).domain(span));
+    fig.locale(de).panel(0, 0).axis(axis::bottom(x).ticks(5));
+    let german = [
+        "Mo 21", "Mi 23", "Fr 25", "Sep 27", "Di 29", "Oktober", "Sa 03", "Mo 05",
+    ];
+    assert_eq!(labels(&fig), german);
+}
+
 #[test]
 fn a_custom_mark_labels_in_the_figure_locale_and_palette_while_fitting() {
     let mut fig = Figure::new();
