@@ -138,7 +138,7 @@ the verdict named.
 
 ## D31.2 — Splatting at eighth-pixel phases meets the rule
 
-**Date:** 2026-10-28 · **Context:** Phase 31, step 2 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, step 2 · **Status:** decided
 
 ### Issue
 
@@ -179,10 +179,14 @@ and transform.
 
 ### Decision
 
-Recommendation: B, if the architect accepts refining the variant after
-the first measurement; the thresholds are unchanged and the 8 × 8 splat
-meets them on the verdict's workload at every factor with 3.6–6.2× less
-raster time for dots. Otherwise A. This session builds neither (D31.1).
+B (architect, 2026-10-28): the eighth-pixel splat (64 stamps), which
+meets the section's unchanged 32/255 rule on `scatter100k` at every
+factor, is built in figure as a default-off `Renderer::splat` switch.
+The widget turns it on for screen renders of markers commands with at
+least 10,000 points (the weak machines of D22.4 gain most); file
+outputs stay exact. Tests comparing the widget with a figure's PNG keep
+their figures under the threshold or name the switch. Built beside
+Step 7's pool (31c).
 
 ### Why
 
@@ -246,7 +250,7 @@ carries the new row (`scatter100k` list 3.55 ms, `scatter1m` 42.7 ms).
 
 ## D31.3 — Details of Phase 31a as built
 
-**Date:** 2026-10-28 · **Context:** Phase 31, e1355bc … 0d97e24 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, e1355bc … 0d97e24 · **Status:** decided
 
 ### Issue
 
@@ -282,7 +286,7 @@ carries the new row (`scatter100k` list 3.55 ms, `scatter1m` 42.7 ms).
 
 ### Decision
 
-Recommendation: A for all nine, as built.
+A for all nine (architect, 2026-10-28), as built.
 
 ### Why
 
