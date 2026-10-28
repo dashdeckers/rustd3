@@ -3,6 +3,8 @@
 //! tolerant `Obs` compare, and its charts and grids as figures.
 
 mod boxplot;
+mod ecdf;
+mod errorbar;
 mod hist;
 mod subplots;
 mod violin;
@@ -27,6 +29,22 @@ pub fn fixture(pointer: &str) -> Obs {
         .expect("the fixture")
         .get(pointer)
         .expect("a value at the pointer")
+}
+
+/// The fixture's numbers at `pointer`.
+pub fn numbers(pointer: &str) -> Vec<f64> {
+    let Obs::List(items) = fixture(pointer) else {
+        panic!("not a list at {pointer}");
+    };
+    items
+        .iter()
+        .map(|item| match item {
+            Obs::Num(v) => *v,
+            Obs::Null | Obs::Bool(_) | Obs::Str(_) | Obs::List(_) => {
+                panic!("not a number in {pointer}: {item:?}")
+            }
+        })
+        .collect()
 }
 
 /// Asserts that `actual` equals the fixture's value at `pointer` within

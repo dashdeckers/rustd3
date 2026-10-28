@@ -10,9 +10,8 @@ use rustd3_figure::list::{Command, List};
 use rustd3_figure::mark::histogram;
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Figure, Held};
-use rustd3_testkit::obs::Obs;
 
-use super::{X, assert_fixture, fixture};
+use super::{X, assert_fixture, numbers};
 use crate::figure::resolve;
 use crate::marks::{draw, marked, role};
 
@@ -20,22 +19,6 @@ use crate::marks::{draw, marked, role};
 fn assert_table(t: &Table, at: &str) {
     assert_fixture(&t.edges, &format!("{at}/edges"));
     assert_fixture(&t.counts, &format!("{at}/counts"));
-}
-
-/// The fixture's numbers at `pointer`.
-fn numbers(pointer: &str) -> Vec<f64> {
-    let Obs::List(items) = fixture(pointer) else {
-        panic!("not a list at {pointer}");
-    };
-    items
-        .iter()
-        .map(|item| match item {
-            Obs::Num(v) => *v,
-            Obs::Null | Obs::Bool(_) | Obs::Str(_) | Obs::List(_) => {
-                panic!("not a number in {pointer}: {item:?}")
-            }
-        })
-        .collect()
 }
 
 /// The fixture's spans `[y0, y1]` per bin at `pointer`.
