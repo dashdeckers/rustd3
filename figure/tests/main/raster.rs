@@ -1,6 +1,8 @@
 //! Raster outputs: the snapping helpers here, vello_cpu's renders in
-//! `vello`.
+//! `vello`, marker splatting in `splat`.
 
+#[cfg(feature = "raster")]
+mod splat;
 #[cfg(feature = "raster")]
 pub mod vello;
 

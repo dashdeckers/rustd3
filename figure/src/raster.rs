@@ -9,6 +9,8 @@ pub mod png;
 pub mod skia;
 pub mod snap;
 #[cfg(feature = "raster")]
+mod splat;
+#[cfg(feature = "raster")]
 mod vello;
 
 use kurbo::Rect;
@@ -115,6 +117,12 @@ pub struct Renderer {
     context: vello_cpu::RenderContext,
     resources: vello_cpu::Resources,
     images: vello::Images,
+    /// The SIMD level, which marker stamps are made at too.
+    level: vello_cpu::Level,
+    /// Whether markers are splatted ([`Renderer::splat`]).
+    splat: bool,
+    /// The marker stamps splatting made, kept between renders.
+    stamps: splat::Stamps,
 }
 
 #[cfg(feature = "raster")]
@@ -139,7 +147,23 @@ impl Renderer {
             context: vello_cpu::RenderContext::new_with(1, 1, render),
             resources: vello_cpu::Resources::new(),
             images: vello::Images::default(),
+            level,
+            splat: false,
+            stamps: splat::Stamps::default(),
         }
+    }
+
+    /// Composite markers from pre-rasterized coverage stamps (default
+    /// off): a markers command of solid paints at one size, in groups that
+    /// only scale and translate and clip to rectangles, lays each point's
+    /// stamp at the nearest eighth-pixel phase instead of filling its
+    /// shape, within 32/255 of the filled markers and several times
+    /// faster for large marker sets (D31.2). Everything else renders as
+    /// before. The `Plot` widget turns it on for screen renders of
+    /// markers commands of at least 10,000 points; file outputs never do.
+    pub fn splat(&mut self, on: bool) -> &mut Renderer {
+        self.splat = on;
+        self
     }
 
     /// The part of `list` inside `area` (list px) at `scale`: exactly
@@ -160,6 +184,7 @@ impl Renderer {
         debug_assert_eq!(bounds.len(), list.commands.len());
         let (width, height) = device(area, scale)?;
         self.context.reset_and_resize(width, height);
+        let mut pixmap = vello_cpu::Pixmap::new(width, height);
         vello::Replay {
             context: &mut self.context,
             resources: &mut self.resources,
@@ -168,11 +193,9 @@ impl Renderer {
             bounds,
             area,
             scale,
+            splat: self.splat.then_some((&mut self.stamps, self.level)),
         }
-        .run()?;
-        self.context.flush();
-        let mut pixmap = vello_cpu::Pixmap::new(width, height);
-        self.context.render(&mut pixmap, &mut self.resources);
+        .run(&mut pixmap)?;
         Ok(Image {
             width: u32::from(width),
             height: u32::from(height),

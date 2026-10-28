@@ -1,15 +1,20 @@
 //! The replay of a list into vello_cpu: kurbo paths and peniko paints pass
 //! through unconverted; images become premultiplied pixmaps, cached by
-//! their blob between renders.
+//! their blob between renders. With splatting on, the commands between
+//! splatted markers render into the pixmap in turn, source-over, and the
+//! markers are composited there from stamps ([`splat`](super::splat)).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use kurbo::{Affine, BezPath, Point, Rect, Shape};
 use peniko::{Brush, ImageBrush, ImageData, ImageFormat, ImageQuality, ImageSampler};
-use vello_cpu::{ImageSource, PaintType, Pixmap, RenderContext, Resources};
+use vello_cpu::{
+    ImageSource, Level, PaintType, Pixmap, RasterizerSettings, RenderContext, Resources, TargetInit,
+};
 
 use crate::list::{self, Bounds, Clip, Command, GlyphRun, List, Paints};
+use crate::raster::splat::{Splat, Stamps};
 use crate::raster::{Error, MAX_IMAGE};
 
 /// An image's identity: its blob, and the layout read from it.
@@ -33,28 +38,78 @@ pub(super) struct Replay<'a> {
     pub(super) area: Rect,
     /// Device px per list px.
     pub(super) scale: f64,
+    /// The stamps markers are splatted from, when splatting is on, and
+    /// the SIMD level they are made at.
+    pub(super) splat: Option<(&'a mut Stamps, Level)>,
+}
+
+/// An open group: its transform into list px, the clip layer it pushed
+/// (the path and its device transform), its clip in device px (when every
+/// clip so far is a rectangle in an axis-aligned space), and whether its
+/// space and every enclosing one only scale and translate.
+#[derive(Clone)]
+struct Group {
+    to_list: Affine,
+    layer: Option<(Affine, BezPath)>,
+    rect: Option<[f64; 4]>,
+    aligned: bool,
 }
 
 impl Replay<'_> {
-    /// Draws every command that may touch the area; images not drawn are
-    /// dropped from the cache.
-    pub(super) fn run(mut self) -> Result<(), Error> {
+    /// Draws every command that may touch the area into `pixmap` (new,
+    /// transparent); images not drawn are dropped from the cache.
+    pub(super) fn run(mut self, pixmap: &mut Pixmap) -> Result<(), Error> {
         let device = Affine::scale(self.scale) * Affine::translate((-self.area.x0, -self.area.y0));
         let margin = 1.0 / self.scale;
         let visible = self.area.inflate(margin, margin);
-        // Each open group: its transform into list px, and whether it pushed a layer.
-        let mut groups = vec![(Affine::IDENTITY, false)];
+        let mut groups = vec![Group {
+            to_list: Affine::IDENTITY,
+            layer: None,
+            rect: None,
+            aligned: true,
+        }];
+        // Whether a run of commands was rendered into the pixmap already.
+        let mut started = false;
         self.images.used.clear();
         for (i, command) in self.list.commands.iter().enumerate() {
-            let (to_list, _) = *groups
+            let group = groups
                 .last()
                 .expect("invariant: the root group is never popped");
+            let to_list = group.to_list;
             let to_device = device * to_list;
             let shown = self
                 .bounds
                 .get(i)
                 .is_some_and(|b| b.intersect(visible).area() > 0.0);
             match command {
+                Command::Markers {
+                    shape,
+                    at,
+                    paint,
+                    sizes: None,
+                    paints,
+                } if shown
+                    && self.splat.is_some()
+                    && group.aligned
+                    && axis_aligned(to_device)
+                    && solid(paint, paints.as_ref()) =>
+                {
+                    let size = [pixmap.width(), pixmap.height()].map(f64::from);
+                    let [x0, y0, x1, y1] = group.rect.unwrap_or([0.0, 0.0, size[0], size[1]]);
+                    let splat = Splat {
+                        shape,
+                        at,
+                        paint,
+                        paints: paints.as_ref(),
+                        device: to_device,
+                        clip: [x0, y0, x1, y1].map(|v| v.round() as i64),
+                    };
+                    self.render(pixmap, &groups, started);
+                    started = true;
+                    if let Some((stamps, level)) = &mut self.splat {
+                        stamps.splat(pixmap, &splat, *level);
+                    }
+                }
                 Command::Fill { path, paint } if shown => {
                     self.paint(i, paint, Affine::IDENTITY)?;
                     self.context.set_transform(to_device);
@@ -90,18 +145,32 @@ impl Replay<'_> {
                 } if shown => self.image(i, *rect, image, *smooth, to_device)?,
                 Command::Push { transform, clip } => {
                     let next = to_list * *transform;
-                    if let Some(clip) = clip {
+                    let aligned = group.aligned && axis_aligned(device * next);
+                    let mut rect = group.rect;
+                    let layer = clip.as_ref().map(|clip| {
                         let path = match clip {
-                            Clip::Rect(r) => r.to_path(0.1),
+                            Clip::Rect(r) => {
+                                let d = (device * next).transform_rect_bbox(*r);
+                                let own = [d.x0, d.y0, d.x1, d.y1];
+                                rect = Some(rect.map_or(own, |outer| intersect(outer, own)));
+                                r.to_path(0.1)
+                            }
                             Clip::Path(p) => p.clone(),
                         };
                         self.context.set_transform(device * next);
                         self.context.push_clip_layer(&path);
-                    }
-                    groups.push((next, clip.is_some()));
+                        (device * next, path)
+                    });
+                    let aligned = aligned && !matches!(clip, Some(Clip::Path(_)));
+                    groups.push(Group {
+                        to_list: next,
+                        layer,
+                        rect,
+                        aligned,
+                    });
                 }
                 Command::Pop => {
-                    if let Some((_, true)) = groups.pop() {
+                    if groups.pop().is_some_and(|group| group.layer.is_some()) {
                         self.context.pop_layer();
                     }
                 }
@@ -114,7 +183,37 @@ impl Replay<'_> {
         }
         let used = &self.images.used;
         self.images.cache.retain(|key, _| used.contains(key));
+        self.render(pixmap, &[], started);
         Ok(())
+    }
+
+    /// Renders what the context holds into `pixmap`, over what it shows
+    /// when `over` (earlier runs), and starts the context afresh inside
+    /// the clip layers of the open `groups`: a group whose commands are
+    /// split around splatted markers composites each part source-over,
+    /// which is how its layer composites them whole.
+    fn render(&mut self, pixmap: &mut Pixmap, groups: &[Group], over: bool) {
+        let open: Vec<&(Affine, BezPath)> =
+            groups.iter().filter_map(|g| g.layer.as_ref()).collect();
+        for _ in &open {
+            self.context.pop_layer();
+        }
+        self.context.flush();
+        let settings = RasterizerSettings {
+            target_init: if over {
+                TargetInit::SrcOver
+            } else {
+                RasterizerSettings::default().target_init
+            },
+            ..RasterizerSettings::default()
+        };
+        self.context
+            .render_with(&mut *pixmap, self.resources, settings);
+        self.context.reset();
+        for (transform, path) in open {
+            self.context.set_transform(*transform);
+            self.context.push_clip_layer(path);
+        }
     }
 
     /// Sets `brush` as the paint, positioned in the group's space by
@@ -252,6 +351,30 @@ impl Replay<'_> {
         });
         Ok(Arc::clone(pixmap))
     }
+}
+
+/// Whether `t` only scales and translates.
+fn axis_aligned(t: Affine) -> bool {
+    let [_, b, c, _, _, _] = t.as_coeffs();
+    b == 0.0 && c == 0.0
+}
+
+/// Whether every paint of a markers command is solid.
+fn solid(paint: &Brush, paints: Option<&Paints>) -> bool {
+    match paints {
+        Some(p) => p.table.iter().all(|b| matches!(b, Brush::Solid(_))),
+        None => matches!(paint, Brush::Solid(_)),
+    }
+}
+
+/// The intersection of two `[x0, y0, x1, y1]` rects.
+fn intersect(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+    [
+        a[0].max(b[0]),
+        a[1].max(b[1]),
+        a[2].min(b[2]),
+        a[3].min(b[3]),
+    ]
 }
 
 /// A markers command's fields.
