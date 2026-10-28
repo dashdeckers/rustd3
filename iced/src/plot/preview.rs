@@ -77,6 +77,11 @@ impl Affine1 {
         (scale.is_finite() && offset.is_finite()).then_some(Affine1 { scale, offset })
     }
 
+    /// The map's scale: 1 for a translation.
+    pub(crate) fn scale(self) -> f64 {
+        self.scale
+    }
+
     /// Where the map takes `p`.
     pub(crate) fn apply(self, p: f64) -> f64 {
         self.scale * p + self.offset

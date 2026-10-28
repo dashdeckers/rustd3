@@ -128,11 +128,17 @@ impl Slot {
         true
     }
 
-    /// While the image shows outdated content and its sharp render is
-    /// pending: the views it was planned at, from which a preview maps it.
-    pub(crate) fn previewing(&self) -> Option<[Option<Basis>; 2]> {
-        let shown = self.shown.as_ref()?;
-        (shown.hash != self.hash && self.pending.is_some()).then_some(shown.view)
+    /// The views the image on screen was planned at, from which a preview
+    /// maps it; `None` without an image.
+    pub(crate) fn planned(&self) -> Option<[Option<Basis>; 2]> {
+        self.shown.as_ref().map(|shown| shown.view)
+    }
+
+    /// An image of the current content: neither missing nor a preview.
+    pub(crate) fn is_current(&self) -> bool {
+        self.shown
+            .as_ref()
+            .is_some_and(|shown| shown.hash == self.hash)
     }
 
     /// No image at all: the theme background shows.
@@ -198,32 +204,48 @@ impl Slot {
         }
     }
 
-    /// Draws the image as a preview: the cell filled with `background`,
-    /// then each band with linear filtering at its device rect mapped by
-    /// `maps` (x, then y; device px from the widget's device origin
-    /// `origin`), clipped to the cell.
-    pub(crate) fn draw_mapped<Renderer>(
+    /// Draws the image, if there is one, with nearest filtering at bounds
+    /// that land on its device pixels moved by `shift` device px, clipped
+    /// to `clip` (device px), for a widget whose device origin is
+    /// `origin`: a tile translated with its plot area's content.
+    pub(crate) fn draw_at<Renderer>(
         &self,
         renderer: &mut Renderer,
-        origin: [i32; 2],
-        factor: f32,
-        maps: [Affine1; 2],
-        background: Color,
+        (origin, factor): ([i32; 2], f32),
+        shift: [i32; 2],
+        clip: [i32; 4],
     ) where
         Renderer: image::Renderer<Handle = image::Handle>,
     {
         let Some(shown) = &self.shown else {
             return;
         };
-        let [x0, y0, x1, y1] = self.rect;
-        let cell = self.bounds(&(0..y1 - y0), origin, factor);
-        renderer.fill_quad(
-            Quad {
-                bounds: cell,
-                ..Quad::default()
-            },
-            background,
-        );
+        let clip = logical(clip, origin, factor);
+        let moved = [origin[0] + shift[0], origin[1] + shift[1]];
+        for band in &shown.bands {
+            let bounds = self.bounds(&band.rows, moved, factor);
+            let image = image::Image::new(band.handle.clone()).filter_method(FilterMethod::Nearest);
+            renderer.draw_image(image, bounds, clip);
+        }
+    }
+
+    /// Draws the image as a preview: each band with linear filtering at
+    /// its device rect mapped by `maps` (x, then y; device px from the
+    /// widget's device origin `origin`), clipped to `clip` (device px).
+    pub(crate) fn draw_mapped<Renderer>(
+        &self,
+        renderer: &mut Renderer,
+        (origin, factor): ([i32; 2], f32),
+        maps: [Affine1; 2],
+        clip: [i32; 4],
+    ) where
+        Renderer: image::Renderer<Handle = image::Handle>,
+    {
+        let Some(shown) = &self.shown else {
+            return;
+        };
+        let [x0, y0, x1, _] = self.rect;
+        let cell = logical(clip, origin, factor);
         let [mx, my] = maps;
         let logical = |device: f64, at: i32| (f64::from(at) + device) as f32 / factor;
         for band in &shown.bands {
@@ -269,7 +291,7 @@ impl Slot {
 
     /// Logical bounds that land exactly on a band's device pixels: its
     /// device position plus `NUDGE`, and its device size, over the factor.
-    fn bounds(&self, rows: &Range<i32>, origin: [i32; 2], factor: f32) -> Rectangle {
+    pub(crate) fn bounds(&self, rows: &Range<i32>, origin: [i32; 2], factor: f32) -> Rectangle {
         let [x0, y0, x1, _] = self.rect;
         Rectangle {
             x: ((origin[0] + x0) as f32 + NUDGE) / factor,
@@ -277,6 +299,18 @@ impl Slot {
             width: (x1 - x0) as f32 / factor,
             height: rows.len() as f32 / factor,
         }
+    }
+}
+
+/// Logical bounds that land exactly on device rect `[x0, y0, x1, y1]` of a
+/// widget whose device origin is `origin`: its device position plus
+/// `NUDGE`, and its device size, over the factor.
+pub(crate) fn logical([x0, y0, x1, y1]: [i32; 4], origin: [i32; 2], factor: f32) -> Rectangle {
+    Rectangle {
+        x: ((origin[0] + x0) as f32 + NUDGE) / factor,
+        y: ((origin[1] + y0) as f32 + NUDGE) / factor,
+        width: (x1 - x0) as f32 / factor,
+        height: (y1 - y0) as f32 / factor,
     }
 }
 
@@ -496,7 +530,7 @@ mod tests {
     }
 
     #[test]
-    fn preview_dropped_when_the_cell_is_sharp() {
+    fn an_image_keeps_the_views_it_was_planned_at() {
         let key = crate::plot::domains::Key::of::<rustd3_core::scale::Linear>(0);
         let planned = Basis {
             key,
@@ -506,20 +540,17 @@ mod tests {
             },
         };
         let mut slot = slot([0, 0, 4, 2]);
+        assert_eq!(slot.planned(), None, "no image");
         slot.change(10, 1);
         assert!(slot.land(1, 10, Some(image()), [Some(planned), None]));
-        assert_eq!(slot.previewing(), None, "current content");
-        // The content changes; its render is pending: the old image is a
-        // preview, mapped from the view it was planned at.
+        assert_eq!(slot.planned(), Some([Some(planned), None]));
+        assert!(slot.is_current());
+        // The content changes: the image is outdated until the next lands.
         slot.change(20, 2);
-        assert_eq!(slot.previewing(), Some([Some(planned), None]));
-        // The sharp image lands: no preview.
+        assert!(!slot.is_current() && slot.is_preview());
         assert!(slot.land(2, 20, Some(image()), [None; 2]));
-        assert_eq!(slot.previewing(), None);
-        // An outdated image whose render failed is not a mapped preview.
-        slot.change(30, 3);
-        assert!(!slot.land(3, 30, None, [None; 2]));
-        assert!(slot.is_preview() && slot.previewing().is_none());
+        assert_eq!(slot.planned(), Some([None; 2]));
+        assert!(slot.is_current());
     }
 
     #[test]

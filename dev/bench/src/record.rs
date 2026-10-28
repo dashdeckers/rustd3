@@ -59,14 +59,18 @@ pub enum Record {
         /// Its duration.
         ms: f64,
     },
-    /// One rendered cell.
+    /// One rendered cell or tile.
     Raster {
         /// The frame it was reported in.
         frame: u64,
         /// The generation it rendered.
         generation: u64,
-        /// The cell's index.
-        cell: u32,
+        /// The cell's index, for a cell outside the plot areas.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cell: Option<u32>,
+        /// The plot area, column and row of a tile.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tile: Option<[i32; 3]>,
         /// Device px.
         pixels: u32,
         /// Work items.

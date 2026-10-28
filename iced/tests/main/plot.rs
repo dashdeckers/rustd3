@@ -334,18 +334,44 @@ fn clock() -> Instant {
     Instant::now()
 }
 
-/// The cells the raster samples among `samples` rendered, in order.
-pub fn rendered(samples: &[Sample]) -> Vec<u32> {
-    samples
+/// The cells the raster samples among `samples` rendered for `fig` at
+/// `size` and `k`, increasing and each once: a tile counts as the cell
+/// holding its plot area's top left pixel (each plot area of these
+/// figures is one cell).
+pub fn rendered(samples: &[Sample], fig: &Figure<'_>, size: Size, k: f32) -> Vec<u32> {
+    let cells = partition(fig, size, k).1;
+    let areas = plot_areas(fig, size, k).len();
+    let of: Vec<u32> = (0..areas)
+        .map(|panel| area_cell(fig, size, k, &cells, panel))
+        .collect();
+    let mut rendered: Vec<u32> = samples
         .iter()
         .filter_map(|sample| match sample {
             Sample::Raster {
                 target: probe::Target::Cell(cell),
                 ..
             } => Some(*cell),
+            Sample::Raster {
+                target: probe::Target::Tile { area, .. },
+                ..
+            } => Some(of[*area as usize]),
             Sample::Stage { .. } | Sample::Frame { .. } => None,
         })
-        .collect()
+        .collect();
+    rendered.sort_unstable();
+    rendered.dedup();
+    rendered
+}
+
+/// The plot areas of `fig` at `size` on the screen at `k`, list px.
+fn plot_areas(fig: &Figure<'_>, size: Size, k: f32) -> Vec<kurbo::Rect> {
+    let size = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
+    let target = Target::Screen {
+        scale: f64::from(k),
+    };
+    fig.resolve(size, &mut Cache::default(), &Held::default(), target)
+        .plot_areas()
+        .to_vec()
 }
 
 /// `fig` drawn at `size` logical px for the screen at `k` as the widget
@@ -407,22 +433,21 @@ fn revision_change_re_renders_everything() {
     let backend = harness.backend();
     let t = headless::epoch();
     let _ = harness.frame(t);
-    assert_eq!(
-        rendered(&rx.try_iter().collect::<Vec<_>>()),
-        all,
-        "{backend}"
-    );
+    let fig = figure();
+    let cells_of =
+        |rx: &mpsc::Receiver<Sample>| rendered(&rx.try_iter().collect::<Vec<_>>(), &fig, SIZE, k);
+    assert_eq!(cells_of(&rx), all, "{backend}");
     // The same revision and an equal figure: nothing renders.
     harness.rebuild(plot(1));
     let _ = harness.frame(t + Duration::from_millis(16));
-    let same = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let same = cells_of(&rx);
     // A new revision: every cell, once.
     harness.rebuild(plot(2));
     let _ = harness.frame(t + Duration::from_millis(32));
-    let revised = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let revised = cells_of(&rx);
     harness.rebuild(plot(2));
     let _ = harness.frame(t + Duration::from_millis(48));
-    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let after = cells_of(&rx);
     println!(
         "revision 1 → 2, {backend}: {cells} cells; {} rendered at the same revision, {} at the new one, {} after",
         same.len(),
@@ -461,17 +486,17 @@ fn caching_off_renders_every_cell() {
         let backend = harness.backend();
         let t = headless::epoch();
         let _ = harness.frame(t);
-        assert_eq!(
-            rendered(&rx.try_iter().collect::<Vec<_>>()),
-            all,
-            "{backend}"
-        );
+        let fig = fixed(eight((4.0, 5.0)));
+        let cells_of = |rx: &mpsc::Receiver<Sample>| {
+            rendered(&rx.try_iter().collect::<Vec<_>>(), &fig, SIZE, k)
+        };
+        assert_eq!(cells_of(&rx), all, "{backend}");
         harness.rebuild(plot((4.0, 6.5), caching));
         let _ = harness.frame(t + Duration::from_millis(16));
-        let moved = rendered(&rx.try_iter().collect::<Vec<_>>());
+        let moved = cells_of(&rx);
         harness.rebuild(plot((4.0, 6.5), caching));
         let _ = harness.frame(t + Duration::from_millis(32));
-        let unchanged = rendered(&rx.try_iter().collect::<Vec<_>>());
+        let unchanged = cells_of(&rx);
         println!(
             "{caching:?}, {backend}: a moved dot renders {moved:?} of {} cells; an equal list {unchanged:?}",
             all.len()
@@ -673,7 +698,12 @@ fn live_append_re_renders_only_touched_cells() {
     let backend = harness.backend();
     let t = headless::epoch();
     let _ = harness.frame(t);
-    let first = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let first = rendered(
+        &rx.try_iter().collect::<Vec<_>>(),
+        &trace(&top, &bottom, follow).0,
+        LIVE,
+        k,
+    );
     let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
     let parked = harness.park();
     let revision = top.revision();
@@ -682,8 +712,9 @@ fn live_append_re_renders_only_touched_cells() {
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let mut harness = parked.resume(plot);
     let shot = harness.frame(t + Duration::from_millis(100));
-    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let samples: Vec<Sample> = rx.try_iter().collect();
     let (fig, _) = trace(&top, &bottom, follow);
+    let after = rendered(&samples, &fig, LIVE, k);
     let (list, cells) = partition(&fig, LIVE, k);
     let changed = changed_parts(&before, &list);
     let cell = area_cell(&fig, LIVE, k, &cells, 0);
@@ -737,8 +768,9 @@ fn fit_window_follows_in_whole_device_columns() {
                 harness = parked.resume(plot);
             }
             let shot = harness.frame(t + Duration::from_millis(100) * step);
-            let cells_rendered = rendered(&rx.try_iter().collect::<Vec<_>>());
+            let samples: Vec<Sample> = rx.try_iter().collect();
             let (fig, x) = trace(&top, &bottom, follow);
+            let cells_rendered = rendered(&samples, &fig, LIVE, k);
             let target = Target::Screen {
                 scale: f64::from(k),
             };
@@ -888,8 +920,9 @@ fn drop_front_re_renders_the_cell() {
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let mut harness = parked.resume(plot);
     let shot = harness.frame(t + Duration::from_millis(100));
-    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let samples: Vec<Sample> = rx.try_iter().collect();
     let (fig, _) = trace(&top, &bottom, follow);
+    let after = rendered(&samples, &fig, LIVE, k);
     let (list, cells) = partition(&fig, LIVE, k);
     let changed = changed_parts(&before, &list);
     let cell = area_cell(&fig, LIVE, k, &cells, 0);
@@ -960,7 +993,8 @@ fn a_gesture_holds_a_windowed_handle() {
     append(&mut bottom, BOTTOM, APPEND);
     harness = parked.resume(live(&top, &bottom, follow, k, Render::Inline, Some(&probe)));
     let held = harness.frame(t1 + Duration::from_millis(100));
-    let after = rendered(&rx.try_iter().collect::<Vec<_>>());
+    let samples: Vec<Sample> = rx.try_iter().collect();
+    let after = rendered(&samples, &trace(&top, &bottom, follow).0, LIVE, k);
     println!("held window, {backend}: an append renders {after:?}");
     assert!(after.is_empty(), "{backend}: {after:?}");
     assert_eq!(held.rgba, dragged.rgba, "{backend}");

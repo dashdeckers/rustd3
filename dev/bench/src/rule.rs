@@ -271,7 +271,8 @@ mod tests {
                     crate::record::Record::Raster {
                         frame: 2,
                         generation: 7,
-                        cell: 4,
+                        cell: Some(4),
+                        tile: None,
                         pixels: 1_000_000,
                         work: 100,
                         queued_ms: 0.0,

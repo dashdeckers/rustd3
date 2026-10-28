@@ -54,18 +54,19 @@ pub enum Sample {
         /// How long it took, by the probe's clock.
         duration: Duration,
     },
-    /// One cell rasterized (worker or inline), all its bands.
+    /// One cell or tile rasterized (worker or inline), all its bands.
     Raster {
         /// The frame it was reported in: the one that rendered it inline,
         /// or the last before the drain that received a worker's result.
         frame: u64,
         /// The generation it was rendered for.
         generation: u64,
-        /// The cell.
+        /// The cell or tile.
         target: Target,
-        /// Device pixels of the cell.
+        /// Device pixels of the cell or tile.
         pixels: u32,
-        /// The cell's `work` (Phase 17), for the cost model.
+        /// The cell's `work` (Phase 17), for the cost model; a tile's
+        /// share of its plot area's, by pixels.
         work: u64,
         /// Time between planning and the start of the render.
         queued: Duration,
@@ -82,13 +83,16 @@ pub enum Sample {
         at: Instant,
         /// The newest generation planned.
         generation: u64,
-        /// Slots with an image of any generation.
+        /// Slots (the cells outside plot areas and the plot areas' tiles)
+        /// with an image of any generation; a tile without one of its own
+        /// counts when its area's preview layer covers it.
         images: u32,
         /// Slots with no image at all (the theme background shows).
         missing: u32,
         /// Slots whose shown content hash differs from their current
         /// hash, gutters included: previews, an older render shown until
-        /// the newest lands. A slot whose content did not change is
+        /// the newest lands, and tiles the preview layer of an earlier
+        /// grid stands in for. A slot whose content did not change is
         /// current whatever generation its image came from.
         previews: u32,
         /// Bytes of handles drawn for the first time.
@@ -108,9 +112,22 @@ pub enum Stage {
 /// What a raster sample rendered.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target {
-    /// A cell, by its position in the partition's cells (row-major),
-    /// stable while the partition's rect sequence is unchanged.
+    /// A cell outside every plot area, by its position in the partition's
+    /// cells (row-major), stable while the partition's rect sequence is
+    /// unchanged.
     Cell(u32),
+    /// A tile of a plot area: the area's position among the plot areas
+    /// (panel order), and the tile's column and row on its grid, whose
+    /// tile (0, 0) starts at the device position of the area's data
+    /// anchor (its top-left corner until a gesture moves it).
+    Tile {
+        /// The plot area.
+        area: u32,
+        /// The column.
+        i: i32,
+        /// The row.
+        j: i32,
+    },
 }
 
 impl Probe {

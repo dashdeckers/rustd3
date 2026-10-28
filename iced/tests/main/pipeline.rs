@@ -169,17 +169,17 @@ fn against_png(shot: &Shot, fig: &Figure<'_>, size: Size, k: f32) -> pixels::Dif
     pixels::Diff::between(&shot.image(), &png, 16).expect("invariant: the shot has the PNG's size")
 }
 
-/// The raster samples among `samples`: (target cell, generation, inline).
-fn rasters(samples: &[Sample]) -> Vec<(u32, u64, bool)> {
+/// The raster samples among `samples`: (target, generation, inline).
+fn rasters(samples: &[Sample]) -> Vec<(probe::Target, u64, bool)> {
     samples
         .iter()
         .filter_map(|sample| match sample {
             Sample::Raster {
-                target: probe::Target::Cell(cell),
+                target,
                 generation,
                 inline,
                 ..
-            } => Some((*cell, *generation, *inline)),
+            } => Some((*target, *generation, *inline)),
             Sample::Stage { .. } | Sample::Frame { .. } => None,
         })
         .collect()
@@ -476,7 +476,7 @@ fn previous_image_stays_until_the_new_one_arrives() {
         );
         let settled = settle(&mut harness, &rx, t);
         let rendered = rasters(&settled.samples);
-        let [(index, 2, false)] = rendered[..] else {
+        let [(probe::Target::Cell(index), 2, false)] = rendered[..] else {
             panic!("{backend}, k = {k}: one cell of generation 2, {rendered:?}");
         };
         let [x0, y0, x1, y1] = cell(&legend("B"), MEDIUM, k, index);

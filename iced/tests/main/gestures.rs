@@ -1,7 +1,8 @@
 //! Gestures through the headless harness on the backend `ICED_TEST_BACKEND`
 //! names: wheel zooms around the cursor, over a plot area or an axis, one
 //! message per handle per frame, twin handles, steps the scale rejects;
-//! drags and batched updates; the cursor; scaled previews; double clicks;
+//! drags and batched updates; the cursor; scaled previews of each plot
+//! area's tiles; double clicks;
 //! the overlay when the pointer leaves; and the pixels against the PNG of
 //! the published domains.
 
@@ -929,8 +930,15 @@ fn zoom_shows_a_scaled_preview_at_once() {
         let preview = harness.frame(t + FRAME);
         let samples: Vec<Sample> = rx.try_iter().collect();
         let (missing, previews) = last_frame(&samples).expect("a frame sample");
+        // Every tile of the plot area shows the preview layer of the grid
+        // before the zoom.
+        let side = |a: u32, b: u32| (b - a).div_ceil(256);
+        let tiles = side(device[0], device[2]) * side(device[1], device[3]);
         assert_eq!(missing, 0, "{backend}, k = {k}");
-        assert!(previews > 0, "{backend}, k = {k}: previews {previews}");
+        assert!(
+            previews >= tiles,
+            "{backend}, k = {k}: previews {previews} of {tiles} tiles"
+        );
         let (sharp, _) = settle(&mut harness, &rx, t + FRAME);
         // The same input rendered inline.
         let (fig, _, _) = figure([0.0, 100.0], [0.0, 10.0]);

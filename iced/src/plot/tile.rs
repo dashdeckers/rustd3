@@ -1,0 +1,166 @@
+//! Tiles: a plot area cut into squares of [`SIZE`] device px on a [`Grid`]
+//! anchored at the device position of a data point, each a [`Tile`] that
+//! shows one image, by [`Key`].
+//!
+//! Plot areas, not partition cells, carry tiles: a plot area that other
+//! panels' edges cut into several cells still has one grid. Tile `(i, j)`
+//! is the square `[origin.x + SIZE·i, origin.x + SIZE·(i + 1)) ×
+//! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))` intersected with the
+//! bounds its area renders. A tile's image is 256 × 256 × 4 = 262,144 B at
+//! most, far under `BAND_BYTES`, so it is one band, and wgpu's 2048²
+//! atlas layers hold 64 of them (`wgpu/src/image/atlas.rs:13-14`).
+
+use crate::plot::slot::Slot;
+
+/// The side of a tile, device px.
+pub(crate) const SIZE: i32 = 256;
+
+/// The tile grid of one plot area: device position of its data anchor
+/// and the scale density it was rendered at.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct Grid {
+    origin: [i32; 2],
+    /// Transformed-domain span per device px, per axis, as f64 bits: the
+    /// scale of the view each axis's lead handle shows (range shares per
+    /// share at its epoch's start), which a zoom changes and a pan keeps.
+    density: [u64; 2],
+}
+
+/// A tile: its plot area's position among the plot areas, and its column
+/// and row on the area's grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct Key {
+    pub(crate) area: u32,
+    pub(crate) i: i32,
+    pub(crate) j: i32,
+}
+
+/// One tile of a plot area's grid: its key, and the slot that holds its
+/// rect, the image it shows, the generation that image was rendered for
+/// and the render it waits for.
+pub(crate) struct Tile {
+    key: Key,
+    slot: Slot,
+}
+
+impl Grid {
+    /// The grid whose tile (0, 0) starts at device `origin`, rendered at
+    /// view scales `density`.
+    pub(crate) fn new(origin: [i32; 2], density: [f64; 2]) -> Grid {
+        Grid {
+            origin,
+            density: density.map(f64::to_bits),
+        }
+    }
+
+    /// The square of tile `(i, j)`, device px.
+    pub(crate) fn square(self, i: i32, j: i32) -> [i32; 4] {
+        let [x, y] = self.origin;
+        [
+            x + SIZE * i,
+            y + SIZE * j,
+            x + SIZE * (i + 1),
+            y + SIZE * (j + 1),
+        ]
+    }
+
+    /// Every `(i, j)` whose square meets `bounds` (device px), row by row,
+    /// with the square's part inside `bounds`.
+    pub(crate) fn cover(self, bounds: [i32; 4]) -> Vec<(i32, i32, [i32; 4])> {
+        let [x0, y0, x1, y1] = bounds;
+        if x1 <= x0 || y1 <= y0 {
+            return Vec::new();
+        }
+        let first = |from: i32, at: i32| (from - at).div_euclid(SIZE);
+        let last = |to: i32, at: i32| (to - 1 - at).div_euclid(SIZE);
+        let (i0, i1) = (first(x0, self.origin[0]), last(x1, self.origin[0]));
+        let (j0, j1) = (first(y0, self.origin[1]), last(y1, self.origin[1]));
+        (j0..=j1)
+            .flat_map(|j| (i0..=i1).map(move |i| (i, j)))
+            .map(|(i, j)| (i, j, intersect(self.square(i, j), bounds)))
+            .collect()
+    }
+}
+
+impl Tile {
+    /// Tile `key` over device rect `rect`, holding content `hash`, with no
+    /// image yet.
+    pub(crate) fn new(key: Key, rect: [i32; 4], hash: u64) -> Tile {
+        Tile {
+            key,
+            slot: Slot::new(rect, hash),
+        }
+    }
+
+    /// The tile's key.
+    pub(crate) fn key(&self) -> Key {
+        self.key
+    }
+
+    /// The slot holding its image.
+    pub(crate) fn slot(&self) -> &Slot {
+        &self.slot
+    }
+
+    /// The slot holding its image, to change.
+    pub(crate) fn slot_mut(&mut self) -> &mut Slot {
+        &mut self.slot
+    }
+}
+
+/// The part of device rect `a` inside `b`; empty (zero area) when they do
+/// not meet.
+pub(crate) fn intersect(a: [i32; 4], b: [i32; 4]) -> [i32; 4] {
+    let [x0, y0] = [a[0].max(b[0]), a[1].max(b[1])];
+    let [x1, y1] = [a[2].min(b[2]).max(x0), a[3].min(b[3]).max(y0)];
+    [x0, y0, x1, y1]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Grid, SIZE, intersect};
+    use crate::plot::BAND_BYTES;
+
+    #[test]
+    fn a_900_by_600_area_has_4_by_3_tiles() {
+        let grid = Grid::new([0, 0], [1.0; 2]);
+        let cover = grid.cover([0, 0, 900, 600]);
+        assert_eq!(cover.len(), 12);
+        assert_eq!(cover[0], (0, 0, [0, 0, 256, 256]));
+        assert_eq!(cover[3], (3, 0, [768, 0, 900, 256]));
+        assert_eq!(cover[11], (3, 2, [768, 512, 900, 600]));
+        // With a ring of one tile: 6 × 5 = 30 keys.
+        let ring = grid.cover([-256, -256, 1156, 856]);
+        assert_eq!(ring.len(), 30);
+        assert_eq!((ring[0].0, ring[0].1), (-1, -1));
+        assert_eq!(ring[29], (4, 3, [1024, 768, 1156, 856]));
+    }
+
+    #[test]
+    fn tiles_follow_their_origin() {
+        let grid = Grid::new([37, 0], [1.0; 2]);
+        assert_eq!(grid.square(-2, 0), [-475, 0, -219, 256]);
+        let cover = grid.cover([-256, 0, 1156, 256]);
+        assert_eq!(cover[0], (-2, 0, [-256, 0, -219, 256]));
+        assert_eq!(cover.last().copied(), Some((4, 0, [1061, 0, 1156, 256])));
+    }
+
+    #[test]
+    fn one_tile_is_far_under_band_bytes() {
+        let bytes = usize::try_from(SIZE * SIZE * 4).unwrap();
+        assert_eq!(bytes, 262_144);
+        assert!(bytes < BAND_BYTES);
+        // 2048² atlas layers hold 64 tiles; a 3600 × 1900 area needs 120.
+        assert_eq!((2048 / SIZE) * (2048 / SIZE), 64);
+        let tiles = Grid::new([0, 0], [1.0; 2]).cover([0, 0, 3600, 1900]).len();
+        assert_eq!(tiles, 15 * 8);
+        assert_eq!(tiles.div_ceil(64), 2);
+    }
+
+    #[test]
+    fn rects_that_do_not_meet_intersect_empty() {
+        assert_eq!(intersect([0, 0, 10, 10], [5, 5, 20, 20]), [5, 5, 10, 10]);
+        let [x0, _, x1, _] = intersect([0, 0, 10, 10], [20, 0, 30, 10]);
+        assert_eq!(x0, x1);
+    }
+}

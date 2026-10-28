@@ -1,5 +1,5 @@
-//! [`Job`]: one cell to rasterize, all its bands, from a list shared with
-//! the other cells of its refresh; and [`Done`], its result.
+//! [`Job`]: one cell or tile to rasterize, all its bands, from a list
+//! shared with the other jobs of its refresh; and [`Done`], its result.
 
 use std::ops::Range;
 use std::sync::Arc;
@@ -12,9 +12,11 @@ use rustd3_figure::raster;
 use crate::plot::preview::Basis;
 use crate::plot::{probe, slot};
 
-/// One cell of one refresh to render, inline or on the worker.
+/// One cell or tile of one refresh to render, inline or on the worker.
 pub(crate) struct Job {
     pub(super) target: probe::Target,
+    /// For a tile, its area's grid number; 0 for a cell.
+    pub(super) grid: u64,
     pub(super) generation: u64,
     /// The cell content hash this job renders.
     pub(super) hash: u64,
@@ -45,6 +47,7 @@ pub(crate) struct Stamp {
 /// A rendered job: one result per band, and its timing with a probe.
 pub(crate) struct Done {
     pub(super) target: probe::Target,
+    pub(super) grid: u64,
     pub(super) generation: u64,
     pub(super) hash: u64,
     pub(super) rect: [i32; 4],
@@ -84,6 +87,7 @@ impl Job {
         let end = start.map(|stamp| Stamp::now(stamp.clock));
         Done {
             target: self.target,
+            grid: self.grid,
             generation: self.generation,
             hash: self.hash,
             rect: self.rect,
@@ -159,6 +163,7 @@ mod tests {
         let rect = [0, 0, 960, 640];
         let job = Job {
             target: probe::Target::Cell(0),
+            grid: 0,
             generation: 1,
             hash: 0,
             list: Arc::new(list),

@@ -140,7 +140,7 @@ impl<'a, Message> Driver<'a, Message> {
                 Sample::Raster {
                     frame,
                     generation,
-                    target: Target::Cell(cell),
+                    target,
                     pixels,
                     work,
                     queued,
@@ -149,7 +149,16 @@ impl<'a, Message> Driver<'a, Message> {
                 } => self.send(Record::Raster {
                     frame,
                     generation,
-                    cell,
+                    cell: match target {
+                        Target::Cell(cell) => Some(cell),
+                        Target::Tile { .. } => None,
+                    },
+                    tile: match target {
+                        Target::Cell(_) => None,
+                        Target::Tile { area, i, j } => {
+                            Some([i32::try_from(area).unwrap_or(i32::MAX), i, j])
+                        }
+                    },
                     pixels,
                     work,
                     queued_ms: queued.as_secs_f64() * 1e3,

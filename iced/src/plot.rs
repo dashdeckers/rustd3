@@ -58,12 +58,15 @@
 //! else the renderer's hint, else the window's factor, else 1), and only
 //! when the figure was rebuilt, the widget resized, the factor changed or
 //! a gesture changed a domain. It cuts the list into the cells of the
-//! canvas's partition by every plot-area edge, renders only the cells
-//! whose content hash changed (every cell when the partition's rects
-//! change), and draws each as images placed on whole device pixels. A
-//! cell whose RGBA would reach [`BAND_BYTES`] is rendered and drawn as
+//! canvas's partition by every plot-area edge; each plot area, however
+//! the partition cuts it, is one grid of tiles of 256 device px anchored
+//! at its corner. It renders only the cells and the plot areas whose
+//! content hash changed (every one when the partition's rects change),
+//! and draws each cell and tile as images placed on whole device pixels.
+//! A cell whose RGBA would reach [`BAND_BYTES`] is rendered and drawn as
 //! horizontal bands below that size, so the GPU renderer uploads every
-//! image inside the frame that first draws it. Hovering renders no cell:
+//! image inside the frame that first draws it; a tile always stays under
+//! it. Hovering renders no cell:
 //! the crosshair and the highlight are quads in a layer clipped to the
 //! hovered plot area, in the figure theme's ink, and [`Plot::on_hover`]
 //! reports the hovered point ([`Hover`]) from an index of the drawn points
@@ -102,9 +105,10 @@
 //! rebuilt figure puts another scale type there. The layout holds still
 //! during a gesture (labels grow outward) and settles once when it ends:
 //! a drag at its release, a wheel gesture at the first redraw 300 ms
-//! after its last step. While a plot-area cell's sharp render is pending,
-//! its previous image is drawn scaled by one affine map per axis, soft
-//! until the new one lands; gutters keep their last image. A double click
+//! after its last step. A gesture that moved a plot area's view begins its
+//! grid anew: while the new tiles' sharp renders are pending, the old
+//! tiles are drawn scaled by one affine map per axis, soft until the new
+//! ones land; gutters keep their last image. A double click
 //! returns the handles the panel zooms that a gesture touched to their
 //! fitted domains (a published one receives it as a message); the cursor
 //! shows a grab hand over a zoomable plot area, a grabbing hand during a
@@ -175,6 +179,7 @@
 //! }
 //! ```
 
+mod area;
 mod brush;
 mod budget;
 mod caching;
@@ -196,6 +201,7 @@ mod render;
 mod scale_factor;
 mod slot;
 mod state;
+mod tile;
 mod worker;
 
 use iced_core::image;

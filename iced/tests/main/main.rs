@@ -17,3 +17,5 @@ mod plot;
 mod pointer;
 #[cfg(all(feature = "figure", feature = "fonts"))]
 mod reference;
+#[cfg(all(feature = "figure", feature = "fonts"))]
+mod tiles;
