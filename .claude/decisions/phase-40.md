@@ -277,3 +277,96 @@ each (with a test that fails without it), in a session after Phase 40:
 Each is a first-hour experience for a customer; items 1–3 produce wrong
 or unreadable figures from default code, and item 6 can show a seam in a
 real app. They are small next to what the evaluation found working.
+
+## D40.4 — Details of the D40.3 fixes as built, and the label a month boundary drops
+
+**Date:** 2026-10-29 · **Context:** the D40.3 fixes, 26a1586 … de9d3e8 · **Status:** open
+
+### Issue
+
+D40.3's eight items are built, one commit each with a test that fails
+without it. Details its text leaves open, or that move a statement of
+rustd3.md:
+
+1. **Which label of a colliding pair at a month boundary gives way.**
+   "Drops the colliding label nearer the boundary": the two-day ticks
+   10-31 and 11-01 are a day apart, and 11-01 *is* the boundary. Taken
+   as written, 11-01 drops. Its label is the coarser rung's: "2026-11"
+   on the ISO ladder (the only label with the year) and "November" on
+   d3's (the only one with the month's name).
+2. **Swatches of a key drawn by several kinds of marks** (D40.3 item 2
+   names one kind per key): the wheel figure keys dots, dashed lines,
+   densities and histograms by one palette.
+3. **A ribbon over a translucent palette color**: the evaluation's
+   workaround (`blue.with_opacity(0.25)` in the palette) at a default of
+   0.25 multiplied would draw at 0.0625.
+4. **`.locale(…)` for currency** (item 7): `Format` has no such builder;
+   its `locale()` is Phase 3's reader, and changing a Phase 1–10 public
+   item is a decision.
+5. **`NUDGE`** (item 6): Part I ("Images land on device pixels") and
+   Phase 11 fix it at 0.25 with the spot row "device x 125 at 1.25 is
+   logical 100.2". At a factor the renderer draws at twice the widget's
+   (iced_test's snapshot of a widget told nothing), 0.25 becomes half a
+   device pixel, where tiny-skia's clips and wgpu's placement round a
+   pixel later: the seam.
+6. Smaller details: `Issue::FewLabels` and `Issue::LegendsOverlap`
+   (`Issue` is `#[non_exhaustive]`); core's crate doc also states its
+   mapping (item 4); the crate-private reader `time::Locale::ladder()`
+   became `get_ladder()` for the builder (item 5); right-axis and
+   colorbar titles anchor by their top, ascenders toward the axis
+   (item 8).
+
+### Investigation
+
+- (1) `a_fitted_fortnight_keeps_every_label_that_fits` keeps 10-19 …
+  10-31 at 500, 650 and 800 px and drops "2026-11"; the same fortnight
+  under `Locale::DE_DE.with_time(time::Locale::DE_DE.ladder(Ladder::D3))`
+  drops "November" (seen while writing item 5's test, whose span was
+  then moved to cross 1 October, a 30-day month's end, where no ticks
+  collide). At a spring-forward clock change, hour ticks 00:00 and 03:00
+  are two hours apart: "the later tick" there is 03:00, at the change,
+  and the day's label 00:00 stays.
+- (2) The wheel figure's legend kept its hatched squares (snapshot
+  unchanged) only because a filled mark takes precedence.
+- (3) The evaluation's fig2 viewed: with the multiplication the band was
+  barely visible.
+- (5) `spines_have_no_seam_whatever_factor_the_widget_assumes` and the
+  windowed screenshots in de9d3e8's body; a sixteenth of a pixel keeps
+  `every_device_offset_lands_exactly_at_every_factor` exact on both
+  backends at 1, 1.25, 1.5 and 2 (round-off ≤ 0.004 px up to 40,000 px at
+  factors 1–3, checked in f32). Unioning the clips with the plain device
+  rect instead fixed cells' own clips but let tiles overdraw the next
+  gutter's first row on tiny-skia (tiles draw after gutters).
+
+### Options
+
+| | **A — as built** | B | C |
+| --- | --- | --- | --- |
+| (1) | The later tick of a pair closer than the step gives way (11-01; 03:00 after a spring-forward change) | The earlier gives way (10-31; 00:00, the day's label, at a clock change) | The label on the finer rung gives way, so the coarser label stays ("2026-11", "November", and 00:00 at a clock change): `restarts` reports which tick of the pair is on its parent unit's start (`Interval::floor` one unit up), a few lines in `axis/draw.rs` and `collide::restart`, the fortnight test's expectation |
+| (2) | A square when any of the key's marks fills a shape (hatched as the first hatched one), else the first line's (its first on and off lengths), else a dot; in a column every swatch box is as wide as the widest, squares and dots centred | First reported mark wins (the wheel's legend becomes dots, its hatch gone) | — |
+| (3) | A ribbon with no `.opacity` draws an opaque color at 0.25 and a translucent one at its own; `.opacity(a)` multiplies the color's, as `Dots`; legend squares do not repeat a mark's opacity | 0.25 always multiplied | — |
+| (4) | `fmt!`'s doc shows the locale's own `format` (`Locale::EN_US.format("$,.2f")`) | A `Format` builder, renaming Phase 3's reader | — |
+| (5) | `NUDGE` = 0.0625; the spot row is 100.05; Part I's and Phase 11's 0.25 superseded | 0.25 with union clips and gutters drawn after tiles | — |
+| (6) | As listed | — | — |
+
+### Decision
+
+Recommended: C for (1), a small follow-up commit (the decision's
+"nearer the boundary" read as the pair's finer label, so the year and
+the month's name survive); A for (2)–(6), as built.
+
+### Why
+
+(1) A is the literal reading and keeps every label that fits, but it
+drops the most informative label on both ladders, which a reader of the
+evaluation's figure would miss first. (2) keeps D35.6 (8)'s hatched
+squares and gives lines and scatters their own glyphs. (3) leaves the
+evaluation's own code looking as it did and gives new code a band.
+(4) adds no API. (5) is one constant, still one for every cell and
+band as Part I asks, with its margins re-measured.
+
+### Followups
+
+- If C for (1): one `fix(figure)` commit before the release, the
+  fortnight test expecting 10-19 … 10-29 and "2026-11".
+- A legend square that repeats a translucent mark's opacity, if asked.
