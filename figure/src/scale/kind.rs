@@ -32,7 +32,8 @@ pub trait Kind: Scale + Clone {
         margin: f64,
     ) -> Self;
 
-    /// The end stops of a continuous domain, in its own type; `None` for
-    /// band, point and ordinal scales.
+    /// The end stops of a continuous domain, in its own type (numbers,
+    /// instants, a color scale's end stops); `None` for band, point,
+    /// ordinal and binned scales.
     fn domain(&self) -> Option<[Self::Domain; 2]>;
 }
