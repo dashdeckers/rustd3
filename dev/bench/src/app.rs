@@ -55,8 +55,13 @@ pub struct App {
     window: Option<window::Id>,
     /// The window's own factor, from its events.
     window_factor: Option<f32>,
-    /// The device size the window opened with, from its events.
-    device: Option<Size>,
+    /// The window's logical size its events reported, until the
+    /// scenario's own first resize.
+    reported: Option<Size>,
+    /// The plot's logical size the driver placed the replay in.
+    widget: Option<Size>,
+    /// The scenario resized the window: later sizes are its own.
+    resized: bool,
     /// RSS and GPU memory every second during `soak`.
     sampler: Option<Sampler>,
 }
@@ -100,7 +105,9 @@ impl App {
             size,
             window: None,
             window_factor: None,
-            device: None,
+            reported: None,
+            widget: None,
+            resized: false,
             sampler,
         }
     }
@@ -118,6 +125,7 @@ impl App {
         Driver::new(
             plot,
             &self.config.replay,
+            cell.window(),
             self.records.clone(),
             Message::Cue,
             &self.samples,
@@ -135,9 +143,13 @@ impl App {
             }
             Cue::Resize { width, height } => {
                 self.size = Size::new(width, height);
+                self.resized = true;
                 Effect::Resize(self.size)
             }
-            Cue::Done => Effect::Exit,
+            Cue::Done { widget } => {
+                self.widget = Some(Size::new(widget[0], widget[1]));
+                Effect::Exit
+            }
         }
     }
 
@@ -163,7 +175,10 @@ impl App {
         let cell = self.config.child.cell;
         let options = &self.config.child.options;
         let window = cell.window();
-        let device = self.device.unwrap_or(window * cell.factor);
+        // The window's factor times the app's (the cell's over the
+        // window's) is the cell's: logical px times it are device px.
+        let device = self.reported.unwrap_or(window) * cell.factor;
+        let pair = |size: Size| [size.width, size.height];
         let mut records = vec![Record::Run(record::Run {
             scenario: cell.scenario.name().to_owned(),
             workload: cell.workload.name().to_owned(),
@@ -172,8 +187,10 @@ impl App {
             backend: backend.to_owned(),
             headless: options.headless,
             refresh_hz: self.config.refresh_hz,
-            window: [window.width, window.height],
-            device: [device.width, device.height],
+            window: pair(window),
+            device: pair(device),
+            widget: self.widget.map(pair),
+            reported: self.reported.map(pair),
             window_factor: self.window_factor,
             duration_ms: self.config.duration_ms,
             data_scale: self.config.data_scale,
@@ -214,8 +231,9 @@ impl App {
                     } => {
                         self.window = Some(id);
                         self.window_factor = Some(scale_factor);
-                        self.device = Some(size * scale_factor);
+                        self.reported = Some(size);
                     }
+                    window::Event::Resized(size) if !self.resized => self.reported = Some(size),
                     window::Event::Rescaled(factor) => self.window_factor = Some(factor),
                     window::Event::Closed
                     | window::Event::Resized(_)
@@ -248,12 +266,16 @@ impl App {
 
 /// Runs `config` in a window; the window factor is assumed to be the
 /// display's native factor until the window reports its own.
+///
+/// The window is not resizable, so tiling window managers float it at its
+/// size, except in `resize`, whose cues resize it (a non-resizable
+/// Wayland window keeps its first size).
 pub fn windowed(config: Config) -> iced::Result {
     let cell = config.child.cell;
     let size = cell.window() * (cell.factor / config.native);
     let settings = window::Settings {
         size,
-        resizable: true,
+        resizable: cell.scenario == Scenario::Resize,
         ..window::Settings::default()
     };
     let boot = move || App::new(config.clone());

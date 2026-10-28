@@ -591,7 +591,7 @@ fn memory(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
 }
 
 /// Runs that failed or did not settle, windows that differ from what was
-/// asked, and the cost model's calibration.
+/// asked (by more than 1 logical px), and the cost model's calibration.
 fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
     let _ = writeln!(md, "## Flags\n");
     let mut any = false;
@@ -615,22 +615,19 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
                     m.run.run
                 );
             }
-            let asked = [
-                m.run.window[0] * m.run.factor,
-                m.run.window[1] * m.run.factor,
-            ];
-            if (asked[0] - m.run.device[0]).abs() > 1.0 || (asked[1] - m.run.device[1]).abs() > 1.0
-            {
+            let [w0, h0] = m.run.window;
+            let resized = [m.run.widget, m.run.reported]
+                .into_iter()
+                .flatten()
+                .find(|[w, h]| (w - w0).abs() > 1.0 || (h - h0).abs() > 1.0);
+            if let Some([w, h]) = resized {
                 any = true;
                 let _ = writeln!(
                     md,
-                    "- {} run {}: window {}×{} device px, asked {}×{}",
+                    "- {} run {}: window resized by the window manager: {w:.0}×{h:.0} instead of \
+                     {w0:.0}×{h0:.0}; positions were scaled",
                     cell_name(cell),
-                    m.run.run,
-                    m.run.device[0],
-                    m.run.device[1],
-                    asked[0],
-                    asked[1]
+                    m.run.run
                 );
             }
             if let Some(factor) = m.run.window_factor

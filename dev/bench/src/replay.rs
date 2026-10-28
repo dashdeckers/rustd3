@@ -108,7 +108,11 @@ pub enum Cue {
     },
     /// The replay is over and every slot is sharp (or the settle timed
     /// out): write the records and exit.
-    Done,
+    Done {
+        /// The plot's logical size the replay's positions were placed in:
+        /// the last before the scenario's own first resize.
+        widget: [f32; 2],
+    },
 }
 
 /// Why a replay file cannot be read.

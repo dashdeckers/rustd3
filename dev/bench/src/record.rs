@@ -124,10 +124,17 @@ pub struct Run {
     pub headless: bool,
     /// The display's refresh rate (headless: the virtual one).
     pub refresh_hz: f64,
-    /// The window's logical size asked for.
+    /// The plot's logical size asked for, which the replay was generated
+    /// for.
     pub window: [f32; 2],
     /// The window's device size obtained (windowed: from its events).
     pub device: [f32; 2],
+    /// The plot widget's logical size the driver placed the replay's
+    /// positions in (before the scenario's own first resize).
+    pub widget: Option<[f32; 2]>,
+    /// The window's logical size its events reported before the
+    /// scenario's own first resize (windowed only).
+    pub reported: Option<[f32; 2]>,
     /// The window's own factor, from its events (windowed only).
     pub window_factor: Option<f32>,
     /// The scenario's duration, ms.

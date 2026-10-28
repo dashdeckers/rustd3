@@ -595,6 +595,8 @@ pub mod tests {
             refresh_hz: 60.0,
             window: [1600.0, 1000.0],
             device: [3200.0, 2000.0],
+            widget: Some([1600.0, 1000.0]),
+            reported: Some([1600.0, 1000.0]),
             window_factor: Some(2.0),
             duration_ms: 1_000.0,
             data_scale: 1.0,
