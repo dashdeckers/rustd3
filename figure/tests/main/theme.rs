@@ -289,8 +289,8 @@ fn nice_domains_round_a_linear_handle_to_its_axis_ticks() {
     let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
     // d3's nice(5) over [0.3, 9.7]: step 2.
     assert_eq!(r.scale(x).get_domain(), [0.0, 10.0]);
-    // The left axis's count from its length (432 px tall, 35 px a tick:
-    // 12) rounds to step 1.
+    // The left axis's count, from its length in the first placement,
+    // rounds alike.
     assert_eq!(r.scale(y).get_domain(), [0.0, 10.0]);
     // No axis: d3's default 10.
     assert_eq!(r.scale(free).get_domain(), [0.0, 10.0]);

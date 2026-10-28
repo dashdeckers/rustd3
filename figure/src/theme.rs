@@ -1,4 +1,4 @@
-//! What a [`Theme`](crate::Theme) is built from, seaborn 0.13.2's split:
+//! What a [`Theme`] is built from, seaborn 0.13.2's split:
 //! a [`Style`] (colors, and which of grid lines, axis lines and tick marks
 //! are drawn), a [`Context`] that scales every size at once, a font scale,
 //! a [`palette`], and how fitted domains end ([`Domains`]).
