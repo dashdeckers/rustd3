@@ -682,12 +682,25 @@ fn threads_sets_the_pool_size() {
         // A new revision renders every slot again, on the pool.
         harness.rebuild(plot(n, revision as u64));
         let _ = harness.frame(t0 + Duration::from_millis(16) * revision as u32);
-        let count = threads(WORKER) - before;
+        let count = named(size, || threads(WORKER) - before);
         seen.push((n, count));
         assert_eq!(count, size, "{backend}: threads({n})");
     }
     drop(harness);
     println!("pool sizes, {backend}: (asked, threads) {seen:?}");
+}
+
+/// `count()` once it is `expected`, or whatever it is after two seconds: a
+/// new thread takes its name once it runs (std names it from inside), so
+/// the threads of a pool just started may not all be named yet.
+fn named(expected: usize, count: impl Fn() -> usize) -> usize {
+    for _ in 0..2_000 {
+        if count() == expected {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    count()
 }
 
 /// The tiles in view of plot area 0 of `area` (device px, its grid at its
