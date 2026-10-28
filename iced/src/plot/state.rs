@@ -1475,16 +1475,17 @@ impl State {
     }
 
     /// Applies a rendered job, reported to `probe` as rendered `inline` or
-    /// not: its time joins the cost model's fit (every render, D31.8); it is
-    /// shown when it belongs to this partition and is newer than its
-    /// slot's image. True when it is shown.
+    /// not: its time joins the cost model's fit (every render, D31.8, but
+    /// `Caching::Verify`'s checks, which are not the work the model
+    /// predicts, D31.10); it is shown when it belongs to this partition and
+    /// is newer than its slot's image. True when it is shown.
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
-        self.budget
-            .calibrate(done.elapsed, done.pixels(), done.work);
         if done.check {
             self.verify(done, probe);
             return false;
         }
+        self.budget
+            .calibrate(done.elapsed, done.pixels(), done.work);
         if let Some(probe) = probe {
             probe.send(Sample::Raster {
                 frame: self.frame,
@@ -2337,6 +2338,35 @@ mod tests {
                 "{pixels} px, {work} items"
             );
         }
+    }
+
+    #[test]
+    fn verify_checks_leave_the_cost_model_as_it_was() {
+        // D31.10: a check renders at background priority and is not the
+        // work the model predicts. A rebuild of an equal figure keeps every
+        // slot, so its refresh renders nothing but checks.
+        let pipeline = Pipeline {
+            render: Render::Inline,
+            caching: Caching::Verify,
+            revision: 0,
+            probe: None,
+            waker: &Waker::noop(),
+            threads: 1,
+        };
+        let mut state = state(480.0, 320.0);
+        let first = state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
+        assert!(first.0 > 0);
+        let rows = [(65_536, 0), (65_536, 400), (614_400, 2_000)];
+        let fitted = rows.map(|(pixels, work)| state.budget.predict(pixels, work));
+        let kept = state.kept().len();
+        assert!(kept > 0);
+        state.rebuilt();
+        let checked = state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
+        assert_eq!(checked.0, 0, "{kept} slots kept, none changed");
+        assert_eq!(
+            rows.map(|(pixels, work)| state.budget.predict(pixels, work)),
+            fitted
+        );
     }
 
     #[test]
