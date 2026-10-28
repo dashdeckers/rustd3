@@ -928,7 +928,7 @@ this session.
 
 ## D31.10 — Details of Phase 31d as built
 
-**Date:** 2026-10-28 · **Context:** Phase 31, f6e611e … e7c8c8c · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 31, f6e611e … e7c8c8c · **Status:** decided
 
 ### Issue
 
@@ -982,4 +982,9 @@ A for all thirteen.
 
 ### Decision
 
-Open: A for all thirteen recommended, until the architect answers.
+A for all thirteen (architect, 2026-10-28), as built. One addition:
+`Caching::Verify`'s check renders do not feed the cost model's fit (they
+run at background priority and are not the work the model predicts);
+a one-line change in Phase 40's session. Verify stays a diagnostic mode
+whose timings are not meaningful.
+
