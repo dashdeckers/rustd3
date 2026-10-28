@@ -68,7 +68,7 @@ and 2: a band from 3 to 7 across the plot area's width, published as
 
 ## D36.1 — How a widget reads a panel's brush
 
-**Date:** 2026-10-28 · **Context:** Phase 36, step 1, 0235149 · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 36, step 1, 0235149 · **Status:** decided
 
 ### Issue
 
@@ -103,8 +103,10 @@ from figure.
 
 ### Decision
 
-Recommended A, as built: the readers above; a target's domain is set by
-`fitted` without a margin, as `Fit::Window` sets one.
+A (architect, 2026-10-28), as built, on D20.4's precedent: the public
+readers `Resolved::brush(panel)`, `brush::Dim` and
+`brush::Placed::{dim, over, target, window, place}` are what the widget
+outside the crate needs.
 
 ### Why
 
@@ -118,7 +120,7 @@ If renamed, only `iced/src/plot/{brush,state}.rs` change.
 
 ## D36.2 — Presses on an axis of a brushed panel
 
-**Date:** 2026-10-28 · **Context:** Phase 36, step 3, "Decisions this phase may meet" · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 36, step 3, "Decisions this phase may meet" · **Status:** decided
 
 ### Issue
 
@@ -137,12 +139,12 @@ the panel zooms it (D20.2, D20.5 (9)).
 
 ### Decision
 
-Recommended A, as built (in focus and context the context zooms nothing,
-so its axis strip does nothing either way).
+A (architect, 2026-10-28): a press on an axis strip stays Phase 20's
+axis drag; the brush ignores it.
 
 ## D36.3 — Details of Phase 36 as built
 
-**Date:** 2026-10-28 · **Context:** Phase 36, 0235149 … acaab7b · **Status:** open
+**Date:** 2026-10-28 · **Context:** Phase 36, 0235149 … acaab7b · **Status:** decided
 
 ### Issue
 
@@ -199,7 +201,7 @@ so its axis strip does nothing either way).
 
 ### Decision
 
-Recommended A for all fifteen, as built.
+A for all fifteen (architect, 2026-10-28), as built.
 
 ### Why
 
