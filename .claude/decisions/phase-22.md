@@ -1420,3 +1420,39 @@ Most of rustd3's users may never open a window: they export figures. A
 benchmark that needs iced to build, and a display to run, would not
 serve them. The no-iced build keeps their path light on every
 platform the library supports.
+
+### Followups
+
+- **Built (Phase 31j), steps 1-3.** 42b3968: the presets' figures in
+  `rustd3_examples::presets`, the example's 22 files byte for byte.
+  23e3d3d: the figure profile (`figure.rs`, `figure/`): `build`,
+  `resolve`, `list`, `svg`, `pdf`, `png-1x`, `png-2x` (and `gif`, three
+  frames, at `--full`) through the public API with its defaults, outputs
+  in memory (tests hold them to the bytes `save_svg`, `save_pdf` and
+  `save_png` write); a PNG needs its own resolve and list for the file
+  target, so its stage is `save_png`'s whole work. Each figure runs in a
+  process of its own (`figure-child`): in one process VmHWM carried what
+  earlier figures left with the allocator (the label figure read 192 MiB
+  there, 63 MiB alone). A figure needing more than 60% of the memory is
+  skipped with why (10M markers need about 14 GiB). `results.json` format
+  2 (`figures`, `figure_only`). 203930d: the widget's part of a level
+  behind the trait `level::Widget` (`level::widget::Part`). 5a957e4:
+  `--figure-only`. 207d3aa: the `widget` feature on both crates,
+  `cargo rustd3-bench-figure`, `scripts/check.sh`'s `no_widget`.
+- **Measured here** (2 cores at 2.1 GHz): `--quick --figure-only` with
+  no display in 64 s, 7 files; 6 figures × 7 stages, 7 repetitions after
+  a cold one. `stats`' build is 3.6 s: `density_x` computes its estimate
+  over 1M values exactly (200 points × 1M kernels) when the mark is
+  built. `scatter1m`: PDF 2.9 s, PNG 2.7 s at 1× and 4.1 s at 2×, peak
+  1.4 GiB (vello_cpu's PNG and krilla's PDF hold the most). The bench's
+  normal tree without the widget: 291 crates, no iced, winit or wgpu,
+  against 466.
+- **Not done: a disk stop.** The session began with 7.6 GB free, not the
+  22 GB the brief expected; after step 3's checks it was 5.2 GB with
+  `target/debug/incremental` removed, so it stopped as the brief says.
+  Left: step 4 (D22.10 (4): `--help`'s first line, the READMEs, the issue
+  form, the changelog), the no-widget release build's time and size, the
+  end-to-end runs (`cargo rustd3-bench-figure --quick`, `--quick
+  --figure-only`, the Xvfb quick level with the figure profile beside the
+  widget's), `compare` of two figure-only runs, `check.sh full`. See
+  `SESSION_HANDOFF-54.md`.
