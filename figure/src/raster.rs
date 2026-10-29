@@ -251,7 +251,7 @@ pub(crate) fn device(area: Rect, scale: f64) -> Result<(u16, u16), Error> {
     Ok((width as u16, height as u16))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "raster"))]
 mod tests {
     use kurbo::{Affine, BezPath, Point, Rect, Size};
     use peniko::Brush;
