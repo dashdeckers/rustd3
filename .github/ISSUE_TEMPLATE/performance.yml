@@ -7,12 +7,12 @@ body:
     attributes:
       value: |
         Thank you. From a checkout of rustd3, run `cargo rustd3-bench --quick`
-        for the library and the Plot widget (about ten minutes, plus the first
-        release build; leave the mouse and keyboard alone while windows open
-        and close), or `cargo rustd3-bench-figure --quick` if you use the
-        plotting library alone, or on a server or CI without a display (no
-        iced build, no window, about a minute). Either prints the path of one
-        file last, `bench-results/rustd3-bench-quick-<UTC stamp>.tar.gz` or
+        for the library and the Plot widget (about a quarter of an hour, plus
+        the first release build; leave the mouse and keyboard alone while
+        windows open and close), or `cargo rustd3-bench-figure --quick` if you
+        use the plotting library alone, or on a server or CI without a display
+        (no iced build, no window, about a minute). Either prints the path of
+        one file last, `bench-results/rustd3-bench-quick-<UTC stamp>.tar.gz` or
         `bench-results/rustd3-bench-figure-quick-<UTC stamp>.tar.gz`. It holds
         the measurements and a description of the machine, and no host name,
         user name or home path (`PRIVACY.md` inside lists what it holds).

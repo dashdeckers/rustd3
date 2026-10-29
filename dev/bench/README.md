@@ -3,13 +3,14 @@
 The benchmark of rustd3: the plotting library and its `Plot` widget. For
 the library, it times figures from data to SVG, PDF and PNG through the
 library's own calls, headless, each in a process of its own (the figure
-profile, D22.10). For the widget, it drives the real widget with replayed
-input, one cold process per run, and measures frame intervals, the
-latency from input to a sharp frame, previews, the UI thread, CPU and
-memory. One command runs it on any machine and packs one file to attach
-to an issue, so a performance problem on your machine comes with the
-numbers that explain it (D22.9 and D22.10 in
-`.claude/decisions/phase-22.md`).
+profile, D22.10). For the widget, it drives the real widget with
+replayed input, one cold process per run, and measures frame intervals,
+the latency from input to a sharp frame, previews, the UI thread, CPU
+and memory; on the software renderer it also composes every frame
+offscreen and times it by part (the software profile, D22.12). One
+command runs it on any machine and packs one file to attach to an issue,
+so a performance problem on your machine comes with the numbers that
+explain it (D22.9 and D22.10 in `.claude/decisions/phase-22.md`).
 
 ## The two commands
 
@@ -38,13 +39,14 @@ The flags:
 
 | Flag | |
 | --- | --- |
-| `--quick` | about 10 minutes (the figure profile alone: about 1): what a performance issue needs |
-| `--default` | about 80 minutes (the figure profile alone: about 4), the default: the figure profile's ladders, the registered verdict run and the weak profiles |
+| `--quick` | about 16 minutes (the figure profile alone: about 1): what a performance issue needs |
+| `--default` | about 95 minutes (the figure profile alone: about 4), the default: the figure profile's ladders, the software profile, the registered verdict run and the weak profiles |
 | `--full` | hours (the estimate is printed first): every figure and every cell of every plan |
 | `--figure-only` | the plotting library alone, at any level: the CPU reference and the figure profile, no display measurement and no window (implied by `cargo rustd3-bench-figure`) |
 | `--out DIR` | where results go, `bench-results` by default |
 | `--refresh-hz HZ` | the display's refresh rate, for a display that cannot be measured (not in the build without the widget) |
 | `--native-factor F` | the display's scale factor, likewise |
+| `--frames DIR [--every N]` | the software profile also writes its composed frames (every N-th) as PNGs under `DIR/<cell>__r<run>/`, to look at; the encoding takes a core, so those timings are not for comparing |
 
 Before anything runs, the level prints its steps and an estimate of the
 time: the figure profile's figures as timed on two cores at 2.1 GHz, and
@@ -74,13 +76,18 @@ Every level starts the same way:
 3. **figure**: the plotting library alone (D22.10), headless: figures
    timed from data to SVG, PDF and PNG, each in a process of its own
    ([below](#the-figure-profile)).
+4. **software**: the `Plot` widget on iced's software renderer, offscreen
+   (D22.12), headless on any machine: every frame composed into a pixmap
+   and timed by part ([below](#the-software-profile)).
 
 With `--figure-only`, or built without the widget, a level skips the
-display measurement and is done after the figure profile. Otherwise its
-widget profiles follow, each a `run` of a plan into its own directory:
+display measurement and the software profile and is done after the figure
+profile. Otherwise its widget profiles follow, each a `run` of a plan into
+its own directory:
 
 | Profile | `--quick` | `--default` | `--full` |
 | --- | --- | --- | --- |
+| `software`: tiny-skia offscreen, headless at 60 Hz, weak budgets, report-only (D22.12) | `hover`, `pan-x`, `zoom-lines`, `drag-resize` on `trace`, `scatter100k` and `grid16` at factors 1 and 2; 1 run | the same, 3 runs | the same, 5 runs |
 | `native`: the renderer iced chooses (wgpu, or tiny-skia without a GPU), desktop budgets | `hover`, `pan-x`, `zoom-lines` on `trace` and `scatter100k`, `drag-resize` on `trace`; 3 runs | the default plan: D22.1's verdict run, its rule outcome | the full plan: every scenario × workload × factor, 5 runs |
 | `nogpu`: tiny-skia, weak budgets | `pan-x`, `zoom-lines` on `trace`; 3 runs | the weak plan, 5 runs | the weak plan |
 | `nogpu-x11`: tiny-skia on X11 through XWayland, a Linux Wayland session only (D22.8), report-only | as `nogpu` | the weak plan | the weak plan |
@@ -143,6 +150,54 @@ The profile writes `figure/summary.csv` (a row per figure and stage),
 `figure/report.md` (every figure's stages: cold, median, least, p90,
 bytes) and `run-figure.log`; the level's `report.md` shows the medians.
 
+### The software profile
+
+The `Plot` widget's software path as a user without a GPU gets it,
+measured where nothing else intervenes (D22.12): the real widget, driven
+through the gestures with replayed input on iced's software renderer
+(tiny-skia), headless. No window, display or compositor is involved, so
+the profile runs on any machine, and what it measures is the widget's and
+iced's work alone. It is `run --plan software --headless --backend
+tiny-skia`, one cold process per run.
+
+- **Cells.** `hover`, `pan-x`, `zoom-lines` and `drag-resize` on `trace`,
+  `scatter100k` and `grid16`, at factors 1 and 2, each at 1600 × 1000
+  logical px (1600 × 1000 and 3200 × 2000 device px): 24 cells, one run
+  each at `--quick`, three at `--default`, five at `--full`.
+- **Frames.** Virtual frames at 60 Hz in the replay's own clock, as the
+  headless runs pace them: a frame that takes longer than its slot delays
+  the next, and the replay's input arrives on time regardless. Every
+  frame is composed into an offscreen pixmap and read back (iced's
+  `screenshot`).
+- **Each frame's cost, by part** (`parts.csv`, one row per composed
+  frame): the widget's UI work (update and draw over the frame's passes,
+  inline renders and the software mosaic included), iced's composition
+  into the pixmap (the screenshot), and, after a frame that still shows
+  previews or missing tiles, the wait on the pool until the next frame.
+  Before its first frame, each run reads back an empty frame of its size:
+  the screenshot's fixed cost (a frame-sized buffer and clip mask, the
+  background, the conversion to RGBA), which a window's composition does
+  not pay.
+- **Latency** in the replay's clock, from an input to the first frame
+  showing it sharp, and its split: the UI work and compositions of the
+  frames before that frame, and the rest, waiting (on the pool, and for
+  the next frame).
+- **Budgets.** D22.4's weak ones, report-only, the frame budget read as
+  the frame's cost: a frame must be produced within 2 T (33.3 ms).
+  Attribution puts composition where a display would put upload.
+- **Frames to look at.** `--frames DIR [--every N]` writes every N-th
+  composed frame as a PNG under `DIR/<cell>__r<run>/`, on a thread of its
+  own. The encoding takes a core, so such a run is for looking, and the
+  report says so.
+
+The profile's report has a "Frame cost by part" table; `summary.csv` and
+`results.json` add, per cell, `cost_p50_ms`, `cost_p95_ms`, `cost_p99_ms`,
+`ui_p50_ms`, `ui_p99_ms`, `compose_p50_ms`, `compose_p99_ms`,
+`readback_ms`, the means per frame `ui_mean_ms`, `compose_mean_ms` and
+`wait_mean_ms`, and the latency split `latency_ui_ms`,
+`latency_compose_ms` and `latency_wait_ms` (every headless run that reads
+each frame back has them).
+
 ### Any machine, no stops
 
 - **No display** (SSH, CI, a console: on Linux and the BSDs neither
@@ -199,6 +254,7 @@ the archive holds the top-level files and `figure/` alone). Inside:
 | `system.txt` | how each profile ran (skips, core limits), then the session type and desktop, whether `WAYLAND_DISPLAY` and `DISPLAY` are set, `xrandr --current`, `cosmic-randr list`, GNOME's scaling factors, `nvidia-smi`, `uname -srm` and `/etc/os-release`, each where present |
 | `run-<profile>.log` | each step's console |
 | `figure/` | the figure profile's `summary.csv` and `report.md` |
+| `software/` | the software profile's run directory, with `parts.csv` |
 | `display/`, `<profile>/` | each run's directory (below) |
 
 Nothing personal goes in. `system.txt` never takes `uname -a` (it prints
@@ -235,7 +291,9 @@ before.
 
 Format 2 (format 1, before the figure profile, reads as a level without
 it). Unknown fields are to be ignored; a new required field or a changed
-meaning raises `format`.
+meaning raises `format`. The software profile (D22.12) is a widget
+profile whose `plan` is `software` and whose `frame p99` budget reads each
+frame's cost, not its interval.
 
 | Field | Content |
 | --- | --- |
@@ -291,7 +349,7 @@ or a share), `n`, `mean`, `ci` (the 95% interval, from two runs) and
   `--backend wgpu|tiny-skia|auto`, `--budgets desktop|weak`,
   `--present-mode`, `--headless`, `--readback`, `--render`, `--caching`,
   `--threads`, `--replay`, `--data-scale`, `--cpu-limit`, `--xwayland`,
-  `--no-also`). Windowed, `--refresh-hz` and `--native-factor` are
+  `--no-also`, and headless `--frames DIR [--every N]`). Windowed, `--refresh-hz` and `--native-factor` are
   required; the benchmark never guesses them. Headless they default to 60
   and 2, and `--headless` without `--plan` runs `smoke`.
 - `list`: the readings, scenarios, workloads, plans and a plan's cells.
@@ -330,6 +388,11 @@ no iced, winit or wgpu in its tree, clippy, its tests).
   `scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
   `trace` and `scatter1m`; `drag-resize` on `trace` and `grid16`.
   Report-only: `run --plan focus` only.
+- `software` (D22.12): `hover`, `pan-x`, `zoom-lines`, `drag-resize` on
+  `trace`, `scatter100k` and `grid16` at factors 1 and 2, three runs each;
+  run headless on tiny-skia with `--native-factor 2`, so both factors keep
+  1600 × 1000 logical px. Report-only, the weak budgets, the frame budget
+  read as each frame's cost.
 - `smoke`: every scenario × workload once at factor 2, durations ÷ 5,
   data ÷ 100, `soak` 20 s; `scripts/check.sh full` runs it headless.
 - `full`: every scenario × workload × factor, five runs.
@@ -403,6 +466,7 @@ its software cells to the weak ones, report-only (`--budgets`).
 | `replays/*.jsonl` | the generated input, one event per line |
 | `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster, `sys` and (under `--caching verify`) mismatch record of one run; its first line names the renderer that ran |
 | `frames.csv`, `inputs.csv`, `memory.csv` | per frame, per input (with its latency), RSS and GPU samples |
+| `parts.csv` | headless, every frame read back: per composed frame its UI work, composition and wait on the pool (D22.12) |
 | `summary.csv` | per cell and metric: n, median, mean, 95% CI, budget, verdict |
 | `report.md` | readings, budget table, metrics, window drags, attribution, memory, flags, also measured (without `--no-also`), the outcome |
 

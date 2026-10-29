@@ -2,10 +2,11 @@
 //! feature: the display measurement before the CPU reference, then, after
 //! the figure profile, the [`Profile`]s that drive the `Plot` widget, each a
 //! `run` of a plan in its own directory of the level's with its console in
-//! `run-<profile>.log`: the native backend (iced's own choice), the
-//! software renderer, the software renderer on X11 in a Linux Wayland
-//! session (D22.8), and at the default and full levels the weak plan on 4
-//! and on 2 cores (D22.4); at `--full`, every `also` measurement last. A
+//! `run-<profile>.log`: the software path offscreen (D22.12, headless on
+//! any machine), the native backend (iced's own choice), the software
+//! renderer, the software renderer on X11 in a Linux Wayland session
+//! (D22.8), and at the default and full levels the weak plan on 4 and on 2
+//! cores (D22.4); at `--full`, every `also` measurement last. A
 //! core count is enforced by pinning the bench where the system offers it
 //! (`taskset` on Linux, `start /AFFINITY` on Windows) and otherwise by the
 //! widget's render pool (`--threads`), and the report says which. Without
@@ -57,6 +58,8 @@ pub struct Part {
     /// The profiles this machine runs, each with why it is skipped, if it
     /// is: known once the display is measured.
     profiles: Vec<(Profile, Option<String>)>,
+    /// `--frames DIR` and `--every N`, for the software profile.
+    frames: Option<(PathBuf, u32)>,
 }
 
 /// One `run` of a level: a plan (and a selection of its cells) on a
@@ -64,8 +67,8 @@ pub struct Part {
 /// opened on X11 through XWayland.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Profile {
-    /// Its directory and log name: `native`, `nogpu`, `nogpu-x11`,
-    /// `4cores`, `2cores`.
+    /// Its directory and log name: `software`, `native`, `nogpu`,
+    /// `nogpu-x11`, `4cores`, `2cores`.
     pub name: &'static str,
     /// The plan.
     pub plan: Plan,
@@ -79,7 +82,18 @@ pub struct Profile {
     pub cores: Option<usize>,
     /// Its windows open on X11 through XWayland (D22.8).
     pub xwayland: bool,
+    /// It composes its frames offscreen, headless whatever the display, at
+    /// 60 Hz and a native factor of 2 so that its cells keep 1600 × 1000
+    /// logical px at both factors (D22.12).
+    pub offscreen: bool,
 }
+
+/// The software profile's frame rate: no display paces it (D22.12).
+const OFFSCREEN_HZ: f64 = 60.0;
+
+/// The native factor the software profile runs at: its factor-1 and
+/// factor-2 cells both keep 1600 × 1000 logical px.
+const OFFSCREEN_NATIVE: f32 = 2.0;
 
 /// What a level knows of the machine when it decides which profiles run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -135,6 +149,23 @@ impl Level {
             Level::Default => (Plan::Default, Plan::Weak, Selection::default()),
             Level::Full => (Plan::Full, Plan::Weak, Selection::default()),
         };
+        let offscreen = Profile {
+            name: "software",
+            plan: Plan::Software,
+            selection: Selection {
+                runs: match self {
+                    Level::Quick => Some(1),
+                    Level::Default => None,
+                    Level::Full => Some(5),
+                },
+                ..Selection::default()
+            },
+            backend: Backend::TinySkia,
+            budgets: rule::Profile::Weak,
+            cores: None,
+            xwayland: false,
+            offscreen: true,
+        };
         let native = Profile {
             name: "native",
             plan: main,
@@ -143,6 +174,7 @@ impl Level {
             budgets: rule::Profile::Desktop,
             cores: None,
             xwayland: false,
+            offscreen: false,
         };
         let nogpu = Profile {
             name: "nogpu",
@@ -152,6 +184,7 @@ impl Level {
             budgets: rule::Profile::Weak,
             cores: None,
             xwayland: false,
+            offscreen: false,
         };
         let x11 = Profile {
             name: "nogpu-x11",
@@ -170,7 +203,12 @@ impl Level {
         } else {
             Some(NO_XWAYLAND.to_owned())
         };
-        let mut profiles = vec![(native, None), (nogpu, duplicate), (x11, no_x11)];
+        let mut profiles = vec![
+            (offscreen, None),
+            (native, None),
+            (nogpu, duplicate),
+            (x11, no_x11),
+        ];
         if self != Level::Quick {
             for (name, n) in [("4cores", 4), ("2cores", 2)] {
                 let profile = Profile {
@@ -181,6 +219,7 @@ impl Level {
                     budgets: rule::Profile::Weak,
                     cores: Some(n),
                     xwayland: false,
+                    offscreen: false,
                 };
                 let few = (machine.cores < n).then(|| match machine.cores {
                     1 => "this machine has 1 core".to_owned(),
@@ -213,8 +252,14 @@ impl Level {
 }
 
 impl Profile {
-    /// Its cells with the display's `native` factor.
+    /// Its cells with the display's `native` factor (the software
+    /// profile's own, offscreen).
     fn cells(&self, native: f32) -> Vec<crate::plan::Cell> {
+        let native = if self.offscreen {
+            OFFSCREEN_NATIVE
+        } else {
+            native
+        };
         self.plan.cells(native, &self.selection)
     }
 
@@ -243,10 +288,14 @@ impl Profile {
             ),
             (Some(_) | None, Some(_) | None) => String::new(),
         };
-        let backend = match self.backend {
-            Backend::Auto => "the native backend (iced's choice)",
-            Backend::TinySkia => "the software renderer (tiny-skia)",
-            Backend::Wgpu => "wgpu",
+        let backend = match (self.backend, self.offscreen) {
+            (Backend::TinySkia, true) => {
+                "the software renderer (tiny-skia) offscreen: headless, every frame composed into \
+                 a pixmap at 60 Hz, 1600 × 1000 logical px at factors 1 and 2"
+            }
+            (Backend::Auto, _) => "the native backend (iced's choice)",
+            (Backend::TinySkia, false) => "the software renderer (tiny-skia)",
+            (Backend::Wgpu, _) => "wgpu",
         };
         let mut text = format!(
             "plan {}{which}: {} cells, {runs} runs on {backend}",
@@ -278,7 +327,7 @@ impl Profile {
             budgets: self.budgets.name().to_owned(),
             limit: limit.map(Limit::describe),
             xwayland: self.xwayland,
-            headless: display.headless.is_some(),
+            headless: self.offscreen || display.headless.is_some(),
             status: results::Status::Done,
             ..results::Profile::planned(self.name, self.describe(display.native_factor), None)
         };
@@ -304,8 +353,8 @@ impl Profile {
     }
 
     /// `run`'s arguments for this profile on `display`, writing under
-    /// `out`.
-    fn args(&self, display: &Display, out: &Path) -> Vec<String> {
+    /// `out`, and for the software profile its frames into `frames`.
+    fn args(&self, display: &Display, out: &Path, frames: Option<&(PathBuf, u32)>) -> Vec<String> {
         let mut args: Vec<String> = [
             "run",
             "--plan",
@@ -318,11 +367,16 @@ impl Profile {
         ]
         .map(str::to_owned)
         .into();
+        let (hz, native) = if self.offscreen {
+            (OFFSCREEN_HZ, OFFSCREEN_NATIVE)
+        } else {
+            (display.refresh_hz, display.native_factor)
+        };
         args.extend([
             "--refresh-hz".to_owned(),
-            display.refresh_hz.to_string(),
+            hz.to_string(),
             "--native-factor".to_owned(),
-            display.native_factor.to_string(),
+            native.to_string(),
         ]);
         if let Some(scenarios) = &self.selection.scenarios {
             let names: Vec<&str> = scenarios.iter().map(|s| s.name()).collect();
@@ -332,11 +386,22 @@ impl Profile {
             let names: Vec<&str> = workloads.iter().map(|w| w.name()).collect();
             args.extend(["--workload".to_owned(), names.join(",")]);
         }
+        if let Some(runs) = self.selection.runs {
+            args.extend(["--runs".to_owned(), runs.to_string()]);
+        }
         if self.xwayland {
             args.push("--xwayland".to_owned());
         }
-        if display.headless.is_some() {
+        if self.offscreen || display.headless.is_some() {
             args.push("--headless".to_owned());
+        }
+        if let Some((dir, every)) = frames.filter(|_| self.offscreen) {
+            args.extend([
+                "--frames".to_owned(),
+                dir.display().to_string(),
+                "--every".to_owned(),
+                every.to_string(),
+            ]);
         }
         args.extend(["--out".to_owned(), out.display().to_string()]);
         args
@@ -362,6 +427,7 @@ impl Part {
             unreachable,
             display: None,
             profiles: Vec::new(),
+            frames: request.frames.clone().map(|dir| (dir, request.every)),
         }
     }
 
@@ -508,7 +574,7 @@ impl Widget for Part {
         if let Some(limit) = &limit {
             let _ = writeln!(notes, "# {}: {}", profile.name, limit.describe());
         }
-        let args = profile.args(display, &dir.join(profile.name));
+        let args = profile.args(display, &dir.join(profile.name), self.frames.as_ref());
         println!("== {}: {}", profile.name, profile.describe(native));
         let status = spawn(&self.exe, dir, profile.name, limit.as_ref(), args, true)?;
         Ok(profile.summary(display, dir, status, limit.as_ref()))
@@ -712,7 +778,7 @@ fn headless_backend() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsStr;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use super::{Level, Limit, Machine, mask, xwayland_on};
     use crate::cli::widget::{self, Backend};
@@ -747,9 +813,23 @@ mod tests {
     #[test]
     fn each_level_has_d22_9s_profiles() {
         let quick = Level::Quick.profiles(DESKTOP);
-        let [(native, None), (nogpu, None), (x11, Some(_))] = &quick[..] else {
+        let [
+            (software, None),
+            (native, None),
+            (nogpu, None),
+            (x11, Some(_)),
+        ] = &quick[..]
+        else {
             panic!("{quick:?}");
         };
+        // D22.12: the software path offscreen, one run a cell at quick.
+        assert_eq!(
+            (software.plan, software.backend, software.budgets),
+            (Plan::Software, Backend::TinySkia, rule::Profile::Weak)
+        );
+        assert!(software.offscreen);
+        assert_eq!(software.cells(1.25).len(), 24);
+        assert!(software.cells(1.0).iter().all(|c| c.runs == 1));
         assert_eq!(
             (native.plan, native.backend, native.budgets),
             (Plan::Quick, Backend::Auto, rule::Profile::Desktop)
@@ -765,6 +845,7 @@ mod tests {
         assert_eq!(
             plans,
             [
+                ("software", Plan::Software),
                 ("native", Plan::Default),
                 ("nogpu", Plan::Weak),
                 ("nogpu-x11", Plan::Weak),
@@ -772,11 +853,13 @@ mod tests {
                 ("2cores", Plan::Weak),
             ]
         );
-        assert_eq!(default[3].0.cores, Some(4));
-        assert_eq!(Level::Full.profiles(DESKTOP)[0].0.plan, Plan::Full);
+        assert_eq!(default[4].0.cores, Some(4));
+        assert!(default[0].0.cells(1.0).iter().all(|c| c.runs == 3));
+        assert_eq!(Level::Full.profiles(DESKTOP)[1].0.plan, Plan::Full);
         // About 10 minutes for quick, 75 for default (D22.9), each with the
         // figure profile's 1 and 4 (D22.10): here 8.5 and 71 without the
-        // X11 profile, 10 and 77 with it.
+        // X11 profile, 10 and 77 with it; and the software profile's 6.2
+        // and 18.6 (D22.12).
         let minutes =
             |level: Level, machine| level.estimate_s(&level.profiles(machine), 1.0) / 60.0;
         let wayland = Machine {
@@ -785,9 +868,9 @@ mod tests {
         };
         for machine in [DESKTOP, wayland] {
             let quick = minutes(Level::Quick, machine);
-            assert!((8.0..11.0).contains(&quick), "{quick}");
+            assert!((14.0..17.5).contains(&quick), "{quick}");
             let default = minutes(Level::Default, machine);
-            assert!((70.0..80.0).contains(&default), "{default}");
+            assert!((88.0..99.0).contains(&default), "{default}");
         }
         assert!(minutes(Level::Full, DESKTOP) > 300.0, "hours");
     }
@@ -801,7 +884,7 @@ mod tests {
         };
         assert_eq!(
             names(Level::Quick, wayland),
-            (vec!["native", "nogpu", "nogpu-x11"], vec![])
+            (vec!["software", "native", "nogpu", "nogpu-x11"], vec![])
         );
         // No GPU adapter: the native profile is the software one.
         let software = Machine {
@@ -810,7 +893,7 @@ mod tests {
         };
         assert_eq!(
             names(Level::Quick, software),
-            (vec!["native", "nogpu-x11"], vec!["nogpu"])
+            (vec!["software", "native", "nogpu-x11"], vec!["nogpu"])
         );
         // Two cores: the 4-core profile is skipped.
         let small = Machine {
@@ -820,7 +903,7 @@ mod tests {
         assert_eq!(
             names(Level::Default, small),
             (
-                vec!["native", "nogpu", "2cores"],
+                vec!["software", "native", "nogpu", "2cores"],
                 vec!["nogpu-x11", "4cores"]
             )
         );
@@ -829,7 +912,7 @@ mod tests {
             ..DESKTOP
         };
         let profiles = Level::Default.profiles(one);
-        assert_eq!(profiles[4].1.as_deref(), Some("this machine has 1 core"));
+        assert_eq!(profiles[5].1.as_deref(), Some("this machine has 1 core"));
         // Headless: no X11 profile, even in a Wayland session.
         let headless = Machine {
             headless: true,
@@ -837,7 +920,7 @@ mod tests {
         };
         assert_eq!(
             names(Level::Quick, headless),
-            (vec!["native", "nogpu"], vec!["nogpu-x11"])
+            (vec!["software", "native", "nogpu"], vec!["nogpu-x11"])
         );
     }
 
@@ -853,14 +936,31 @@ mod tests {
             }),
         );
         let profiles = Level::Quick.profiles(DESKTOP);
-        let args = profiles[1].0.args(&display, Path::new("o/nogpu"));
+        let args = profiles[2].0.args(&display, Path::new("o/nogpu"), None);
         assert_eq!(
             args.join(" "),
             "run --plan quick --backend tiny-skia --budgets weak --no-also --refresh-hz 144 \
              --native-factor 1.25 --scenario pan-x,zoom-lines --workload trace --out o/nogpu"
         );
+        // The software profile ignores the display: headless at 60 Hz, and
+        // only it writes frames.
+        let frames = (PathBuf::from("f"), 10);
+        let args = profiles[0]
+            .0
+            .args(&display, Path::new("o/software"), Some(&frames));
+        assert_eq!(
+            args.join(" "),
+            "run --plan software --backend tiny-skia --budgets weak --no-also --refresh-hz 60 \
+             --native-factor 2 --runs 1 --headless --frames f --every 10 --out o/software"
+        );
+        assert!(
+            !profiles[1]
+                .0
+                .args(&display, Path::new("o/native"), Some(&frames))
+                .contains(&"--frames".to_owned())
+        );
         let headless = Display::decide(None, None, Err("no display".to_owned()));
-        let args = profiles[0].0.args(&headless, Path::new("o/native"));
+        let args = profiles[1].0.args(&headless, Path::new("o/native"), None);
         assert_eq!(
             args.join(" "),
             "run --plan quick --backend auto --budgets desktop --no-also --refresh-hz 60 \

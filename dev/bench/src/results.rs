@@ -228,15 +228,32 @@ pub struct Check {
     pub verdict: String,
 }
 
-/// The metrics `compare` and the level's report show per cell: name,
+/// A metric `compare` and the level's report show per cell: name,
 /// heading, digits, and whether it is a share.
-pub const KEY: [(&str, &str, usize, bool); 7] = [
+pub type Key = (&'static str, &'static str, usize, bool);
+
+/// The metrics `compare` and the level's report show per cell of a
+/// profile on a display.
+pub const KEY: [Key; 7] = [
     ("frame_p50_ms", "frame p50 ms", 1, false),
     ("frame_p99_ms", "frame p99 ms", 1, false),
     ("latency_p95_ms", "latency p95 ms", 0, false),
     ("preview_share", "preview share", 0, true),
     ("drops", "drops", 0, false),
     ("ui_frame_p99_ms", "UI frame p99 ms", 1, false),
+    ("cpu_s_per_s", "CPU s/s", 2, false),
+];
+
+/// The same for the software profile, whose frames are composed offscreen
+/// (D22.12): the frame's cost and its parts, then latency.
+pub const SOFTWARE_KEY: [Key; 8] = [
+    ("cost_p50_ms", "cost p50 ms", 1, false),
+    ("cost_p99_ms", "cost p99 ms", 1, false),
+    ("ui_p99_ms", "UI p99 ms", 1, false),
+    ("compose_p99_ms", "composition p99 ms", 1, false),
+    ("wait_mean_ms", "pool wait mean ms", 1, false),
+    ("latency_p95_ms", "latency p95 ms", 0, false),
+    ("preview_share", "preview share", 0, true),
     ("cpu_s_per_s", "CPU s/s", 2, false),
 ];
 
@@ -295,6 +312,18 @@ impl Profile {
             checks: Counts::default(),
             cells: Vec::new(),
             figures: Vec::new(),
+        }
+    }
+}
+
+impl Profile {
+    /// The metrics its cells are shown by: the software profile's
+    /// (its plan `software`), or those of a profile on a display.
+    pub fn key(&self) -> &'static [Key] {
+        if self.plan == "software" {
+            &SOFTWARE_KEY
+        } else {
+            &KEY
         }
     }
 }
@@ -532,18 +561,19 @@ impl Results {
         );
         let mut heading = String::from("| Cell | runs |");
         let mut rule = String::from("| --- | --- |");
-        for (_, name, _, _) in KEY {
+        for (_, name, _, _) in profile.key() {
             let _ = write!(heading, " {name} |");
             rule.push_str(" --- |");
         }
         let _ = writeln!(md, "{heading} budgets |\n{rule} --- |");
-        let assumed = self.display.unpaced().then_some(self.display.refresh_hz);
+        let assumed =
+            (self.display.unpaced() && !profile.headless).then_some(self.display.refresh_hz);
         for cell in &profile.cells {
             if !cell.applies {
                 continue;
             }
             let mut row = format!("| {} | {}/{} |", cell.name(), cell.read, cell.runs);
-            for (key, _, digits, share) in KEY {
+            for &(key, _, digits, share) in profile.key() {
                 let _ = write!(
                     row,
                     " {} |",

@@ -133,6 +133,10 @@ pub struct Meta {
     /// (`--xwayland`, D22.8): the report is report-only.
     #[serde(default)]
     pub xwayland: bool,
+    /// With `--frames`, every how many composed frames were written as
+    /// PNGs (which perturbs the timings); `None` when none were.
+    #[serde(default)]
+    pub frames: Option<u32>,
     /// Every cell of the plan, "n/a" ones included.
     pub cells: Vec<Planned>,
 }

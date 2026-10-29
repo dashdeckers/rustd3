@@ -2,7 +2,7 @@
 //! verdicts by 95% interval, the attribution of each miss, and the
 //! outcome that decides Phase 31.
 
-use crate::metrics::{Half, Metrics, Shares};
+use crate::metrics::{Half, Metrics, Part, Shares};
 use crate::scenario::Scenario;
 use crate::stats::{Interval, Verdict};
 
@@ -80,6 +80,16 @@ pub enum Budget {
     Previews,
 }
 
+/// What a frame budget reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Reading {
+    /// The intervals between frames on a display (reading 1).
+    Display,
+    /// The cost of producing each frame offscreen, its UI work and its
+    /// composition (D22.12): a frame must be produced within the budget.
+    Offscreen,
+}
+
 /// One budget evaluated on one cell's runs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Check {
@@ -153,9 +163,10 @@ impl Budget {
 }
 
 impl Profile {
-    /// The profile of the plan named `plan`.
+    /// The profile of the plan named `plan`: weak for the weak and the
+    /// software plans.
     pub fn of(plan: &str) -> Profile {
-        if plan == crate::plan::Plan::Weak.name() {
+        if plan == crate::plan::Plan::Weak.name() || plan == crate::plan::Plan::Software.name() {
             Profile::Weak
         } else {
             Profile::Desktop
@@ -194,20 +205,21 @@ impl Profile {
 
 impl Check {
     /// `budget` over `half` of `runs` at a frame period of `period_ms`,
-    /// held to `profile`'s limit.
+    /// held to `profile`'s limit, its frame budget read as `reading` says.
     pub fn evaluate(
         (budget, half): (Budget, Half),
         runs: &[Metrics],
-        period_ms: f64,
+        (period_ms, reading): (f64, Reading),
         profile: Profile,
     ) -> Check {
         let limit = profile.limit(budget, period_ms);
         let values: Vec<f64> = runs
             .iter()
-            .filter_map(|run| match budget {
-                Budget::Frame => run.interval(99.0),
-                Budget::PanLatency | Budget::ZoomLatency => run.latency(half, 95.0),
-                Budget::Previews => run.preview_share(half),
+            .filter_map(|run| match (budget, reading) {
+                (Budget::Frame, Reading::Display) => run.interval(99.0),
+                (Budget::Frame, Reading::Offscreen) => run.part(Part::cost, 99.0),
+                (Budget::PanLatency | Budget::ZoomLatency, _) => run.latency(half, 95.0),
+                (Budget::Previews, _) => run.preview_share(half),
             })
             .collect();
         let interval = Interval::of(&values);
@@ -216,10 +228,13 @@ impl Check {
         let single_over = interval.is_some_and(|i| i.ci.is_none() && i.mean > limit);
         if verdict == Verdict::Missed || single_over {
             for run in runs {
-                shares.add(match budget {
-                    Budget::Frame => run.interval_shares(),
-                    Budget::PanLatency | Budget::ZoomLatency => run.latency_shares(half, limit),
-                    Budget::Previews => run.preview_shares(half),
+                shares.add(match (budget, reading) {
+                    (Budget::Frame, Reading::Display) => run.interval_shares(),
+                    (Budget::Frame, Reading::Offscreen) => run.cost_shares(limit),
+                    (Budget::PanLatency | Budget::ZoomLatency, _) => {
+                        run.latency_shares(half, limit)
+                    }
+                    (Budget::Previews, _) => run.preview_shares(half),
                 });
             }
         }
@@ -322,7 +337,7 @@ impl Outcome {
 
 #[cfg(test)]
 mod tests {
-    use super::{Budget, Check, Outcome, Profile};
+    use super::{Budget, Check, Outcome, Profile, Reading};
     use crate::metrics::tests::{frame, header, input};
     use crate::metrics::{Half, Metrics, Shares};
     use crate::scenario::Scenario;
@@ -333,7 +348,7 @@ mod tests {
         // 144 Hz: T = 6.94 ms, budget 10.4 ms; 60 Hz: T = 16.67, 25.0 ms.
         for (hz, budget) in [(144.0, 10.42), (60.0, 25.0)] {
             let frame = (Budget::Frame, Half::Whole);
-            let check = Check::evaluate(frame, &[], 1e3 / hz, Profile::Desktop);
+            let check = Check::evaluate(frame, &[], (1e3 / hz, Reading::Display), Profile::Desktop);
             assert!((check.limit - budget).abs() < 0.01, "{}", check.limit);
             assert_eq!(check.verdict, Verdict::Inconclusive);
         }
@@ -365,6 +380,32 @@ mod tests {
     }
 
     #[test]
+    fn offscreen_the_frame_budget_reads_each_frames_cost() {
+        // The offscreen run's frames cost 7, 5.5, 6.5 and 6.5 ms 16 ms
+        // apart: its intervals are the pacer's, its p99 cost 7 ms.
+        let runs: Vec<Metrics> = (0..2)
+            .map(|_| Metrics::of(&crate::metrics::tests::offscreen()).unwrap())
+            .collect();
+        let frame = (Budget::Frame, Half::Whole);
+        let cost = Check::evaluate(
+            frame,
+            &runs,
+            (1e3 / 60.0, Reading::Offscreen),
+            Profile::Weak,
+        );
+        let mean = cost.interval.map(|i| i.mean).unwrap();
+        assert!((mean - 6.985).abs() < 1e-9, "{mean}");
+        assert_eq!(cost.verdict, Verdict::Met);
+        let shown = Check::evaluate(frame, &runs, (1e3 / 60.0, Reading::Display), Profile::Weak);
+        assert!(shown.interval.map(|i| i.mean).unwrap() > 15.0);
+        // Over a 5 ms budget: missed, composition in the upload share.
+        let tight = Check::evaluate(frame, &runs, (2.5, Reading::Offscreen), Profile::Weak);
+        assert_eq!(tight.verdict, Verdict::Missed);
+        assert_eq!(tight.shares.bucket(), "upload");
+        assert_eq!(Profile::of("software"), Profile::Weak);
+    }
+
+    #[test]
     fn a_raster_bound_pan_miss_after_phase_31_recommends_the_gpu_layer() {
         // Five runs whose pan latencies are all about 200 ms, raster-bound.
         let runs: Vec<Metrics> = (0..5)
@@ -390,7 +431,7 @@ mod tests {
             })
             .collect();
         let pan = (Budget::PanLatency, Half::Whole);
-        let check = Check::evaluate(pan, &runs, 16.67, Profile::Desktop);
+        let check = Check::evaluate(pan, &runs, (16.67, Reading::Display), Profile::Desktop);
         assert_eq!(check.verdict, Verdict::Missed);
         assert_eq!(check.shares.bucket(), "raster");
         let outcome = Outcome::of(&[(Scenario::PanX, check.clone())]);
@@ -401,7 +442,7 @@ mod tests {
                 .contains("GPU data layer recommended")
         );
         // The weak profile's budget is 150 ms: the same runs miss it too.
-        let weak = Check::evaluate(pan, &runs, 16.67, Profile::Weak);
+        let weak = Check::evaluate(pan, &runs, (16.67, Reading::Display), Profile::Weak);
         assert_eq!((weak.limit, weak.verdict), (150.0, Verdict::Missed));
         // The same miss on the UI thread routes elsewhere.
         let ui = Check {

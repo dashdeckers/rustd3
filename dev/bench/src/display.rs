@@ -210,6 +210,7 @@ pub fn read(raw: &Path) -> Option<Measured> {
             | Record::Raster { .. }
             | Record::Mismatch { .. }
             | Record::Sys { .. }
+            | Record::Readback { .. }
             | Record::Harness { .. }
             | Record::End { .. } => None,
         })

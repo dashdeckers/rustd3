@@ -7,11 +7,11 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
-use crate::metrics::{Half, Metrics};
+use crate::metrics::{Half, Metrics, Part};
 use crate::plan::Plan;
 use crate::record;
 use crate::results;
-use crate::rule::{self, Budget, Check, Outcome, Profile};
+use crate::rule::{self, Budget, Check, Outcome, Profile, Reading};
 use crate::scenario::{self, Scenario};
 use crate::stats::{Interval, Verdict, percentile};
 use crate::system::{Meta, Planned};
@@ -56,6 +56,22 @@ const QUICK: &str = "the quick level (D22.9) runs what a performance issue needs
 /// What the quick plan's outcome line starts with.
 const QUICK_OUTCOME: &str = "report-only, the quick level: ";
 
+/// What the software plan is, said before its budget table.
+const SOFTWARE: &str = "the software profile (D22.12) drives the real `Plot` widget through the \
+                        gestures with replayed input on iced's software renderer (tiny-skia), \
+                        headless: no window, display or compositor. Every frame is composed into \
+                        an offscreen pixmap and read back, paced at 60 Hz in the replay's clock, \
+                        and its cost is timed by part: the widget's UI work (update and draw, \
+                        inline renders and the software mosaic included), iced's composition (the \
+                        screenshot, whose fixed cost an empty frame shows), and after a frame \
+                        that still shows previews the wait on the pool until the next. The frame \
+                        budget reads the cost: a frame must be produced within 2 T. The cells \
+                        are held to the weak budgets (D22.4) to show where each stands; its \
+                        verdicts decide nothing.";
+
+/// What the software plan's outcome line starts with.
+const SOFTWARE_OUTCOME: &str = "report-only, the software path offscreen (D22.12): ";
+
 /// What a run's report is, by its plan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
@@ -67,6 +83,8 @@ enum Kind {
     Focus,
     /// The quick level's plan: report-only, with its outcome.
     Quick,
+    /// The software path offscreen: report-only, frames by part.
+    Software,
     /// A plan the rule reads: default, weak, full.
     Rule,
 }
@@ -175,7 +193,14 @@ pub fn build(dir: &Path) -> Result<Built, Box<dyn std::error::Error>> {
     fs::write(dir.join("frames.csv"), frames_csv(&cells))?;
     fs::write(dir.join("inputs.csv"), inputs_csv(&cells))?;
     fs::write(dir.join("memory.csv"), memory_csv(&cells))?;
+    if cells.iter().flat_map(|c| &c.runs).any(Metrics::is_composed) {
+        fs::write(dir.join("parts.csv"), parts_csv(&cells))?;
+    }
     let period = 1e3 / meta.refresh_hz;
+    let reading = match kind(&meta) {
+        Kind::Software => Reading::Offscreen,
+        Kind::Smoke | Kind::Display | Kind::Focus | Kind::Quick | Kind::Rule => Reading::Display,
+    };
     let profile = budgets_of(&meta);
     let checks: Vec<(usize, Scenario, Check)> = cells
         .iter()
@@ -183,12 +208,15 @@ pub fn build(dir: &Path) -> Result<Built, Box<dyn std::error::Error>> {
         .filter(|(_, c)| c.planned.applies && c.small.is_none())
         .flat_map(|(index, c)| {
             Budget::of(c.scenario).into_iter().map(move |budget| {
-                let check = Check::evaluate(budget, &c.runs, period, profile);
+                let check = Check::evaluate(budget, &c.runs, (period, reading), profile);
                 (index, c.scenario, check)
             })
         })
         .collect();
-    fs::write(dir.join("summary.csv"), summary_csv(&cells, &checks))?;
+    fs::write(
+        dir.join("summary.csv"),
+        summary_csv(&cells, &checks, reading),
+    )?;
     let outcome = Outcome::of(
         &checks
             .iter()
@@ -215,7 +243,7 @@ pub fn build(dir: &Path) -> Result<Built, Box<dyn std::error::Error>> {
         Kind::Focus => {
             let _ = writeln!(summary, "Focus plan, report-only: {FOCUS}\n");
         }
-        Kind::Quick | Kind::Rule => {}
+        Kind::Quick | Kind::Software | Kind::Rule => {}
     }
     let line = outcome_line(&meta, kind, outcome, profile);
     budgets(&mut summary, &cells, &checks, kind);
@@ -292,6 +320,7 @@ fn kind(meta: &Meta) -> Kind {
         Some(Plan::Display) => Kind::Display,
         Some(Plan::Focus) => Kind::Focus,
         Some(Plan::Quick) => Kind::Quick,
+        Some(Plan::Software) => Kind::Software,
         Some(Plan::Smoke | Plan::Default | Plan::Weak | Plan::Full) | None => Kind::Rule,
     }
 }
@@ -314,10 +343,23 @@ fn outcome_line(meta: &Meta, kind: Kind, outcome: Outcome, profile: Profile) -> 
         (Kind::Focus, _) => return FOCUS_OUTCOME.to_owned(),
         (Kind::Quick, true) => format!("{QUICK_OUTCOME}{XWAYLAND_OUTCOME}"),
         (Kind::Quick, false) => QUICK_OUTCOME.to_owned(),
+        (Kind::Software, _) => return format!("{SOFTWARE_OUTCOME}{}", software_line(outcome)),
         (Kind::Rule, true) => XWAYLAND_OUTCOME.to_owned(),
         (Kind::Rule, false) => String::new(),
     };
     format!("{prefix}{}", outcome.line(profile))
+}
+
+/// The software profile's outcome: the rule's buckets, with composition
+/// where a display would upload.
+fn software_line(outcome: Outcome) -> &'static str {
+    match outcome {
+        Outcome::Sufficient => "every weak budget met",
+        Outcome::UiBound => "missed on the UI thread",
+        Outcome::RasterBound => "missed on raster or composition",
+        Outcome::Pending => "no verdict: some budget is inconclusive and none missed",
+        Outcome::Unmeasured => "no verdict: the selected cells hold no budget",
+    }
 }
 
 /// The backend the runs ran on: the one asked for, or with `auto` the
@@ -364,6 +406,32 @@ fn frames_csv(cells: &[Cell<'_>]) -> String {
                     f.stale,
                     f.uploaded,
                     f.ui_ms
+                );
+            }
+        }
+    }
+    out
+}
+
+/// Every composed frame of every run, by part (D22.12).
+fn parts_csv(cells: &[Cell<'_>]) -> String {
+    let mut out =
+        String::from("scenario,workload,factor,run,at_ms,ui_ms,compose_ms,wait_ms,stale\n");
+    for cell in cells {
+        for metrics in &cell.runs {
+            for p in metrics.parts() {
+                let _ = writeln!(
+                    out,
+                    "{},{},{},{},{:.3},{:.3},{:.3},{:.3},{}",
+                    cell.planned.scenario,
+                    cell.planned.workload,
+                    cell.planned.factor,
+                    metrics.run.run,
+                    p.at_ms,
+                    p.ui_ms,
+                    p.compose_ms,
+                    p.wait_ms,
+                    p.stale
                 );
             }
         }
@@ -429,7 +497,11 @@ fn memory_csv(cells: &[Cell<'_>]) -> String {
 }
 
 /// Per cell: every metric's interval across runs, budgets and verdicts.
-fn summary_csv(cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)]) -> String {
+fn summary_csv(
+    cells: &[Cell<'_>],
+    checks: &[(usize, Scenario, Check)],
+    reading: Reading,
+) -> String {
     let mut out = String::from(
         "scenario,workload,factor,metric,n,median,mean,ci_low,ci_high,budget,verdict\n",
     );
@@ -449,7 +521,7 @@ fn summary_csv(cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)]) -> Strin
         for (name, interval) in metric_rows(cell) {
             let check = checks
                 .iter()
-                .find(|(i, _, c)| *i == index && metric_of(c) == name);
+                .find(|(i, _, c)| *i == index && metric_of(c, reading) == name);
             let (budget, verdict) = check.map_or(("na".to_owned(), "na"), |(_, _, c)| {
                 (format!("{}", c.limit), c.verdict.name())
             });
@@ -474,8 +546,9 @@ fn summary_csv(cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)]) -> Strin
 }
 
 /// The metric a check reads, as named in the summary.
-fn metric_of(check: &Check) -> &'static str {
+fn metric_of(check: &Check, reading: Reading) -> &'static str {
     match (check.budget, check.half) {
+        (Budget::Frame, _) if reading == Reading::Offscreen => "cost_p99_ms",
         (Budget::Frame, _) => "frame_p99_ms",
         (Budget::PanLatency, Half::Pan) => "latency_p95_pan_ms",
         (Budget::ZoomLatency, Half::Zoom) => "latency_p95_zoom_ms",
@@ -511,6 +584,25 @@ fn metric_rows(cell: &Cell<'_>) -> Vec<(&'static str, Option<Interval>)> {
         ("list_ms", of(&|m| m.stage("list"))),
         ("calibration", of(&|m| percentile(&m.calibration(), 50.0))),
     ];
+    if cell.runs.iter().any(Metrics::is_composed) {
+        let split = |i: usize| move |m: &Metrics| m.latency_parts().map(|s| s[i]);
+        rows.extend([
+            ("cost_p50_ms", of(&|m| m.part(Part::cost, 50.0))),
+            ("cost_p95_ms", of(&|m| m.part(Part::cost, 95.0))),
+            ("cost_p99_ms", of(&|m| m.part(Part::cost, 99.0))),
+            ("ui_p50_ms", of(&|m| m.part(|p| p.ui_ms, 50.0))),
+            ("ui_p99_ms", of(&|m| m.part(|p| p.ui_ms, 99.0))),
+            ("compose_p50_ms", of(&|m| m.part(|p| p.compose_ms, 50.0))),
+            ("compose_p99_ms", of(&|m| m.part(|p| p.compose_ms, 99.0))),
+            ("readback_ms", of(&|m| m.readback_ms)),
+            ("ui_mean_ms", of(&|m| m.part_mean(|p| p.ui_ms))),
+            ("compose_mean_ms", of(&|m| m.part_mean(|p| p.compose_ms))),
+            ("wait_mean_ms", of(&|m| m.part_mean(|p| p.wait_ms))),
+            ("latency_ui_ms", of(&split(0))),
+            ("latency_compose_ms", of(&split(1))),
+            ("latency_wait_ms", of(&split(2))),
+        ]);
+    }
     if cell.scenario == Scenario::FourK {
         rows.push(("latency_p95_pan_ms", of(&|m| m.latency(Half::Pan, 95.0))));
         rows.push(("latency_p95_zoom_ms", of(&|m| m.latency(Half::Zoom, 95.0))));
@@ -605,10 +697,17 @@ fn markdown(
         Kind::Display => {
             let _ = writeln!(md, "## Display measurement\n\n{DISPLAY}\n");
         }
+        Kind::Software => {
+            let _ = writeln!(
+                md,
+                "## The software path offscreen (report-only)\n\n{SOFTWARE}\n\n{}",
+                rule::WEAK
+            );
+        }
         Kind::Smoke | Kind::Rule => {}
     }
     let profile = budgets_of(meta);
-    if profile == Profile::Weak {
+    if profile == Profile::Weak && kind != Kind::Software {
         let gpu = if backend.starts_with("tiny-skia") {
             "no GPU (tiny-skia)".to_owned()
         } else {
@@ -638,9 +737,10 @@ fn markdown(
         }
     }
     budgets(&mut md, cells, checks, kind);
+    parts(&mut md, cells);
     metrics(&mut md, cells);
     drags(&mut md, cells);
-    attribution(&mut md, cells, checks);
+    attribution(&mut md, cells, checks, kind);
     memory(&mut md, cells, meta);
     flags(&mut md, cells, meta);
     if let Some(also) = also {
@@ -683,6 +783,9 @@ fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Chec
             "Budgets (report-only: the desktop budgets the rule uses; not the rule's run)"
         }
         Kind::Quick => "Budgets (report-only: the quick level, not the rule's run)",
+        Kind::Software => {
+            "Budgets (report-only: the weak budgets, the frame budget read as each frame's cost)"
+        }
         Kind::Smoke | Kind::Display | Kind::Rule => "Budgets",
     };
     let _ = writeln!(
@@ -748,6 +851,63 @@ fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Chec
             column(Budget::PanLatency),
             column(Budget::ZoomLatency),
             column(Budget::Previews)
+        );
+    }
+    let _ = writeln!(md);
+}
+
+/// The frames' cost by part, for runs composed offscreen (D22.12):
+/// medians across runs. Nothing when no run was.
+fn parts(md: &mut String, cells: &[Cell<'_>]) {
+    if !cells.iter().flat_map(|c| &c.runs).any(Metrics::is_composed) {
+        return;
+    }
+    let _ = writeln!(
+        md,
+        "## Frame cost by part\n\nEach composed frame from the first input to 300 ms after the \
+         last, medians across runs, ms. Cost = UI + composition: the widget's update and draw \
+         over the frame's passes (inline renders and the software mosaic included), and iced \
+         composing the frame into the pixmap and reading it back; readback = the same for an \
+         empty frame of the run's size (the buffer, the clip mask, the background and the \
+         conversion to RGBA, which a window does not pay). Means per frame: UI, composition and \
+         the wait on the pool (after a frame that still shows previews or missing tiles, to the \
+         next frame). Latency p95 and the mean split of the sharp latencies: the UI work and \
+         compositions of the frames before the sharp one, and the rest, waiting (on the pool, \
+         and for the next frame).\n"
+    );
+    let _ = writeln!(
+        md,
+        "| Cell | cost p50/p99 | UI p50/p99 | composition p50/p99 | readback | mean UI / composition / wait | latency p95 | latency: UI / composition / wait |\n\
+         | --- | --- | --- | --- | --- | --- | --- | --- |"
+    );
+    for cell in cells {
+        let name = cell_name(cell);
+        let composed: Vec<&Metrics> = cell.runs.iter().filter(|m| m.is_composed()).collect();
+        if !cell.planned.applies || composed.is_empty() {
+            continue;
+        }
+        let med = |f: &dyn Fn(&Metrics) -> Option<f64>| {
+            let values: Vec<f64> = composed.iter().filter_map(|m| f(m)).collect();
+            percentile(&values, 50.0).map_or_else(|| "n/a".to_owned(), |v| format!("{v:.1}"))
+        };
+        let split = |i: usize| med(&|m| m.latency_parts().map(|s| s[i]));
+        let _ = writeln!(
+            md,
+            "| {name} | {}/{} | {}/{} | {}/{} | {} | {} / {} / {} | {} | {} / {} / {} |",
+            med(&|m| m.part(Part::cost, 50.0)),
+            med(&|m| m.part(Part::cost, 99.0)),
+            med(&|m| m.part(|p| p.ui_ms, 50.0)),
+            med(&|m| m.part(|p| p.ui_ms, 99.0)),
+            med(&|m| m.part(|p| p.compose_ms, 50.0)),
+            med(&|m| m.part(|p| p.compose_ms, 99.0)),
+            med(&|m| m.readback_ms),
+            med(&|m| m.part_mean(|p| p.ui_ms)),
+            med(&|m| m.part_mean(|p| p.compose_ms)),
+            med(&|m| m.part_mean(|p| p.wait_ms)),
+            med(&|m| m.latency(Half::Whole, 95.0)),
+            split(0),
+            split(1),
+            split(2),
         );
     }
     let _ = writeln!(md);
@@ -887,8 +1047,19 @@ fn drags(md: &mut String, cells: &[Cell<'_>]) {
 }
 
 /// Attribution of every missed budget, and of budgets a single run
-/// exceeded (no verdict).
-fn attribution(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)]) {
+/// exceeded (no verdict); offscreen, composition takes upload's place.
+fn attribution(
+    md: &mut String,
+    cells: &[Cell<'_>],
+    checks: &[(usize, Scenario, Check)],
+    kind: Kind,
+) {
+    let (third, bucket) = match kind {
+        Kind::Software => ("composition ms", "composition"),
+        Kind::Smoke | Kind::Display | Kind::Focus | Kind::Quick | Kind::Rule => {
+            ("upload ms", "upload")
+        }
+    };
     let _ = writeln!(md, "## Attribution\n");
     let attributed: Vec<&(usize, Scenario, Check)> =
         checks.iter().filter(|c| c.2.attributed()).collect();
@@ -901,7 +1072,7 @@ fn attribution(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, 
         "Missed budgets, and budgets a single run exceeded (\"over, n = 1\": no verdict): the \
          mean per offending latency window or frame over every run (reading 5); latency \
          windows of one gesture overlap, so their means are not additive.\n\n\
-         | Cell | Budget | Verdict | windows | UI ms | raster ms (inline renders) | upload ms | bucket |\n\
+         | Cell | Budget | Verdict | windows | UI ms | raster ms (inline renders) | {third} | bucket |\n\
          | --- | --- | --- | --- | --- | --- | --- | --- |"
     );
     for (index, _, check) in attributed {
@@ -919,7 +1090,10 @@ fn attribution(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, 
             check.budget.name(),
             s.windows,
             s.inline,
-            s.bucket()
+            match s.bucket() {
+                "upload" => bucket,
+                other => other,
+            }
         );
     }
     let _ = writeln!(md);
@@ -1037,6 +1211,17 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
         let _ = writeln!(
             md,
             "- none: every run wrote its records, settled sharp and got the window it asked for"
+        );
+    }
+    if let Some(every) = meta.frames {
+        let _ = writeln!(
+            md,
+            "- frames: every{} composed frame written as a PNG (`--frames`), on a thread of its \
+             own; the encoding takes a core, so these timings are for looking, not measuring",
+            match every {
+                1 => String::new(),
+                n => format!(" {n}th"),
+            }
         );
     }
     if meta.caching == "verify" {

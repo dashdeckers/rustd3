@@ -1,7 +1,10 @@
 //! [`Metrics`]: one run's records as the decision rule reads them: frame
 //! intervals, input-to-sharp latency, preview share, UI busy time, the
 //! raster critical path, CPU and upload rates, memory, and the shares of
-//! UI, raster and upload in any window of frames.
+//! UI, raster and upload in any window of frames; for a headless run that
+//! read every frame back, each frame's cost by [`Part`] (D22.12).
+
+use std::collections::HashMap;
 
 use crate::record::{self, Record};
 use crate::scenario::Scenario;
@@ -33,6 +36,26 @@ pub struct Frame {
     pub uploaded: u64,
     /// The child's update and draw, ms.
     pub ui_ms: f64,
+}
+
+/// One frame composed offscreen, by part (D22.12): the widget's UI work,
+/// iced's composition into the pixmap, and after a frame that still shows
+/// previews or missing tiles the time to the next frame, which the loop
+/// spends waiting on the pool's renders.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Part {
+    /// The `RedrawRequested` instant, ms since process start.
+    pub at_ms: f64,
+    /// Update and draw over every pass of the instant, inline renders and
+    /// the software mosaic included.
+    pub ui_ms: f64,
+    /// The screenshot: iced composing the frame and reading it back.
+    pub compose_ms: f64,
+    /// After a stale frame, its end to the next frame's instant; 0 after a
+    /// sharp one (the loop idles then).
+    pub wait_ms: f64,
+    /// Slots missing or outdated.
+    pub stale: bool,
 }
 
 /// One injected event and when it became sharp.
@@ -114,6 +137,11 @@ pub struct Metrics {
     pub settled: bool,
     /// The first frame's instant, the replay's zero.
     pub start_ms: f64,
+    /// Every headless readback: the frame's instant and the screenshot's
+    /// duration, ms.
+    compositions: Vec<(f64, f64)>,
+    /// An empty frame's readback, ms: the screenshot's fixed cost.
+    pub readback_ms: Option<f64>,
 }
 
 /// Window extension past the last input, ms (reading 4).
@@ -133,6 +161,8 @@ impl Metrics {
         let mut stages = Vec::new();
         let mut sys = Vec::new();
         let mut mismatches = Vec::new();
+        let mut compositions = Vec::new();
+        let mut readback_ms = None;
         let (mut end_ms, mut settled) = (None, false);
         for record in records {
             match record {
@@ -193,7 +223,8 @@ impl Metrics {
                     gpu_mb: *gpu_mb,
                 }),
                 Record::Mismatch { max, .. } => mismatches.push(*max),
-                Record::Harness { .. } => {}
+                Record::Harness { at_ms, ms } => compositions.push((*at_ms, *ms)),
+                Record::Readback { ms } => readback_ms = Some(*ms),
                 Record::End {
                     at_ms,
                     settled: done,
@@ -228,6 +259,8 @@ impl Metrics {
             end_ms,
             settled,
             start_ms,
+            compositions,
+            readback_ms,
         })
     }
 
@@ -465,9 +498,12 @@ impl Metrics {
         (bytes as f64 / 1e6 * self.slope().unwrap_or(0.0)).max(0.0)
     }
 
-    /// Shares over latency windows slower than `limit` in `half`.
+    /// Shares over latency windows slower than `limit` in `half`; for a
+    /// run composed offscreen, the frames' compositions in place of
+    /// uploads.
     pub fn latency_shares(&self, half: Half, limit: f64) -> Shares {
         let mut shares = Shares::default();
+        let offscreen = self.is_composed() && self.run.headless;
         for l in self.latencies_of(half).into_iter().filter(|l| l.ms > limit) {
             let frames = self
                 .frames
@@ -480,7 +516,11 @@ impl Metrics {
             shares.ui_ms += ui;
             shares.raster_ms += raster;
             shares.inline += inline;
-            shares.upload_ms += self.upload_ms(bytes);
+            shares.upload_ms += if offscreen {
+                self.composed_between(l.frames)
+            } else {
+                self.upload_ms(bytes)
+            };
             shares.windows += 1;
         }
         shares
@@ -534,6 +574,156 @@ impl Metrics {
             shares.inline += inline;
         }
         shares
+    }
+}
+
+impl Metrics {
+    /// Whether every frame was composed and read back (a headless run):
+    /// its frames have parts.
+    pub fn is_composed(&self) -> bool {
+        !self.compositions.is_empty()
+    }
+
+    /// Each shown instant that was composed, by part, in order.
+    pub fn parts(&self) -> Vec<Part> {
+        let composed: HashMap<u64, f64> = self
+            .compositions
+            .iter()
+            .map(|&(at, ms)| (at.to_bits(), ms))
+            .collect();
+        let mut parts: Vec<Part> = Vec::new();
+        for frame in &self.frames {
+            match parts.last_mut() {
+                Some(last) if last.at_ms == frame.at_ms => {
+                    last.ui_ms += frame.ui_ms;
+                    last.stale = frame.stale > 0;
+                }
+                Some(_) | None => parts.push(Part {
+                    at_ms: frame.at_ms,
+                    ui_ms: frame.ui_ms,
+                    compose_ms: f64::NAN,
+                    wait_ms: 0.0,
+                    stale: frame.stale > 0,
+                }),
+            }
+        }
+        parts.retain_mut(|part| {
+            composed.get(&part.at_ms.to_bits()).is_some_and(|&ms| {
+                part.compose_ms = ms;
+                true
+            })
+        });
+        let next: Vec<f64> = parts.iter().skip(1).map(|p| p.at_ms).collect();
+        for (part, next) in parts.iter_mut().zip(next) {
+            if part.stale {
+                part.wait_ms = (next - part.at_ms - part.cost()).max(0.0);
+            }
+        }
+        parts
+    }
+
+    /// The composed frames of the interaction window (the whole run's
+    /// without input).
+    pub fn parts_in_window(&self) -> Vec<Part> {
+        let [from, to] = self.window(Half::Whole);
+        self.parts()
+            .into_iter()
+            .filter(|p| p.at_ms >= from && p.at_ms <= to)
+            .collect()
+    }
+
+    /// The `p`th percentile of `part` over the window's composed frames.
+    pub fn part(&self, part: fn(&Part) -> f64, p: f64) -> Option<f64> {
+        let values: Vec<f64> = self.parts_in_window().iter().map(part).collect();
+        percentile(&values, p)
+    }
+
+    /// The mean of `part` per composed frame of the window.
+    pub fn part_mean(&self, part: fn(&Part) -> f64) -> Option<f64> {
+        let values: Vec<f64> = self.parts_in_window().iter().map(part).collect();
+        stats::mean(&values)
+    }
+
+    /// The mean split of the sharp latencies: the UI work and the
+    /// compositions of the frames from the one that applied the input to
+    /// the one before the sharp frame, and the rest (the wait on the pool
+    /// and for the next frame), ms.
+    pub fn latency_parts(&self) -> Option<[f64; 3]> {
+        let parts = self.parts();
+        let at = |frame: u64| {
+            self.frames
+                .iter()
+                .find(|f| f.frame >= frame)
+                .map(|f| f.at_ms)
+        };
+        let split: Vec<[f64; 3]> = self
+            .latencies
+            .iter()
+            .filter(|l| l.sharp)
+            .filter_map(|l| {
+                let (from, to) = (at(l.frames[0])?, at(l.frames[1])?);
+                let (ui, compose) = parts
+                    .iter()
+                    .filter(|p| p.at_ms >= from && p.at_ms < to)
+                    .fold((0.0, 0.0), |(ui, c), p| (ui + p.ui_ms, c + p.compose_ms));
+                Some([ui, compose, (l.ms - ui - compose).max(0.0)])
+            })
+            .collect();
+        (!split.is_empty()).then(|| {
+            let n = split.len() as f64;
+            [0, 1, 2].map(|i| split.iter().map(|s| s[i]).sum::<f64>() / n)
+        })
+    }
+
+    /// Shares over the window's composed frames whose cost exceeds
+    /// `limit`: their UI work without inline renders, the inline renders
+    /// as raster, and their composition in the upload share (offscreen
+    /// there is nothing to upload; iced's composition takes its place).
+    pub fn cost_shares(&self, limit: f64) -> Shares {
+        let mut shares = Shares::default();
+        for part in self.parts_in_window().iter().filter(|p| p.cost() > limit) {
+            let frames: Vec<u64> = self
+                .frames
+                .iter()
+                .filter(|f| f.at_ms == part.at_ms)
+                .map(|f| f.frame)
+                .collect();
+            let inline: Vec<&Raster> = self
+                .rasters
+                .iter()
+                .filter(|r| r.inline && frames.contains(&r.frame))
+                .collect();
+            let raster: f64 = inline.iter().map(|r| r.ms).sum();
+            shares.ui_ms += (part.ui_ms - raster).max(0.0);
+            shares.raster_ms += raster;
+            shares.inline += inline.len() as u32;
+            shares.upload_ms += part.compose_ms;
+            shares.windows += 1;
+        }
+        shares
+    }
+
+    /// The compositions of the frames from pass `from` to pass `to`, ms.
+    fn composed_between(&self, [from, to]: [u64; 2]) -> f64 {
+        let at = |frame: u64| {
+            self.frames
+                .iter()
+                .find(|f| f.frame >= frame)
+                .map_or(f64::INFINITY, |f| f.at_ms)
+        };
+        let (from, to) = (at(from), at(to));
+        self.parts()
+            .iter()
+            .filter(|p| p.at_ms >= from && p.at_ms <= to)
+            .map(|p| p.compose_ms)
+            .sum()
+    }
+}
+
+impl Part {
+    /// What producing the frame cost: its UI work and its composition.
+    pub fn cost(&self) -> f64 {
+        self.ui_ms + self.compose_ms
     }
 }
 
@@ -606,7 +796,7 @@ fn cpu_rate(from: (f64, u64), to: (f64, u64), clk_tck: u64) -> Option<f64> {
 
 #[cfg(test)]
 pub mod tests {
-    use super::{Half, Metrics, Shares, cpu_rate};
+    use super::{Half, Metrics, Part, Shares, cpu_rate};
     use crate::record::{self, Record};
 
     /// A header for `scenario` at 60 Hz, 1 s long.
@@ -723,6 +913,80 @@ pub mod tests {
         let metrics = Metrics::of(&records).unwrap();
         assert_eq!(metrics.intervals().len(), 2);
         assert_eq!(metrics.drops(), 2);
+    }
+
+    /// An offscreen run: frames at 1000, 1016, 1032 and 1048 ms (the first
+    /// in two passes) showing previews until 1032, each composed in 4 or
+    /// 5 ms, an empty frame read back in 2 ms, and an input at 1000 ms.
+    pub fn offscreen() -> Vec<Record> {
+        let mut records = vec![header("pan-x")];
+        if let Record::Run(run) = &mut records[0] {
+            run.headless = true;
+        }
+        records.extend([
+            Record::Readback { ms: 2.0 },
+            frame(1, 1000.0, 7, 3),
+            frame(2, 1000.0, 7, 3),
+            Record::Harness {
+                at_ms: 1000.0,
+                ms: 4.0,
+            },
+            frame(3, 1016.0, 7, 3),
+            Record::Harness {
+                at_ms: 1016.0,
+                ms: 4.0,
+            },
+            frame(4, 1032.0, 7, 0),
+            Record::Harness {
+                at_ms: 1032.0,
+                ms: 5.0,
+            },
+            frame(5, 1048.0, 7, 0),
+            Record::Harness {
+                at_ms: 1048.0,
+                ms: 5.0,
+            },
+            input(1000.0, 1),
+        ]);
+        records
+    }
+
+    #[test]
+    fn an_offscreen_frame_costs_its_ui_and_composition_and_a_stale_one_waits() {
+        let metrics = Metrics::of(&offscreen()).unwrap();
+        assert!(metrics.is_composed());
+        assert_eq!(metrics.readback_ms, Some(2.0));
+        let parts = metrics.parts();
+        assert_eq!(parts.len(), 4, "one per instant, not per pass");
+        // Two passes of 1.5 ms of UI, composed in 4 ms: 7 ms.
+        assert_eq!((parts[0].ui_ms, parts[0].compose_ms), (3.0, 4.0));
+        assert_eq!(parts[0].cost(), 7.0);
+        // Stale: from its end at 1007 ms to the next frame at 1016.
+        assert_eq!(parts[0].wait_ms, 9.0);
+        assert_eq!(parts[1].wait_ms, 10.5);
+        // Sharp: the loop idles, nothing waits on the pool.
+        assert_eq!((parts[2].wait_ms, parts[3].wait_ms), (0.0, 0.0));
+        assert_eq!(metrics.part(Part::cost, 100.0), Some(7.0));
+        assert_eq!(metrics.part(Part::cost, 50.0), Some(6.5));
+        assert_eq!(metrics.part_mean(|p| p.wait_ms), Some(19.5 / 4.0));
+        // The input is sharp 32 ms later: the two frames before cost 4.5 ms
+        // of UI and 8 of composition; 19.5 waited.
+        assert_eq!(metrics.latencies[0].ms, 32.0);
+        assert_eq!(metrics.latency_parts(), Some([4.5, 8.0, 19.5]));
+        // Frames over 6 ms: their UI, and their composition where a display
+        // would upload.
+        let shares = metrics.cost_shares(6.0);
+        assert_eq!(
+            (shares.ui_ms, shares.upload_ms, shares.windows),
+            (6.0, 14.0, 3)
+        );
+        // Offscreen, a slow latency window's third share is its frames'
+        // compositions.
+        let latency = metrics.latency_shares(Half::Whole, 20.0);
+        assert_eq!((latency.upload_ms, latency.windows), (13.0, 1));
+        // A windowed run has no parts.
+        let windowed = Metrics::of(&[header("pan-x"), frame(1, 0.0, 1, 0)]).unwrap();
+        assert!(!windowed.is_composed() && windowed.parts().is_empty());
     }
 
     #[test]

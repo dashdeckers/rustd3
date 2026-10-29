@@ -7,9 +7,18 @@
 //! the waker fired; `RedrawRequested(now)`, and while that publishes
 //! messages, apply them, rebuild and repeat with the same `now` (at most
 //! three passes, as `winit/src/lib.rs:788-830`); draw; screenshot.
+//!
+//! On the software renderer this is the software profile's offscreen
+//! frame (D22.12): the screenshot is iced composing the frame into a
+//! pixmap. Before the first frame the loop times the readback of an empty
+//! frame, the screenshot's fixed cost; with `--frames` it writes every
+//! n-th frame as a PNG on a thread of its own.
 
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -21,6 +30,7 @@ use iced_runtime::user_interface::{self, UserInterface};
 use crate::app::{App, Effect, Message};
 use crate::cli::widget::Readback;
 use crate::record::Record;
+use crate::stats::percentile;
 use crate::system;
 
 /// Why the headless loop cannot run.
@@ -29,6 +39,42 @@ pub enum Error {
     /// iced found no renderer for the backend.
     Backend(String),
 }
+
+/// How the loop runs: the renderer, the frame's scale and rate, and what it
+/// reads back and writes.
+#[derive(Debug, Clone)]
+pub struct Settings<'a> {
+    /// The backend (`None`: iced's choice).
+    pub backend: Option<&'a str>,
+    /// The scale factor.
+    pub factor: f32,
+    /// The virtual frames' rate.
+    pub refresh_hz: f64,
+    /// When pixels are read back.
+    pub readback: Readback,
+    /// Where composed frames are written as PNGs, if anywhere.
+    pub frames: Option<Frames>,
+}
+
+/// Composed frames written as PNGs (`--frames DIR --every N`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Frames {
+    /// The run's directory of PNGs.
+    pub dir: PathBuf,
+    /// Every n-th frame, from the first.
+    pub every: u32,
+}
+
+/// A frame on its way to its PNG.
+struct Shot {
+    path: PathBuf,
+    width: u32,
+    height: u32,
+    rgba: Vec<u8>,
+}
+
+/// Empty frames read back to time the screenshot's fixed cost.
+const EMPTY_READBACKS: usize = 5;
 
 /// Frames on a grid of `period`, as vsync paces them: a frame that misses
 /// its slot waits for the next one.
@@ -74,15 +120,16 @@ impl Pacer {
     }
 }
 
-/// Runs `app` on `backend` (`None`: iced's choice) until its driver is
-/// done; returns the renderer that ran.
-pub fn run(
-    app: &mut App,
-    backend: Option<&str>,
-    factor: f32,
-    refresh_hz: f64,
-    readback: Readback,
-) -> Result<String, Error> {
+/// Runs `app` as `settings` say until its driver is done; returns the
+/// renderer that ran.
+pub fn run(app: &mut App, settings: &Settings<'_>) -> Result<String, Error> {
+    let Settings {
+        backend,
+        factor,
+        refresh_hz,
+        readback,
+        ..
+    } = *settings;
     let renderer = iced::futures::executor::block_on(iced::Renderer::new(
         renderer::Settings::default(),
         backend,
@@ -99,6 +146,26 @@ pub fn run(
     let waker = shell::Waker::new(move || flag.store(true, Ordering::SeqCst));
     let records = app.records();
     let epoch = app.epoch();
+    if readback == Readback::Every {
+        let empty: Vec<f64> = (0..EMPTY_READBACKS)
+            .map(|_| {
+                let begin = Instant::now();
+                let _ = screenshot(&mut renderer, app.size(), factor);
+                begin.elapsed().as_secs_f64() * 1e3
+            })
+            .collect();
+        if let Some(ms) = percentile(&empty, 50.0) {
+            let _ = records.send(Record::Readback { ms });
+        }
+    }
+    let (shots, writer) = match &settings.frames {
+        Some(frames) => {
+            let (send, receive) = mpsc::sync_channel(4);
+            (Some((send, frames)), Some(write(receive)))
+        }
+        None => (None, None),
+    };
+    let mut composed = 0_u64;
     let mut pacer = Pacer::new(refresh_hz);
     let mut bus = shell::Bus::new();
     let mut cache = user_interface::Cache::default();
@@ -145,11 +212,23 @@ pub fn run(
             draw(&mut ui, &mut renderer);
             if readback == Readback::Every {
                 let begin = Instant::now();
-                let _ = screenshot(&mut renderer, size, factor);
+                let rgba = screenshot(&mut renderer, size, factor);
                 let _ = records.send(Record::Harness {
                     at_ms: system::since(epoch, now),
                     ms: begin.elapsed().as_secs_f64() * 1e3,
                 });
+                if let Some((send, frames)) = &shots
+                    && composed.is_multiple_of(u64::from(frames.every))
+                {
+                    let [width, height] = physical(size, factor);
+                    let _ = send.send(Shot {
+                        path: frames.dir.join(format!("{composed:05}.png")),
+                        width,
+                        height,
+                        rgba,
+                    });
+                }
+                composed += 1;
             }
         };
         cache = ui.into_cache();
@@ -169,7 +248,20 @@ pub fn run(
                 let size = app.size();
                 let mut ui = UserInterface::build(app.view(), size, cache, &mut renderer);
                 draw(&mut ui, &mut renderer);
-                let _ = screenshot(&mut renderer, size, factor);
+                let rgba = screenshot(&mut renderer, size, factor);
+                if let Some((send, frames)) = &shots {
+                    let [width, height] = physical(size, factor);
+                    let _ = send.send(Shot {
+                        path: frames.dir.join("last.png"),
+                        width,
+                        height,
+                        rgba,
+                    });
+                }
+            }
+            drop(shots);
+            if let Some(writer) = writer {
+                let _ = writer.join();
             }
             return Ok(name);
         }
@@ -193,9 +285,46 @@ fn draw(
 
 /// Reads the frame back at its device size.
 fn screenshot(renderer: &mut iced::Renderer, size: Size, factor: f32) -> Vec<u8> {
-    let physical = Size::new(
+    let [width, height] = physical(size, factor);
+    renderer.screenshot(Size::new(width, height), factor, Color::WHITE)
+}
+
+/// A logical size's device px at `factor`.
+fn physical(size: Size, factor: f32) -> [u32; 2] {
+    [
         (size.width * factor).round() as u32,
         (size.height * factor).round() as u32,
-    );
-    renderer.screenshot(physical, factor, Color::WHITE)
+    ]
+}
+
+/// Writes each frame it receives as a PNG, on a thread of its own so the
+/// encoding stays off the frame loop (it still takes a core); the first
+/// failure is printed and the rest dropped.
+fn write(shots: mpsc::Receiver<Shot>) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        let mut failed = false;
+        for shot in shots {
+            if failed {
+                continue;
+            }
+            let image = rustd3_figure::raster::Image {
+                width: shot.width,
+                height: shot.height,
+                rgba: shot.rgba,
+            };
+            let written = shot
+                .path
+                .parent()
+                .map_or(Ok(()), fs::create_dir_all)
+                .map_err(|e| e.to_string())
+                .and_then(|()| {
+                    rustd3_figure::raster::png::encode(&image).map_err(|e| e.to_string())
+                })
+                .and_then(|png| fs::write(&shot.path, png).map_err(|e| e.to_string()));
+            if let Err(error) = written {
+                eprintln!("rustd3-bench: {}: {error}", shot.path.display());
+                failed = true;
+            }
+        }
+    })
 }

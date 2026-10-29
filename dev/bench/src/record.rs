@@ -109,7 +109,16 @@ pub enum Record {
         /// Whole-GPU memory used, MiB (`nvidia-smi`), when sampled.
         gpu_mb: Option<f64>,
     },
-    /// A headless readback: the harness's own cost, not the widget's.
+    /// A headless readback of an empty frame at the run's first size,
+    /// before its first frame (the median of a few): the screenshot's
+    /// fixed cost (a frame-sized buffer and clip mask, the background, the
+    /// conversion to RGBA), which a window's composition does not pay.
+    Readback {
+        /// Its duration.
+        ms: f64,
+    },
+    /// A headless readback: iced composing the frame into an offscreen
+    /// pixmap and reading it back (the harness's, not the widget's).
     Harness {
         /// When the frame began.
         at_ms: f64,

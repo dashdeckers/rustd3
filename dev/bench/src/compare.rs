@@ -181,7 +181,7 @@ fn cells(md: &mut String, a: &Profile, b: &Profile) {
         let find = |p: &Profile| p.cells.iter().position(|c| c.applies && c.name() == name);
         match (find(a).map(|i| &a.cells[i]), find(b).map(|i| &b.cells[i])) {
             (Some(ca), Some(cb)) => {
-                for (index, (key, heading, digits, share)) in results::KEY.into_iter().enumerate() {
+                for (index, &(key, heading, digits, share)) in a.key().iter().enumerate() {
                     let (va, vb) = (ca.metrics.get(key).copied(), cb.metrics.get(key).copied());
                     let ratio = match (va, vb) {
                         (Some(va), Some(vb)) if va.abs() > 1e-12 => format!("{:.2}", vb / va),

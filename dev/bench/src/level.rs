@@ -28,9 +28,10 @@ use crate::system;
 /// How much a level runs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Level {
-    /// About 10 minutes: what an issue report needs; report-only.
+    /// About 16 minutes: what an issue report needs; report-only.
     Quick,
-    /// About 75 minutes: the registered verdict run and the weak profiles.
+    /// About 95 minutes: the software profile, the registered verdict run
+    /// and the weak profiles.
     Default,
     /// Hours: every cell on the native backend, the weak profiles and
     /// every `also` measurement.
@@ -53,6 +54,11 @@ pub struct Request {
     pub figure_only: bool,
     /// `--dry-run` (hidden): print the plan and the estimate, run nothing.
     pub dry_run: bool,
+    /// `--frames DIR`: the software profile writes its composed frames as
+    /// PNGs under DIR (D22.12).
+    pub frames: Option<PathBuf>,
+    /// `--every N`: with `--frames`, every N-th frame.
+    pub every: u32,
 }
 
 /// The widget's part of a level, in a build with the `widget` feature
@@ -120,16 +126,17 @@ impl Level {
     pub fn describe(self) -> &'static str {
         match self {
             Level::Quick => {
-                "what a performance issue needs, report-only: the figure profile, the native \
-                 backend's cells, then the software renderer's"
+                "what a performance issue needs, report-only: the figure profile, the software \
+                 path offscreen, the native backend's cells, then the software renderer's"
             }
             Level::Default => {
-                "the figure profile with its ladders, the registered verdict run (D22.1's rule \
-                 outcome) and the weak profiles (D22.4)"
+                "the figure profile with its ladders, the software path offscreen, the \
+                 registered verdict run (D22.1's rule outcome) and the weak profiles (D22.4)"
             }
             Level::Full => {
-                "the figure profile with its ladders and GIFs, every scenario × workload × factor \
-                 on the native backend, the weak profiles and every `also` measurement"
+                "the figure profile with its ladders and GIFs, the software path offscreen, every \
+                 scenario × workload × factor on the native backend, the weak profiles and \
+                 every `also` measurement"
             }
         }
     }

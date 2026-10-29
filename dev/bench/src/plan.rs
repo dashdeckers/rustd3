@@ -42,6 +42,13 @@ pub enum Plan {
     Focus,
     /// Every scenario × workload × factor, five runs each.
     Full,
+    /// D22.12's software path offscreen: `hover`, `pan-x`, `zoom-lines`
+    /// and `drag-resize` on `trace`, `scatter100k` and `grid16` at factors
+    /// 1 and 2, three runs each, on iced's software renderer headless,
+    /// every frame composed into an offscreen pixmap; held to the weak
+    /// budgets, report-only. Its cells keep 1600 × 1000 logical px at both
+    /// factors (it runs with a native factor of 2, so neither is shrunk).
+    Software,
 }
 
 /// One scenario × workload × factor, run `runs` times; a workload that
@@ -88,13 +95,28 @@ const REGISTERED: [Workload; 4] = [
 /// estimate's allowance on real hardware.
 pub const OVERHEAD_MS: f64 = 4_000.0;
 
+/// The software plan's factors (D22.12).
+pub const SOFTWARE_FACTORS: [f32; 2] = [1.0, 2.0];
+
+/// The software plan's workloads (D22.12).
+const SOFTWARE_WORKLOADS: [Workload; 3] =
+    [Workload::Trace, Workload::Scatter100k, Workload::Grid16];
+
+/// The software plan's scenarios (D22.12).
+const SOFTWARE_SCENARIOS: [Scenario; 4] = [
+    Scenario::Hover,
+    Scenario::PanX,
+    Scenario::ZoomLines,
+    Scenario::DragResize,
+];
+
 /// How long the display measurement hovers, ms: with the driver's 2 s
 /// settle about 300 frame intervals at 60 Hz, 150 at 30 Hz.
 const DISPLAY_MS: f64 = 3_000.0;
 
 impl Plan {
     /// Every plan.
-    pub const ALL: [Plan; 7] = [
+    pub const ALL: [Plan; 8] = [
         Plan::Smoke,
         Plan::Display,
         Plan::Quick,
@@ -102,6 +124,7 @@ impl Plan {
         Plan::Weak,
         Plan::Focus,
         Plan::Full,
+        Plan::Software,
     ];
 
     /// The plan's name on the command line.
@@ -114,6 +137,7 @@ impl Plan {
             Plan::Weak => "weak",
             Plan::Focus => "focus",
             Plan::Full => "full",
+            Plan::Software => "software",
         }
     }
 
@@ -127,7 +151,7 @@ impl Plan {
     pub fn cells(self, native: f32, selection: &Selection) -> Vec<Cell> {
         let runs = match self {
             Plan::Smoke | Plan::Display => 1,
-            Plan::Quick => 3,
+            Plan::Quick | Plan::Software => 3,
             Plan::Default | Plan::Weak | Plan::Focus | Plan::Full => 5,
         };
         let cell = |scenario, workload, factor| Cell {
@@ -206,6 +230,15 @@ impl Plan {
                     cells.push(cell(Scenario::DragResize, workload, native));
                 }
             }
+            Plan::Software => {
+                for factor in SOFTWARE_FACTORS {
+                    for workload in SOFTWARE_WORKLOADS {
+                        for scenario in SOFTWARE_SCENARIOS {
+                            cells.push(cell(scenario, workload, factor));
+                        }
+                    }
+                }
+            }
             Plan::Full => {
                 let mut factors = FACTORS.to_vec();
                 if !factors.contains(&native) {
@@ -241,9 +274,15 @@ impl Plan {
             (Plan::Smoke, Scenario::Soak) => 20_000.0,
             (Plan::Smoke, _) => scenario.duration_ms() / 5.0,
             (Plan::Display, _) => DISPLAY_MS,
-            (Plan::Quick | Plan::Default | Plan::Weak | Plan::Focus | Plan::Full, _) => {
-                scenario.duration_ms()
-            }
+            (
+                Plan::Quick
+                | Plan::Default
+                | Plan::Weak
+                | Plan::Focus
+                | Plan::Full
+                | Plan::Software,
+                _,
+            ) => scenario.duration_ms(),
         }
     }
 
@@ -251,7 +290,12 @@ impl Plan {
     pub fn data_scale(self) -> f64 {
         match self {
             Plan::Smoke | Plan::Display => 0.01,
-            Plan::Quick | Plan::Default | Plan::Weak | Plan::Focus | Plan::Full => 1.0,
+            Plan::Quick
+            | Plan::Default
+            | Plan::Weak
+            | Plan::Focus
+            | Plan::Full
+            | Plan::Software => 1.0,
         }
     }
 
@@ -516,6 +560,38 @@ mod tests {
         let minutes = Plan::Focus.estimate_s(&cells) / 60.0;
         assert!((16.0..18.0).contains(&minutes), "{minutes}");
         assert_eq!(Plan::parse("focus"), Some(Plan::Focus));
+    }
+
+    #[test]
+    fn software_plan_has_d22_12s_cells() {
+        // Whatever the display: factors 1 and 2, each at 1600 × 1000
+        // logical px with the native factor 2 the profile runs at.
+        let cells = Plan::Software.cells(1.0, &Selection::default());
+        assert_eq!(cells.len(), 4 * 3 * 2);
+        assert!(cells.iter().all(|c| c.applies() && c.runs == 3));
+        let factors: Vec<f32> = cells.iter().map(|c| c.factor).collect();
+        assert_eq!(factors[..12], [1.0; 12]);
+        assert_eq!(factors[12..], [2.0; 12]);
+        for cell in Plan::Software.cells(2.0, &Selection::default()) {
+            assert_eq!(cell.window(2.0), Size::new(1600.0, 1000.0), "{cell}");
+        }
+        assert_eq!(
+            (cells[0].scenario, cells[0].workload),
+            (Scenario::Hover, Workload::Trace)
+        );
+        assert!(
+            cells
+                .iter()
+                .any(|c| c.workload == Workload::Grid16 && c.scenario == Scenario::DragResize)
+        );
+        assert_eq!(Plan::parse("software"), Some(Plan::Software));
+        // One run a cell, as the quick level runs it: about 6.4 minutes.
+        let one = Selection {
+            runs: Some(1),
+            ..Selection::default()
+        };
+        let minutes = Plan::Software.estimate_s(&Plan::Software.cells(2.0, &one)) / 60.0;
+        assert!((6.0..7.0).contains(&minutes), "{minutes}");
     }
 
     #[test]

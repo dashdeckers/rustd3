@@ -71,28 +71,34 @@ rustd3-bench: rustd3's benchmark, the plotting library and its Plot widget.
 
   cargo rustd3-bench [--quick | --default | --full] [--figure-only]
                      [--out DIR] [--refresh-hz HZ] [--native-factor F]
+                     [--frames DIR [--every N]]
 
 From a checkout of rustd3 (the cargo alias builds the release bench and
 runs it; dev/bench/run.sh does the same). It runs on any machine and
 platform: it prints what it will run and an estimate of the time, measures
 the display (one window, a few seconds), takes three single-threaded CPU
 timings, times figures from data to SVG, PDF and PNG through the library's
-own calls (the figure profile, headless), then drives the Plot widget in the
-level's profiles, in windows that open and close by themselves; keep hands
-off the mouse and keyboard.
-  --quick     about 10 minutes: what a performance issue needs. Six figures,
-              7 times each; then the widget's cells hover, pan-x and
-              zoom-lines on trace and scatter100k and drag-resize on trace, 3
-              runs each, on the native backend; pan-x and zoom-lines on trace
-              on the software renderer (and again on X11 in a Linux Wayland
-              session). Report-only.
-  --default   about 80 minutes, the default: the figures with ladders of
+own calls (the figure profile, headless), drives the Plot widget on the
+software renderer offscreen (the software profile, headless), then in the
+level's other profiles in windows that open and close by themselves; keep
+hands off the mouse and keyboard.
+  --quick     about 16 minutes: what a performance issue needs. Six figures,
+              7 times each; the software profile's 24 cells (hover, pan-x,
+              zoom-lines, drag-resize on trace, scatter100k and grid16 at
+              factors 1 and 2) once each; then the widget's cells hover,
+              pan-x and zoom-lines on trace and scatter100k and drag-resize on
+              trace, 3 runs each, on the native backend; pan-x and zoom-lines
+              on trace on the software renderer (and again on X11 in a Linux
+              Wayland session). Report-only.
+  --default   about 95 minutes, the default: the figures with ladders of
               lines and scatters, the presets and the wheel figure; the
-              registered verdict run (D22.1's rule outcome) and the weak
-              profiles (no GPU, 4 cores, 2 cores; D22.4).
-  --full      hours: the figures to 10M markers and GIFs; every scenario x
-              workload x factor on the native backend, the weak profiles and
-              every `also` measurement.
+              software profile, 3 runs a cell; the registered verdict run
+              (D22.1's rule outcome) and the weak profiles (no GPU, 4 cores,
+              2 cores; D22.4).
+  --full      hours: the figures to 10M markers and GIFs; the software
+              profile, 5 runs a cell; every scenario x workload x factor on
+              the native backend, the weak profiles and every `also`
+              measurement.
   --figure-only
               the plotting library alone: the CPU reference and the figure
               profile at the level, no display measurement and no window, as
@@ -102,6 +108,10 @@ off the mouse and keyboard.
               the display's refresh rate and scale factor, for displays that
               cannot be measured (by default the display measurement gives
               both; an unpaced display, such as a VM's, runs at 60 Hz).
+  --frames DIR [--every N]
+              the software profile also writes its composed frames (every
+              N-th) as PNGs under DIR/<cell>__r<run>/, to look at; the
+              encoding takes a core, so those timings are not for comparing.
 Without a display it runs headless; without a GPU the native backend is
 the software renderer; with too few cores a profile is skipped; a run that
 fails is recorded and the level goes on. It writes
@@ -112,7 +122,8 @@ or user name, no home path). With --figure-only both names read
 figure-<level> for <level>.
 
 Advanced (developers):
-  run     [--plan smoke|display|quick|default|weak|focus|full] [--scenario A,B]
+  run     [--plan smoke|display|quick|default|weak|focus|full|software]
+          [--scenario A,B]
           [--workload A,B] [--factor 1,1.25] [--runs N] [--refresh-hz HZ]
           [--native-factor F] [--backend wgpu|tiny-skia|auto]
           [--budgets desktop|weak]
@@ -120,7 +131,7 @@ Advanced (developers):
           [--headless] [--readback every|last] [--render auto|inline|worker]
           [--caching on|off|verify] [--threads N] [--replay FILE]
           [--data-scale F] [--cpu-limit TEXT] [--xwayland] [--no-also]
-          [--out DIR]
+          [--frames DIR [--every N]] [--out DIR]
           one plan into DIR/<UTC stamp>/ (default bench-out): replays, a
           process per cell and run, the CSVs and report.md, then the \"Also
           measured\" items unless --no-also. Windowed, --refresh-hz and
@@ -129,7 +140,9 @@ Advanced (developers):
           --workload and --factor restrict any plan (smoke runs at the
           listed factors instead of 2). `weak` is D22.4's plan, held to the
           weak budgets (as --budgets weak holds any plan); `focus` is D22.5's
-          report-only plan. --backend auto leaves the choice to iced (wgpu,
+          report-only plan; `software` is D22.12's, run --headless on
+          tiny-skia, every frame's cost timed by part (parts.csv).
+          --frames (headless) writes the composed frames as PNGs. --backend auto leaves the choice to iced (wgpu,
           or tiny-skia without a GPU adapter). --threads sets the widget's
           render pool (1 to 64; default the available parallelism less one,
           1 to 8); --caching verify renders every kept image again and
@@ -275,6 +288,8 @@ impl Request {
             native: None,
             figure_only: !cfg!(feature = "widget"),
             dry_run: false,
+            frames: None,
+            every: 1,
         };
         let mut named: Option<&str> = None;
         let mut args = args.iter();
@@ -319,6 +334,20 @@ impl Request {
                     } else {
                         request.native = Some(factor(value).ok_or_else(bad)?);
                     }
+                }
+                #[cfg(feature = "widget")]
+                "--frames" => {
+                    let value = args.next().ok_or_else(|| Error::Missing(flag.clone()))?;
+                    request.frames = Some(PathBuf::from(value));
+                }
+                #[cfg(feature = "widget")]
+                "--every" => {
+                    let value = args.next().ok_or_else(|| Error::Missing(flag.clone()))?;
+                    let every = value.parse::<u32>().ok().filter(|&n| n > 0);
+                    request.every = every.ok_or_else(|| Error::Value {
+                        flag: flag.clone(),
+                        value: value.clone(),
+                    })?;
                 }
                 "--smoke-only" | "--focus" => return Err(Error::Gone(flag.clone())),
                 other if other.starts_with("--") => return Err(Error::Unknown(other.to_owned())),
@@ -390,15 +419,21 @@ mod tests {
                 native: None,
                 figure_only: false,
                 dry_run: false,
+                frames: None,
+                every: 1,
             }
         );
         assert_eq!(level("--quick").level, Level::Quick);
         assert_eq!(level("--full --full").level, Level::Full);
-        let given = level("--quick --out o --refresh-hz 144 --native-factor 1.25 --dry-run");
+        let given = level(
+            "--quick --out o --refresh-hz 144 --native-factor 1.25 --dry-run --frames f --every 4",
+        );
         assert_eq!(
             (given.out, given.refresh_hz, given.native, given.dry_run),
             (PathBuf::from("o"), Some(144.0), Some(1.25), true)
         );
+        assert_eq!((given.frames, given.every), (Some(PathBuf::from("f")), 4));
+        assert!(Command::parse(&args("--quick --every 0")).is_err());
         assert!(!given.figure_only);
         for line in [
             "--figure-only",

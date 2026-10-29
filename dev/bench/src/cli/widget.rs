@@ -90,6 +90,11 @@ pub struct Options {
     /// Linux Wayland session (`WAYLAND_DISPLAY` removed from their
     /// environment); D22.8's report-only profile, which `suite` runs.
     pub xwayland: bool,
+    /// `--frames DIR` (headless): every `every`-th composed frame written as
+    /// a PNG under `DIR/<cell>__r<run>/`, to look at (D22.12).
+    pub frames: Option<PathBuf>,
+    /// `--every N`: with `--frames`, every N-th frame; 1 by default.
+    pub every: u32,
 }
 
 /// One run of one cell, as `run` spawns it.
@@ -288,6 +293,11 @@ impl Options {
                 }
                 "--out" => options.out = PathBuf::from(value),
                 "--cpu-limit" => options.cpu_limit = Some(value.clone()),
+                "--frames" => options.frames = Some(PathBuf::from(value)),
+                "--every" => {
+                    let every = value.parse::<u32>().ok().filter(|&n| n > 0);
+                    options.every = every.ok_or_else(bad)?;
+                }
                 other if extra.contains(&other) => pairs.push((other.to_owned(), value.clone())),
                 other => return Err(Error::Unknown(other.to_owned())),
             }
@@ -369,6 +379,14 @@ impl Options {
         if self.headless {
             args.push("--headless".to_owned());
         }
+        if let Some(frames) = &self.frames {
+            args.extend([
+                "--frames".to_owned(),
+                frames.display().to_string(),
+                "--every".to_owned(),
+                self.every.to_string(),
+            ]);
+        }
         args
     }
 }
@@ -394,6 +412,8 @@ impl Default for Options {
             out: PathBuf::from("bench-out"),
             cpu_limit: None,
             xwayland: false,
+            frames: None,
+            every: 1,
         }
     }
 }
@@ -639,8 +659,16 @@ mod tests {
             assert!(cli::Command::parse(&args(line)).is_ok(), "{line}");
         }
         // A child round-trips through the flags `run` gives it.
-        let line = "child --plan weak --headless --threads 2 --caching verify \
-                    --cell pan-x__trace__f1.25 --run 2 --dir d";
+        let Ok(Command::Run(written)) = parse("run --headless --frames f --every 5") else {
+            panic!("a run");
+        };
+        assert_eq!(
+            (written.frames, written.every),
+            (Some(PathBuf::from("f")), 5)
+        );
+        assert!(parse("run --every 0").is_err());
+        let line = "child --plan weak --headless --threads 2 --caching verify --frames f \
+                    --every 3 --cell pan-x__trace__f1.25 --run 2 --dir d";
         let Ok(Command::Child(child)) = parse(line) else {
             panic!("a child");
         };
@@ -661,6 +689,10 @@ mod tests {
                 again.options.caching
             ),
             (Plan::Weak, Some(2), Caching::Verify)
+        );
+        assert_eq!(
+            (again.options.frames, again.options.every),
+            (Some(PathBuf::from("f")), 3)
         );
     }
 

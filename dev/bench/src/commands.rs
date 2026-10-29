@@ -196,6 +196,11 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     if options.xwayland && !level::widget::xwayland() {
         return Err(format!("--xwayland: {}", level::widget::NO_XWAYLAND).into());
     }
+    if options.frames.is_some() && !options.headless {
+        return Err(
+            "--frames: only a headless run composes frames to write (add --headless)".into(),
+        );
+    }
     let stamp = system::stamp();
     let dir = options.out.join(&stamp);
     fs::create_dir_all(dir.join("replays"))?;
@@ -373,6 +378,7 @@ fn meta(
         clk_tck: system::clk_tck(),
         cpu_limit: options.cpu_limit.clone(),
         xwayland: options.xwayland,
+        frames: options.frames.as_ref().map(|_| options.every),
         cells: cells
             .iter()
             .map(|cell| Planned {
@@ -411,13 +417,18 @@ fn run_child(child: Child, epoch: Instant) -> Result<(), Box<dyn Error>> {
     };
     if options.headless {
         let mut app = App::new(config);
-        let backend = headless::run(
-            &mut app,
-            options.backend.iced(),
-            child.cell.factor,
-            options.refresh_hz()?,
-            options.readback,
-        )?;
+        let frames = options.frames.as_ref().map(|dir| headless::Frames {
+            dir: dir.join(format!("{}__r{}", child.cell.key(), child.run)),
+            every: options.every,
+        });
+        let settings = headless::Settings {
+            backend: options.backend.iced(),
+            factor: child.cell.factor,
+            refresh_hz: options.refresh_hz()?,
+            readback: options.readback,
+            frames,
+        };
+        let backend = headless::run(&mut app, &settings)?;
         app.finish(&backend)?;
         Ok(())
     } else {
