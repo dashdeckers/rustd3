@@ -12,7 +12,6 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use iced::advanced::renderer::{self, Headless as _};
 use serde::{Deserialize, Serialize};
 
 use crate::record::{self, Record};
@@ -184,16 +183,6 @@ pub fn unreachable_here() -> Option<String> {
         std::env::var_os("WAYLAND_DISPLAY").as_deref(),
         std::env::var_os("DISPLAY").as_deref(),
     )
-}
-
-/// The renderer a headless run gets from iced's own choice here; `None`
-/// when there is none.
-pub fn headless_backend() -> Option<String> {
-    let renderer = iced::futures::executor::block_on(iced::Renderer::new(
-        renderer::Settings::default(),
-        None,
-    ))?;
-    Some(renderer.name())
 }
 
 /// What the display measurement's raw files under `raw` show; `None`

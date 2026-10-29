@@ -63,9 +63,10 @@ fn main() -> ExitCode {
         }
     };
     let result = match command {
-        Command::Level(request) => std::env::current_exe()
-            .map_err(Into::into)
-            .and_then(|exe| request.run(&exe)),
+        Command::Level(request) => std::env::current_exe().map_err(Into::into).and_then(|exe| {
+            let mut part = level::widget::Part::new(&request, &exe);
+            request.run(&exe, Some(&mut part))
+        }),
         Command::Help => {
             print!("{}", cli::HELP);
             Ok(())
@@ -242,8 +243,8 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     if cells.is_empty() {
         return Err("the flags select no cell (see `rustd3-bench list`)".into());
     }
-    if options.xwayland && !level::xwayland() {
-        return Err(format!("--xwayland: {}", level::NO_XWAYLAND).into());
+    if options.xwayland && !level::widget::xwayland() {
+        return Err(format!("--xwayland: {}", level::widget::NO_XWAYLAND).into());
     }
     let stamp = system::stamp();
     let dir = options.out.join(&stamp);
