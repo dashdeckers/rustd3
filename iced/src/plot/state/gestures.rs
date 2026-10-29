@@ -633,6 +633,40 @@ fn layout_holds_during_a_wheel_gesture() {
     );
 }
 
+#[test]
+fn the_first_draw_of_a_gesture_damages_the_widget_whole() {
+    // D22.6 (4c): iced's software renderer redraws a layer whole only when
+    // its bounds differ from the last frame's; otherwise it damages each
+    // moved image apart and redraws every image once per damaged rect,
+    // which took a tiny-skia zoom burst's first frame 10–11 s at factor 2
+    // under Xvfb. However many idle draws came before, the first draw of a
+    // gesture is in a layer whose bounds differ from the last idle draw's.
+    let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
+    let theme = rustd3_figure::Theme::default();
+    let layers = |state: &State| {
+        let mut recorder = Recorder::default();
+        state.draw(&mut recorder, bounds, &theme);
+        recorder.layers()
+    };
+    for idle in 1..=4 {
+        let mut state = state();
+        let t0 = epoch();
+        let fig = bare();
+        rendered(&mut state, &fig, t0);
+        let before: Vec<_> = (0..idle).map(|_| layers(&state)).collect();
+        assert!(before.iter().all(|l| *l == [bounds]), "idle: {before:?}");
+        let area = state.map.area(0).expect("one panel");
+        assert!(state.queue(wheel(area.center())).capture);
+        rendered(&mut state, &fig, t0 + Duration::from_millis(16));
+        let during = [layers(&state), layers(&state), layers(&state)];
+        assert_ne!(during[0], [bounds], "after {idle} idle draws: {during:?}");
+        assert!(
+            during[0] != during[1] && during[1] != during[2],
+            "after {idle} idle draws: {during:?}"
+        );
+    }
+}
+
 /// A pipeline that renders as `render` asks, reports to `probe` and wakes
 /// `waker`, with a pool of one thread.
 fn piped<'a>(render: Render, probe: Option<&'a Probe>, waker: &'a Waker) -> Pipeline<'a> {

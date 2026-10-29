@@ -1832,13 +1832,11 @@ impl State {
         // a px: one rect, each image drawn once.
         let moving =
             self.is_active() || !self.former.is_empty() || self.areas.iter().any(Area::has_preview);
-        let grown = !self.grown.get();
+        // Grown when the last draw was not, so that the first draw of a
+        // gesture differs from the idle one before it too.
+        let grown = moving && !self.grown.get();
         self.grown.set(grown);
-        let layer = if moving && grown {
-            bounds.expand(0.5)
-        } else {
-            bounds
-        };
+        let layer = if grown { bounds.expand(0.5) } else { bounds };
         renderer.with_layer(layer, |renderer| {
             for run in &self.gutters {
                 run.slot().fill(renderer, origin, factor, background);
