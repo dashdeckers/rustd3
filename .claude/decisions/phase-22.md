@@ -1200,3 +1200,107 @@ it.
   session. tiny-skia far below X11 on Wayland, with wgpu paced on both,
   is the upstream issue. If tiny-skia is slow on X11 there too, fewer
   images would isolate the presentation path before filing.
+
+## D22.9 — The benchmark as a first-class, user-facing tool
+
+**Date:** 2026-10-29 · **Context:** the user: "benchmarks should be a
+first class citizen of this library, so that everyone can submit their
+own results that ran on their machine when experiencing performance
+issues and we can easily debug and fix them using their results … a
+single CLI entry point that takes a flag for whether to run a quick,
+default, or full benchmark, regardless of platform or machine
+capabilities." · **Status:** decided
+
+### Decision
+
+(architect, 2026-10-29)
+
+1. **One entry point.** From a checkout, `cargo rustd3-bench [--quick |
+   --default | --full]` runs the benchmark. It is a cargo alias in
+   `.cargo/config.toml` for `run --release -p rustd3-bench --`, so the
+   binary itself is `rustd3-bench [--quick | --default | --full]`, and
+   `--default` is the default. The only other user flags are `--out DIR`
+   and two overrides, `--refresh-hz HZ` and `--native-factor F`, for
+   displays that cannot be measured. Before it starts, it prints what it
+   will run and an estimate of the time.
+2. **Levels.**
+   - **quick**, about 10 minutes on a desktop: what an issue report
+     needs.
+     - The display measurement.
+     - On the native backend: `hover`, `pan-x` and `zoom-lines` on
+       `trace` and `scatter100k`, plus `drag-resize` on `trace`.
+     - On the software renderer: `pan-x` and `zoom-lines` on `trace`,
+       skipped when the native backend already is the software one.
+     - In a Linux Wayland session, the software cells again on X11
+       (D22.8).
+     - 3 runs per cell, and the CPU reference measurements (below).
+     - Report-only: the native cells are held to the desktop budgets and
+       the software cells to the weak budgets.
+   - **default**, about 75 minutes: the registered verdict run, unchanged.
+     That is the default plan with D22.1's rule outcome, D22.4's weak
+     profiles, D22.8's X11 profile and the CPU reference. The display
+     measurement replaces the 6-minute smoke plan.
+   - **full**, hours (the estimate is printed): the full plan on the
+     native backend (every scenario × workload × factor, 5 runs), the
+     weak profiles, the X11 profile, and every `also` measurement.
+3. **Any machine, no stops.**
+   - No window can open (no display, SSH, CI): the headless measurements
+     run, and the report says why.
+   - An unpaced display (VM, Xvfb, remote desktop): the level runs at 60
+     Hz, or at `--refresh-hz`, and the report flags every frame budget as
+     assuming that rate.
+   - No GPU adapter (iced falls back to tiny-skia): the native profile is
+     the software one, and that is recorded.
+   - A machine with fewer cores than a profile: that profile is skipped,
+     and the report says so.
+   - CPU limits per platform as built in 31g.
+   - A run that crashes is recorded as failed, and the level goes on.
+   - Ctrl-C archives what finished.
+4. **One file to submit.**
+   - The level writes `bench-results/<UTC stamp>-<level>/`. It then
+     packs that directory into `bench-results/rustd3-bench-<level>-<UTC
+     stamp>.tar.gz` and prints that path last.
+   - Two new files sit at the top of the directory:
+     - `report.md`: every profile's met and missed budgets, D22.1's rule
+       outcome for default and full, and the machine.
+     - `results.json`: machine-readable. It holds the format version,
+       the rustd3 version and git commit, the level, the machine, and
+       per profile the cells and their summary metrics.
+   - Nothing personal goes in: no host or user name, no home paths, and
+     environment variables only from an allowlist (the session type,
+     the desktop, which display servers are present). A `PRIVACY.md` in
+     the archive and the README say exactly what the archive holds.
+   - gzip comes from `flate2`. It is already in the lock tree, so this
+     adds no new crate to the build, only the dev crate's manifest.
+5. **Reading submissions.**
+   - `rustd3-bench compare A B` takes two archives or directories. It
+     prints the machines side by side, then a per-cell table of the key
+     metrics with ratios.
+   - `rustd3-bench report A` rebuilds and prints the report from an
+     archive or a directory.
+6. **The CPU reference.** A few headless, single-threaded timings of
+   fixed renders put a submitting machine on a scale with ours: one
+   `trace` tile, one `scatter100k` area with markers filled and
+   splatted, and one software composition of a gesture frame (31g's
+   harness). They take seconds and run at every level.
+7. **The rest becomes advanced.** `run`, `list`, `raster`, `also`,
+   `replay`, `record`, `report`, `compare`, `repro-software` and `child`
+   stay, under an "Advanced (developers)" part of `--help`. `suite`
+   folds into the levels and goes. The `focus` plan stays for `run`
+   only. `dev/bench/run.sh` becomes a wrapper for the one entry point
+   with the same flags. `repro-software.sh` stays as a Linux research
+   script.
+8. **Docs.**
+   - The root README's Performance section gets "Reporting a
+     performance problem": the one command and what to attach.
+   - `.github/ISSUE_TEMPLATE/performance.yml` asks for the archive, the
+     level, and what was slow.
+   - `dev/bench/README.md` is rewritten around the one command.
+
+### Why
+
+A user with a slow machine can run one command, wait about ten
+minutes, and attach one file that holds everything we read when
+debugging: the frames, the reports and the machine. Keeping the default
+level identical to the registered verdict run keeps D22.1's history
+comparable.
