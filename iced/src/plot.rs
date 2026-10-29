@@ -429,9 +429,9 @@ impl<'a, Message> Plot<'a, Message> {
     /// Render pool size, clamped to 1..=64; changing it restarts the pool
     /// (at its next jobs). By default the available parallelism less the
     /// UI thread, 1 to 8, which respects the process's CPU affinity: one
-    /// thread on a 2-core machine, 8 on 16 cores. Each of the pool's
-    /// threads renders single-threaded, so the pool is the only
-    /// parallelism of the renders it takes.
+    /// thread on a 2-core machine, 8 on 16 cores. Every render the widget
+    /// makes, on the pool or inline on the UI thread, is single-threaded,
+    /// so the pool is the widget's only parallelism whatever its size.
     ///
     /// ```no_run
     /// use rustd3_figure::Figure;

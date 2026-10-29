@@ -98,7 +98,8 @@ pub struct Settings {
 #[cfg(feature = "raster")]
 impl Settings {
     /// vello_cpu's own pool: the available parallelism − 1, clamped to
-    /// 1..=8; what file outputs and the widget's worker use.
+    /// 1..=8; what file outputs use. The `Plot` widget renders
+    /// single-threaded, inline and on its own pool alike.
     pub fn parallel() -> Settings {
         let cores = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
         let threads = cores.saturating_sub(1).clamp(1, 8);

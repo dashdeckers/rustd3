@@ -38,7 +38,10 @@ use crate::pointer::Tracker;
 pub(crate) struct State {
     /// Laid-out labels, thinned lines and `Fit::Visible` memory.
     cache: Cache,
-    /// vello_cpu with its own pool, for cells rendered inline.
+    /// The renderer of what renders inline, single-threaded whatever the
+    /// pool's size: vello_cpu's own pool costs about 4 ms a render on two
+    /// cores whatever its size, and the pool is the widget's only
+    /// parallelism (D22.6).
     raster: raster::Renderer,
     /// Glyph outlines the list's command bounds are measured with.
     outlines: Outlines,
@@ -154,7 +157,7 @@ impl Default for State {
     fn default() -> Self {
         State {
             cache: cache(),
-            raster: raster::Renderer::new(raster::Settings::parallel()),
+            raster: raster::Renderer::new(raster::Settings::default()),
             outlines: Outlines::default(),
             size: Size::ZERO,
             window: None,
@@ -1996,6 +1999,7 @@ mod tests {
     use crate::plot::probe::{self, Probe, Sample, Stage};
     use crate::plot::slot::Slot;
     use crate::plot::tile::{self, Tile};
+    use crate::plot::worker::Pool;
     use crate::plot::{Caching, Render, fixture};
 
     /// The factors layout, snapping and placement are checked at.
@@ -2418,6 +2422,70 @@ mod tests {
                 seeded.predict(pixels, work),
                 "{pixels} px, {work} items"
             );
+        }
+    }
+
+    /// The threads of this process named `name`: Linux names a thread
+    /// after the one that started it unless it is given a name, as
+    /// vello_cpu's own pool's are not.
+    #[cfg(target_os = "linux")]
+    fn named(name: &str) -> usize {
+        std::fs::read_dir("/proc/self/task")
+            .expect("the process's threads")
+            .filter_map(|task| std::fs::read_to_string(task.ok()?.path().join("comm")).ok())
+            .filter(|comm| comm.trim_end() == name)
+            .count()
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn inline_renders_start_no_thread_whatever_the_pool_size() {
+        // D22.6 (4), C: what renders inline renders single-threaded, so the
+        // pool's threads (named `rustd3-plot`) are the widget's only ones.
+        // In a thread of its own name, a state renders inline, then on a
+        // pool of `threads`; no thread keeps that name from it. typst lays
+        // text out on rayon's global pool, whose threads take the name of
+        // the thread that first uses it, and std names the pool's threads
+        // from inside them: the global pool starts here, and the count is
+        // read until the pool's threads have their names.
+        refresh(&mut state(480.0, 320.0), &fixture::grid(), 2.0);
+        for threads in [1, 4] {
+            let name = format!("rd3-inline-{threads}");
+            let spawned = std::thread::Builder::new().name(name.clone());
+            let own = name.clone();
+            let counted = spawned
+                .spawn(move || {
+                    let (waker, wakes) = counting();
+                    let pipeline = |render| Pipeline {
+                        render,
+                        caching: Caching::On,
+                        revision: 0,
+                        probe: None,
+                        waker: &waker,
+                        threads,
+                        hover: true,
+                    };
+                    let mut state = state(480.0, 320.0);
+                    let inline = pipeline(Render::Inline);
+                    state.redraw::<()>(&fixture::grid(), 2.0, clock(), &inline, (&[], &[]));
+                    state.resize(Size::new(470.0, 320.0));
+                    let pool = pipeline(Render::Worker);
+                    state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pool, (&[], &[]));
+                    settle(&mut state, &wakes, None);
+                    assert_eq!(state.pool.as_ref().map(Pool::size), Some(threads));
+                    let mut counted = named(&own);
+                    for _ in 0..200 {
+                        if counted == 1 {
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(10));
+                        counted = named(&own);
+                    }
+                    counted
+                })
+                .expect("a thread");
+            let counted = counted.join().expect("no panic");
+            assert_eq!(counted, 1, "{threads} pool threads: {counted} named {name}");
         }
     }
 
