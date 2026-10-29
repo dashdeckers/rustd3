@@ -296,6 +296,25 @@ fn settle<Message: 'static>(
     panic!("a thousand wakes without a current frame")
 }
 
+/// The samples of frames of `harness` after each wake, the `Waken`
+/// injected before each and the frames `t` + 16 ms apart, until no wake
+/// comes for a second: what a quiet pool still reported.
+fn quiet<Message: 'static>(
+    harness: &mut Harness<'_, Message>,
+    probe: &mpsc::Receiver<Sample>,
+    mut t: Instant,
+) -> Vec<Sample> {
+    let mut received = Vec::new();
+    while harness.wait_for_wake(Duration::from_secs(1)) {
+        harness.events(&[Event::Waken]);
+        t += Duration::from_millis(16);
+        let _ = harness.frame(t);
+        received.extend(probe.try_iter());
+    }
+    received.extend(probe.try_iter());
+    received
+}
+
 #[test]
 fn worker_mode_matches_inline_mode() {
     let _workers = workers();
@@ -397,7 +416,14 @@ fn newest_result_wins() {
     let settled = settle(&mut harness, &rx, t0 + frame);
     let (generation, images, missing, previews) = last_frame(&settled.samples);
     assert_eq!((generation, missing, previews), (2, 0, 0), "{backend}");
-    let rendered = rasters(&settled.samples);
+    // The overlays draw the chrome without the figure's background, so a
+    // new background leaves their content as it was: an overlay's
+    // generation-1 render shows current content, and the frame can be
+    // current before the render the second refresh requeued for it
+    // arrives. Every requeued render does arrive once the pool is quiet.
+    let after = t0 + frame * u32::try_from(settled.wakes + 1).expect("a thousand wakes at most");
+    let late = quiet(&mut harness, &rx, after);
+    let rendered = rasters(&[settled.samples.as_slice(), late.as_slice()].concat());
     let view = crate::tiles::areas(&tinted(0xf2e6d9), MEDIUM, k);
     let newest = rendered
         .iter()
