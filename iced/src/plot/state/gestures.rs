@@ -172,6 +172,65 @@ fn a_zoom_renders_the_tiles_that_show_and_the_ring_once_it_ends() {
     assert!(rendered(&mut state, &fig, t0 + Duration::from_millis(332)).is_empty());
 }
 
+#[test]
+fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
+    // D22.5 (2): the pool takes a tile of the first step's grid; three more
+    // steps arrive before it finishes. The queue holds the newest step's
+    // jobs alone after each, and the finished tile, of a grid three steps
+    // old, shows through the preview mapping instead of being dropped.
+    let mut state = state();
+    let t0 = epoch();
+    let fig = bare();
+    rendered(&mut state, &fig, t0);
+    let pipeline = Pipeline {
+        render: Render::Worker,
+        caching: Caching::On,
+        revision: 0,
+        probe: None,
+        waker: &Waker::noop(),
+        threads: 1,
+    };
+    let area = state.map.area(0).expect("one panel");
+    let mut in_flight = None;
+    for step in 1..=4_u64 {
+        assert!(state.queue(wheel(area.center())).capture);
+        let now = t0 + Duration::from_millis(16 * step);
+        state.redraw::<()>(&fig, 1.0, now, &pipeline, (&[], &[]));
+        let waiting = state
+            .pool
+            .as_ref()
+            .map(|pool| pool.waiting())
+            .unwrap_or_default();
+        assert!(
+            waiting.iter().all(|&g| g == state.generation),
+            "step {step}: the newest generation {} alone waits, {waiting:?}",
+            state.generation
+        );
+        if step == 1 {
+            // A thread takes the first tile that shows: the job the pool
+            // has.
+            let t = state.areas[0]
+                .tiles()
+                .iter()
+                .position(|tile| state.areas[0].shows(tile))
+                .expect("a tile that shows");
+            in_flight = state.job(super::At::Tile(0, t), state.generation, None);
+        }
+    }
+    let job = in_flight.expect("a job");
+    let generation = job.generation;
+    let done = job.run(&mut rustd3_figure::raster::Renderer::new(
+        rustd3_figure::raster::Settings::default(),
+    ));
+    assert!(state.land(done, false, None), "the old grid's tile shows");
+    let preview = state.areas[0].preview();
+    assert_eq!(
+        preview.last().and_then(|tile| tile.slot().generation()),
+        Some(generation),
+        "drawn last, over the older previews"
+    );
+}
+
 /// One wheel line up (zoom in) at `at`, list px.
 fn wheel(at: Point) -> Pointer {
     Pointer::Wheel {

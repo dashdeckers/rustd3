@@ -57,6 +57,12 @@ impl Queue {
         }
     }
 
+    /// The generation of each job waiting, in order.
+    #[cfg(test)]
+    pub(crate) fn generations(&self) -> Vec<u64> {
+        self.lock().jobs.iter().map(|job| job.generation).collect()
+    }
+
     /// Closes the queue: the threads stop after the job each renders, and
     /// the jobs waiting are dropped.
     pub(crate) fn close(&self) {

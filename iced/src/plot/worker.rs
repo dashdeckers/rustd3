@@ -73,6 +73,12 @@ impl Pool {
         self.queue.replace(jobs);
     }
 
+    /// The generation of each job waiting, in order.
+    #[cfg(test)]
+    pub(crate) fn waiting(&self) -> Vec<u64> {
+        self.queue.generations()
+    }
+
     /// The results that arrived, in arrival order. The wake flag clears
     /// first, so a result sent during the drain wakes the UI again.
     pub(crate) fn drain(&self) -> Vec<Done> {

@@ -873,12 +873,13 @@ impl State {
                 continue;
             };
             let now = self.leads(p, resolved);
+            let views = self.peek(p);
             let Some(area) = self.areas.get_mut(p) else {
                 continue;
             };
             if !area.keeps(now, by, k) {
                 self.grids += 1;
-                area.restart(self.grids);
+                area.restart(self.grids, (k, views));
                 *moved = Moved::Anew;
             }
         }
@@ -1548,11 +1549,18 @@ impl State {
                 i,
                 j,
                 at,
-            } => self.areas.get_mut(area).is_some_and(|area| {
-                let tile = (grid, i, j, at);
-                let image = (done.rect, bands);
-                area.land(tile, (done.generation, done.hash), image, done.view)
-            }),
+            } => {
+                let views = (
+                    done.view,
+                    self.factor.map_or(1.0, f64::from),
+                    self.peek(area),
+                );
+                self.areas.get_mut(area).is_some_and(|area| {
+                    let tile = (grid, i, j, at);
+                    let image = (done.rect, bands);
+                    area.land(tile, (done.generation, done.hash), image, views)
+                })
+            }
             Spot::Overlay { area } => self.areas.get_mut(area).is_some_and(|area| {
                 area.land_overlay(done.rect, (done.generation, done.hash), bands)
             }),

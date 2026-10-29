@@ -139,7 +139,12 @@
 //! plot area's view (a zoom) begins its grid
 //! anew: while the new tiles' sharp renders are pending, the old tiles,
 //! ring included, are drawn scaled by one affine map per axis, soft until
-//! the new ones land; gutters keep their last image. A double click
+//! the new ones land; gutters keep their last image. Only the newest
+//! step's renders wait on the pool, and a tile a thread was rendering
+//! when the next step came still lands, scaled the same way over the
+//! older ones, so a burst of wheel steps shows sharp but slightly stale
+//! tiles as each finishes rather than the tiles from before the burst
+//! until it ends. A double click
 //! returns the handles the panel zooms that a gesture touched to their
 //! fitted domains (a published one receives it as a message); the cursor
 //! shows a grab hand over a zoomable plot area, a grabbing hand during a

@@ -17,9 +17,12 @@
 //! at the area's corner: every key is new, and the old tiles become the
 //! area's preview layer, drawn mapped from the views each was planned at
 //! to the views now (one affine map per axis, linear filtering, clipped
-//! to the area) under the new tiles as they land. At most one preview
-//! layer is kept: a second change before the first is sharp keeps the
-//! first and maps it on.
+//! to the area) under the new tiles as they land. A render that was in
+//! flight when a zoom began the grid anew, a tile of an earlier grid,
+//! joins the preview layer too: a burst of zoom steps shows sharp but
+//! stale tiles as they finish, not only the tiles from before the burst
+//! scaled ever further (D22.5 (2)). The preview layer is drawn oldest
+//! first; a tile whose mapped rect newer ones cover goes.
 //!
 //! The keys cover the area grown by one tile on every side: the overscan
 //! ring, rendered after the visible tiles, which a pan brings into view
@@ -168,6 +171,12 @@ impl Area {
         &mut self.tiles
     }
 
+    /// The preview layer's tiles, oldest first.
+    #[cfg(test)]
+    pub(crate) fn preview(&self) -> &[Tile] {
+        &self.preview
+    }
+
     /// The overlays.
     pub(crate) fn overlays(&self) -> &[Slot] {
         &self.overlays
@@ -197,12 +206,10 @@ impl Area {
     /// grid's origin by as much (keys entering the grown rect are added
     /// without an image, those leaving it dropped); any other move begins
     /// the grid anew at the area's corner, numbered `serial`, every key
-    /// new, and the old tiles become the preview layer (all of them when
-    /// each visible one had an image, else the earlier preview stays if
-    /// there is one).
+    /// new, and the old tiles with an image join the preview layer.
     pub(crate) fn follow(&mut self, now: [Option<Basis>; 2], factor: f64, serial: u64) -> Moved {
         let Some(offset) = self.translation(now, factor) else {
-            self.retire();
+            self.retire((factor, now));
             self.grid = Grid::new([self.rect[0], self.rect[1]], density(now));
             self.serial = serial;
             self.anchor = now;
@@ -276,11 +283,12 @@ impl Area {
     }
 
     /// Begins the grid anew where it lies, numbered `serial`: every key
-    /// new and the old tiles the preview layer, as a move that is not a
-    /// translation does. Its origin, density and anchor stay, so the
-    /// columns this refresh's lines thinned on stay the grid's.
-    pub(crate) fn restart(&mut self, serial: u64) {
-        self.retire();
+    /// new and the old tiles in the preview layer, mapped to the views
+    /// `now` at `factor`, as a move that is not a translation does. Its
+    /// origin, density and anchor stay, so the columns this refresh's
+    /// lines thinned on stay the grid's.
+    pub(crate) fn restart(&mut self, serial: u64, (factor, now): (f64, [Option<Basis>; 2])) {
+        self.retire((factor, now));
         self.serial = serial;
         self.tiles = self.cover(self.hash);
     }
@@ -377,16 +385,39 @@ impl Area {
     /// Applies a tile's rendered image: shown when it was rendered on the
     /// current grid for tile `(i, j)` over `rect`, the grid's origin then
     /// `at`, and is newer than the tile's image. The preview layer goes once
-    /// every visible tile is current. True when shown.
+    /// every visible tile is current. An image rendered on an earlier grid
+    /// (in flight when a zoom began this one) joins the preview layer,
+    /// mapped from the views `view` it was planned at to the views `now`
+    /// at `factor`, unless it maps to them through no view (another lead
+    /// handle or epoch). True when shown.
     pub(crate) fn land(
         &mut self,
         (serial, i, j, at): (u64, i32, i32, [i32; 2]),
         (generation, hash): (u64, u64),
         (rect, bands): ([i32; 4], Option<Vec<Band>>),
-        view: [Option<Basis>; 2],
+        (view, factor, now): ([Option<Basis>; 2], f64, [Option<Basis>; 2]),
     ) -> bool {
         if serial != self.serial {
-            return false;
+            let maps = view
+                .iter()
+                .zip(&now)
+                .all(|(planned, now)| match (planned, now) {
+                    (Some(planned), Some(now)) => planned.to(*now).is_some(),
+                    (None, None) => true,
+                    (Some(_), None) | (None, Some(_)) => false,
+                });
+            let Some(bands) = bands.filter(|_| maps) else {
+                return false;
+            };
+            let key = Key {
+                area: self.index,
+                i,
+                j,
+            };
+            let mut tile = Tile::new(key, rect, at, hash);
+            tile.slot_mut().land(generation, hash, Some(bands), view);
+            self.layer([tile], (factor, now));
+            return true;
         }
         let Some(tile) = self
             .tiles
@@ -576,21 +607,49 @@ impl Area {
         Some(offset)
     }
 
-    /// The tiles leave the grid for the preview layer: all of them when
-    /// each visible one had an image, else the earlier preview stays if
-    /// there is one.
-    fn retire(&mut self) {
+    /// The tiles with an image leave the grid for the preview layer,
+    /// mapped to the views `now` at `factor`.
+    fn retire(&mut self, (factor, now): (f64, [Option<Basis>; 2])) {
         let old = std::mem::take(&mut self.tiles);
-        let complete = old
+        let imaged = old.into_iter().filter(|tile| !tile.slot().is_missing());
+        self.layer(imaged, (factor, now));
+    }
+
+    /// Adds `tiles` to the preview layer, which stays in the order of its
+    /// images' generations (oldest drawn first), and drops every tile
+    /// whose rect, mapped to the views `now` at `factor`, newer ones cover.
+    /// All map through the same views now, so what covers what stays as
+    /// the views move on.
+    fn layer(
+        &mut self,
+        tiles: impl IntoIterator<Item = Tile>,
+        (factor, now): (f64, [Option<Basis>; 2]),
+    ) {
+        self.preview.extend(tiles);
+        self.preview
+            .sort_by_key(|tile| tile.slot().generation().unwrap_or(0));
+        let mapped: Vec<[f64; 4]> = self
+            .preview
             .iter()
-            .filter(|tile| self.shows(tile))
-            .all(|tile| !tile.slot().is_missing());
-        if complete || self.preview.is_empty() {
-            self.preview = old
-                .into_iter()
-                .filter(|tile| !tile.slot().is_missing())
-                .collect();
+            .map(|tile| self.mapped(tile, factor, now))
+            .collect();
+        let mut kept = Vec::with_capacity(self.preview.len());
+        for (n, tile) in std::mem::take(&mut self.preview).into_iter().enumerate() {
+            if !covered(mapped[n], &mapped[n + 1..]) {
+                kept.push(tile);
+            }
         }
+        self.preview = kept;
+    }
+
+    /// The device rect a preview tile's image covers, mapped to the views
+    /// `now` at `factor`.
+    fn mapped(&self, tile: &Tile, factor: f64, now: [Option<Basis>; 2]) -> [f64; 4] {
+        let [mx, my] = self.maps(tile, factor as f32, now);
+        let [x0, y0, x1, y1] = tile.slot().rect().map(f64::from);
+        let (a, b) = (mx.apply(x0), mx.apply(x1));
+        let (c, d) = (my.apply(y0), my.apply(y1));
+        [a.min(b), c.min(d), a.max(b), c.max(d)]
     }
 
     /// The grid's keys that meet the grown rect, holding layer `hash`, without
@@ -638,13 +697,7 @@ impl Area {
     fn coverage(&self, factor: f32, now: [Option<Basis>; 2]) -> Option<[f64; 4]> {
         self.preview
             .iter()
-            .map(|tile| {
-                let [mx, my] = self.maps(tile, factor, now);
-                let [x0, y0, x1, y1] = tile.slot().rect().map(f64::from);
-                let (a, b) = (mx.apply(x0), mx.apply(x1));
-                let (c, d) = (my.apply(y0), my.apply(y1));
-                [a.min(b), c.min(d), a.max(b), c.max(d)]
-            })
+            .map(|tile| self.mapped(tile, f64::from(factor), now))
             .reduce(|a, b| {
                 [
                     a[0].min(b[0]),
@@ -666,6 +719,38 @@ fn density(now: [Option<Basis>; 2]) -> [f64; 2] {
 fn contains(outer: [f64; 4], inner: [i32; 4]) -> bool {
     let [x0, y0, x1, y1] = inner.map(f64::from);
     outer[0] <= x0 && outer[1] <= y0 && x1 <= outer[2] && y1 <= outer[3]
+}
+
+/// Whether the rects `by` (device px) cover `rect` together: what is left
+/// of it after taking each away is empty, within a thousandth of a px.
+fn covered(rect: [f64; 4], by: &[[f64; 4]]) -> bool {
+    const EDGE: f64 = 1e-3;
+    let mut left = vec![rect];
+    for &[a0, b0, a1, b1] in by {
+        left = left
+            .into_iter()
+            .flat_map(|[x0, y0, x1, y1]: [f64; 4]| {
+                let [i0, j0] = [x0.max(a0), y0.max(b0)];
+                let [i1, j1] = [x1.min(a1), y1.min(b1)];
+                if i1 - i0 <= EDGE || j1 - j0 <= EDGE {
+                    return vec![[x0, y0, x1, y1]];
+                }
+                [
+                    [x0, y0, x1, j0],
+                    [x0, j1, x1, y1],
+                    [x0, j0, i0, j1],
+                    [i1, j0, x1, j1],
+                ]
+                .into_iter()
+                .filter(|r| r[2] - r[0] > EDGE && r[3] - r[1] > EDGE)
+                .collect()
+            })
+            .collect();
+        if left.is_empty() {
+            return true;
+        }
+    }
+    left.is_empty()
 }
 
 #[cfg(test)]
@@ -708,7 +793,8 @@ mod tests {
                 Handle::from_rgba(w, h, vec![0; (w * h * 4) as usize]),
             );
             let at = (1, key.i, key.j, [0, 0]);
-            assert!(area.land(at, (1, 1), (rect, Some(vec![band])), panned(0.0)));
+            let views = (panned(0.0), 1.0, panned(0.0));
+            assert!(area.land(at, (1, 1), (rect, Some(vec![band])), views));
         }
         area
     }
@@ -734,7 +820,7 @@ mod tests {
                 tile,
                 (generation, hash),
                 (rect, Some(vec![band])),
-                [None; 2],
+                ([None; 2], 1.0, [None; 2]),
             );
         }
     }
@@ -827,7 +913,7 @@ mod tests {
             tile,
             (generation, hash),
             (rect, Some(vec![band])),
-            [None; 2],
+            ([None; 2], 1.0, [None; 2]),
         )
     }
 
@@ -908,6 +994,51 @@ mod tests {
     }
 
     #[test]
+    fn previews_that_newer_ones_cover_go() {
+        // Two zoom steps out by 1.2 about the centre, every tile of the
+        // first step's grid but (0, 0) rendered in between, so the first
+        // preview stays. Mapped to the second step's views, the 29 images
+        // cover all of the first preview's but the two under the hole
+        // (0, 0) leaves, [75, 288.3) × [0, 256): its (−1, 0) and (0, 0),
+        // whose squares map to [−40.3, 137.5) and [137.5, 315.3).
+        let key = Key::of::<rustd3_core::scale::Linear>(0);
+        let out = |steps: i32| {
+            let scale = 1.2_f64.powi(-steps);
+            let view = View {
+                epoch: 1,
+                map: Affine1::new(scale, 0.5 - 0.5 * scale),
+            };
+            [Some(Basis { key, view }), None]
+        };
+        let mut area = rendered();
+        assert_eq!(area.follow(out(1), 1.0, 2), Moved::Anew);
+        assert_eq!(area.preview().len(), 30);
+        assert!(area.change((2, 0), 2, (Moved::Anew, false)));
+        let jobs: Vec<_> = area
+            .tiles()
+            .iter()
+            .map(|tile| (tile.key(), tile.rect()))
+            .filter(|(key, _)| (key.i, key.j) != (0, 0))
+            .collect();
+        for (key, rect) in jobs {
+            let band = Band::new(0..256, Handle::from_rgba(256, 256, vec![0; 256 * 256 * 4]));
+            let tile = (area.serial(), key.i, key.j, area.origin());
+            let views = (out(1), 1.0, out(1));
+            assert!(area.land(tile, (2, 2), (rect, Some(vec![band])), views));
+        }
+        assert_eq!(area.preview().len(), 30, "(0, 0) is not sharp yet");
+        assert_eq!(area.follow(out(2), 1.0, 3), Moved::Anew);
+        let kept: Vec<(Option<u64>, i32, i32)> = area
+            .preview()
+            .iter()
+            .map(|tile| (tile.slot().generation(), tile.key().i, tile.key().j))
+            .collect();
+        assert_eq!(kept.len(), 31, "{kept:?}");
+        assert_eq!(kept[..2], [(Some(1), -1, 0), (Some(1), 0, 0)]);
+        assert!(kept[2..].iter().all(|&(g, ..)| g == Some(2)));
+    }
+
+    #[test]
     fn the_lead_scales_confirm_a_translation_or_restart_the_grid() {
         use rustd3_core::scale;
         use rustd3_figure::scale::Scale;
@@ -940,7 +1071,7 @@ mod tests {
         // The restart keeps the origin the lines thinned on: 7 × 5 keys
         // meet the grown rect from there, each new and pending, and the
         // old tiles, moved by 37 px, preview all 5 × 3 visible ones.
-        area.restart(3);
+        area.restart(3, (1.0, panned(37.0 / 900.0)));
         assert_eq!((area.serial(), area.origin()), (3, [37, 0]));
         assert!(area.change((2, 0), 2, (Moved::Anew, false)));
         assert_eq!(pending(&area).len(), 35);

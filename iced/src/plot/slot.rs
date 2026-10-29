@@ -360,7 +360,6 @@ impl Slot {
     }
 
     /// The generation of the image on screen.
-    #[cfg(test)]
     pub(crate) fn generation(&self) -> Option<u64> {
         self.shown.as_ref().map(|shown| shown.generation)
     }
