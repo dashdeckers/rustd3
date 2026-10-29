@@ -1178,3 +1178,25 @@ is measured apart from the Wayland quirk. A plain-iced reproduction
 rustd3) is built and run on the user's machine. If it reproduces, it
 goes upstream as an iced issue, and nothing in the widget works around
 it.
+
+### Followups
+
+- **Built (Phase 31h).** 7243284: `rustd3-bench suite` runs
+  `weak-nogpu-x11` after `weak-nogpu` when `WAYLAND_DISPLAY` and
+  `DISPLAY` are both set on Linux (`run --xwayland` removes
+  `WAYLAND_DISPLAY` from the runs and records `xwayland` in `meta.json`;
+  the report's heading and outcome line say report-only, X11 through
+  XWayland); elsewhere it skips it in one line. 14ea223: `rustd3-bench
+  repro-software` (`dev/bench/src/repro.rs`, iced only) and
+  `dev/bench/repro-software.sh`, the four runs and their table.
+- **Under Xvfb** (2 cores, lavapipe, no vsync, so only frames and CPU
+  count), `repro-software`, three runs each: tiny-skia 89–91 frames in
+  10 s, frame p50 110–113 ms, 0.97–0.98 CPU s/s; wgpu 650–673 frames, p50
+  14.6–15.1 ms, 1.62–1.67 CPU s/s. tiny-skia is CPU-bound here (about
+  one CPU second a second; where its 110 ms go is not measured). Each of
+  its 40 images clears and refills a frame-sized clip mask before it is
+  drawn (`iced@3cbdacc tiny_skia/src/engine.rs:526-552`, `:776-790`).
+- **Next:** the user runs `dev/bench/repro-software.sh` in the COSMIC
+  session. tiny-skia far below X11 on Wayland, with wgpu paced on both,
+  is the upstream issue. If tiny-skia is slow on X11 there too, fewer
+  images would isolate the presentation path before filing.
