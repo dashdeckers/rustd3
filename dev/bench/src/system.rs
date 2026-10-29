@@ -25,13 +25,12 @@ pub const ICED_REV: &str = "3cbdacc3b0841c5145c766c3a758657d36b41ffe";
 /// How long each diagnostic command may take.
 const LIMIT: Duration = Duration::from_secs(5);
 
-/// The environment variables `system.txt` records.
-const SESSION: [&str; 4] = [
-    "XDG_SESSION_TYPE",
-    "XDG_CURRENT_DESKTOP",
-    "WAYLAND_DISPLAY",
-    "DISPLAY",
-];
+/// The environment variables `system.txt` records the values of.
+const SESSION: [&str; 2] = ["XDG_SESSION_TYPE", "XDG_CURRENT_DESKTOP"];
+
+/// The environment variables `system.txt` records only whether they are
+/// set: their values can name a host (`DISPLAY=host:0`).
+const DISPLAYS: [&str; 2] = ["WAYLAND_DISPLAY", "DISPLAY"];
 
 /// The commands `system.txt` records, each if present.
 const COMMANDS: [&[&str]; 6] = [
@@ -54,7 +53,8 @@ const COMMANDS: [&[&str]; 6] = [
         "--query-gpu=name,driver_version",
         "--format=csv,noheader",
     ],
-    &["uname", "-a"],
+    // No `-a`: that prints the host name.
+    &["uname", "-srm"],
 ];
 
 /// What a run's `meta.json` holds.
@@ -279,58 +279,181 @@ pub fn clk_tck() -> u64 {
         .unwrap_or(100)
 }
 
-/// The machine's description for `meta.json`: CPU, cores, RAM, kernel,
-/// GPU, session and desktop, compiler and git revision.
+/// The machine's description for `meta.json`: CPU, kernel, GPU,
+/// session and desktop, compiler and git revision.
 pub fn machine() -> [String; 7] {
-    let cpuinfo = fs::read_to_string("/proc/cpuinfo").unwrap_or_default();
-    let cpu = cpuinfo
-        .lines()
-        .find_map(|line| line.strip_prefix("model name"))
-        .and_then(|rest| rest.split_once(':'))
-        .map_or_else(|| "unknown".to_owned(), |(_, name)| name.trim().to_owned());
-    let kernel =
-        output("uname", &["-r"]).map_or_else(|| "unknown".to_owned(), |s| s.trim().to_owned());
-    let gpu = output(
-        "nvidia-smi",
-        &["--query-gpu=name,driver_version", "--format=csv,noheader"],
-    )
-    .and_then(|s| s.lines().next().map(|line| line.trim().to_owned()))
-    .unwrap_or_else(|| "unknown (no nvidia-smi)".to_owned());
-    let env = |name: &str| std::env::var(name).unwrap_or_else(|_| "unset".to_owned());
     let rustc = output("rustc", &["--version"])
         .map_or_else(|| "unknown".to_owned(), |s| s.trim().to_owned());
-    let git = output("git", &["rev-parse", "HEAD"])
-        .map_or_else(|| "unknown".to_owned(), |s| s.trim().to_owned());
     [
-        cpu,
-        kernel,
-        gpu,
+        cpu(),
+        kernel(),
+        gpu(),
         env("XDG_SESSION_TYPE"),
         env("XDG_CURRENT_DESKTOP"),
         rustc,
-        git,
+        git_rev(),
     ]
 }
 
-/// `MemTotal`, MiB.
-pub fn ram_mb() -> u64 {
-    fs::read_to_string("/proc/meminfo")
-        .ok()
-        .and_then(|info| {
-            info.lines()
-                .find_map(|line| line.strip_prefix("MemTotal:"))
-                .and_then(|rest| rest.split_whitespace().next()?.parse::<u64>().ok())
-        })
-        .map_or(0, |kb| kb / 1024)
+/// The environment variable `name`, or "unset".
+pub fn env(name: &str) -> String {
+    std::env::var(name).unwrap_or_else(|_| "unset".to_owned())
 }
 
-/// `system.txt`: the session's variables, what the display, scaling and
-/// GPU commands that are present print, `uname -a` and `/etc/os-release`.
+/// Whether the environment variable `name` is set and not empty.
+pub fn is_set(name: &str) -> bool {
+    std::env::var_os(name).is_some_and(|value| !value.is_empty())
+}
+
+/// `git rev-parse HEAD` of the working directory's checkout, else
+/// "unknown".
+pub fn git_rev() -> String {
+    output("git", &["rev-parse", "HEAD"])
+        .map_or_else(|| "unknown".to_owned(), |s| s.trim().to_owned())
+}
+
+/// The CPU's model: `/proc/cpuinfo`'s `model name`, `sysctl` on macOS, the
+/// processor's CIM name on Windows; else "unknown".
+pub fn cpu() -> String {
+    let cpuinfo = fs::read_to_string("/proc/cpuinfo").unwrap_or_default();
+    cpuinfo
+        .lines()
+        .find_map(|line| line.strip_prefix("model name"))
+        .and_then(|rest| rest.split_once(':'))
+        .map(|(_, name)| name.trim().to_owned())
+        .or_else(|| {
+            cfg!(target_os = "macos")
+                .then(|| output("sysctl", &["-n", "machdep.cpu.brand_string"]))
+                .flatten()
+        })
+        .or_else(|| {
+            cfg!(windows)
+                .then(|| powershell("(Get-CimInstance Win32_Processor).Name"))
+                .flatten()
+        })
+        .map(|name| name.lines().next().unwrap_or_default().trim().to_owned())
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+/// The kernel's release (`uname -r`), else "unknown".
+pub fn kernel() -> String {
+    output("uname", &["-r"]).map_or_else(|| "unknown".to_owned(), |s| s.trim().to_owned())
+}
+
+/// The GPU: `nvidia-smi`'s name and driver, else `lspci`'s display
+/// controllers on Linux, `system_profiler`'s chipsets on macOS, the video
+/// controllers' CIM names on Windows; else "unknown".
+pub fn gpu() -> String {
+    let nvidia = output(
+        "nvidia-smi",
+        &["--query-gpu=name,driver_version", "--format=csv,noheader"],
+    )
+    .and_then(|s| s.lines().next().map(|line| line.trim().to_owned()));
+    let names = |text: String, pick: fn(&str) -> Option<&str>| {
+        let names: Vec<&str> = text.lines().filter_map(pick).map(str::trim).collect();
+        (!names.is_empty()).then(|| names.join("; "))
+    };
+    nvidia
+        .or_else(|| {
+            let lspci = output("lspci", &[])?;
+            names(lspci, |line| {
+                [
+                    "VGA compatible controller: ",
+                    "3D controller: ",
+                    "Display controller: ",
+                ]
+                .iter()
+                .find_map(|kind| line.split_once(kind).map(|(_, name)| name))
+            })
+        })
+        .or_else(|| {
+            let profile = cfg!(target_os = "macos")
+                .then(|| output("system_profiler", &["SPDisplaysDataType"]))
+                .flatten()?;
+            names(profile, |line| line.trim().strip_prefix("Chipset Model:"))
+        })
+        .or_else(|| {
+            cfg!(windows)
+                .then(|| powershell("(Get-CimInstance Win32_VideoController).Name"))
+                .flatten()
+                .map(|names| names.lines().map(str::trim).collect::<Vec<_>>().join("; "))
+        })
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+/// The operating system's release: `/etc/os-release`'s `PRETTY_NAME`,
+/// `sw_vers` on macOS, `ver` on Windows; else "unknown".
+pub fn release() -> String {
+    let os_release = fs::read_to_string("/etc/os-release").ok().and_then(|text| {
+        text.lines()
+            .find_map(|line| line.strip_prefix("PRETTY_NAME="))
+            .map(|name| name.trim_matches('"').to_owned())
+    });
+    os_release
+        .or_else(|| {
+            let name = cfg!(target_os = "macos")
+                .then(|| output("sw_vers", &["-productName"]))
+                .flatten()?;
+            let version = output("sw_vers", &["-productVersion"]).unwrap_or_default();
+            Some(format!("{} {}", name.trim(), version.trim()))
+        })
+        .or_else(|| {
+            cfg!(windows)
+                .then(|| output("cmd", &["/C", "ver"]))
+                .flatten()
+        })
+        .map(|name| name.trim().to_owned())
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+/// Memory, MiB: `/proc/meminfo`'s `MemTotal`, `sysctl hw.memsize` on macOS,
+/// the computer system's CIM total on Windows; else 0.
+pub fn ram_mb() -> u64 {
+    let meminfo = fs::read_to_string("/proc/meminfo").ok().and_then(|info| {
+        info.lines()
+            .find_map(|line| line.strip_prefix("MemTotal:"))
+            .and_then(|rest| rest.split_whitespace().next()?.parse::<u64>().ok())
+            .map(|kb| kb / 1024)
+    });
+    let bytes = |text: Option<String>| text?.trim().parse::<u64>().ok().map(|b| b >> 20);
+    meminfo
+        .or_else(|| {
+            cfg!(target_os = "macos")
+                .then(|| bytes(output("sysctl", &["-n", "hw.memsize"])))
+                .flatten()
+        })
+        .or_else(|| {
+            cfg!(windows)
+                .then(|| {
+                    bytes(powershell(
+                        "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+                    ))
+                })
+                .flatten()
+        })
+        .unwrap_or(0)
+}
+
+/// What PowerShell prints for `expression` (Windows).
+fn powershell(expression: &str) -> Option<String> {
+    output("powershell", &["-NoProfile", "-Command", expression])
+}
+
+/// `system.txt`: the session's type and desktop, whether the display
+/// variables are set, what the display, scaling and GPU commands that are
+/// present print, `uname -srm` and `/etc/os-release`.
 pub fn diagnostics() -> String {
     let mut text = String::from("# rustd3-bench diagnostics\n\n");
     for name in SESSION {
         let value = std::env::var(name).unwrap_or_else(|_| "(unset)".to_owned());
         let _ = writeln!(text, "{name}={value}");
+    }
+    for name in DISPLAYS {
+        let set = if is_set(name) { "(set)" } else { "(unset)" };
+        let _ = writeln!(text, "{name}={set}");
     }
     for command in COMMANDS {
         let _ = writeln!(text, "\n$ {}", command.join(" "));

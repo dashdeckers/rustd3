@@ -17,6 +17,8 @@ iced = { workspace = true, features = ["advanced", "canvas"] }
 iced_runtime.workspace = true
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
+# The submission archive's gzip (D22.9); 1.1.10 is already in the lock tree.
+flate2 = "1.1.10"
 
 [dev-dependencies]
 rustd3-testkit.workspace = true

@@ -10,6 +10,7 @@ use std::path::Path;
 use crate::metrics::{Half, Metrics};
 use crate::plan::Plan;
 use crate::record;
+use crate::results;
 use crate::rule::{self, Budget, Check, Outcome, Profile};
 use crate::scenario::{self, Scenario};
 use crate::stats::{Interval, Verdict, percentile};
@@ -77,7 +78,7 @@ const XWAYLAND: &str = "This is a Wayland session; these runs had `WAYLAND_DISPL
                         gesture where X11 draws hundreds (D22.8: winit's frame throttling with \
                         softbuffer's presentation, not the widget's drawing). This profile \
                         measures the widget's software path apart from that; it decides \
-                        nothing, and `weak-nogpu` stays the no-GPU profile.";
+                        nothing, and the `nogpu` profile stays the no-GPU one.";
 
 /// What the X11 profile's outcome line starts with.
 const XWAYLAND_OUTCOME: &str = "report-only, X11 through XWayland (D22.8): ";
@@ -95,10 +96,35 @@ struct Cell<'a> {
     small: Option<[f32; 2]>,
 }
 
+/// What [`build`] found in a run's directory.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Built {
+    /// The budget table and the outcome line, as `run` prints them.
+    pub summary: String,
+    /// The outcome line.
+    pub outcome: String,
+    /// The budgets' verdicts.
+    pub counts: results::Counts,
+    /// The renderers the runs ran on.
+    pub ran: Vec<String>,
+    /// Every planned cell with its metrics' medians and its budgets.
+    pub cells: Vec<results::Cell>,
+}
+
+impl Built {
+    /// Gives `profile` what the build found: the renderers that ran, the
+    /// outcome, the verdicts and the cells.
+    pub fn apply(self, profile: &mut results::Profile) {
+        profile.ran = self.ran;
+        profile.outcome = Some(self.outcome);
+        profile.checks = self.counts;
+        profile.cells = self.cells;
+    }
+}
+
 /// Rebuilds the CSVs and `report.md` of the run in `dir`, updates
-/// `meta.json`'s calibration, and returns the budget table and the rule's
-/// outcome line.
-pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
+/// `meta.json`'s calibration, and returns what it found.
+pub fn build(dir: &Path) -> Result<Built, Box<dyn std::error::Error>> {
     let mut meta: Meta = serde_json::from_str(&fs::read_to_string(dir.join("meta.json"))?)?;
     let mut cells: Vec<Cell<'_>> = Vec::new();
     let planned = meta.cells.clone();
@@ -193,7 +219,70 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
     }
     let line = outcome_line(&meta, kind, outcome, profile);
     budgets(&mut summary, &cells, &checks, kind);
-    Ok(format!("{summary}Rule outcome{headless}: {line}"))
+    let verdicts = |verdict: Verdict| checks.iter().filter(|c| c.2.verdict == verdict).count();
+    let mut ran: Vec<String> = Vec::new();
+    for metrics in cells.iter().flat_map(|c| &c.runs) {
+        if !ran.contains(&metrics.run.backend) {
+            ran.push(metrics.run.backend.clone());
+        }
+    }
+    Ok(Built {
+        summary: format!("{summary}Rule outcome{headless}: {line}"),
+        outcome: format!("{line}{headless}"),
+        counts: results::Counts {
+            met: verdicts(Verdict::Met),
+            missed: verdicts(Verdict::Missed),
+            inconclusive: verdicts(Verdict::Inconclusive),
+        },
+        ran,
+        cells: cells
+            .iter()
+            .enumerate()
+            .map(|(index, cell)| summarize(index, cell, &checks))
+            .collect(),
+    })
+}
+
+/// A cell as `results.json` holds it.
+fn summarize(index: usize, cell: &Cell<'_>, checks: &[(usize, Scenario, Check)]) -> results::Cell {
+    let applies = cell.planned.applies && cell.small.is_none();
+    let metrics = if applies {
+        metric_rows(cell)
+            .into_iter()
+            .filter_map(|(name, interval)| Some((name.to_owned(), interval?.median)))
+            .collect()
+    } else {
+        Default::default()
+    };
+    let budgets = checks
+        .iter()
+        .filter(|(i, _, _)| *i == index)
+        .map(|(_, _, check)| {
+            let half = match check.half {
+                Half::Whole => "",
+                Half::Pan => "pan: ",
+                Half::Zoom => "zoom: ",
+            };
+            results::Check {
+                budget: format!("{half}{}", check.budget.name()),
+                limit: check.limit,
+                n: check.interval.map_or(0, |i| i.n),
+                mean: check.interval.map(|i| i.mean),
+                ci: check.interval.and_then(|i| i.ci),
+                verdict: check.verdict.name().to_owned(),
+            }
+        })
+        .collect();
+    results::Cell {
+        scenario: cell.planned.scenario.clone(),
+        workload: cell.planned.workload.clone(),
+        factor: cell.planned.factor,
+        runs: cell.planned.runs,
+        read: cell.runs.len() as u32,
+        applies,
+        metrics,
+        budgets,
+    }
 }
 
 /// What the run's report is.

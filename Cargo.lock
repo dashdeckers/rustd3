@@ -3769,6 +3769,7 @@ dependencies = [
 name = "rustd3-bench"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "iced",
  "iced_runtime",
  "rustd3-core",

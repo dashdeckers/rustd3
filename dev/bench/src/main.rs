@@ -8,6 +8,7 @@
 
 mod also;
 mod app;
+mod archive;
 mod cli;
 mod display;
 mod driver;
@@ -15,12 +16,14 @@ mod headless;
 mod level;
 mod metrics;
 mod plan;
+mod privacy;
 mod raster;
 mod record;
 mod recorder;
 mod replay;
 mod report;
 mod repro;
+mod results;
 mod rule;
 mod scenario;
 mod stats;
@@ -74,8 +77,8 @@ fn main() -> ExitCode {
         Command::ReproSoftware { out, single } => repro_software(out, single),
         Command::Run(options) => run(&options, &args),
         Command::Child(child) => run_child(child, epoch),
-        Command::Report { dir } => report::build(&dir).map(|summary| {
-            println!("{summary}");
+        Command::Report { dir } => report::build(&dir).map(|built| {
+            println!("{}", built.summary);
         }),
     };
     match result {
@@ -249,8 +252,8 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
         );
         fs::write(dir.join("also.md"), also::measure())?;
     }
-    let summary = report::build(&dir)?;
-    println!("{summary}");
+    let built = report::build(&dir)?;
+    println!("{}", built.summary);
     println!("report: {}", dir.join("report.md").display());
     if failed.is_empty() {
         Ok(())

@@ -24,9 +24,13 @@ use std::process::{Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use crate::archive;
 use crate::cli::Backend;
 use crate::display::{self, Display};
 use crate::plan::{Plan, Selection};
+use crate::privacy::{self, Identity};
+use crate::report;
+use crate::results::{self, Results};
 use crate::rule;
 use crate::scenario::Scenario;
 use crate::system;
@@ -281,6 +285,46 @@ impl Profile {
         text
     }
 
+    /// What `results.json` holds of it once it ran with `status`, from
+    /// its directory under `dir`.
+    fn summary(
+        &self,
+        display: &Display,
+        dir: &Path,
+        status: ExitStatus,
+        limit: Option<&Limit>,
+    ) -> results::Profile {
+        let mut out = results::Profile {
+            plan: self.plan.name().to_owned(),
+            backend: self.backend.name().to_owned(),
+            budgets: self.budgets.name().to_owned(),
+            limit: limit.map(Limit::describe),
+            xwayland: self.xwayland,
+            headless: display.headless.is_some(),
+            status: results::Status::Done,
+            ..results::Profile::planned(self.name, self.describe(display.native_factor), None)
+        };
+        let log = format!("run-{}.log", self.name);
+        match report::build(&dir.join(self.name)) {
+            Ok(built) => built.apply(&mut out),
+            Err(error) => {
+                out.status = results::Status::Failed;
+                out.reason = Some(format!("it wrote no report ({error}; {log})"));
+                return out;
+            }
+        }
+        let applies = out.cells.iter().filter(|c| c.applies);
+        let (runs, read) = applies.fold((0, 0), |(runs, read), c| (runs + c.runs, read + c.read));
+        if read < runs {
+            out.status = results::Status::Failed;
+            out.reason = Some(format!("{} of {runs} runs failed ({log})", runs - read));
+        } else if !status.success() {
+            out.status = results::Status::Failed;
+            out.reason = Some(format!("its process ended with {status} ({log})"));
+        }
+        out
+    }
+
     /// `run`'s arguments for this profile on `display`, writing under
     /// `out`.
     fn args(&self, display: &Display, out: &Path) -> Vec<String> {
@@ -369,9 +413,11 @@ impl Request {
         }
         println!("Keep hands off the mouse and keyboard while windows open and close.");
         let _power = Power::performance();
-        let dir = self
+        let stamp = system::stamp();
+        let dir = self.out.join(format!("{stamp}-{}", level.name()));
+        let archive = self
             .out
-            .join(format!("{}-{}", system::stamp(), level.name()));
+            .join(format!("rustd3-bench-{}-{stamp}.tar.gz", level.name()));
         fs::create_dir_all(&dir)?;
         let display = self.measure(exe, &dir, unreachable)?;
         println!("Display: {}.", display.describe());
@@ -387,13 +433,38 @@ impl Request {
             software: display.software(),
             ..guess
         };
+        let profiles = level.profiles(machine);
+        let native = display.native_factor;
+        let mut results = Results {
+            format: results::FORMAT,
+            rustd3: results::Version::here(),
+            level: level.name().to_owned(),
+            stamp,
+            complete: false,
+            machine: results::Machine::here(),
+            display: display.clone(),
+            profiles: profiles
+                .iter()
+                .map(|(p, skip)| {
+                    results::Profile::planned(p.name, p.describe(native), skip.clone())
+                })
+                .collect(),
+        };
         let mut notes = format!(
             "# rustd3-bench --{}: {}\n",
             level.name(),
             display.describe()
         );
-        let mut failed = Vec::new();
-        for (profile, skip) in level.profiles(machine) {
+        let diagnostics = system::diagnostics();
+        let identity = Identity::here();
+        let save = |results: &Results, notes: &str| {
+            let system = format!("{notes}\n{diagnostics}");
+            save(&dir, &archive, results, &system, &identity)
+        };
+        // An archive after every step: std cannot catch Ctrl-C portably,
+        // so an interrupted level leaves the last whole one.
+        save(&results, &notes)?;
+        for (index, (profile, skip)) in profiles.iter().enumerate() {
             if let Some(why) = skip {
                 println!("Skipping {}: {why}.", profile.name);
                 let _ = writeln!(notes, "# {}: skipped, {why}", profile.name);
@@ -404,38 +475,29 @@ impl Request {
                 let _ = writeln!(notes, "# {}: {}", profile.name, limit.describe());
             }
             let args = profile.args(&display, &dir.join(profile.name));
-            println!(
-                "== {}: {}",
-                profile.name,
-                profile.describe(display.native_factor)
-            );
-            let status = spawn(exe, &dir, profile.name, limit.as_ref(), args)?;
-            if !status.success() {
-                failed.push(profile.name);
-            }
+            println!("== {}: {}", profile.name, profile.describe(native));
+            let status = spawn(exe, &dir, profile.name, limit.as_ref(), args, true)?;
+            results.profiles[index] = profile.summary(&display, &dir, status, limit.as_ref());
+            save(&results, &notes)?;
         }
-        let diagnostics = system::diagnostics();
-        fs::write(dir.join("system.txt"), format!("{notes}\n{diagnostics}"))?;
+        results.complete = true;
+        let (files, size) = save(&results, &notes)?;
         println!("\nResults: {}", dir.display());
-        for (profile, _) in level.profiles(machine) {
-            let Ok(report) = fs::read_to_string(dir.join(profile.name).join("report.md")) else {
-                continue;
-            };
-            println!("== {}: outcome", profile.name);
-            for line in report
-                .lines()
-                .skip_while(|line| !line.starts_with("## Rule outcome"))
-                .skip(1)
-                .filter(|line| !line.is_empty())
-            {
-                println!("{line}");
+        for profile in &results.profiles {
+            match (&profile.outcome, &profile.reason) {
+                (Some(outcome), None) => println!("  {}: {outcome}", profile.name),
+                (Some(outcome), Some(why)) => println!("  {}: {outcome} ({why})", profile.name),
+                (None, Some(why)) => println!("  {}: {why}", profile.name),
+                (None, None) => {}
             }
         }
-        if failed.is_empty() {
-            Ok(())
-        } else {
-            Err(format!("profiles with failed runs: {}", failed.join(", ")).into())
-        }
+        println!(
+            "The file to attach to an issue ({files} files, {:.1} MB; PRIVACY.md inside says \
+             what it holds):",
+            size as f64 / 1e6
+        );
+        println!("{}", archive.display());
+        Ok(())
     }
 
     /// The display: headless without trying where no window can open,
@@ -468,8 +530,8 @@ impl Request {
                 ]
                 .map(str::to_owned)
                 .into();
-                println!("== display: one window, a few seconds");
-                let status = spawn(exe, dir, "display", None, args)?;
+                println!("== display: one window, a few seconds (run-display.log)");
+                let status = spawn(exe, dir, "display", None, args, false)?;
                 display::read(&dir.join("display").join("raw")).ok_or_else(|| {
                     format!(
                         "no window opened: the display measurement wrote no frames ({status}; \
@@ -541,21 +603,45 @@ impl Limit {
     }
 }
 
+/// Writes the level's own files into `dir` (`system.txt`, `results.json`,
+/// `report.md`, `PRIVACY.md`), rewrites every text file under it through
+/// `identity`'s scrub, and packs it into `archive`: the archive's files,
+/// read back, and its bytes.
+fn save(
+    dir: &Path,
+    archive: &Path,
+    results: &Results,
+    system: &str,
+    identity: &Identity,
+) -> Result<(usize, u64), Box<dyn Error>> {
+    fs::write(dir.join("system.txt"), system)?;
+    fs::write(
+        dir.join("results.json"),
+        serde_json::to_string_pretty(results)?,
+    )?;
+    fs::write(dir.join("report.md"), results.markdown())?;
+    fs::write(dir.join("PRIVACY.md"), privacy::PRIVACY)?;
+    identity.scrub_dir(dir)?;
+    let size = archive::pack(dir, archive)?;
+    Ok((archive::read(archive)?.len(), size))
+}
+
 /// The affinity mask of the first `n` cores, in hex.
 fn mask(n: usize) -> String {
     format!("{:X}", (1_u64 << n.min(63)) - 1)
 }
 
 /// Runs `exe ARGS` (`run … --out DIR/NAME`, under `limit` with its
-/// `--cpu-limit`, if any), its console both printed and written to
-/// `DIR/run-NAME.log`, and moves the stamped directory the bench writes
-/// into `DIR/NAME` up into it.
+/// `--cpu-limit`, if any), its console written to `DIR/run-NAME.log` and,
+/// when `shown`, printed, and moves the stamped directory the bench
+/// writes into `DIR/NAME` up into it.
 fn spawn(
     exe: &Path,
     dir: &Path,
     name: &str,
     limit: Option<&Limit>,
     mut args: Vec<String>,
+    shown: bool,
 ) -> Result<ExitStatus, Box<dyn Error>> {
     let out = dir.join(name);
     if let Some(limit) = limit {
@@ -581,11 +667,11 @@ fn spawn(
         child
             .stdout
             .take()
-            .map(|pipe| echo(pipe, Arc::clone(&log), false)),
+            .map(|pipe| echo(pipe, Arc::clone(&log), shown.then_some(false))),
         child
             .stderr
             .take()
-            .map(|pipe| echo(pipe, Arc::clone(&log), true)),
+            .map(|pipe| echo(pipe, Arc::clone(&log), shown.then_some(true))),
     ];
     let status = child.wait()?;
     for echo in echoes.into_iter().flatten() {
@@ -607,19 +693,19 @@ fn spawn(
     Ok(status)
 }
 
-/// Copies `pipe` line by line to the console (standard error when
-/// `error`) and to `log`, on its own thread.
+/// Copies `pipe` line by line to `log` and, unless `console` is `None`,
+/// to the console (standard error when `Some(true)`), on its own thread.
 fn echo(
     pipe: impl io::Read + Send + 'static,
     log: Arc<Mutex<fs::File>>,
-    error: bool,
+    console: Option<bool>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for line in BufReader::new(pipe).lines().map_while(Result::ok) {
-            if error {
-                eprintln!("{line}");
-            } else {
-                println!("{line}");
+            match console {
+                Some(true) => eprintln!("{line}"),
+                Some(false) => println!("{line}"),
+                None => {}
             }
             if let Ok(mut log) = log.lock() {
                 let _ = writeln!(log, "{line}");
@@ -700,11 +786,16 @@ mod tests {
     use std::ffi::OsStr;
     use std::path::Path;
 
-    use super::{Level, Limit, Machine, mask, xwayland_on};
+    use std::fs;
+
+    use super::{Level, Limit, Machine, mask, save, xwayland_on};
+    use crate::archive;
     use crate::cli::Backend;
     use crate::display::{Display, Measured};
     use crate::plan::Plan;
-    use crate::rule;
+    use crate::privacy::Identity;
+    use crate::results::tests::{display, results};
+    use crate::{rule, system};
 
     /// A desktop: 16 cores, X11, a GPU.
     const DESKTOP: Machine = Machine {
@@ -857,6 +948,90 @@ mod tests {
         };
         assert!(options.headless && !options.also);
         assert_eq!(options.budgets, Some(rule::Profile::Desktop));
+    }
+
+    #[test]
+    fn an_archive_holds_no_home_and_no_host_name() {
+        // A results directory under a fake home, with what names paths in
+        // a real one: a run's command line, its console, a panic.
+        let root = std::env::temp_dir().join(format!("rustd3-privacy-{}", std::process::id()));
+        let home = root.join("home").join("alice");
+        let out = home.join("rustd3").join("bench-results");
+        let dir = out.join("20261029T120000Z-quick");
+        fs::create_dir_all(dir.join("native")).unwrap();
+        let host = Identity::here()
+            .host
+            .filter(|host| host.len() >= 3)
+            .unwrap_or_else(|| "alices-laptop".to_owned());
+        let identity = Identity {
+            home: Some(home.display().to_string()),
+            host: Some(host.clone()),
+            user: Some("alice".to_owned()),
+        };
+        fs::write(
+            dir.join("native").join("meta.json"),
+            format!(
+                "{{\"command\": \"rustd3-bench run --out {}\"}}",
+                dir.join("native").display()
+            ),
+        )
+        .unwrap();
+        fs::write(
+            dir.join("run-native.log"),
+            format!(
+                "report: {}\nthread 'main' panicked at {}:1:2 on {host}\n",
+                dir.join("native").join("report.md").display(),
+                home.join(".cargo").join("x.rs").display()
+            ),
+        )
+        .unwrap();
+        let archive = out.join("rustd3-bench-quick-20261029T120000Z.tar.gz");
+        let system = format!("# notes\n{}", system::diagnostics());
+        let (files, _) = save(
+            &dir,
+            &archive,
+            &results(1.0, 2, display(None)),
+            &system,
+            &identity,
+        )
+        .unwrap();
+        let entries = archive::read(&archive).unwrap();
+        assert_eq!(files, entries.len());
+        let home = home.display().to_string();
+        let tokens = |text: &str| {
+            text.split(|c: char| !(c.is_alphanumeric() || c == '-' || c == '_'))
+                .any(|token| token == host || token == host.to_lowercase())
+        };
+        for entry in &entries {
+            let text = String::from_utf8_lossy(&entry.data);
+            assert!(
+                !entry.path.contains(&home) && !text.contains(&home),
+                "{}",
+                entry.path
+            );
+            assert!(
+                !tokens(&entry.path) && !tokens(&text),
+                "{}: {text}",
+                entry.path
+            );
+            assert!(!text.contains("/alice"), "{}", entry.path);
+        }
+        let read = |name: &str| {
+            let entry = entries.iter().find(|e| e.path.ends_with(name)).unwrap();
+            String::from_utf8_lossy(&entry.data).into_owned()
+        };
+        assert_eq!(
+            read("run-native.log"),
+            "report: native/report.md\nthread 'main' panicked at ~/.cargo/x.rs:1:2 on <host>\n"
+        );
+        assert_eq!(
+            read("meta.json"),
+            "{\"command\": \"rustd3-bench run --out native\"}"
+        );
+        assert!(read("system.txt").contains("$ uname -srm"));
+        assert!(read("PRIVACY.md").starts_with("# What this archive holds"));
+        assert!(read("results.json").contains("\"format\": 1"));
+        fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
