@@ -589,3 +589,157 @@ Pans now meet every budget on every profile, including two cores;
 zooms and software compositing are the remaining first-impression
 problems on exactly the machines the user named, and each item above
 removes work, which helps every machine, GPU layer or not.
+
+## D22.6 — Two D22.5 items not built as written, and what measuring them showed
+
+**Date:** 2026-10-29 · **Context:** Phase 31e, after a9eb8d5 (items 1, 2, 3, 6, 7 of D22.5, D40.4 (1), `drag-resize` and the focus plan built) · **Status:** open
+
+### Issue
+
+1. **Item 4 as written measures worse.** D22.5 (4): with two or more
+   pool threads each worker renders single-threaded, and vello_cpu's
+   own pool serves the single-worker case only. At a9eb8d5 the pool's
+   threads already render single-threaded (`iced/src/plot/worker.rs`,
+   `run`: `threads: 0`, since Phase 19); the one renderer on
+   vello_cpu's pool is the UI thread's inline one
+   (`iced/src/plot/state.rs`, `raster::Settings::parallel()`), whatever
+   the pool's size. Built as written (A below), it was slower on the only
+   machine here: 2 cores, so a pool of one thread by default, whose
+   worker A moves onto vello_cpu's pool.
+2. **Item 5 needs a public item.** Its report-only column, latency to
+   current content at any resolution, needs each frame to say how many
+   shown tiles are current at half resolution. `probe::Sample::Frame`
+   has public fields (`images`, `missing`, `previews`, `uploaded`) and
+   the enum is not `#[non_exhaustive]`, so a field breaks every struct
+   literal and exhaustive pattern of it: a public API change, which the
+   brief routes here. Without the column, half resolution shows only in
+   the registered latency, which it raises: full resolution follows the
+   gesture's end, 300 ms after the last step, so the last step's
+   full-resolution latency becomes at least 300 ms plus a render.
+3. **Item 6 cannot skip the clip mask from the widget's side.** iced's
+   tiny-skia engine at 3cbdacc clears and refills a frame-sized clip
+   mask for every raster image whether or not it lies inside its clip
+   (`tiny_skia/src/engine.rs:533`, `adjust_clip_mask` at `:776`; quads,
+   text and SVG skip it when inside, raster images never do), so no
+   pre-cropped render or edge-only layer avoids it. What multiplied it
+   was damage: each moved image adds its old and new bounds
+   (`tiny_skia/src/layer.rs:289-294`), the rects are grouped
+   (`graphics/src/damage.rs:47`) and each is redrawn apart with every
+   image that meets it (`tiny_skia/src/lib.rs:72-160`). 01f47a6 draws
+   the gutters and tiles in one layer whose bounds alternate by half a
+   logical px from one gesture frame to the next, so the layer is
+   damaged whole (`layer.rs:206-209`) and each image drawn once a frame;
+   previews outside the plot area are no longer drawn (the ring's own
+   tiles never were). Recorded here because it is not the item's
+   letter.
+
+### Investigation
+
+Windowed under Xvfb (2 cores, Mesa lavapipe), `--plan weak --scenario
+zoom-lines --native-factor 1 --refresh-hz 60`, 2 runs per cell, items
+1–3 built in every column; latency p95 ms / UI frame p99 ms / preview
+share:
+
+| Cell | Items 1–3 | A, as written | C, single-threaded everywhere |
+| --- | --- | --- | --- |
+| wgpu `trace` | 1,167 / 45.9 / 0.43 | 1,917 / 32.8 / 0.70 | 1,210 / 19.3 / 0.50 |
+| wgpu `scatter100k` | 1,074 / 40.4 / 0.46 | 10,283 / 36.0 / 1.00 | 1,077 / 20.4 / 0.51 |
+| tiny-skia `trace` | 11,471 / 12.0 / 0.96 | 5,745 / 12.3 / 0.91 | 9,997 / 10.5 / 0.71 |
+| tiny-skia `scatter100k` | 11,971 / 12.9 / 1.00 | 13,063 / 26.2 / 1.00 | 10,226 / 12.0 / 0.98 |
+
+(The tiny-skia rows predate 01f47a6, when its frames took 0.3–1.8 s.)
+The probe's `Raster` samples of the same wgpu runs, median ms a render:
+
+| | Items 1–3 | A | C |
+| --- | --- | --- | --- |
+| `trace`: inline cells (axis strips, ~19–32 kpx) | 3.96 | 3.94 | 0.06 |
+| `trace`: pool tiles (64 kpx) | 4.89 | 11.21 | 5.52 |
+| `scatter100k`: inline cells | 2.90 | 3.93 | 0.06 |
+| `scatter100k`: pool cells | 0.06 | 3.99 | 0.09 |
+| `scatter100k`: pool tiles | 2.46 | 12.93 | 2.82 |
+
+vello_cpu 0.3.0's pool, at `Settings::parallel()`'s one thread on two
+cores, costs about 4 ms a render whatever its size: an axis strip takes
+3.9 ms on it and 0.06 ms single-threaded. That is also why the axes lag
+the data mid-burst (4b). With `--threads 2`, where A, B and C all render
+single-threaded everywhere, against items 1–3 alone: wgpu `trace`
+1,145 → 1,119 ms, UI p99 54.7 → 32.3 ms; `scatter100k` 1,046 → 1,043
+ms, 32.0 → 24.3 ms.
+
+4. Found while measuring, before and after Phase 31e alike:
+   a. **A blank plot at the settle.** When the layout settles at a
+      gesture's end and a plot area's rect or the partition changes,
+      `State` builds new areas and gutter runs (`same` false in the
+      refresh): every image goes, and the frames until they render show
+      the theme background. After a zoom burst on wgpu here: `images 1,
+      missing 37` for about 300 ms (screenshots: a nearly white window
+      between the last mid-burst frame and the sharp one).
+   b. **Axes lag the data mid-burst.** Gutter runs render inline one or
+      two a frame (3–4 ms each on vello_cpu's pool here); the rest queue
+      on the pool behind the visible tiles, and each step replaces them.
+      At factor 1 the axes now move every few steps, up to about 20
+      steps behind the tiles (before 31e they did not move until the
+      burst ended); at factor 2 they still do not move until the end.
+   c. **tiny-skia at factor 2 under Xvfb** (3200 × 2000): a burst's
+      frames take 9.5 s (before: 7.8 and 17.6 s), against an 84 ms frame
+      p99 at factor 1. The time is in iced's compositing and present,
+      which the probe does not see; not investigated further. The focus
+      plan's factor cells run on the native backend only.
+   d. **Item 3's price on pans.** A drag's entering column now renders
+      on the pool, a frame or more later. wgpu, `pan-x`, 3 runs, latency
+      p95 / preview share / frame p99 / UI frame p99 / dropped frames,
+      items 1 → 1–3 → all of 31e: `scatter100k` 29 ms / 2 % / 43.6 /
+      24.6 / 180 → 71 ms / 10 % / 42.8 / 21.8 / 191 → 46 ms / 6 % /
+      33.1 / 16.5 / 51; `trace` 356 (one outlier run) / 9 % / 54.6 /
+      31.8 / 160 → 94 / 9 % / 37.1 / 20.3 / 120 → 75 / 8 % / 32.4 /
+      16.4 / 83. Within the weak budgets (150 ms, 25 %); smoother frames
+      for a little latency.
+
+### Options
+
+Item 4:
+
+| | A — as written | B — the two-thread half | **C — single-threaded everywhere** |
+| --- | --- | --- | --- |
+| Approach | ≥ 2 pool threads: the inline renderer single-threaded too; one thread: the worker and the inline renderer on vello_cpu's pool | ≥ 2 threads: the inline renderer single-threaded; one thread: as at a9eb8d5 | The inline renderer single-threaded whatever the pool's size; nothing in the widget uses vello_cpu's pool (`Settings::parallel()` stays for the file outputs) |
+| Cost | Built, then reverted (about 60 lines) | About 20 lines | About 10 lines and a test |
+| Measured here | Zoom latency p95 up to 10× worse with one worker | Equal to C at ≥ 2 threads; unchanged with one | Latency unchanged, UI frame p99 about halved, inline renders 50× cheaper |
+| Fit | D22.5's letter | Keeps the 4 ms floor on 2-core machines | One setting; the pool is the only parallelism, D22.5's aim |
+
+Item 5:
+
+| | A — a field | **B — a field, `#[non_exhaustive]`** | C — inferred by the bench |
+| --- | --- | --- | --- |
+| Approach | `Sample::Frame` gains `coarse: u32`: shown tiles current at half resolution, counted in `previews` too, so the registered latency keeps its meaning | A, and `Sample`'s variants `#[non_exhaustive]`, so later fields are additive | The bench guesses half-resolution tiles from `Raster` samples' pixels |
+| Cost | One breaking change in the unpublished `rustd3-iced`; the bench reads it | A plus `..` in the bench's patterns | No library change; tied to the tile size; cannot see which tiles show |
+| Correctness | Exact | Exact | Heuristic |
+
+### Decision
+
+Open. Recommended: C for item 4; B for item 5, built in a following
+session with its seam and placement tests at 1, 1.25, 1.5 and 2 on both
+backends, its `Verify` rule, the any-resolution column in the focus
+report and `summary.csv`, and mid-burst screenshots; 4a and 4b in the
+same session (4a: carry the old areas' imaged tiles into the new areas'
+preview layers through the per-tile map, and keep each old gutter image
+until its run renders; 4b: C, and gutter runs ahead of tiles on the
+pool while a gesture lasts). 3 needs no answer; 4d: keep item 3 for
+drags unless the user's focus run shows pans missing a budget, in which
+case drags render inline again and only wheel gestures and brushes
+leave tiles to the pool.
+
+### Why
+
+C removes the one measured cost item 4 aimed at (a pool inside a pool,
+here a 4 ms dispatch floor per inline render) without the regression A
+brings to the single worker; with two or more threads A, B and C agree.
+Item 5's column is what makes half resolution judgeable; built without
+it, the only number that moves is the registered latency, upward. 4a
+and 4b are what a user sees at the end and in the middle of every zoom,
+on every machine.
+
+### Followups
+
+- The user's `dev/bench/run.sh --focus` gives the numbers on the
+  Ryzen; 4c is worth a tiny-skia cell at factor 2 there if the weak
+  profiles' native factor is 1.
