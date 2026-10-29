@@ -44,9 +44,39 @@ pub struct Probe {
 /// sample sent between them carries the last one's count. `generation`
 /// increments whenever the state the widget shows changes (a list whose
 /// cell hashes differ from the stored ones).
+///
+/// Each variant is `#[non_exhaustive]`, so a later version may add fields
+/// to it: code outside this crate reads samples with `..` in its patterns
+/// and does not build them.
+///
+/// ```
+/// use rustd3_iced::plot::probe::Sample;
+///
+/// /// The images a frame showed.
+/// fn images(sample: &Sample) -> Option<u32> {
+///     match sample {
+///         Sample::Frame { images, .. } => Some(*images),
+///         Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
+///     }
+/// }
+/// # let _ = images;
+/// ```
+///
+/// ```compile_fail
+/// use iced_core::time::Duration;
+/// use rustd3_iced::plot::probe::{Sample, Stage};
+///
+/// // A sample is the widget's to build.
+/// let sample = Sample::Stage {
+///     frame: 1,
+///     stage: Stage::Resolve,
+///     duration: Duration::ZERO,
+/// };
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum Sample {
     /// UI-thread work inside one `RedrawRequested`.
+    #[non_exhaustive]
     Stage {
         /// The frame it ran in.
         frame: u64,
@@ -56,6 +86,7 @@ pub enum Sample {
         duration: Duration,
     },
     /// One cell or tile rasterized (worker or inline), all its bands.
+    #[non_exhaustive]
     Raster {
         /// The frame it was reported in: the one that rendered it inline,
         /// or the last before the drain that received a worker's result.
@@ -77,6 +108,7 @@ pub enum Sample {
         inline: bool,
     },
     /// What the `draw` after this `RedrawRequested` shows.
+    #[non_exhaustive]
     Frame {
         /// The frame.
         frame: u64,
@@ -103,6 +135,7 @@ pub enum Sample {
     /// Under `Caching::Verify`, a kept or translated slot whose image
     /// differed from a fresh render by more than 1/255; the fresh render
     /// replaced it.
+    #[non_exhaustive]
     Mismatch {
         /// The frame it was reported in: the one that rendered it inline,
         /// or the last before the drain that received the render.

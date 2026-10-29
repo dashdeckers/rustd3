@@ -128,6 +128,7 @@ impl<'a, Message> Driver<'a, Message> {
                     frame,
                     stage,
                     duration,
+                    ..
                 } => self.send(Record::Stage {
                     frame,
                     stage: match stage {
@@ -146,6 +147,7 @@ impl<'a, Message> Driver<'a, Message> {
                     queued,
                     duration,
                     inline,
+                    ..
                 } => {
                     let (cell, tile) = spot(target);
                     self.send(Record::Raster {
@@ -160,7 +162,9 @@ impl<'a, Message> Driver<'a, Message> {
                         inline,
                     });
                 }
-                Sample::Mismatch { frame, target, max } => {
+                Sample::Mismatch {
+                    frame, target, max, ..
+                } => {
                     let (cell, tile) = spot(target);
                     self.send(Record::Mismatch {
                         frame,
@@ -177,6 +181,7 @@ impl<'a, Message> Driver<'a, Message> {
                     missing,
                     previews,
                     uploaded,
+                    ..
                 } => {
                     state.sharp = missing + previews == 0;
                     let mut rest = Vec::new();
