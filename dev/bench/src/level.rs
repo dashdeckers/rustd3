@@ -19,6 +19,7 @@ use std::process::{Command, Stdio};
 
 use crate::archive;
 use crate::display::Display;
+use crate::experiment::Experiment;
 use crate::figure;
 use crate::privacy::{self, Identity};
 use crate::reference;
@@ -59,6 +60,9 @@ pub struct Request {
     pub frames: Option<PathBuf>,
     /// `--every N`: with `--frames`, every N-th frame.
     pub every: u32,
+    /// The experiment flags (D22.11 (1)): which profiles and cells, the
+    /// widget's settings, a sweep.
+    pub experiment: Experiment,
 }
 
 /// The widget's part of a level, in a build with the `widget` feature
@@ -160,6 +164,7 @@ impl Request {
         let level = self.level;
         let ram_mb = system::ram_mb();
         let figures = figure::Plan::of(level, ram_mb);
+        let timed = self.experiment.runs(figure::NAME);
         let outline = widget.as_ref().map(|widget| widget.outline());
         let name = match outline {
             Some(_) => level.name().to_owned(),
@@ -176,14 +181,19 @@ impl Request {
             println!("  {line}");
         }
         println!("  cpu        three single-threaded timings: the CPU reference");
-        println!(
-            "  {:<10} {}, about {:.1} min",
-            figure::NAME,
-            figures.describe(),
-            figures.estimate_s() / 60.0
-        );
+        if timed {
+            println!(
+                "  {:<10} {}, about {:.1} min",
+                figure::NAME,
+                figures.describe(),
+                figures.estimate_s() / 60.0
+            );
+        }
         for line in outline.iter().flat_map(|o| &o.after) {
             println!("  {line}");
+        }
+        for line in self.experiment.describe() {
+            println!("  experiment: {line}");
         }
         let (estimate, note) = match &outline {
             Some(o) => (o.estimate_s, format!("{}; ", o.note)),
@@ -221,13 +231,12 @@ impl Request {
             display: display.clone(),
             cpu_reference: Vec::new(),
             figure_only: widget.is_none(),
-            profiles: std::iter::once(results::Profile::planned(
-                figure::NAME,
-                figures.describe(),
-                None,
-            ))
-            .chain(widget.iter().flat_map(|widget| widget.profiles()))
-            .collect(),
+            experiment: (!self.experiment.is_empty()).then(|| self.experiment.clone()),
+            profiles: timed
+                .then(|| results::Profile::planned(figure::NAME, figures.describe(), None))
+                .into_iter()
+                .chain(widget.iter().flat_map(|widget| widget.profiles()))
+                .collect(),
         };
         let mut notes = match widget {
             Some(_) => format!(
@@ -256,15 +265,18 @@ impl Request {
         // An archive after every step: std cannot catch Ctrl-C portably,
         // so an interrupted level leaves the last whole one.
         save(&results, &notes)?;
-        println!(
-            "== {}: the plotting library alone, headless (figure/report.md)",
-            figure::NAME
-        );
-        results.profiles[0] = figures.run(exe, &dir)?;
-        save(&results, &notes)?;
+        if timed {
+            println!(
+                "== {}: the plotting library alone, headless (figure/report.md)",
+                figure::NAME
+            );
+            results.profiles[0] = figures.run(exe, &dir)?;
+            save(&results, &notes)?;
+        }
         if let Some(widget) = widget.as_mut() {
-            for index in 1..results.profiles.len() {
-                results.profiles[index] = widget.run(index - 1, &dir, &mut notes)?;
+            let first = usize::from(timed);
+            for index in first..results.profiles.len() {
+                results.profiles[index] = widget.run(index - first, &dir, &mut notes)?;
                 save(&results, &notes)?;
             }
             widget.finish(&dir, &mut notes)?;

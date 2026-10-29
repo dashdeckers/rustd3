@@ -48,7 +48,7 @@ pub fn markdown(a: &Results, b: &Results, names: [&str; 2]) -> String {
 
 /// The machines side by side.
 fn machines(md: &mut String, a: &Results, b: &Results) {
-    let rows: [Row; 9] = [
+    let rows: [Row; 10] = [
         ("Level", |r| {
             let only = if r.figure_only { ", figure only" } else { "" };
             format!("{}{only} ({})", r.level, r.stamp)
@@ -90,6 +90,11 @@ fn machines(md: &mut String, a: &Results, b: &Results) {
                 .backend
                 .clone()
                 .unwrap_or_else(|| "unknown".to_owned())
+        }),
+        ("Experiment", |r| {
+            r.experiment
+                .as_ref()
+                .map_or_else(|| "none".to_owned(), |e| e.describe().join("; "))
         }),
     ];
     let _ = writeln!(md, "| | A | B |\n| --- | --- | --- |");
@@ -324,6 +329,7 @@ mod tests {
             "{md}"
         );
         assert!(md.contains("| Display | windowed, 60 Hz (measured), factor 1 (measured) |"));
+        assert!(md.contains("| Experiment | none | none |"), "{md}");
         assert!(
             md.contains("| zoom-lines × trace × 1 | only in A | | | |"),
             "{md}"
@@ -338,6 +344,33 @@ mod tests {
             ),
             "{md}"
         );
+    }
+
+    #[test]
+    fn a_sweep_compared_with_itself_lines_up_each_value() {
+        let mut a = results(1.0, 16, display(Some(60.0)));
+        a.experiment = Some(crate::experiment::Experiment {
+            sweep: Some(crate::experiment::Sweep::parse("threads=1,2").unwrap()),
+            ..crate::experiment::Experiment::default()
+        });
+        let native = a.profiles.remove(0);
+        a.profiles = ["1", "2"]
+            .map(|v| Profile {
+                name: format!("software@threads={v}"),
+                plan: "software".to_owned(),
+                ..native.clone()
+            })
+            .into();
+        let md = markdown(&a, &a, ["a", "a"]);
+        assert!(
+            md.contains("| Experiment | a sweep of threads over 1, 2, a profile per value |"),
+            "{md}"
+        );
+        assert!(md.contains("## software@threads=1\n"), "{md}");
+        assert!(md.contains("## software@threads=2\n"), "{md}");
+        assert!(!md.contains("Only in"), "{md}");
+        // The software profile's cells show its frame cost by part.
+        assert!(md.contains("| cost p99 ms |"), "{md}");
     }
 
     #[test]

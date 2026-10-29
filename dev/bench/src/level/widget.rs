@@ -29,6 +29,8 @@ use iced::advanced::renderer::{self, Headless as _};
 use crate::also;
 use crate::cli::widget::Backend;
 use crate::display::{self, Display};
+use crate::experiment::Experiment;
+use crate::figure;
 use crate::level::{Level, Outline, Request, Widget};
 use crate::plan::{self, Plan, Selection};
 use crate::report;
@@ -60,6 +62,8 @@ pub struct Part {
     profiles: Vec<(Profile, Option<String>)>,
     /// `--frames DIR` and `--every N`, for the software profile.
     frames: Option<(PathBuf, u32)>,
+    /// The experiment flags: which profiles and cells run, how.
+    experiment: Experiment,
 }
 
 /// One `run` of a level: a plan (and a selection of its cells) on a
@@ -86,6 +90,11 @@ pub struct Profile {
     /// 60 Hz and a native factor of 2 so that its cells keep 1600 × 1000
     /// logical px at both factors (D22.12).
     pub offscreen: bool,
+    /// After its name, a sweep's value (`@threads=2`), else empty.
+    pub variant: String,
+    /// The experiment's flags for its `run` (`--render`, `--threads`,
+    /// `--caching`).
+    pub extra: Vec<String>,
 }
 
 /// The software profile's frame rate: no display paces it (D22.12).
@@ -94,6 +103,9 @@ const OFFSCREEN_HZ: f64 = 60.0;
 /// The native factor the software profile runs at: its factor-1 and
 /// factor-2 cells both keep 1600 × 1000 logical px.
 const OFFSCREEN_NATIVE: f32 = 2.0;
+
+/// Why the display is not measured when no profile selected opens one.
+const NO_WINDOW: &str = "no profile selected opens a window (--only)";
 
 /// What a level knows of the machine when it decides which profiles run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,6 +177,8 @@ impl Level {
             cores: None,
             xwayland: false,
             offscreen: true,
+            variant: String::new(),
+            extra: Vec::new(),
         };
         let native = Profile {
             name: "native",
@@ -175,6 +189,8 @@ impl Level {
             cores: None,
             xwayland: false,
             offscreen: false,
+            variant: String::new(),
+            extra: Vec::new(),
         };
         let nogpu = Profile {
             name: "nogpu",
@@ -185,6 +201,8 @@ impl Level {
             cores: None,
             xwayland: false,
             offscreen: false,
+            variant: String::new(),
+            extra: Vec::new(),
         };
         let x11 = Profile {
             name: "nogpu-x11",
@@ -220,6 +238,8 @@ impl Level {
                     cores: Some(n),
                     xwayland: false,
                     offscreen: false,
+                    variant: String::new(),
+                    extra: Vec::new(),
                 };
                 let few = (machine.cores < n).then(|| match machine.cores {
                     1 => "this machine has 1 core".to_owned(),
@@ -237,8 +257,7 @@ impl Level {
     /// plan's durations and run counts plus the per-run overhead
     /// (`Plan::estimate_s`), and at `--full` the `also` measurements.
     pub fn estimate_s(self, profiles: &[(Profile, Option<String>)], native: f32) -> f64 {
-        let display = Plan::Display.cells(native, &Selection::default());
-        let display = Plan::Display.estimate_s(&display) + DISPLAY_MARGIN_S;
+        let display = display_s(native);
         let measured = if self == Level::Full { ALSO_S } else { 0.0 };
         self.library_s(system::ram_mb())
             + display
@@ -252,6 +271,11 @@ impl Level {
 }
 
 impl Profile {
+    /// Its name with its variant: its directory, log and results name.
+    pub fn named(&self) -> String {
+        format!("{}{}", self.name, self.variant)
+    }
+
     /// Its cells with the display's `native` factor (the software
     /// profile's own, offscreen).
     fn cells(&self, native: f32) -> Vec<crate::plan::Cell> {
@@ -308,6 +332,9 @@ impl Profile {
         if self.xwayland {
             let _ = write!(text, ", on X11 through XWayland");
         }
+        if !self.extra.is_empty() {
+            let _ = write!(text, ", with {}", self.extra.join(" "));
+        }
         let _ = write!(text, "; {} budgets", self.budgets.name());
         text
     }
@@ -329,10 +356,10 @@ impl Profile {
             xwayland: self.xwayland,
             headless: self.offscreen || display.headless.is_some(),
             status: results::Status::Done,
-            ..results::Profile::planned(self.name, self.describe(display.native_factor), None)
+            ..results::Profile::planned(&self.named(), self.describe(display.native_factor), None)
         };
-        let log = format!("run-{}.log", self.name);
-        match report::build(&dir.join(self.name)) {
+        let log = format!("run-{}.log", self.named());
+        match report::build(&dir.join(self.named())) {
             Ok(built) => built.apply(&mut out),
             Err(error) => {
                 out.status = results::Status::Failed;
@@ -396,6 +423,11 @@ impl Profile {
             args.push("--headless".to_owned());
         }
         if let Some((dir, every)) = frames.filter(|_| self.offscreen) {
+            let dir = if self.variant.is_empty() {
+                dir.clone()
+            } else {
+                dir.join(self.named())
+            };
             args.extend([
                 "--frames".to_owned(),
                 dir.display().to_string(),
@@ -403,6 +435,7 @@ impl Profile {
                 every.to_string(),
             ]);
         }
+        args.extend(self.extra.iter().cloned());
         args.extend(["--out".to_owned(), out.display().to_string()]);
         args
     }
@@ -428,14 +461,68 @@ impl Part {
             display: None,
             profiles: Vec::new(),
             frames: request.frames.clone().map(|dir| (dir, request.every)),
+            experiment: request.experiment.clone(),
         }
+    }
+
+    /// The level's profiles on `machine` as the experiment selects them,
+    /// narrowed to its cells and runs, a variant per sweep value, on a
+    /// display of factor `native`; a profile left with no cell is skipped
+    /// and says why.
+    fn select(&self, machine: Machine, native: f32) -> Vec<(Profile, Option<String>)> {
+        let e = &self.experiment;
+        let scenarios: Option<Vec<Scenario>> = e
+            .scenarios
+            .as_ref()
+            .map(|names| names.iter().filter_map(|n| Scenario::parse(n)).collect());
+        let workloads: Option<Vec<Workload>> = e
+            .workloads
+            .as_ref()
+            .map(|names| names.iter().filter_map(|n| Workload::parse(n)).collect());
+        let mut selected = Vec::new();
+        for (mut profile, skip) in self.level.profiles(machine) {
+            if !e.runs(profile.name) {
+                continue;
+            }
+            let own = &mut profile.selection;
+            own.scenarios = narrow(own.scenarios.take(), scenarios.clone());
+            own.workloads = narrow(own.workloads.take(), workloads.clone());
+            own.factors = narrow(own.factors.take(), e.factors.clone());
+            own.runs = e.runs.or(own.runs);
+            let skip = skip.or_else(|| {
+                profile.cells(native).is_empty().then(|| {
+                    "the experiment's --scenario, --workload and --factor select none of its \
+                     cells"
+                        .to_owned()
+                })
+            });
+            for variant in e.variants() {
+                let profile = Profile {
+                    variant: variant.suffix,
+                    extra: variant.args,
+                    ..profile.clone()
+                };
+                selected.push((profile, skip.clone()));
+            }
+        }
+        selected
+    }
+
+    /// Whether a profile that runs opens a window.
+    fn windowed(profiles: &[(Profile, Option<String>)]) -> bool {
+        profiles
+            .iter()
+            .any(|(profile, skip)| skip.is_none() && !profile.offscreen)
     }
 
     /// The display: headless without trying where no window can open,
     /// else from the display plan's one window (`display/`), headless if
     /// it opened none.
     fn measure(&self, dir: &Path) -> Result<Display, Box<dyn Error>> {
-        let measured = match self.unreachable.clone() {
+        let native = self.native.unwrap_or(1.0);
+        let none =
+            (!Part::windowed(&self.select(self.guess, native))).then(|| NO_WINDOW.to_owned());
+        let measured = match self.unreachable.clone().or(none) {
             Some(why) => Err(why),
             None => {
                 let hz = self.refresh_hz.unwrap_or(display::ASSUMED_HZ).to_string();
@@ -477,17 +564,19 @@ impl Part {
 impl Widget for Part {
     fn outline(&self) -> Outline {
         let native = self.native.unwrap_or(1.0);
-        let profiles = self.level.profiles(self.guess);
-        let display = match &self.unreachable {
-            Some(why) => format!("display    {why}: every profile runs headless"),
-            None => "display    one window measures the refresh rate and scale factor, and which \
-                     renderer iced chooses"
+        let profiles = self.select(self.guess, native);
+        let windowed = Part::windowed(&profiles);
+        let display = match (&self.unreachable, windowed) {
+            (Some(why), _) => format!("display    {why}: every profile runs headless"),
+            (None, false) => format!("display    not measured: {NO_WINDOW}"),
+            (None, true) => "display    one window measures the refresh rate and scale factor, \
+                             and which renderer iced chooses"
                 .to_owned(),
         };
         let mut after = Vec::new();
         for (profile, skip) in &profiles {
             after.push(match skip {
-                Some(why) => format!("{:<10} skipped: {why}", profile.name),
+                Some(why) => format!("{:<10} skipped: {why}", profile.named()),
                 None => {
                     let unless = if profile.name == "nogpu" {
                         " (skipped if iced's own choice is the software renderer)"
@@ -496,12 +585,19 @@ impl Widget for Part {
                     };
                     format!(
                         "{:<10} {}, about {:.1} min{unless}",
-                        profile.name,
+                        profile.named(),
                         profile.describe(native),
                         profile.estimate_s(native) / 60.0
                     )
                 }
             });
+        }
+        let mut estimate_s = self.level.estimate_s(&profiles, native);
+        if !windowed {
+            estimate_s -= display_s(native);
+        }
+        if !self.experiment.runs(figure::NAME) {
+            estimate_s -= figure::Plan::of(self.level, system::ram_mb()).estimate_s();
         }
         if self.level == Level::Full {
             after.push(format!(
@@ -512,7 +608,7 @@ impl Widget for Part {
         Outline {
             before: vec![display],
             after,
-            estimate_s: self.level.estimate_s(&profiles, native),
+            estimate_s,
             note: format!(
                 "each run's scenario plus {:.0} s to start and settle",
                 plan::OVERHEAD_MS / 1e3
@@ -535,7 +631,7 @@ impl Widget for Part {
             software: display.software(),
             ..self.guess
         };
-        self.profiles = self.level.profiles(machine);
+        self.profiles = self.select(machine, display.native_factor);
         self.display = Some(display.clone());
         Ok(display)
     }
@@ -547,7 +643,11 @@ impl Widget for Part {
         self.profiles
             .iter()
             .map(|(p, skip)| {
-                results::Profile::planned(p.name, p.describe(display.native_factor), skip.clone())
+                results::Profile::planned(
+                    &p.named(),
+                    p.describe(display.native_factor),
+                    skip.clone(),
+                )
             })
             .collect()
     }
@@ -562,21 +662,22 @@ impl Widget for Part {
         let (profile, skip) = self.profiles.get(index).ok_or("no such profile")?;
         let native = display.native_factor;
         if let Some(why) = skip {
-            println!("Skipping {}: {why}.", profile.name);
-            let _ = writeln!(notes, "# {}: skipped, {why}", profile.name);
+            println!("Skipping {}: {why}.", profile.named());
+            let _ = writeln!(notes, "# {}: skipped, {why}", profile.named());
             return Ok(results::Profile::planned(
-                profile.name,
+                &profile.named(),
                 profile.describe(native),
                 Some(why.clone()),
             ));
         }
         let limit = profile.cores.map(Limit::available);
         if let Some(limit) = &limit {
-            let _ = writeln!(notes, "# {}: {}", profile.name, limit.describe());
+            let _ = writeln!(notes, "# {}: {}", profile.named(), limit.describe());
         }
-        let args = profile.args(display, &dir.join(profile.name), self.frames.as_ref());
-        println!("== {}: {}", profile.name, profile.describe(native));
-        let status = spawn(&self.exe, dir, profile.name, limit.as_ref(), args, true)?;
+        let name = profile.named();
+        let args = profile.args(display, &dir.join(&name), self.frames.as_ref());
+        println!("== {name}: {}", profile.describe(native));
+        let status = spawn(&self.exe, dir, &name, limit.as_ref(), args, true)?;
         Ok(profile.summary(display, dir, status, limit.as_ref()))
     }
 
@@ -646,6 +747,22 @@ impl Limit {
                 command
             }
         }
+    }
+}
+
+/// The display measurement's estimated wall time on a display of factor
+/// `native`, s.
+fn display_s(native: f32) -> f64 {
+    let display = Plan::Display.cells(native, &Selection::default());
+    Plan::Display.estimate_s(&display) + DISPLAY_MARGIN_S
+}
+
+/// `own` narrowed to `given`: what both admit (`None` admits everything).
+fn narrow<T: PartialEq>(own: Option<Vec<T>>, given: Option<Vec<T>>) -> Option<Vec<T>> {
+    match (own, given) {
+        (None, given) => given,
+        (own, None) => own,
+        (Some(own), Some(given)) => Some(own.into_iter().filter(|x| given.contains(x)).collect()),
     }
 }
 
@@ -975,6 +1092,65 @@ mod tests {
         };
         assert!(options.headless && !options.also);
         assert_eq!(options.budgets, Some(rule::Profile::Desktop));
+    }
+
+    #[test]
+    fn an_experiment_selects_narrows_and_sweeps_the_profiles() {
+        use crate::cli::Command;
+
+        let part = |line: &str| {
+            let args: Vec<String> = line.split_whitespace().map(str::to_owned).collect();
+            let Ok(Command::Level(request)) = Command::parse(&args) else {
+                panic!("{line}: a level");
+            };
+            super::Part::new(&request, Path::new("bench"))
+        };
+        let named = |selected: &[(super::Profile, Option<String>)]| -> Vec<String> {
+            selected.iter().map(|(p, _)| p.named()).collect()
+        };
+        // The software profile alone opens no window.
+        let only = part("--quick --only software,figure");
+        let selected = only.select(DESKTOP, 1.0);
+        assert_eq!(named(&selected), ["software"]);
+        assert!(!super::Part::windowed(&selected));
+        assert!(super::Part::windowed(&part("--quick").select(DESKTOP, 1.0)));
+        // A sweep: a variant per value, each with its flag.
+        let sweep = part(
+            "--quick --only software --sweep threads=1,2,8 --scenario zoom-lines --workload trace",
+        );
+        let selected = sweep.select(DESKTOP, 1.0);
+        assert_eq!(
+            named(&selected),
+            [
+                "software@threads=1",
+                "software@threads=2",
+                "software@threads=8"
+            ]
+        );
+        let (two, _) = &selected[1];
+        let cells = two.cells(1.0);
+        assert_eq!(cells.len(), 2, "zoom-lines on trace at 1 and 2");
+        assert!(cells.iter().all(|c| c.runs == 1));
+        let display = Display::decide(None, None, Err("no display".to_owned()));
+        let frames = (PathBuf::from("f"), 1);
+        let args = two
+            .args(&display, Path::new("o/x"), Some(&frames))
+            .join(" ");
+        assert!(
+            args.ends_with("--frames f/software@threads=2 --every 1 --threads 2 --out o/x"),
+            "{args}"
+        );
+        assert!(two.describe(1.0).contains(", with --threads 2;"));
+        // Runs given; a profile the filters leave without cells is skipped.
+        let narrowed = part("--quick --only nogpu,software --workload grid16 --runs 2");
+        let selected = narrowed.select(DESKTOP, 1.0);
+        let [(software, None), (nogpu, Some(why))] = &selected[..] else {
+            panic!("{selected:?}");
+        };
+        assert!(software.cells(1.0).iter().all(|c| c.runs == 2));
+        assert_eq!(software.cells(1.0).len(), 8);
+        assert_eq!(nogpu.name, "nogpu");
+        assert!(why.contains("select none of its cells"), "{why}");
     }
 
     #[test]

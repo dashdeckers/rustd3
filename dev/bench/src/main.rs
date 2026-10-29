@@ -31,6 +31,7 @@ mod compare;
 mod display;
 #[cfg(feature = "widget")]
 mod driver;
+mod experiment;
 mod figure;
 #[cfg(feature = "widget")]
 mod headless;

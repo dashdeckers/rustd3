@@ -57,6 +57,33 @@ the archive's path. Real input is ignored, but focus changes can disturb
 the compositor. A tiling window manager should float the windows (they
 are not resizable); one that resizes them anyway is flagged.
 
+### Experiments
+
+A level also takes flags that narrow or vary it for one question (D22.11
+(1)), so that a question about one case is one command and one archive on
+the machine that shows it. They are recorded in `results.json`
+(`experiment`) and in the level's report, whose "Experiment" section says
+what it ran instead of the level's usual profiles.
+
+| Flag | |
+| --- | --- |
+| `--only P,…` | only these profiles: `figure`, `software`, `native`, `nogpu`, `nogpu-x11`, `4cores`, `2cores`; when none of them opens a window, the display is not measured |
+| `--scenario A,B`, `--workload A,B`, `--factor F,G` | only these cells of the widget's profiles; a profile left without a cell is skipped and says why |
+| `--runs N` | N runs a cell |
+| `--render auto\|inline\|worker`, `--threads N`, `--caching on\|off\|verify` | the `Plot` widget's settings, passed to the widget's profiles (as `run` takes them) |
+| `--sweep KEY=V1,V2,…` | each selected widget profile once per value, as the profile `<profile>@KEY=V` (its own directory and log), into the one archive; `KEY` is `render`, `threads` or `caching`, and is not given on its own too |
+
+The level's report sets a sweep's values side by side ("Sweep: …", each
+cell's key metrics per value), and `compare` lines up profiles of the same
+name, so two sweeps (or one with itself) compare value by value. For
+example, how the software path scales with the render pool on `zoom-lines`
+over `trace`, in about three minutes:
+
+```bash
+cargo rustd3-bench --quick --only software --sweep threads=1,2,8 \
+  --scenario zoom-lines --workload trace
+```
+
 ## The levels
 
 Every level starts the same way:
@@ -301,6 +328,7 @@ frame's cost, not its interval.
 | `rustd3` | `version`, `commit` (`git rev-parse HEAD`, or "unknown"), `iced` (the pinned revision) |
 | `level` | `quick`, `default` or `full` |
 | `figure_only` | true for the plotting library alone (`--figure-only`, or the build without the widget): the CPU reference and the `figure` profile, `display` not measured |
+| `experiment` | the experiment flags the level ran with, absent without: `only`, `scenarios`, `workloads`, `factors`, `runs`, `render`, `threads`, `caching`, and `sweep` (`key`: `render`, `threads` or `caching`; `values`) |
 | `stamp` | the level's start, UTC, `YYYYmmddTHHMMSSZ` |
 | `complete` | false in the archive of an interrupted level |
 | `machine` | `os`, `release`, `kernel`, `arch`, `cpu`, `cores`, `ram_mb`, `gpu` (each "unknown" or 0 where no tool says), `session`, `desktop` (`XDG_SESSION_TYPE`, `XDG_CURRENT_DESKTOP`, or "unset"), `wayland`, `x11` (whether `WAYLAND_DISPLAY`, `DISPLAY` are set) |
@@ -308,35 +336,37 @@ frame's cost, not its interval.
 | `cpu_reference` | per timing `name` (`trace-tile`, `scatter-filled`, `scatter-splatted`, `composition`), `what`, `ms` (the median, or null when not measured), `repetitions` |
 | `profiles` | in order, those skipped and not run included; each below |
 
-A profile: `name`, `what` (a line), `plan`, `backend` (asked: `auto`,
-`tiny-skia`), `ran` (the renderers its runs ran on), `budgets` (`desktop`
-or `weak`), `limit` (how its cores were limited, or null), `xwayland`,
-`headless`, `status` (`done`, `failed`, `skipped`, `pending`), `reason`
-(why skipped, or what failed), `outcome` (its outcome line), `checks`
-(`met`, `missed`, `inconclusive`), `cells` and `figures`. The `figure`
-profile has `figures` and no cells (its `plan` is `figure`, `backend` and
-`ran` `vello_cpu`, `budgets` `none`); the widget's profiles have cells
-and no figures. A figure: `name`, `what`, `size` (logical px, `[w, h]`),
-`rss_peak_mb` (its process's peak resident memory, MiB, or null where the
-platform does not say), `failed` and `skipped` (why, or null) and
+A profile: `name` (a sweep's variants `<profile>@KEY=V`), `what` (a
+line), `plan`, `backend` (asked: `auto`, `tiny-skia`), `ran` (the
+renderers its runs ran on), `budgets` (`desktop` or `weak`), `limit`
+(how its cores were limited, or null), `xwayland`, `headless`, `status`
+(`done`, `failed`, `skipped`, `pending`), `reason` (why skipped, or what
+failed), `outcome` (its outcome line), `checks` (`met`, `missed`,
+`inconclusive`), `cells` and `figures`. The `figure` profile has
+`figures` and no cells (its `plan` is `figure`, `backend` and `ran`
+`vello_cpu`, `budgets` `none`); the widget's profiles have cells and no
+figures. A figure: `name`, `what`, `size` (logical px, `[w, h]`),
+`rss_peak_mb` (its process's peak resident memory, MiB, or null where
+the platform does not say), `failed` and `skipped` (why, or null) and
 `stages`, each `stage` (`build`, `resolve`, `list`, `svg`, `pdf`,
-`png-1x`, `png-2x`, `gif`), `cold_ms` (the first repetition), `median_ms`,
-`min_ms` and `p90_ms` (of the repetitions after it), `repetitions` (how
-many after it) and `bytes` (the output's size, or null). A cell: `scenario`,
-`workload`, `factor`, `runs` (planned), `read` (runs with records),
-`applies` (false: the workload has no such cell), `metrics` (each per-run
-statistic's median across runs, named as in `summary.csv`:
-`frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`, `drops`,
-`latency_p50_ms`, `latency_p95_ms`, `preview_share`, `ui_event_p99_ms`,
-`ui_frame_p99_ms`, `raster_critical_ms`, `inline_share`, `cpu_s_per_s`,
-`upload_mb_per_s`, `resolve_ms`, `list_ms`, `calibration`, and per
-scenario `latency_p95_pan_ms`, `latency_p95_zoom_ms`,
-`preview_share_pan`, `cold_ms`, `last_step_latency_p50_ms`,
-`last_step_latency_p95_ms`, `rss_max_mb`, `gpu_max_mb`) and `budgets`: per
-budget `budget` (`frame p99`, `pan latency p95`, `zoom latency p95`,
-`preview share`, `pan: ` or `zoom: ` before `4k`'s halves), `limit` (ms,
-or a share), `n`, `mean`, `ci` (the 95% interval, from two runs) and
-`verdict` (`met`, `missed`, `inconclusive`).
+`png-1x`, `png-2x`, `gif`), `cold_ms` (the first repetition),
+`median_ms`, `min_ms` and `p90_ms` (of the repetitions after it),
+`repetitions` (how many after it) and `bytes` (the output's size, or
+null). A cell: `scenario`, `workload`, `factor`, `runs` (planned),
+`read` (runs with records), `applies` (false: the workload has no such
+cell), `metrics` (each per-run statistic's median across runs, named as
+in `summary.csv`: `frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`,
+`drops`, `latency_p50_ms`, `latency_p95_ms`, `preview_share`,
+`ui_event_p99_ms`, `ui_frame_p99_ms`, `raster_critical_ms`,
+`inline_share`, `cpu_s_per_s`, `upload_mb_per_s`, `resolve_ms`,
+`list_ms`, `calibration`, and per scenario `latency_p95_pan_ms`,
+`latency_p95_zoom_ms`, `preview_share_pan`, `cold_ms`,
+`last_step_latency_p50_ms`, `last_step_latency_p95_ms`, `rss_max_mb`,
+`gpu_max_mb`) and `budgets`: per budget `budget` (`frame p99`, `pan
+latency p95`, `zoom latency p95`, `preview share`, `pan: ` or `zoom: `
+before `4k`'s halves), `limit` (ms, or a share), `n`, `mean`, `ci` (the
+95% interval, from two runs) and `verdict` (`met`, `missed`,
+`inconclusive`).
 
 ## For developers
 

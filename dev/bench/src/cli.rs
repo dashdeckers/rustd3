@@ -7,6 +7,7 @@ pub mod widget;
 use std::fmt;
 use std::path::PathBuf;
 
+use crate::experiment::{self, Experiment};
 use crate::level::{Level, Request};
 
 /// What the process does.
@@ -15,7 +16,7 @@ pub enum Command {
     /// A level, the one entry point (D22.9): the CPU reference and the
     /// figure profile, and with the widget the display measurement and
     /// the widget's profiles.
-    Level(Request),
+    Level(Box<Request>),
     /// One figure of the figure profile, timed in its own process
     /// (internal).
     FigureChild {
@@ -62,6 +63,8 @@ pub enum Error {
     Windowed(&'static str),
     /// A flag of the old `suite` or `run.sh`, which the levels replace.
     Gone(String),
+    /// Experiment flags that cannot hold together.
+    Experiment(experiment::Error),
 }
 
 /// What `--help` prints: the levels, then the developers' commands.
@@ -112,6 +115,24 @@ hands off the mouse and keyboard.
               the software profile also writes its composed frames (every
               N-th) as PNGs under DIR/<cell>__r<run>/, to look at; the
               encoding takes a core, so those timings are not for comparing.
+
+Experiments (one question on one machine, a command and an archive each;
+recorded in results.json and the reports):
+  --only P,...  only these profiles: figure, software, native, nogpu,
+              nogpu-x11, 4cores, 2cores (with none that opens a window, no
+              display is measured)
+  --scenario A,B  --workload A,B  --factor F,G
+              only these cells of the widget's profiles; a profile left
+              without a cell is skipped and says why
+  --runs N    N runs a cell
+  --render auto|inline|worker  --threads N  --caching on|off|verify
+              the Plot widget's settings in the widget's profiles
+  --sweep KEY=V1,V2,...
+              each selected widget profile once per value, as
+              <profile>@KEY=V, into the one archive; KEY is render, threads
+              or caching; the level's report sets the values side by side
+              and `compare` lines up profiles of the same name
+
 Without a display it runs headless; without a GPU the native backend is
 the software renderer; with too few cores a profile is skipped; a run that
 fails is recorded and the level goes on. It writes
@@ -164,9 +185,11 @@ Advanced (developers):
                           run's directory; a directory from before the levels
                           is read as it is
   compare A B             two results (directories or archives, from before
-                          the levels too) side by side: the machines, then
-                          per profile and cell frame p50 and p99, latency
-                          p95, preview share, drops, UI frame p99 and CPU s/s
+                          the levels too) side by side: the machines and
+                          experiments, then per profile (a sweep's by
+                          <profile>@KEY=V) and cell frame p50 and p99,
+                          latency p95, preview share, drops, UI frame p99 and
+                          CPU s/s (the software profile's frame cost by part)
                           of A and B and B/A
   repro-software [--single] [--out FILE]
           D22.8's plain-iced reproduction for upstream, no rustd3: 40
@@ -233,7 +256,9 @@ impl Command {
         }
         let (command, rest) = match args.first().map(String::as_str) {
             Some(first) if !first.starts_with("--") => (first, &args[1..]),
-            Some(_) | None => return Request::parse(args).map(Command::Level),
+            Some(_) | None => {
+                return Request::parse(args).map(|request| Command::Level(Box::new(request)));
+            }
         };
         #[cfg(feature = "widget")]
         if let Some(parsed) = widget::Command::parse(command, rest) {
@@ -290,6 +315,7 @@ impl Request {
             dry_run: false,
             frames: None,
             every: 1,
+            experiment: Experiment::default(),
         };
         let mut named: Option<&str> = None;
         let mut args = args.iter();
@@ -349,13 +375,79 @@ impl Request {
                         value: value.clone(),
                     })?;
                 }
+                #[cfg(feature = "widget")]
+                "--only" | "--scenario" | "--workload" | "--factor" | "--runs" | "--render"
+                | "--threads" | "--caching" | "--sweep" => {
+                    let value = args.next().ok_or_else(|| Error::Missing(flag.clone()))?;
+                    experiment_flag(&mut request.experiment, flag, value)?;
+                }
                 "--smoke-only" | "--focus" => return Err(Error::Gone(flag.clone())),
                 other if other.starts_with("--") => return Err(Error::Unknown(other.to_owned())),
                 other => return Err(Error::Stray(other.to_owned())),
             }
         }
+        if request.experiment.only.is_some() && request.figure_only && cfg!(feature = "widget") {
+            return Err(Error::Value {
+                flag: "--only".to_owned(),
+                value: "with --figure-only".to_owned(),
+            });
+        }
+        request.experiment = request.experiment.checked().map_err(Error::Experiment)?;
         Ok(request)
     }
+}
+
+/// Sets the experiment flag `flag` to `value`, each item checked.
+#[cfg(feature = "widget")]
+fn experiment_flag(experiment: &mut Experiment, flag: &str, value: &str) -> Result<(), Error> {
+    use crate::experiment::Sweep;
+    use crate::scenario::Scenario;
+    use crate::workload::Workload;
+
+    let bad = || Error::Value {
+        flag: flag.to_owned(),
+        value: value.to_owned(),
+    };
+    let names = |known: &dyn Fn(&str) -> bool| -> Result<Vec<String>, Error> {
+        let items: Vec<String> = value.split(',').map(|s| s.trim().to_owned()).collect();
+        if items.iter().all(|item| known(item)) {
+            Ok(items)
+        } else {
+            Err(bad())
+        }
+    };
+    match flag {
+        "--only" => experiment.only = Some(names(&|_| true)?),
+        "--scenario" => {
+            experiment.scenarios = Some(names(&|s| Scenario::parse(s).is_some())?);
+        }
+        "--workload" => {
+            experiment.workloads = Some(names(&|w| Workload::parse(w).is_some())?);
+        }
+        "--factor" => {
+            let factors: Option<Vec<f32>> = value.split(',').map(|f| factor(f.trim())).collect();
+            experiment.factors = Some(factors.ok_or_else(bad)?);
+        }
+        "--runs" => {
+            let runs = value.parse::<u32>().ok().filter(|&n| n > 0);
+            experiment.runs = Some(runs.ok_or_else(bad)?);
+        }
+        "--render" => {
+            let known = experiment::RENDERS.contains(&value);
+            experiment.render = Some(known.then(|| value.to_owned()).ok_or_else(bad)?);
+        }
+        "--caching" => {
+            let known = experiment::CACHINGS.contains(&value);
+            experiment.caching = Some(known.then(|| value.to_owned()).ok_or_else(bad)?);
+        }
+        "--threads" => {
+            let threads = value.parse::<usize>().ok();
+            let threads = threads.filter(|n| (1..=64).contains(n));
+            experiment.threads = Some(threads.ok_or_else(bad)?);
+        }
+        _ => experiment.sweep = Some(Sweep::parse(value).map_err(Error::Experiment)?),
+    }
+    Ok(())
 }
 
 impl fmt::Display for Error {
@@ -370,6 +462,7 @@ impl fmt::Display for Error {
                 "{flag} is gone: the levels --quick, --default and --full replace the suite \
                  (dev/bench/README.md); the focus plan stays as `rustd3-bench run --plan focus`"
             ),
+            Error::Experiment(error) => write!(f, "{error}"),
             Error::Windowed(flag) => write!(
                 f,
                 "a windowed run needs {flag}: the display's refresh rate (--refresh-hz, e.g. 144) \
@@ -406,7 +499,7 @@ mod tests {
         use crate::level::{Level, Request};
 
         let level = |line: &str| match Command::parse(&args(line)) {
-            Ok(Command::Level(request)) => request,
+            Ok(Command::Level(request)) => *request,
             other => panic!("{line}: {other:?}"),
         };
         let default = level("");
@@ -421,6 +514,7 @@ mod tests {
                 dry_run: false,
                 frames: None,
                 every: 1,
+                experiment: crate::experiment::Experiment::default(),
             }
         );
         assert_eq!(level("--quick").level, Level::Quick);
@@ -465,6 +559,54 @@ mod tests {
             );
         }
         assert!(Command::parse(&args("suite")).is_err(), "suite is gone");
+    }
+
+    #[cfg(feature = "widget")]
+    #[test]
+    fn experiment_flags_narrow_and_vary_a_level() {
+        use crate::experiment::{self, Key};
+
+        let level = |line: &str| match Command::parse(&args(line)) {
+            Ok(Command::Level(request)) => request.experiment,
+            other => panic!("{line}: {other:?}"),
+        };
+        let e = level(
+            "--quick --only software,figure --scenario zoom-lines,pan-x --workload trace \
+             --factor 1,2 --runs 2 --render inline --caching off --sweep threads=1,2,8",
+        );
+        assert_eq!(
+            e.only.as_deref(),
+            Some(&["software".to_owned(), "figure".to_owned()][..])
+        );
+        assert_eq!(e.scenarios.unwrap(), ["zoom-lines", "pan-x"]);
+        assert_eq!(e.workloads.unwrap(), ["trace"]);
+        assert_eq!(e.factors.unwrap(), [1.0, 2.0]);
+        assert_eq!(e.runs, Some(2));
+        assert_eq!(
+            (e.render.as_deref(), e.caching.as_deref()),
+            (Some("inline"), Some("off"))
+        );
+        assert_eq!(e.sweep.unwrap().key, Key::Threads);
+        assert_eq!(level("--threads 3").threads, Some(3));
+        for bad in [
+            "--only gpu",
+            "--scenario zoom",
+            "--workload scatter",
+            "--factor 9",
+            "--runs 0",
+            "--render gpu",
+            "--threads 0",
+            "--caching always",
+            "--sweep pacing=bench,none",
+            "--sweep threads=2 --threads 2",
+            "--only software --figure-only",
+        ] {
+            assert!(Command::parse(&args(bad)).is_err(), "{bad}");
+        }
+        assert_eq!(
+            Command::parse(&args("--sweep render=inline --render worker")),
+            Err(Error::Experiment(experiment::Error::Twice(Key::Render)))
+        );
     }
 
     #[cfg(not(feature = "widget"))]

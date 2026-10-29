@@ -10,6 +10,7 @@ use std::fmt::Write as _;
 use serde::{Deserialize, Serialize};
 
 use crate::display::Display;
+use crate::experiment::{self, Experiment};
 use crate::figure;
 use crate::reference::Reference;
 use crate::system;
@@ -38,6 +39,9 @@ pub struct Results {
     /// the widget): the CPU reference and the figure profile, no display.
     #[serde(default)]
     pub figure_only: bool,
+    /// The experiment flags the level ran with (D22.11 (1)), if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub experiment: Option<Experiment>,
     /// The CPU reference's timings.
     #[serde(default)]
     pub cpu_reference: Vec<Reference>,
@@ -397,10 +401,22 @@ impl Results {
         self.machine_table(&mut md);
         self.reference(&mut md);
         self.flags(&mut md);
+        if let Some(experiment) = &self.experiment {
+            let _ = writeln!(
+                md,
+                "## Experiment\n\nThis level ran with experiment flags (D22.11), to answer one \
+                 question: its profiles and cells are not the level's usual ones.\n"
+            );
+            for line in experiment.describe() {
+                let _ = writeln!(md, "- {line}");
+            }
+            let _ = writeln!(md);
+        }
         let _ = writeln!(md, "## Profiles\n");
         for profile in &self.profiles {
             self.profile(&mut md, profile);
         }
+        self.sweeps(&mut md);
         if self.level != "quick" {
             let _ = writeln!(md, "## Rule outcome\n");
             let rule = |p: &&Profile| p.outcome.is_some() && p.name != figure::NAME;
@@ -419,6 +435,61 @@ impl Results {
             );
         }
         md
+    }
+
+    /// Each swept profile's cells side by side, a column per value.
+    fn sweeps(&self, md: &mut String) {
+        let mut bases: Vec<&str> = Vec::new();
+        for profile in &self.profiles {
+            if let (base, Some(_)) = experiment::split(&profile.name)
+                && !bases.contains(&base)
+            {
+                bases.push(base);
+            }
+        }
+        for base in bases {
+            let variants: Vec<&Profile> = self
+                .profiles
+                .iter()
+                .filter(|p| experiment::split(&p.name).0 == base)
+                .filter(|p| matches!(p.status, Status::Done | Status::Failed))
+                .collect();
+            let Some(first) = variants.first() else {
+                continue;
+            };
+            let _ = writeln!(
+                md,
+                "## Sweep: {base}\n\nEach cell's key metrics per value, side by side.\n"
+            );
+            let mut heading = String::from("| Cell | metric |");
+            let mut rule = String::from("| --- | --- |");
+            for variant in &variants {
+                let value = experiment::split(&variant.name).1.unwrap_or_default();
+                let _ = write!(heading, " {value} |");
+                rule.push_str(" --- |");
+            }
+            let _ = writeln!(md, "{heading}\n{rule}");
+            for cell in first.cells.iter().filter(|c| c.applies) {
+                for (index, &(key, name, digits, share)) in first.key().iter().enumerate() {
+                    let shown = if index == 0 {
+                        cell.name()
+                    } else {
+                        String::new()
+                    };
+                    let mut row = format!("| {shown} | {name} |");
+                    for variant in &variants {
+                        let found = variant
+                            .cells
+                            .iter()
+                            .find(|c| c.applies && c.name() == cell.name())
+                            .and_then(|c| c.metrics.get(key).copied());
+                        let _ = write!(row, " {} |", value(found, digits, share));
+                    }
+                    let _ = writeln!(md, "{row}");
+                }
+            }
+            let _ = writeln!(md);
+        }
     }
 
     /// The machine and the display.
@@ -716,6 +787,7 @@ pub mod tests {
             },
             display,
             figure_only: false,
+            experiment: None,
             cpu_reference: vec![crate::reference::Reference {
                 name: "trace-tile".to_owned(),
                 what: "one trace tile".to_owned(),
@@ -833,6 +905,45 @@ pub mod tests {
         let json = serde_json::to_string_pretty(&cut).unwrap();
         assert_eq!(serde_json::from_str::<Results>(&json).unwrap(), cut);
         assert!(json.contains("\"format\": 2"));
+    }
+
+    #[test]
+    fn an_experiment_is_said_and_a_sweep_shows_its_values_side_by_side() {
+        let mut r = results(1.0, 16, display(Some(60.0)));
+        r.experiment = Some(crate::experiment::Experiment {
+            only: Some(vec!["native".to_owned()]),
+            sweep: Some(crate::experiment::Sweep::parse("threads=1,8").unwrap()),
+            ..crate::experiment::Experiment::default()
+        });
+        let native = r.profiles.remove(0);
+        for (k, threads) in [(1.0, "1"), (2.0, "8")] {
+            let mut variant = native.clone();
+            variant.name = format!("native@threads={threads}");
+            variant.cells = vec![cell("pan-x", k)];
+            r.profiles.push(variant);
+        }
+        let md = r.markdown();
+        assert!(md.contains("## Experiment"), "{md}");
+        assert!(md.contains("- only the profiles native"), "{md}");
+        assert!(
+            md.contains("- a sweep of threads over 1, 8, a profile per value"),
+            "{md}"
+        );
+        assert!(md.contains("### native@threads=8"), "{md}");
+        assert!(
+            md.contains(
+                "## Sweep: native\n\nEach cell's key metrics per value, side by side.\n\n\
+                         | Cell | metric | threads=1 | threads=8 |"
+            ),
+            "{md}"
+        );
+        assert!(
+            md.contains("| pan-x × trace × 1 | frame p50 ms | 16.7 | 33.4 |"),
+            "{md}"
+        );
+        let json = serde_json::to_string_pretty(&r).unwrap();
+        assert!(json.contains("\"sweep\""), "{json}");
+        assert_eq!(serde_json::from_str::<Results>(&json).unwrap(), r);
     }
 
     #[test]
