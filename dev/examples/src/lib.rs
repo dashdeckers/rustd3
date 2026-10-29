@@ -3,6 +3,7 @@
 //! presets, shared with the benchmark.
 
 pub mod focus_context;
+pub mod presets;
 pub mod scatter;
 pub mod trace;
 pub mod update_pattern;
