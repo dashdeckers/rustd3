@@ -1080,8 +1080,8 @@ impl State {
     /// on the pool under `Render::Worker`, and under `Render::Auto` inline
     /// each job whose predicted time still fits half the frame budget with
     /// those before it, the rest on the pool, whose waiting jobs they
-    /// replace (it abandons them); while a gesture lasts, every tile goes
-    /// to the pool. Under `Caching::Verify` every kept or
+    /// replace (it abandons them); while a wheel gesture or a brush lasts,
+    /// every tile goes to the pool. Under `Caching::Verify` every kept or
     /// translated slot renders again after them, as a check. Everything
     /// renders inline when the pool cannot start.
     fn render(&mut self, pipeline: &Pipeline<'_>) {
@@ -1104,15 +1104,18 @@ impl State {
             .filter_map(|at| self.job(at, generation, enqueued))
             .collect();
         let mut predicted = 0.0;
-        // During a gesture the UI thread renders no tile: a zoom step's
-        // tiles would take its frames, and the pool shows them as they
-        // land.
-        let active = self.is_active();
+        // During a wheel gesture or a brush the UI thread renders no tile:
+        // a zoom step's tiles would take its frames, and the pool shows
+        // them as they land. A drag's tiles are the column entering the
+        // area, which renders inline when it fits as idle renders do: on
+        // the pool it lands a frame later, and on the software renderer a
+        // frame is long (D22.6 (4d)).
+        let pooled = self.is_active() && !self.is_dragging();
         let (mut here, mut there): (Vec<Job>, Vec<Job>) = match pipeline.render {
             Render::Inline => (jobs, Vec::new()),
             Render::Worker => (Vec::new(), jobs),
             Render::Auto => jobs.into_iter().partition(|job| {
-                if active && matches!(job.spot, Spot::Tile { .. }) {
+                if pooled && matches!(job.spot, Spot::Tile { .. }) {
                     return false;
                 }
                 let ms = self.budget.predict(slot::pixels(job.rect), job.work);

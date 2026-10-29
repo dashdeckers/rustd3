@@ -312,6 +312,107 @@ fn no_tile_renders_inline_while_a_gesture_lasts() {
 }
 
 #[test]
+fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
+    // D22.6 (4d): under `Render::Auto` a drag's entering column renders
+    // inline when the cost model says it fits, as idle renders do (on the
+    // pool it lands a frame later, a long one on the software renderer); a
+    // wheel step's tiles still go to the pool.
+    let mut state = state();
+    let t0 = epoch();
+    let fig = bare();
+    let (waker, wakes) = counting();
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(epoch, tx);
+    let pipeline = piped(Render::Auto, Some(&probe), &waker);
+    // Tiles reported as rendered: (inline, on the pool).
+    let tiles = |samples: Vec<Sample>| {
+        samples
+            .iter()
+            .fold((0, 0), |(here, there), sample| match sample {
+                Sample::Raster {
+                    target: probe::Target::Tile { .. },
+                    inline,
+                    ..
+                } => {
+                    if *inline {
+                        (here + 1, there)
+                    } else {
+                        (here, there + 1)
+                    }
+                }
+                Sample::Raster { .. }
+                | Sample::Stage { .. }
+                | Sample::Frame { .. }
+                | Sample::Mismatch { .. } => (here, there),
+            })
+    };
+    let drained = |state: &mut State| {
+        let mut seen = 0;
+        while state.pool.is_some() && !state.waiting().is_empty() {
+            let woke = (0..10_000).any(|_| {
+                wakes.load(Ordering::SeqCst) > seen || {
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                    false
+                }
+            });
+            assert!(woke, "no wake within ten seconds");
+            seen = wakes.load(Ordering::SeqCst);
+            state.drain(Some(&probe));
+        }
+    };
+    state.redraw::<()>(&fig, 1.0, t0, &pipeline, (&[], &[]));
+    drained(&mut state);
+    let _ = rx.try_iter().count();
+    // A press, then a move of 300 px right: column −2 enters the area
+    // without an image.
+    let area = state.map.area(0).expect("one panel");
+    let at = area.center();
+    let press = Pointer::Pressed {
+        x: at.x,
+        y: at.y,
+        button: rustd3_core::interact::Button::Left,
+        modifiers: Modifiers::NONE,
+    };
+    assert!(state.queue(press).capture);
+    let mut t = t0 + Duration::from_millis(16);
+    state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+    assert!(
+        state
+            .queue(Pointer::Moved {
+                x: at.x + 300.0,
+                y: at.y
+            })
+            .redraw
+    );
+    t += Duration::from_millis(16);
+    state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+    drained(&mut state);
+    let (here, there) = tiles(rx.try_iter().collect());
+    assert!(
+        state.is_dragging() && here > 0 && there == 0,
+        "the drag's entering tiles inline: {here} inline, {there} on the pool"
+    );
+    // The release ends the drag; a wheel step's tiles go to the pool.
+    state.queue(Pointer::Released {
+        button: rustd3_core::interact::Button::Left,
+    });
+    t += Duration::from_millis(16);
+    state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+    drained(&mut state);
+    let _ = rx.try_iter().count();
+    assert!(state.queue(wheel(area.center())).capture);
+    t += Duration::from_millis(16);
+    state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+    drained(&mut state);
+    let (here, there) = tiles(rx.try_iter().collect());
+    assert_eq!(
+        (here, there),
+        (0, 4),
+        "the wheel step's 4 tiles, on the pool"
+    );
+}
+
+#[test]
 fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
     // D22.5 (6): while a gesture lasts the widget's images go in one layer
     // whose bounds differ from one draw to the next, which iced's software

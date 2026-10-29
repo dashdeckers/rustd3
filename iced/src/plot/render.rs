@@ -12,10 +12,12 @@ pub enum Render {
     /// gutters, the ring, which waits for a gesture to end), inline each
     /// render whose predicted time still fits half the frame budget with
     /// those before it, the rest on the pool; results arrive as
-    /// `Event::Waken`. While a gesture lasts (a drag, a wheel burst until
-    /// its end, a brush) every tile renders on the pool, so the UI thread
-    /// composes and renders at most the gutters and overlays that show the
-    /// moving handles; inline tile renders resume when it ends.
+    /// `Event::Waken`. While a wheel burst (until its end) or a brush
+    /// lasts every tile renders on the pool, so the UI thread composes and
+    /// renders at most the gutters and overlays that show the moving
+    /// handles; inline tile renders resume when it ends. A drag's tiles
+    /// (the column entering the plot area) render inline when they fit, as
+    /// idle ones do: on the pool they would land a frame later.
     ///
     /// The budget is the interval between the last two `RedrawRequested`
     /// instants, clamped to 1 ms ..= 16.7 ms (16.7 ms until two exist);
