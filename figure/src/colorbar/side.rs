@@ -7,6 +7,7 @@ use rustd3_core::color::Rgb;
 use crate::axis;
 use crate::colorbar::Draw;
 use crate::figure::Resolved;
+use crate::layout::collide;
 use crate::text::Text;
 
 /// A colorbar's long axis on side `orient` of its bar, its labels those of
@@ -79,7 +80,7 @@ impl<'g, 'a: 'g> axis::Draw<'g> for Side<'g, 'a> {
     }
 
     /// None: no colorbar ticks are instants.
-    fn restarts(&self, _resolved: &Resolved, _count: usize) -> Vec<bool> {
+    fn restarts(&self, _resolved: &Resolved, _count: usize) -> Vec<collide::Restart> {
         Vec::new()
     }
 

@@ -3,6 +3,7 @@
 
 use rustd3_core::color::Rgb;
 use rustd3_core::jiff::{SignedDuration, Timestamp};
+use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Band, Point};
 use rustd3_core::scheme;
 use rustd3_core::series::{Clock, Recording};
@@ -286,11 +287,12 @@ fn fortnight(width: f64) -> (Figure<'static>, Size) {
 
 #[test]
 fn a_fitted_fortnight_keeps_every_label_that_fits() {
-    // Two-day ticks from 10-19 to 10-31, and 11-01 a day after 10-31:
-    // its label ("2026-11"), the nearer the month boundary, gives way
-    // alone, and the rest keep a stride of 1.
+    // Two-day ticks from 10-19 to 10-31, and 11-01 a day after 10-31: of
+    // the two, 10-31's label is on the finer rung and gives way alone
+    // (D40.4 (1)), so the month's label ("2026-11", the axis's only year)
+    // stays, and the rest keep a stride of 1.
     let days = [
-        "10-19", "10-21", "10-23", "10-25", "10-27", "10-29", "10-31",
+        "10-19", "10-21", "10-23", "10-25", "10-27", "10-29", "2026-11",
     ];
     for width in [500.0, 650.0, 800.0] {
         let (fig, size) = fortnight(width);
@@ -309,6 +311,16 @@ fn a_fitted_fortnight_keeps_every_label_that_fits() {
         assert_eq!(dates, days, "at {width} px");
         #[cfg(feature = "fonts")]
         assert_eq!(fig.check(size), [], "at {width} px");
+        // On d3's ladder in German the month's label is its name, which
+        // stays as well.
+        let de = Locale::DE_DE.with_time(time::Locale::DE_DE.ladder(time::Ladder::D3));
+        let (mut fig, size) = fortnight(width);
+        fig.locale(de);
+        let german = texts(&draw(&fig, size));
+        assert!(
+            german.iter().any(|t| t == "November"),
+            "at {width} px: {german:?}"
+        );
     }
 }
 

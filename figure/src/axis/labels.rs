@@ -7,14 +7,14 @@ use rustd3_core::color::Rgb;
 
 use crate::axis::{Draw, across};
 use crate::figure::Resolved;
-use crate::layout::Obb;
+use crate::layout::{Obb, collide};
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
 /// One axis's labels for a layout pass: its side and color, the keys of its
 /// tick labels (none when it is not labelled; `None` for an empty label)
-/// with their ticks' absolute indices, which of them restart a run of a
-/// time interval's steps, and their rotation, which ticks the
+/// with their ticks' absolute indices, how each follows the one before it
+/// on a time axis, and their rotation, which ticks the
 /// scale's format blanks, the line box its tick labels share, and the keys
 /// of its offset or multiplier label and of its title, set in that color.
 #[derive(Clone)]
@@ -26,7 +26,7 @@ pub(crate) struct Labels {
     pub(super) tinted: bool,
     pub(super) ticks: Vec<Option<Key>>,
     pub(super) indices: Vec<i64>,
-    pub(super) restarts: Vec<bool>,
+    pub(super) restarts: Vec<collide::Restart>,
     /// Ticks whose label the scale's own format leaves empty (d3's log
     /// blanking), in tick order whether labelled or not: drawn as minor
     /// ticks.
@@ -105,9 +105,9 @@ impl Labels {
         &self.indices
     }
 
-    /// Whether each tick label's tick restarts a run of its time
-    /// interval's steps ([`Draw::restarts`]); empty for other axes.
-    pub(crate) fn restarts(&self) -> &[bool] {
+    /// How each tick label's tick follows the one before it on a time
+    /// axis ([`Draw::restarts`]); empty for other axes.
+    pub(crate) fn restarts(&self) -> &[collide::Restart] {
         &self.restarts
     }
 

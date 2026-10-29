@@ -68,12 +68,14 @@ pub(crate) trait Draw<'a>: 'a {
     /// ticks).
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64>;
 
-    /// For a time scale, whether each of about `count` ticks follows the
-    /// one before it by fewer units than its tick interval's step (the
-    /// first stepped day of a month after a month's last, the first stepped
-    /// hour after a clock change), aligned with [`texts`](Draw::texts); empty
-    /// for other scales.
-    fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<bool>;
+    /// For a time scale, how each of about `count` ticks follows the one
+    /// before it, aligned with [`texts`](Draw::texts): by its tick
+    /// interval's step, or by fewer units (the first stepped day of a month
+    /// after a month's last, the first stepped hour after a clock change),
+    /// and then whether it starts its parent unit (the month of stepped
+    /// days, the day of stepped hours: `Interval::floor` one unit up), whose
+    /// label is the coarser one of the two; empty for other scales.
+    fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<collide::Restart>;
 
     /// The offset or multiplier label of about `count` ticks
     /// (`Axis::offset`), when the axis has one.
@@ -185,20 +187,26 @@ where
             .collect()
     }
 
-    fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<bool> {
+    fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<collide::Restart> {
         let Some((time, instants)) = self.instants(resolved, count) else {
             return Vec::new();
         };
         let interval = time.tick_interval(count);
         let zone = time.get_zone();
         let step = i64::from(step(interval));
+        let starts = |t: Timestamp| parent(interval).is_some_and(|p| p.floor(t, zone) == Some(t));
         let follows = |pair: &[Timestamp]| {
-            interval
+            let close = interval
                 .count(pair[0], pair[1], zone)
-                .is_some_and(|units| units < step)
+                .is_some_and(|units| units < step);
+            match (close, starts(pair[1])) {
+                (false, _) => collide::Restart::Step,
+                (true, true) => collide::Restart::Starts,
+                (true, false) => collide::Restart::Follows,
+            }
         };
         let after = instants.windows(2).map(follows);
-        std::iter::once(false)
+        std::iter::once(collide::Restart::Step)
             .chain(after)
             .take(instants.len())
             .collect()
@@ -266,6 +274,27 @@ fn step(interval: Interval) -> u32 {
         | Interval::Week(_, k)
         | Interval::Month(k)
         | Interval::Year(k) => k,
+    }
+}
+
+/// The unit a stepped `interval`'s runs restart at, whose start a time
+/// format labels on the coarser rung: the minute of stepped seconds, the
+/// hour of stepped minutes, the day of stepped hours, the month of
+/// stepped days, the year of stepped months; `None` for the intervals
+/// whose steps count from the epoch and never restart.
+fn parent(interval: Interval) -> Option<Interval> {
+    match interval {
+        Interval::Second(_) => Some(Interval::Minute(1)),
+        Interval::Minute(_) => Some(Interval::Hour(1)),
+        Interval::Hour(_) => Some(Interval::Day(1)),
+        Interval::Day(_) => Some(Interval::Month(1)),
+        Interval::Month(_) => Some(Interval::Year(1)),
+        Interval::Nanosecond(_)
+        | Interval::Microsecond(_)
+        | Interval::Millisecond(_)
+        | Interval::UnixDay(_)
+        | Interval::Week(..)
+        | Interval::Year(_) => None,
     }
 }
 

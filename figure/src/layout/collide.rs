@@ -2,9 +2,10 @@
 //! an axis, every k-th label is kept for the smallest k without overlap
 //! (Vega's parity strategy), counted from each tick's absolute index so
 //! that labels do not flicker while the axis pans; a stride never drops
-//! more than k − 1 labels in a row, and a time tick that follows its
-//! predecessor closer than the interval's step (a run restarted at a month
-//! boundary) gives way alone when the two collide. Across axes, labels of
+//! more than k − 1 labels in a row, and of two time ticks closer than the
+//! interval's step (a run restarted at a month boundary) the one whose
+//! label is on the finer rung gives way alone when the two collide, so a
+//! month's or a day's label stays. Across axes, labels of
 //! larger panels are placed first and later ones that overlap them are
 //! dropped. Both passes test oriented boxes ([`Obb`]), so rotated labels
 //! collide as what they draw.
@@ -18,7 +19,8 @@ const EXACT: f64 = 9_007_199_254_740_992.0;
 
 /// One axis's tick labels as collision candidates: each label's box in list
 /// px (`None` for one that is not drawn), its tick's absolute index and
-/// whether its tick restarts a run, and the area of its panel's plot area.
+/// how it follows the tick before it, and the area of its panel's plot
+/// area.
 pub(crate) struct Axis<'b> {
     /// The plot area of the axis's panel, px²: larger panels go first.
     pub(crate) area: f64,
@@ -26,16 +28,36 @@ pub(crate) struct Axis<'b> {
     pub(crate) boxes: &'b [Option<Obb>],
     /// Each tick's absolute index, aligned with the boxes.
     pub(crate) indices: &'b [i64],
-    /// Whether each tick follows the one before it closer than its time
-    /// interval's step, aligned with the boxes; empty for other axes.
-    pub(crate) restarts: &'b [bool],
+    /// How each tick follows the one before it, aligned with the boxes;
+    /// empty for axes other than time axes.
+    pub(crate) restarts: &'b [Restart],
+}
+
+/// How a time axis's tick follows the one before it: by its interval's
+/// step, or closer (the first stepped day of a month after the month's
+/// last, the first stepped hour after a clock change), and then which of
+/// the two labels is on the coarser rung of the time format's ladder: the
+/// one whose tick starts its parent unit (the month of stepped days, the
+/// day of stepped hours), which shows that unit ("2026-11", "November",
+/// a date at midnight).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Restart {
+    /// By the step, or the first tick.
+    Step,
+    /// Closer than the step, and this tick starts its parent unit: the
+    /// tick before gives way when their labels collide.
+    Starts,
+    /// Closer than the step, and this tick does not start its parent
+    /// unit: it gives way when their labels collide.
+    Follows,
 }
 
 /// Which labels of `axes` (given in panel order, then axis order) layout
-/// keeps. Within each axis, a label whose tick restarts a run gives way
-/// first when its box overlaps the label before it: of the two, its tick
-/// is the nearer to the boundary that made their spacing uneven (the
-/// first day of a month after a month's last stepped day). The candidates
+/// keeps. Within each axis, of two time ticks closer than their interval's
+/// step whose boxes overlap, the label on the finer rung gives way first
+/// (the month's last stepped day before the first of the next month,
+/// whose label shows the month; the first stepped hour after a clock
+/// change, not the day's midnight). The candidates
 /// are then the labels whose index is a multiple of the smallest stride
 /// k ≥ 1 for which those labels pairwise do not overlap (touching is not
 /// overlap) and no k labels in a row are left out; when no stride leaves
@@ -100,16 +122,22 @@ pub(crate) fn grid(values: &[f64], [a, b]: [f64; 2], count: usize) -> Option<Vec
     even.then_some(indices)
 }
 
-/// `boxes` without the labels whose tick restarts a run (`restarts`) and
-/// whose box overlaps the box before it.
-fn restart(boxes: &[Option<Obb>], restarts: &[bool]) -> Vec<Option<Obb>> {
+/// `boxes` without the label on the finer rung of each pair of ticks
+/// closer than their interval's step (`restarts`) whose boxes overlap: the
+/// earlier when the later starts its parent unit, else the later.
+fn restart(boxes: &[Option<Obb>], restarts: &[Restart]) -> Vec<Option<Obb>> {
     let mut out = boxes.to_vec();
     for (j, pair) in boxes.windows(2).enumerate() {
-        if let [Some(before), Some(this)] = pair
-            && restarts.get(j + 1) == Some(&true)
-            && before.overlaps(this)
-        {
-            out[j + 1] = None;
+        let [Some(before), Some(this)] = pair else {
+            continue;
+        };
+        if !before.overlaps(this) {
+            continue;
+        }
+        match restarts.get(j + 1) {
+            Some(Restart::Starts) => out[j] = None,
+            Some(Restart::Follows) => out[j + 1] = None,
+            Some(Restart::Step) | None => {}
         }
     }
     out
@@ -238,8 +266,8 @@ mod tests {
             10.0,
         ))));
         let indices = [1, 3, 5, 7, 9, 11, 13, 14];
-        let mut restarts = [false; 8];
-        restarts[7] = true;
+        let mut restarts = [Restart::Step; 8];
+        restarts[7] = Restart::Follows;
         let axes = [Axis {
             area: 1.0,
             boxes: &boxes,
@@ -254,6 +282,31 @@ mod tests {
             ..axes[0]
         }];
         assert_ne!(collide(&axes), [kept]);
+    }
+
+    #[test]
+    fn of_a_close_pair_the_label_on_the_finer_rung_gives_way() {
+        // The same row, the eighth tick a month's first day: the seventh
+        // (the month's last stepped day) gives way, and the six before it
+        // and the eighth keep a stride of 1.
+        let mut boxes = row(&[36.0; 7], 54.0);
+        boxes.push(Some(Obb::rect(Rect::new(
+            6.0 * 54.0 + 9.0,
+            0.0,
+            6.0 * 54.0 + 45.0,
+            10.0,
+        ))));
+        let indices = [1, 3, 5, 7, 9, 11, 13, 14];
+        let mut restarts = [Restart::Step; 8];
+        restarts[7] = Restart::Starts;
+        let axes = [Axis {
+            area: 1.0,
+            boxes: &boxes,
+            indices: &indices,
+            restarts: &restarts,
+        }];
+        let kept = [true, true, true, true, true, true, false, true];
+        assert_eq!(collide(&axes), [kept]);
     }
 
     #[test]
