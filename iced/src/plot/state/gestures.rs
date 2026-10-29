@@ -1,7 +1,8 @@
 //! Gestures through the widget's state: queued pointers applied at each
 //! `RedrawRequested`, what they store, and what they publish.
 
-use std::sync::mpsc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, mpsc};
 
 use iced_core::Size;
 use iced_core::shell::Waker;
@@ -229,6 +230,92 @@ fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
         Some(generation),
         "drawn last, over the older previews"
     );
+}
+
+#[test]
+fn no_tile_renders_inline_while_a_gesture_lasts() {
+    // D22.5 (3): under `Render::Auto` the bare panel's tiles are cheap
+    // enough to render inline, and do when idle; during a wheel gesture
+    // they go to the pool; once it ends, inline renders resume (the ring).
+    let mut state = state();
+    let t0 = epoch();
+    let fig = bare();
+    let (waker, wakes) = counting();
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(epoch, tx);
+    let pipeline = Pipeline {
+        render: Render::Auto,
+        caching: Caching::On,
+        revision: 0,
+        probe: Some(&probe),
+        waker: &waker,
+        threads: 1,
+    };
+    // Tiles reported as rendered, and how many of them inline.
+    let inline = |samples: Vec<Sample>| {
+        samples
+            .iter()
+            .fold((0, 0), |(all, inline), sample| match sample {
+                Sample::Raster {
+                    target: probe::Target::Tile { .. },
+                    inline: on,
+                    ..
+                } => (all + 1, inline + usize::from(*on)),
+                Sample::Raster { .. }
+                | Sample::Stage { .. }
+                | Sample::Frame { .. }
+                | Sample::Mismatch { .. } => (all, inline),
+            })
+    };
+    let drained = |state: &mut State| {
+        let mut seen = 0;
+        while state.pool.is_some() && !state.waiting().is_empty() {
+            let woke = (0..10_000).any(|_| {
+                wakes.load(Ordering::SeqCst) > seen || {
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                    false
+                }
+            });
+            assert!(woke, "no wake within ten seconds");
+            seen = wakes.load(Ordering::SeqCst);
+            state.drain(Some(&probe));
+        }
+    };
+    state.redraw::<()>(&fig, 1.0, t0, &pipeline, (&[], &[]));
+    let (all, first) = inline(rx.try_iter().collect());
+    assert!(first > 0, "idle: {first} of {all} tiles inline");
+    let area = state.map.area(0).expect("one panel");
+    assert!(state.queue(wheel(area.center())).capture);
+    let step = t0 + Duration::from_millis(16);
+    state.redraw::<()>(&fig, 1.0, step, &pipeline, (&[], &[]));
+    drained(&mut state);
+    let (all, during) = inline(rx.try_iter().collect());
+    assert_eq!((all, during), (4, 0), "the step's 4 tiles, on the pool");
+    state.redraw::<()>(
+        &fig,
+        1.0,
+        step + Duration::from_millis(300),
+        &pipeline,
+        (&[], &[]),
+    );
+    drained(&mut state);
+    let (all, after) = inline(rx.try_iter().collect());
+    assert!(
+        all == 12 && after > 0,
+        "the ring once the gesture ends: {after} of {all} inline"
+    );
+}
+
+/// A waker that counts its wakes.
+fn counting() -> (Waker, Arc<AtomicUsize>) {
+    let wakes = Arc::new(AtomicUsize::new(0));
+    let waker = Waker::new({
+        let wakes = Arc::clone(&wakes);
+        move || {
+            wakes.fetch_add(1, Ordering::SeqCst);
+        }
+    });
+    (waker, wakes)
 }
 
 /// One wheel line up (zoom in) at `at`, list px.

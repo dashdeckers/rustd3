@@ -96,6 +96,8 @@
 //! the frame budget with those before it, by a cost model each widget fits
 //! to its own renders (seeded by [`cost`]), and the rest on a pool of
 //! threads the widget owns ([`Plot::threads`]), newest wins per tile;
+//! while a gesture lasts no tile renders inline, so the UI thread only
+//! composes and renders the gutters and overlays the model allows.
 //! [`Plot::render`] forces either path. Plot areas of at least 10,000
 //! markers splat them on screen (`raster::Renderer::splat`).
 //! Until a cell's new image arrives it keeps its previous one, a preview
