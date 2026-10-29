@@ -1552,3 +1552,40 @@ The flags turn each question into one command and one archive on the
 user's machine. Unpaced presentation is the software path on X11 and on
 Windows, which is where users without a GPU are. The density's cost
 landed in a figure's build, which every library user pays.
+
+## D22.12 — Software rendering measured offscreen
+
+**Date:** 2026-10-29 · **Context:** the user, on D22.11: "Let's focus on
+software rendering and just write it to file and ignore the display
+hardware and compositor." · **Status:** decided
+
+### Decision
+
+(architect, 2026-10-29) This replaces D22.11 (2), the work on unpaced
+presentation, and its `pacing` sweep key and `--repro-software`. D22.8's
+Wayland and X11 findings stay on record as the platform's to fix, not
+ours.
+
+1. **A `software` profile, offscreen.**
+   - It drives the real `Plot` widget through the gesture scenarios with
+     replayed input on iced's software renderer (tiny-skia), headless.
+     No window, display or compositor is involved.
+   - Every frame is composed into an offscreen pixmap, the bench's
+     existing headless readback. That frame's cost is timed in parts:
+     the widget's UI work, iced's composition, and the time the frame
+     waits on the pool.
+   - Latency is measured in the replay's own clock, from an input to the
+     first frame showing it sharp.
+   - `--frames DIR` also writes every frame (or every n-th) as a PNG, to
+     look at.
+   - The cells are `pan-x`, `zoom-lines`, `drag-resize` and `hover` on
+     `trace`, `scatter100k` and `grid16`, at factors 1 and 2.
+   - It joins every level, after `figure`, and runs on any machine.
+   - The budgets are D22.4's weak ones, report-only. The frame-time
+     budget reads as composition cost: a frame must be produced within
+     T.
+2. **The software path is the optimisation target.** Its numbers on this
+   container and on the user's machine decide the next changes: the
+   frame's cost by part, then the largest part first.
+3. From D22.11, flags (1) stay, without `--repro-software`. The binned
+   density (3) and the shell scripts' removal (4) stay as decided.
