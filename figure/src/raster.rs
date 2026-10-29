@@ -3,6 +3,8 @@
 //! tiny-skia fallback (`tiny-skia`); and the device-pixel snapping helpers
 //! raster targets lay out with.
 
+#[cfg(feature = "raster")]
+mod cull;
 #[cfg(feature = "png")]
 pub mod png;
 #[cfg(feature = "tiny-skia")]
@@ -124,6 +126,9 @@ pub struct Renderer {
     splat: bool,
     /// The marker stamps splatting made, kept between renders.
     stamps: splat::Stamps,
+    /// Whether long stroked paths are cut to the area rendered; off only
+    /// in the tests that show cutting changes no pixel.
+    cut: bool,
 }
 
 #[cfg(feature = "raster")]
@@ -151,7 +156,16 @@ impl Renderer {
             level,
             splat: false,
             stamps: splat::Stamps::default(),
+            cut: true,
         }
+    }
+
+    /// Strokes long paths whole (`false`) or cut to the area (the
+    /// default), to compare the two.
+    #[cfg(test)]
+    pub(crate) fn cut(&mut self, on: bool) -> &mut Renderer {
+        self.cut = on;
+        self
     }
 
     /// Composite markers from pre-rasterized coverage stamps (default
@@ -171,7 +185,10 @@ impl Renderer {
     /// round(area.width × scale) × round(area.height × scale) device px, at
     /// most 65,408 a side,
     /// transparent where nothing is drawn. Commands whose `bounds` miss
-    /// `area` grown by one device px are skipped, markers point by point.
+    /// `area` grown by one device px are skipped, markers point by point,
+    /// and a long stroked path is cut to the segments whose stroke may
+    /// reach the area (dashes keep their phase), so a tile of a long line
+    /// strokes its own part of it.
     ///
     /// `bounds` must be [`Bounds::of`] this list.
     pub fn render(
@@ -195,6 +212,7 @@ impl Renderer {
             area,
             scale,
             splat: self.splat.then_some((&mut self.stamps, self.level)),
+            cull: self.cut,
         }
         .run(&mut pixmap)?;
         Ok(Image {
@@ -231,4 +249,104 @@ pub(crate) fn device(area: Rect, scale: f64) -> Result<(u16, u16), Error> {
     }
     // Both in 1..=65,408 by the checks above.
     Ok((width as u16, height as u16))
+}
+
+#[cfg(test)]
+mod tests {
+    use kurbo::{Affine, BezPath, Point, Rect, Size};
+    use peniko::Brush;
+    use peniko::color::{AlphaColor, Srgb};
+
+    use super::{Image, Renderer, Settings};
+    use crate::list::{self, Bounds, Clip, Command, List, Outlines};
+
+    /// A trace-like polyline: `n` columns of a zigzag across `width` px,
+    /// four vertices per column, with a NaN-like gap (a new subpath) at
+    /// every 997th column; dashed or not, under a group translated by
+    /// (30, 20) and clipped to the canvas.
+    fn trace(n: usize, width: f64, dashed: bool) -> List {
+        let mut path = BezPath::new();
+        for c in 0..n {
+            let x = width * c as f64 / n as f64;
+            let wobble = |k: usize| ((c * 7919 + k * 104_729) % 1000) as f64 / 1000.0;
+            let points = [
+                Point::new(x, 120.0 + 60.0 * wobble(0)),
+                Point::new(x + 0.2, 40.0 + 30.0 * wobble(1)),
+                Point::new(x + 0.4, 200.0 + 30.0 * wobble(2)),
+                Point::new(x + 0.6, 120.0 + 60.0 * wobble(3)),
+            ];
+            for (k, p) in points.into_iter().enumerate() {
+                if k == 0 && (c == 0 || c % 997 == 0) {
+                    path.move_to(p);
+                } else {
+                    path.line_to(p);
+                }
+            }
+        }
+        let mut style = list::stroke(1.5);
+        if dashed {
+            style = style.with_dashes(1.25, [7.0, 3.0, 2.0, 3.0]);
+        }
+        let paint = Brush::Solid(AlphaColor::<Srgb>::from_rgb8(30, 60, 140));
+        let size = Size::new(width + 60.0, 280.0);
+        List {
+            size,
+            commands: vec![
+                Command::Push {
+                    transform: Affine::translate((30.0, 20.0)),
+                    clip: Some(Clip::Rect(Rect::from_origin_size(Point::ORIGIN, size))),
+                },
+                Command::Stroke { path, style, paint },
+                Command::Pop,
+            ],
+            ..List::default()
+        }
+    }
+
+    /// `area` of `list` at `k`, cut or stroked whole.
+    fn render(list: &List, area: Rect, k: f64, cut: bool) -> Image {
+        let bounds = Bounds::of(list, &mut Outlines::default());
+        let mut renderer = Renderer::new(Settings::default());
+        renderer.cut(cut);
+        renderer
+            .render(list, &bounds, area, k)
+            .expect("a renderable list")
+    }
+
+    /// The largest channel difference between two images of one size.
+    fn max_diff(a: &Image, b: &Image) -> u8 {
+        assert_eq!((a.width, a.height), (b.width, b.height));
+        a.rgba
+            .iter()
+            .zip(&b.rgba)
+            .map(|(p, q)| p.abs_diff(*q))
+            .max()
+            .unwrap_or(0)
+    }
+
+    #[test]
+    fn a_long_line_cut_to_each_tile_draws_what_it_drew_whole() {
+        // 3,000 columns (12,000 vertices, four subpaths) over 2,000 px,
+        // rendered as 256-device-px tiles at 1, 1.25 and 2: each tile with
+        // the line cut to its reach against the line stroked whole, at the
+        // same origin, solid and dashed (the dashes keep their phase across
+        // the cut).
+        for dashed in [false, true] {
+            let list = trace(3_000, 2_000.0, dashed);
+            for k in [1.0, 1.25, 2.0] {
+                let side = 256.0 / k;
+                let mut worst = 0;
+                for i in [0, 3, 7] {
+                    for j in [0, 1] {
+                        let (x, y) = (f64::from(i) * side, f64::from(j) * side);
+                        let area = Rect::new(x, y, x + side, y + side);
+                        let cut = render(&list, area, k, true);
+                        let whole = render(&list, area, k, false);
+                        worst = worst.max(max_diff(&cut, &whole));
+                    }
+                }
+                assert!(worst <= 1, "dashed {dashed}, k {k}: max {worst}/255");
+            }
+        }
+    }
 }

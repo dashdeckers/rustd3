@@ -2,9 +2,9 @@
 //! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4, Phase 31's gutters, Phase
 //! 31g's software compositing): figure-level renders, resolves and lists,
 //! the widget's tiles drawn on iced's headless renderers, a real gesture
-//! frame composed by its software renderer ([`compose`]) and its renders
-//! per frame of a pan, timed in this build, written as the report's "Also
-//! measured" section.
+//! frame composed by its software renderer ([`compose`]), its renders per
+//! frame of a pan and one tile of a long trace's geometry, timed in this
+//! build, written as the report's "Also measured" section.
 
 mod compose;
 
@@ -21,7 +21,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_core::series::{Clock, Recording};
 use rustd3_examples::trace as example;
-use rustd3_figure::kurbo::{Point, Rect, Size};
+use rustd3_figure::kurbo::{Affine, Point, Rect, Size};
 use rustd3_figure::list::{self, Bounds, Command, List, Outlines};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::raster::{self, Image, Settings, Simd};
@@ -56,6 +56,7 @@ pub fn measure() -> String {
         compose::frames(),
         pan_frames(),
         gutter_costs(),
+        tile_geometry(),
         splat_speed(),
     ];
     let mut md = String::from(
@@ -839,6 +840,139 @@ fn splat_speed() -> Row {
         item: "D31.2: the scatter100k plot area, single-threaded, markers filled and splatted"
             .to_owned(),
         value: format!("{} (medians of 5)", parts.join("; ")),
+    }
+}
+
+/// Phase 31g: one tile of `trace` mid-zoom, as the pool renders it: the
+/// top plot area's layer drawn with the widget's overscan of two tiles at
+/// the x domain a zoom of ×1.6 about the area's centre gives (1600 × 1000
+/// at 1 and 2), and a 256-device-px tile of it (its second column, across
+/// the area's middle) rendered single-threaded (medians of 15): its time,
+/// the stroke segments of the commands that meet it against those that
+/// reach it (within half the stroke's width and a device px), kurbo's
+/// stroke expansion of those commands' whole paths, and the tile's fixed
+/// cost (no command).
+fn tile_geometry() -> Row {
+    let data = Workload::Trace.data(1.0);
+    let fig = data.figure(false);
+    let mut parts = Vec::new();
+    for k in [1.0, 2.0] {
+        let target = Target::Screen { scale: k };
+        let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
+        let mut cache = Cache::default();
+        let fresh = fig.resolve(size, &mut cache, &Held::default(), target);
+        let Some(&area) = fresh.plot_areas().first() else {
+            return failed("Phase 31g: a trace tile", "no plot area");
+        };
+        let range = [area.x0, area.x1];
+        let Some(zoomed) = fresh
+            .scale_at(0)
+            .and_then(|x| x.zoom_px(range, area.center().x, 1.6))
+        else {
+            return failed("Phase 31g: a trace tile", "the time handle does not zoom");
+        };
+        let mut held = Held::default();
+        held.hold_erased(0, zoomed);
+        held.overscan(520.0 / k);
+        cache.begin();
+        let resolved = fig.resolve(size, &mut cache, &held, target);
+        let list = fig.draw_resolved(&mut cache, &resolved);
+        let side = 256.0 / k;
+        let middle = area.center().y;
+        let tile = Rect::new(
+            area.x0 + side,
+            middle - side / 2.0,
+            area.x0 + 2.0 * side,
+            middle + side / 2.0,
+        );
+        let bounds = Bounds::of(&list, &mut Outlines::default());
+        let (mut segments, mut reaching, mut paths) = (0, 0, Vec::new());
+        // Each open group's space in list px: a path's points are in its
+        // group's.
+        let mut spaces = vec![Affine::IDENTITY];
+        for (i, command) in list.commands.iter().enumerate() {
+            let space = spaces.last().copied().unwrap_or(Affine::IDENTITY);
+            let (path, style) = match command {
+                Command::Stroke { path, style, .. } => (path, style),
+                Command::Push { transform, .. } => {
+                    spaces.push(space * *transform);
+                    continue;
+                }
+                Command::Pop => {
+                    spaces.pop();
+                    continue;
+                }
+                Command::Fill { .. }
+                | Command::Markers { .. }
+                | Command::Glyphs(_)
+                | Command::Image { .. }
+                // `Command` is #[non_exhaustive] in rustd3-figure.
+                | _ => continue,
+            };
+            if !bounds
+                .get(i)
+                .is_some_and(|b| b.intersect(tile).area() > 0.0)
+            {
+                continue;
+            }
+            let reach = 0.5 * style.width + 1.0 / k;
+            let grown = space
+                .inverse()
+                .transform_rect_bbox(tile)
+                .inflate(reach, reach);
+            let mut last = rustd3_figure::kurbo::Point::ORIGIN;
+            for element in path.elements() {
+                if let rustd3_figure::kurbo::PathEl::LineTo(p) = *element {
+                    segments += 1;
+                    let seg = Rect::from_points(last, p);
+                    reaching += usize::from(
+                        seg.x0 <= grown.x1
+                            && grown.x0 <= seg.x1
+                            && seg.y0 <= grown.y1
+                            && grown.y0 <= seg.y1,
+                    );
+                    last = p;
+                } else if let rustd3_figure::kurbo::PathEl::MoveTo(p) = *element {
+                    last = p;
+                }
+            }
+            paths.push((path.clone(), style.clone()));
+        }
+        let render = render_ms(&list, tile, k);
+        let expand = {
+            let times: Vec<f64> = (0..15)
+                .map(|_| {
+                    let begin = Instant::now();
+                    for (path, style) in &paths {
+                        let outline = rustd3_figure::kurbo::stroke(
+                            path.elements().iter().copied(),
+                            style,
+                            &rustd3_figure::kurbo::StrokeOpts::default(),
+                            0.25 / k,
+                        );
+                        std::hint::black_box(outline);
+                    }
+                    begin.elapsed().as_secs_f64() * 1e3
+                })
+                .collect();
+            percentile(&times, 50.0).unwrap_or(0.0)
+        };
+        let empty = List {
+            commands: Vec::new(),
+            parts: Vec::new(),
+            ..list.clone()
+        };
+        let fixed = render_ms(&empty, tile, k);
+        parts.push(format!(
+            "at {k}: {render:.1} ms; {} stroked paths meet it with {segments} segments, \
+             {reaching} of them within its reach; their stroke expansion alone {expand:.1} ms; no \
+             command {fixed:.2} ms",
+            paths.len()
+        ));
+    }
+    Row {
+        item: "Phase 31g: one trace tile (256 device px) mid-zoom, single-threaded".to_owned(),
+        value: format!("{} (medians of 15)", parts.join("; ")),
     }
 }
 

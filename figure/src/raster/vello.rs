@@ -1,6 +1,7 @@
 //! The replay of a list into vello_cpu: kurbo paths and peniko paints pass
-//! through unconverted; images become premultiplied pixmaps, cached by
-//! their blob between renders. With splatting on, the commands between
+//! through unconverted, long strokes cut to the area first ([`cull`]);
+//! images become premultiplied pixmaps, cached by their blob between
+//! renders. With splatting on, the commands between
 //! splatted markers render into the pixmap in turn, source-over, and the
 //! markers are composited there from stamps ([`splat`](super::splat)).
 
@@ -14,6 +15,7 @@ use vello_cpu::{
 };
 
 use crate::list::{self, Bounds, Clip, Command, GlyphRun, List, Paints};
+use crate::raster::cull;
 use crate::raster::splat::{Splat, Stamps};
 use crate::raster::{Error, MAX_IMAGE};
 
@@ -41,6 +43,9 @@ pub(super) struct Replay<'a> {
     /// The stamps markers are splatted from, when splatting is on, and
     /// the SIMD level they are made at.
     pub(super) splat: Option<(&'a mut Stamps, Level)>,
+    /// Whether long stroked paths are cut to the area ([`cull`]); off
+    /// only to test that cutting changes no pixel.
+    pub(super) cull: bool,
 }
 
 /// An open group: its transform into list px, the clip layer it pushed
@@ -118,8 +123,32 @@ impl Replay<'_> {
                 Command::Stroke { path, style, paint } if shown => {
                     self.paint(i, paint, Affine::IDENTITY)?;
                     self.context.set_transform(to_device);
-                    self.context.set_stroke(style.clone());
-                    self.context.stroke_path(path);
+                    let cut = self
+                        .bounds
+                        .get(i)
+                        .filter(|b| {
+                            self.cull && path.elements().len() >= cull::LONG && !inside(*b, visible)
+                        })
+                        .and_then(|_| invertible(to_list))
+                        .and_then(|from_list| {
+                            cull::cut(path, style, from_list.transform_rect_bbox(visible))
+                        });
+                    match cut {
+                        None => {
+                            self.context.set_stroke(style.clone());
+                            self.context.stroke_path(path);
+                        }
+                        // Dashed already, if it was.
+                        Some(cut) if !cut.elements().is_empty() => {
+                            self.context.set_stroke(kurbo::Stroke {
+                                dash_pattern: kurbo::Dashes::new(),
+                                dash_offset: 0.0,
+                                ..style.clone()
+                            });
+                            self.context.stroke_path(&cut);
+                        }
+                        Some(_) => {}
+                    }
                 }
                 Command::Markers {
                     shape,
@@ -351,6 +380,16 @@ impl Replay<'_> {
         });
         Ok(Arc::clone(pixmap))
     }
+}
+
+/// Whether `outer` holds all of `inner`.
+fn inside(inner: Rect, outer: Rect) -> bool {
+    outer.x0 <= inner.x0 && outer.y0 <= inner.y0 && inner.x1 <= outer.x1 && inner.y1 <= outer.y1
+}
+
+/// `t`'s inverse, when it has one.
+fn invertible(t: Affine) -> Option<Affine> {
+    (t.determinant().abs() > f64::MIN_POSITIVE).then(|| t.inverse())
 }
 
 /// Whether `t` only scales and translates.

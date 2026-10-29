@@ -214,3 +214,8 @@ lists under "Also measured":
   and composition time (the first, which converts the new handles, and
   warm), and the same images replayed with no image, as captured, every
   image nearest, and each plot area's images composed into one on the CPU.
+- Phase 31g: one tile of `trace` mid-zoom (256 device px, the top plot
+  area's layer at the widget's overscan, a ×1.6 zoom about its centre,
+  1600 × 1000 at 1 and 2), single-threaded: its time, the stroke segments
+  of the commands that meet it against those within its reach, kurbo's
+  stroke expansion of their whole paths, and its fixed cost.
