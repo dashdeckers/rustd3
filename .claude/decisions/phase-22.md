@@ -1456,3 +1456,17 @@ platform the library supports.
   --figure-only`, the Xvfb quick level with the figure profile beside the
   widget's), `compare` of two figure-only runs, `check.sh full`. See
   `SESSION_HANDOFF-54.md`.
+- **Resumed (Phase 31j), step 4 and the verification.** After the
+  architect freed 13 GB: 5094eba declares rustd3-figure's `pdf` and `gif`
+  in the bench's manifest (the bench writes PDF and GIF itself; it uses
+  no `helpers` item); 8cdd4d4 is D22.10 (4) (`--help`, both READMEs, the
+  issue form, `run.sh`, the changelog). Here: the no-widget release build
+  from clean in 10 min 6 s, a 60.3 MB binary (85.1 MB with the widget,
+  13 min more on top); `cargo rustd3-bench-figure --quick` with no display
+  in 66 s and `--quick --figure-only` from the full build in 67 s, 7
+  files each; `cargo rustd3-bench --quick --refresh-hz 60` under Xvfb in
+  7 min 24 s, the figure profile beside `native` and `nogpu` in one
+  archive of 69 files; `compare` of the two figure-only runs. Found by the
+  figure profile, not fixed: `density_x` over 1M values costs 3.6 s at
+  build (an exact estimate), and 1M markers peak at 1.4 GiB (PNG at 2×,
+  PDF). `SESSION_HANDOFF-54.md` has the rest.
