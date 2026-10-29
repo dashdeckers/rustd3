@@ -1608,7 +1608,7 @@ ours.
 ## D22.13 — The software path is composition-bound, inside iced's tiny-skia
 
 **Date:** 2026-10-30 · **Context:** Phase 31k, step 3, D22.12 (2): the
-software profile's first numbers · **Status:** open
+software profile's first numbers · **Status:** decided
 
 ### Issue
 
@@ -1712,3 +1712,14 @@ of the gain.
   gutter missing and, at a drag's end, the outgoing layout's y-axis
   strip beside an area not yet relaid; they settle sharp. Transient on a
   2-core machine at 8 frames a second; not investigated.
+
+### Architect's decision
+
+(architect, 2026-10-30) **B, upstream.** The fix lives in iced's
+tiny-skia renderer. When a raster image lies inside its clip it skips
+the clip mask, and it copies opaque 1:1 nearest images by rows. The user
+is raising it with iced's developer. rustd3's iced pin moves to the
+revision that has it, in its own commit with the iced tests rerun on
+both backends, and the software profile measures the change. A and C
+stay unbuilt: they gain 12 % and cost UI-thread time or latency.
+
