@@ -592,7 +592,7 @@ removes work, which helps every machine, GPU layer or not.
 
 ## D22.6 — Two D22.5 items not built as written, and what measuring them showed
 
-**Date:** 2026-10-29 · **Context:** Phase 31e, after a9eb8d5 (items 1, 2, 3, 6, 7 of D22.5, D40.4 (1), `drag-resize` and the focus plan built) · **Status:** open
+**Date:** 2026-10-29 · **Context:** Phase 31e, after a9eb8d5 (items 1, 2, 3, 6, 7 of D22.5, D40.4 (1), `drag-resize` and the focus plan built) · **Status:** decided
 
 ### Issue
 
@@ -724,7 +724,48 @@ Item 5:
 
 ### Decision
 
-Open. Recommended: C for item 4; B for item 5, built in a following
+(architect, 2026-10-29) **Item 4: C.** The widget's inline renderer is
+single-threaded whatever the pool's size; nothing in the widget uses
+vello_cpu's pool (`Settings::parallel()` stays for the file outputs).
+
+**Item 5: B, made progressive.** `Sample::Frame` gains `coarse` and
+`Sample`'s variants become `#[non_exhaustive]`. During a wheel gesture a
+generation queues its visible tiles at half resolution first. The same
+generation's full-resolution tiles follow at once, without waiting for
+the settle, and newer steps coalesce both passes as item 2 does. Where
+full resolution keeps up (the desktop's pool), the registered latency
+does not rise. Where it cannot, the half pass shows current content. The
+session builds it with its seam and placement tests at 1, 1.25, 1.5 and
+2 on both backends, the `Verify` rule (full resolution only), the
+any-resolution column in the focus report and `summary.csv`, and
+mid-burst screenshots. If it measures worse here, it is not committed.
+
+**3:** accepted as built (one layer whose bounds alternate while a
+gesture lasts, each image keeping its own clip).
+
+**4a:** as recommended. The old areas' imaged tiles carry into the new
+areas' preview layers through the per-tile map, and each old gutter
+image stays until its run renders. No frame shows the background where
+content was.
+
+**4b:** C, and gutter runs ahead of tiles on the pool while a gesture
+lasts. A gutter run whose predicted cost is under 1 ms may also render
+inline during a gesture: item 3 keeps tile-sized renders off the UI
+thread, not 0.06 ms axis strips. The axes keep step with the data.
+
+**4c:** investigated in the same session, time-boxed to about an hour.
+Find where a 9.5 s frame at factor 2 on tiny-skia under Xvfb goes:
+iced's compositing, the present, or Xvfb itself. The control is a plain
+iced app drawing the same number of images at the same sizes. Fix it if
+the cause is on the widget's side; otherwise record the finding here.
+
+**4d:** as recommended: drags keep item 3 unless the user's focus run
+shows a pan missing a budget.
+
+**4e:** read from the user's focus run, which runs at 920ac26 while the
+next session builds the above. A second focus run follows that session.
+
+The original recommendation, for the record: C for item 4; B for item 5, built in a following
 session with its seam and placement tests at 1, 1.25, 1.5 and 2 on both
 backends, its `Verify` rule, the any-resolution column in the focus
 report and `summary.csv`, and mid-burst screenshots; 4a and 4b in the
