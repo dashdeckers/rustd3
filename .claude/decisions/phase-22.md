@@ -1470,3 +1470,85 @@ platform the library supports.
   figure profile, not fixed: `density_x` over 1M values costs 3.6 s at
   build (an exact estimate), and 1M markers peak at 1.4 GiB (PNG at 2×,
   PDF). `SESSION_HANDOFF-54.md` has the rest.
+
+## The user's first `--quick` run (0f1f0b0), and D22.11
+
+**Run:** `bench-results/rustd3-bench-quick-20261029T213324Z.tar.gz`, on
+the Ryzen 5800X with an RTX 3090, COSMIC on Wayland at 60.01 Hz, factor 1.
+
+- **native (wgpu):** 12 of 12 checks met. `zoom-lines × trace` latency
+  p95 is 22 ms (909 ms in `20261029T071522Z`) and `zoom-lines ×
+  scatter100k` 29 ms. Frame p99 is 18.3–18.4 ms everywhere. The quick
+  level's outcome reads "image path sufficient". The registered verdict
+  still needs the default level.
+- **nogpu (tiny-skia, Wayland):** pan latency p95 is 114 ms (244 before,
+  met), with frame p50/p99 of 72/131 ms (D22.8's Wayland issue).
+  Zoom latency p95 is 304 ms (4,013 before; budget 250), frame p99
+  105 ms.
+- **nogpu-x11:** frame p99 is 18–20 ms (unpaced: p50 0.4 ms). Latency is
+  worse than on Wayland: pan p95 168 ms (18 ms at 2cdc3d9 in the
+  diagnostic) and zoom p95 718 ms. Hypothesis: on unpaced presentation
+  the bench redraws thousands of times a second, and the widget's frame
+  budget (the interval between the last two `RedrawRequested`) shrinks to
+  about 0.4 ms. X11's and Windows' software paths do not wait for vsync.
+- **figure:** the stats figure's build takes 2,614 ms, because
+  `density_x` computes an exact KDE over 1M values when the mark is
+  built. scatter100k's PDF takes 151 ms.
+- **CPU reference:** a trace tile takes 2.05 ms; the scatter100k area
+  113 ms filled and 17.4 ms splatted; the composition 15.4 ms.
+
+## D22.11 — Experiment flags, unpaced presentation, and a binned density
+
+**Date:** 2026-10-29 · **Context:** the run above; the user: "You may
+add flags to the bench cli for specific cases that you want to see the
+results of on the beefy machine, and I can run them. Not a problem if
+the cli ends up with many flags." · **Status:** decided
+
+### Decision
+
+(architect, 2026-10-29)
+
+1. **Experiment flags on the levels.** All are recorded in
+   `results.json` and the report.
+   - `--only PROFILE,…` (figure, native, nogpu, nogpu-x11).
+   - `--scenario`, `--workload` and `--runs` filters.
+   - `--render`, `--threads` and `--caching` passed to the widget's
+     profiles.
+   - `--sweep KEY=V1,V2,…` runs each selected widget profile once per
+     value, as `<profile>@<key>=<value>`, into one archive. The keys are
+     render, threads, caching and pacing.
+   - `--repro-software`, the plain-iced matrix: both backends × Wayland
+     and X11 × 40 and 1 images, Linux only, into the archive's `repro/`.
+     It replaces `dev/bench/repro-software.sh`.
+2. **Unpaced presentation.**
+   - First find what drives redraws at about 2,500 Hz in an unpaced
+     window: the bench app's frame subscription, or the widget's own
+     requests.
+   - Then two fixes, each measured under Xvfb (unpaced) and kept only
+     when they measure better:
+     - (a) The widget's frame budget gets a floor. An interval between
+       redraws shorter than a plausible refresh period (under 4 ms)
+       counts as unpaced, and the budget falls back to 1/60 s.
+     - (b) On an unpaced display the bench paces its own redraw requests
+       to the measured or assumed refresh rate, as a real app's input
+       would, and the report says so. `--sweep pacing=bench,none`
+       compares the two.
+3. **A binned density for large inputs.**
+   - Above a threshold of values, `density_x`/`density_y` estimate by
+     linear binning onto a fine grid and convolving with the Gaussian
+     kernel. Below the threshold, the exact estimate stays, which is
+     what the scipy fixtures test.
+   - The threshold and grid are chosen so that the maximum relative error
+     against the exact estimate stays under 1e-3 on the stats figure's
+     data, the wheel figure and a bimodal case. A test pins that bound.
+   - The bandwidth is unchanged (Scott's, or `.bandwidth`/`.adjust`).
+4. **The repository's shell scripts go.** That means
+   `dev/bench/run.sh` and `dev/bench/repro-software.sh`. The cargo
+   aliases are the entry points.
+
+### Why
+
+The flags turn each question into one command and one archive on the
+user's machine. Unpaced presentation is the software path on X11 and on
+Windows, which is where users without a GPU are. The density's cost
+landed in a figure's build, which every library user pays.
