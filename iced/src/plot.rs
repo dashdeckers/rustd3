@@ -104,7 +104,11 @@
 //! of outdated content, and a cell that never had one shows the theme's
 //! background. Results wake the runtime through its waker and land on
 //! `Event::Waken`, newest generation first: an older result never
-//! replaces a newer image. Dropping the widget's state joins the threads.
+//! replaces a newer image. Zoom steps coalesce: each step's renders
+//! replace those still waiting on the pool, so at most one generation
+//! waits, and a tile a worker was rendering for an older step lands in
+//! the plot area's preview layer, mapped to the current domains, until
+//! newer images cover it. Dropping the widget's state joins the threads.
 //! [`Plot::probe`] reports what each frame cost and what it showed, timed
 //! by a clock the app supplies. The only clock the library reads itself is
 //! the monotonic one around each render, for the cost model (D31.8): what

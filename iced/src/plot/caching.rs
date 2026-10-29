@@ -6,6 +6,11 @@
 /// caching on, a refresh renders the cells whose hash changed and keeps
 /// the others' images. The benchmark turns it off to measure what the
 /// hashes save.
+///
+/// While a gesture lasts, the tiles of the overscan ring that changed
+/// wait until it ends, and a tile whose render a newer zoom step
+/// overtook shows its result as a preview until the newest one lands:
+/// neither is a kept image, so `Verify` checks neither.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Caching {
     /// Re-render a cell only when its hash changed.
