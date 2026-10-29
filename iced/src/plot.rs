@@ -602,7 +602,9 @@ impl<'a, Message> Plot<'a, Message> {
     /// resolves and renders nothing; at most one message goes out per
     /// frame, and none during a gesture. The highlight ring shows the same
     /// point; tooltips are the app's own widgets, built from these
-    /// messages.
+    /// messages. The index is built only for a widget with the highlight
+    /// or `on_hover`, and not while a gesture lasts: the refresh after it
+    /// builds it, and nothing is hit-tested meanwhile.
     ///
     /// ```no_run
     /// use rustd3_core::scale;
@@ -713,6 +715,7 @@ where
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
                     threads: self.threads.unwrap_or_else(worker::default_size),
+                    hover: self.highlight || self.on_hover.is_some(),
                 };
                 let listeners = (self.listeners.as_slice(), self.brushes.as_slice());
                 let (_, messages) = state.redraw(&self.figure, factor, *now, &pipeline, listeners);

@@ -75,6 +75,7 @@ fn redraw<Message>(
         probe: None,
         waker: &Waker::noop(),
         threads: 1,
+        hover: true,
     };
     state.redraw(fig, 1.0, now, &pipeline, (listeners, &[]))
 }
@@ -91,6 +92,7 @@ fn rendered(state: &mut State, fig: &Figure<'_>, now: Instant) -> Keys {
         probe: Some(&probe),
         waker: &Waker::noop(),
         threads: 1,
+        hover: true,
     };
     state.redraw::<()>(fig, 1.0, now, &pipeline, (&[], &[]));
     let mut tiles: Keys = rx
@@ -191,6 +193,7 @@ fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
         probe: None,
         waker: &Waker::noop(),
         threads: 1,
+        hover: true,
     };
     let area = state.map.area(0).expect("one panel");
     let mut in_flight = None;
@@ -251,6 +254,7 @@ fn no_tile_renders_inline_while_a_gesture_lasts() {
         probe: Some(&probe),
         waker: &waker,
         threads: 1,
+        hover: true,
     };
     // Tiles reported as rendered, and how many of them inline.
     let inline = |samples: Vec<Sample>| {
@@ -338,6 +342,7 @@ fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
         probe: None,
         waker: &Waker::noop(),
         threads: 1,
+        hover: true,
     };
     let area = state.map.area(0).expect("one panel");
     assert!(state.queue(wheel(area.center())).capture);
@@ -359,6 +364,81 @@ fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
     );
     assert!(a.layers().contains(&bounds) || b.layers().contains(&bounds));
     assert_eq!(a.images().1, 4, "the previews that meet the area");
+}
+
+#[test]
+fn the_hit_index_waits_for_a_gesture_to_end_and_hover_stays_right() {
+    // D22.5 (7): the index is built for a widget that hovers, not during
+    // a gesture (scatter1m spent 46–62 ms a pan frame on it), and by the
+    // refresh after; meanwhile nothing is hit-tested, so no outdated
+    // point is reported.
+    let mut state = state();
+    let t0 = epoch();
+    let fig = bare();
+    let x = Key::of::<Linear>(0);
+    rendered(&mut state, &fig, t0);
+    let area = state.map.area(0).expect("one panel");
+    // Where the dot (50, 5) is drawn over x `domain`, in the widget's
+    // logical px at factor 1.
+    let dot = |domain: [f64; 2]| {
+        let share = (50.0 - domain[0]) / (domain[1] - domain[0]);
+        iced_core::Point::new(
+            (area.x0 + share * area.width()) as f32,
+            area.center().y as f32,
+        )
+    };
+    let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
+    let shown = crate::plot::overlay::Shown {
+        crosshair: true,
+        highlight: true,
+    };
+    let index = |state: &mut State| state.reported().map(|hover| hover.map(|h| h.index));
+    let before = dot([0.0, 100.0]);
+    state.moved(Some(before), bounds, shown);
+    assert_eq!(index(&mut state), Some(Some(1)), "the dot at the centre");
+    // Eight wheel lines at the area's left edge zoom x by 2^0.4: the dot
+    // moves right by about 70 px.
+    assert!(
+        state
+            .queue(eight(Point::new(area.x0 + 1.0, area.center().y)))
+            .capture
+    );
+    rendered(&mut state, &fig, t0 + Duration::from_millis(16));
+    assert!(state.unhit, "no index during the gesture");
+    state.moved(Some(before), bounds, shown);
+    assert_eq!(index(&mut state), None, "nothing hit-tested during it");
+    // The gesture ends: the refresh builds the index of the zoomed dots.
+    rendered(&mut state, &fig, t0 + Duration::from_millis(316));
+    assert!(!state.unhit);
+    let zoomed = domain::<Linear>(state.domains.owned(x));
+    let after = dot(zoomed);
+    assert!(after.x - before.x > 40.0, "{before:?} → {after:?}");
+    state.moved(Some(before), bounds, shown);
+    assert_eq!(index(&mut state), Some(None), "no dot where it was");
+    state.moved(Some(after), bounds, shown);
+    assert_eq!(index(&mut state), Some(Some(1)), "the dot where it is");
+    // A widget that does not hover builds no index.
+    let mut idle = self::state();
+    let pipeline = Pipeline {
+        render: Render::Inline,
+        caching: Caching::On,
+        revision: 0,
+        probe: None,
+        waker: &Waker::noop(),
+        threads: 1,
+        hover: false,
+    };
+    idle.redraw::<()>(&fig, 1.0, t0, &pipeline, (&[], &[]));
+    assert!(
+        idle.unhit
+            && idle
+                .hits
+                .nearest(
+                    kurbo::Point::new(f64::from(before.x), f64::from(before.y)),
+                    0
+                )
+                .is_none()
+    );
 }
 
 /// A waker that counts its wakes.

@@ -5,7 +5,10 @@
 //! The index holds the points the marks of the last drawing list draw. It
 //! is rebuilt only when a refresh builds a list whose cells changed (a
 //! list whose cells all hash as before draws the same points), so pointer
-//! moves between redraws query it and resolve nothing.
+//! moves between redraws query it and resolve nothing; only for a widget
+//! that reads it (the highlight, `Plot::on_hover`), and not while a
+//! gesture lasts, whose frames hit-test nothing: the first refresh after
+//! the gesture builds it, and until then nothing is hit-tested.
 
 use iced_core::Point;
 use rustd3_figure::{hit, kurbo};

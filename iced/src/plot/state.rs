@@ -79,6 +79,9 @@ pub(crate) struct State {
     grids: u64,
     /// The hit index of the last list, and the hover last reported.
     hits: hover::Hits,
+    /// Whether the hit index is not of the list shown: built only for a
+    /// widget that hovers, and not while a gesture lasts.
+    unhit: bool,
     /// The pointer where the last move left it, logical px in the window;
     /// `None` when it left or something above covers it.
     pointer: Option<Point>,
@@ -143,6 +146,8 @@ pub(crate) struct Pipeline<'a> {
     pub(crate) waker: &'a Waker,
     /// The render pool's size.
     pub(crate) threads: usize,
+    /// Whether anything reads the hit index: the highlight or `on_hover`.
+    pub(crate) hover: bool,
 }
 
 impl Default for State {
@@ -166,6 +171,7 @@ impl Default for State {
             areas: Vec::new(),
             grids: 0,
             hits: hover::Hits::default(),
+            unhit: false,
             pointer: None,
             overlay: Overlay::default(),
             pool: None,
@@ -1003,13 +1009,19 @@ impl State {
             (pipeline.caching, pipeline.revision),
         );
         let verify = pipeline.caching == Caching::Verify;
+        // A list whose cells all hash as before draws the same points. The
+        // index is built only for a widget that hovers, and not while a
+        // gesture lasts (it hit-tests nothing then): the first refresh
+        // after builds it.
+        self.unhit |= !plan.is_empty();
+        if self.unhit && pipeline.hover && !self.is_active() {
+            self.hits.rebuild(figure.hits(resolved, &mut self.cache));
+            self.unhit = false;
+        }
         // The first refresh after a gesture renders the ring it left.
         let settle = self.deferred && !self.is_active();
         if plan.is_empty() && !verify && !settle {
             return 0;
-        }
-        if !plan.is_empty() {
-            self.hits.rebuild(figure.hits(resolved, &mut self.cache));
         }
         // A tile's work is its share of its layer's over the area, by the
         // pixels of the area it covers (the ring's tiles count pixels
@@ -1678,14 +1690,15 @@ impl State {
     /// `bounds` with the cached index: the panel whose plot area holds it,
     /// and that panel's drawn point nearest it within 12 logical px, for
     /// the overlay `shown` asks for and for `on_hover`. While a gesture is
-    /// active nothing is hit-tested: the overlay shows no ring and nothing
-    /// changes for `on_hover`. True when the overlay or the hovered point
-    /// changed.
+    /// active, or the index is not of the list shown (until the refresh
+    /// after a gesture builds it), nothing is hit-tested: the overlay
+    /// shows no ring and nothing changes for `on_hover`. True when the
+    /// overlay or the hovered point changed.
     pub(crate) fn hover(&mut self, bounds: Rectangle, shown: overlay::Shown) -> bool {
         let Some(factor) = self.factor else {
             return false;
         };
-        let busy = self.gesture.is_some() || self.is_brushing();
+        let busy = self.is_active() || self.unhit;
         let [x0, y0] = origin(bounds, factor);
         let k = f64::from(factor);
         let mut hover = None;
@@ -1720,9 +1733,9 @@ impl State {
 
     /// What `on_hover` hears after this frame, once per change of the
     /// hovered point (`Some(None)` once when it was lost); nothing while a
-    /// gesture is active.
+    /// gesture is active or the index is not of the list shown.
     pub(crate) fn reported(&mut self) -> Option<Option<Hover>> {
-        if self.gesture.is_some() || self.is_brushing() {
+        if self.is_active() || self.unhit {
             return None;
         }
         self.hits.report()
@@ -2010,6 +2023,7 @@ mod tests {
             probe: None,
             waker: &Waker::noop(),
             threads: 1,
+            hover: true,
         };
         state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[])).0
     }
@@ -2026,6 +2040,7 @@ mod tests {
             probe: Some(&probe),
             waker: &Waker::noop(),
             threads: 1,
+            hover: true,
         };
         state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[]));
         rx.try_iter().collect()
@@ -2335,6 +2350,7 @@ mod tests {
             probe: Some(&probe),
             waker: &waker,
             threads: 1,
+            hover: true,
         };
         let mut state = self::state(640.0, 480.0);
         state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
@@ -2417,6 +2433,7 @@ mod tests {
             probe: None,
             waker: &Waker::noop(),
             threads: 1,
+            hover: true,
         };
         let mut state = state(480.0, 320.0);
         let first = state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
@@ -2446,6 +2463,7 @@ mod tests {
             probe: Some(&probe),
             waker: &Waker::noop(),
             threads: 1,
+            hover: true,
         };
         let mismatches = |samples: &[Sample]| -> Vec<(probe::Target, u8)> {
             samples
@@ -2512,6 +2530,7 @@ mod tests {
             probe: None,
             waker: &waker,
             threads: 1,
+            hover: true,
         };
         let mut state = state(480.0, 320.0);
         state.redraw::<()>(&fixture::pair(dots), 2.0, clock(), &pipeline, (&[], &[]));
