@@ -24,6 +24,7 @@ use std::process::{Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use crate::also;
 use crate::archive;
 use crate::cli::Backend;
 use crate::display::{self, Display};
@@ -119,9 +120,13 @@ pub const NO_XWAYLAND: &str = "it runs only in a Linux Wayland session with XWay
 /// s: a window opening once.
 const DISPLAY_MARGIN_S: f64 = 3.0;
 
-/// The CPU reference's allowance in the estimate, s (about 10 here, on
+/// The CPU reference's allowance in the estimate, s (about 5 here, on
 /// two cores at 2.1 GHz).
 const REFERENCE_S: f64 = 15.0;
+
+/// The `also` measurements' allowance in the full level's estimate, s
+/// (about 120 here).
+const ALSO_S: f64 = 180.0;
 
 impl Level {
     /// Its flag's name.
@@ -230,8 +235,10 @@ impl Level {
     pub fn estimate_s(self, profiles: &[(Profile, Option<String>)], native: f32) -> f64 {
         let display = Plan::Display.cells(native, &Selection::default());
         let display = Plan::Display.estimate_s(&display) + DISPLAY_MARGIN_S;
+        let measured = if self == Level::Full { ALSO_S } else { 0.0 };
         display
             + REFERENCE_S
+            + measured
             + profiles
                 .iter()
                 .filter(|(_, skip)| skip.is_none())
@@ -385,10 +392,13 @@ impl Request {
         let native = self.native.unwrap_or(1.0);
         let profiles = level.profiles(guess);
         println!("rustd3-bench --{}: {}.", level.name(), level.describe());
-        println!(
-            "  display    one window measures the refresh rate and scale factor, and which \
-             renderer iced chooses"
-        );
+        match &unreachable {
+            Some(why) => println!("  display    {why}: every profile runs headless"),
+            None => println!(
+                "  display    one window measures the refresh rate and scale factor, and which \
+                 renderer iced chooses"
+            ),
+        }
         println!("  cpu        three single-threaded timings: the CPU reference");
         for (profile, skip) in &profiles {
             match skip {
@@ -407,6 +417,12 @@ impl Request {
                     );
                 }
             }
+        }
+        if level == Level::Full {
+            println!(
+                "  also       every `also` measurement, into also.md, about {:.0} min",
+                ALSO_S / 60.0
+            );
         }
         println!(
             "Estimate: about {:.0} minutes (each run's scenario plus {:.0} s to start and settle; \
@@ -497,6 +513,15 @@ impl Request {
             let status = spawn(exe, &dir, profile.name, limit.as_ref(), args, true)?;
             results.profiles[index] = profile.summary(&display, &dir, status, limit.as_ref());
             save(&results, &notes)?;
+        }
+        if level == Level::Full {
+            println!("== also: the items earlier phases asked to be measured (also.md)");
+            match std::panic::catch_unwind(also::measure) {
+                Ok(md) => fs::write(dir.join("also.md"), md)?,
+                Err(_) => {
+                    let _ = writeln!(notes, "# also: a measurement panicked (run's console)");
+                }
+            }
         }
         results.complete = true;
         let (files, size) = save(&results, &notes)?;

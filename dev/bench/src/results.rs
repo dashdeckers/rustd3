@@ -274,6 +274,12 @@ impl Results {
              raw records.\n",
             self.rustd3.version
         );
+        if self.level == "full" {
+            let _ = writeln!(
+                md,
+                "`also.md` holds every `also` measurement (the items earlier phases asked for).\n"
+            );
+        }
         if !self.complete {
             let pending: Vec<&str> = self
                 .profiles
