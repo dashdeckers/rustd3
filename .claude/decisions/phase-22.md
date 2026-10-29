@@ -1304,3 +1304,57 @@ minutes, and attach one file that holds everything we read when
 debugging: the frames, the reports and the machine. Keeping the default
 level identical to the registered verdict run keeps D22.1's history
 comparable.
+
+### Followups
+
+- **Built (Phase 31i).** cd3fb11: the levels and the one entry point
+  (`dev/bench/src/level.rs` replaces `suite.rs`; `display.rs`;
+  `Plan::Display`, `Plan::Quick` reshaped to the quick level's cells;
+  `run --backend auto` (ICED_BACKEND unset: an explicit `wgpu` opens no
+  window without a GPU adapter, `auto` falls back to tiny-skia),
+  `--budgets`, `--no-also`; a run is killed two minutes past its
+  scenario and recorded as failed; each run's header names the renderer
+  that ran, told apart as the widget does; `run.sh` a wrapper;
+  `.cargo/config.toml`'s alias). 326581b: the archive (`archive.rs`, a
+  ustar written here and gzipped by flate2, in `dev/bench/Cargo.toml`
+  only; `privacy.rs`; `results.rs`, `results.json` format 1). a07f4df:
+  `compare` and `report` (`load.rs`, `compare.rs`). 4f8a3fe: the CPU
+  reference (`reference.rs`). 008f131: `also` at the end of `--full`.
+  8084cb6: `repro-software` records the display variables by presence.
+  efa8e99: the READMEs, `.github/ISSUE_TEMPLATE/performance.yml`, the
+  changelog. 2f97f1f: a doc link rustdoc found ambiguous.
+- **Ctrl-C.** std cannot catch the signal portably and the workspace
+  forbids unsafe code, so the archive is written after the display
+  measurement and after every profile (beside its path, then renamed).
+  SIGINT to a quick level's process group 40 s in, under Xvfb: every
+  process ended, and the archive held the display measurement and the CPU
+  reference, `"complete": false`, `native` pending.
+- **Privacy audit.** What named the machine's owner before: `system.txt`'s
+  `uname -a` (the host name) and the values of `WAYLAND_DISPLAY` and
+  `DISPLAY` (which can name a host); `meta.json`'s and each report's
+  command line, and the run logs, with `--out` paths (absolute under the
+  home directory when given so) and panic messages (`~/.cargo/…`); tar
+  headers' owner names. Now `uname -srm`, the display variables as set or
+  unset, every text file scrubbed before packing (the results directory's
+  path, the home directory, the host name, the user name as a path
+  component), no owner in the archive. Kept, allowlisted: CPU, cores,
+  memory, GPU and driver, kernel, OS release, session type, desktop,
+  `xrandr --current`, `cosmic-randr list` (monitor make and model), GNOME's
+  scaling factors, compiler, revisions.
+- **Checked here** (2 cores at 2.1 GHz, wgpu on lavapipe, Xvfb, which
+  paces nothing): `--quick --refresh-hz 60` and `--quick` (60 Hz assumed,
+  every frame budget flagged) end to end in about 6.3 minutes each, 3.6
+  MB archives of 66 files; `--quick` with neither `DISPLAY` nor
+  `WAYLAND_DISPLAY` headless in 6.2 minutes; `--default --dry-run` and
+  `--full --dry-run` estimate 60 and 422 minutes here (`4cores` and
+  `nogpu-x11` skipped); `compare` of two quick runs; `compare` and
+  `report` on the user's three suite runs (read from `summary.csv`). The
+  CPU reference takes about 5 s here: a `trace` tile 3.5 ms, the
+  `scatter100k` area 200–250 ms filled and 31–38 ms splatted, a software
+  composition 20 ms.
+- **Unverified.** Windows and macOS (no target here): the levels, the
+  machine's description through PowerShell and `sysctl`/`sw_vers`/
+  `system_profiler`, the privacy scrub of Windows paths (unit-tested as
+  text only), `start /AFFINITY` (as in 31g), and the archive written
+  there. A Wayland session (`nogpu-x11` at the levels) and a display that
+  paces frames (the measured rate) are the user's to see.
