@@ -1118,7 +1118,9 @@ impl State {
                 if pooled && matches!(job.spot, Spot::Tile { .. }) {
                     return false;
                 }
-                let ms = self.budget.predict(slot::pixels(job.rect), job.work);
+                let ms = self
+                    .budget
+                    .predict(job.spot.kind(), slot::pixels(job.rect), job.work);
                 let fits = self.budget.is_inline(predicted + ms);
                 if fits {
                     predicted += ms;
@@ -1580,7 +1582,7 @@ impl State {
             return false;
         }
         self.budget
-            .calibrate(done.elapsed, done.pixels(), done.work);
+            .calibrate(done.spot.kind(), done.elapsed, done.pixels(), done.work);
         if let Some(probe) = probe {
             probe.send(Sample::Raster {
                 frame: self.frame,
@@ -2073,7 +2075,7 @@ mod tests {
 
     use super::{Pipeline, State};
     use crate::plot::area::Area;
-    use crate::plot::budget::Budget;
+    use crate::plot::budget::{Budget, Kind};
     use crate::plot::merge::Run;
     use crate::plot::overlay::{Overlay, Shown};
     use crate::plot::probe::{self, Probe, Sample, Stage};
@@ -2496,12 +2498,14 @@ mod tests {
         let mut state = state(480.0, 320.0);
         assert!(refresh(&mut state, &fixture::grid(), 2.0) > 0);
         let seeded = Budget::default();
-        for (pixels, work) in [(65_536, 0), (65_536, 400), (614_400, 2_000)] {
-            assert_ne!(
-                state.budget.predict(pixels, work),
-                seeded.predict(pixels, work),
-                "{pixels} px, {work} items"
-            );
+        for kind in [Kind::Tile, Kind::Cell] {
+            for (pixels, work) in [(65_536, 0), (65_536, 400), (614_400, 2_000)] {
+                assert_ne!(
+                    state.budget.predict(kind, pixels, work),
+                    seeded.predict(kind, pixels, work),
+                    "{kind:?}: {pixels} px, {work} items"
+                );
+            }
         }
     }
 
@@ -2587,16 +2591,17 @@ mod tests {
         let first = state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
         assert!(first.0 > 0);
         let rows = [(65_536, 0), (65_536, 400), (614_400, 2_000)];
-        let fitted = rows.map(|(pixels, work)| state.budget.predict(pixels, work));
+        let predict = |state: &State| {
+            [Kind::Tile, Kind::Cell]
+                .map(|kind| rows.map(|(pixels, work)| state.budget.predict(kind, pixels, work)))
+        };
+        let fitted = predict(&state);
         let kept = state.kept().len();
         assert!(kept > 0);
         state.rebuilt();
         let checked = state.redraw::<()>(&fixture::grid(), 2.0, clock(), &pipeline, (&[], &[]));
         assert_eq!(checked.0, 0, "{kept} slots kept, none changed");
-        assert_eq!(
-            rows.map(|(pixels, work)| state.budget.predict(pixels, work)),
-            fitted
-        );
+        assert_eq!(predict(&state), fitted);
     }
 
     #[test]

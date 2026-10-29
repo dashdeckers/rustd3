@@ -96,7 +96,8 @@
 //! of the tiles, so the axes keep step with the data): inline each one
 //! whose predicted time still fits half
 //! the frame budget with those before it, by a cost model each widget fits
-//! to its own renders (seeded by [`cost`]), and the rest on a pool of
+//! to its own renders, tiles apart from gutters and overlays (seeded by
+//! [`cost`]), and the rest on a pool of
 //! threads the widget owns ([`Plot::threads`]), newest wins per tile;
 //! while a wheel burst or a brush lasts no tile renders inline, so the UI
 //! thread only composes and renders the gutters and overlays the model

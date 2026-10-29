@@ -9,6 +9,7 @@ use rustd3_figure::kurbo::Rect;
 use rustd3_figure::list::{Bounds, List};
 use rustd3_figure::raster;
 
+use crate::plot::budget::Kind;
 use crate::plot::preview::Basis;
 use crate::plot::{probe, slot};
 
@@ -88,6 +89,17 @@ pub(crate) struct Done {
     /// fits whether or not a probe is attached (D31.8).
     pub(super) elapsed: Duration,
     pub(super) view: [Option<Basis>; 2],
+}
+
+impl Spot {
+    /// The kind of render the cost model fits a job for this spot with:
+    /// a tile's, or a gutter run's and an overlay's (D22.7 (4b), C).
+    pub(crate) fn kind(self) -> Kind {
+        match self {
+            Spot::Tile { .. } => Kind::Tile,
+            Spot::Gutter(_) | Spot::Overlay { .. } => Kind::Cell,
+        }
+    }
 }
 
 impl Stamp {

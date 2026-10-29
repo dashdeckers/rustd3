@@ -14,6 +14,13 @@
 //! coefficient at its seed with the weight of a tenth of a render, so a
 //! direction the renders never vary in (only tiles of one size, say) keeps
 //! its seed while the renders decide the rest.
+//!
+//! Tiles and cells (gutter runs and overlays) are fitted apart, each from
+//! its own renders ([`Kind`], D22.7 (4b), option C): a plot area's tiles
+//! cost per segment and per dot, many at once on the pool, while an axis
+//! strip costs its glyphs and its size, so one fit of both predicted a
+//! strip at ten times what it took and sent it to the pool behind the
+//! tiles.
 
 use iced_core::time::{Duration, Instant};
 
@@ -47,11 +54,28 @@ const SEED: [f64; 3] = [
     ITEMS / cost::ITEMS_PER_MS,
 ];
 
-/// The frame interval and the fitted cost model.
-#[derive(Debug)]
+/// The frame interval and the fitted cost model, a fit per kind of
+/// render.
+#[derive(Debug, Default)]
 pub(crate) struct Budget {
     /// Last two `RedrawRequested` instants.
     last: [Option<Instant>; 2],
+    /// The fit of tiles, then of cells.
+    fits: [Fit; 2],
+}
+
+/// What a render draws, which the cost model fits apart.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Kind {
+    /// A tile of a plot area's layer: the marks.
+    Tile,
+    /// A gutter run or an overlay over a plot area: the chrome.
+    Cell,
+}
+
+/// One kind's fitted cost model.
+#[derive(Debug)]
+struct Fit {
     /// Σ w x xᵀ over the timed renders, x = (1, pixels / PIXELS, work /
     /// ITEMS), each render's w falling by `FORGET` per newer one.
     xx: [[f64; 3]; 3],
@@ -61,10 +85,9 @@ pub(crate) struct Budget {
     theta: [f64; 3],
 }
 
-impl Default for Budget {
+impl Default for Fit {
     fn default() -> Self {
-        Budget {
-            last: [None; 2],
+        Fit {
             xx: [[0.0; 3]; 3],
             xy: [0.0; 3],
             theta: SEED,
@@ -93,14 +116,44 @@ impl Budget {
         }
     }
 
-    /// Folds one render of `pixels` and `work` that took `measured` into
-    /// the fit.
-    pub(crate) fn calibrate(&mut self, measured: Duration, pixels: u64, work: u64) {
+    /// Folds one render of `kind` of `pixels` and `work` that took
+    /// `measured` into that kind's fit.
+    pub(crate) fn calibrate(&mut self, kind: Kind, measured: Duration, pixels: u64, work: u64) {
         let y = measured.as_secs_f64() * 1e3;
         let x = features(pixels, work);
         if !(y.is_finite() && x.iter().all(|v| v.is_finite())) {
             return;
         }
+        self.fits[kind.index()].fold(x, y);
+    }
+
+    /// The predicted time of a render of `kind` of `pixels` and `work`,
+    /// ms.
+    pub(crate) fn predict(&self, kind: Kind, pixels: u64, work: u64) -> f64 {
+        self.fits[kind.index()].predict(features(pixels, work))
+    }
+
+    /// Whether renders predicted to take `ms` together render inline: at
+    /// most half the frame budget.
+    pub(crate) fn is_inline(&self, ms: f64) -> bool {
+        // Nanoseconds over 1e6 round once: 6.9 ms halves to exactly 3.45.
+        ms <= self.interval().as_nanos() as f64 / 1e6 / 2.0
+    }
+}
+
+impl Kind {
+    /// Its fit's place.
+    fn index(self) -> usize {
+        match self {
+            Kind::Tile => 0,
+            Kind::Cell => 1,
+        }
+    }
+}
+
+impl Fit {
+    /// Folds one render of terms `x` that took `y` ms into the fit.
+    fn fold(&mut self, x: [f64; 3], y: f64) {
         for i in 0..3 {
             for j in 0..3 {
                 self.xx[i][j] = self.xx[i][j] * FORGET + x[i] * x[j];
@@ -118,17 +171,9 @@ impl Budget {
         }
     }
 
-    /// The predicted time of a render of `pixels` and `work`, ms.
-    pub(crate) fn predict(&self, pixels: u64, work: u64) -> f64 {
-        let x = features(pixels, work);
+    /// The predicted time of a render of terms `x`, ms.
+    fn predict(&self, x: [f64; 3]) -> f64 {
         (0..3).map(|i| self.theta[i] * x[i]).sum()
-    }
-
-    /// Whether renders predicted to take `ms` together render inline: at
-    /// most half the frame budget.
-    pub(crate) fn is_inline(&self, ms: f64) -> bool {
-        // Nanoseconds over 1e6 round once: 6.9 ms halves to exactly 3.45.
-        ms <= self.interval().as_nanos() as f64 / 1e6 / 2.0
     }
 }
 
@@ -168,7 +213,7 @@ fn solve(mut a: [[f64; 3]; 3], mut b: [f64; 3]) -> Option<[f64; 3]> {
 mod tests {
     use iced_core::time::{Duration, Instant};
 
-    use super::{Budget, solve};
+    use super::{Budget, Kind, solve};
     use crate::plot::cost::model_ms;
 
     #[expect(clippy::disallowed_methods, reason = "test clock")]
@@ -211,7 +256,10 @@ mod tests {
     fn the_seed_is_the_cost_model() {
         let budget = Budget::default();
         for (pixels, work) in [(256_000, 150), (2_918_400, 760), (6_400_000, 200_000)] {
-            let (a, b) = (budget.predict(pixels, work), model_ms(pixels, work));
+            let (a, b) = (
+                budget.predict(Kind::Tile, pixels, work),
+                model_ms(pixels, work),
+            );
             assert!((a - b).abs() < 1e-9 * b, "{a} against {b}");
         }
     }
@@ -220,25 +268,25 @@ mod tests {
     fn cheap_cells_are_predicted_inline() {
         let budget = Budget::default();
         // 320 × 200 at 2×, 150 items, 16.7 ms: 0.89 ms ≤ 8.35.
-        assert!(budget.is_inline(budget.predict(256_000, 150)));
+        assert!(budget.is_inline(budget.predict(Kind::Tile, 256_000, 150)));
         // The wheel figure without its dots at 60 Hz: 7.7 ms ≤ 8.35.
-        assert!(budget.is_inline(budget.predict(2_918_400, 760)));
+        assert!(budget.is_inline(budget.predict(Kind::Tile, 2_918_400, 760)));
         // At 144 Hz the threshold is 3.45 ms.
         let fast = after(Duration::from_micros(6_900));
         assert!(fast.is_inline(3.45));
-        assert!(fast.is_inline(fast.predict(256_000, 150)));
+        assert!(fast.is_inline(fast.predict(Kind::Tile, 256_000, 150)));
     }
 
     #[test]
     fn expensive_cells_are_predicted_for_the_worker() {
         let budget = Budget::default();
         // The whole wheel figure: 21.7 ms > 8.35.
-        assert!(!budget.is_inline(budget.predict(2_918_400, 6_360)));
+        assert!(!budget.is_inline(budget.predict(Kind::Tile, 2_918_400, 6_360)));
         // 200k dots at 1600 × 1000 logical at 2×: 513 ms.
-        assert!(!budget.is_inline(budget.predict(6_400_000, 200_000)));
+        assert!(!budget.is_inline(budget.predict(Kind::Tile, 6_400_000, 200_000)));
         // The figure without its dots at 144 Hz: 7.7 ms > 3.45.
         let fast = after(Duration::from_micros(6_900));
-        assert!(!fast.is_inline(fast.predict(2_918_400, 760)));
+        assert!(!fast.is_inline(fast.predict(Kind::Tile, 2_918_400, 760)));
         assert!(!fast.is_inline(3.46));
     }
 
@@ -262,10 +310,13 @@ mod tests {
         for n in 0..96 {
             let (pixels, work) = renders[n % renders.len()];
             let ms = truth(pixels, work);
-            budget.calibrate(Duration::from_secs_f64(ms / 1e3), pixels, work);
+            budget.calibrate(Kind::Tile, Duration::from_secs_f64(ms / 1e3), pixels, work);
         }
         for (pixels, work) in [(1_800, 60), (65_536, 400), (6_400_000, 2_000)] {
-            let (fit, real) = (budget.predict(pixels, work), truth(pixels, work));
+            let (fit, real) = (
+                budget.predict(Kind::Tile, pixels, work),
+                truth(pixels, work),
+            );
             assert!(
                 (fit - real).abs() < 0.03 * real,
                 "{pixels} px, {work}: {fit} against {real}"
@@ -273,10 +324,10 @@ mod tests {
         }
         // An overhead of 0.4 ms each: 21 small renders no longer fit half
         // of 16.7 ms, which the constants alone (0.02 ms each) allowed.
-        let small: f64 = (0..21).map(|_| budget.predict(1_800, 0)).sum();
+        let small: f64 = (0..21).map(|_| budget.predict(Kind::Tile, 1_800, 0)).sum();
         assert!(!budget.is_inline(small), "{small} ms");
         let seeded = Budget::default();
-        let constants: f64 = (0..21).map(|_| seeded.predict(1_800, 0)).sum();
+        let constants: f64 = (0..21).map(|_| seeded.predict(Kind::Tile, 1_800, 0)).sum();
         assert!(seeded.is_inline(constants), "{constants} ms");
     }
 
@@ -286,11 +337,62 @@ mod tests {
         // work rate keeps its seed.
         let mut budget = Budget::default();
         for _ in 0..64 {
-            budget.calibrate(Duration::from_micros(900), 65_536, 0);
+            budget.calibrate(Kind::Tile, Duration::from_micros(900), 65_536, 0);
         }
-        assert!((budget.predict(65_536, 0) - 0.9).abs() < 0.02);
-        let per_item = (budget.predict(65_536, 2_560) - budget.predict(65_536, 0)) / 2_560.0;
+        assert!((budget.predict(Kind::Tile, 65_536, 0) - 0.9).abs() < 0.02);
+        let per_item = (budget.predict(Kind::Tile, 65_536, 2_560)
+            - budget.predict(Kind::Tile, 65_536, 0))
+            / 2_560.0;
         assert!((per_item - 1.0 / 400.0).abs() < 1e-4, "{per_item}");
+    }
+
+    #[test]
+    fn tiles_and_cells_are_fitted_apart() {
+        // D22.7 (4b), C: tiles of a long trace cost 5 ms per 65,536 px and
+        // a little per item, on a contended pool; axis strips 0.05 ms, 0.3
+        // ms per 65,536 px and 2 µs per item. Each kind's prediction
+        // follows its own renders: a 31.5 kpx strip of 40 items is
+        // predicted at its 0.27 ms, not at the tiles' rates.
+        let tile = |pixels: u64, work: u64| 5.0 * pixels as f64 / 65_536.0 + 0.01 * work as f64;
+        let cell =
+            |pixels: u64, work: u64| 0.05 + 0.3 * pixels as f64 / 65_536.0 + 0.002 * work as f64;
+        let tiles = [
+            (65_536, 900),
+            (30_000, 400),
+            (12_000, 300),
+            (65_536, 2_000),
+            (50_000, 100),
+        ];
+        let cells = [
+            (31_500, 40),
+            (2_740, 2),
+            (80_000, 90),
+            (12_000, 20),
+            (31_500, 10),
+        ];
+        let mut budget = Budget::default();
+        for n in 0..96 {
+            let (pixels, work) = tiles[n % tiles.len()];
+            let ms = tile(pixels, work);
+            budget.calibrate(Kind::Tile, Duration::from_secs_f64(ms / 1e3), pixels, work);
+            let (pixels, work) = cells[n % cells.len()];
+            let ms = cell(pixels, work);
+            budget.calibrate(Kind::Cell, Duration::from_secs_f64(ms / 1e3), pixels, work);
+        }
+        for (pixels, work) in [(65_536, 1_000), (20_000, 100)] {
+            let (fit, real) = (budget.predict(Kind::Tile, pixels, work), tile(pixels, work));
+            assert!(
+                (fit - real).abs() < 0.05 * real,
+                "tile {pixels} px: {fit} against {real}"
+            );
+        }
+        for (pixels, work) in [(31_500, 40), (60_000, 50)] {
+            let (fit, real) = (budget.predict(Kind::Cell, pixels, work), cell(pixels, work));
+            assert!(
+                (fit - real).abs() < 0.05 * real,
+                "cell {pixels} px: {fit} against {real}"
+            );
+        }
     }
 
     #[test]

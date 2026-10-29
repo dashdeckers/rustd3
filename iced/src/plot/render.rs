@@ -23,7 +23,8 @@ pub enum Render {
     /// The budget is the interval between the last two `RedrawRequested`
     /// instants, clamped to 1 ms ..= 16.7 ms (16.7 ms until two exist);
     /// the prediction is a fixed overhead plus a time per pixel and per
-    /// work item that each widget fits to its timed renders, seeded by
+    /// work item that each widget fits to its timed renders, the tiles'
+    /// apart from the gutters' and overlays', seeded by
     /// [`cost::model_ms`](crate::plot::cost::model_ms)'s constants.
     #[default]
     Auto,
