@@ -792,3 +792,183 @@ on every machine.
 - The user's `dev/bench/run.sh --focus` gives the numbers on the
   Ryzen; 4c is worth a tiny-skia cell at factor 2 there if the weak
   profiles' native factor is 1.
+- Phase 31f: items 4 (bdfa439) and 4a (2e47bf1) built; 4b and item 5
+  measured worse as written and were not committed (D22.7).
+- 4a's price, Phase 31f, read back to back under Xvfb (wgpu, `--runs 1`,
+  two rounds of bdfa439, 2e47bf1 and 7cba714 interleaved, since this
+  container's wgpu frames drifted 30–40 % slower over the session, hover
+  included): `zoom-lines` × `trace` and `scatter100k` unchanged (frame
+  p50 15–18 ms without 4a, 12–21 ms with it); `zoom-lines` ×
+  `scatter1m`, whose tiles take seconds, now draws 24 carried previews
+  where 18–21 tiles were blank in 63–76 % of frames before (0–1 % now),
+  and its frame interval p50 reads 28 and 31 ms before, 33–60 ms after
+  (noisy; latency unchanged). On tiny-skia the same cell's frame p99
+  reads 116 and 117 ms in the two builds without 4a (bdfa439 and 4b's),
+  197 and 198 ms in the two with it (item 5's and 7cba714).
+- 4c, found (Phase 31f, 7cba714): the time was iced's compositing, on
+  the widget's side. gdb samples through the 10–11 s frame put the main
+  thread in `iced_tiny_skia`'s `Compositor::present` → `Engine::draw_image`
+  → `draw_pixmap` (bilinear), with Xvfb idle; a plain iced app replaying
+  that frame's 87 image draws in a layer whose bounds alternate takes
+  183 ms a frame, and 92 synthetic previews 180–190 ms. The widget's
+  half-px toggle flipped on idle draws as well, so after an odd number of
+  them the first draw of a gesture reused the idle layer's bounds;
+  tiny-skia then damaged each moved preview apart and redrew every image
+  in each damaged rect. Holding the toggle while idle: the factor-2
+  tiny-skia burst's longest frame interval 1.2 and 0.8 s (two runs)
+  against 11.2 and 10.7 s, the run ending after 6.0 and 5.7 s against
+  14.1 and 13.9 s. While previews show, a tiny-skia frame at factor 2
+  still costs about 0.2 s here (each scaled image filtered bilinearly
+  through a frame-sized clip mask); 2e47bf1 keeps the alternating layer
+  while carried previews or old gutter images show, for the same reason.
+
+## D22.7 — Two D22.6 items measure worse as written: 4b and item 5
+
+**Date:** 2026-10-29 · **Context:** Phase 31f: D22.6 (4b) built on bdfa439 (item 4, C), item 5 (B made progressive) built on 2e47bf1 (4a), each measured and not committed · **Status:** open
+
+Both patches apply to 7cba714 as they stand:
+`/tmp/claude-0/rustd3-bench31f/patches/0001-perf-iced-during-a-gesture-the-axes-render-ahead-of-.patch`
+(4b, with its tests) and `…/patches/item4-as-built.patch` (item 5:
+widget, probe, bench and tests; 16 files, +951 −88). `/tmp` does not
+outlive the container.
+
+### Issue
+
+**4b.** D22.6 (4b), as the brief wrote it: while a gesture lasts,
+gutter runs go ahead of tiles on the pool, and "a gutter run whose predicted cost
+(the D31.8 cost model) is under 1 ms may render inline during a
+gesture. Item 3's no-inline rule stays for tiles and anything predicted
+at 1 ms or more." Item 3 (D22.5 (3), d8ec675) kept tiles off the UI
+thread, not gutters: before 4b any non-tile render that fit half the
+frame budget rendered inline during a gesture. The 1 ms bound is
+therefore a new restriction, and the fitted model predicts an axis strip
+far above what it costs: the fit is dominated by the pool's contended
+tile renders (50–80 µs per kpx here), so a 31.5 kpx strip predicts about
+2 ms while it renders in 0.04–0.4 ms single-threaded since item 4, C.
+Built as written, nearly every axis strip goes to the pool, during drags
+too.
+
+**Item 5.** Built as D22.6 decided it: during a wheel gesture a
+generation queues its visible tiles at half device resolution, then the
+same tiles at full; a newer step replaces both passes; a half tile is
+doubled on the CPU (0.5–0.8 ms a tile) and drawn on its full square,
+since tiny-skia's `draw_pixmap` truncates a scaled image's position to
+whole texels and puts a GPU-scaled half tile on even device px only;
+`Sample::Frame` gains `coarse`, `Sample`'s variants are
+`#[non_exhaustive]`, `Verify` compares full-resolution tiles only, and
+the bench reports the any-resolution latency in the focus report, the
+default report's zoom rows and `summary.csv`. Its seam and placement test
+(no background px in the plot area, the panel's edges on the area's
+first and last device rows and columns, in every frame with half tiles)
+passes at 1, 1.25, 1.5 and 2 on both backends and fails on both when the
+half tiles are shifted 1 px. Screenshots mid-burst at 1 and 2 on both
+backends showed no seam and no misplaced tile. It measures worse: half
+resolution does not make these renders cheaper.
+
+### Investigation
+
+**4b.** Windowed under Xvfb (2 cores, Mesa lavapipe), `--plan weak` (and
+its zoom cells at `--threads 2`), `--native-factor 1 --refresh-hz 60`, 2 runs
+per cell: item 4, C alone (bdfa439); A as written; B the order alone (the
+gutters and overlays ahead of the tiles while a gesture lasts, inline as
+before 4b). The axis lag is, per generation planned in a zoom burst, the
+time from its first frame to the first render of each axis strip (gutter
+cells of 20 kpx or more) for it or a newer one, median over generations
+and strips (`/tmp/claude-0/rustd3-bench31f/axis.py`):
+
+| Cell | C alone | A as written | B order only |
+| --- | --- | --- | --- |
+| wgpu `zoom-lines` × `trace`: axis lag p50 ms | 387 | 52 | 38 |
+| the same, `--threads 2` | 267 | 77 | 63 |
+| tiny-skia `zoom-lines` × `trace`: axis lag p50 ms | 212 | 36 | 46 |
+| the same, `--threads 2` | 142 | 46 | 84 |
+| wgpu `zoom-lines` × `trace`: strip renders inline | 441 / 500 | 25 / 1,058 | 521 / 1,114 |
+| wgpu `zoom-lines` × `trace`: frame p50 / p99, UI frame p99 ms | 9.9 / 108 / 17.3 | 12.9 / 109 / 19.0 | 10.2 / 109 / 17.1 |
+| wgpu `pan-x` × `trace`: latency p95 ms, preview share | 49, 6 % | 137, 11 % | 52, 7 % |
+| tiny-skia `pan-x` × `trace`: latency p95 ms, preview share | 43, 4 % | 131, 11 % | 51, 6 % |
+| wgpu `pan-x` × `scatter100k`: latency p95 ms | 39 | 67 | 36 |
+
+On `scatter100k` the strips already kept step (lag p50 0 ms in every
+column). Registered zoom latency p95 stays about 1.1 s in every column.
+A's pan latencies p95 are about 2.7 times C's on both backends (the
+tiny-skia intervals do not overlap: 29–56 against 118–144 ms) and its
+preview share doubles; its wgpu zoom frames take 3 ms more at the median
+(more strip renders on the pool beside lavapipe). B's binary also held
+D22.6 (4a) before its alternating layer (2e47bf1), which slowed the
+settle frames of tiny-skia `scatter100k` zooms; its other rows are not
+affected.
+
+**Item 5.** The same setup, `--plan weak --scenario zoom-lines`, the two
+binaries run back to back (2e47bf1 without item 5, then with it), 2 runs
+per cell; `any` is the any-resolution latency, the coarse share the
+share of shown tiles current at half resolution:
+
+| Cell | Latency p95 ms (any) | Frame p50 ms | Preview share | Coarse share |
+| --- | --- | --- | --- | --- |
+| wgpu × `trace` | 1,216 → 2,511 (2,511) | 12.5 → 18.4 | 0.52 → 0.76 | 0.22 |
+| wgpu × `scatter100k` | 1,096 → 1,147 (1,100) | 13.5 → 19.2 | 0.57 → 0.68 | 0.11 |
+| wgpu × `trace`, `--threads 2` | 1,141 → 1,286 (1,286) | 13.2 → 12.9 | 0.40 → 0.53 | 0.11 |
+| wgpu × `scatter100k`, `--threads 2` | 1,047 → 1,112 (1,089) | 12.4 → 12.2 | 0.43 → 0.48 | 0.06 |
+| tiny-skia × `trace` | 1,177 → 1,783 (1,783) | 1.0 → 1.0 | 0.10 → 0.15 | 0.05 |
+| tiny-skia × `scatter100k` | 1,102 → 1,144 (1,116) | 0.9 → 1.0 | 0.27 → 0.44 | 0.08 |
+| tiny-skia × `trace`, `--threads 2` | 1,157 → 1,244 (1,244) | 1.0 → 1.0 | 0.08 → 0.11 | 0.02 |
+| tiny-skia × `scatter100k`, `--threads 2` | 1,139 → 1,706 (1,697) | 0.9 → 1.0 | 0.31 → 0.31 | 0.03 |
+
+Every latency rises; the any-resolution latency is within 5 % of the
+registered one, so the half pass does not show current content sooner
+either. The pool's raster records put a half tile of `trace` at a median
+6.2 ms against 5.8 ms at full. Timed alone in a release build (one
+256-px tile, median of 25, single-threaded), a 400k-point line costs
+116.5 ms at full and 81.8 at half at factor 1, 55.5 and 62.0 at factor
+2; 100k dots 4.9 and 4.6 ms, 3.4 and 4.2 ms. vello_cpu's time on these
+lists goes to the geometry (flattening and stroking each segment, each
+dot's path), not to the px, so a half pass adds a render per tile and
+step instead of replacing a dearer one; on two cores it delays the full
+pass. At factor 2 no frame of the mid-burst screenshots showed half
+tiles: each step was replaced before its half pass landed.
+
+### Options
+
+4b:
+
+| | A — as written | **B — the order alone** | C — a fit per kind of render |
+| --- | --- | --- | --- |
+| Approach | Gutters and overlays ahead of tiles on the pool while a gesture lasts; inline only those predicted under 1 ms | Gutters and overlays ahead of tiles on the pool while a gesture lasts; inline, as before 4b, any non-tile render that fits half the frame budget | A, with the cost model fitting gutters and tiles apart, so that a strip's prediction is its own |
+| Cost | Built (about 40 lines and two tests), reverted | About 10 lines and a test of the order | A plus a second fit in `budget.rs` |
+| Measured here | Axes in step; pans worse (p95 2.7×, previews 2×); wgpu zoom frames +3 ms | Axes in step as A; pans and frames as C alone | Not measured |
+| Fit | The brief's letter | D22.6's aim ("the axes keep step with the data") with D22.5 (3)'s letter (tiles off the UI thread) | The bound means what it says |
+
+Item 5:
+
+| | A — as built | **B — no half pass; the probe made additive** | C — half resolution where px cost |
+| --- | --- | --- | --- |
+| Approach | The patch above | `Sample`'s variants `#[non_exhaustive]` and the bench's patterns `..`; no `coarse`, no half pass, no any-resolution column | A, with the half pass only for renders the cost model predicts px-bound (images, heatmaps, large fills), a fit per kind as 4b's C |
+| Cost | Built (+951 −88), reverted | About 15 lines from the patch | A plus a second fit in `budget.rs`; no workload here to measure it on |
+| Measured here | Latency p95 up 4–106 %, any-resolution no better; wgpu frames +6 ms on one thread | As 2e47bf1 | Not measured |
+| Fit | D22.6's letter | Later progressive fields are additive | Half resolution where it saves |
+
+### Decision
+
+Recommendation for 4b: B. The axes' lag came from the pool's order, not
+from inline renders: behind the tiles each step replaced, a strip that
+did not fit the frame budget never rendered until the burst ended. Ahead
+of them it renders within a frame or two, and the strips that fit stay
+inline, which is what keeps drags as they were.
+
+Recommendation for item 5: B, and close half resolution for 0.1. If the
+user's focus run on the Ryzen shows zoom latency still short of what
+the architect wants, C is the form to revisit, with a px-bound workload
+in the plan to judge it by.
+
+### Why
+
+4b: A's bound trusts a prediction that is ten times a strip's real cost,
+so it moves cheap renders off the UI thread and delays every drag's
+frame until the pool returns them; B keeps D22.5 (3) as it was built and
+only changes what the pool takes first.
+
+Item 5: half resolution saves where a render's cost scales with its px.
+The lines and dots of the bench's workloads cost per segment and per
+dot, so a half pass is a second render of nearly the same cost; on a
+machine whose pool keeps up the full pass lands as soon, and on one that
+does not, the half pass is what delays it.
