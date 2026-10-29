@@ -21,8 +21,6 @@
 //! ICED_BACKEND=tiny-skia env -u WAYLAND_DISPLAY rustd3-bench repro-software   # X11
 //! ICED_BACKEND=wgpu rustd3-bench repro-software [--out FILE]                  # control
 //! ```
-//!
-//! `dev/bench/repro-software.sh` runs all four and prints a table.
 
 use std::fs;
 use std::path::PathBuf;

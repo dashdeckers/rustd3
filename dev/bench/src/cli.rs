@@ -61,7 +61,8 @@ pub enum Error {
     Stray(String),
     /// A windowed run without the display's refresh rate or factor.
     Windowed(&'static str),
-    /// A flag of the old `suite` or `run.sh`, which the levels replace.
+    /// A flag of the old `suite` or `dev/bench/run.sh`, which the levels
+    /// replace.
     Gone(String),
     /// Experiment flags that cannot hold together.
     Experiment(experiment::Error),
@@ -77,7 +78,7 @@ rustd3-bench: rustd3's benchmark, the plotting library and its Plot widget.
                      [--frames DIR [--every N]]
 
 From a checkout of rustd3 (the cargo alias builds the release bench and
-runs it; dev/bench/run.sh does the same). It runs on any machine and
+runs it, on every platform). It runs on any machine and
 platform: it prints what it will run and an estimate of the time, measures
 the display (one window, a few seconds), takes three single-threaded CPU
 timings, times figures from data to SVG, PDF and PNG through the library's
@@ -198,9 +199,7 @@ Advanced (developers):
           1600 x 1000 window, redrawn every frame; the backend from
           ICED_BACKEND; prints and writes
           (default bench-results/repro-<UTC stamp>.txt) the frame
-          intervals and CPU use; env -u WAYLAND_DISPLAY for X11.
-          dev/bench/repro-software.sh runs both backends on Wayland and
-          on X11
+          intervals and CPU use; env -u WAYLAND_DISPLAY for X11
   child   (internal: one scenario x workload x factor x run)
   figure-child (internal: one figure of the figure profile)
 ";

@@ -22,8 +22,8 @@ cargo rustd3-bench-figure --quick   # the library alone: no iced, no window
 ```
 
 `cargo rustd3-bench` is an alias (`.cargo/config.toml`) for `cargo run
---release -p rustd3-bench --`; `dev/bench/run.sh` does the same on Linux
-and macOS. Its first release build compiles iced, wgpu and typst: several
+--release -p rustd3-bench --`, the same on every platform; the repository
+has no shell script for it (D22.11 (4)). Its first release build compiles iced, wgpu and typst: several
 minutes. It runs everything, the figure profile included, and is the
 command for any machine with a display.
 
@@ -521,11 +521,12 @@ its software cells to the weak ones, report-only (`--budgets`).
 window-sized image) cover a 1600 × 1000 window and move 1 px a frame,
 redrawn every frame. After a 2 s warm-up it measures for 10 s and prints
 the frames drawn, the frame interval's p50, p90 and p99, the CPU seconds
-per second and the session's display variables. On Linux
-`dev/bench/repro-software.sh` builds the bench and runs it on both
-renderers, on Wayland and on X11 through XWayland, then prints a table.
-By hand: `ICED_BACKEND=tiny-skia target/release/rustd3-bench
-repro-software [--out FILE]`, with `env -u WAYLAND_DISPLAY` for X11.
+per second and the session's display variables. It stays an advanced
+command for D22.8's upstream question; D22.12 measures the software path
+offscreen instead. Run it on each renderer, on Wayland and on X11
+through XWayland: `ICED_BACKEND=tiny-skia target/release/rustd3-bench
+repro-software [--out FILE]` (and `ICED_BACKEND=wgpu` as the control),
+with `env -u WAYLAND_DISPLAY` for X11.
 
 ### Headless
 
