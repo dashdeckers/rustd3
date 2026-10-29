@@ -67,7 +67,7 @@ pub enum Error {
 /// What `--help` prints: the levels, then the developers' commands.
 #[cfg(feature = "widget")]
 pub const HELP: &str = "\
-rustd3-bench: the benchmark of rustd3's Plot widget.
+rustd3-bench: rustd3's benchmark, the plotting library and its Plot widget.
 
   cargo rustd3-bench [--quick | --default | --full] [--figure-only]
                      [--out DIR] [--refresh-hz HZ] [--native-factor F]
@@ -76,21 +76,27 @@ From a checkout of rustd3 (the cargo alias builds the release bench and
 runs it; dev/bench/run.sh does the same). It runs on any machine and
 platform: it prints what it will run and an estimate of the time, measures
 the display (one window, a few seconds), takes three single-threaded CPU
-timings, then runs the level's profiles in windows that open and close by
-themselves; keep hands off the mouse and keyboard.
-  --quick     about 10 minutes: what a performance issue needs. The cells
-              hover, pan-x and zoom-lines on trace and scatter100k and
-              drag-resize on trace, 3 runs each, on the native backend; pan-x
-              and zoom-lines on trace on the software renderer (and again on
-              X11 in a Linux Wayland session). Report-only.
-  --default   about 75 minutes, the default: the registered verdict run
-              (D22.1's rule outcome) and the weak profiles (no GPU, 4 cores,
-              2 cores; D22.4).
-  --full      hours: every scenario x workload x factor on the native
-              backend, the weak profiles and every `also` measurement.
+timings, times figures from data to SVG, PDF and PNG through the library's
+own calls (the figure profile, headless), then drives the Plot widget in the
+level's profiles, in windows that open and close by themselves; keep hands
+off the mouse and keyboard.
+  --quick     about 10 minutes: what a performance issue needs. Six figures,
+              7 times each; then the widget's cells hover, pan-x and
+              zoom-lines on trace and scatter100k and drag-resize on trace, 3
+              runs each, on the native backend; pan-x and zoom-lines on trace
+              on the software renderer (and again on X11 in a Linux Wayland
+              session). Report-only.
+  --default   about 80 minutes, the default: the figures with ladders of
+              lines and scatters, the presets and the wheel figure; the
+              registered verdict run (D22.1's rule outcome) and the weak
+              profiles (no GPU, 4 cores, 2 cores; D22.4).
+  --full      hours: the figures to 10M markers and GIFs; every scenario x
+              workload x factor on the native backend, the weak profiles and
+              every `also` measurement.
   --figure-only
               the plotting library alone: the CPU reference and the figure
-              profile at the level, no display measurement and no window.
+              profile at the level, no display measurement and no window, as
+              `cargo rustd3-bench-figure`, which builds without iced, runs it.
   --out DIR   where results go (default bench-results).
   --refresh-hz HZ, --native-factor F
               the display's refresh rate and scale factor, for displays that
@@ -102,7 +108,8 @@ fails is recorded and the level goes on. It writes
 bench-results/<UTC stamp>-<level>/ and packs it, after every profile, into
 bench-results/rustd3-bench-<level>-<UTC stamp>.tar.gz, printed last: the one
 file to attach to an issue (PRIVACY.md inside lists what it holds; no host
-or user name, no home path).
+or user name, no home path). With --figure-only both names read
+figure-<level> for <level>.
 
 Advanced (developers):
   run     [--plan smoke|display|quick|default|weak|focus|full] [--scenario A,B]
@@ -166,7 +173,7 @@ Advanced (developers):
 /// plotting library alone, then the developers' commands it has.
 #[cfg(not(feature = "widget"))]
 pub const HELP: &str = "\
-rustd3-bench, built without the Plot widget: the benchmark of rustd3's
+rustd3-bench: rustd3's benchmark, built without its Plot widget: the
 plotting library alone.
 
   cargo rustd3-bench-figure [--quick | --default | --full] [--out DIR]

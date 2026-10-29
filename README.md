@@ -362,21 +362,29 @@ If a plot is slow on your machine, run the benchmark from a checkout of
 rustd3 and attach the file it writes to an issue:
 
 ```bash
-cargo rustd3-bench --quick
+cargo rustd3-bench --quick          # the library and the Plot widget
+cargo rustd3-bench-figure --quick   # the library alone: no iced, no window
 ```
 
-The quick level takes about ten minutes on a desktop, plus the first
-release build. It measures the display, times three fixed renders on one
-core, then drives the `Plot` widget through hovers, pans, zooms and a
-window drag in windows that open and close by themselves (leave the mouse
-and keyboard alone), on your GPU and on the software renderer. It runs on
-Linux, Windows and macOS, with or without a GPU or a display. It ends by
-printing the path of one file,
-`bench-results/rustd3-bench-quick-<UTC stamp>.tar.gz`: attach that to a
-"Performance problem" issue. It holds the measurements and a description
-of the machine, and no host name, user name or home path; its
-`PRIVACY.md` lists what it holds. The levels, the archive and the rest
-are in [dev/bench/README.md](dev/bench/README.md).
+`cargo rustd3-bench --quick` runs everything, in about ten minutes on a
+desktop plus the first release build. It measures the display, times
+three fixed renders on one core, times figures from data to SVG, PDF and
+PNG, then drives the `Plot` widget through hovers, pans, zooms and a
+window drag in windows that open and close by themselves (leave the
+mouse and keyboard alone), on your GPU and on the software renderer.
+
+`cargo rustd3-bench-figure --quick` is for users of the plotting library
+alone, and for servers and CI without a display: it builds without iced,
+opens no window, and times the same figures in about a minute.
+
+Both run on Linux, Windows and macOS, with or without a GPU or a
+display, and end by printing the path of one file,
+`bench-results/rustd3-bench-quick-<UTC stamp>.tar.gz` (or
+`rustd3-bench-figure-quick-…`): attach that to a "Performance problem"
+issue and say which command you ran. It holds the measurements and a
+description of the machine, and no host name, user name or home path;
+its `PRIVACY.md` lists what it holds. The levels, the archive and the
+rest are in [dev/bench/README.md](dev/bench/README.md).
 
 ## What ships and what waits
 

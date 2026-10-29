@@ -2,13 +2,16 @@
 # The benchmark's one entry point (D22.9), from a checkout on Linux or
 # macOS: `cargo run --release -p rustd3-bench -- "$@"`, the same as
 # `cargo rustd3-bench "$@"`. It builds the release bench, then runs a
-# level: --quick (about 10 minutes, what a performance issue needs),
-# --default (about 75 minutes, the default) or --full (hours), into
+# level of rustd3's benchmark, the plotting library and its Plot widget:
+# --quick (about 10 minutes, what a performance issue needs), --default
+# (about 80 minutes, the default) or --full (hours), into
 # bench-results/<UTC stamp>-<level>/, packed into
 # bench-results/rustd3-bench-<level>-<UTC stamp>.tar.gz (dev/bench/README.md).
+# --figure-only runs the plotting library's part alone; for no iced build
+# at all, run `cargo rustd3-bench-figure` (D22.10).
 #
-#   dev/bench/run.sh [--quick | --default | --full] [--out DIR]
-#                    [--refresh-hz HZ] [--native-factor F]
+#   dev/bench/run.sh [--quick | --default | --full] [--figure-only]
+#                    [--out DIR] [--refresh-hz HZ] [--native-factor F]
 #
 # HZ and FACTOR, when set, pass --refresh-hz and --native-factor, e.g.
 # HZ=144 FACTOR=1.25 dev/bench/run.sh --quick. The display measurement

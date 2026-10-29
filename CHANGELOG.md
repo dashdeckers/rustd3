@@ -72,12 +72,22 @@ The first release.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 
-- One entry point, `cargo rustd3-bench [--quick | --default | --full]`,
-  on any machine: it measures the display, runs headless without one,
-  falls back to the software renderer without a GPU, skips what the
-  machine cannot run, and records failed runs without stopping.
+- rustd3's benchmark, the plotting library and its widget: one entry
+  point, `cargo rustd3-bench [--quick | --default | --full]`, on any
+  machine: it measures the display, runs headless without one, falls back
+  to the software renderer without a GPU, skips what the machine cannot
+  run, and records failed runs without stopping.
+- The figure profile at every level: figures timed from data to SVG, PDF
+  and PNG (and GIF at `--full`) stage by stage through the library's own
+  calls (build, resolve, list, each output), each figure in a process of
+  its own with its peak memory, from six figures at `--quick` to ladders
+  of lines and scatters, the chart presets and the wheel figure.
+- `--figure-only` runs the library's part alone, and
+  `cargo rustd3-bench-figure` builds the benchmark without iced, winit or
+  wgpu (its default feature `widget` off) for users of the plotting
+  library alone, servers and CI.
 - One file to attach to an issue,
-  `bench-results/rustd3-bench-<level>-<UTC stamp>.tar.gz`, with
+  `bench-results/rustd3-bench-[figure-]<level>-<UTC stamp>.tar.gz`, with
   `report.md`, a versioned `results.json`, a CPU reference and
   `PRIVACY.md`; no host name, user name or home path goes in.
 - `rustd3-bench compare A B` and `rustd3-bench report A` read a

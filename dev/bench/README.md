@@ -1,37 +1,54 @@
 # rustd3-bench
 
-The benchmark of rustd3's `Plot` widget. It drives the real widget with
-replayed input, one cold process per run, and measures frame intervals,
-the latency from input to a sharp frame, previews, the UI thread, CPU and
+The benchmark of rustd3: the plotting library and its `Plot` widget. For
+the library, it times figures from data to SVG, PDF and PNG through the
+library's own calls, headless, each in a process of its own (the figure
+profile, D22.10). For the widget, it drives the real widget with replayed
+input, one cold process per run, and measures frame intervals, the
+latency from input to a sharp frame, previews, the UI thread, CPU and
 memory. One command runs it on any machine and packs one file to attach
 to an issue, so a performance problem on your machine comes with the
-numbers that explain it (D22.9 in `.claude/decisions/phase-22.md`).
+numbers that explain it (D22.9 and D22.10 in
+`.claude/decisions/phase-22.md`).
 
-## The one command
+## The two commands
 
 From a checkout of rustd3:
 
 ```bash
-cargo rustd3-bench --quick
+cargo rustd3-bench --quick          # everything: the library and the widget
+cargo rustd3-bench-figure --quick   # the library alone: no iced, no window
 ```
 
 `cargo rustd3-bench` is an alias (`.cargo/config.toml`) for `cargo run
 --release -p rustd3-bench --`; `dev/bench/run.sh` does the same on Linux
-and macOS. The first release build compiles iced, wgpu and typst: several
-minutes. The flags:
+and macOS. Its first release build compiles iced, wgpu and typst: several
+minutes. It runs everything, the figure profile included, and is the
+command for any machine with a display.
+
+`cargo rustd3-bench-figure` is `cargo run --release -p rustd3-bench
+--no-default-features --`: the bench without its default feature
+`widget`, which builds no iced, winit or wgpu (291 crates against 466).
+It runs the CPU reference and the figure profile alone, as
+`cargo rustd3-bench --figure-only` does: the command for users of the
+plotting library alone, and for servers and CI without a display. Its
+`--help` shows only what it can run.
+
+The flags:
 
 | Flag | |
 | --- | --- |
-| `--quick` | about 10 minutes: what a performance issue needs |
-| `--default` | about 75 minutes, the default: the registered verdict run and the weak profiles |
-| `--full` | hours (the estimate is printed first): every cell of every plan |
-| `--figure-only` | the plotting library alone, at any level: the CPU reference and the figure profile, no display measurement and no window |
+| `--quick` | about 10 minutes (the figure profile alone: about 1): what a performance issue needs |
+| `--default` | about 80 minutes (the figure profile alone: about 4), the default: the figure profile's ladders, the registered verdict run and the weak profiles |
+| `--full` | hours (the estimate is printed first): every figure and every cell of every plan |
+| `--figure-only` | the plotting library alone, at any level: the CPU reference and the figure profile, no display measurement and no window (implied by `cargo rustd3-bench-figure`) |
 | `--out DIR` | where results go, `bench-results` by default |
-| `--refresh-hz HZ` | the display's refresh rate, for a display that cannot be measured |
+| `--refresh-hz HZ` | the display's refresh rate, for a display that cannot be measured (not in the build without the widget) |
 | `--native-factor F` | the display's scale factor, likewise |
 
 Before anything runs, the level prints its steps and an estimate of the
-time: each run's scenario plus 4 s to start and settle, summed over the
+time: the figure profile's figures as timed on two cores at 2.1 GHz, and
+each widget run's scenario plus 4 s to start and settle, summed over the
 plans' cells and runs; real machines vary. Windows then open and close by
 themselves; keep your hands off the mouse and keyboard until it prints
 the archive's path. Real input is ignored, but focus changes can disturb
@@ -56,9 +73,11 @@ Every level starts the same way:
    renderer. They put a machine on a scale with others.
 3. **figure**: the plotting library alone (D22.10), headless: figures
    timed from data to SVG, PDF and PNG, each in a process of its own
-   (below).
+   ([below](#the-figure-profile)).
 
-Then its profiles, each a `run` of a plan into its own directory:
+With `--figure-only`, or built without the widget, a level skips the
+display measurement and is done after the figure profile. Otherwise its
+widget profiles follow, each a `run` of a plan into its own directory:
 
 | Profile | `--quick` | `--default` | `--full` |
 | --- | --- | --- | --- |
@@ -71,6 +90,58 @@ Then its profiles, each a `run` of a plan into its own directory:
 is report-only: its cells are held to the budgets to show where each
 stands, and its verdicts decide nothing. The default level is the
 registered verdict run unchanged, so its history stays comparable.
+
+### The figure profile
+
+What a user of the plotting library pays for a figure, stage by stage,
+through the library's public API with its default settings. Report-only:
+there are no budgets, and the CPU reference puts the numbers on a scale
+across machines.
+
+| Stage | What it times |
+| --- | --- |
+| `build` | the `Figure` built from data in memory: marks collect what they own (a histogram its values, a density its estimate) |
+| `resolve` | `Figure::resolve` for vector output with a fresh cache, as `Figure::draw` starts: fitting, layout, typst text |
+| `list` | `Figure::draw_resolved` of that resolve: the drawing list |
+| `svg` | that list lowered for SVG and written with glyph outlines: what `save_svg` does after drawing |
+| `pdf` | that list as PDF: what `save_pdf` does after drawing |
+| `png-1x`, `png-2x` | `save_png`'s whole work at 1 and 2 device px per px, end to end: a PNG is drawn for a file target, which snaps and thins at its own scale, so it has its own resolve and list (a fresh cache, vello_cpu on its own pool, the encoder) |
+| `gif` | three frames of the figure at 1× through `gif::Writer`, end to end (`--full` only) |
+
+Outputs are written to memory, not to files, so no disk is timed; tests
+hold their bytes to what `save_svg`, `save_pdf` and `save_png` write.
+
+| Figure | Size | What | Levels |
+| --- | --- | --- | --- |
+| `trace` | 1600 × 1000 | the widget's `trace`: 2 panels, 3 channels × 1M samples on a time axis, a legend | all |
+| `scatter100k` | 1600 × 1000 | 100k markers in 5 clusters | all |
+| `grid16` | 1600 × 1000 | 4 × 4 panels, each a 100k-sample line and 2k markers | all |
+| `labels` | 1600 × 1000 | 3 × 3 panels titled in typst math, math axis labels with minor ticks, a math note each, a legend | all |
+| `stats` | 1600 × 1000 | a histogram and a density of 1M values | all |
+| `heatmap` | 1600 × 1000 | a 1000 × 1000 heatmap with a colorbar | all |
+| `line10k` … `line10m` | 1600 × 1000 | one line of 10k, 100k, 1M, 10M samples | default, full |
+| `scatter1k` … `scatter1m` | 1600 × 1000 | 1k, 10k, 1M markers (and `scatter100k`) | default, full |
+| `scatter10m` | 1600 × 1000 | 10M markers | full |
+| `preset-…` | 640 × 480 | the 11 chart presets of `dev/examples` | default, full |
+| `wheels` | 960 × 760 | Part I's wheel figure | default, full |
+
+`--quick` times each stage 7 times after a cold first repetition,
+`--default` 10 times, `--full` 15. Metrics per figure and stage: the cold
+time apart; the median, least and 90th percentile of the rest; the
+output's bytes; and per figure the peak resident memory.
+
+Each figure runs in a process of its own (`rustd3-bench figure-child`):
+in one process the resident high-water mark carries what earlier figures
+left with the allocator, so a figure's peak would depend on what ran
+before it. Alone, its first repetition is as cold as a program's first
+figure (fonts parsed, typst started), its peak memory is its own, and a
+crash or a hang fails that figure only. The peak is `VmHWM` of
+`/proc/self/status`, reset once the figure's data is generated (Linux);
+other platforms report "n/a".
+
+The profile writes `figure/summary.csv` (a row per figure and stage),
+`figure/report.md` (every figure's stages: cold, median, least, p90,
+bytes) and `run-figure.log`; the level's `report.md` shows the medians.
 
 ### Any machine, no stops
 
@@ -87,6 +158,8 @@ registered verdict run unchanged, so its history stays comparable.
   is skipped. (An explicit `--backend wgpu` opens no window there; the
   levels use `--backend auto`, which leaves the choice to iced.)
 - **Fewer cores than a profile**: it is skipped, and the report says so.
+- **Less memory than a figure needs** (more than 60 % of it: 10M markers
+  need about 14 GiB): the figure is skipped, and the report says why.
 - **Limiting cores**: `taskset -c 0-(n-1)` on Linux when present; `cmd /C
   start "" /B /WAIT /AFFINITY <mask>` on Windows; otherwise (macOS, or
   Linux without `taskset`) nothing is pinned and the widget's render pool
@@ -95,6 +168,8 @@ registered verdict run unchanged, so its history stays comparable.
 - **A run that crashes or hangs**: it is killed two minutes past its
   scenario's length, recorded as failed (its cell shows the runs read of
   those planned), and the level goes on.
+  A figure whose process crashes, or outlives ten times its estimate plus
+  two minutes, is recorded as failed, and the profile goes on.
 - **Ctrl-C**: the archive is written after the display measurement and
   after every profile, so an interrupted level leaves the last whole one
   (std cannot catch the signal portably); its `results.json` reads
@@ -102,15 +177,19 @@ registered verdict run unchanged, so its history stays comparable.
 - `system76-power`, where present, is set to `performance` while the
   level runs and restored after.
 
-Linux is where the levels are checked (under Xvfb, and headless). Windows
-and macOS build from the same code with no platform-specific code path
-beyond the core limits and the machine description, and are unverified.
+Linux is where the levels are checked (under Xvfb, and headless), with
+and without the widget. Windows and macOS build from the same code with
+no platform-specific code path beyond the core limits, the machine
+description and the figures' peak memory ("n/a" there), and are
+unverified.
 
 ## The archive
 
 A level writes `bench-results/<UTC stamp>-<level>/` and packs it into
 `bench-results/rustd3-bench-<level>-<UTC stamp>.tar.gz`, whose path it
-prints last: the one file to attach. Inside:
+prints last: the one file to attach (with `--figure-only`, or built
+without the widget, both names read `figure-<level>` for `<level>`, and
+the archive holds the top-level files and `figure/` alone). Inside:
 
 | Path | Content |
 | --- | --- |
@@ -139,11 +218,14 @@ rustd3-bench report A      # rebuild and print a level's report
 
 `compare` prints the two machines and their CPU references side by side,
 then per profile and cell frame p50 and p99, latency p95, preview share,
-drops, UI frame p99 and CPU s/s of A and B with B/A, and marks the cells
-and profiles only one side has. `report` rebuilds each profile's report
-from its raw records (in place for a directory, in a temporary directory
-for an archive), then `results.json` and `report.md`, and prints the
-report. Both also read a suite's directory from before the levels (one
+drops, UI frame p99 and CPU s/s of A and B with B/A (for the figure
+profile, per figure and stage the medians of A and B with B/A, and the
+peak memory), and marks the cells, figures and profiles only one side
+has. `report` rebuilds each widget profile's report from its raw records
+(in place for a directory, in a temporary directory for an archive),
+then `results.json` and `report.md`, and prints the report; built
+without the widget it prints the stored report. Both read results from
+either build. Both also read a suite's directory from before the levels (one
 directory per plan: `default/` is read as `native`, `weak-nogpu/` as
 `nogpu`, and so on), from its `summary.csv` files, without rebuilding;
 `report` on one run's directory (`meta.json` at its top) rebuilds it as
@@ -221,6 +303,12 @@ or a share), `n`, `mean`, `ci` (the 95% interval, from two runs) and
 - `report PATH`, `compare A B`: above.
 - `repro-software`: D22.8's plain-iced reproduction (below).
 - `child`: one scenario × workload × factor × run (internal).
+- `figure-child --level L --subject NAME`: one figure of the figure
+  profile timed in this process, printed as JSON (internal).
+
+Built without the widget, the bench has the levels, `report`, `compare`
+and `figure-child`; `scripts/check.sh` checks that build (`no_widget`:
+no iced, winit or wgpu in its tree, clippy, its tests).
 
 ### Plans
 
