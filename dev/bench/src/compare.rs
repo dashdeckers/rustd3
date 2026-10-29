@@ -49,7 +49,10 @@ pub fn markdown(a: &Results, b: &Results, names: [&str; 2]) -> String {
 /// The machines side by side.
 fn machines(md: &mut String, a: &Results, b: &Results) {
     let rows: [Row; 9] = [
-        ("Level", |r| format!("{} ({})", r.level, r.stamp)),
+        ("Level", |r| {
+            let only = if r.figure_only { ", figure only" } else { "" };
+            format!("{}{only} ({})", r.level, r.stamp)
+        }),
         ("rustd3", |r| {
             let commit = &r.rustd3.commit[..12.min(r.rustd3.commit.len())];
             format!("{} at {commit}", r.rustd3.version)
@@ -69,6 +72,9 @@ fn machines(md: &mut String, a: &Results, b: &Results) {
             format!("{}, desktop {}", r.machine.session, r.machine.desktop)
         }),
         ("Display", |r| {
+            if r.figure_only {
+                return "not measured (figure only)".to_owned();
+            }
             let d = &r.display;
             let mode = d.headless.as_ref().map_or("windowed", |_| "headless");
             format!(

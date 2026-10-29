@@ -65,7 +65,8 @@ fn main() -> ExitCode {
     let result = match command {
         Command::Level(request) => std::env::current_exe().map_err(Into::into).and_then(|exe| {
             let mut part = level::widget::Part::new(&request, &exe);
-            request.run(&exe, Some(&mut part))
+            let widget: &mut dyn level::Widget = &mut part;
+            request.run(&exe, (!request.figure_only).then_some(widget))
         }),
         Command::Help => {
             print!("{}", cli::HELP);

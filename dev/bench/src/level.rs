@@ -47,6 +47,9 @@ pub struct Request {
     pub refresh_hz: Option<f64>,
     /// `--native-factor`: the display's factor, instead of the window's.
     pub native: Option<f32>,
+    /// `--figure-only`: the plotting library alone, the CPU reference and
+    /// the figure profile, no window (D22.10 (2)).
+    pub figure_only: bool,
     /// `--dry-run` (hidden): print the plan and the estimate, run nothing.
     pub dry_run: bool,
 }
@@ -178,10 +181,11 @@ impl Request {
             Some(o) => (o.estimate_s, format!("{}; ", o.note)),
             None => (level.library_s(ram_mb), String::new()),
         };
+        let minutes = (estimate / 60.0).round().max(1.0);
         println!(
-            "Estimate: about {:.0} minutes ({note}the figure profile as on two cores at 2.1 GHz; \
-             machines vary).",
-            estimate / 60.0
+            "Estimate: about {minutes:.0} minute{} ({note}the figures as timed on two cores at \
+             2.1 GHz; machines vary).",
+            if minutes > 1.0 { "s" } else { "" }
         );
         if self.dry_run {
             println!("--dry-run: nothing runs.");
@@ -208,6 +212,7 @@ impl Request {
             machine: results::Machine::here(),
             display: display.clone(),
             cpu_reference: Vec::new(),
+            figure_only: widget.is_none(),
             profiles: std::iter::once(results::Profile::planned(
                 figure::NAME,
                 figures.describe(),
@@ -267,10 +272,14 @@ impl Request {
                 (None, None) => {}
             }
         }
+        let size = if size < 1_000_000 {
+            format!("{:.0} kB", size as f64 / 1e3)
+        } else {
+            format!("{:.1} MB", size as f64 / 1e6)
+        };
         println!(
-            "The file to attach to an issue ({files} files, {:.1} MB; PRIVACY.md inside says \
-             what it holds):",
-            size as f64 / 1e6
+            "The file to attach to an issue ({files} files, {size}; PRIVACY.md inside says what it \
+             holds):"
         );
         println!("{}", archive.display());
         Ok(())

@@ -25,6 +25,7 @@ minutes. The flags:
 | `--quick` | about 10 minutes: what a performance issue needs |
 | `--default` | about 75 minutes, the default: the registered verdict run and the weak profiles |
 | `--full` | hours (the estimate is printed first): every cell of every plan |
+| `--figure-only` | the plotting library alone, at any level: the CPU reference and the figure profile, no display measurement and no window |
 | `--out DIR` | where results go, `bench-results` by default |
 | `--refresh-hz HZ` | the display's refresh rate, for a display that cannot be measured |
 | `--native-factor F` | the display's scale factor, likewise |
@@ -159,6 +160,7 @@ meaning raises `format`.
 | `format` | 2 |
 | `rustd3` | `version`, `commit` (`git rev-parse HEAD`, or "unknown"), `iced` (the pinned revision) |
 | `level` | `quick`, `default` or `full` |
+| `figure_only` | true for the plotting library alone (`--figure-only`, or the build without the widget): the CPU reference and the `figure` profile, `display` not measured |
 | `stamp` | the level's start, UTC, `YYYYmmddTHHMMSSZ` |
 | `complete` | false in the archive of an interrupted level |
 | `machine` | `os`, `release`, `kernel`, `arch`, `cpu`, `cores`, `ram_mb`, `gpu` (each "unknown" or 0 where no tool says), `session`, `desktop` (`XDG_SESSION_TYPE`, `XDG_CURRENT_DESKTOP`, or "unset"), `wayland`, `x11` (whether `WAYLAND_DISPLAY`, `DISPLAY` are set) |

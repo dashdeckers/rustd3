@@ -34,6 +34,10 @@ pub struct Results {
     pub machine: Machine,
     /// The display, and how the level knows it.
     pub display: Display,
+    /// The plotting library alone (`--figure-only`, or a build without
+    /// the widget): the CPU reference and the figure profile, no display.
+    #[serde(default)]
+    pub figure_only: bool,
     /// The CPU reference's timings.
     #[serde(default)]
     pub cpu_reference: Vec<Reference>,
@@ -310,18 +314,33 @@ impl Results {
         let mut md = String::new();
         if self.format == 0 {
             let _ = writeln!(md, "# rustd3-bench, {} ({})\n", self.stamp, self.level);
+        } else if self.figure_only {
+            let _ = writeln!(
+                md,
+                "# rustd3-bench --{} --figure-only, {}\n",
+                self.level, self.stamp
+            );
         } else {
             let _ = writeln!(md, "# rustd3-bench --{}, {}\n", self.level, self.stamp);
         }
         let commit = &self.rustd3.commit[..12.min(self.rustd3.commit.len())];
         let iced = &self.rustd3.iced[..7.min(self.rustd3.iced.len())];
-        let _ = writeln!(
-            md,
-            "rustd3 {} at {commit} (iced {iced}). Each profile's directory holds its full \
-             report (`<profile>/report.md`: the readings, attribution, memory and flags) and its \
-             raw records.\n",
-            self.rustd3.version
-        );
+        let _ = if self.figure_only {
+            writeln!(
+                md,
+                "rustd3 {} at {commit}: the plotting library alone, the CPU reference and the \
+                 figure profile, no window. `figure/report.md` holds the figures' full timings.\n",
+                self.rustd3.version
+            )
+        } else {
+            writeln!(
+                md,
+                "rustd3 {} at {commit} (iced {iced}). Each profile's directory holds its full \
+                 report (`<profile>/report.md`: the readings, attribution, memory and flags) and \
+                 its raw records.\n",
+                self.rustd3.version
+            )
+        };
         if self.level == "full" {
             let _ = writeln!(
                 md,
@@ -398,7 +417,11 @@ impl Results {
             m.desktop,
             set(m.wayland),
             set(m.x11),
-            self.display.describe()
+            if self.figure_only {
+                "not measured (--figure-only)".to_owned()
+            } else {
+                self.display.describe()
+            }
         );
     }
 
@@ -426,7 +449,7 @@ impl Results {
     /// unpaced display, skipped and failed profiles.
     fn flags(&self, md: &mut String) {
         let mut flags = Vec::new();
-        if let Some(why) = &self.display.headless {
+        if let Some(why) = self.display.headless.as_ref().filter(|_| !self.figure_only) {
             flags.push(format!(
                 "Headless ({why}): no window opened, so every number is report-only (headless \
                  frames are virtual, paced at {} Hz).",
@@ -662,6 +685,7 @@ pub mod tests {
                 x11: true,
             },
             display,
+            figure_only: false,
             cpu_reference: vec![crate::reference::Reference {
                 name: "trace-tile".to_owned(),
                 what: "one trace tile".to_owned(),
@@ -803,5 +827,25 @@ pub mod tests {
         let read: Results = serde_json::from_value(old).unwrap();
         assert_eq!(read.format, 1);
         assert!(read.profiles.iter().all(|p| p.figures.is_empty()));
+    }
+
+    #[test]
+    fn a_figure_only_level_says_so_and_flags_no_display() {
+        let mut r = results(1.0, 2, display(None));
+        r.figure_only = true;
+        r.display = Display::decide(None, None, Err("--figure-only".to_owned()));
+        r.profiles = vec![figures(1.0)];
+        let md = r.markdown();
+        assert!(
+            md.starts_with("# rustd3-bench --quick --figure-only, 20261029T120000Z"),
+            "{md}"
+        );
+        assert!(md.contains("the plotting library alone"), "{md}");
+        assert!(
+            md.contains("| Display | not measured (--figure-only) |"),
+            "{md}"
+        );
+        assert!(!md.contains("Headless"), "{md}");
+        assert!(md.contains("### figure"), "{md}");
     }
 }

@@ -196,8 +196,8 @@ pub enum Error {
 pub const HELP: &str = "\
 rustd3-bench: the benchmark of rustd3's Plot widget.
 
-  cargo rustd3-bench [--quick | --default | --full] [--out DIR]
-                     [--refresh-hz HZ] [--native-factor F]
+  cargo rustd3-bench [--quick | --default | --full] [--figure-only]
+                     [--out DIR] [--refresh-hz HZ] [--native-factor F]
 
 From a checkout of rustd3 (the cargo alias builds the release bench and
 runs it; dev/bench/run.sh does the same). It runs on any machine and
@@ -215,6 +215,9 @@ themselves; keep hands off the mouse and keyboard.
               2 cores; D22.4).
   --full      hours: every scenario x workload x factor on the native
               backend, the weak profiles and every `also` measurement.
+  --figure-only
+              the plotting library alone: the CPU reference and the figure
+              profile at the level, no display measurement and no window.
   --out DIR   where results go (default bench-results).
   --refresh-hz HZ, --native-factor F
               the display's refresh rate and scale factor, for displays that
@@ -585,14 +588,15 @@ impl Default for Options {
 
 impl Request {
     /// Parses a level's flags: at most one of `--quick`, `--default` and
-    /// `--full` (`--default` when none), `--out DIR`, `--refresh-hz HZ`,
-    /// `--native-factor F` and the hidden `--dry-run`.
+    /// `--full` (`--default` when none), `--figure-only`, `--out DIR`,
+    /// `--refresh-hz HZ`, `--native-factor F` and the hidden `--dry-run`.
     fn parse(args: &[String]) -> Result<Request, Error> {
         let mut request = Request {
             level: Level::Default,
             out: PathBuf::from("bench-results"),
             refresh_hz: None,
             native: None,
+            figure_only: false,
             dry_run: false,
         };
         let mut named: Option<&str> = None;
@@ -617,6 +621,7 @@ impl Request {
             }
             match flag.as_str() {
                 "--dry-run" => request.dry_run = true,
+                "--figure-only" => request.figure_only = true,
                 "--refresh-hz" | "--native-factor" | "--out" => {
                     let value = args.next().ok_or_else(|| Error::Missing(flag.clone()))?;
                     let bad = || Error::Value {
@@ -948,6 +953,7 @@ mod tests {
                 out: PathBuf::from("bench-results"),
                 refresh_hz: None,
                 native: None,
+                figure_only: false,
                 dry_run: false,
             }
         );
@@ -958,6 +964,15 @@ mod tests {
             (given.out, given.refresh_hz, given.native, given.dry_run),
             (PathBuf::from("o"), Some(144.0), Some(1.25), true)
         );
+        assert!(!given.figure_only);
+        for line in [
+            "--figure-only",
+            "--full --figure-only",
+            "--figure-only --quick",
+        ] {
+            assert!(level(line).figure_only, "{line}");
+        }
+        assert_eq!(level("--figure-only --quick").level, Level::Quick);
         assert_eq!(
             Command::parse(&args("--quick --full")),
             Err(Error::Value {
