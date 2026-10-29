@@ -119,6 +119,10 @@ pub struct Metrics {
 /// Window extension past the last input, ms (reading 4).
 const AFTER_LAST_MS: f64 = 300.0;
 
+/// Inputs further apart than this, ms, end a burst: a window drag's steps
+/// are 16 ms apart, its drags 1.5 s.
+const BURST_GAP_MS: f64 = 100.0;
+
 impl Metrics {
     /// Parses a run's records; `None` without a header or frames.
     pub fn of(records: &[Record]) -> Option<Metrics> {
@@ -293,6 +297,22 @@ impl Metrics {
     pub fn latency(&self, half: Half, p: f64) -> Option<f64> {
         let ms: Vec<f64> = self.latencies_of(half).iter().map(|l| l.ms).collect();
         percentile(&ms, p)
+    }
+
+    /// The latencies of the inputs that end a burst, the next input more
+    /// than 100 ms later or none: from a window drag's last step to the
+    /// first current frame.
+    pub fn last_steps(&self) -> Vec<f64> {
+        self.latencies
+            .iter()
+            .enumerate()
+            .filter(|&(i, l)| {
+                self.latencies
+                    .get(i + 1)
+                    .is_none_or(|next| next.scheduled_ms - l.scheduled_ms > BURST_GAP_MS)
+            })
+            .map(|(_, l)| l.ms)
+            .collect()
     }
 
     /// From the first input of `half` to 300 ms after its last, ms since
@@ -651,6 +671,24 @@ pub mod tests {
         let metrics = Metrics::of(&records).unwrap();
         assert_eq!(metrics.latencies[0].ms, 18.0);
         assert_eq!(metrics.latencies[0].frames, [2, 4]);
+    }
+
+    #[test]
+    fn a_drags_last_step_is_the_input_a_pause_follows() {
+        // Two drags of three steps 16 ms apart, about 1 s between them,
+        // each step applied in its own frame, which shows an outdated slot:
+        // the third and sixth steps end them, current a frame later.
+        let steps = [0_u64, 1, 2, 62, 63, 64];
+        let mut records = vec![header("drag-resize")];
+        for k in 0..80_u64 {
+            let previews = u32::from(steps.contains(&k));
+            records.push(frame(k + 1, 1000.0 + 16.0 * k as f64, k, previews));
+        }
+        for k in steps {
+            records.push(input(1000.0 + 16.0 * k as f64, k + 1));
+        }
+        let metrics = Metrics::of(&records).unwrap();
+        assert_eq!(metrics.last_steps(), [16.0, 16.0]);
     }
 
     #[test]

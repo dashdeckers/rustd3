@@ -146,7 +146,8 @@ impl Budget {
                 (Budget::Previews, Half::Pan),
                 (Budget::ZoomLatency, Half::Zoom),
             ],
-            Scenario::Cold | Scenario::Soak => Vec::new(),
+            // `drag-resize` came after the rule was registered: report-only.
+            Scenario::Cold | Scenario::Soak | Scenario::DragResize => Vec::new(),
         }
     }
 }

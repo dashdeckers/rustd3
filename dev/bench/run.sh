@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# The benchmark in one command: build, the smoke plan (about 5 minutes, a
-# check of the windowed path), the default plan (about 46 minutes, the
+# The benchmark in one command: build, the smoke plan (about 6 minutes, a
+# check of the windowed path), the default plan (about 47 minutes, the
 # verdict's run), then D22.4's weak plan three times (about 7 minutes
 # each): without a GPU (tiny-skia), and on wgpu pinned to 4 and to 2 cores.
-# About 75 minutes in all, into bench-results/<UTC stamp>/{smoke,default,
+# About 76 minutes in all, into bench-results/<UTC stamp>/{smoke,default,
 # weak-nogpu,weak-4cores,weak-2cores}/.
 #
 #   dev/bench/run.sh               smoke, default, the weak profiles
@@ -21,9 +21,9 @@ case "${1:-}" in
   *) echo "usage: dev/bench/run.sh [--smoke-only]" >&2; exit 2 ;;
 esac
 
-plans="the smoke plan (about 5 min; its numbers do not count)"
-$smoke_only || plans="$plans, the default plan (about 46 min, the verdict's run), then the weak \
-profiles (about 21 min: no GPU, 4 cores, 2 cores); about 75 min in all"
+plans="the smoke plan (about 6 min; its numbers do not count)"
+$smoke_only || plans="$plans, the default plan (about 47 min, the verdict's run), then the weak \
+profiles (about 21 min: no GPU, 4 cores, 2 cores); about 76 min in all"
 echo "rustd3-bench: build, then $plans, into bench-results/<UTC stamp>/."
 echo "Keep hands off the mouse and keyboard while windows open and close."
 

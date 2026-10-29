@@ -34,11 +34,11 @@ above 0, else 1), and switches `system76-power` to `performance`,
 restoring your profile at the end. Then it runs, into
 `bench-results/<UTC stamp>/` under the repository root:
 
-1. `smoke/`, about 5 minutes: every scenario × workload once in windows at
+1. `smoke/`, about 6 minutes: every scenario × workload once in windows at
    your factor, to see that windows open, take the replayed input and
    close. If iced reports another scale factor for those windows, the
    script says so and the plans after it use that one.
-2. `default/`, about 46 minutes: the verdict's rerun.
+2. `default/`, about 47 minutes: the verdict's rerun.
 3. `weak-nogpu/`, about 7 minutes: the `weak` plan on the software
    renderer (`--backend tiny-skia`), as on a machine without a GPU.
 4. `weak-4cores/` and `weak-2cores/`, about 7 minutes each: the `weak`
@@ -47,7 +47,7 @@ restoring your profile at the end. Then it runs, into
    may use. A pinning is skipped, with a message, on a machine with fewer
    cores or without `taskset`.
 
-About 75 minutes in all, plus the build. Each plan's console goes to
+About 76 minutes in all, plus the build. Each plan's console goes to
 `run-<plan>.log` (`run-smoke.log`, `run-default.log`, `run-weak-nogpu.log`,
 …) and the diagnostics to `system.txt`, beside them. The script ends with
 the directory, each report's rule outcome and the `tar` command for
@@ -62,7 +62,7 @@ by design: verdicts need 5 runs per cell, and smoke only checks that
 windows open, take the replayed input and close.
 
 Windows open and close for about 70 minutes after smoke (the default
-plan's 135 runs of about 16 s and one 10-minute soak, then 3 × 25 runs);
+plan's 140 runs of about 16 s and one 10-minute soak, then 3 × 25 runs);
 do not touch the mouse or keyboard.
 Real input is ignored during a run, but focus changes and pointer warps
 can still disturb the compositor. Bench windows are not resizable, so a
@@ -70,12 +70,20 @@ tiling window manager should float them at their size; one that resizes
 a window anyway is flagged in the report ("window resized by the window
 manager"), and the replayed positions follow the window's real size.
 
-The default plan: (A) the nine scenarios other than `soak` on `trace` at
+The default plan: (A) the ten scenarios other than `soak` on `trace` at
 your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
 `scatter1m`, `grid16` and `label-churn` at native; (C) `pan-x` and
 `zoom-lines` on `trace` at the other factors of 1, 1.25, 1.5 and 2; (D)
-`soak` once. Five runs per cell: 28 cells, 136 runs. The rule, readings
-and budgets are D22.1's, unchanged. Since D22.3 the factor cells (C) keep
+`soak` once. Five runs per cell: 29 cells, 141 runs. The rule, readings
+and budgets are D22.1's, unchanged: `drag-resize` (A), added with D22.5,
+is report-only, and no budget reads it.
+
+Two scenarios resize the window. `resize` jumps between three fixed sizes
+every 500 ms, one re-layout each; it is not a drag. `drag-resize` drags
+the window by a corner as a user does: a step every 16 ms for 1.5 s, down
+to 70% of the window's real size and back, a drag every 3 s; the report's
+"Window drags" section gives its frame intervals, dropped frames and the
+latency from each drag's last step to the first current frame. Since D22.3 the factor cells (C) keep
 the standard window's 1600 × 1000 device px at every factor (a window of
 1600 / k × 1000 / k logical px at factor k), which fits a 1080p display,
 and `4k` reads "n/a: display too small" when the window the compositor

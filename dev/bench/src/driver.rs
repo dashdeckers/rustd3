@@ -271,6 +271,16 @@ impl<'a, Message> Driver<'a, Message> {
                 shell.publish((self.cue)(Cue::Resize { width, height }));
                 None
             }
+            replay::Event::ResizeBy { width, height } => {
+                // The real size: the widget's in the passes before the
+                // scenario's own first resize.
+                state.resized = true;
+                shell.publish((self.cue)(Cue::Resize {
+                    width: width * state.widget.width,
+                    height: height * state.widget.height,
+                }));
+                None
+            }
         };
         let scheduled = start + Duration::from_secs_f64(timed.t_ms / 1e3);
         let (update_ms, passes) = match event {

@@ -60,6 +60,14 @@ pub enum Event {
         /// Logical height.
         height: f32,
     },
+    /// The app resizes the window to these shares of its real size: the
+    /// size the window manager gave it, before the scenario's first resize.
+    ResizeBy {
+        /// A share of the real width.
+        width: f32,
+        /// A share of the real height.
+        height: f32,
+    },
 }
 
 /// A mouse button.
@@ -231,6 +239,7 @@ impl fmt::Display for Event {
             Event::Modifiers { .. } => "modifiers",
             Event::Append(_) => "append",
             Event::Resize { .. } => "resize",
+            Event::ResizeBy { .. } => "resize_by",
         };
         f.write_str(name)
     }
@@ -280,6 +289,13 @@ mod tests {
                     },
                 },
                 Timed {
+                    t_ms: 516.0,
+                    event: Event::ResizeBy {
+                        width: 0.85,
+                        height: 0.85,
+                    },
+                },
+                Timed {
                     t_ms: 600.0,
                     event: Event::Release(Button::Middle),
                 },
@@ -302,9 +318,11 @@ mod tests {
             r#"{"t_ms": 100.0, "event": {"append": 1000}}"#,
             "\n",
             r#"{"t_ms": 500.0, "event": {"resize": {"width": 1600.0, "height": 1000.0}}}"#,
+            "\n",
+            r#"{"t_ms": 516.0, "event": {"resize_by": {"width": 0.85, "height": 0.85}}}"#,
         );
         let parsed = Replay::from_jsonl(documented).unwrap();
-        assert_eq!(parsed.events[..7], replay.events[..7]);
+        assert_eq!(parsed.events[..8], replay.events[..8]);
     }
 
     #[test]

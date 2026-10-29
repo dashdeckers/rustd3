@@ -317,6 +317,16 @@ fn metric_rows(cell: &Cell<'_>) -> Vec<(&'static str, Option<Interval>)> {
     if cell.scenario == Scenario::Cold {
         rows.push(("cold_ms", of(&Metrics::cold_ms)));
     }
+    if cell.scenario == Scenario::DragResize {
+        rows.push((
+            "last_step_latency_p50_ms",
+            of(&|m| percentile(&m.last_steps(), 50.0)),
+        ));
+        rows.push((
+            "last_step_latency_p95_ms",
+            of(&|m| percentile(&m.last_steps(), 95.0)),
+        ));
+    }
     if cell.scenario == Scenario::Soak {
         rows.push((
             "rss_max_mb",
@@ -398,6 +408,7 @@ fn markdown(
     }
     budgets(&mut md, cells, checks);
     metrics(&mut md, cells);
+    drags(&mut md, cells);
     attribution(&mut md, cells, checks);
     memory(&mut md, cells, meta);
     flags(&mut md, cells, meta);
@@ -583,6 +594,59 @@ fn metrics(md: &mut String, cells: &[Cell<'_>]) {
              every `cold` run: {cold:.0} ms.\n"
         );
     }
+}
+
+/// The window drags (`drag-resize`), report-only: frame intervals,
+/// dropped frames and the latency from each drag's last step to the first
+/// current frame; with `resize`, what that scenario does instead. Nothing
+/// when the plan has neither.
+fn drags(md: &mut String, cells: &[Cell<'_>]) {
+    let has = |scenario: Scenario| cells.iter().any(|c| c.scenario == scenario);
+    if !has(Scenario::DragResize) && !has(Scenario::Resize) {
+        return;
+    }
+    let _ = writeln!(
+        md,
+        "## Window drags (report-only)\n\n`resize` jumps between three fixed sizes every 500 ms, \
+         one re-layout each; `drag-resize` drags the window by a corner: a step every 16 ms for \
+         1.5 s, down to 70% of the window's real size and back, a drag every 3 s. No budget of \
+         the rule reads either drag. Medians across runs: frame intervals p50/p99, dropped \
+         frames, and the latency from a drag's last step to the first current frame (p50/p95 \
+         over the drags of a run).\n"
+    );
+    let _ = writeln!(
+        md,
+        "| Cell | frame p50/p99 ms | drops | last step to current p50/p95 ms |\n\
+         | --- | --- | --- | --- |"
+    );
+    for cell in cells.iter().filter(|c| c.scenario.resizes()) {
+        let name = cell_name(cell);
+        if !cell.planned.applies || cell.runs.is_empty() {
+            let _ = writeln!(md, "| {name} | n/a | n/a | n/a |");
+            continue;
+        }
+        let med = |f: &dyn Fn(&Metrics) -> Option<f64>, digits: usize| {
+            let values: Vec<f64> = cell.runs.iter().filter_map(f).collect();
+            percentile(&values, 50.0).map_or_else(|| "n/a".to_owned(), |v| format!("{v:.digits$}"))
+        };
+        let last = |p: f64| {
+            if cell.scenario == Scenario::DragResize {
+                med(&|m| percentile(&m.last_steps(), p), 0)
+            } else {
+                "—".to_owned()
+            }
+        };
+        let _ = writeln!(
+            md,
+            "| {name} | {}/{} | {} | {}/{} |",
+            med(&|m| m.interval(50.0), 1),
+            med(&|m| m.interval(99.0), 1),
+            med(&|m| Some(f64::from(m.drops())), 0),
+            last(50.0),
+            last(95.0)
+        );
+    }
+    let _ = writeln!(md);
 }
 
 /// Attribution of every missed budget, and of budgets a single run

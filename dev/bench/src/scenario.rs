@@ -28,8 +28,12 @@ pub enum Scenario {
     Live,
     /// `pan-x` then `zoom-lines` in a 3840 × 2160 device px window.
     FourK,
-    /// The window cycles through three sizes every 500 ms.
+    /// The window jumps between three fixed sizes every 500 ms, one
+    /// re-layout each.
     Resize,
+    /// The window dragged by a corner: a step every 16 ms for 1.5 s, down
+    /// to 70% of its real size and back, a drag every 3 s (report-only).
+    DragResize,
     /// No input: process start to the first sharp frame.
     Cold,
     /// `live` plus a `pan-x` sweep every 10 s, memory sampled.
@@ -41,6 +45,19 @@ pub const WINDOW: Size = Size::new(1600.0, 1000.0);
 
 /// The 4K window in device px.
 pub const FOUR_K: Size = Size::new(3840.0, 2160.0);
+
+/// A window drag's step, ms: a 60 Hz pointer.
+const DRAG_STEP_MS: f64 = 16.0;
+
+/// How long a window drag lasts, ms.
+const DRAG_MS: f64 = 1_500.0;
+
+/// How far a window drag shrinks the window at its middle, a share of
+/// its real size.
+const DRAG_SHRINK: f32 = 0.3;
+
+/// A window drag starts every this many ms.
+const DRAG_EVERY_MS: f64 = 3_000.0;
 
 /// The resize scenario's cycle, logical px.
 const RESIZES: [Size; 3] = [
@@ -78,7 +95,7 @@ impl Anchors {
 
 impl Scenario {
     /// Every scenario, in report order.
-    pub const ALL: [Scenario; 10] = [
+    pub const ALL: [Scenario; 11] = [
         Scenario::Hover,
         Scenario::PanX,
         Scenario::PanY,
@@ -87,6 +104,7 @@ impl Scenario {
         Scenario::Live,
         Scenario::FourK,
         Scenario::Resize,
+        Scenario::DragResize,
         Scenario::Cold,
         Scenario::Soak,
     ];
@@ -102,6 +120,7 @@ impl Scenario {
             Scenario::Live => "live",
             Scenario::FourK => "4k",
             Scenario::Resize => "resize",
+            Scenario::DragResize => "drag-resize",
             Scenario::Cold => "cold",
             Scenario::Soak => "soak",
         }
@@ -120,7 +139,8 @@ impl Scenario {
             | Scenario::PanY
             | Scenario::ZoomLines
             | Scenario::ZoomPixels
-            | Scenario::FourK => 12_000.0,
+            | Scenario::FourK
+            | Scenario::DragResize => 12_000.0,
             Scenario::Live => 30_000.0,
             Scenario::Cold => 0.0,
             Scenario::Soak => 600_000.0,
@@ -144,9 +164,16 @@ impl Scenario {
             | Scenario::ZoomPixels
             | Scenario::Live
             | Scenario::Resize
+            | Scenario::DragResize
             | Scenario::Cold
             | Scenario::Soak => WINDOW,
         }
+    }
+
+    /// Whether the scenario resizes the window itself, which must then be
+    /// resizable.
+    pub fn resizes(self) -> bool {
+        matches!(self, Scenario::Resize | Scenario::DragResize)
     }
 
     /// The time from the first input to the end of the pan half of `4k`
@@ -171,6 +198,7 @@ impl Scenario {
                 wheel_lines(&mut events, at, half, duration_ms);
             }
             Scenario::Resize => resizes(&mut events, duration_ms),
+            Scenario::DragResize => drags(&mut events, duration_ms),
             Scenario::Cold => {}
             Scenario::Soak => {
                 appends(&mut events, duration_ms);
@@ -386,6 +414,30 @@ fn resizes(events: &mut Vec<Timed>, duration_ms: f64) {
     }
 }
 
+/// Window drags by a corner from 500 ms, one every [`DRAG_EVERY_MS`]
+/// while one fits: every [`DRAG_STEP_MS`] for [`DRAG_MS`], the window's
+/// shares of its real size fall linearly to 1 − [`DRAG_SHRINK`] at the
+/// drag's middle and rise back to 1 at its last step.
+fn drags(events: &mut Vec<Timed>, duration_ms: f64) {
+    let steps = (DRAG_MS / DRAG_STEP_MS).round() as u32;
+    let mut start = 500.0;
+    while start + DRAG_MS <= duration_ms {
+        for k in 1..=steps {
+            let t = f64::from(k) / f64::from(steps);
+            let depth = 1.0 - (2.0 * t - 1.0).abs();
+            let share = 1.0 - DRAG_SHRINK * depth as f32;
+            events.push(Timed {
+                t_ms: start + f64::from(k) * DRAG_STEP_MS,
+                event: Event::ResizeBy {
+                    width: share,
+                    height: share,
+                },
+            });
+        }
+        start += DRAG_EVERY_MS;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Anchors, Scenario, WINDOW};
@@ -461,6 +513,38 @@ mod tests {
                 Some(Event::Release(_))
             ));
         }
+    }
+
+    #[test]
+    fn drag_resize_steps_every_16_ms_down_to_70_percent_and_back() {
+        let replay = Scenario::DragResize.replay(WINDOW, Anchors::STANDARD, 12_000.0);
+        let steps: Vec<(f64, f32, f32)> = replay
+            .events
+            .iter()
+            .filter_map(|timed| {
+                if let Event::ResizeBy { width, height } = timed.event {
+                    Some((timed.t_ms, width, height))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(steps.len(), replay.events.len(), "only shares");
+        // Four drags of 94 steps, at 500, 3500, 6500 and 9500 ms.
+        assert_eq!(steps.len(), 4 * 94);
+        for drag in steps.chunks(94) {
+            for pair in drag.windows(2) {
+                assert!((pair[1].0 - pair[0].0 - 16.0).abs() < 1e-9);
+            }
+            assert!((drag[93].0 - drag[0].0 - 93.0 * 16.0).abs() < 1e-9);
+            let least = drag.iter().map(|s| s.1).fold(f32::INFINITY, f32::min);
+            assert!((least - 0.7).abs() < 0.01, "{least}");
+            assert!(drag.iter().all(|s| s.1 == s.2 && s.1 <= 1.0));
+            assert_eq!(drag[93].1, 1.0, "the last step is the real size");
+        }
+        assert_eq!(steps[0].0, 516.0);
+        assert!(steps[94].0 - steps[93].0 > 1_000.0);
+        assert!(Scenario::DragResize.resizes() && Scenario::Resize.resizes());
     }
 
     #[test]

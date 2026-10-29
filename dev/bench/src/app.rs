@@ -273,13 +273,13 @@ impl App {
 /// native there, and the cell's factor in device px.
 ///
 /// The window is not resizable, so tiling window managers float it at its
-/// size, except in `resize`, whose cues resize it (a non-resizable
-/// Wayland window keeps its first size).
+/// size, except in `resize` and `drag-resize`, whose cues resize it (a
+/// non-resizable Wayland window keeps its first size).
 pub fn windowed(config: Config) -> iced::Result {
     let cell = config.child.cell;
     let settings = window::Settings {
         size: cell.window(config.native),
-        resizable: cell.scenario == Scenario::Resize,
+        resizable: cell.scenario.resizes(),
         ..window::Settings::default()
     };
     let boot = move || App::new(config.clone());

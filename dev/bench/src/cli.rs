@@ -157,7 +157,7 @@ run sheet):
      compositor as it is (recorded).
   2. dev/bench/run.sh: builds, then the smoke plan, the default plan
      (the verdict's) and D22.4's weak plan three times (tiny-skia, then
-     wgpu on 4 and on 2 cores), about 75 minutes; do not touch the mouse
+     wgpu on 4 and on 2 cores), about 76 minutes; do not touch the mouse
      or keyboard. HZ and FACTOR override the detected refresh rate and
      scale factor.
   3. By hand instead: cargo build --release -p rustd3-bench, then

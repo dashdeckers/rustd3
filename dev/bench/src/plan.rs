@@ -239,6 +239,7 @@ impl Cell {
             | Scenario::ZoomPixels
             | Scenario::Live
             | Scenario::Resize
+            | Scenario::DragResize
             | Scenario::Cold
             | Scenario::Soak => match self.workload.size() {
                 Some(size) => size,
@@ -283,10 +284,17 @@ mod tests {
 
     #[test]
     fn default_plan_has_the_pre_registered_cells() {
+        // (A) holds `drag-resize` since D22.5, report-only: no budget reads
+        // it, so the rule's cells are D22.1's.
         let cells = Plan::Default.cells(2.0, &Selection::default());
-        assert_eq!(cells.len(), 9 + 12 + 6 + 1);
+        assert_eq!(cells.len(), 10 + 12 + 6 + 1);
         let runs: u32 = cells.iter().map(|c| c.runs).sum();
-        assert_eq!(runs, 27 * 5 + 1);
+        assert_eq!(runs, 28 * 5 + 1);
+        let budgeted = cells
+            .iter()
+            .filter(|c| !crate::rule::Budget::of(c.scenario).is_empty())
+            .count();
+        assert_eq!(budgeted, 8 + 12 + 6);
         // (C): pan-x and zoom-lines on the trace at the three other factors.
         let other: Vec<f32> = cells
             .iter()
@@ -295,13 +303,13 @@ mod tests {
             .collect();
         assert_eq!(other, [2.0, 1.0, 1.25, 1.5]);
         assert!(cells.iter().all(|c| c.applies()));
-        // About 46 minutes: 135 runs of about 16 s and the 10-minute soak.
+        // About 47 minutes: 140 runs of about 16 s and the 10-minute soak.
         let minutes = Plan::Default.estimate_s(&cells) / 60.0;
-        assert!((44.0..48.0).contains(&minutes), "{minutes}");
+        assert!((45.0..49.0).contains(&minutes), "{minutes}");
         // A native factor outside the four adds one more factor to (C).
         assert_eq!(
             Plan::Default.cells(1.75, &Selection::default()).len(),
-            9 + 12 + 8 + 1
+            10 + 12 + 8 + 1
         );
         assert_eq!(Plan::Quick.cells(2.0, &Selection::default())[0].runs, 2);
     }
@@ -369,10 +377,10 @@ mod tests {
     #[test]
     fn smoke_plan_covers_every_scenario_and_workload() {
         let cells = Plan::Smoke.cells(2.0, &Selection::default());
-        assert_eq!(cells.len(), 60);
+        assert_eq!(cells.len(), 66);
         // `live` and `soak` need recordings: the scatters and `wheels` have
         // none; `pan-x` needs an x that pans, which `wheels` lacks.
-        assert_eq!(cells.iter().filter(|c| c.applies()).count(), 53);
+        assert_eq!(cells.iter().filter(|c| c.applies()).count(), 59);
         assert!(cells.iter().all(|c| c.factor == 2.0 && c.runs == 1));
         assert_eq!(Plan::Smoke.duration_ms(Scenario::PanX), 2_400.0);
         assert_eq!(Plan::Smoke.duration_ms(Scenario::Soak), 20_000.0);
@@ -383,7 +391,7 @@ mod tests {
             ..Selection::default()
         };
         let cells = Plan::Smoke.cells(2.0, &one);
-        assert_eq!(cells.len(), 20);
+        assert_eq!(cells.len(), 22);
         assert!(cells.iter().all(|c| c.factor != 2.0));
     }
 
