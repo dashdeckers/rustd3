@@ -1141,3 +1141,40 @@ two pool threads cannot finish a step's tiles between steps. Under Xvfb
 a tiny-skia frame is not paced by a display, so the user's 117–133 ms
 gesture frames on Wayland are not reproduced here; the architect's
 Linux diagnostic is what tells whether they are CPU time.
+
+## D22.8 — The software renderer on Wayland, and what the weak profiles measure
+
+**Date:** 2026-10-29 · **Context:** the user's diagnostic at 2cdc3d9
+(`bench-results/diag-20261029T100342Z`: one `pan-x` and one `zoom-lines`
+on `trace`, tiny-skia, on Wayland and then on X11 through XWayland,
+sampling the window process's threads at about 200 Hz) · **Status:** decided
+
+### Findings
+
+| tiny-skia, 1600 × 1000 at 1 | Wayland (COSMIC) | X11 (XWayland), same machine |
+| --- | --- | --- |
+| `pan-x` latency p95 / frame p99 | 243 / 167 ms | 18 / 18.6 ms |
+| `zoom-lines` latency p95 / frame p99 | 4,013 / 500 ms | 1,008 / 41.9 ms |
+| Window process's main thread running | 92–100 % of samples | 100 % (unpaced frames) |
+| Frames the widget drew in about 14 s | 206 (pan), 112 (zoom) | 3,026 (pan), 6,149 (zoom) |
+
+The main thread is busy either way. On X11 that work becomes frames. On
+Wayland about 8 a second reach the widget's `RedrawRequested` during a
+gesture. That makes the cause iced's Wayland window path with the
+software compositor (winit's frame throttling with softbuffer's
+presentation at 3cbdacc), under the bench's continuous redraws, and not
+the widget's drawing. Two controls: an example app with the widget idles at 0 % CPU on both
+backends (Xvfb), so the widget does not spin; and wgpu on the same
+Wayland session paces at 60 Hz.
+
+### Decision
+
+(architect, 2026-10-29) The user's priority is cross-platform targets.
+The weak profiles keep measuring the platform as it is, and on a Linux
+Wayland session the suite adds a report-only `weak-nogpu-x11` profile,
+which runs with `WAYLAND_DISPLAY` removed, so the widget's software path
+is measured apart from the Wayland quirk. A plain-iced reproduction
+(moving images, continuous redraws, tiny-skia, Wayland against X11, no
+rustd3) is built and run on the user's machine. If it reproduces, it
+goes upstream as an iced issue, and nothing in the widget works around
+it.
