@@ -1,6 +1,10 @@
 //! The machine and the process: `/proc` counters, `nvidia-smi`, [`Meta`],
 //! what `meta.json` records about a run, and the display diagnostics of
-//! `system.txt`.
+//! `system.txt`. Everything here builds on every platform; what a
+//! platform does not have reads as unknown: the CPU time and RSS come from
+//! Linux's `/proc` (absent elsewhere, so the report has no CPU rate), the
+//! GPU from `nvidia-smi`, the displays from `xrandr` and `cosmic-randr`
+//! where they exist.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -117,6 +121,10 @@ pub struct Meta {
     pub gpu_baseline_mb: Option<f64>,
     /// `getconf CLK_TCK`.
     pub clk_tck: u64,
+    /// How the cores the run may use were limited (`--cpu-limit`, which
+    /// `suite` passes); `None` when nothing limited them.
+    #[serde(default)]
+    pub cpu_limit: Option<String>,
     /// Every cell of the plan, "n/a" ones included.
     pub cells: Vec<Planned>,
 }
@@ -226,7 +234,8 @@ pub fn since(epoch: Instant, at: Instant) -> f64 {
 }
 
 /// utime + stime of this process, in clock ticks: fields 14 and 15 of
-/// `/proc/self/stat`, counted after the command name's closing paren.
+/// `/proc/self/stat`, counted after the command name's closing paren;
+/// `None` where there is no `/proc` (Windows, macOS).
 pub fn cpu_ticks() -> Option<u64> {
     let stat = fs::read_to_string("/proc/self/stat").ok()?;
     let rest = &stat[stat.rfind(')')? + 1..];
@@ -237,7 +246,7 @@ pub fn cpu_ticks() -> Option<u64> {
     Some(utime + stime)
 }
 
-/// `VmRSS` of this process, kB.
+/// `VmRSS` of this process, kB; `None` without `/proc`.
 pub fn rss_kb() -> Option<u64> {
     let status = fs::read_to_string("/proc/self/status").ok()?;
     status
@@ -410,10 +419,16 @@ fn output(program: &str, args: &[&str]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(unix)]
     use std::time::{Duration, Instant};
 
-    use super::{civil, cpu_ticks, limited, plain, rss_kb};
+    use super::civil;
+    #[cfg(target_os = "linux")]
+    use super::{cpu_ticks, rss_kb};
+    #[cfg(unix)]
+    use super::{limited, plain};
 
+    #[cfg(unix)]
     #[test]
     fn diagnostic_commands_are_optional_and_time_limited() {
         assert_eq!(
@@ -448,6 +463,7 @@ mod tests {
         assert_eq!(civil(11_016), [2000, 2, 29]);
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn this_process_reports_its_cpu_time_and_rss() {
         let before = cpu_ticks().unwrap();

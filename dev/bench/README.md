@@ -20,48 +20,72 @@ cells.
 
 ## The run
 
-From the repository root (or anywhere: the script finds the root):
+`rustd3-bench suite` runs the whole benchmark on Linux, Windows and
+macOS alike. From the repository root:
 
 ```bash
+# Linux: the script builds the release bench, then runs the suite
 dev/bench/run.sh
 ```
 
-It prints what it will do, checks for `cargo`, builds the release bench
-(the first release build compiles iced, wgpu and typst: several minutes),
-reads the refresh rate (`xrandr --current`'s current mode, else
-`cosmic-randr list`'s) and the scale factor (GNOME's `scaling-factor` when
-above 0, else 1), and switches `system76-power` to `performance`,
-restoring your profile at the end. Then it runs, into
-`bench-results/<UTC stamp>/` under the repository root:
+```powershell
+# Windows (PowerShell)
+cargo build --release -p rustd3-bench
+.\target\release\rustd3-bench.exe suite
+```
 
-1. `smoke/`, about 6 minutes: every scenario × workload once in windows at
-   your factor, to see that windows open, take the replayed input and
-   close. If iced reports another scale factor for those windows, the
-   script says so and the plans after it use that one.
+```bash
+# macOS (untested: no macOS machine has run it yet)
+cargo build --release -p rustd3-bench
+target/release/rustd3-bench suite
+```
+
+The first release build compiles iced, wgpu and typst: several minutes.
+The suite prints what it will do, switches `system76-power` to
+`performance` where that tool exists (restoring your profile at the
+end), and runs, into `bench-results/<UTC stamp>/` under the directory it
+was started in:
+
+1. `smoke/`, about 6 minutes: every scenario × workload once in windows,
+   to see that windows open, take the replayed input and close. Its
+   windows measure the display: the refresh rate is their idle frame
+   interval (the median interval of the hover runs' frames, when at least
+   half of them lie within 5 % of it and it is between 20 and 500 Hz;
+   otherwise, as in a session without vsync such as Xvfb, the suite stops
+   and asks for `--refresh-hz`), and the scale factor the one iced reports
+   for them. The plans after smoke use both.
 2. `default/`, about 47 minutes: the verdict's rerun.
 3. `weak-nogpu/`, about 7 minutes: the `weak` plan on the software
    renderer (`--backend tiny-skia`), as on a machine without a GPU.
 4. `weak-4cores/` and `weak-2cores/`, about 7 minutes each: the `weak`
-   plan on wgpu with the bench pinned to 4 and to 2 cores (`taskset -c
-   0-3`, `taskset -c 0-1`); the widget's render pool follows the cores it
-   may use. A pinning is skipped, with a message, on a machine with fewer
-   cores or without `taskset`.
+   plan on wgpu limited to 4 and to 2 cores. On Linux the bench is
+   pinned with `taskset -c 0-3` and `0-1` when `taskset` is installed;
+   on Windows with `cmd /C start "" /B /WAIT /AFFINITY F` and `3`;
+   elsewhere (macOS, or Linux without `taskset`) nothing is pinned and
+   the widget's render pool is set to 3 and 1 threads (`--threads`), as
+   it would be on 4 and 2 cores. Each weak report's heading says which
+   (`meta.json`'s `cpu_limit`). A machine with fewer cores skips the
+   profile, with a message.
 
 About 76 minutes in all, plus the build. Each plan's console goes to
 `run-<plan>.log` (`run-smoke.log`, `run-default.log`, `run-weak-nogpu.log`,
-…) and the diagnostics to `system.txt`, beside them. The script ends with
-the directory, each report's rule outcome and the `tar` command for
-sending it.
+…) and the diagnostics to `system.txt`, beside them; its first lines say
+the refresh rate and factor the suite used and how each weak profile's
+cores were limited. The suite ends with the directory, each report's rule
+outcome and the `tar` command for sending it.
 
-- `HZ=144 FACTOR=1.25 dev/bench/run.sh` overrides detection; with no
-  refresh rate found, the script stops and asks for `HZ`.
-- `dev/bench/run.sh --smoke-only` stops after smoke.
-- `dev/bench/run.sh --focus` runs D22.5's focus plan in place of smoke and
-  the default plan, then the three weak profiles, into the same layout:
-  `probe/`, about 2 minutes, one run of the focus plan's first cell at your
-  factor, whose windows' factor corrects `FACTOR` as smoke's do; `focus/`,
-  about 17 minutes; then `weak-nogpu/`, `weak-4cores/` and
-  `weak-2cores/`. About 40 minutes in all, plus the build.
+- `--refresh-hz 144` and `--native-factor 1.25` (on Linux `HZ=144
+  FACTOR=1.25 dev/bench/run.sh`) override what the first windows report;
+  without them the first windows ask for factor 1 (GNOME's
+  `scaling-factor`, when set, on Linux) and run at a provisional 60 Hz.
+- `--smoke-only` stops after smoke.
+- `--focus` runs D22.5's focus plan in place of smoke and the default
+  plan, then the three weak profiles, into the same layout: `probe/`,
+  about 2 minutes, one run of the focus plan's first cell, whose windows
+  measure the display as smoke's do; `focus/`, about 17 minutes; then
+  `weak-nogpu/`, `weak-4cores/` and `weak-2cores/`. About 40 minutes in
+  all, plus the build.
+- `--out DIR` writes under `DIR` instead of `bench-results`.
 
 Smoke runs each cell once, so its report reads "inconclusive" everywhere
 by design: verdicts need 5 runs per cell, and smoke only checks that
@@ -129,6 +153,11 @@ taskset -c 0-3 target/release/rustd3-bench run --plan weak \
 taskset -c 0-1 target/release/rustd3-bench run --plan weak \
     --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
 ```
+
+On Windows the pinned runs start with `cmd /C start "" /B /WAIT
+/AFFINITY F` (4 cores) or `3` (2 cores) in place of `taskset`; elsewhere
+`--threads 3` or `--threads 1` sets the widget's render pool instead.
+`--cpu-limit TEXT` records how in `meta.json` and the weak report.
 
 `--refresh-hz` and `--native-factor` are required for a windowed run; the
 benchmark never guesses them. `--factor <F>` runs smoke at your factor

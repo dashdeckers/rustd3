@@ -19,6 +19,7 @@ mod report;
 mod rule;
 mod scenario;
 mod stats;
+mod suite;
 mod system;
 mod workload;
 
@@ -64,6 +65,9 @@ fn main() -> ExitCode {
         Command::Replay { out } => write_replays(&out),
         Command::Record { out } => recorder::record(out).map_err(Into::into),
         Command::Run(options) => run(&options, &args),
+        Command::Suite(suite) => std::env::current_exe()
+            .map_err(Into::into)
+            .and_then(|exe| suite.run(&exe)),
         Command::Child(child) => run_child(child, epoch),
         Command::Report { dir } => report::build(&dir).map(|summary| {
             println!("{summary}");
@@ -312,6 +316,7 @@ fn meta(
         calibration: None,
         gpu_baseline_mb: system::gpu_mb(),
         clk_tck: system::clk_tck(),
+        cpu_limit: options.cpu_limit.clone(),
         cells: cells
             .iter()
             .map(|cell| Planned {

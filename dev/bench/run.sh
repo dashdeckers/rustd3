@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# The benchmark in one command: build, the smoke plan (about 6 minutes, a
-# check of the windowed path), the default plan (about 47 minutes, the
-# verdict's run), then D22.4's weak plan three times (about 7 minutes
-# each): without a GPU (tiny-skia), and on wgpu pinned to 4 and to 2 cores.
-# About 76 minutes in all, into bench-results/<UTC stamp>/{smoke,default,
-# weak-nogpu,weak-4cores,weak-2cores}/. With --focus, D22.5's focus plan
-# (about 17 minutes, report-only) replaces smoke and default, after one run
-# of its first cell that checks the windows' factor: about 40 minutes, into
+# The benchmark in one command on Linux: builds the release bench, then
+# runs `rustd3-bench suite` (dev/bench/README.md), which does the rest on
+# every platform: the smoke plan (about 6 minutes, a check of the windowed
+# path, whose windows give the refresh rate and scale factor), the default
+# plan (about 47 minutes, the verdict's run), then D22.4's weak plan three
+# times (about 7 minutes each): without a GPU (tiny-skia), and on wgpu
+# limited to 4 and to 2 cores. About 76 minutes in all, into
+# bench-results/<UTC stamp>/{smoke,default,weak-nogpu,weak-4cores,
+# weak-2cores}/. With --focus, D22.5's focus plan (about 17 minutes,
+# report-only) replaces smoke and default, after one run of its first cell
+# that measures the display: about 40 minutes, into
 # bench-results/<UTC stamp>/{probe,focus,weak-nogpu,weak-4cores,weak-2cores}/.
 #
 #   dev/bench/run.sh               smoke, default, the weak profiles
@@ -14,150 +17,25 @@
 #   dev/bench/run.sh --focus       the focus plan, the weak profiles
 #
 # HZ (the display's refresh rate) and FACTOR (its scale factor) override
-# detection, e.g. HZ=144 FACTOR=1.25 dev/bench/run.sh.
+# what the first windows report, e.g. HZ=144 FACTOR=1.25 dev/bench/run.sh.
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/../.."
 
-smoke_only=false
-focus=false
+args=()
 case "${1:-}" in
   "") ;;
-  --smoke-only) smoke_only=true ;;
-  --focus) focus=true ;;
+  --smoke-only | --focus) args+=("$1") ;;
   *) echo "usage: dev/bench/run.sh [--smoke-only | --focus]" >&2; exit 2 ;;
 esac
-
-weak="the weak profiles (about 21 min: no GPU, 4 cores, 2 cores)"
-if $focus; then
-  plans="one run of the focus plan's first cell (about 2 min; a check of the windows' factor), \
-the focus plan (about 17 min, report-only), then $weak; about 40 min in all"
-else
-  plans="the smoke plan (about 6 min; its numbers do not count)"
-  $smoke_only || plans="$plans, the default plan (about 47 min, the verdict's run), then $weak; \
-about 76 min in all"
-fi
-echo "rustd3-bench: build, then $plans, into bench-results/<UTC stamp>/."
-echo "Keep hands off the mouse and keyboard while windows open and close."
-
-command -v cargo >/dev/null || { echo "cargo not found: install Rust from https://rustup.rs" >&2; exit 1; }
-
-# The refresh rate: the current (*) mode of xrandr's first output, else the
-# (current) mode of cosmic-randr, whose output carries colour codes.
-if [ -z "${HZ:-}" ] && command -v xrandr >/dev/null; then
-  HZ=$(xrandr --current 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\*' | head -n1 | tr -d '*' || true)
-fi
-if [ -z "${HZ:-}" ] && command -v cosmic-randr >/dev/null; then
-  HZ=$(cosmic-randr list 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep '(current)' \
-    | grep -o '[0-9.]\+ Hz' | head -n1 | cut -d' ' -f1 || true)
-fi
-if [ -z "${HZ:-}" ]; then
-  echo "No refresh rate found (neither xrandr nor cosmic-randr reported one)." >&2
-  echo "Rerun with your display's rate: HZ=144 dev/bench/run.sh" >&2
-  exit 1
-fi
-
-# The scale factor: GNOME's integer scaling-factor ("uint32 2") when it is
-# set; the smoke run reports the factor the windows really get.
+if [ -n "${HZ:-}" ]; then args+=(--refresh-hz "$HZ"); fi
+# GNOME's integer scaling factor ("uint32 2"), when set, is what the first
+# windows ask for; the factor they report is used after them.
 if [ -z "${FACTOR:-}" ]; then
-  FACTOR=1
   scaling=$(gsettings get org.gnome.desktop.interface scaling-factor 2>/dev/null | awk '{print $NF}' || true)
   if [[ "$scaling" =~ ^[0-9]+$ ]] && [ "$scaling" -gt 0 ]; then FACTOR=$scaling; fi
 fi
-echo "Refresh rate $HZ Hz, scale factor $FACTOR."
+if [ -n "${FACTOR:-}" ]; then args+=(--native-factor "$FACTOR"); fi
 
+command -v cargo >/dev/null || { echo "cargo not found: install Rust from https://rustup.rs" >&2; exit 1; }
 cargo build --release -p rustd3-bench
-bench="${CARGO_TARGET_DIR:-target}/release/rustd3-bench"
-
-if command -v system76-power >/dev/null; then
-  previous=$(system76-power profile 2>/dev/null | sed -n 's/^Power Profile: *//p' | tr 'A-Z' 'a-z' || true)
-  system76-power profile performance >/dev/null 2>&1 || echo "Could not set the performance profile; continuing."
-  if [ -n "$previous" ]; then
-    trap 'system76-power profile "$previous" >/dev/null 2>&1 || true' EXIT
-  fi
-fi
-
-out="bench-results/$(date -u +%Y%m%dT%H%M%SZ)"
-mkdir -p bench-results && mkdir "$out"
-
-# plan NAME [--pin CPUS] ARGS…: one plan into $out/NAME, its console in
-# $out/run-NAME.log; with --pin, the bench and its children run on CPUS
-# only (taskset), which the widget's default pool size follows. The bench
-# writes into a stamped directory under --out, moved up here.
-plan() {
-  local name=$1 status=0 pin=()
-  shift
-  if [ "${1:-}" = --pin ]; then pin=(taskset -c "$2"); shift 2; fi
-  "${pin[@]}" "$bench" run "$@" --out "$out/$name" 2>&1 | tee "$out/run-$name.log" || status=$?
-  local stamped=("$out/$name"/*/)
-  if [ -d "${stamped[0]}" ]; then mv "${stamped[0]}"* "$out/$name/" && rmdir "${stamped[0]}"; fi
-  return "$status"
-}
-
-# The first windows at the native factor, whose factor iced reports: the
-# smoke plan, or with --focus one run of the focus plan's first cell.
-if $focus; then
-  first=probe
-  plan probe --plan focus --scenario zoom-lines --workload trace --factor "$FACTOR" --runs 1 \
-    --refresh-hz "$HZ" --native-factor "$FACTOR" \
-    || { echo "The probe run failed (see $out/run-probe.log); the focus plan was not run." >&2; exit 1; }
-else
-  first=smoke
-  # Smoke at the native factor, so its windows have the default plan's size.
-  plan smoke --plan smoke --refresh-hz "$HZ" --native-factor "$FACTOR" --factor "$FACTOR" \
-    || { echo "The smoke plan failed (see $out/run-smoke.log); the default plan was not run." >&2; exit 1; }
-fi
-
-# The factor iced reported for those windows (each raw file's first line).
-observed=$(head -qn1 "$out"/$first/raw/*.jsonl | grep -o '"window_factor":[0-9.]\+' | cut -d: -f2 \
-  | sort | uniq -c | sort -rn | awk 'NR == 1 {print $2}' || true)
-factor=$FACTOR
-if [ -n "$observed" ] && awk -v a="$observed" -v b="$FACTOR" 'BEGIN {exit !(a - b > 1e-3 || b - a > 1e-3)}'; then
-  echo "The windows' scale factor is $observed, not $FACTOR: the plans after $first use $observed."
-  factor=$observed
-fi
-
-{
-  echo "# dev/bench/run.sh: HZ=$HZ FACTOR=$FACTOR, observed window factor ${observed:-none}, plans after $first at $factor"
-  echo "# power profile before the run: ${previous:-unknown}"
-  echo
-  cat "$out/$first/system.txt"
-} > "$out/system.txt"
-
-# D22.4's weak profiles, each held to the weak budgets in its own report.
-weak_profiles() {
-  plan weak-nogpu --plan weak --backend tiny-skia --refresh-hz "$HZ" --native-factor "$factor" \
-    || status=$?
-  cores=$(nproc --all 2>/dev/null || getconf _NPROCESSORS_ONLN)
-  for n in 4 2; do
-    if ! command -v taskset >/dev/null; then
-      echo "Skipping weak-${n}cores: taskset (util-linux) is not installed."
-    elif [ "$cores" -lt "$n" ]; then
-      echo "Skipping weak-${n}cores: this machine has $cores cores."
-    else
-      plan "weak-${n}cores" --pin "0-$((n - 1))" --plan weak --refresh-hz "$HZ" \
-        --native-factor "$factor" || status=$?
-    fi
-  done
-}
-
-status=0
-if $focus; then
-  plan focus --plan focus --refresh-hz "$HZ" --native-factor "$factor" || status=$?
-  weak_profiles
-elif ! $smoke_only; then
-  plan default --plan default --refresh-hz "$HZ" --native-factor "$factor" || status=$?
-  weak_profiles
-fi
-
-echo
-echo "Results: $out"
-for name in smoke probe default focus weak-nogpu weak-4cores weak-2cores; do
-  if [ -f "$out/$name/report.md" ]; then
-    echo "== $name: rule outcome"
-    sed -n '/^## Rule outcome/,$p' "$out/$name/report.md" | sed '1d;/^$/d'
-    resized=$(grep -c 'resized by the window manager' "$out/$name/report.md" || true)
-    [ "$resized" = 0 ] || echo "($resized runs had a window of another size: see Flags in report.md)"
-  fi
-done
-echo "To send: tar czf bench.tgz -C bench-results $(basename "$out")"
-exit "$status"
+exec "${CARGO_TARGET_DIR:-target}/release/rustd3-bench" suite "${args[@]}" --out bench-results

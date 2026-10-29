@@ -419,10 +419,14 @@ fn markdown(
         } else {
             format!("{}, {}", meta.backend, meta.gpu)
         };
+        let limit = meta.cpu_limit.as_deref().map_or_else(
+            || "cores as the process found them".to_owned(),
+            |limit| limit.to_owned(),
+        );
         let _ = writeln!(
             md,
-            "## Weak profile: {gpu}, {} cores\n\n{}\nThe budget table below holds this \
-             profile's cells to these budgets; its outcome closes the report.\n",
+            "## Weak profile: {gpu}, {} cores ({limit})\n\n{}\nThe budget table below holds \
+             this profile's cells to these budgets; its outcome closes the report.\n",
             meta.cores,
             rule::WEAK
         );

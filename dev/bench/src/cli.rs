@@ -8,6 +8,7 @@ use rustd3_iced::plot::{Caching, Render};
 
 use crate::plan::{Cell, Plan, Selection};
 use crate::scenario::Scenario;
+use crate::suite::Suite;
 use crate::workload::Workload;
 
 /// What the process does.
@@ -15,6 +16,9 @@ use crate::workload::Workload;
 pub enum Command {
     /// Run a plan: replays, one child process per cell and run, report.
     Run(Options),
+    /// Run the whole windowed benchmark: smoke (or the focus probe), then
+    /// the default (or focus) plan and the weak profiles.
+    Suite(Suite),
     /// One scenario × workload × factor × run (internal).
     Child(Child),
     /// Write the generated replays into a directory.
@@ -75,6 +79,9 @@ pub struct Options {
     pub data_scale: Option<f64>,
     /// `--out`: where the run's directory goes.
     pub out: PathBuf,
+    /// `--cpu-limit TEXT`: how the cores the run may use were limited
+    /// (pinned, or the render pool set), as `suite` says; recorded only.
+    pub cpu_limit: Option<String>,
 }
 
 /// One run of one cell, as `run` spawns it.
@@ -155,12 +162,14 @@ The user's procedure (Pop!_OS, real hardware; dev/bench/README.md is the
 run sheet):
   1. Plug in power, close other GPU-heavy apps; leave the desktop's
      compositor as it is (recorded).
-  2. dev/bench/run.sh: builds, then the smoke plan, the default plan
-     (the verdict's) and D22.4's weak plan three times (tiny-skia, then
-     wgpu on 4 and on 2 cores), about 76 minutes; do not touch the mouse
-     or keyboard. HZ and FACTOR override the detected refresh rate and
-     scale factor. --focus runs D22.5's focus plan (report-only) in place
-     of smoke and default, then the weak plans: about 40 minutes.
+  2. rustd3-bench suite (dev/bench/run.sh on Linux builds it first): the
+     smoke plan, whose windows give the refresh rate and scale factor,
+     the default plan (the verdict's) and D22.4's weak plan three times
+     (tiny-skia, then wgpu on 4 and on 2 cores), about 76 minutes; do not
+     touch the mouse or keyboard. --refresh-hz and --native-factor (HZ
+     and FACTOR for run.sh) override what the first windows report.
+     --focus runs D22.5's focus plan (report-only) in place of smoke and
+     default, then the weak plans: about 40 minutes.
   3. By hand instead: cargo build --release -p rustd3-bench, then
      target/release/rustd3-bench run --plan default --refresh-hz <HZ>
        --native-factor <F> --out ~/bench-out
@@ -171,21 +180,28 @@ run sheet):
      at least report.md, summary.csv, meta.json of each plan.
 
 Commands:
+  suite   [--smoke-only | --focus] [--refresh-hz HZ] [--native-factor F] [--out DIR]
+          the whole windowed benchmark into DIR/<UTC stamp>/ (default
+          bench-results): smoke (or with --focus one run of the focus
+          plan's first cell), then default (or focus) and the weak plan
+          without a GPU and on 4 and 2 cores (taskset on Linux, start
+          /AFFINITY on Windows, else --threads on the widget's pool; the
+          weak reports say which)
   run     [--plan smoke|quick|default|weak|focus|full] [--scenario A,B] [--workload A,B]
           [--factor 1,1.25] [--runs N] [--refresh-hz HZ] [--native-factor F]
           [--backend wgpu|tiny-skia]
           [--present-mode vsync|no_vsync|immediate|fifo|fifo_relaxed|mailbox]
           [--headless] [--readback every|last] [--render auto|inline|worker]
           [--caching on|off|verify] [--threads N] [--replay FILE]
-          [--data-scale F] [--out DIR]
+          [--data-scale F] [--cpu-limit TEXT] [--out DIR]
           `run` is the default command. Windowed, --refresh-hz and
           --native-factor are required; headless, they default to 60 and 2,
           and --headless without --plan is --plan smoke. --scenario,
           --workload and --factor restrict any plan (smoke runs at the
           listed factors instead of 2). `weak` is D22.4's plan for weaker
           machines, held to its own budgets: run it with --backend
-          tiny-skia, and under `taskset -c 0-3` and `taskset -c 0-1`
-          (dev/bench/run.sh does). `focus` is D22.5's report-only plan
+          tiny-skia, and limited to 4 and to 2 cores (`suite` does;
+          --cpu-limit records how). `focus` is D22.5's report-only plan
           of what Phase 31e changed. --threads sets the widget's render
           pool (1 to 64; default the available parallelism less one, 1 to
           8); --caching verify renders every kept image again and reports
@@ -218,6 +234,7 @@ impl Command {
         };
         match command {
             "run" => Ok(Command::Run(Options::parse(rest, &[])?)),
+            "suite" => Suite::parse(rest).map(Command::Suite),
             "list" => Ok(Command::List(Options::parse(rest, &[])?)),
             "raster" => Ok(Command::Raster(Options::parse(rest, &[])?)),
             "also" => match rest {
@@ -343,6 +360,7 @@ impl Options {
                     options.data_scale = Some(scale.ok_or_else(bad)?);
                 }
                 "--out" => options.out = PathBuf::from(value),
+                "--cpu-limit" => options.cpu_limit = Some(value.clone()),
                 other if extra.contains(&other) => pairs.push((other.to_owned(), value.clone())),
                 other => return Err(Error::Unknown(other.to_owned())),
             }
@@ -442,7 +460,55 @@ impl Default for Options {
             replay: None,
             data_scale: None,
             out: PathBuf::from("bench-out"),
+            cpu_limit: None,
         }
+    }
+}
+
+impl Suite {
+    /// Parses `suite`'s flags.
+    fn parse(args: &[String]) -> Result<Suite, Error> {
+        let mut suite = Suite {
+            focus: false,
+            smoke_only: false,
+            refresh_hz: None,
+            native: None,
+            out: PathBuf::from("bench-results"),
+        };
+        let mut args = args.iter();
+        while let Some(flag) = args.next() {
+            match flag.as_str() {
+                "--focus" => suite.focus = true,
+                "--smoke-only" => suite.smoke_only = true,
+                "--refresh-hz" | "--native-factor" | "--out" => {
+                    let value = args.next().ok_or_else(|| Error::Missing(flag.clone()))?;
+                    let bad = || Error::Value {
+                        flag: flag.clone(),
+                        value: value.clone(),
+                    };
+                    match flag.as_str() {
+                        "--refresh-hz" => {
+                            let hz = value
+                                .parse::<f64>()
+                                .ok()
+                                .filter(|hz| hz.is_finite() && *hz > 0.0);
+                            suite.refresh_hz = Some(hz.ok_or_else(bad)?);
+                        }
+                        "--native-factor" => suite.native = Some(factor(value).ok_or_else(bad)?),
+                        _ => suite.out = PathBuf::from(value),
+                    }
+                }
+                other if other.starts_with("--") => return Err(Error::Unknown(other.to_owned())),
+                other => return Err(Error::Stray(other.to_owned())),
+            }
+        }
+        if suite.focus && suite.smoke_only {
+            return Err(Error::Value {
+                flag: "--smoke-only".to_owned(),
+                value: "with --focus".to_owned(),
+            });
+        }
+        Ok(suite)
     }
 }
 
@@ -662,8 +728,25 @@ mod tests {
             panic!("a run");
         };
         assert_eq!(options.plan(), Plan::Smoke);
+        let Ok(Command::Suite(suite)) = Command::parse(&args(
+            "suite --focus --refresh-hz 144 --native-factor 1.25 --out o",
+        )) else {
+            panic!("a suite");
+        };
+        assert!(suite.focus && !suite.smoke_only);
+        assert_eq!(
+            (suite.refresh_hz, suite.native, suite.out),
+            (Some(144.0), Some(1.25), PathBuf::from("o"))
+        );
+        assert!(Command::parse(&args("suite --smoke-only --focus")).is_err());
+        assert!(Command::parse(&args("suite --pool 2")).is_err());
+        let Ok(Command::Run(limited)) = Command::parse(&args("run --cpu-limit pinned")) else {
+            panic!("a run");
+        };
+        assert_eq!(limited.cpu_limit.as_deref(), Some("pinned"));
         for line in [
             "replay --out d",
+            "suite",
             "record --out f.jsonl",
             "report d",
             "list",
