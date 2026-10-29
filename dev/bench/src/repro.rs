@@ -139,6 +139,12 @@ impl Repro {
             .map(|(b, e)| (e - b) as f64 / self.clk_tck as f64);
         let cpu = busy.map_or_else(|| "n/a".to_owned(), |busy| format!("{:.2}", busy / seconds));
         let var = |name: &str| std::env::var(name).unwrap_or_else(|_| "unset".to_owned());
+        // Whether the display variables are set, not their values, which
+        // can name a host (`DISPLAY=host:0`).
+        let set = |name: &str| match std::env::var_os(name) {
+            Some(value) if !value.is_empty() => "set",
+            Some(_) | None => "unset",
+        };
         let report = format!(
             "plain iced: {} moving 1 px a frame, window 1600 x 1000\n\
              backend (ICED_BACKEND): {}\n\
@@ -162,8 +168,8 @@ impl Repro {
             p(0.5),
             p(0.9),
             p(0.99),
-            var("WAYLAND_DISPLAY"),
-            var("DISPLAY"),
+            set("WAYLAND_DISPLAY"),
+            set("DISPLAY"),
             var("XDG_SESSION_TYPE"),
         );
         print!("{report}");
