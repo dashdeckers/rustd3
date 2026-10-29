@@ -207,3 +207,10 @@ lists under "Also measured":
   sample stroked;
 - D21.1: resolving the windowed trace from a fresh cache and in a steady
   layout after an append, with the labels looked up.
+- Phase 31g: a real gesture frame composed by iced's software renderer
+  (tiny-skia, headless): the widget driven through a zoom burst and a
+  drag over `trace` and `scatter100k` at 1 and 2, every frame composed;
+  a mid-burst and a mid-drag frame's images, scaled images, new handles
+  and composition time (the first, which converts the new handles, and
+  warm), and the same images replayed with no image, as captured, every
+  image nearest, and each plot area's images composed into one on the CPU.

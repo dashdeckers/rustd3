@@ -100,7 +100,7 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Shown {
     }
 
     fn layout(&mut self, tree: &mut Tree, _renderer: &iced::Renderer, limits: &layout::Limits) {
-        tree.size = limits.max();
+        tree.size = layout::atomic(limits, Length::Fill, Length::Fill);
     }
 
     fn draw(
@@ -157,7 +157,10 @@ fn describe(workload: Workload, gesture: Gesture, k: f32, kept: &Kept) -> String
         .images
         .iter()
         .map(|d| {
-            let clip = d.clip.intersection(&d.bounds).unwrap_or(Rectangle::default());
+            let clip = d
+                .clip
+                .intersection(&d.bounds)
+                .unwrap_or(Rectangle::default());
             f64::from(clip.width * clip.height * k * k)
         })
         .sum();
@@ -206,7 +209,9 @@ fn keep(workload: Workload, gesture: Gesture, k: f32) -> Option<Kept> {
     }
     let data = workload.data(1.0);
     let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
-    let target = Target::Screen { scale: f64::from(k) };
+    let target = Target::Screen {
+        scale: f64::from(k),
+    };
     let areas: Vec<[i32; 4]> = data
         .figure(false)
         .resolve(size, &mut Cache::default(), &Held::default(), target)
@@ -231,7 +236,7 @@ fn keep(workload: Workload, gesture: Gesture, k: f32) -> Option<Kept> {
     let mut at = iced::Point::new(0.5 * bounds.width + 300.0, 0.27 * bounds.height);
     // Idle until every tile and the ring have landed.
     let begin = Instant::now();
-    while begin.elapsed() < Duration::from_secs(3) {
+    while begin.elapsed() < Duration::from_secs(2) {
         window.frame(&mut ui, Vec::new(), at);
     }
     match gesture {
@@ -362,7 +367,7 @@ impl Window {
     }
 
     /// The next frame, kept: drawn, its new handles counted against the
-    /// last composition, composed once (converting them) and then 15 times
+    /// last composition, composed once (converting them) and then 8 times
     /// more for the warm median.
     fn keep(
         &mut self,
@@ -376,9 +381,9 @@ impl Window {
             self.handled = wakes;
             events.push(Event::Waken);
         }
-        events.push(Event::Window(window::Event::RedrawRequested(
-            Instant::now(),
-        )));
+        events.push(Event::Window(
+            window::Event::RedrawRequested(Instant::now()),
+        ));
         self.renderer.tick();
         let _ = ui.update(
             &window::Headless,
@@ -404,13 +409,17 @@ impl Window {
         );
         let physical = self.physical();
         let begin = Instant::now();
-        let _ = self.renderer.screenshot(physical, self.k, iced::Color::WHITE);
+        let _ = self
+            .renderer
+            .screenshot(physical, self.k, iced::Color::WHITE);
         let first = begin.elapsed().as_secs_f64() * 1e3;
         let mut times = Vec::new();
-        for _ in 0..15 {
+        for _ in 0..8 {
             let _ = self.draw(ui, at);
             let begin = Instant::now();
-            let _ = self.renderer.screenshot(physical, self.k, iced::Color::WHITE);
+            let _ = self
+                .renderer
+                .screenshot(physical, self.k, iced::Color::WHITE);
             times.push(begin.elapsed().as_secs_f64() * 1e3);
         }
         for drawn in &mut images {
@@ -469,7 +478,7 @@ fn replay(kept: &Kept, k: f32) -> Option<Replayed> {
     );
     let bounds = iced::Size::new(WINDOW.width, WINDOW.height);
     let mut compose = |images: Vec<Drawn>| -> (Composed, Vec<u8>) {
-        let mut ui = UserInterface::build(
+        let mut ui: UserInterface<'_, (), iced::Theme, iced::Renderer> = UserInterface::build(
             Shown { images }._boxed(),
             bounds,
             user_interface::Cache::default(),
@@ -480,7 +489,7 @@ fn replay(kept: &Kept, k: f32) -> Option<Replayed> {
         };
         let mut times = Vec::new();
         let mut pixels = Vec::new();
-        for _ in 0..16 {
+        for _ in 0..9 {
             ui.draw(
                 &mut renderer,
                 &iced::Theme::Light,
@@ -542,12 +551,13 @@ fn replay(kept: &Kept, k: f32) -> Option<Replayed> {
 /// copied, scaled ones by nearest sampling, each pixel composited once
 /// per image source-over in straight RGBA.
 fn per_area(images: &[Drawn], areas: &[[i32; 4]], k: f32) -> Vec<Drawn> {
-    let device = |r: Rectangle| {
-        [r.x, r.y, r.x + r.width, r.y + r.height].map(|e| (e * k).round() as i32)
-    };
+    let device =
+        |r: Rectangle| [r.x, r.y, r.x + r.width, r.y + r.height].map(|e| (e * k).round() as i32);
     let inside = |d: &Drawn| {
         let [x0, y0, x1, y1] = device(d.clip);
-        areas.iter().position(|a| a[0] <= x0 && a[1] <= y0 && x1 <= a[2] && y1 <= a[3])
+        areas
+            .iter()
+            .position(|a| a[0] <= x0 && a[1] <= y0 && x1 <= a[2] && y1 <= a[3])
     };
     let mut out: Vec<Drawn> = Vec::new();
     let mut buffers: Vec<Option<(usize, Vec<u8>)>> = vec![None; areas.len()];
@@ -580,8 +590,14 @@ fn per_area(images: &[Drawn], areas: &[[i32; 4]], k: f32) -> Vec<Drawn> {
         ]
         .map(|e| e * k);
         let [cx0, cy0, cx1, cy1] = device(drawn.clip);
-        let (x0, y0) = (cx0.max(ax0).max(bx0.floor() as i32), cy0.max(ay0).max(by0.floor() as i32));
-        let (x1, y1) = (cx1.min(ax1).min(bx1.ceil() as i32), cy1.min(ay1).min(by1.ceil() as i32));
+        let (x0, y0) = (
+            cx0.max(ax0).max(bx0.floor() as i32),
+            cy0.max(ay0).max(by0.floor() as i32),
+        );
+        let (x1, y1) = (
+            cx1.min(ax1).min(bx1.ceil() as i32),
+            cy1.min(ay1).min(by1.ceil() as i32),
+        );
         if x0 >= x1 || y0 >= y1 {
             continue;
         }
@@ -642,5 +658,76 @@ fn over(d: &mut [u8], s: &[u8]) {
             }
             d[3] = out as u8;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use iced::Rectangle;
+    use iced::advanced::image::{FilterMethod, Handle};
+
+    use super::{Drawn, per_area};
+
+    /// A `width` × `height` image of one opaque color.
+    fn solid(width: u32, height: u32, rgb: [u8; 3]) -> Handle {
+        let pixel = [rgb[0], rgb[1], rgb[2], 255];
+        Handle::from_rgba(width, height, pixel.repeat((width * height) as usize))
+    }
+
+    /// The image at logical rect `(x, y, w, h)`, clipped there, nearest.
+    fn at(handle: Handle, (x, y, w, h): (f32, f32, f32, f32), opaque: bool) -> Drawn {
+        let rect = Rectangle {
+            x,
+            y,
+            width: w,
+            height: h,
+        };
+        Drawn {
+            handle,
+            filter: FilterMethod::Nearest,
+            bounds: rect,
+            clip: rect,
+            opaque,
+        }
+    }
+
+    #[test]
+    fn an_areas_images_compose_into_one_and_the_rest_stay() {
+        // At factor 2: a gutter strip outside the area, then two 2 × 2 px
+        // tiles side by side in the 4 × 2 px area at (2, 2), then a
+        // half-transparent 1 × 1 px overlay over the second tile, drawn
+        // over 2 × 2 px (scaled).
+        let gutter = at(solid(4, 2, [9, 9, 9]), (0.0, 0.0, 2.0, 1.0), true);
+        let left = at(solid(2, 2, [255, 0, 0]), (1.0, 1.0, 1.0, 1.0), true);
+        let right = at(solid(2, 2, [0, 0, 255]), (2.0, 1.0, 1.0, 1.0), true);
+        let veil = Handle::from_rgba(1, 1, vec![255, 255, 255, 128]);
+        let veil = at(veil, (2.0, 1.0, 1.0, 1.0), false);
+        let drawn = per_area(&[gutter, left, right, veil], &[[2, 2, 6, 4]], 2.0);
+        assert_eq!(drawn.len(), 2, "the gutter, then the area's one image");
+        let Handle::Rgba {
+            width,
+            height,
+            pixels,
+            ..
+        } = &drawn[1].handle
+        else {
+            panic!("an RGBA handle");
+        };
+        assert_eq!((*width, *height), (4, 2));
+        assert_eq!(
+            drawn[1].bounds,
+            Rectangle {
+                x: 1.0,
+                y: 1.0,
+                width: 2.0,
+                height: 1.0
+            }
+        );
+        let px = |x: usize, y: usize| &pixels[(y * 4 + x) * 4..][..4];
+        assert_eq!(px(0, 0), [255, 0, 0, 255]);
+        assert_eq!(px(1, 1), [255, 0, 0, 255]);
+        // The veil over blue: (255·128 + 0·127) / 255.
+        assert_eq!(px(2, 0), [128, 128, 255, 255]);
+        assert_eq!(px(3, 1), [128, 128, 255, 255]);
     }
 }

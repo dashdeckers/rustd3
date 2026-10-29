@@ -1,8 +1,12 @@
 //! What earlier phases asked the benchmark to measure beside its
-//! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4, Phase 31's gutters):
-//! figure-level renders, resolves and lists, the widget's tiles drawn on
-//! iced's headless renderers and its renders per frame of a pan, timed in
-//! this build, written as the report's "Also measured" section.
+//! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4, Phase 31's gutters, Phase
+//! 31g's software compositing): figure-level renders, resolves and lists,
+//! the widget's tiles drawn on iced's headless renderers, a real gesture
+//! frame composed by its software renderer ([`compose`]) and its renders
+//! per frame of a pan, timed in this build, written as the report's "Also
+//! measured" section.
+
+mod compose;
 
 use std::fmt::Write as _;
 use std::sync::Arc;
@@ -49,6 +53,7 @@ pub fn measure() -> String {
         windowed_resolve(),
         scatter_lists(),
         tile_draw(),
+        compose::frames(),
         pan_frames(),
         gutter_costs(),
         splat_speed(),
