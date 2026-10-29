@@ -177,7 +177,7 @@ pub fn unreachable(
     })
 }
 
-/// [`unreachable`] for this process.
+/// [`unreachable()`] for this process.
 pub fn unreachable_here() -> Option<String> {
     unreachable(
         std::env::consts::OS,
