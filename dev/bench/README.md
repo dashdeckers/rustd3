@@ -553,4 +553,8 @@ lists under "Also measured" (`rustd3-bench also` prints the same):
 - Phase 31g: a gesture frame composed by iced's software renderer, as
   captured and replayed as each candidate would draw it, and one `trace`
   tile mid-zoom;
-- D31.2: the `scatter100k` plot area, markers filled and splatted.
+- D31.2: the `scatter100k` plot area, markers filled and splatted;
+- D22.13: a 1400 × 800 area of opaque images composed by iced's software
+  renderer as tiles clipped to the area and each to itself, as one image,
+  and as as many tiny images, against no image: tiny-skia's cost per
+  image and per pixel at factors 1 and 2.

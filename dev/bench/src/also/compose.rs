@@ -148,6 +148,150 @@ pub(super) fn frames() -> Row {
     }
 }
 
+/// D22.13: what tiny-skia's composition of a frame costs per image and per
+/// pixel, at factors 1 and 2: a 1400 × 800 logical area of opaque images
+/// as 256-device-px tiles clipped to the area (as the widget draws a plot
+/// area's tiles) and each to itself, as one image, and as as many 4 × 4
+/// px images as there are tiles, against a frame of no image.
+pub(super) fn per_images() -> Row {
+    let item = "D22.13: a frame of images composed by tiny-skia (headless, 1600 × 1000 logical, \
+                warm medians of 8)"
+        .to_owned();
+    let mut parts = Vec::new();
+    for k in [1.0_f32, 2.0] {
+        let Some([empty, tiles, own, one, tiny, n]) = per_image(k) else {
+            return failed(&item, "no headless tiny-skia renderer");
+        };
+        parts.push(format!(
+            "at {k}: no image {empty:.1} ms; the area as {n} tiles clipped to the area \
+             {tiles:.1} ms, each clipped to itself {own:.1} ms, as one image {one:.1} ms; {n} \
+             images of 4 × 4 px clipped to the area {tiny:.1} ms ({:.2} ms an image)",
+            (tiny - empty) / n
+        ));
+    }
+    Row {
+        item,
+        value: parts.join("; "),
+    }
+}
+
+/// [`per_images`]' compositions at `k`, ms: no image, the tiles clipped to
+/// the area and each to itself, one image, the small images, and the
+/// number of tiles; `None` without a headless tiny-skia renderer.
+fn per_image(k: f32) -> Option<[f64; 6]> {
+    let mut renderer = iced::futures::executor::block_on(iced::Renderer::new(
+        iced_renderer::Settings::default(),
+        Some("tiny-skia"),
+    ))?;
+    if !matches!(renderer, iced::Renderer::Secondary(_)) {
+        return None;
+    }
+    let area = Rectangle {
+        x: 100.0,
+        y: 100.0,
+        width: 1400.0,
+        height: 800.0,
+    };
+    let solid = |w: u32, h: u32, shade: u8| {
+        Handle::from_rgba(w, h, [shade, 120, 200, 255].repeat((w * h) as usize))
+    };
+    let drawn = |handle: Handle, bounds: Rectangle| Drawn {
+        handle,
+        filter: FilterMethod::Nearest,
+        bounds,
+        clip: area,
+        opaque: true,
+    };
+    let side = 256.0 / k;
+    let (cols, rows) = (
+        (area.width / side).ceil() as u32,
+        (area.height / side).ceil() as u32,
+    );
+    let mut tiles = Vec::new();
+    let mut tiny = Vec::new();
+    for j in 0..rows {
+        for i in 0..cols {
+            let (x, y) = (area.x + i as f32 * side, area.y + j as f32 * side);
+            let shade = ((i * 37 + j * 91) % 255) as u8;
+            tiles.push(drawn(
+                solid(256, 256, shade),
+                Rectangle {
+                    x,
+                    y,
+                    width: side,
+                    height: side,
+                },
+            ));
+            tiny.push(drawn(
+                solid(4, 4, shade),
+                Rectangle {
+                    x,
+                    y,
+                    width: 4.0 / k,
+                    height: 4.0 / k,
+                },
+            ));
+        }
+    }
+    let n = tiles.len() as f64;
+    let own: Vec<Drawn> = tiles
+        .iter()
+        .map(|d| Drawn {
+            clip: d.bounds.intersection(&area).unwrap_or(d.bounds),
+            ..d.clone()
+        })
+        .collect();
+    let whole = drawn(
+        solid(
+            (area.width * k).round() as u32,
+            (area.height * k).round() as u32,
+            90,
+        ),
+        area,
+    );
+    Some([
+        warm(&mut renderer, Vec::new(), k),
+        warm(&mut renderer, tiles, k),
+        warm(&mut renderer, own, k),
+        warm(&mut renderer, vec![whole], k),
+        warm(&mut renderer, tiny, k),
+        n,
+    ])
+}
+
+/// The warm median of 8 compositions of `images` at `k` on `renderer`,
+/// after one that converts their handles, ms.
+fn warm(renderer: &mut iced::Renderer, images: Vec<Drawn>, k: f32) -> f64 {
+    let physical = iced::Size::new(
+        (WINDOW.width * k).round() as u32,
+        (WINDOW.height * k).round() as u32,
+    );
+    let mut ui: UserInterface<'_, (), iced::Theme, iced::Renderer> = UserInterface::build(
+        Shown { images }._boxed(),
+        iced::Size::new(WINDOW.width, WINDOW.height),
+        user_interface::Cache::default(),
+        renderer,
+    );
+    let style = iced_renderer::Style {
+        text_color: iced::Color::BLACK,
+    };
+    let times: Vec<f64> = (0..9)
+        .map(|_| {
+            ui.draw(
+                renderer,
+                &iced::Theme::Light,
+                &style,
+                mouse::Cursor::Unavailable,
+            );
+            let begin = Instant::now();
+            let _ = renderer.screenshot(physical, k, iced::Color::WHITE);
+            begin.elapsed().as_secs_f64() * 1e3
+        })
+        .skip(1)
+        .collect();
+    percentile(&times, 50.0).unwrap_or(f64::NAN)
+}
+
 /// The warm composition of the `trace` frame kept mid-zoom at factor 1,
 /// ms (the CPU reference's); `None` without a headless tiny-skia renderer.
 pub(super) fn zoom_frame_ms() -> Option<f64> {

@@ -1589,3 +1589,126 @@ ours.
    frame's cost by part, then the largest part first.
 3. From D22.11, flags (1) stay, without `--repro-software`. The binned
    density (3) and the shell scripts' removal (4) stay as decided.
+
+### Followups
+
+- **Built (Phase 31k).** 45eb931: the `software` plan and profile
+  (`Plan::Software`; `headless.rs` times an empty frame's readback and
+  writes `--frames`; `metrics::Part`, `parts.csv`, the report's "Frame
+  cost by part", `rule::Reading::Offscreen`; the profile first after
+  `figure` at every level: 1, 3 and 5 runs a cell at quick, default and
+  full; run at 60 Hz and a native factor of 2, so both factors keep
+  1600 × 1000 logical px). 35246ad: D22.11 (1)'s flags without
+  `--repro-software` (`experiment.rs`; `--only`, `--scenario`,
+  `--workload`, `--factor`, `--runs`, `--render`, `--threads`,
+  `--caching`, `--sweep`; no display measured when no selected profile
+  opens a window). Measured here and D22.13's finding below;
+  `SESSION_HANDOFF-55.md` has the rest.
+
+## D22.13 — The software path is composition-bound, inside iced's tiny-skia
+
+**Date:** 2026-10-30 · **Context:** Phase 31k, step 3, D22.12 (2): the
+software profile's first numbers · **Status:** open
+
+### Issue
+
+D22.12 (2) makes the software path the optimisation target, its largest
+part first. The software profile's 24 cells, one run each, on this
+container (2 cores at 2.1 GHz; `cargo rustd3-bench --quick --only
+software`, 6 min), means per composed frame in the interaction window,
+ms (composition includes the screenshot's readback, shown apart):
+
+| Factor | UI work | composition (readback) | wait on the pool | composition's share of the cost |
+| --- | --- | --- | --- | --- |
+| 1 (1600 × 1000 device px) | 0.2–15.0 | 19.6–33.1 (3.2–10.9) | 0–8.0 | 58–99 % |
+| 2 (3200 × 2000) | 0.4–38.6 | 78.3–151.6 (14.8–36.4) | 0.1–19.8 | 72–99 % |
+
+Frame cost p50/p99 at 1: 20–41 / 30–73 ms; at 2: 100–169 / 129–205 ms.
+A hover, where nothing but the crosshair changes, composes in 21 ms at
+1 and 100–130 ms at 2. Even net of the readback, composition is the
+largest part in every cell; the UI work is next (mostly inline renders
+and the mosaic, during gestures). Zoom latencies (1.0–2.6 s) are the
+wheel bursts' length, as on the desktop.
+
+### Investigation
+
+`also`'s new row (`also/compose.rs`, `per_images`): a 1400 × 800 logical
+area of opaque images composed by iced's tiny-skia headless, warm
+medians:
+
+| | Factor 1 | Factor 2 |
+| --- | --- | --- |
+| No image (the readback) | 3.2 ms | 14.9 ms |
+| The area as 256-px tiles clipped to the area | 24 tiles, 17.1 ms | 77 tiles, 95.4 ms |
+| The same, each tile clipped to itself | 19.5 ms | 77.6 ms |
+| The area as one image | 12.6 ms | 54.2 ms |
+| As many 4 × 4 px images as tiles | 0.07 ms an image | 0.49 ms an image |
+
+- **Per pixel:** 8.4–8.8 ns a pixel for an opaque image at 1:1
+  (`draw_pixmap` through tiny-skia's high-precision pattern pipeline,
+  which has no low-precision `Gather`, as Phase 31g found;
+  `tiny-skia-0.12.0/src/shaders/pattern.rs:112-123`): 9.4 ms for
+  the area at 1, 39 ms at 2. A row copy would take a few percent of it.
+- **Per image:** each raster image clears a frame-sized clip mask and
+  fills its clip rect (`iced@3cbdacc tiny_skia/src/engine.rs:526-552`,
+  `adjust_clip_mask` at `:776-790`): 0.07 ms at 1, about 0.5 ms at 2
+  (6.4 MB cleared). The widget draws 32–125 images at 1 and 103–193 at
+  2 (tiles, gutter runs, overlays; `grid16` the most; it already clips
+  each tile to its own square, `plot/area.rs`), so 2–9 ms at 1 and
+  50–95 ms at 2.
+- **Readback:** the screenshot allocates a frame-sized buffer and mask
+  and converts every pixel to RGBA (`tiny_skia/src/window/compositor.rs:205-249`):
+  3–11 ms at 1, 15–36 at 2. A window's compositor reuses its buffer and
+  converts nothing, and redraws only damaged regions, so a hover costs a
+  window far less than here; a pan or zoom damages the plot areas anyway.
+- Phase 31g's harness (`also`, same build): a mid-drag pan at 2 as drawn
+  (103 images) 120.6 ms warm, one image per plot area 86.2 ms warm and
+  100.3 + 6.0 ms of CPU mosaic when its handle is new (each frame of a
+  pan); at 1, 26.8 against 19.0 + 1.2.
+
+So at factor 2 a frame's composition is about half per-image mask work
+and half per-pixel pipeline, both in iced's tiny-skia renderer; at 1 it
+is mostly the per-pixel pipeline.
+
+### Options
+
+| | A — the mosaic on every software frame | **B — iced: no mask inside the clip, opaque 1:1 images copied by rows** | C — larger tiles on the software renderer |
+| --- | --- | --- | --- |
+| Approach | Each plot area drawn as one CPU-composed image on the software renderer always, not only while previews show, its handle kept while nothing changed | In iced's tiny-skia `draw_image`: no clip mask when the image's bounds lie inside its clip; an opaque, nearest image at an integer translation and 1:1 copied into the pixmap by rows | 512 device px tiles when the renderer is the software one |
+| Where | the widget (`plot/area.rs`, `mosaic.rs`) | iced (an upstream PR; the pin moves in its own commit, both backends' tests rerun) | the widget (`tile.rs`, the grid) |
+| Effect at 2 (pan / hover) | −12 % / about −40 % (fewer images; a new handle each pan frame costs a conversion in iced and 6 ms of CPU on the UI thread) | about −80 % of composition net of the readback: no per-image mask (50–95 ms), pixels by rows instead of 8.5 ns each (≈ 40 → 3 ms) | per-image work ÷ 4 (≈ −35 %), pixels unchanged; renders 4× larger, so coarser pool scheduling and later first tiles |
+| Effect at 1 | −25 % pan (31g's harness), less on static frames | ≈ −70 % | small (2–9 ms of per-image work) |
+| Risk | UI-thread time rises during pans (31g: UI frame p99 15 → 22 ms); caching the composed area is new state | none in rustd3; iced's other users gain too; output identical (opaque 1:1 copy equals source-over) | latency and the cost model's tile size; the pool's balance |
+
+### Decision
+
+Recommended: B. The largest part is inside iced's software renderer, and
+both of its costs (a frame-sized mask per image, and a per-pixel pipeline
+for what is a copy) are removed there for every iced app; the widget
+cannot avoid either through iced's `image::Renderer`. File the iced issue
+with this entry's table and `also`'s row as the reproduction, and offer
+the patch; rustd3's pin moves only once it lands upstream. A and C are
+local but measured gains are modest on pans (−12 % at 2) and cost UI time
+or latency, so neither was built in 31k (the brief builds only a local
+fix whose effect is clear and measures better).
+
+### Why
+
+The software profile measured the widget and iced apart, and the widget's
+own work is the smaller part in every cell. Fixing composition where it
+happens keeps the widget simple and helps every software-rendered iced
+window; a widget-side workaround would trade UI-thread time for a part
+of the gain.
+
+### Followups
+
+- The user's run of the software profile (`--quick --only
+  software,figure`) on the Ryzen gives the same split on a fast machine;
+  the CPU reference there composes a `trace` frame in 15 ms (here 18.5).
+- If upstream declines or stalls, A is the local fallback; measure it
+  with `--sweep` against the current build on the software profile.
+- Seen while looking at frames (`--frames`, every 15th, at 2 on this
+  container): mid-`drag-resize` frames of `scatter100k` show the x-axis
+  gutter missing and, at a drag's end, the outgoing layout's y-axis
+  strip beside an area not yet relaid; they settle sharp. Transient on a
+  2-core machine at 8 frames a second; not investigated.

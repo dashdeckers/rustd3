@@ -55,6 +55,7 @@ pub fn measure() -> String {
         scatter_lists(),
         tile_draw(),
         compose::frames(),
+        compose::per_images(),
         pan_frames(),
         gutter_costs(),
         tile_geometry(),
