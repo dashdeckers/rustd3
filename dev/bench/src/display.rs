@@ -62,6 +62,17 @@ pub struct Measured {
 /// The rate a display that paces no frames runs at.
 pub const ASSUMED_HZ: f64 = 60.0;
 
+impl Source {
+    /// Its name, as `results.json` writes it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Source::Given => "given",
+            Source::Measured => "measured",
+            Source::Assumed => "assumed",
+        }
+    }
+}
+
 impl Display {
     /// The display from the command line's `hz` and `factor` and the
     /// measurement: `Ok` with what the window showed, or `Err` with why

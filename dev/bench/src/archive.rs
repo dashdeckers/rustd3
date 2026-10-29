@@ -130,6 +130,26 @@ pub fn read(path: &Path) -> io::Result<Vec<Entry>> {
     Ok(entries)
 }
 
+/// Writes `entries` under `dir`, refusing any path that leaves it.
+pub fn extract(entries: &[Entry], dir: &Path) -> io::Result<()> {
+    for entry in entries {
+        let relative = PathBuf::from(&entry.path);
+        if relative.is_absolute()
+            || relative
+                .components()
+                .any(|c| !matches!(c, std::path::Component::Normal(_)))
+        {
+            return Err(invalid("an archive path outside its directory"));
+        }
+        let path = dir.join(relative);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, &entry.data)?;
+    }
+    Ok(())
+}
+
 /// Every directory and file under `dir`, sorted, as (archive path, source
 /// file; `None` for a directory).
 fn walk(dir: &Path, name: &str, out: &mut Vec<(String, Option<PathBuf>)>) -> io::Result<()> {
@@ -229,7 +249,7 @@ mod tests {
     use std::fs;
     use std::process::Command;
 
-    use super::{pack, read, split};
+    use super::{extract, pack, read, split};
 
     #[test]
     fn a_packed_directory_reads_back_and_tar_lists_it() {
@@ -260,6 +280,9 @@ mod tests {
         );
         assert_eq!(entries[0].data.len(), 1300);
         assert_eq!(entries[2].data, b"{\"format\": 1}\n");
+        let into = root.join("extracted");
+        extract(&entries, &into).unwrap();
+        assert_eq!(fs::read(into.join(&long)).unwrap().len(), 1300);
         // tar itself reads it, where present.
         if let Ok(out) = Command::new("tar").arg("tzf").arg(&archive).output()
             && out.status.success()
@@ -277,5 +300,17 @@ mod tests {
         assert_eq!(split(&path).unwrap(), (&path[..120], &path[121..]));
         assert!(split(&"x".repeat(101)).is_err(), "no slash to split at");
         assert!(split(&format!("{}/{}", "p".repeat(160), "n".repeat(10))).is_err());
+    }
+
+    #[test]
+    fn paths_that_leave_the_directory_are_refused() {
+        let entry = |path: &str| super::Entry {
+            path: path.to_owned(),
+            data: Vec::new(),
+        };
+        let dir = std::env::temp_dir().join(format!("rustd3-extract-{}", std::process::id()));
+        assert!(extract(&[entry("../escape")], &dir).is_err());
+        assert!(extract(&[entry("/etc/passwd")], &dir).is_err());
+        let _ = fs::remove_dir_all(&dir);
     }
 }

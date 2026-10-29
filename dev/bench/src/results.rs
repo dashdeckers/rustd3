@@ -256,7 +256,11 @@ impl Results {
     /// at the default and full levels the rule's outcome.
     pub fn markdown(&self) -> String {
         let mut md = String::new();
-        let _ = writeln!(md, "# rustd3-bench --{}, {}\n", self.level, self.stamp);
+        if self.format == 0 {
+            let _ = writeln!(md, "# rustd3-bench, {} ({})\n", self.stamp, self.level);
+        } else {
+            let _ = writeln!(md, "# rustd3-bench --{}, {}\n", self.level, self.stamp);
+        }
         let commit = &self.rustd3.commit[..12.min(self.rustd3.commit.len())];
         let iced = &self.rustd3.iced[..7.min(self.rustd3.iced.len())];
         let _ = writeln!(
@@ -318,7 +322,7 @@ impl Results {
             "## Machine\n\n| | |\n| --- | --- |\n\
              | System | {} ({}), kernel {}, {} |\n\
              | CPU | {}, {} cores |\n\
-             | Memory | {:.1} GiB |\n\
+             | Memory | {} |\n\
              | GPU | {} |\n\
              | Session | {}, desktop {}; WAYLAND_DISPLAY {}, DISPLAY {} |\n\
              | Display | {} |\n",
@@ -328,7 +332,7 @@ impl Results {
             m.arch,
             m.cpu,
             m.cores,
-            m.ram_mb as f64 / 1024.0,
+            memory(m.ram_mb),
             m.gpu,
             m.session,
             m.desktop,
@@ -404,7 +408,7 @@ impl Results {
             md,
             "Ran on {}{}{}. {} checks: {} met, {} missed, {} inconclusive. Outcome: **{}**\n",
             if profile.ran.is_empty() {
-                "nothing".to_owned()
+                "an unrecorded renderer".to_owned()
             } else {
                 profile.ran.join(", ")
             },
@@ -452,6 +456,15 @@ impl Results {
             let _ = writeln!(md, "{row} {budgets} |");
         }
         let _ = writeln!(md);
+    }
+}
+
+/// Memory in GiB, or "unknown".
+pub fn memory(ram_mb: u64) -> String {
+    if ram_mb == 0 {
+        "unknown".to_owned()
+    } else {
+        format!("{:.1} GiB", ram_mb as f64 / 1024.0)
     }
 }
 

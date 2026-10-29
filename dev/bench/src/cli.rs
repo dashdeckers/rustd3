@@ -32,10 +32,16 @@ pub enum Command {
         /// The file.
         out: PathBuf,
     },
-    /// Rebuild the CSVs and `report.md` of a run's directory.
+    /// Rebuild and print the report of a level's directory or archive (or
+    /// of one run's directory).
     Report {
-        /// The run's directory.
-        dir: PathBuf,
+        /// The directory or archive.
+        path: PathBuf,
+    },
+    /// Two results side by side.
+    Compare {
+        /// A and B: directories or archives.
+        paths: [PathBuf; 2],
     },
     /// Print scenarios, workloads and plans.
     List(Options),
@@ -248,7 +254,16 @@ Advanced (developers):
   replay  --out DIR       write the generated replays
   record  --out FILE      record your own input in the trace window as a
                           replay (relative to the first event; Escape stops)
-  report  PATH            rebuild and print the report of a run directory
+  report  PATH            rebuild and print the report of a level's directory
+                          or archive (each profile's from its raw records, in
+                          a temporary directory for an archive), or of one
+                          run's directory; a directory from before the levels
+                          is read as it is
+  compare A B             two results (directories or archives, from before
+                          the levels too) side by side: the machines, then
+                          per profile and cell frame p50 and p99, latency
+                          p95, preview share, drops, UI frame p99 and CPU s/s
+                          of A and B and B/A
   repro-software [--single] [--out FILE]
           D22.8's plain-iced reproduction for upstream, no rustd3: 40
           images (--single: one window-sized image, so that drawing is
@@ -304,11 +319,20 @@ impl Command {
                 })
             }
             "report" => match rest {
-                [dir] if !dir.starts_with("--") => Ok(Command::Report {
-                    dir: PathBuf::from(dir),
+                [path] if !path.starts_with("--") => Ok(Command::Report {
+                    path: PathBuf::from(path),
                 }),
                 [first, ..] => Err(Error::Stray(first.clone())),
-                [] => Err(Error::Missing("report DIR".to_owned())),
+                [] => Err(Error::Missing("report PATH".to_owned())),
+            },
+            "compare" => match rest {
+                [a, b] if !a.starts_with("--") && !b.starts_with("--") => Ok(Command::Compare {
+                    paths: [PathBuf::from(a), PathBuf::from(b)],
+                }),
+                [_, _, third, ..] => Err(Error::Stray(third.clone())),
+                [first, ..] if first.starts_with("--") => Err(Error::Unknown(first.clone())),
+                [_, second] => Err(Error::Unknown(second.clone())),
+                [_] | [] => Err(Error::Missing("compare A B".to_owned())),
             },
             other => Err(Error::Stray(other.to_owned())),
         }
@@ -851,6 +875,8 @@ mod tests {
             "record --out f.jsonl",
             "repro-software",
             "report d",
+            "report r.tar.gz",
+            "compare a.tar.gz b",
             "list",
             "raster --plan default --out target/bench-raster",
             "also",
@@ -967,6 +993,12 @@ mod tests {
             })
         );
         assert!(Command::parse(&args("repro-software --backend wgpu")).is_err());
+        assert_eq!(
+            Command::parse(&args("compare a")),
+            Err(Error::Missing("compare A B".to_owned()))
+        );
+        assert!(Command::parse(&args("compare a b c")).is_err());
+        assert!(Command::parse(&args("compare a --runs")).is_err());
         assert!(Command::parse(&args("run --factor 0")).is_err());
         assert!(Command::parse(&args("run --workload wheel")).is_err());
         assert!(Command::parse(&args("run --workload wheels,label-churn")).is_ok());

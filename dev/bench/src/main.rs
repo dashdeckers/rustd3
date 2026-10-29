@@ -10,10 +10,12 @@ mod also;
 mod app;
 mod archive;
 mod cli;
+mod compare;
 mod display;
 mod driver;
 mod headless;
 mod level;
+mod load;
 mod metrics;
 mod plan;
 mod privacy;
@@ -77,8 +79,12 @@ fn main() -> ExitCode {
         Command::ReproSoftware { out, single } => repro_software(out, single),
         Command::Run(options) => run(&options, &args),
         Command::Child(child) => run_child(child, epoch),
-        Command::Report { dir } => report::build(&dir).map(|built| {
-            println!("{}", built.summary);
+        Command::Report { path } => report(&path),
+        Command::Compare { paths: [a, b] } => load::results(&a).and_then(|ra| {
+            let rb = load::results(&b)?;
+            let names = [a.display().to_string(), b.display().to_string()];
+            print!("{}", compare::markdown(&ra, &rb, [&names[0], &names[1]]));
+            Ok(())
         }),
     };
     match result {
@@ -144,6 +150,55 @@ fn list(options: &Options) -> Result<(), Box<dyn Error>> {
         };
         println!("  {cell}: {runs}");
     }
+    Ok(())
+}
+
+/// `report PATH`: one run's directory (`meta.json` at its top) rebuilt
+/// in place; a level's directory rebuilt in place, or its archive in a
+/// temporary directory, each profile's report from its raw records and
+/// then `results.json` and `report.md`; a directory from before the
+/// levels read as it is. Prints the report.
+fn report(path: &Path) -> Result<(), Box<dyn Error>> {
+    if path.join("meta.json").is_file() {
+        println!("{}", report::build(path)?.summary);
+        return Ok(());
+    }
+    let mut results = load::results(path)?;
+    if results.format == 0 {
+        print!("{}", results.markdown());
+        return Ok(());
+    }
+    let temp = (!path.is_dir())
+        .then(|| std::env::temp_dir().join(format!("rustd3-bench-report-{}", std::process::id())));
+    let dir = match &temp {
+        None => path.to_path_buf(),
+        Some(temp) => {
+            archive::extract(&archive::read(path)?, temp)?;
+            fs::read_dir(temp)?
+                .filter_map(Result::ok)
+                .map(|entry| entry.path())
+                .find(|path| path.is_dir())
+                .ok_or("an archive without its directory")?
+        }
+    };
+    for profile in &mut results.profiles {
+        let at = dir.join(&profile.name);
+        if at.join("meta.json").is_file() {
+            report::build(&at)?.apply(profile);
+        }
+    }
+    let markdown = results.markdown();
+    match &temp {
+        Some(temp) => fs::remove_dir_all(temp)?,
+        None => {
+            fs::write(
+                dir.join("results.json"),
+                serde_json::to_string_pretty(&results)?,
+            )?;
+            fs::write(dir.join("report.md"), &markdown)?;
+        }
+    }
+    print!("{markdown}");
     Ok(())
 }
 
