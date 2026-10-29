@@ -65,7 +65,7 @@ fn main() -> ExitCode {
         }
         Command::Replay { out } => write_replays(&out),
         Command::Record { out } => recorder::record(out).map_err(Into::into),
-        Command::ReproSoftware { out } => repro_software(out),
+        Command::ReproSoftware { out, single } => repro_software(out, single),
         Command::Run(options) => run(&options, &args),
         Command::Suite(suite) => std::env::current_exe()
             .map_err(Into::into)
@@ -150,15 +150,16 @@ fn write_replays(out: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// `repro-software` into `out`, else `bench-results/repro-<UTC stamp>.txt`.
-fn repro_software(out: Option<PathBuf>) -> Result<(), Box<dyn Error>> {
+/// `repro-software` (with one window-sized image if `single`) into `out`,
+/// else `bench-results/repro-<UTC stamp>.txt`.
+fn repro_software(out: Option<PathBuf>, single: bool) -> Result<(), Box<dyn Error>> {
     let out = out.unwrap_or_else(|| {
         PathBuf::from("bench-results").join(format!("repro-{}.txt", system::stamp()))
     });
     if let Some(dir) = out.parent() {
         fs::create_dir_all(dir)?;
     }
-    repro::run(out, system::clk_tck())?;
+    repro::run(out, system::clk_tck(), single)?;
     Ok(())
 }
 

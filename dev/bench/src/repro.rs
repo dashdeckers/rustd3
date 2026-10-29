@@ -1,7 +1,8 @@
 //! `rustd3-bench repro-software`: D22.8's reproduction for iced, plain
 //! iced with nothing of rustd3. A grid of 40 distinct 256 × 256 images
 //! (`widget::image`, handles made once) covers a 1600 × 1000 window and
-//! moves 1 logical px a frame. `window::frames()` makes each redraw a
+//! moves 1 logical px a frame; with `--single`, one image larger than the
+//! window moves instead, so that drawing is cheap and presentation shows. `window::frames()` makes each redraw a
 //! message and iced redraws after every message, so every frame asks for
 //! the next, as a drag does. After a 2 s warm-up it counts frames for 10
 //! s, then prints and writes to `--out` the backend, the frame interval's
@@ -16,7 +17,7 @@
 //! in use: each compositor refuses the other's name.
 //!
 //! ```text
-//! ICED_BACKEND=tiny-skia rustd3-bench repro-software                          # Wayland
+//! ICED_BACKEND=tiny-skia rustd3-bench repro-software [--single]               # Wayland
 //! ICED_BACKEND=tiny-skia env -u WAYLAND_DISPLAY rustd3-bench repro-software   # X11
 //! ICED_BACKEND=wgpu rustd3-bench repro-software [--out FILE]                  # control
 //! ```
@@ -42,7 +43,9 @@ const MEASURE: Duration = Duration::from_secs(10);
 
 /// The app: its images and the frames so far.
 struct Repro {
+    /// The grid's images, or the one image of `--single`.
     tiles: Vec<image::Handle>,
+    single: bool,
     out: PathBuf,
     clk_tck: u64,
     /// Every frame's instant, from the first.
@@ -52,9 +55,10 @@ struct Repro {
 }
 
 /// Opens the window and runs until the measurement is written to `out`;
-/// `clk_tck` is the system's clock ticks a second.
-pub fn run(out: PathBuf, clk_tck: u64) -> iced::Result {
-    let boot = move || Repro::new(out.clone(), clk_tck);
+/// `clk_tck` is the system's clock ticks a second; `single` draws one
+/// image larger than the window in place of the grid.
+pub fn run(out: PathBuf, clk_tck: u64, single: bool) -> iced::Result {
+    let boot = move || Repro::new(out.clone(), clk_tck, single);
     let settings = window::Settings {
         size: Size::new(1600.0, 1000.0),
         resizable: false,
@@ -68,18 +72,24 @@ pub fn run(out: PathBuf, clk_tck: u64) -> iced::Result {
 }
 
 impl Repro {
-    fn new(out: PathBuf, clk_tck: u64) -> Repro {
-        let tiles = (0..GRID[0] * GRID[1])
-            .map(|k| {
-                let shade = (k * 6) as u8;
-                let pixels: Vec<u8> = (0..TILE * TILE)
-                    .flat_map(|i| [(i % TILE) as u8, (i / TILE) as u8, shade, 255])
-                    .collect();
-                image::Handle::from_rgba(TILE, TILE, pixels)
-            })
-            .collect();
+    fn new(out: PathBuf, clk_tck: u64, single: bool) -> Repro {
+        let image = |[w, h]: [u32; 2], shade: u8| {
+            let pixels: Vec<u8> = (0..w * h)
+                .flat_map(|i| [(i % w) as u8, (i / w) as u8, shade, 255])
+                .collect();
+            image::Handle::from_rgba(w, h, pixels)
+        };
+        let tiles = if single {
+            let size = [GRID[0] as u32 * TILE, GRID[1] as u32 * TILE];
+            vec![image(size, 0)]
+        } else {
+            (0..GRID[0] * GRID[1])
+                .map(|k| image([TILE, TILE], (k * 6) as u8))
+                .collect()
+        };
         Repro {
             tiles,
+            single,
             out,
             clk_tck,
             frames: Vec::new(),
@@ -130,7 +140,7 @@ impl Repro {
         let cpu = busy.map_or_else(|| "n/a".to_owned(), |busy| format!("{:.2}", busy / seconds));
         let var = |name: &str| std::env::var(name).unwrap_or_else(|_| "unset".to_owned());
         let report = format!(
-            "plain iced: {} images of {TILE} x {TILE} moving 1 px a frame, window 1600 x 1000\n\
+            "plain iced: {} moving 1 px a frame, window 1600 x 1000\n\
              backend (ICED_BACKEND): {}\n\
              frames: {} in {seconds:.1} s\n\
              frame interval p50: {:.1} ms\n\
@@ -138,7 +148,15 @@ impl Repro {
              frame interval p99: {:.1} ms\n\
              CPU s/s: {cpu}\n\
              WAYLAND_DISPLAY: {}\nDISPLAY: {}\nXDG_SESSION_TYPE: {}\n",
-            self.tiles.len(),
+            if self.single {
+                format!(
+                    "one image of {} x {}",
+                    GRID[0] as u32 * TILE,
+                    GRID[1] as u32 * TILE
+                )
+            } else {
+                format!("{} images of {TILE} x {TILE}", self.tiles.len())
+            },
             var("ICED_BACKEND"),
             intervals.len(),
             p(0.5),

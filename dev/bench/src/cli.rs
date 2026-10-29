@@ -46,6 +46,8 @@ pub enum Command {
     ReproSoftware {
         /// `--out FILE`; `None` is `bench-results/repro-<UTC stamp>.txt`.
         out: Option<PathBuf>,
+        /// `--single`: one window-sized image in place of the grid of 40.
+        single: bool,
     },
     /// Print the user's procedure and the flags.
     Help,
@@ -231,10 +233,12 @@ Commands:
           the cells as drawn, CPU only, into DIR/raster.csv
   also                    the items earlier phases asked to be measured
                           (the report's \"Also measured\"; release)
-  repro-software [--out FILE]
+  repro-software [--single] [--out FILE]
           D22.8's plain-iced reproduction for upstream, no rustd3: 40
-          images moving 1 px a frame in a 1600 x 1000 window, redrawn
-          every frame; the backend from ICED_BACKEND; prints and writes
+          images (--single: one window-sized image, so that drawing is
+          cheap and presentation shows) moving 1 px a frame in a
+          1600 x 1000 window, redrawn every frame; the backend from
+          ICED_BACKEND; prints and writes
           (default bench-results/repro-<UTC stamp>.txt) the frame
           intervals and CPU use; env -u WAYLAND_DISPLAY for X11.
           dev/bench/repro-software.sh runs both backends on Wayland and
@@ -270,13 +274,18 @@ impl Command {
             "record" => Ok(Command::Record {
                 out: single_out(rest)?,
             }),
-            "repro-software" => Ok(Command::ReproSoftware {
-                out: if rest.is_empty() {
-                    None
-                } else {
-                    Some(single_out(rest)?)
-                },
-            }),
+            "repro-software" => {
+                let single = rest.iter().any(|a| a == "--single");
+                let rest: Vec<String> = rest.iter().filter(|a| *a != "--single").cloned().collect();
+                Ok(Command::ReproSoftware {
+                    out: if rest.is_empty() {
+                        None
+                    } else {
+                        Some(single_out(&rest)?)
+                    },
+                    single,
+                })
+            }
             "report" => match rest {
                 [dir] if !dir.starts_with("--") => Ok(Command::Report {
                     dir: PathBuf::from(dir),
@@ -842,7 +851,15 @@ mod tests {
         assert_eq!(
             Command::parse(&args("repro-software --out r.txt")),
             Ok(Command::ReproSoftware {
-                out: Some(PathBuf::from("r.txt"))
+                out: Some(PathBuf::from("r.txt")),
+                single: false,
+            })
+        );
+        assert_eq!(
+            Command::parse(&args("repro-software --single")),
+            Ok(Command::ReproSoftware {
+                out: None,
+                single: true,
             })
         );
         assert!(Command::parse(&args("repro-software --backend wgpu")).is_err());
