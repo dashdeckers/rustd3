@@ -53,6 +53,9 @@ Every level starts the same way:
    mid-zoom; the `scatter100k` plot area with its markers filled, then
    splatted; and a `trace` frame mid-zoom composed by iced's software
    renderer. They put a machine on a scale with others.
+3. **figure**: the plotting library alone (D22.10), headless: figures
+   timed from data to SVG, PDF and PNG, each in a process of its own
+   (below).
 
 Then its profiles, each a `run` of a plan into its own directory:
 
@@ -115,6 +118,7 @@ prints last: the one file to attach. Inside:
 | `PRIVACY.md` | what the archive holds |
 | `system.txt` | how each profile ran (skips, core limits), then the session type and desktop, whether `WAYLAND_DISPLAY` and `DISPLAY` are set, `xrandr --current`, `cosmic-randr list`, GNOME's scaling factors, `nvidia-smi`, `uname -srm` and `/etc/os-release`, each where present |
 | `run-<profile>.log` | each step's console |
+| `figure/` | the figure profile's `summary.csv` and `report.md` |
 | `display/`, `<profile>/` | each run's directory (below) |
 
 Nothing personal goes in. `system.txt` never takes `uname -a` (it prints
@@ -146,12 +150,13 @@ before.
 
 ### `results.json`
 
-Format 1. Unknown fields are to be ignored; a new required field or a
-changed meaning raises `format`.
+Format 2 (format 1, before the figure profile, reads as a level without
+it). Unknown fields are to be ignored; a new required field or a changed
+meaning raises `format`.
 
 | Field | Content |
 | --- | --- |
-| `format` | 1 |
+| `format` | 2 |
 | `rustd3` | `version`, `commit` (`git rev-parse HEAD`, or "unknown"), `iced` (the pinned revision) |
 | `level` | `quick`, `default` or `full` |
 | `stamp` | the level's start, UTC, `YYYYmmddTHHMMSSZ` |
@@ -166,7 +171,16 @@ A profile: `name`, `what` (a line), `plan`, `backend` (asked: `auto`,
 or `weak`), `limit` (how its cores were limited, or null), `xwayland`,
 `headless`, `status` (`done`, `failed`, `skipped`, `pending`), `reason`
 (why skipped, or what failed), `outcome` (its outcome line), `checks`
-(`met`, `missed`, `inconclusive`) and `cells`. A cell: `scenario`,
+(`met`, `missed`, `inconclusive`), `cells` and `figures`. The `figure`
+profile has `figures` and no cells (its `plan` is `figure`, `backend` and
+`ran` `vello_cpu`, `budgets` `none`); the widget's profiles have cells
+and no figures. A figure: `name`, `what`, `size` (logical px, `[w, h]`),
+`rss_peak_mb` (its process's peak resident memory, MiB, or null where the
+platform does not say), `failed` and `skipped` (why, or null) and
+`stages`, each `stage` (`build`, `resolve`, `list`, `svg`, `pdf`,
+`png-1x`, `png-2x`, `gif`), `cold_ms` (the first repetition), `median_ms`,
+`min_ms` and `p90_ms` (of the repetitions after it), `repetitions` (how
+many after it) and `bytes` (the output's size, or null). A cell: `scenario`,
 `workload`, `factor`, `runs` (planned), `read` (runs with records),
 `applies` (false: the workload has no such cell), `metrics` (each per-run
 statistic's median across runs, named as in `summary.csv`:

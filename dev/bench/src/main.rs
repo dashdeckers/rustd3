@@ -13,6 +13,7 @@ mod cli;
 mod compare;
 mod display;
 mod driver;
+mod figure;
 mod headless;
 mod level;
 mod load;
@@ -80,6 +81,7 @@ fn main() -> ExitCode {
         Command::ReproSoftware { out, single } => repro_software(out, single),
         Command::Run(options) => run(&options, &args),
         Command::Child(child) => run_child(child, epoch),
+        Command::FigureChild { level, subject } => figure::child(level, &subject),
         Command::Report { path } => report(&path),
         Command::Compare { paths: [a, b] } => load::results(&a).and_then(|ra| {
             let rb = load::results(&b)?;

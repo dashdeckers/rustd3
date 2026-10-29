@@ -6,7 +6,7 @@
 mod grid;
 mod label_churn;
 mod scatter;
-mod trace;
+pub mod trace;
 mod wheels;
 
 use iced::Size;

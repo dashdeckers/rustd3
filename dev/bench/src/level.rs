@@ -1,8 +1,9 @@
 //! [`Level`]: the benchmark's one entry point (D22.9),
 //! `rustd3-bench [--quick | --default | --full]`, the same on Linux,
 //! Windows and macOS. A level prints what it will run and an estimate,
-//! measures the display ([`Display`]), then runs its [`Profile`]s, each a
-//! `run` of a plan in its own directory of
+//! measures the display ([`Display`]), takes the CPU reference, times the
+//! plotting library alone (the `figure` profile, D22.10), then runs its
+//! [`Profile`]s, each a `run` of a plan in its own directory of
 //! `bench-results/<UTC stamp>-<level>/` with its console in
 //! `run-<profile>.log`: the native backend (iced's own choice), the
 //! software renderer, the software renderer on X11 in a Linux Wayland
@@ -28,6 +29,7 @@ use crate::also;
 use crate::archive;
 use crate::cli::Backend;
 use crate::display::{self, Display};
+use crate::figure;
 use crate::plan::{Plan, Selection};
 use crate::privacy::{self, Identity};
 use crate::reference;
@@ -129,6 +131,13 @@ const REFERENCE_S: f64 = 15.0;
 const ALSO_S: f64 = 180.0;
 
 impl Level {
+    /// The level named `name` (`quick`, `default`, `full`).
+    pub fn parse(name: &str) -> Option<Level> {
+        [Level::Quick, Level::Default, Level::Full]
+            .into_iter()
+            .find(|level| level.name() == name)
+    }
+
     /// Its flag's name.
     pub fn name(self) -> &'static str {
         match self {
@@ -142,15 +151,16 @@ impl Level {
     pub fn describe(self) -> &'static str {
         match self {
             Level::Quick => {
-                "what a performance issue needs, report-only: the native backend's cells, then \
-                 the software renderer's"
+                "what a performance issue needs, report-only: the figure profile, the native \
+                 backend's cells, then the software renderer's"
             }
             Level::Default => {
-                "the registered verdict run (D22.1's rule outcome) and the weak profiles (D22.4)"
+                "the figure profile with its ladders, the registered verdict run (D22.1's rule \
+                 outcome) and the weak profiles (D22.4)"
             }
             Level::Full => {
-                "every scenario × workload × factor on the native backend, the weak profiles and \
-                 every `also` measurement"
+                "the figure profile with its ladders and GIFs, every scenario × workload × factor \
+                 on the native backend, the weak profiles and every `also` measurement"
             }
         }
     }
@@ -229,8 +239,9 @@ impl Level {
     }
 
     /// The estimated wall time of `profiles` with the display's `native`
-    /// factor, s: the display measurement, then each profile that runs,
-    /// from its plan's durations and run counts plus the per-run overhead
+    /// factor, s: the display measurement, the CPU reference and the
+    /// figure profile, then each profile that runs, from its plan's
+    /// durations and run counts plus the per-run overhead
     /// (`Plan::estimate_s`).
     pub fn estimate_s(self, profiles: &[(Profile, Option<String>)], native: f32) -> f64 {
         let display = Plan::Display.cells(native, &Selection::default());
@@ -238,6 +249,7 @@ impl Level {
         let measured = if self == Level::Full { ALSO_S } else { 0.0 };
         display
             + REFERENCE_S
+            + figure::Plan::of(self, system::ram_mb()).estimate_s()
             + measured
             + profiles
                 .iter()
@@ -391,6 +403,7 @@ impl Request {
         };
         let native = self.native.unwrap_or(1.0);
         let profiles = level.profiles(guess);
+        let figures = figure::Plan::of(level, system::ram_mb());
         println!("rustd3-bench --{}: {}.", level.name(), level.describe());
         match &unreachable {
             Some(why) => println!("  display    {why}: every profile runs headless"),
@@ -400,6 +413,12 @@ impl Request {
             ),
         }
         println!("  cpu        three single-threaded timings: the CPU reference");
+        println!(
+            "  {:<10} {}, about {:.1} min",
+            figure::NAME,
+            figures.describe(),
+            figures.estimate_s() / 60.0
+        );
         for (profile, skip) in &profiles {
             match skip {
                 Some(why) => println!("  {:<10} skipped: {why}", profile.name),
@@ -467,12 +486,15 @@ impl Request {
             machine: results::Machine::here(),
             display: display.clone(),
             cpu_reference: Vec::new(),
-            profiles: profiles
-                .iter()
-                .map(|(p, skip)| {
-                    results::Profile::planned(p.name, p.describe(native), skip.clone())
-                })
-                .collect(),
+            profiles: std::iter::once(results::Profile::planned(
+                figure::NAME,
+                figures.describe(),
+                None,
+            ))
+            .chain(profiles.iter().map(|(p, skip)| {
+                results::Profile::planned(p.name, p.describe(native), skip.clone())
+            }))
+            .collect(),
         };
         let mut notes = format!(
             "# rustd3-bench --{}: {}\n",
@@ -498,7 +520,13 @@ impl Request {
         // An archive after every step: std cannot catch Ctrl-C portably,
         // so an interrupted level leaves the last whole one.
         save(&results, &notes)?;
-        for (index, (profile, skip)) in profiles.iter().enumerate() {
+        println!(
+            "== {}: the plotting library alone, headless (figure/report.md)",
+            figure::NAME
+        );
+        results.profiles[0] = figures.run(exe, &dir)?;
+        save(&results, &notes)?;
+        for (index, (profile, skip)) in (1..).zip(&profiles) {
             if let Some(why) = skip {
                 println!("Skipping {}: {why}.", profile.name);
                 let _ = writeln!(notes, "# {}: skipped, {why}", profile.name);
@@ -894,8 +922,9 @@ mod tests {
         );
         assert_eq!(default[3].0.cores, Some(4));
         assert_eq!(Level::Full.profiles(DESKTOP)[0].0.plan, Plan::Full);
-        // About 10 minutes for quick, 75 for default (D22.9): here 67
-        // without the X11 profile, 73 with it.
+        // About 10 minutes for quick, 75 for default (D22.9), each with the
+        // figure profile's 1 and 4 (D22.10): here 8.5 and 71 without the
+        // X11 profile, 10 and 77 with it.
         let minutes =
             |level: Level, machine| level.estimate_s(&level.profiles(machine), 1.0) / 60.0;
         let wayland = Machine {
@@ -904,9 +933,9 @@ mod tests {
         };
         for machine in [DESKTOP, wayland] {
             let quick = minutes(Level::Quick, machine);
-            assert!((7.0..10.0).contains(&quick), "{quick}");
+            assert!((8.0..11.0).contains(&quick), "{quick}");
             let default = minutes(Level::Default, machine);
-            assert!((65.0..75.0).contains(&default), "{default}");
+            assert!((70.0..80.0).contains(&default), "{default}");
         }
         assert!(minutes(Level::Full, DESKTOP) > 300.0, "hours");
     }
@@ -1073,7 +1102,7 @@ mod tests {
         );
         assert!(read("system.txt").contains("$ uname -srm"));
         assert!(read("PRIVACY.md").starts_with("# What this archive holds"));
-        assert!(read("results.json").contains("\"format\": 1"));
+        assert!(read("results.json").contains("\"format\": 2"));
         fs::remove_dir_all(&root).unwrap();
     }
 

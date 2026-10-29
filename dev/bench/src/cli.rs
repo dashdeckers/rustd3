@@ -22,6 +22,14 @@ pub enum Command {
     Run(Options),
     /// One scenario × workload × factor × run (internal).
     Child(Child),
+    /// One figure of the figure profile, timed in its own process
+    /// (internal).
+    FigureChild {
+        /// The level whose plan holds it.
+        level: Level,
+        /// Its name.
+        subject: String,
+    },
     /// Write the generated replays into a directory.
     Replay {
         /// The directory.
@@ -275,6 +283,7 @@ Advanced (developers):
           dev/bench/repro-software.sh runs both backends on Wayland and
           on X11
   child   (internal: one scenario x workload x factor x run)
+  figure-child (internal: one figure of the figure profile)
 ";
 
 impl Command {
@@ -300,6 +309,20 @@ impl Command {
                 [first, ..] => Err(Error::Stray(first.clone())),
             },
             "child" => Child::parse(rest).map(Command::Child),
+            "figure-child" => match rest {
+                [l, level, s, subject] if l == "--level" && s == "--subject" => {
+                    Ok(Command::FigureChild {
+                        level: Level::parse(level).ok_or_else(|| Error::Value {
+                            flag: l.clone(),
+                            value: level.clone(),
+                        })?,
+                        subject: subject.clone(),
+                    })
+                }
+                _ => Err(Error::Missing(
+                    "figure-child --level L --subject NAME".to_owned(),
+                )),
+            },
             "replay" => Ok(Command::Replay {
                 out: single_out(rest)?,
             }),
@@ -880,6 +903,7 @@ mod tests {
             "list",
             "raster --plan default --out target/bench-raster",
             "also",
+            "figure-child --level quick --subject trace",
             "--help",
         ] {
             assert!(Command::parse(&args(line)).is_ok(), "{line}");

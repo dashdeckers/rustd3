@@ -1,6 +1,8 @@
 //! [`Results`]: a level's `results.json` (D22.9 (4)), the summary a
 //! submission is read by, versioned by its `format` (the schema is in
 //! `dev/bench/README.md`), and the level's `report.md`, written from it.
+//! Format 2 adds the figure profile's figures (D22.10); format 1 reads as
+//! a level without them.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -8,11 +10,12 @@ use std::fmt::Write as _;
 use serde::{Deserialize, Serialize};
 
 use crate::display::Display;
+use crate::figure;
 use crate::reference::Reference;
 use crate::system;
 
 /// The format `results.json` is written in.
-pub const FORMAT: u32 = 1;
+pub const FORMAT: u32 = 2;
 
 /// A level's results.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -82,7 +85,7 @@ pub struct Machine {
 /// One profile of the level.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
-    /// `native`, `nogpu`, `nogpu-x11`, `4cores`, `2cores`.
+    /// `figure`, `native`, `nogpu`, `nogpu-x11`, `4cores`, `2cores`.
     pub name: String,
     /// What it runs, in a line.
     pub what: String,
@@ -108,8 +111,52 @@ pub struct Profile {
     pub outcome: Option<String>,
     /// Its budgets' verdicts.
     pub checks: Counts,
-    /// Its cells.
+    /// Its cells (the widget's profiles).
     pub cells: Vec<Cell>,
+    /// Its figures (the figure profile).
+    #[serde(default)]
+    pub figures: Vec<Figure>,
+}
+
+/// One figure of the figure profile (D22.10).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Figure {
+    /// `trace`, `scatter100k`, `line10m`, `preset-pie`, …
+    pub name: String,
+    /// What it draws.
+    pub what: String,
+    /// Its size, logical px.
+    pub size: [f64; 2],
+    /// The process's peak resident memory while its stages ran, MiB
+    /// (Linux); `None` elsewhere.
+    pub rss_peak_mb: Option<f64>,
+    /// Why it has no timings: a stage's error, a panic, or its process
+    /// ended or was killed.
+    pub failed: Option<String>,
+    /// Why it did not run: it needs more memory than the machine has.
+    #[serde(default)]
+    pub skipped: Option<String>,
+    /// Its stages, in the order they ran.
+    pub stages: Vec<Timing>,
+}
+
+/// One stage of a figure over its repetitions.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Timing {
+    /// `build`, `resolve`, `list`, `svg`, `pdf`, `png-1x`, `png-2x`, `gif`.
+    pub stage: String,
+    /// The first repetition's, cold, ms.
+    pub cold_ms: f64,
+    /// The median of the repetitions after it, ms.
+    pub median_ms: f64,
+    /// Their least, ms.
+    pub min_ms: f64,
+    /// Their 90th percentile, ms.
+    pub p90_ms: f64,
+    /// The repetitions after the cold one.
+    pub repetitions: u32,
+    /// The output's bytes, for the outputs.
+    pub bytes: Option<u64>,
 }
 
 /// Whether a profile ran.
@@ -243,6 +290,7 @@ impl Profile {
             outcome: None,
             checks: Counts::default(),
             cells: Vec::new(),
+            figures: Vec::new(),
         }
     }
 }
@@ -307,7 +355,8 @@ impl Results {
         }
         if self.level != "quick" {
             let _ = writeln!(md, "## Rule outcome\n");
-            for profile in self.profiles.iter().filter(|p| p.outcome.is_some()) {
+            let rule = |p: &&Profile| p.outcome.is_some() && p.name != figure::NAME;
+            for profile in self.profiles.iter().filter(rule) {
                 let _ = writeln!(
                     md,
                     "- {}: **{}**",
@@ -434,6 +483,10 @@ impl Results {
             }
             Status::Done | Status::Failed => {}
         }
+        if profile.name == figure::NAME {
+            let _ = writeln!(md, "\n{}", figure::summary(profile));
+            return;
+        }
         let c = profile.checks;
         let _ = writeln!(
             md,
@@ -529,7 +582,7 @@ fn verdict(check: &Check, assumed: Option<f64>) -> String {
 pub mod tests {
     use std::collections::BTreeMap;
 
-    use super::{Cell, Check, Counts, Machine, Profile, Results, Status, Version};
+    use super::{Cell, Check, Counts, Figure, Machine, Profile, Results, Status, Timing, Version};
     use crate::display::{Display, Measured};
 
     /// A cell of `scenario` on `trace` at 1 with the key metrics scaled
@@ -626,6 +679,53 @@ pub mod tests {
         }
     }
 
+    /// A figure profile of three figures, the first timed with its
+    /// medians scaled by `k`, one failed, one skipped.
+    pub fn figures(k: f64) -> Profile {
+        let timing = |stage: &str, ms: f64, bytes: Option<u64>| Timing {
+            stage: stage.to_owned(),
+            cold_ms: 3.0 * ms,
+            median_ms: ms * k,
+            min_ms: 0.9 * ms,
+            p90_ms: 1.2 * ms,
+            repetitions: 3,
+            bytes,
+        };
+        let figure = |name: &str| Figure {
+            name: name.to_owned(),
+            what: format!("{name}'s marks"),
+            size: [1600.0, 1000.0],
+            rss_peak_mb: None,
+            failed: None,
+            skipped: None,
+            stages: Vec::new(),
+        };
+        Profile {
+            plan: "figure".to_owned(),
+            status: Status::Done,
+            outcome: Some("report-only: 1 figures timed, 1 skipped, no budgets".to_owned()),
+            figures: vec![
+                Figure {
+                    rss_peak_mb: Some(212.4 * k),
+                    stages: vec![
+                        timing("resolve", 41.3, None),
+                        timing("svg", 5.5, Some(1_234_567)),
+                    ],
+                    ..figure("trace")
+                },
+                Figure {
+                    failed: Some("pdf: too large".to_owned()),
+                    ..figure("heatmap")
+                },
+                Figure {
+                    skipped: Some("it needs about 13.8 GiB, more than 60%".to_owned()),
+                    ..figure("scatter10m")
+                },
+            ],
+            ..Profile::planned("figure", "3 figures".to_owned(), None)
+        }
+    }
+
     /// A display measured at `hz` (`None`: unpaced), factor 1, wgpu.
     pub fn display(hz: Option<f64>) -> Display {
         Display::decide(
@@ -678,6 +778,30 @@ pub mod tests {
         // results.json round-trips.
         let json = serde_json::to_string_pretty(&cut).unwrap();
         assert_eq!(serde_json::from_str::<Results>(&json).unwrap(), cut);
-        assert!(json.contains("\"format\": 1"));
+        assert!(json.contains("\"format\": 2"));
+    }
+
+    #[test]
+    fn the_figure_profile_shows_its_figures_and_no_rule_outcome() {
+        let mut r = results(1.0, 16, display(Some(60.0)));
+        r.level = "default".to_owned();
+        r.profiles.insert(0, figures(1.0));
+        let md = r.markdown();
+        assert!(
+            md.contains("### figure\n\n3 figures.\n\nMedian ms of 3 repetitions"),
+            "{md}"
+        );
+        assert!(md.contains("| trace | 1600 × 1000 | 41.3 | 5.50 | 212 MiB |"));
+        let outcome = md.split("## Rule outcome").nth(1).unwrap();
+        assert!(outcome.contains("- native:") && !outcome.contains("figure"));
+        // Format 1, from before the figure profile, reads without figures.
+        let mut old = serde_json::to_value(results(1.0, 2, display(None))).unwrap();
+        old["format"] = 1.into();
+        for profile in old["profiles"].as_array_mut().unwrap() {
+            profile.as_object_mut().unwrap().remove("figures");
+        }
+        let read: Results = serde_json::from_value(old).unwrap();
+        assert_eq!(read.format, 1);
+        assert!(read.profiles.iter().all(|p| p.figures.is_empty()));
     }
 }

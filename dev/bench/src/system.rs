@@ -516,7 +516,7 @@ pub fn wait(child: &mut Child, limit: Duration) -> io::Result<Option<ExitStatus>
 }
 
 /// Reads `pipe` to its end on its own thread.
-fn drain(pipe: Option<impl Read + Send + 'static>) -> thread::JoinHandle<String> {
+pub fn drain(pipe: Option<impl Read + Send + 'static>) -> thread::JoinHandle<String> {
     thread::spawn(move || {
         let mut bytes = Vec::new();
         if let Some(mut pipe) = pipe {

@@ -41,7 +41,8 @@ should any have appeared (in a panic message, say).
   and commit, the level, the machine (operating system and its release,
   kernel, architecture, CPU model, cores, memory, GPU), the display (its
   refresh rate and scale factor, and how they were found), and per
-  profile its cells' summary metrics and budgets.
+  profile its cells' summary metrics and budgets, or its figures'
+  timings.
 - `system.txt`: the session type and desktop (`XDG_SESSION_TYPE`,
   `XDG_CURRENT_DESKTOP`), whether `WAYLAND_DISPLAY` and `DISPLAY` are set
   (not their values), what `xrandr --current`, `cosmic-randr list`,
@@ -54,6 +55,8 @@ should any have appeared (in a panic message, say).
 - `<profile>/replays/*.jsonl`: the generated input (no real input is
   recorded).
 - `<profile>/*.csv` and `<profile>/report.md`: derived from the raw files.
+- `figure/summary.csv` and `figure/report.md`: the figure profile's
+  timings, output sizes and peak memory per figure.
 - `run-<profile>.log`: the benchmark's console output.
 ";
 
