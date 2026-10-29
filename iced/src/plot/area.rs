@@ -540,9 +540,9 @@ impl Area {
     /// Draws the area for a widget whose device origin is `origin` at
     /// `factor`, the views now `now`: the theme `background` when a
     /// visible tile's part inside the area is not covered by its image,
-    /// the preview layer mapped
-    /// to `now`, each visible tile's image moved with the grid and clipped
-    /// to its square, then the overlays, all inside the area.
+    /// the preview layer's tiles that meet the area mapped to `now`, each
+    /// visible tile's image moved with the grid and clipped to its square,
+    /// then the overlays, all inside the area; no tile of the ring.
     pub(crate) fn draw<Renderer>(
         &self,
         renderer: &mut Renderer,
@@ -563,7 +563,15 @@ impl Area {
                 background,
             );
         }
+        let [x0, y0, x1, y1] = self.rect.map(f64::from);
         for tile in &self.preview {
+            // The ring's previews lie outside the area until a zoom out
+            // brings them in; each image drawn costs the software renderer
+            // a frame-sized clip mask.
+            let [a0, b0, a1, b1] = self.mapped(tile, f64::from(factor), now);
+            if a1 <= x0 || x1 <= a0 || b1 <= y0 || y1 <= b0 {
+                continue;
+            }
             let maps = self.maps(tile, factor, now);
             tile.slot()
                 .draw_mapped(renderer, (origin, factor), maps, self.rect);

@@ -4,9 +4,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, mpsc};
 
-use iced_core::Size;
 use iced_core::shell::Waker;
 use iced_core::time::{Duration, Instant};
+use iced_core::{Rectangle, Size};
 use rustd3_core::interact::{Delta, Modifiers, Pointer};
 use rustd3_core::scale::{self, Linear, Log};
 use rustd3_figure::kurbo::{self, Point};
@@ -16,6 +16,7 @@ use rustd3_figure::{Figure, Held, Target, axis};
 
 use super::{Pipeline, State};
 use crate::plot::domains::Key;
+use crate::plot::fixture::Recorder;
 use crate::plot::listener::Listener;
 use crate::plot::probe::{self, Probe, Sample};
 use crate::plot::{Caching, Render};
@@ -304,6 +305,60 @@ fn no_tile_renders_inline_while_a_gesture_lasts() {
         all == 12 && after > 0,
         "the ring once the gesture ends: {after} of {all} inline"
     );
+}
+
+#[test]
+fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
+    // D22.5 (6): while a gesture lasts the widget's images go in one layer
+    // whose bounds differ from one draw to the next, which iced's software
+    // renderer damages whole (one rect a frame, each image drawn once);
+    // idle, the layer keeps the widget's bounds. Of the previews only those
+    // that meet the plot area are drawn: a step's 16 old tiles (the ring
+    // included), which the pool has not replaced yet, draw as 4.
+    let mut state = state();
+    let t0 = epoch();
+    let fig = bare();
+    rendered(&mut state, &fig, t0);
+    let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
+    let theme = rustd3_figure::Theme::default();
+    let draw = |state: &State| {
+        let mut recorder = Recorder::default();
+        state.draw(&mut recorder, bounds, &theme);
+        recorder
+    };
+    let idle = [draw(&state), draw(&state)];
+    for recorder in &idle {
+        assert_eq!(recorder.layers(), [bounds], "idle");
+        assert!(recorder.images_in_first_layer());
+    }
+    let pipeline = Pipeline {
+        render: Render::Worker,
+        caching: Caching::On,
+        revision: 0,
+        probe: None,
+        waker: &Waker::noop(),
+        threads: 1,
+    };
+    let area = state.map.area(0).expect("one panel");
+    assert!(state.queue(wheel(area.center())).capture);
+    state.redraw::<()>(
+        &fig,
+        1.0,
+        t0 + Duration::from_millis(16),
+        &pipeline,
+        (&[], &[]),
+    );
+    assert_eq!(state.areas[0].preview().len(), 16);
+    let [a, b] = [draw(&state), draw(&state)];
+    assert!(a.images_in_first_layer() && b.images_in_first_layer());
+    assert_eq!((a.layers().len(), b.layers().len()), (1, 1));
+    assert_ne!(
+        a.layers(),
+        b.layers(),
+        "the layer changes from draw to draw"
+    );
+    assert!(a.layers().contains(&bounds) || b.layers().contains(&bounds));
+    assert_eq!(a.images().1, 4, "the previews that meet the area");
 }
 
 /// A waker that counts its wakes.

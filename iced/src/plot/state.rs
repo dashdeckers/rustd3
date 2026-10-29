@@ -1,6 +1,7 @@
 //! [`State`]: what the widget keeps in iced's widget tree between frames,
 //! and the refresh that renders the cells whose content changed.
 
+use std::cell::Cell;
 use std::sync::Arc;
 
 use iced_core::shell::Waker;
@@ -91,6 +92,9 @@ pub(crate) struct State {
     /// Whether tiles of the overscan ring wait for the gesture in progress
     /// to end: the first refresh after it renders them.
     deferred: bool,
+    /// Whether the last draw grew its layer by half a px: draws alternate
+    /// while a gesture lasts ([`draw`](State::draw)).
+    grown: Cell<bool>,
     /// Turns iced events into pointer input in the widget's logical px.
     tracker: Tracker,
     /// Pointer input waiting for the next `RedrawRequested`.
@@ -167,6 +171,7 @@ impl Default for State {
             pool: None,
             focus: None,
             deferred: false,
+            grown: Cell::new(false),
             tracker: Tracker::default(),
             input: Input::default(),
             domains: Domains::default(),
@@ -1727,7 +1732,10 @@ impl State {
     /// has none), each plot area's tiles over its
     /// preview layer mapped from the views it was planned at to the views
     /// now, then each brush's selection and the hover overlay in the
-    /// theme's ink, for a widget laid out at `bounds`.
+    /// theme's ink, for a widget laid out at `bounds`. While a gesture
+    /// lasts the images are drawn in one layer over the widget whose
+    /// bounds alternate between frames by half a logical px, so that
+    /// iced's software renderer redraws the widget once a frame.
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
@@ -1737,12 +1745,30 @@ impl State {
         };
         let origin = origin(bounds, factor);
         let background = overlay::color(theme.get_background());
-        for run in &self.gutters {
-            run.slot().draw(renderer, origin, factor, background);
-        }
-        for (p, area) in self.areas.iter().enumerate() {
-            area.draw(renderer, (origin, factor), self.peek(p), background);
-        }
+        // iced's software renderer redraws each damaged rect of a frame
+        // apart, every image that meets it once per rect, each draw
+        // clearing a frame-sized clip mask (`tiny_skia/src/lib.rs:72-160`,
+        // `engine.rs:533`), and finds a moved image's damage image by image
+        // (`layer.rs:289-294`): a frame of a pan or zoom, where every image
+        // moves, damaged many small rects. A layer whose bounds changed is
+        // damaged as a whole (`layer.rs:206-209`), so while a gesture lasts
+        // the images go in one layer whose bounds alternate by half a px:
+        // one rect, each image drawn once.
+        let grown = !self.grown.get();
+        self.grown.set(grown);
+        let layer = if self.is_active() && grown {
+            bounds.expand(0.5)
+        } else {
+            bounds
+        };
+        renderer.with_layer(layer, |renderer| {
+            for run in &self.gutters {
+                run.slot().draw(renderer, origin, factor, background);
+            }
+            for (p, area) in self.areas.iter().enumerate() {
+                area.draw(renderer, (origin, factor), self.peek(p), background);
+            }
+        });
         for brush in &self.brushes {
             brush.draw(renderer, origin, factor, theme.get_ink());
         }
