@@ -9,7 +9,7 @@
 use std::fmt::Write as _;
 use std::fs;
 use std::io::{self, Read};
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread;
@@ -106,6 +106,10 @@ pub struct Meta {
     pub git_rev: String,
     /// The plan's name.
     pub plan: String,
+    /// The budgets the cells are held to (`--budgets`: `desktop` or
+    /// `weak`); `None` is the plan's.
+    #[serde(default)]
+    pub budgets: Option<String>,
     /// The data size (1 = full).
     pub data_scale: f64,
     /// The command line.
@@ -354,17 +358,8 @@ fn limited(program: &str, args: &[&str], limit: Duration) -> String {
     };
     // Read on threads, so a full pipe cannot stall the child.
     let (out, err) = (drain(child.stdout.take()), drain(child.stderr.take()));
-    let begin = Instant::now();
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) if begin.elapsed() < limit => thread::sleep(Duration::from_millis(10)),
-            Ok(None) | Err(_) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return format!("(timed out after {:.1} s)\n", limit.as_secs_f64());
-            }
-        }
+    let Ok(Some(status)) = wait(&mut child, limit) else {
+        return format!("(timed out after {:.1} s)\n", limit.as_secs_f64());
     };
     let mut text = String::new();
     for pipe in [out, err] {
@@ -378,6 +373,23 @@ fn limited(program: &str, args: &[&str], limit: Duration) -> String {
         let _ = writeln!(text, "({status})");
     }
     text
+}
+
+/// Waits for `child` to exit, at most `limit`: its status, or `None`
+/// once it was killed for running longer.
+pub fn wait(child: &mut Child, limit: Duration) -> io::Result<Option<ExitStatus>> {
+    let begin = Instant::now();
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(Some(status));
+        }
+        if begin.elapsed() >= limit {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Ok(None);
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
 }
 
 /// Reads `pipe` to its end on its own thread.

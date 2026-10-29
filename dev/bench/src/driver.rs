@@ -493,6 +493,7 @@ impl<Message> Driver<'_, Message> {
             });
             shell.publish((self.cue)(Cue::Done {
                 widget: [state.widget.width, state.widget.height],
+                backend: backend(renderer),
             }));
         } else if !state.done {
             shell.request_redraw();
@@ -505,6 +506,16 @@ impl<'a, Message: 'a> From<Driver<'a, Message>> for Element<'a, Message, Theme, 
         // `Element::new` is private at the pinned revision; widgets box
         // themselves.
         driver._boxed()
+    }
+}
+
+/// The renderer iced chose, by which half of its fallback renderer runs:
+/// the software one is the half that reports no scale, which is how the
+/// widget tells them apart (`rustd3-iced`'s `scale_factor`).
+fn backend(renderer: &Renderer) -> &'static str {
+    match renderer {
+        Renderer::Primary(_) => "wgpu",
+        Renderer::Secondary(_) => "tiny-skia",
     }
 }
 
@@ -662,7 +673,7 @@ mod tests {
                         domain = Some(published);
                         domains.push(published);
                     }
-                    Message::Cue(Cue::Done { widget: size }) => widget = Some(size),
+                    Message::Cue(Cue::Done { widget: size, .. }) => widget = Some(size),
                     Message::Cue(Cue::Append(_) | Cue::Resize { .. }) => {}
                 }
             }

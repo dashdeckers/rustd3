@@ -162,6 +162,21 @@ impl Profile {
         }
     }
 
+    /// Its name on the command line (`--budgets`) and in `meta.json`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Profile::Desktop => "desktop",
+            Profile::Weak => "weak",
+        }
+    }
+
+    /// The profile named `name`.
+    pub fn parse(name: &str) -> Option<Profile> {
+        [Profile::Desktop, Profile::Weak]
+            .into_iter()
+            .find(|p| p.name() == name)
+    }
+
     /// `budget`'s limit at a frame period of `period_ms`: ms, or a share.
     pub fn limit(self, budget: Budget, period_ms: f64) -> f64 {
         match (self, budget) {
@@ -337,6 +352,10 @@ mod tests {
         assert_eq!(limits, [2.0 * t, 150.0, 250.0, 0.25]);
         assert_eq!(Profile::of("weak"), Profile::Weak);
         assert_eq!(Profile::of("default"), Profile::Desktop);
+        for profile in [Profile::Desktop, Profile::Weak] {
+            assert_eq!(Profile::parse(profile.name()), Some(profile));
+        }
+        assert_eq!(Profile::parse("laptop"), None);
         // Its outcome never asks for the GPU layer.
         let line = Outcome::RasterBound.line(Profile::Weak);
         assert!(

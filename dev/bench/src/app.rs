@@ -62,6 +62,8 @@ pub struct App {
     widget: Option<Size>,
     /// The scenario resized the window: later sizes are its own.
     resized: bool,
+    /// The renderer iced chose, once the driver is done.
+    backend: Option<&'static str>,
     /// RSS and GPU memory every second during `soak`.
     sampler: Option<Sampler>,
 }
@@ -108,6 +110,7 @@ impl App {
             reported: None,
             widget: None,
             resized: false,
+            backend: None,
             sampler,
         }
     }
@@ -150,8 +153,9 @@ impl App {
                 self.resized = true;
                 Effect::Resize(self.size)
             }
-            Cue::Done { widget } => {
+            Cue::Done { widget, backend } => {
                 self.widget = Some(Size::new(widget[0], widget[1]));
+                self.backend = Some(backend);
                 Effect::Exit
             }
         }
@@ -173,8 +177,10 @@ impl App {
     }
 
     /// Writes the run's raw file under `raw/`, headed by its `run` record;
-    /// `backend` names the renderer that ran. Returns its path.
+    /// `backend` names the renderer that ran, unless the driver saw
+    /// another. Returns its path.
     pub fn finish(&mut self, backend: &str) -> Result<PathBuf, record::Error> {
+        let backend = self.backend.unwrap_or(backend);
         self.sampler = None;
         let cell = self.config.child.cell;
         let options = &self.config.child.options;
@@ -223,6 +229,7 @@ impl App {
                     None => Task::none(),
                 },
                 Effect::Exit => {
+                    // The driver names the renderer iced chose.
                     let backend = self.config.child.options.backend.name();
                     if let Err(error) = self.finish(backend) {
                         eprintln!("rustd3-bench child: {error}");

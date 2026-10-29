@@ -120,6 +120,9 @@ pub enum Cue {
         /// The plot's logical size the replay's positions were placed in:
         /// the last before the scenario's own first resize.
         widget: [f32; 2],
+        /// The renderer iced chose: `wgpu`, or `tiny-skia` (asked for, or
+        /// iced's fallback without a GPU adapter).
+        backend: &'static str,
     },
 }
 

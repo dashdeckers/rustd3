@@ -2,13 +2,17 @@
 //! drives the real widget through a wrapper that replays time-stamped
 //! input, in a window or headlessly, one cold process per run, and writes
 //! raw records, CSV summaries and a report that evaluates the decision
-//! rule registered before any run (`--help` prints the procedure).
+//! rule registered before any run. Its one entry point is a level
+//! (`rustd3-bench [--quick | --default | --full]`, D22.9); `--help`
+//! prints it and the developers' commands.
 
 mod also;
 mod app;
 mod cli;
+mod display;
 mod driver;
 mod headless;
+mod level;
 mod metrics;
 mod plan;
 mod raster;
@@ -20,7 +24,6 @@ mod repro;
 mod rule;
 mod scenario;
 mod stats;
-mod suite;
 mod system;
 mod workload;
 
@@ -29,7 +32,7 @@ use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use rustd3_iced::plot::cost;
 
@@ -53,6 +56,9 @@ fn main() -> ExitCode {
         }
     };
     let result = match command {
+        Command::Level(request) => std::env::current_exe()
+            .map_err(Into::into)
+            .and_then(|exe| request.run(&exe)),
         Command::Help => {
             print!("{}", cli::HELP);
             Ok(())
@@ -67,9 +73,6 @@ fn main() -> ExitCode {
         Command::Record { out } => recorder::record(out).map_err(Into::into),
         Command::ReproSoftware { out, single } => repro_software(out, single),
         Command::Run(options) => run(&options, &args),
-        Command::Suite(suite) => std::env::current_exe()
-            .map_err(Into::into)
-            .and_then(|exe| suite.run(&exe)),
         Command::Child(child) => run_child(child, epoch),
         Command::Report { dir } => report::build(&dir).map(|summary| {
             println!("{summary}");
@@ -83,6 +86,11 @@ fn main() -> ExitCode {
         }
     }
 }
+
+/// How long a run may take beyond its scenario before it is killed, s:
+/// start, data, the driver's 2 s settle and its 30 s wait for sharp
+/// frames, and a margin.
+const RUN_MARGIN_S: f64 = 120.0;
 
 /// Prints scenarios, workloads, plans and the cells `options` select.
 fn list(options: &Options) -> Result<(), Box<dyn Error>> {
@@ -173,8 +181,8 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     if cells.is_empty() {
         return Err("the flags select no cell (see `rustd3-bench list`)".into());
     }
-    if options.xwayland && !suite::xwayland() {
-        return Err(format!("--xwayland: {}", suite::NO_XWAYLAND).into());
+    if options.xwayland && !level::xwayland() {
+        return Err(format!("--xwayland: {}", level::NO_XWAYLAND).into());
     }
     let stamp = system::stamp();
     let dir = options.out.join(&stamp);
@@ -206,9 +214,11 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
                 dir: dir.clone(),
             };
             let mut command = std::process::Command::new(&exe);
-            command
-                .args(child.to_args(refresh_hz, native))
-                .env("ICED_BACKEND", options.backend.name());
+            command.args(child.to_args(refresh_hz, native));
+            match options.backend.iced() {
+                Some(backend) => command.env("ICED_BACKEND", backend),
+                None => command.env_remove("ICED_BACKEND"),
+            };
             if let Some(mode) = options.present_mode {
                 command.env("ICED_PRESENT_MODE", mode.name());
             }
@@ -217,18 +227,28 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
                 command.env_remove("WAYLAND_DISPLAY");
             }
             let begin = Instant::now();
-            let status = command.status()?;
+            // A run that hangs (a window that never draws) ends as failed.
+            let limit =
+                Duration::from_secs_f64(plan.duration_ms(cell.scenario) / 1e3 + RUN_MARGIN_S);
+            let status = system::wait(&mut command.spawn()?, limit)?;
             let seconds = begin.elapsed().as_secs_f64();
-            println!("[{done}/{total}] {cell} run {run}: {status} in {seconds:.1} s");
-            if !status.success() {
-                failed.push(format!("{cell} run {run} ({status})"));
+            let shown = status.map_or_else(
+                || format!("killed after {seconds:.0} s"),
+                |status| status.to_string(),
+            );
+            println!("[{done}/{total}] {cell} run {run}: {shown} in {seconds:.1} s");
+            if !status.is_some_and(|status| status.success()) {
+                failed.push(format!("{cell} run {run} ({shown})"));
             }
         }
     }
-    println!(
-        "rustd3-bench: measuring the items earlier phases asked for (D15.3, D18.3, D19.3, D21.1)"
-    );
-    fs::write(dir.join("also.md"), also::measure())?;
+    if options.also {
+        println!(
+            "rustd3-bench: measuring the items earlier phases asked for (D15.3, D18.3, D19.3, \
+             D21.1)"
+        );
+        fs::write(dir.join("also.md"), also::measure())?;
+    }
     let summary = report::build(&dir)?;
     println!("{summary}");
     println!("report: {}", dir.join("report.md").display());
@@ -331,6 +351,7 @@ fn meta(
         iced_rev: system::ICED_REV.to_owned(),
         git_rev,
         plan: options.plan().name().to_owned(),
+        budgets: options.budgets.map(|budgets| budgets.name().to_owned()),
         data_scale: options.data_scale(),
         command: format!("rustd3-bench {}", args.join(" ")),
         pixels_per_ms: cost::PIXELS_PER_MS,
@@ -380,7 +401,7 @@ fn run_child(child: Child, epoch: Instant) -> Result<(), Box<dyn Error>> {
         let mut app = App::new(config);
         let backend = headless::run(
             &mut app,
-            options.backend.name(),
+            options.backend.iced(),
             child.cell.factor,
             options.refresh_hz()?,
             options.readback,

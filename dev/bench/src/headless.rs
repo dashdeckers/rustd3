@@ -74,20 +74,21 @@ impl Pacer {
     }
 }
 
-/// Runs `app` on `backend` until its driver is done; returns the renderer
-/// that ran.
+/// Runs `app` on `backend` (`None`: iced's choice) until its driver is
+/// done; returns the renderer that ran.
 pub fn run(
     app: &mut App,
-    backend: &str,
+    backend: Option<&str>,
     factor: f32,
     refresh_hz: f64,
     readback: Readback,
 ) -> Result<String, Error> {
     let renderer = iced::futures::executor::block_on(iced::Renderer::new(
         renderer::Settings::default(),
-        Some(backend),
+        backend,
     ));
-    let mut renderer = renderer.ok_or_else(|| Error::Backend(backend.to_owned()))?;
+    let mut renderer =
+        renderer.ok_or_else(|| Error::Backend(backend.unwrap_or("auto").to_owned()))?;
     renderer.hint(renderer::Scale {
         window: factor,
         application: 1.0,

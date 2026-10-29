@@ -1,0 +1,4 @@
+# `cargo rustd3-bench [--quick | --default | --full]` from a checkout: the
+# benchmark's one entry point (dev/bench/README.md, D22.9).
+[alias]
+rustd3-bench = ["run", "--release", "-p", "rustd3-bench", "--"]

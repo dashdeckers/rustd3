@@ -15,7 +15,15 @@ pub enum Plan {
     /// Every scenario × workload once at factor 2, durations ÷ 5, data ÷
     /// 100, `soak` 20 s: the headless check.
     Smoke,
-    /// `default`'s cells twice each; not valid for the verdict.
+    /// The display measurement that starts every level (D22.9): one
+    /// `hover` on `trace` at the native factor for 3 s, data ÷ 100, whose
+    /// frames give the refresh rate and whose window gives the factor and
+    /// the backend iced chose.
+    Display,
+    /// The quick level's cells (D22.9): `hover`, `pan-x` and `zoom-lines`
+    /// on `trace` and `scatter100k`, and `drag-resize` on `trace`, at the
+    /// native factor, three runs each; report-only. Its software profile
+    /// selects `pan-x` and `zoom-lines` on `trace`.
     Quick,
     /// The verdict's cells: five runs each, `soak` once.
     Default,
@@ -78,12 +86,17 @@ const REGISTERED: [Workload; 4] = [
 
 /// Process start, data, first frame and the 2 s settle, per run: the
 /// estimate's allowance on real hardware.
-const OVERHEAD_MS: f64 = 4_000.0;
+pub const OVERHEAD_MS: f64 = 4_000.0;
+
+/// How long the display measurement hovers, ms: with the driver's 2 s
+/// settle about 300 frame intervals at 60 Hz, 150 at 30 Hz.
+const DISPLAY_MS: f64 = 3_000.0;
 
 impl Plan {
     /// Every plan.
-    pub const ALL: [Plan; 6] = [
+    pub const ALL: [Plan; 7] = [
         Plan::Smoke,
+        Plan::Display,
         Plan::Quick,
         Plan::Default,
         Plan::Weak,
@@ -95,6 +108,7 @@ impl Plan {
     pub fn name(self) -> &'static str {
         match self {
             Plan::Smoke => "smoke",
+            Plan::Display => "display",
             Plan::Quick => "quick",
             Plan::Default => "default",
             Plan::Weak => "weak",
@@ -112,8 +126,8 @@ impl Plan {
     /// `selection`, in report order.
     pub fn cells(self, native: f32, selection: &Selection) -> Vec<Cell> {
         let runs = match self {
-            Plan::Smoke => 1,
-            Plan::Quick => 2,
+            Plan::Smoke | Plan::Display => 1,
+            Plan::Quick => 3,
             Plan::Default | Plan::Weak | Plan::Focus | Plan::Full => 5,
         };
         let cell = |scenario, workload, factor| Cell {
@@ -134,7 +148,18 @@ impl Plan {
                     }
                 }
             }
-            Plan::Quick | Plan::Default => {
+            Plan::Display => cells.push(cell(Scenario::Hover, Workload::Trace, native)),
+            Plan::Quick => {
+                for workload in [Workload::Trace, Workload::Scatter100k] {
+                    for scenario in [Scenario::Hover, Scenario::PanX, Scenario::ZoomLines] {
+                        cells.push(cell(scenario, workload, native));
+                    }
+                    if workload == Workload::Trace {
+                        cells.push(cell(Scenario::DragResize, workload, native));
+                    }
+                }
+            }
+            Plan::Default => {
                 for scenario in Scenario::ALL {
                     if scenario != Scenario::Soak {
                         cells.push(cell(scenario, Workload::Trace, native));
@@ -215,6 +240,7 @@ impl Plan {
         match (self, scenario) {
             (Plan::Smoke, Scenario::Soak) => 20_000.0,
             (Plan::Smoke, _) => scenario.duration_ms() / 5.0,
+            (Plan::Display, _) => DISPLAY_MS,
             (Plan::Quick | Plan::Default | Plan::Weak | Plan::Focus | Plan::Full, _) => {
                 scenario.duration_ms()
             }
@@ -224,7 +250,7 @@ impl Plan {
     /// The workloads' data size in this plan (1 = full).
     pub fn data_scale(self) -> f64 {
         match self {
-            Plan::Smoke => 0.01,
+            Plan::Smoke | Plan::Display => 0.01,
             Plan::Quick | Plan::Default | Plan::Weak | Plan::Focus | Plan::Full => 1.0,
         }
     }
@@ -342,7 +368,57 @@ mod tests {
             Plan::Default.cells(1.75, &Selection::default()).len(),
             10 + 12 + 8 + 1
         );
-        assert_eq!(Plan::Quick.cells(2.0, &Selection::default())[0].runs, 2);
+    }
+
+    #[test]
+    fn quick_plan_has_d22_9s_cells() {
+        let cells = Plan::Quick.cells(1.0, &Selection::default());
+        let named: Vec<(Scenario, Workload)> =
+            cells.iter().map(|c| (c.scenario, c.workload)).collect();
+        assert_eq!(
+            named,
+            [
+                (Scenario::Hover, Workload::Trace),
+                (Scenario::PanX, Workload::Trace),
+                (Scenario::ZoomLines, Workload::Trace),
+                (Scenario::DragResize, Workload::Trace),
+                (Scenario::Hover, Workload::Scatter100k),
+                (Scenario::PanX, Workload::Scatter100k),
+                (Scenario::ZoomLines, Workload::Scatter100k),
+            ]
+        );
+        assert!(
+            cells
+                .iter()
+                .all(|c| c.factor == 1.0 && c.runs == 3 && c.applies())
+        );
+        // About 5.4 minutes on real hardware; the software profile's two
+        // cells about 1.6.
+        let minutes = Plan::Quick.estimate_s(&cells) / 60.0;
+        assert!((5.0..6.0).contains(&minutes), "{minutes}");
+        let software = Selection {
+            scenarios: Some(vec![Scenario::PanX, Scenario::ZoomLines]),
+            workloads: Some(vec![Workload::Trace]),
+            ..Selection::default()
+        };
+        let cells = Plan::Quick.cells(1.0, &software);
+        assert_eq!(cells.len(), 2);
+        let minutes = Plan::Quick.estimate_s(&cells) / 60.0;
+        assert!((1.5..1.7).contains(&minutes), "{minutes}");
+    }
+
+    #[test]
+    fn the_display_plan_is_one_short_hover() {
+        let cells = Plan::Display.cells(1.25, &Selection::default());
+        assert_eq!(cells.len(), 1);
+        let cell = cells[0];
+        assert_eq!(
+            (cell.scenario, cell.workload, cell.factor, cell.runs),
+            (Scenario::Hover, Workload::Trace, 1.25, 1)
+        );
+        assert_eq!(Plan::Display.duration_ms(Scenario::Hover), 3_000.0);
+        assert_eq!(Plan::Display.data_scale(), 0.01);
+        assert_eq!(Plan::parse("display"), Some(Plan::Display));
     }
 
     #[test]

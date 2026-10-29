@@ -36,6 +36,40 @@ const FOCUS: &str = "the focus plan reruns what Phase 31e changed (D22.5): the z
 const FOCUS_OUTCOME: &str = "report-only: the focus plan is not the rule's run; its verdicts \
                              show where each cell stands against the desktop budgets";
 
+/// What the display plan is, said before its verdicts.
+const DISPLAY: &str = "the display measurement that starts every level (D22.9): one short \
+                       window whose idle frames give the refresh rate and which reports the \
+                       scale factor and the renderer iced chose. Its numbers decide nothing.";
+
+/// The display plan's outcome line, in place of the rule's.
+const DISPLAY_OUTCOME: &str = "no verdict by design: the display measurement only measures the \
+                               display";
+
+/// What the quick plan is, said before its budget table.
+const QUICK: &str = "the quick level (D22.9) runs what a performance issue needs, three runs a \
+                     cell. Its cells are held to the desktop budgets (D22.1) on the native \
+                     backend and to the weak budgets (D22.4) on the software renderer, to show \
+                     where each stands; it is not the rule's run, and its verdicts decide \
+                     nothing.";
+
+/// What the quick plan's outcome line starts with.
+const QUICK_OUTCOME: &str = "report-only, the quick level: ";
+
+/// What a run's report is, by its plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    /// The smoke plan at one run a cell: no verdict by design.
+    Smoke,
+    /// The display measurement: no verdict by design.
+    Display,
+    /// The focus plan: report-only.
+    Focus,
+    /// The quick level's plan: report-only, with its outcome.
+    Quick,
+    /// A plan the rule reads: default, weak, full.
+    Rule,
+}
+
 /// Why the X11 profile runs, said under its heading.
 const XWAYLAND: &str = "This is a Wayland session; these runs had `WAYLAND_DISPLAY` removed, so \
                         winit opened their windows on X11 through XWayland. On Wayland, iced's \
@@ -116,7 +150,7 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
     fs::write(dir.join("inputs.csv"), inputs_csv(&cells))?;
     fs::write(dir.join("memory.csv"), memory_csv(&cells))?;
     let period = 1e3 / meta.refresh_hz;
-    let profile = Profile::of(&meta.plan);
+    let profile = budgets_of(&meta);
     let checks: Vec<(usize, Scenario, Check)> = cells
         .iter()
         .enumerate()
@@ -144,33 +178,76 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
         ""
     };
     let mut summary = String::new();
-    let line = if smoke(&meta) {
-        let _ = writeln!(summary, "Smoke plan: {SMOKE}\n");
-        SMOKE_OUTCOME.to_owned()
-    } else if focus(&meta) {
-        let _ = writeln!(summary, "Focus plan, report-only: {FOCUS}\n");
-        FOCUS_OUTCOME.to_owned()
-    } else {
-        rule_line(&meta, outcome, profile)
-    };
-    budgets(&mut summary, &cells, &checks, focus(&meta));
+    let kind = kind(&meta);
+    match kind {
+        Kind::Smoke => {
+            let _ = writeln!(summary, "Smoke plan: {SMOKE}\n");
+        }
+        Kind::Display => {
+            let _ = writeln!(summary, "Display plan: {DISPLAY}\n");
+        }
+        Kind::Focus => {
+            let _ = writeln!(summary, "Focus plan, report-only: {FOCUS}\n");
+        }
+        Kind::Quick | Kind::Rule => {}
+    }
+    let line = outcome_line(&meta, kind, outcome, profile);
+    budgets(&mut summary, &cells, &checks, kind);
     Ok(format!("{summary}Rule outcome{headless}: {line}"))
 }
 
-/// Whether the run is the smoke plan at one run per cell.
-fn smoke(meta: &Meta) -> bool {
-    meta.plan == Plan::Smoke.name() && meta.cells.iter().all(|cell| cell.runs <= 1)
+/// What the run's report is.
+fn kind(meta: &Meta) -> Kind {
+    match Plan::parse(&meta.plan) {
+        Some(Plan::Smoke) if meta.cells.iter().all(|cell| cell.runs <= 1) => Kind::Smoke,
+        Some(Plan::Display) => Kind::Display,
+        Some(Plan::Focus) => Kind::Focus,
+        Some(Plan::Quick) => Kind::Quick,
+        Some(Plan::Smoke | Plan::Default | Plan::Weak | Plan::Full) | None => Kind::Rule,
+    }
 }
 
-/// Whether the run is the focus plan, which is report-only.
-fn focus(meta: &Meta) -> bool {
-    meta.plan == Plan::Focus.name()
+/// The budgets the run's cells are held to: `--budgets`, else the plan's.
+fn budgets_of(meta: &Meta) -> Profile {
+    meta.budgets
+        .as_deref()
+        .and_then(Profile::parse)
+        .unwrap_or_else(|| Profile::of(&meta.plan))
 }
 
-/// The rule's outcome line, marked report-only on X11 through XWayland.
-fn rule_line(meta: &Meta, outcome: Outcome, profile: Profile) -> String {
-    let prefix = if meta.xwayland { XWAYLAND_OUTCOME } else { "" };
+/// The outcome line: the rule's, marked report-only on X11 through
+/// XWayland and at the quick level; a fixed line for the plans without a
+/// verdict.
+fn outcome_line(meta: &Meta, kind: Kind, outcome: Outcome, profile: Profile) -> String {
+    let prefix = match (kind, meta.xwayland) {
+        (Kind::Smoke, _) => return SMOKE_OUTCOME.to_owned(),
+        (Kind::Display, _) => return DISPLAY_OUTCOME.to_owned(),
+        (Kind::Focus, _) => return FOCUS_OUTCOME.to_owned(),
+        (Kind::Quick, true) => format!("{QUICK_OUTCOME}{XWAYLAND_OUTCOME}"),
+        (Kind::Quick, false) => QUICK_OUTCOME.to_owned(),
+        (Kind::Rule, true) => XWAYLAND_OUTCOME.to_owned(),
+        (Kind::Rule, false) => String::new(),
+    };
     format!("{prefix}{}", outcome.line(profile))
+}
+
+/// The backend the runs ran on: the one asked for, or with `auto` the
+/// one iced chose (from the runs' headers).
+fn backend_of(meta: &Meta, cells: &[Cell<'_>]) -> String {
+    if meta.backend != "auto" {
+        return meta.backend.clone();
+    }
+    let mut chosen: Vec<&str> = Vec::new();
+    for metrics in cells.iter().flat_map(|c| &c.runs) {
+        if !chosen.contains(&metrics.run.backend.as_str()) {
+            chosen.push(&metrics.run.backend);
+        }
+    }
+    if chosen.is_empty() {
+        "auto (iced's choice)".to_owned()
+    } else {
+        format!("{} (iced's choice)", chosen.join(", "))
+    }
 }
 
 /// Every frame pass of every run.
@@ -391,6 +468,8 @@ fn markdown(
         "windowed"
     };
     let _ = writeln!(md, "# rustd3-bench {}\n", meta.stamp);
+    let kind = kind(meta);
+    let backend = backend_of(meta, cells);
     let threads = meta.threads.map_or_else(
         || "the widget's default (available parallelism − 1, 1 to 8)".to_owned(),
         |n| n.to_string(),
@@ -400,7 +479,7 @@ fn markdown(
         "Plan `{}`, {mode}; backend {}, present mode {}; {} Hz (T = {:.2} ms), native factor {}; \
          render {}, caching {}, readback {}, render threads {threads}; data scale {}.\n",
         meta.plan,
-        meta.backend,
+        backend,
         meta.present_mode,
         meta.refresh_hz,
         1e3 / meta.refresh_hz,
@@ -427,15 +506,24 @@ fn markdown(
         meta.command
     );
     let _ = writeln!(md, "## The registered rule\n\n{}", rule::READINGS);
-    if focus(meta) {
-        let _ = writeln!(md, "## Focus plan (report-only)\n\n{FOCUS}\n");
+    match kind {
+        Kind::Focus => {
+            let _ = writeln!(md, "## Focus plan (report-only)\n\n{FOCUS}\n");
+        }
+        Kind::Quick => {
+            let _ = writeln!(md, "## Quick level (report-only)\n\n{QUICK}\n");
+        }
+        Kind::Display => {
+            let _ = writeln!(md, "## Display measurement\n\n{DISPLAY}\n");
+        }
+        Kind::Smoke | Kind::Rule => {}
     }
-    let profile = Profile::of(&meta.plan);
+    let profile = budgets_of(meta);
     if profile == Profile::Weak {
-        let gpu = if meta.backend == "tiny-skia" {
+        let gpu = if backend.starts_with("tiny-skia") {
             "no GPU (tiny-skia)".to_owned()
         } else {
-            format!("{}, {}", meta.backend, meta.gpu)
+            format!("{backend}, {}", meta.gpu)
         };
         let limit = meta.cpu_limit.as_deref().map_or_else(
             || "cores as the process found them".to_owned(),
@@ -460,7 +548,7 @@ fn markdown(
             );
         }
     }
-    budgets(&mut md, cells, checks, focus(meta));
+    budgets(&mut md, cells, checks, kind);
     metrics(&mut md, cells);
     drags(&mut md, cells);
     attribution(&mut md, cells, checks);
@@ -485,14 +573,10 @@ fn markdown(
         .iter()
         .filter(|c| c.2.verdict == Verdict::Inconclusive)
         .count();
-    let line = if smoke(meta) {
+    if kind == Kind::Smoke {
         let _ = writeln!(md, "**Smoke plan:** {SMOKE}\n");
-        SMOKE_OUTCOME.to_owned()
-    } else if focus(meta) {
-        FOCUS_OUTCOME.to_owned()
-    } else {
-        rule_line(meta, outcome, profile)
-    };
+    }
+    let line = outcome_line(meta, kind, outcome, profile);
     let _ = writeln!(
         md,
         "{} checks: {} met, {missed} missed, {inconclusive} inconclusive.\n\n**{line}**",
@@ -503,17 +587,14 @@ fn markdown(
 }
 
 /// The budget table: a row per cell, "n/a" cells included; its heading
-/// says so when the plan is `report_only`.
-fn budgets(
-    md: &mut String,
-    cells: &[Cell<'_>],
-    checks: &[(usize, Scenario, Check)],
-    report_only: bool,
-) {
-    let heading = if report_only {
-        "Budgets (report-only: the desktop budgets the rule uses; not the rule's run)"
-    } else {
-        "Budgets"
+/// says so when the plan is report-only.
+fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)], kind: Kind) {
+    let heading = match kind {
+        Kind::Focus => {
+            "Budgets (report-only: the desktop budgets the rule uses; not the rule's run)"
+        }
+        Kind::Quick => "Budgets (report-only: the quick level, not the rule's run)",
+        Kind::Smoke | Kind::Display | Kind::Rule => "Budgets",
     };
     let _ = writeln!(
         md,
