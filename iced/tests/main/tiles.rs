@@ -122,6 +122,21 @@ pub fn tiles(samples: &[Sample]) -> Vec<(u32, i32, i32, u32)> {
         .collect()
 }
 
+/// What the last frame sample among `samples` shows: (missing,
+/// previews).
+pub fn last_frame(samples: &[Sample]) -> (u32, u32) {
+    samples
+        .iter()
+        .rev()
+        .find_map(|sample| match sample {
+            Sample::Frame {
+                missing, previews, ..
+            } => Some((*missing, *previews)),
+            Sample::Raster { .. } | Sample::Stage { .. } | Sample::Mismatch { .. } => None,
+        })
+        .expect("a frame sample")
+}
+
 /// The widget over `fig` at `k`, inline, without the overlay, reporting
 /// to `probe`.
 fn plot(fig: Figure<'static>, k: f32, probe: &Probe) -> Plot<'static, ()> {
@@ -282,8 +297,10 @@ fn sized(w: i64, h: i64, k: f32) -> Size {
 
 /// A drag of `d` device px over [`figure`] at `size` and `k`, its
 /// overscan ring resident: the tiles that render in the drag's frame
-/// (area, i, j), how many gutter cells, and the frame against a fresh
-/// render of the snapped domain; also the plot area and the backend.
+/// (area, i, j), how many gutter cells, the frame against a fresh render
+/// of the snapped domain, and once the release ends the drag the tiles
+/// that render and what the frame shows (missing, previews); also the
+/// plot area and the backend.
 fn drag_by(k: f32, size: Size, d: i32) -> Option<Dragged> {
     let (tx, rx) = mpsc::channel();
     let probe = Probe::new(clock, tx);
@@ -324,8 +341,11 @@ fn drag_by(k: f32, size: Size, d: i32) -> Option<Dragged> {
     let max = against(&shot, &reference).max();
     release(&mut harness);
     let _ = harness.frame(t0 + FRAME * 3);
+    let ended: Vec<Sample> = rx.try_iter().collect();
+    let released = tiles(&ended).len();
+    let settled = last_frame(&ended);
     println!(
-        "drag of {d} device px over a {} × {} plot area, {backend}, k = {k}: {first} tiles at first, then {rendered} tiles {keys:?} and {cells} cells; against a fresh render of the snapped domain max {max}/255",
+        "drag of {d} device px over a {} × {} plot area, {backend}, k = {k}: {first} tiles at first, then {rendered} tiles {keys:?} and {cells} cells; against a fresh render of the snapped domain max {max}/255; at the release {released} tiles, (missing, previews) {settled:?}",
         area[2] - area[0],
         area[3] - area[1],
     );
@@ -334,6 +354,8 @@ fn drag_by(k: f32, size: Size, d: i32) -> Option<Dragged> {
         rendered,
         cells,
         max,
+        released,
+        settled,
         area,
         backend,
     })
@@ -345,6 +367,8 @@ struct Dragged {
     rendered: usize,
     cells: usize,
     max: u8,
+    released: usize,
+    settled: (u32, u32),
     area: [i64; 4],
     backend: String,
 }
@@ -353,10 +377,14 @@ struct Dragged {
 fn pan_renders_only_entering_tiles() {
     // The spot checks: a 900 × 600 device-px plot area, its ring of 6 × 5
     // keys resident, each rendered over its whole square (D31.6). +37 px:
-    // no visible tile renders, the column i = −2 enters (its 5 rows, each
-    // its square [−475, −219)); −37 px: no key enters, and the ring column
-    // i = 4, rendered over [1024, 1280), lies at [987, 1243), its square:
-    // no tile renders.
+    // no visible tile renders, and the column i = −2 that enters the ring
+    // (its 5 rows, each its square [−475, −219)) waits for the drag to end
+    // (D22.5 (1)): no tile renders in the drag's frame; −37 px: no key
+    // enters, and the ring column i = 4, rendered over [1024, 1280), lies
+    // at [987, 1243), its square: no tile renders. The release ends the
+    // drag and the layout settles (the panned axis's labels reach out
+    // differently, so here the plot area moves and every key renders
+    // anew): its frame shows every tile sharp.
     let size = sized(900, 600, 1.0);
     for (d, entering) in [(37, Some(-2)), (-37, None)] {
         let Some(drag) = drag_by(1.0, size, d) else {
@@ -366,8 +394,13 @@ fn pan_renders_only_entering_tiles() {
             .into_iter()
             .flat_map(|i| (-1..=3).map(move |j| (i, j)))
             .collect();
-        assert_eq!(drag.keys, expected, "{}: {d} px", drag.backend);
-        assert_eq!(drag.rendered, expected.len(), "{}: {d} px", drag.backend);
+        assert!(drag.keys.is_empty(), "{}: {d} px", drag.backend);
+        assert_eq!(drag.rendered, 0, "{}: {d} px", drag.backend);
+        assert!(
+            drag.released >= expected.len() && drag.settled == (0, 0),
+            "{}: {d} px",
+            drag.backend
+        );
         assert!(drag.cells > 0, "the gutter cells showing x render");
         assert!(
             drag.max <= bound(&drag.backend),
@@ -381,9 +414,12 @@ fn pan_renders_only_entering_tiles() {
         return;
     };
     let rows = (drag.area[3] - drag.area[1] + TILE - 1) / TILE;
-    let entering: HashSet<(i32, i32)> = (-1..=rows as i32).map(|j| (-2, j)).collect();
-    assert_eq!(drag.keys, entering, "{}, k = 2", drag.backend);
-    assert_eq!(drag.rendered, entering.len(), "{}, k = 2", drag.backend);
+    assert_eq!(drag.rendered, 0, "{}, k = 2", drag.backend);
+    assert!(
+        drag.released >= rows as usize + 2 && drag.settled == (0, 0),
+        "{}, k = 2",
+        drag.backend
+    );
     assert!(
         drag.max <= bound(&drag.backend),
         "{}, k = 2: max {}/255",
@@ -863,8 +899,9 @@ type Replayed = (u32, u32, usize);
 /// logical px, left for 600 px (at most 60% of the width), then back;
 /// `frames` frames 16 ms apart under `Render::Worker`, each followed by
 /// the worker's renders (a worker that keeps up). Per frame after the
-/// press: (missing, previews), and the tiles rendered after it.
-fn pan_replay(rec: &Recording<f64>, k: f32, frames: u32) -> Option<(Vec<Replayed>, String)> {
+/// press: (missing, previews), and the tiles rendered after it; then the
+/// tiles rendered once the release ends the drag.
+fn pan_replay(rec: &Recording<f64>, k: f32, frames: u32) -> Option<(Vec<Replayed>, usize, String)> {
     let (tx, rx) = mpsc::channel();
     let x = [10.0, 30.0];
     let plot = Plot::<()>::new(traced(rec, x, false))
@@ -912,7 +949,10 @@ fn pan_replay(rec: &Recording<f64>, k: f32, frames: u32) -> Option<(Vec<Replayed
         seen.push((missing, previews, tiles(&samples).len()));
     }
     release(&mut harness);
-    Some((seen, backend))
+    let _ = harness.frame(t0 + FRAME * (frames + 2));
+    drain(&mut harness);
+    let released = tiles(&rx.try_iter().collect::<Vec<_>>()).len();
+    Some((seen, released, backend))
 }
 
 #[test]
@@ -920,13 +960,13 @@ fn a_pan_over_a_trace_keeps_the_plot_areas_current() {
     // D22.1: the benchmark's pan-x over the trace showed outdated plot
     // areas on 94% of frames: each frame re-rendered whole plot-area
     // cells, which the worker delivered a frame late. With tiles, the
-    // translated images cover the plot areas and only the ring's tiles
-    // render, after the frame: a worker that keeps up leaves no frame
-    // outdated.
+    // translated images cover the plot areas: a worker that keeps up
+    // leaves no frame outdated. The ring's entering columns wait for the
+    // drag to end (D22.5 (1)) and render at its release.
     let _workers = crate::pipeline::workers();
     let rec = trace(400_000);
     for k in [1.0_f32, 2.0] {
-        let Some((frames, backend)) = pan_replay(&rec, k, 30) else {
+        let Some((frames, released, backend)) = pan_replay(&rec, k, 30) else {
             return;
         };
         let after = &frames[1..];
@@ -937,7 +977,7 @@ fn a_pan_over_a_trace_keeps_the_plot_areas_current() {
         let ring: usize = after.iter().map(|&(_, _, tiles)| tiles).sum();
         let share = outdated as f64 / after.len() as f64;
         println!(
-            "pan-x over the trace, {backend}, k = {k}: {} frames; after the first, {outdated} showed outdated plot-area content ({:.1}%), {ring} tiles rendered after them ({:.1} per frame)",
+            "pan-x over the trace, {backend}, k = {k}: {} frames; after the first, {outdated} showed outdated plot-area content ({:.1}%), {ring} tiles rendered after them ({:.1} per frame), {released} at the release",
             frames.len(),
             100.0 * share,
             ring as f64 / after.len() as f64
@@ -947,6 +987,9 @@ fn a_pan_over_a_trace_keeps_the_plot_areas_current() {
             "{backend}, k = {k}: {:.1}%, {frames:?}",
             100.0 * share
         );
-        assert!(ring > 0, "{backend}, k = {k}: the ring follows the pan");
+        assert!(
+            released > 0,
+            "{backend}, k = {k}: the ring renders at the release"
+        );
     }
 }

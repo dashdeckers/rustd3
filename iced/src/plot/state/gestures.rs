@@ -1,6 +1,8 @@
 //! Gestures through the widget's state: queued pointers applied at each
 //! `RedrawRequested`, what they store, and what they publish.
 
+use std::sync::mpsc;
+
 use iced_core::Size;
 use iced_core::shell::Waker;
 use iced_core::time::{Duration, Instant};
@@ -14,6 +16,7 @@ use rustd3_figure::{Figure, Held, Target, axis};
 use super::{Pipeline, State};
 use crate::plot::domains::Key;
 use crate::plot::listener::Listener;
+use crate::plot::probe::{self, Probe, Sample};
 use crate::plot::{Caching, Render};
 
 /// Dots on y (handle 0, linear [0, 10]) and x (handle 1, linear [0, 100]
@@ -72,6 +75,101 @@ fn redraw<Message>(
         threads: 1,
     };
     state.redraw(fig, 1.0, now, &pipeline, (listeners, &[]))
+}
+
+/// One inline `RedrawRequested(now)` at factor 1 reported to a probe: the
+/// tiles it rendered, as (column, row) of plot area 0's grid.
+fn rendered(state: &mut State, fig: &Figure<'_>, now: Instant) -> Keys {
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(epoch, tx);
+    let pipeline = Pipeline {
+        render: Render::Inline,
+        caching: Caching::On,
+        revision: 0,
+        probe: Some(&probe),
+        waker: &Waker::noop(),
+        threads: 1,
+    };
+    state.redraw::<()>(fig, 1.0, now, &pipeline, (&[], &[]));
+    let mut tiles: Keys = rx
+        .try_iter()
+        .filter_map(|sample| match sample {
+            Sample::Raster {
+                target: probe::Target::Tile { i, j, .. },
+                ..
+            } => Some((i, j)),
+            Sample::Raster { .. }
+            | Sample::Stage { .. }
+            | Sample::Frame { .. }
+            | Sample::Mismatch { .. } => None,
+        })
+        .collect();
+    tiles.sort_unstable();
+    tiles
+}
+
+/// Tiles as (column, row) of a plot area's grid.
+type Keys = Vec<(i32, i32)>;
+
+/// Plot area 0's tiles, sorted: those that meet the area and those of its
+/// ring.
+fn keys(state: &State) -> (Keys, Keys) {
+    let area = &state.areas[0];
+    let (mut shown, mut ring) = (Keys::new(), Keys::new());
+    for tile in area.tiles() {
+        let key = (tile.key().i, tile.key().j);
+        if area.shows(tile) {
+            shown.push(key);
+        } else {
+            ring.push(key);
+        }
+    }
+    shown.sort_unstable();
+    ring.sort_unstable();
+    (shown, ring)
+}
+
+/// Dots on x (handle 0, [0, 100]) and y (handle 1, [0, 10]) in a panel
+/// without axes that zooms both: its plot area lies where it does
+/// whatever the domains.
+fn bare() -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 100.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 10.0]));
+    let points = vec![(20.0, 1.0), (50.0, 5.0), (90.0, 9.0)];
+    fig.panel(0, 0).mark(dots(points, x, y)).zoom_x(x).zoom_y(y);
+    fig
+}
+
+#[test]
+fn a_zoom_renders_the_tiles_that_show_and_the_ring_once_it_ends() {
+    let mut state = state();
+    let t0 = epoch();
+    let fig = bare();
+    let first = rendered(&mut state, &fig, t0);
+    let (shown, ring) = keys(&state);
+    assert_eq!((shown.len(), ring.len()), (4, 12));
+    let all = {
+        let mut all = [shown.clone(), ring.clone()].concat();
+        all.sort_unstable();
+        all
+    };
+    assert_eq!(first, all, "the first frame renders every tile");
+    // A wheel step zooms both handles: every key is new, and only the four
+    // that show render while the gesture lasts.
+    let area = state.map.area(0).expect("one panel");
+    let rect = state.areas[0].rect();
+    assert!(state.queue(wheel(area.center())).capture);
+    let step = rendered(&mut state, &fig, t0 + Duration::from_millis(16));
+    let (shown, ring) = keys(&state);
+    assert_eq!(step, shown, "during the gesture");
+    assert!(rendered(&mut state, &fig, t0 + Duration::from_millis(160)).is_empty());
+    // The first redraw 300 ms after the step ends the gesture: the plot
+    // area stays, and its ring renders.
+    let settled = rendered(&mut state, &fig, t0 + Duration::from_millis(316));
+    assert_eq!(state.areas[0].rect(), rect);
+    assert_eq!(settled, ring, "once the gesture ends");
+    assert!(rendered(&mut state, &fig, t0 + Duration::from_millis(332)).is_empty());
 }
 
 /// One wheel line up (zoom in) at `at`, list px.

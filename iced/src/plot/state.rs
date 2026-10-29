@@ -88,6 +88,9 @@ pub(crate) struct State {
     /// Where the last gesture input was, list px: the pool renders the
     /// tiles nearest it first.
     focus: Option<kurbo::Point>,
+    /// Whether tiles of the overscan ring wait for the gesture in progress
+    /// to end: the first refresh after it renders them.
+    deferred: bool,
     /// Turns iced events into pointer input in the widget's logical px.
     tracker: Tracker,
     /// Pointer input waiting for the next `RedrawRequested`.
@@ -163,6 +166,7 @@ impl Default for State {
             overlay: Overlay::default(),
             pool: None,
             focus: None,
+            deferred: false,
             tracker: Tracker::default(),
             input: Input::default(),
             domains: Domains::default(),
@@ -711,6 +715,13 @@ impl State {
         self.brushes.iter().any(Brush::is_active)
     }
 
+    /// Whether a gesture is in progress: a drag, a wheel gesture until its
+    /// end or a brush gesture. Its refreshes render only the tiles that
+    /// meet the plot areas; the ring waits for it to end.
+    fn is_active(&self) -> bool {
+        self.gesture.is_some() || self.is_brushing()
+    }
+
     /// The brush of the plot area at `at` (list px), if its panel has one.
     fn brush_at(&self, at: kurbo::Point) -> Option<usize> {
         let Region::Area { panel } = self.map.at(at) else {
@@ -986,7 +997,9 @@ impl State {
             (pipeline.caching, pipeline.revision),
         );
         let verify = pipeline.caching == Caching::Verify;
-        if plan.is_empty() && !verify {
+        // The first refresh after a gesture renders the ring it left.
+        let settle = self.deferred && !self.is_active();
+        if plan.is_empty() && !verify && !settle {
             return 0;
         }
         if !plan.is_empty() {
@@ -1047,6 +1060,12 @@ impl State {
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
         let generation = self.generation;
         let todo = self.waiting();
+        self.deferred = self.is_active()
+            && self.areas.iter().any(|area| {
+                area.tiles()
+                    .iter()
+                    .any(|tile| tile.slot().pending().is_some() && !area.shows(tile))
+            });
         // An earlier set's jobs render again at this generation.
         for &at in &todo {
             self.requeue(at, generation);
@@ -1280,8 +1299,11 @@ impl State {
     /// exact, then the gutters and the overlays, then the ring of tiles
     /// around each area and the tiles whose part inside it is exact; the
     /// tiles of each group nearest the last gesture input first (each
-    /// area's centre without one).
+    /// area's centre without one). During a gesture the ring waits: each
+    /// step of a zoom would render it all again, two to three times the
+    /// tiles that show.
     fn waiting(&self) -> Vec<At> {
+        let active = self.is_active();
         let tiles = |ring: bool| {
             let mut tiles: Vec<(f64, At)> = self
                 .areas
@@ -1292,8 +1314,9 @@ impl State {
                         .iter()
                         .enumerate()
                         .filter(move |(_, tile)| {
-                            let late = !area.shows(tile) || area.is_exact(tile);
-                            tile.slot().pending().is_some() && late == ring
+                            let shows = area.shows(tile);
+                            let late = !shows || area.is_exact(tile);
+                            tile.slot().pending().is_some() && late == ring && (shows || !active)
                         })
                         .map(move |(t, tile)| (self.distance(area, tile), At::Tile(p, t)))
                 })

@@ -90,7 +90,9 @@
 //!
 //! Changed tiles, cells and overlays render in order (visible tiles
 //! nearest the last gesture input first, then the gutters and overlays,
-//! then the ring): inline each one whose predicted time still fits half
+//! then the ring, which waits while a drag, a wheel burst or a brush
+//! lasts, since each zoom step would render it all again, and renders
+//! once it ends): inline each one whose predicted time still fits half
 //! the frame budget with those before it, by a cost model each widget fits
 //! to its own renders (seeded by [`cost`]), and the rest on a pool of
 //! threads the widget owns ([`Plot::threads`]), newest wins per tile;

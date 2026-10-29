@@ -150,6 +150,26 @@ fn against(shot: &Shot, reference: &rustd3_figure::raster::Image) -> u8 {
         .max()
 }
 
+/// How many tiles of a grid anchored at device x `x` (y at the area's top)
+/// meet the plot area `area`: those a drag's frame renders when every
+/// tile changes, the ring waiting for the drag to end (D22.5 (1)).
+fn shown(area: [i64; 4], x: i64) -> i64 {
+    let span = |a: i64, b: i64, at: i64| {
+        (b - 1 - at).div_euclid(tiles::TILE) - (a - at).div_euclid(tiles::TILE) + 1
+    };
+    span(area[0], area[2], x) * span(area[1], area[3], area[1])
+}
+
+/// Releases the left button and draws a frame at `at`: the drag ends; the
+/// samples of that frame.
+fn release(harness: &mut Harness<'_, ()>, rx: &mpsc::Receiver<Sample>, at: Instant) -> Vec<Sample> {
+    let _ = harness.events(&[Event::Mouse(mouse::Event::ButtonReleased(
+        mouse::Button::Left,
+    ))]);
+    let _ = harness.frame(at);
+    rx.try_iter().collect()
+}
+
 /// Presses at `from` (logical px), then moves to `to`, a frame each from
 /// `t0`; the samples of the move's frame and its screenshot.
 fn drag(
@@ -174,7 +194,10 @@ fn drag(
 #[test]
 fn unchanged_panels_are_kept() {
     // A drag over the left panel pans its own x: the right panel, its
-    // tiles and the gutter cells that show only its axes, render nothing.
+    // tiles and the gutter cells that show only its axes, render nothing,
+    // and neither does the left area, whose entering column of the ring
+    // waits for the drag to end (D22.5 (1)); the release's frame, the
+    // layout settled, is sharp.
     let k = 1.0;
     let (tx, rx) = mpsc::channel();
     let probe = Probe::new(clock, tx);
@@ -193,6 +216,9 @@ fn unchanged_panels_are_kept() {
     let to = Point::new(from.x + 37.0, from.y);
     let (samples, _) = drag(&mut harness, &rx, (from, to), t0);
     let rendered = targets(&samples);
+    let ended = release(&mut harness, &rx, t0 + FRAME * 3);
+    let settled = tiles::last_frame(&ended);
+    let ended = targets(&ended);
     let rows = (areas[0][3] - areas[0][1] + 255) / 256;
     let right: Vec<_> = rendered
         .iter()
@@ -202,6 +228,10 @@ fn unchanged_panels_are_kept() {
         .iter()
         .filter(|t| matches!(t, probe::Target::Tile { area: 0, .. }))
         .collect();
+    let entered = ended
+        .iter()
+        .filter(|t| matches!(t, probe::Target::Tile { .. }))
+        .count();
     let cells: HashSet<u32> = rendered
         .iter()
         .filter_map(|t| match t {
@@ -217,17 +247,17 @@ fn unchanged_panels_are_kept() {
         })
         .collect();
     println!(
-        "a drag over the left of two panels, {backend}: {} left tiles, {} right tiles, {} of {} gutter and overlay slots render",
+        "a drag over the left of two panels, {backend}: {} left tiles, {} right tiles, {} of {} gutter and overlay slots render; at the release {entered} tiles, (missing, previews) {settled:?}",
         left.len(),
         right.len(),
         cells.len(),
         gutters.len()
     );
     assert!(right.is_empty(), "{backend}: {right:?}");
-    assert_eq!(
-        left.len() as i64,
-        rows + 2,
-        "{backend}: the entering column of the left area"
+    assert!(left.is_empty(), "{backend}: {left:?}");
+    assert!(
+        entered as i64 >= rows + 2 && settled == (0, 0),
+        "{backend}: the entering column of the left area at the release"
     );
     assert!(
         !cells.is_empty() && cells.len() < gutters.len(),
@@ -239,8 +269,9 @@ fn unchanged_panels_are_kept() {
 fn style_change_during_a_pan_re_renders() {
     // A drag by whole pixels translates the tiles; when the figure comes
     // back with another color mid-drag, its positions moved but its style
-    // hash did not stay: every tile of the area renders, and the frame is
-    // the new color's at the snapped domain.
+    // hash did not stay: every tile of the area that shows renders, and
+    // the frame is the new color's at the snapped domain; the ring renders
+    // once the drag ends (D22.5 (1)).
     let blue = Rgb::new(30.0, 60.0, 140.0);
     let red = Rgb::new(200.0, 30.0, 30.0);
     for k in [1.0_f32, 2.0] {
@@ -284,6 +315,7 @@ fn style_change_during_a_pan_re_renders() {
         let shot = harness.frame(t0 + FRAME * 3);
         let samples: Vec<Sample> = rx.try_iter().collect();
         let restyled = tiles::tiles(&samples).len();
+        let ring = tiles::tiles(&release(&mut harness, &rx, t0 + FRAME * 4)).len();
         let w = (area[2] - area[0]) as f64 / f64::from(k);
         let domain = tiles::panned([0.0, 100.0], w, 30.0);
         let logical = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
@@ -295,11 +327,19 @@ fn style_change_during_a_pan_re_renders() {
             &held,
         );
         let max = against(&shot, &reference);
+        let visible = shown(area, area[0] + (30.0 * k).round() as i64);
         println!(
-            "a style change mid-drag, {backend}, k = {k}: {all} tiles at first, {kept} on the translated frame, {restyled} after the new color; against a fresh render max {max}/255"
+            "a style change mid-drag, {backend}, k = {k}: {all} tiles at first, {kept} on the translated frame, {restyled} after the new color, {ring} at the release; against a fresh render max {max}/255"
         );
         assert!(kept < all, "{backend}, k = {k}: the translation kept tiles");
-        assert_eq!(restyled, all, "{backend}, k = {k}: every tile renders");
+        assert_eq!(
+            restyled as i64, visible,
+            "{backend}, k = {k}: every tile that shows renders"
+        );
+        assert!(
+            ring > 0,
+            "{backend}, k = {k}: the ring renders at the release"
+        );
         assert!(max <= bound(&backend), "{backend}, k = {k}: max {max}/255");
     }
 }
@@ -309,7 +349,8 @@ fn visible_y_refit_during_a_pan_re_renders() {
     // A drag by whole pixels moves x, and the y handle, fitted to what x
     // shows, grows to the data entering on the right in the same refresh:
     // the views say translation, the scales do not (D31.7), so every tile
-    // of the area renders at once and the frame is the refitted figure.
+    // of the area that shows renders at once (the ring once the drag ends,
+    // D22.5 (1)) and the frame is the refitted figure.
     let (x, drag_px) = ([0.0, 50.0], -37.0_f32);
     for k in [1.0_f32, 2.0] {
         let (tx, rx) = mpsc::channel();
@@ -357,11 +398,18 @@ fn visible_y_refit_during_a_pan_re_renders() {
             &held,
         );
         let max = against(&shot, &reference);
+        let visible = shown(
+            area,
+            area[0] + (f64::from(drag_px) * f64::from(k)).round() as i64,
+        );
         println!(
             "a Fit::Visible y refit during a pan, {backend}, k = {k}: y {y0:?} → {y1:?}; {all} tiles at first, {rendered} on the drag's frame; against the refitted figure max {max}/255"
         );
         assert_ne!(y0, y1, "{backend}, k = {k}: y refits during the pan");
-        assert_eq!(rendered, all, "{backend}, k = {k}: every tile renders");
+        assert_eq!(
+            rendered as i64, visible,
+            "{backend}, k = {k}: every tile that shows renders"
+        );
         assert!(max <= bound(&backend), "{backend}, k = {k}: max {max}/255");
     }
 }
