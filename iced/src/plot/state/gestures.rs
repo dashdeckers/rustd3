@@ -468,6 +468,48 @@ fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
 }
 
 #[test]
+fn during_a_gesture_the_gutters_wait_ahead_of_the_tiles() {
+    // D22.7 (4b): a wheel step over a panel with axes changes its tiles,
+    // its axis strips and the overlays over its edges; on the pool the
+    // gutters and overlays render first, so the axes keep step with the
+    // data. Idle, the tiles that show still go first.
+    let mut state = state();
+    let t0 = epoch();
+    let fig = panel(false);
+    rendered(&mut state, &fig, t0);
+    let waker = Waker::noop();
+    let area = state.map.area(0).expect("one panel");
+    assert!(state.queue(wheel(area.center())).capture);
+    let step = t0 + Duration::from_millis(16);
+    let pipeline = piped(Render::Worker, None, &waker);
+    state.redraw::<()>(&fig, 1.0, step, &pipeline, (&[], &[]));
+    let kinds = |order: &[super::At]| -> String {
+        order
+            .iter()
+            .map(|at| match at {
+                super::At::Tile(..) => 't',
+                super::At::Gutter(_) | super::At::Overlay(..) => 'g',
+            })
+            .collect()
+    };
+    let during = kinds(&state.waiting());
+    let gutters = during.matches('g').count();
+    assert!(
+        gutters > 0 && during.matches('t').count() > 0,
+        "a step changes both: {during}"
+    );
+    assert!(
+        during.starts_with(&"g".repeat(gutters)),
+        "the gutters first: {during}"
+    );
+    // The gesture ends: what the settle renders puts the tiles first.
+    let settled = step + Duration::from_millis(300);
+    state.redraw::<()>(&fig, 1.0, settled, &pipeline, (&[], &[]));
+    let after = kinds(&state.waiting());
+    assert!(after.starts_with('t'), "idle: {after}");
+}
+
+#[test]
 fn the_hit_index_waits_for_a_gesture_to_end_and_hover_stays_right() {
     // D22.5 (7): the index is built for a widget that hovers, not during
     // a gesture (scatter1m spent 46–62 ms a pan frame on it), and by the

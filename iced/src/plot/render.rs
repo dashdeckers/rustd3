@@ -9,7 +9,8 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Render {
     /// In order (visible tiles nearest the last gesture input, the
-    /// gutters, the ring, which waits for a gesture to end), inline each
+    /// gutters, the ring, which waits for a gesture to end; during a
+    /// gesture the gutters and overlays first), inline each
     /// render whose predicted time still fits half the frame budget with
     /// those before it, the rest on the pool; results arrive as
     /// `Event::Waken`. While a wheel burst (until its end) or a brush

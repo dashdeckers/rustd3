@@ -1338,9 +1338,11 @@ impl State {
     /// exact, then the gutters and the overlays, then the ring of tiles
     /// around each area and the tiles whose part inside it is exact; the
     /// tiles of each group nearest the last gesture input first (each
-    /// area's centre without one). During a gesture the ring waits: each
-    /// step of a zoom would render it all again, two to three times the
-    /// tiles that show.
+    /// area's centre without one). During a gesture the gutters and the
+    /// overlays go first, so that on the pool the axes render ahead of the
+    /// tiles each step replaces and keep step with the data (D22.7 (4b));
+    /// and the ring waits: each step of a zoom would render it all again,
+    /// two to three times the tiles that show.
     fn waiting(&self) -> Vec<At> {
         let active = self.is_active();
         let tiles = |ring: bool| {
@@ -1371,11 +1373,19 @@ impl State {
                 .filter(move |&o| area.overlays()[o].pending().is_some())
                 .map(move |o| At::Overlay(p, o))
         });
-        tiles(false)
-            .chain(gutters)
-            .chain(overlays)
-            .chain(tiles(true))
-            .collect()
+        if active {
+            gutters
+                .chain(overlays)
+                .chain(tiles(false))
+                .chain(tiles(true))
+                .collect()
+        } else {
+            tiles(false)
+                .chain(gutters)
+                .chain(overlays)
+                .chain(tiles(true))
+                .collect()
+        }
     }
 
     /// How far `tile`'s centre lies from the last gesture input, or from
