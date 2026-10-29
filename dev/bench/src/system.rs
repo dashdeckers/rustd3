@@ -125,6 +125,10 @@ pub struct Meta {
     /// `suite` passes); `None` when nothing limited them.
     #[serde(default)]
     pub cpu_limit: Option<String>,
+    /// The runs' windows used X11 through XWayland in a Wayland session
+    /// (`--xwayland`, D22.8): the report is report-only.
+    #[serde(default)]
+    pub xwayland: bool,
     /// Every cell of the plan, "n/a" ones included.
     pub cells: Vec<Planned>,
 }

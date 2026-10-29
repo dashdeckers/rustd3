@@ -57,7 +57,15 @@ was started in:
 2. `default/`, about 47 minutes: the verdict's rerun.
 3. `weak-nogpu/`, about 7 minutes: the `weak` plan on the software
    renderer (`--backend tiny-skia`), as on a machine without a GPU.
-4. `weak-4cores/` and `weak-2cores/`, about 7 minutes each: the `weak`
+4. `weak-nogpu-x11/`, about 7 minutes, only in a Linux Wayland session
+   with XWayland (`WAYLAND_DISPLAY` and `DISPLAY` both set): the same
+   plan again with `WAYLAND_DISPLAY` removed (`run --xwayland`), so its
+   windows open on X11 through XWayland. On Wayland, iced's software
+   renderer reaches the widget about 8 frames a second during a gesture
+   where X11 draws hundreds (D22.8); this profile measures the widget's
+   software path apart from that. It is report-only, and its report's
+   heading says so. Elsewhere the suite skips it and says so in one line.
+5. `weak-4cores/` and `weak-2cores/`, about 7 minutes each: the `weak`
    plan on wgpu limited to 4 and to 2 cores. On Linux the bench is
    pinned with `taskset -c 0-3` and `0-1` when `taskset` is installed;
    on Windows with `cmd /C start "" /B /WAIT /AFFINITY F` and `3`;
@@ -67,12 +75,13 @@ was started in:
    (`meta.json`'s `cpu_limit`). A machine with fewer cores skips the
    profile, with a message.
 
-About 76 minutes in all, plus the build. Each plan's console goes to
-`run-<plan>.log` (`run-smoke.log`, `run-default.log`, `run-weak-nogpu.log`,
-…) and the diagnostics to `system.txt`, beside them; its first lines say
-the refresh rate and factor the suite used and how each weak profile's
-cores were limited. The suite ends with the directory, each report's rule
-outcome and the `tar` command for sending it.
+About 76 minutes in all, 83 in a Wayland session, plus the build. Each
+plan's console goes to `run-<plan>.log` (`run-smoke.log`,
+`run-default.log`, `run-weak-nogpu.log`, …) and the diagnostics to
+`system.txt`, beside them; its first lines say the refresh rate and
+factor the suite used, how each weak profile's cores were limited, and
+whether `weak-nogpu-x11` ran. The suite ends with the directory, each
+report's rule outcome and the `tar` command for sending it.
 
 - `--refresh-hz 144` and `--native-factor 1.25` (on Linux `HZ=144
   FACTOR=1.25 dev/bench/run.sh`) override what the first windows report;
@@ -80,20 +89,21 @@ outcome and the `tar` command for sending it.
   `scaling-factor`, when set, on Linux) and run at a provisional 60 Hz.
 - `--smoke-only` stops after smoke.
 - `--focus` runs D22.5's focus plan in place of smoke and the default
-  plan, then the three weak profiles, into the same layout: `probe/`,
+  plan, then the weak profiles, into the same layout: `probe/`,
   about 2 minutes, one run of the focus plan's first cell, whose windows
   measure the display as smoke's do; `focus/`, about 17 minutes; then
-  `weak-nogpu/`, `weak-4cores/` and `weak-2cores/`. About 40 minutes in
-  all, plus the build.
+  `weak-nogpu/`, `weak-nogpu-x11/` (Wayland sessions), `weak-4cores/`
+  and `weak-2cores/`. About 40 minutes in all, 47 in a Wayland session,
+  plus the build.
 - `--out DIR` writes under `DIR` instead of `bench-results`.
 
 Smoke runs each cell once, so its report reads "inconclusive" everywhere
 by design: verdicts need 5 runs per cell, and smoke only checks that
 windows open, take the replayed input and close.
 
-Windows open and close for about 70 minutes after smoke (the default
-plan's 140 runs of about 16 s and one 10-minute soak, then 3 × 25 runs);
-do not touch the mouse or keyboard.
+Windows open and close for about 70 minutes after smoke, 77 in a Wayland
+session (the default plan's 140 runs of about 16 s and one 10-minute
+soak, then 3 × 25 runs, or 4 × 25); do not touch the mouse or keyboard.
 Real input is ignored during a run, but focus changes and pointer warps
 can still disturb the compositor. Bench windows are not resizable, so a
 tiling window manager should float them at their size; one that resizes
@@ -148,6 +158,9 @@ target/release/rustd3-bench run --plan default --refresh-hz <HZ> \
     --native-factor <F> --out ~/bench-out
 target/release/rustd3-bench run --plan weak --backend tiny-skia \
     --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
+# Wayland sessions only: the same on X11 through XWayland (report-only)
+target/release/rustd3-bench run --plan weak --backend tiny-skia --xwayland \
+    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
 taskset -c 0-3 target/release/rustd3-bench run --plan weak \
     --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
 taskset -c 0-1 target/release/rustd3-bench run --plan weak \
@@ -171,7 +184,7 @@ from the script, `<--out>/<UTC stamp>/` by hand):
 
 | File | Content |
 | --- | --- |
-| `meta.json` | machine, cores (as pinned), GPU and driver, session, present mode, backend, refresh, factors, render threads, caching, compiler, revisions, the cost model's constants and its measured calibration |
+| `meta.json` | machine, cores (as pinned), GPU and driver, session (and `xwayland`: X11 through XWayland), present mode, backend, refresh, factors, render threads, caching, compiler, revisions, the cost model's constants and its measured calibration |
 | `system.txt` | the session's variables, `xrandr --current`, `cosmic-randr list`, the GNOME scaling factors, `nvidia-smi`, `uname -a`, `/etc/os-release` (each if present, 5 s at most) |
 | `replays/*.jsonl` | the generated input, one event per line |
 | `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster, `sys` and (under `--caching verify`) mismatch record of one run |

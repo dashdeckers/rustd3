@@ -158,6 +158,9 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     if cells.is_empty() {
         return Err("the flags select no cell (see `rustd3-bench list`)".into());
     }
+    if options.xwayland && !suite::xwayland() {
+        return Err(format!("--xwayland: {}", suite::NO_XWAYLAND).into());
+    }
     let stamp = system::stamp();
     let dir = options.out.join(&stamp);
     fs::create_dir_all(dir.join("replays"))?;
@@ -193,6 +196,10 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("ICED_BACKEND", options.backend.name());
             if let Some(mode) = options.present_mode {
                 command.env("ICED_PRESENT_MODE", mode.name());
+            }
+            if options.xwayland {
+                // winit prefers Wayland while this is set (D22.8).
+                command.env_remove("WAYLAND_DISPLAY");
             }
             let begin = Instant::now();
             let status = command.status()?;
@@ -317,6 +324,7 @@ fn meta(
         gpu_baseline_mb: system::gpu_mb(),
         clk_tck: system::clk_tck(),
         cpu_limit: options.cpu_limit.clone(),
+        xwayland: options.xwayland,
         cells: cells
             .iter()
             .map(|cell| Planned {

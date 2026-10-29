@@ -36,6 +36,18 @@ const FOCUS: &str = "the focus plan reruns what Phase 31e changed (D22.5): the z
 const FOCUS_OUTCOME: &str = "report-only: the focus plan is not the rule's run; its verdicts \
                              show where each cell stands against the desktop budgets";
 
+/// Why the X11 profile runs, said under its heading.
+const XWAYLAND: &str = "This is a Wayland session; these runs had `WAYLAND_DISPLAY` removed, so \
+                        winit opened their windows on X11 through XWayland. On Wayland, iced's \
+                        software renderer reaches the widget about 8 frames a second during a \
+                        gesture where X11 draws hundreds (D22.8: winit's frame throttling with \
+                        softbuffer's presentation, not the widget's drawing). This profile \
+                        measures the widget's software path apart from that; it decides \
+                        nothing, and `weak-nogpu` stays the no-GPU profile.";
+
+/// What the X11 profile's outcome line starts with.
+const XWAYLAND_OUTCOME: &str = "report-only, X11 through XWayland (D22.8): ";
+
 /// One planned cell and its runs.
 struct Cell<'a> {
     planned: &'a Planned,
@@ -134,12 +146,12 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let mut summary = String::new();
     let line = if smoke(&meta) {
         let _ = writeln!(summary, "Smoke plan: {SMOKE}\n");
-        SMOKE_OUTCOME
+        SMOKE_OUTCOME.to_owned()
     } else if focus(&meta) {
         let _ = writeln!(summary, "Focus plan, report-only: {FOCUS}\n");
-        FOCUS_OUTCOME
+        FOCUS_OUTCOME.to_owned()
     } else {
-        outcome.line(profile)
+        rule_line(&meta, outcome, profile)
     };
     budgets(&mut summary, &cells, &checks, focus(&meta));
     Ok(format!("{summary}Rule outcome{headless}: {line}"))
@@ -153,6 +165,12 @@ fn smoke(meta: &Meta) -> bool {
 /// Whether the run is the focus plan, which is report-only.
 fn focus(meta: &Meta) -> bool {
     meta.plan == Plan::Focus.name()
+}
+
+/// The rule's outcome line, marked report-only on X11 through XWayland.
+fn rule_line(meta: &Meta, outcome: Outcome, profile: Profile) -> String {
+    let prefix = if meta.xwayland { XWAYLAND_OUTCOME } else { "" };
+    format!("{prefix}{}", outcome.line(profile))
 }
 
 /// Every frame pass of every run.
@@ -423,13 +441,24 @@ fn markdown(
             || "cores as the process found them".to_owned(),
             |limit| limit.to_owned(),
         );
-        let _ = writeln!(
-            md,
-            "## Weak profile: {gpu}, {} cores ({limit})\n\n{}\nThe budget table below holds \
-             this profile's cells to these budgets; its outcome closes the report.\n",
-            meta.cores,
-            rule::WEAK
-        );
+        if meta.xwayland {
+            let _ = writeln!(
+                md,
+                "## Weak profile (report-only): {gpu} on X11 through XWayland, {} cores \
+                 ({limit})\n\n{XWAYLAND}\n\n{}\nThe budget table below holds this profile's \
+                 cells to these budgets; its outcome closes the report, report-only.\n",
+                meta.cores,
+                rule::WEAK
+            );
+        } else {
+            let _ = writeln!(
+                md,
+                "## Weak profile: {gpu}, {} cores ({limit})\n\n{}\nThe budget table below holds \
+                 this profile's cells to these budgets; its outcome closes the report.\n",
+                meta.cores,
+                rule::WEAK
+            );
+        }
     }
     budgets(&mut md, cells, checks, focus(meta));
     metrics(&mut md, cells);
@@ -458,11 +487,11 @@ fn markdown(
         .count();
     let line = if smoke(meta) {
         let _ = writeln!(md, "**Smoke plan:** {SMOKE}\n");
-        SMOKE_OUTCOME
+        SMOKE_OUTCOME.to_owned()
     } else if focus(meta) {
-        FOCUS_OUTCOME
+        FOCUS_OUTCOME.to_owned()
     } else {
-        outcome.line(profile)
+        rule_line(meta, outcome, profile)
     };
     let _ = writeln!(
         md,

@@ -82,6 +82,10 @@ pub struct Options {
     /// `--cpu-limit TEXT`: how the cores the run may use were limited
     /// (pinned, or the render pool set), as `suite` says; recorded only.
     pub cpu_limit: Option<String>,
+    /// `--xwayland`: the runs' windows open on X11 through XWayland in a
+    /// Linux Wayland session (`WAYLAND_DISPLAY` removed from their
+    /// environment); D22.8's report-only profile, which `suite` runs.
+    pub xwayland: bool,
 }
 
 /// One run of one cell, as `run` spawns it.
@@ -165,11 +169,13 @@ run sheet):
   2. rustd3-bench suite (dev/bench/run.sh on Linux builds it first): the
      smoke plan, whose windows give the refresh rate and scale factor,
      the default plan (the verdict's) and D22.4's weak plan three times
-     (tiny-skia, then wgpu on 4 and on 2 cores), about 76 minutes; do not
-     touch the mouse or keyboard. --refresh-hz and --native-factor (HZ
-     and FACTOR for run.sh) override what the first windows report.
-     --focus runs D22.5's focus plan (report-only) in place of smoke and
-     default, then the weak plans: about 40 minutes.
+     (tiny-skia, then wgpu on 4 and on 2 cores), about 76 minutes, and in
+     a Linux Wayland session tiny-skia again on X11 through XWayland
+     (report-only, D22.8), 7 minutes more; do not touch the mouse or
+     keyboard. --refresh-hz and --native-factor (HZ and FACTOR for run.sh)
+     override what the first windows report. --focus runs D22.5's focus
+     plan (report-only) in place of smoke and default, then the weak
+     plans: about 40 minutes (47 on Wayland).
   3. By hand instead: cargo build --release -p rustd3-bench, then
      target/release/rustd3-bench run --plan default --refresh-hz <HZ>
        --native-factor <F> --out ~/bench-out
@@ -186,14 +192,15 @@ Commands:
           plan's first cell), then default (or focus) and the weak plan
           without a GPU and on 4 and 2 cores (taskset on Linux, start
           /AFFINITY on Windows, else --threads on the widget's pool; the
-          weak reports say which)
+          weak reports say which); in a Linux Wayland session with
+          XWayland also without a GPU on X11 (weak-nogpu-x11, report-only)
   run     [--plan smoke|quick|default|weak|focus|full] [--scenario A,B] [--workload A,B]
           [--factor 1,1.25] [--runs N] [--refresh-hz HZ] [--native-factor F]
           [--backend wgpu|tiny-skia]
           [--present-mode vsync|no_vsync|immediate|fifo|fifo_relaxed|mailbox]
           [--headless] [--readback every|last] [--render auto|inline|worker]
           [--caching on|off|verify] [--threads N] [--replay FILE]
-          [--data-scale F] [--cpu-limit TEXT] [--out DIR]
+          [--data-scale F] [--cpu-limit TEXT] [--xwayland] [--out DIR]
           `run` is the default command. Windowed, --refresh-hz and
           --native-factor are required; headless, they default to 60 and 2,
           and --headless without --plan is --plan smoke. --scenario,
@@ -205,7 +212,9 @@ Commands:
           of what Phase 31e changed. --threads sets the widget's render
           pool (1 to 64; default the available parallelism less one, 1 to
           8); --caching verify renders every kept image again and reports
-          what differs.
+          what differs. --xwayland (Linux, a Wayland session with
+          XWayland) removes WAYLAND_DISPLAY from the runs, whose windows
+          then open on X11; its report is report-only (D22.8).
   child   (internal: one scenario × workload × factor × run)
   replay  --out DIR       write the generated replays
   record  --out FILE      record your own input in the trace window as a
@@ -281,6 +290,10 @@ impl Options {
             }
             if flag == "--headless" {
                 options.headless = true;
+                continue;
+            }
+            if flag == "--xwayland" {
+                options.xwayland = true;
                 continue;
             }
             let value = args.next().ok_or_else(|| Error::Missing(flag.clone()))?;
@@ -461,6 +474,7 @@ impl Default for Options {
             data_scale: None,
             out: PathBuf::from("bench-out"),
             cpu_limit: None,
+            xwayland: false,
         }
     }
 }
@@ -740,10 +754,12 @@ mod tests {
         );
         assert!(Command::parse(&args("suite --smoke-only --focus")).is_err());
         assert!(Command::parse(&args("suite --pool 2")).is_err());
-        let Ok(Command::Run(limited)) = Command::parse(&args("run --cpu-limit pinned")) else {
+        let Ok(Command::Run(limited)) = Command::parse(&args("run --cpu-limit pinned --xwayland"))
+        else {
             panic!("a run");
         };
         assert_eq!(limited.cpu_limit.as_deref(), Some("pinned"));
+        assert!(limited.xwayland && !options.xwayland);
         for line in [
             "replay --out d",
             "suite",

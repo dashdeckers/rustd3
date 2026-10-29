@@ -7,9 +7,12 @@
 //! `bench-results/<UTC stamp>/` with its console in `run-<plan>.log`. A
 //! core count is enforced by pinning the bench where the system offers it
 //! (`taskset` on Linux, `start /AFFINITY` on Windows) and otherwise by the
-//! widget's render pool (`--threads`), and the report says which.
+//! widget's render pool (`--threads`), and the report says which. In a
+//! Linux Wayland session with XWayland, the no-GPU profile runs a second
+//! time on X11 (`weak-nogpu-x11`, report-only, D22.8).
 
 use std::error::Error;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -53,21 +56,39 @@ enum Limit {
 /// idle frames give the real one.
 const PROVISIONAL_HZ: f64 = 60.0;
 
+/// Why `weak-nogpu-x11` does not run here.
+pub const NO_XWAYLAND: &str = "it runs only in a Linux Wayland session with XWayland \
+                               (WAYLAND_DISPLAY and DISPLAY both set)";
+
 impl Suite {
     /// Runs it with the bench at `exe`.
     pub fn run(&self, exe: &Path) -> Result<(), Box<dyn Error>> {
-        let weak = "the weak profiles (about 21 min: no GPU, 4 cores, 2 cores)";
+        let x11 = xwayland();
+        let (weak, more) = if x11 {
+            (
+                "the weak profiles (about 28 min: no GPU, no GPU on X11 through XWayland \
+                 (report-only), 4 cores, 2 cores)",
+                7,
+            )
+        } else {
+            (
+                "the weak profiles (about 21 min: no GPU, 4 cores, 2 cores)",
+                0,
+            )
+        };
         let plans = if self.focus {
             format!(
                 "one run of the focus plan's first cell (about 2 min; it measures the display), \
-                 the focus plan (about 17 min, report-only), then {weak}; about 40 min in all"
+                 the focus plan (about 17 min, report-only), then {weak}; about {} min in all",
+                40 + more
             )
         } else if self.smoke_only {
             "the smoke plan (about 6 min; its numbers do not count)".to_owned()
         } else {
             format!(
                 "the smoke plan (about 6 min; it measures the display), the default plan (about \
-                 47 min, the verdict's run), then {weak}; about 76 min in all"
+                 47 min, the verdict's run), then {weak}; about {} min in all",
+                76 + more
             )
         };
         println!("rustd3-bench suite: {plans}.");
@@ -173,6 +194,19 @@ impl Suite {
             if !plan(exe, &out, "weak-nogpu", None, &nogpu)?.success() {
                 failed.push("weak-nogpu".to_owned());
             }
+            if x11 {
+                notes.push_str(
+                    "# weak-nogpu-x11: weak-nogpu again with WAYLAND_DISPLAY removed, on X11 \
+                     through XWayland; report-only (D22.8)\n",
+                );
+                let nogpu = [&nogpu[..], &["--xwayland"]].concat();
+                if !plan(exe, &out, "weak-nogpu-x11", None, &nogpu)?.success() {
+                    failed.push("weak-nogpu-x11".to_owned());
+                }
+            } else {
+                println!("Skipping weak-nogpu-x11: {NO_XWAYLAND}.");
+                notes.push_str(&format!("# weak-nogpu-x11: skipped, {NO_XWAYLAND}\n"));
+            }
             let cores = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
             for n in [4, 2] {
                 let name = format!("weak-{n}cores");
@@ -199,6 +233,7 @@ impl Suite {
             "default",
             "focus",
             "weak-nogpu",
+            "weak-nogpu-x11",
             "weak-4cores",
             "weak-2cores",
         ] {
@@ -458,6 +493,24 @@ fn window_factor(raw: &Path) -> Option<f32> {
     counts.into_iter().max_by_key(|&(_, n)| n).map(|(f, _)| f)
 }
 
+/// Whether this process runs in a Linux Wayland session with XWayland,
+/// where the suite runs `weak-nogpu-x11`.
+pub fn xwayland() -> bool {
+    xwayland_on(
+        std::env::consts::OS,
+        std::env::var_os("WAYLAND_DISPLAY").as_deref(),
+        std::env::var_os("DISPLAY").as_deref(),
+    )
+}
+
+/// Whether `weak-nogpu-x11` runs on `os` with these `WAYLAND_DISPLAY`
+/// and `DISPLAY`: on Linux with both set, empty counting as unset as
+/// winit reads them.
+fn xwayland_on(os: &str, wayland_display: Option<&OsStr>, display: Option<&OsStr>) -> bool {
+    let set = |var: Option<&OsStr>| var.is_some_and(|v| !v.is_empty());
+    os == "linux" && set(wayland_display) && set(display)
+}
+
 /// Whether `program` runs.
 fn present(program: &str, args: &[&str]) -> bool {
     Command::new(program)
@@ -510,9 +563,10 @@ impl Drop for Power {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
     use std::fs;
 
-    use super::{Limit, idle_hz, mask};
+    use super::{Limit, idle_hz, mask, xwayland_on};
     use crate::record::{self, Record};
 
     /// Frames every `period` ms from 0 for `n` frames.
@@ -607,5 +661,26 @@ mod tests {
             .map(|a| a.to_string_lossy().into_owned())
             .collect();
         assert_eq!(shown, ["run", "--threads", "1"]);
+    }
+
+    #[test]
+    fn the_x11_profile_runs_only_in_a_linux_wayland_session_with_xwayland() {
+        let wayland = Some(OsStr::new("wayland-1"));
+        let x = Some(OsStr::new(":0"));
+        assert!(xwayland_on("linux", wayland, x));
+        assert!(!xwayland_on("linux", None, x), "an X11 session");
+        assert!(
+            !xwayland_on("linux", wayland, None),
+            "Wayland without XWayland"
+        );
+        assert!(!xwayland_on("linux", None, None), "no display");
+        assert!(
+            !xwayland_on("linux", Some(OsStr::new("")), x),
+            "an empty WAYLAND_DISPLAY is unset to winit"
+        );
+        assert!(!xwayland_on("linux", wayland, Some(OsStr::new(""))));
+        for os in ["windows", "macos", "freebsd"] {
+            assert!(!xwayland_on(os, wayland, x), "{os}");
+        }
     }
 }
