@@ -1824,7 +1824,9 @@ impl State {
     /// lasts, and while previews or an earlier layout's gutter images
     /// show, the images are drawn in one layer over the widget whose
     /// bounds alternate between frames by half a logical px, so that
-    /// iced's software renderer redraws the widget once a frame.
+    /// iced's software renderer redraws the widget once a frame; on that
+    /// renderer an area that shows a preview layer is drawn as one image
+    /// composed on the CPU ([`Area::draw_mosaic`]).
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
@@ -1852,6 +1854,12 @@ impl State {
         let grown = moving && !self.grown.get();
         self.grown.set(grown);
         let layer = if grown { bounds.expand(0.5) } else { bounds };
+        // A renderer that reports no scale is iced's software one
+        // (`scale_factor`): while an area shows a preview layer, its scaled
+        // and overlapping tiles are composed on the CPU and drawn as one
+        // image (`Mosaic`), each image costing tiny-skia a frame-sized clip
+        // mask and a filtered pass.
+        let software = renderer.scale().is_none();
         renderer.with_layer(layer, |renderer| {
             for run in &self.gutters {
                 run.slot().fill(renderer, origin, factor, background);
@@ -1863,7 +1871,12 @@ impl State {
                 run.slot().draw(renderer, origin, factor);
             }
             for (p, area) in self.areas.iter().enumerate() {
-                area.draw(renderer, (origin, factor), self.peek(p), background);
+                let at = (origin, factor);
+                if software && area.has_preview() {
+                    area.draw_mosaic(renderer, at, self.peek(p), background);
+                } else {
+                    area.draw(renderer, at, self.peek(p), background);
+                }
             }
         });
         for brush in &self.brushes {

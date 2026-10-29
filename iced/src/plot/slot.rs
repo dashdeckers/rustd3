@@ -8,6 +8,7 @@ use iced_core::renderer::Quad;
 use iced_core::{Color, Rectangle};
 use rustd3_figure::kurbo::Rect;
 
+use crate::plot::mosaic::{Mosaic, Source};
 use crate::plot::preview::{Affine1, Basis};
 use crate::plot::{BAND_BYTES, NUDGE};
 
@@ -43,12 +44,38 @@ pub(crate) struct Band {
     /// Device rows relative to the cell.
     rows: Range<i32>,
     handle: image::Handle,
+    /// Whether every pixel is opaque: a mosaic copies its rows.
+    opaque: bool,
 }
 
 impl Band {
     /// Rows `rows` of a cell, shown by `handle`.
     pub(crate) fn new(rows: Range<i32>, handle: image::Handle) -> Band {
-        Band { rows, handle }
+        let opaque =
+            rgba(&handle).is_some_and(|pixels| pixels.chunks_exact(4).all(|p| p[3] == 255));
+        Band {
+            rows,
+            handle,
+            opaque,
+        }
+    }
+
+    /// The band as a mosaic's source: its pixels, size and opacity.
+    fn source(&self) -> Option<Source<'_>> {
+        match &self.handle {
+            image::Handle::Rgba {
+                width,
+                height,
+                pixels,
+                ..
+            } => Some(Source {
+                rgba: pixels,
+                width: *width,
+                height: *height,
+                opaque: self.opaque,
+            }),
+            image::Handle::Path(..) | image::Handle::Bytes(..) => None,
+        }
     }
 }
 
@@ -347,6 +374,48 @@ impl Slot {
             };
             let image = image::Image::new(band.handle.clone()).filter_method(FilterMethod::Linear);
             renderer.draw_image(image, bounds, cell);
+        }
+    }
+
+    /// Lays the image, if there is one, into `mosaic` as
+    /// [`draw_at`](Slot::draw_at) draws it: on its device pixels moved by
+    /// `shift`, clipped to `clip`.
+    pub(crate) fn lay_at(&self, mosaic: &mut Mosaic, shift: [i32; 2], clip: [i32; 4]) {
+        let Some(shown) = &self.shown else {
+            return;
+        };
+        let [x0, y0, x1, _] = self.rect;
+        for band in &shown.bands {
+            let Some(source) = band.source() else {
+                continue;
+            };
+            let at = [
+                x0 + shift[0],
+                y0 + band.rows.start + shift[1],
+                x1 + shift[0],
+                y0 + band.rows.end + shift[1],
+            ];
+            mosaic.lay(source, at.map(f64::from), clip);
+        }
+    }
+
+    /// Lays the image, if there is one, into `mosaic` as
+    /// [`draw_mapped`](Slot::draw_mapped) draws it: each band at its
+    /// device rect mapped by `maps`, clipped to `clip`, sampled nearest.
+    pub(crate) fn lay_mapped(&self, mosaic: &mut Mosaic, maps: [Affine1; 2], clip: [i32; 4]) {
+        let Some(shown) = &self.shown else {
+            return;
+        };
+        let [x0, y0, x1, _] = self.rect;
+        let [mx, my] = maps;
+        for band in &shown.bands {
+            let Some(source) = band.source() else {
+                continue;
+            };
+            let (left, right) = (mx.apply(f64::from(x0)), mx.apply(f64::from(x1)));
+            let top = my.apply(f64::from(y0 + band.rows.start));
+            let bottom = my.apply(f64::from(y0 + band.rows.end));
+            mosaic.lay(source, [left, top, right, bottom], clip);
         }
     }
 

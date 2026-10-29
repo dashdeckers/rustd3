@@ -5,7 +5,8 @@
 //! frame composed as a window composes it, paced at 60 Hz with the pool's
 //! results landing between frames. One frame mid-burst and one mid-drag
 //! are kept: their images (and the scaled ones among them), the handles
-//! the renderer had not drawn the frame before, and what composing the
+//! the renderer had not drawn the frame before, the widget's draw (which
+//! composes a mosaic on the software renderer), and what composing the
 //! frame costs, the first time (which converts the new handles) and warm
 //! (the median of later compositions of the same frame). The same images
 //! are then replayed through a widget that only draws them, as captured
@@ -58,12 +59,13 @@ struct Drawn {
 }
 
 /// A kept frame: its images, the plot areas' device rects, the handles new
-/// to the renderer (count and bytes) and its composition, first and warm,
-/// ms.
+/// to the renderer (count and bytes), the widget's draw and the frame's
+/// composition, first and warm, ms.
 struct Kept {
     images: Vec<Drawn>,
     areas: Vec<[i32; 4]>,
     new: (usize, u64),
+    draw: f64,
     first: f64,
     warm: f64,
 }
@@ -170,12 +172,13 @@ fn describe(workload: Workload, gesture: Gesture, k: f32, kept: &Kept) -> String
     };
     let mut text = format!(
         "{} {gesture} at {k}: {} images ({scaled} scaled), {:.2} Mpx drawn, {} new handles \
-         ({:.2} MB); composed first {:.1} ms, warm {:.1} ms",
+         ({:.2} MB); the widget's draw {:.1} ms, composed first {:.1} ms, warm {:.1} ms",
         workload.name(),
         kept.images.len(),
         pixels / 1e6,
         kept.new.0,
         kept.new.1 as f64 / 1e6,
+        kept.draw,
         kept.first,
         kept.warm
     );
@@ -393,7 +396,9 @@ impl Window {
             &mut self.renderer,
             &mut self.bus,
         );
+        let begin = Instant::now();
         let mut images = self.draw(ui, at);
+        let draw = begin.elapsed().as_secs_f64() * 1e3;
         let new: Vec<&Drawn> = images
             .iter()
             .filter(|d| !self.drawn.contains(&d.handle.id()))
@@ -432,6 +437,7 @@ impl Window {
             images,
             areas,
             new,
+            draw,
             first,
             warm: percentile(&times, 50.0)?,
         })

@@ -103,7 +103,12 @@
 //! thread only composes and renders the gutters and overlays the model
 //! allows, while a drag's entering column renders inline when it fits.
 //! [`Plot::render`] forces either path. Plot areas of at least 10,000
-//! markers splat them on screen (`raster::Renderer::splat`).
+//! markers splat them on screen (`raster::Renderer::splat`). On iced's
+//! software renderer (one that reports no scale), a plot area that shows
+//! a preview layer is composed into one image on the CPU first and drawn
+//! at once: its scaled, overlapping tiles would each cost tiny-skia a
+//! frame-sized clip mask and a filtered pass, and every new tile a
+//! conversion; the previews are then sampled nearest.
 //! Until a cell's new image arrives it keeps its previous one, a preview
 //! of outdated content, and a cell that never had one shows the theme's
 //! background. When the partition's rects change (the layout settling
@@ -245,6 +250,7 @@ mod job;
 mod layer;
 mod listener;
 mod merge;
+mod mosaic;
 mod overlay;
 mod preview;
 pub mod probe;

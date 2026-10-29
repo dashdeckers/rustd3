@@ -78,10 +78,12 @@ fn sine(n: usize, seed: usize) -> Vec<(f64, f64)> {
 }
 
 /// A renderer that records what a widget draws, for the tests of how it
-/// draws.
+/// draws: by default one that reports no scale, as iced's software
+/// renderer does; [`Recorder::gpu`] reports one, as the GPU renderer does.
 #[derive(Debug, Default)]
 pub(crate) struct Recorder {
     pub(crate) drawn: Vec<Drawn>,
+    scale: Option<renderer::Scale>,
 }
 
 /// One call a [`Recorder`] received.
@@ -98,6 +100,28 @@ pub(crate) enum Drawn {
 }
 
 impl Recorder {
+    /// A recorder that reports a scale of 1, as the GPU renderer does.
+    pub(crate) fn gpu() -> Recorder {
+        Recorder {
+            drawn: Vec::new(),
+            scale: Some(renderer::Scale {
+                window: 1.0,
+                application: 1.0,
+            }),
+        }
+    }
+
+    /// The bounds of each image drawn, with linear filtering or not.
+    pub(crate) fn drawn_images(&self) -> Vec<(Rectangle, bool)> {
+        self.drawn
+            .iter()
+            .filter_map(|drawn| match drawn {
+                Drawn::Image { bounds, linear } => Some((*bounds, *linear)),
+                Drawn::Layer(_) | Drawn::Close | Drawn::Quad => None,
+            })
+            .collect()
+    }
+
     /// The bounds of each layer opened, in order.
     pub(crate) fn layers(&self) -> Vec<Rectangle> {
         self.drawn
@@ -168,7 +192,7 @@ impl iced_core::Renderer for Recorder {
     fn hint(&mut self, _scale: renderer::Scale) {}
 
     fn scale(&self) -> Option<renderer::Scale> {
-        None
+        self.scale
     }
 
     fn reset(&mut self, _new_bounds: Rectangle) {
