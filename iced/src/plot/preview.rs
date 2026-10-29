@@ -108,23 +108,26 @@ impl Affine1 {
     }
 
     /// `shares`, a map of range shares, as a map of device px along
-    /// `along` for a cell whose device edges along it are `edges`, in the
-    /// plot area `area` (list px) at `factor` device px per list px: two
-    /// points, the cell's edges, taken through the shares and back.
+    /// `along` for a cell whose device edges along it are `edges`,
+    /// rendered in the plot area `from` and shown in the plot area `to`
+    /// (list px; the same area unless a new layout moved it, D22.6 (4a)),
+    /// at `factor` device px per list px: two points, the cell's edges,
+    /// taken to shares of `from`, through `shares`, and back to device px
+    /// of `to`.
     pub(crate) fn device(
         shares: Affine1,
         along: Along,
-        area: Rect,
+        (from, to): (Rect, Rect),
         factor: f64,
         edges: [i32; 2],
     ) -> Option<Affine1> {
-        if shares.is_identity() {
+        if shares.is_identity() && from == to {
             return Some(Affine1::IDENTITY);
         }
         let [a, b] = edges.map(f64::from);
         let mapped = |p: f64| {
-            let share = share(along, area, factor, p);
-            px(along, area, factor, shares.apply(share))
+            let share = share(along, from, factor, p);
+            px(along, to, factor, shares.apply(share))
         };
         Affine1::through((a, mapped(a)), (b, mapped(b)))
     }
@@ -176,15 +179,40 @@ mod tests {
         // shares zoomed ×2 about their middle.
         let area = Rect::new(50.0, 20.0, 450.0, 320.0);
         let zoom = Affine1::new(2.0, -0.5);
-        let x = Affine1::device(zoom, Along::X, area, 2.0, [100, 900]).expect("a map");
+        let x = Affine1::device(zoom, Along::X, (area, area), 2.0, [100, 900]).expect("a map");
         // Device x 500 is the area's middle: it stays; its left edge
         // (100) goes 400 px further left.
         assert_eq!((x.apply(500.0), x.apply(100.0)), (500.0, -300.0));
-        let y = Affine1::device(zoom, Along::Y, area, 2.0, [40, 640]).expect("a map");
+        let y = Affine1::device(zoom, Along::Y, (area, area), 2.0, [40, 640]).expect("a map");
         assert_eq!((y.apply(340.0), y.apply(640.0)), (340.0, 940.0));
         // Shares that move nothing move no device px.
-        let still = Affine1::device(Affine1::IDENTITY, Along::Y, area, 2.0, [40, 100]);
+        let still = Affine1::device(Affine1::IDENTITY, Along::Y, (area, area), 2.0, [40, 100]);
         assert_eq!(still, Some(Affine1::IDENTITY));
+    }
+
+    #[test]
+    fn a_new_layout_maps_the_old_area_onto_the_new_one() {
+        // D22.6 (4a): the layout settles with the area's left edge 10 list
+        // px further right and its bottom 5 px higher, at factor 2. The
+        // same shares put the old area's edges on the new one's, whatever
+        // the views did.
+        let from = Rect::new(50.0, 20.0, 450.0, 320.0);
+        let to = Rect::new(60.0, 20.0, 450.0, 315.0);
+        let at = |map: Affine1, p: f64, expected: f64| {
+            let got = map.apply(p);
+            assert!((got - expected).abs() < 1e-9, "{p} ↦ {got}, not {expected}");
+        };
+        let still = Affine1::IDENTITY;
+        let x = Affine1::device(still, Along::X, (from, to), 2.0, [100, 900]).expect("a map");
+        at(x, 100.0, 120.0);
+        at(x, 900.0, 900.0);
+        let y = Affine1::device(still, Along::Y, (from, to), 2.0, [40, 640]).expect("a map");
+        at(y, 40.0, 40.0);
+        at(y, 640.0, 630.0);
+        // Zoomed ×2 about the middle: the old middle is the new middle.
+        let zoom = Affine1::new(2.0, -0.5);
+        let x = Affine1::device(zoom, Along::X, (from, to), 2.0, [100, 900]).expect("a map");
+        at(x, 500.0, 510.0);
     }
 
     #[test]

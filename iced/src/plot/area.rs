@@ -22,7 +22,12 @@
 //! joins the preview layer too: a burst of zoom steps shows sharp but
 //! stale tiles as they finish, not only the tiles from before the burst
 //! scaled ever further (D22.5 (2)). The preview layer is drawn oldest
-//! first; a tile whose mapped rect newer ones cover goes.
+//! first; a tile whose mapped rect newer ones cover goes. When a new
+//! layout replaces the area (its rect or the partition changed, as when
+//! the layout settles after a gesture), the new area takes the old one's
+//! tiles with an image and its preview layer into its own, each mapped
+//! from the plot area it was rendered in to the new one, so that no frame
+//! shows the background where content was (D22.6 (4a)).
 //!
 //! The keys cover the area grown by one tile on every side: the overscan
 //! ring, rendered after the visible tiles, which a pan brings into view
@@ -66,15 +71,22 @@ pub(crate) struct Area {
     style: u64,
     /// The grid's keys that meet the grown rect, row by row.
     tiles: Vec<Tile>,
-    /// Tiles of an earlier grid, drawn mapped while the grid's visible
-    /// ones are not all sharp.
-    preview: Vec<Tile>,
+    /// Tiles of an earlier grid or layout, drawn mapped while the grid's
+    /// visible ones are not all sharp.
+    preview: Vec<Preview>,
     /// What stays put over the tiles, each over the device rect it reaches
     /// into the area.
     overlays: Vec<Slot>,
     /// The scale of the handle leading each axis, by handle, as the last
     /// refresh that drew the area's layer resolved it.
     leads: [Option<(domains::Key, Box<dyn Scale>)>; 2],
+}
+
+/// A tile of the preview layer, and the plot area (list px) its image was
+/// rendered in: the area's own, or the one an earlier layout gave it.
+struct Preview {
+    tile: Tile,
+    list: Rect,
 }
 
 /// How a refresh moved an area's grid.
@@ -171,10 +183,16 @@ impl Area {
         &mut self.tiles
     }
 
+    /// Whether the area draws a preview layer: images of an earlier grid
+    /// or layout, mapped to the views now.
+    pub(crate) fn has_preview(&self) -> bool {
+        !self.preview.is_empty()
+    }
+
     /// The preview layer's tiles, oldest first.
     #[cfg(test)]
-    pub(crate) fn preview(&self) -> &[Tile] {
-        &self.preview
+    pub(crate) fn preview(&self) -> Vec<&Tile> {
+        self.preview.iter().map(|preview| &preview.tile).collect()
     }
 
     /// The overlays.
@@ -189,8 +207,7 @@ impl Area {
 
     /// Whether `tile` meets the area itself, not only its ring.
     pub(crate) fn shows(&self, tile: &Tile) -> bool {
-        let [x0, y0, x1, y1] = tile::intersect(tile.rect(), self.rect);
-        x0 < x1 && y0 < y1
+        tile::meets(tile.rect(), self.rect)
     }
 
     /// Whether `tile` shows its part inside the area exact: an image of
@@ -398,15 +415,7 @@ impl Area {
         (view, factor, now): ([Option<Basis>; 2], f64, [Option<Basis>; 2]),
     ) -> bool {
         if serial != self.serial {
-            let maps = view
-                .iter()
-                .zip(&now)
-                .all(|(planned, now)| match (planned, now) {
-                    (Some(planned), Some(now)) => planned.to(*now).is_some(),
-                    (None, None) => true,
-                    (Some(_), None) | (None, Some(_)) => false,
-                });
-            let Some(bands) = bands.filter(|_| maps) else {
+            let Some(bands) = bands.filter(|_| maps_to(view, now)) else {
                 return false;
             };
             let key = Key {
@@ -416,7 +425,8 @@ impl Area {
             };
             let mut tile = Tile::new(key, rect, at, hash);
             tile.slot_mut().land(generation, hash, Some(bands), view);
-            self.layer([tile], (factor, now));
+            let list = self.list;
+            self.layer([Preview { tile, list }], (factor, now));
             return true;
         }
         let Some(tile) = self
@@ -497,9 +507,20 @@ impl Area {
     /// What the following draw shows at factor `factor` and the views
     /// `now`, counted over the visible tiles and the overlays: a tile whose
     /// image falls short of its part inside the area counts as a preview,
-    /// and so does one without an image that the preview layer covers.
+    /// and so does one without an image that the preview layer covers. An
+    /// overlay draws over the tiles, so one without an image counts as a
+    /// preview where they show content under it.
     pub(crate) fn shown(&self, factor: f32, now: [Option<Basis>; 2]) -> Shown {
         let cover = self.coverage(factor, now);
+        let origin = self.grid.origin();
+        let beneath = |rect: [i32; 4]| {
+            cover.is_some_and(|c| contains(c, rect))
+                || self
+                    .tiles
+                    .iter()
+                    .filter(|tile| tile::meets(tile.rect(), rect))
+                    .all(|tile| tile.covers_in(origin, rect))
+        };
         let mut shown = Shown::default();
         for tile in self.tiles.iter().filter(|tile| self.shows(tile)) {
             let slot = tile.slot();
@@ -516,7 +537,12 @@ impl Area {
         }
         for slot in &self.overlays {
             if slot.is_missing() {
-                shown.missing += 1;
+                if beneath(slot.rect()) {
+                    shown.images += 1;
+                    shown.previews += 1;
+                } else {
+                    shown.missing += 1;
+                }
                 continue;
             }
             shown.images += 1;
@@ -564,16 +590,18 @@ impl Area {
             );
         }
         let [x0, y0, x1, y1] = self.rect.map(f64::from);
-        for tile in &self.preview {
+        for preview in &self.preview {
             // The ring's previews lie outside the area until a zoom out
             // brings them in; each image drawn costs the software renderer
             // a frame-sized clip mask.
-            let [a0, b0, a1, b1] = self.mapped(tile, f64::from(factor), now);
+            let [a0, b0, a1, b1] = self.mapped(preview, f64::from(factor), now);
             if a1 <= x0 || x1 <= a0 || b1 <= y0 || y1 <= b0 {
                 continue;
             }
-            let maps = self.maps(tile, factor, now);
-            tile.slot()
+            let maps = self.maps(preview, factor, now);
+            preview
+                .tile
+                .slot()
                 .draw_mapped(renderer, (origin, factor), maps, self.rect);
         }
         for tile in visible() {
@@ -600,7 +628,7 @@ impl Area {
             let map = match (self.anchor[i], now[i]) {
                 (Some(was), Some(is)) => {
                     let shares = was.to(is)?;
-                    Affine1::device(shares, along, self.list, factor, edges)?
+                    Affine1::device(shares, along, (self.list, self.list), factor, edges)?
                 }
                 (None, None) => Affine1::IDENTITY,
                 (Some(_), None) | (None, Some(_)) => return None,
@@ -615,36 +643,69 @@ impl Area {
         Some(offset)
     }
 
+    /// Shows what `old`, the area this one replaces in a new layout (its
+    /// rect or the partition changed), showed until this one's tiles land
+    /// (D22.6 (4a)): `old`'s preview layer and its tiles with an image join
+    /// the preview layer, each mapped from the plot area it was rendered
+    /// in to this one through the views it was planned at and `now`, at
+    /// `factor`, the factor `old`'s images were rendered at; one whose
+    /// views map to none of `now` (another lead handle or epoch) goes.
+    /// `old`'s overlays become this one's, so that those whose rects stay
+    /// keep their images ([`overlay`](Area::overlay)).
+    pub(crate) fn inherit(&mut self, old: Area, (factor, now): (f64, [Option<Basis>; 2])) {
+        let list = old.list;
+        let imaged = old
+            .tiles
+            .into_iter()
+            .filter(|tile| !tile.slot().is_missing())
+            .map(|tile| Preview { tile, list });
+        let previews: Vec<Preview> = old
+            .preview
+            .into_iter()
+            .chain(imaged)
+            .filter(|preview| {
+                let planned = preview.tile.slot().planned().unwrap_or([None; 2]);
+                maps_to(planned, now)
+            })
+            .collect();
+        self.layer(previews, (factor, now));
+        self.overlays = old.overlays;
+    }
+
     /// The tiles with an image leave the grid for the preview layer,
     /// mapped to the views `now` at `factor`.
     fn retire(&mut self, (factor, now): (f64, [Option<Basis>; 2])) {
         let old = std::mem::take(&mut self.tiles);
-        let imaged = old.into_iter().filter(|tile| !tile.slot().is_missing());
+        let list = self.list;
+        let imaged = old
+            .into_iter()
+            .filter(|tile| !tile.slot().is_missing())
+            .map(|tile| Preview { tile, list });
         self.layer(imaged, (factor, now));
     }
 
-    /// Adds `tiles` to the preview layer, which stays in the order of its
-    /// images' generations (oldest drawn first), and drops every tile
+    /// Adds `previews` to the preview layer, which stays in the order of
+    /// its images' generations (oldest drawn first), and drops every tile
     /// whose rect, mapped to the views `now` at `factor`, newer ones cover.
     /// All map through the same views now, so what covers what stays as
     /// the views move on.
     fn layer(
         &mut self,
-        tiles: impl IntoIterator<Item = Tile>,
+        previews: impl IntoIterator<Item = Preview>,
         (factor, now): (f64, [Option<Basis>; 2]),
     ) {
-        self.preview.extend(tiles);
+        self.preview.extend(previews);
         self.preview
-            .sort_by_key(|tile| tile.slot().generation().unwrap_or(0));
+            .sort_by_key(|preview| preview.tile.slot().generation().unwrap_or(0));
         let mapped: Vec<[f64; 4]> = self
             .preview
             .iter()
-            .map(|tile| self.mapped(tile, factor, now))
+            .map(|preview| self.mapped(preview, factor, now))
             .collect();
         let mut kept = Vec::with_capacity(self.preview.len());
-        for (n, tile) in std::mem::take(&mut self.preview).into_iter().enumerate() {
+        for (n, preview) in std::mem::take(&mut self.preview).into_iter().enumerate() {
             if !covered(mapped[n], &mapped[n + 1..]) {
-                kept.push(tile);
+                kept.push(preview);
             }
         }
         self.preview = kept;
@@ -652,9 +713,9 @@ impl Area {
 
     /// The device rect a preview tile's image covers, mapped to the views
     /// `now` at `factor`.
-    fn mapped(&self, tile: &Tile, factor: f64, now: [Option<Basis>; 2]) -> [f64; 4] {
-        let [mx, my] = self.maps(tile, factor as f32, now);
-        let [x0, y0, x1, y1] = tile.slot().rect().map(f64::from);
+    fn mapped(&self, preview: &Preview, factor: f64, now: [Option<Basis>; 2]) -> [f64; 4] {
+        let [mx, my] = self.maps(preview, factor as f32, now);
+        let [x0, y0, x1, y1] = preview.tile.slot().rect().map(f64::from);
         let (a, b) = (mx.apply(x0), mx.apply(x1));
         let (c, d) = (my.apply(y0), my.apply(y1));
         [a.min(b), c.min(d), a.max(b), c.max(d)]
@@ -679,11 +740,11 @@ impl Area {
     }
 
     /// The device maps (x, then y) of a preview tile from the views it was
-    /// planned at to `now`: the identity along an axis whose lead handle
-    /// or epoch changed.
-    fn maps(&self, tile: &Tile, factor: f32, now: [Option<Basis>; 2]) -> [Affine1; 2] {
-        let planned = tile.slot().planned().unwrap_or([None; 2]);
-        let rect = tile.slot().rect();
+    /// planned at, in the plot area it was rendered in, to `now` in this
+    /// one: the identity along an axis whose lead handle or epoch changed.
+    fn maps(&self, preview: &Preview, factor: f32, now: [Option<Basis>; 2]) -> [Affine1; 2] {
+        let planned = preview.tile.slot().planned().unwrap_or([None; 2]);
+        let rect = preview.tile.slot().rect();
         [Along::X, Along::Y].map(|along| {
             let edges = match along {
                 Along::X => [rect[0], rect[2]],
@@ -694,7 +755,8 @@ impl Area {
                 .zip(now[i])
                 .and_then(|(planned, now)| planned.to(now))
                 .and_then(|shares| {
-                    Affine1::device(shares, along, self.list, f64::from(factor), edges)
+                    let lists = (preview.list, self.list);
+                    Affine1::device(shares, along, lists, f64::from(factor), edges)
                 })
                 .unwrap_or(Affine1::IDENTITY)
         })
@@ -705,7 +767,7 @@ impl Area {
     fn coverage(&self, factor: f32, now: [Option<Basis>; 2]) -> Option<[f64; 4]> {
         self.preview
             .iter()
-            .map(|tile| self.mapped(tile, f64::from(factor), now))
+            .map(|preview| self.mapped(preview, f64::from(factor), now))
             .reduce(|a, b| {
                 [
                     a[0].min(b[0]),
@@ -715,6 +777,19 @@ impl Area {
                 ]
             })
     }
+}
+
+/// Whether an image planned at the views `planned` maps to the views
+/// `now`: along each axis the same lead handle and epoch, or none.
+fn maps_to(planned: [Option<Basis>; 2], now: [Option<Basis>; 2]) -> bool {
+    planned
+        .iter()
+        .zip(&now)
+        .all(|(planned, now)| match (planned, now) {
+            (Some(planned), Some(now)) => planned.to(*now).is_some(),
+            (None, None) => true,
+            (Some(_), None) | (None, Some(_)) => false,
+        })
 }
 
 /// Each axis's view scale in `now` (1 for an axis without a lead handle):

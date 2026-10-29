@@ -633,6 +633,118 @@ fn layout_holds_during_a_wheel_gesture() {
     );
 }
 
+/// A pipeline that renders as `render` asks, reports to `probe` and wakes
+/// `waker`, with a pool of one thread.
+fn piped<'a>(render: Render, probe: Option<&'a Probe>, waker: &'a Waker) -> Pipeline<'a> {
+    Pipeline {
+        render,
+        caching: Caching::On,
+        revision: 0,
+        probe,
+        waker,
+        threads: 1,
+        hover: true,
+    }
+}
+
+/// The `Frame` samples among `samples`: (missing, previews).
+fn frames(samples: impl IntoIterator<Item = Sample>) -> Vec<(u32, u32)> {
+    samples
+        .into_iter()
+        .filter_map(|sample| match sample {
+            Sample::Frame {
+                missing, previews, ..
+            } => Some((missing, previews)),
+            Sample::Stage { .. } | Sample::Raster { .. } | Sample::Mismatch { .. } => None,
+        })
+        .collect()
+}
+
+#[test]
+fn the_layout_settling_after_a_zoom_leaves_no_slot_blank() {
+    // D22.6 (4a): eight-line wheel steps near the bottom of `tall` narrow y
+    // until its labels take two decimals, so the layout settles at the
+    // gesture's end with the plot area narrower: a new partition, every
+    // run, tile and overlay new. With every render on the pool, the old
+    // area's tiles show in the new area's preview layer and the old gutter
+    // images under the new runs, so no frame shows a slot missing, from the
+    // first step to the sharp frame after the settle.
+    let mut state = state();
+    let t0 = epoch();
+    let (fig, _) = tall();
+    rendered(&mut state, &fig, t0);
+    let before = state.areas[0].rect();
+    let start = state.resolved.as_ref().expect("resolved").plot_areas()[0];
+    let at = Point::new(start.center().x, start.y1 - 2.0);
+    let (waker, wakes) = counting();
+    let (tx, rx) = mpsc::channel();
+    let probe = Probe::new(epoch, tx);
+    let pipeline = piped(Render::Worker, Some(&probe), &waker);
+    let mut t = t0;
+    let mut seen = Vec::new();
+    for _ in 0..8 {
+        t += Duration::from_millis(16);
+        state.queue(eight(at));
+        state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+        seen.extend(frames(rx.try_iter()));
+    }
+    // The first redraw 300 ms after the last step settles the layout,
+    // before the pool's renders of the last step land.
+    t += Duration::from_millis(300);
+    state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+    let settle = frames(rx.try_iter());
+    assert_ne!(
+        state.areas[0].rect(),
+        before,
+        "the layout settled elsewhere"
+    );
+    assert!(
+        settle.iter().all(|&(_, previews)| previews > 0),
+        "nothing landed yet: {settle:?}"
+    );
+    seen.extend(settle);
+    // Every image moved at the settle, as in a gesture: the widget draws
+    // in one layer whose bounds change from draw to draw, so the software
+    // renderer redraws it once, until nothing of the old layout shows.
+    let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
+    let theme = rustd3_figure::Theme::default();
+    let layers = |state: &State| {
+        let mut recorder = Recorder::default();
+        state.draw(&mut recorder, bounds, &theme);
+        recorder.layers()
+    };
+    assert_ne!(layers(&state), layers(&state), "the old layout shows");
+    // Then a frame after each batch of results, until one is sharp.
+    let mut woken = 0;
+    for _ in 0..1_000 {
+        if seen.last() == Some(&(0, 0)) && state.waiting().is_empty() {
+            break;
+        }
+        let woke = (0..10_000).any(|_| {
+            wakes.load(Ordering::SeqCst) > woken || {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                false
+            }
+        });
+        assert!(woke, "no wake within ten seconds");
+        woken = wakes.load(Ordering::SeqCst);
+        state.drain(Some(&probe));
+        t += Duration::from_millis(16);
+        state.redraw::<()>(&fig, 1.0, t, &pipeline, (&[], &[]));
+        seen.extend(frames(rx.try_iter()));
+    }
+    assert_eq!(seen.last(), Some(&(0, 0)), "sharp at last: {seen:?}");
+    assert!(
+        seen.iter().all(|&(missing, _)| missing == 0),
+        "no slot missing in any frame: {seen:?}"
+    );
+    assert_eq!(
+        [layers(&state), layers(&state)],
+        [[bounds], [bounds]],
+        "idle"
+    );
+}
+
 #[test]
 fn published_domains_last_until_the_gesture_ends() {
     let mut state = state();

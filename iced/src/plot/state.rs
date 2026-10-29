@@ -63,6 +63,10 @@ pub(crate) struct State {
     /// one slot each; cells inside a plot area show nothing of their own
     /// (its tiles do).
     gutters: Vec<Run>,
+    /// Gutter images of an earlier layout: each stays drawn under the runs
+    /// that meet it until every one of them shows an image of its own
+    /// (D22.6 (4a)).
+    former: Vec<Slot>,
     /// What the last repaint drew from, which every render reads.
     drawn: Option<Drawn>,
     /// Bumped whenever the content the slots hold changes.
@@ -166,6 +170,7 @@ impl Default for State {
             cells: Vec::new(),
             owner: Vec::new(),
             gutters: Vec::new(),
+            former: Vec::new(),
             drawn: None,
             generation: 0,
             floor: 0,
@@ -821,6 +826,7 @@ impl State {
             self.cells.clear();
             self.owner.clear();
             self.gutters.clear();
+            self.former.clear();
             self.drawn = None;
             self.areas.clear();
             self.hits.rebuild(hit::Index::default());
@@ -1002,6 +1008,7 @@ impl State {
                 resolved,
             },
             Planned {
+                k,
                 rects: &rects,
                 lists,
                 views: &views,
@@ -1411,7 +1418,10 @@ impl State {
     /// Plans a refresh whose partition is `partition`, for the plot areas
     /// `planned` describes: rebuilds the cells, the gutter runs and the
     /// areas when their rects differ (every run, tile and overlay new and
-    /// changed); else finds the gutter runs whose content hash differs
+    /// changed; at the factor the images shown were rendered at, the old
+    /// runs' images stay drawn under the new runs and the old areas' join
+    /// the new ones' preview layers until theirs land, D22.6 (4a)); else
+    /// finds the gutter runs whose content hash differs
     /// from their slot's, each area's tiles that its layer's hash, its
     /// style and its grid's move leave stale, and the overlays whose rects
     /// or hashes changed. With `caching` off, every one when any changed;
@@ -1426,6 +1436,7 @@ impl State {
         (caching, revision): (Caching, u64),
     ) -> Vec<At> {
         let Planned {
+            k,
             rects,
             lists,
             views,
@@ -1448,13 +1459,16 @@ impl State {
                 })
                 .collect()
         } else {
+            // What the old layout shows stays until the new slots' images
+            // land, when it was rendered at this factor (D22.6 (4a)).
+            let carry = self.drawn.as_ref().is_some_and(|drawn| drawn.k == k);
             self.owner = cell_rects
                 .iter()
                 .map(|r| rects.iter().position(|a| tile::intersect(*r, *a) == *r))
                 .collect();
             let across = partition.cells.cols.len().saturating_sub(1).max(1);
             let deps = merge::deps(partition.cells, partition.chrome, partition.resolved);
-            self.gutters = merge::runs(&cell_rects, across, &self.owner, &deps)
+            let runs = merge::runs(&cell_rects, across, &self.owner, &deps)
                 .into_iter()
                 .map(|run| {
                     let hash = run
@@ -1463,7 +1477,18 @@ impl State {
                     Run::new(run, &cell_rects, hash)
                 })
                 .collect();
+            let old = std::mem::replace(&mut self.gutters, runs);
+            if carry {
+                let imaged = old.into_iter().map(Run::into_slot);
+                self.former.extend(imaged.filter(|slot| !slot.is_missing()));
+            } else {
+                self.former.clear();
+            }
+            self.prune();
             self.cells = cell_rects;
+            let old = std::mem::take(&mut self.areas);
+            // The same panels, in panel order.
+            let inherit = carry && old.len() == rects.len();
             self.areas = (0..rects.len())
                 .map(|p| {
                     self.grids += 1;
@@ -1477,6 +1502,11 @@ impl State {
                     )
                 })
                 .collect();
+            if inherit {
+                for (p, (area, old)) in self.areas.iter_mut().zip(old).enumerate() {
+                    area.inherit(old, (k, views[p]));
+                }
+            }
             self.floor = self.generation + 1;
             (0..self.gutters.len()).collect()
         };
@@ -1567,10 +1597,16 @@ impl State {
         );
         let bands = bands.ok();
         match done.spot {
-            Spot::Gutter(index) => self.gutters.get_mut(index).is_some_and(|run| {
-                run.slot_mut()
-                    .land(done.generation, done.hash, bands, done.view)
-            }),
+            Spot::Gutter(index) => {
+                let shown = self.gutters.get_mut(index).is_some_and(|run| {
+                    run.slot_mut()
+                        .land(done.generation, done.hash, bands, done.view)
+                });
+                if shown {
+                    self.prune();
+                }
+                shown
+            }
             Spot::Tile {
                 area,
                 grid,
@@ -1641,14 +1677,34 @@ impl State {
         }
     }
 
+    /// Drops each gutter image of an earlier layout that no run waits
+    /// under: every run that meets it shows an image of its own.
+    fn prune(&mut self) {
+        let gutters = &self.gutters;
+        self.former.retain(|former| {
+            gutters
+                .iter()
+                .any(|run| run.slot().is_missing() && tile::meets(run.slot().rect(), former.rect()))
+        });
+    }
+
     /// What the following draw shows; reports each newly shown image's
-    /// bytes once.
+    /// bytes once. A gutter run without an image of its own that an image
+    /// of an earlier layout meets shows that image: a preview.
     fn report(&mut self, at: Instant) -> Sample {
         let gutters = || self.gutters.iter().map(Run::slot);
-        let count = |test: fn(&Slot) -> bool| {
+        let under = |slot: &Slot| {
+            slot.is_missing()
+                && self
+                    .former
+                    .iter()
+                    .any(|former| tile::meets(former.rect(), slot.rect()))
+        };
+        let count = |test: &dyn Fn(&Slot) -> bool| {
             u32::try_from(gutters().filter(|s| test(s)).count()).unwrap_or(u32::MAX)
         };
-        let (mut missing, mut previews) = (count(Slot::is_missing), count(Slot::is_preview));
+        let mut missing = count(&|slot| slot.is_missing() && !under(slot));
+        let mut previews = count(&|slot| slot.is_preview() || under(slot));
         let mut images = u32::try_from(gutters().count()).unwrap_or(u32::MAX) - missing;
         if let Some(factor) = self.factor {
             for (p, area) in self.areas.iter().enumerate() {
@@ -1744,12 +1800,14 @@ impl State {
         self.hits.report()
     }
 
-    /// Draws every image of a gutter run (the theme background where one
-    /// has none), each plot area's tiles over its
+    /// Draws every image of a gutter run over the images an earlier layout
+    /// left (the theme background where a run has none), each plot area's
+    /// tiles over its
     /// preview layer mapped from the views it was planned at to the views
     /// now, then each brush's selection and the hover overlay in the
     /// theme's ink, for a widget laid out at `bounds`. While a gesture
-    /// lasts the images are drawn in one layer over the widget whose
+    /// lasts, and while previews or an earlier layout's gutter images
+    /// show, the images are drawn in one layer over the widget whose
     /// bounds alternate between frames by half a logical px, so that
     /// iced's software renderer redraws the widget once a frame.
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
@@ -1767,19 +1825,29 @@ impl State {
         // `engine.rs:533`), and finds a moved image's damage image by image
         // (`layer.rs:289-294`): a frame of a pan or zoom, where every image
         // moves, damaged many small rects. A layer whose bounds changed is
-        // damaged as a whole (`layer.rs:206-209`), so while a gesture lasts
-        // the images go in one layer whose bounds alternate by half a px:
-        // one rect, each image drawn once.
+        // damaged as a whole (`layer.rs:206-209`), so while a gesture lasts,
+        // and while images of an earlier grid or layout show (mapped to the
+        // views now, they move with them; at a settle all of them move at
+        // once), the images go in one layer whose bounds alternate by half
+        // a px: one rect, each image drawn once.
+        let moving =
+            self.is_active() || !self.former.is_empty() || self.areas.iter().any(Area::has_preview);
         let grown = !self.grown.get();
         self.grown.set(grown);
-        let layer = if self.is_active() && grown {
+        let layer = if moving && grown {
             bounds.expand(0.5)
         } else {
             bounds
         };
         renderer.with_layer(layer, |renderer| {
             for run in &self.gutters {
-                run.slot().draw(renderer, origin, factor, background);
+                run.slot().fill(renderer, origin, factor, background);
+            }
+            for former in &self.former {
+                former.draw(renderer, origin, factor);
+            }
+            for run in &self.gutters {
+                run.slot().draw(renderer, origin, factor);
             }
             for (p, area) in self.areas.iter().enumerate() {
                 area.draw(renderer, (origin, factor), self.peek(p), background);
@@ -1843,10 +1911,11 @@ struct Partition<'a> {
     resolved: &'a Resolved,
 }
 
-/// What a refresh plans the plot areas from, per area: its device rect
-/// and list px, the views its axes show, its layer's hash and style hash,
-/// its overlays' rects and hashes, and how its grid moved.
+/// What a refresh plans the plot areas from: the factor, and per area its
+/// device rect and list px, the views its axes show, its layer's hash and
+/// style hash, its overlays' rects and hashes, and how its grid moved.
 struct Planned<'a> {
+    k: f64,
     rects: &'a [[i32; 4]],
     lists: &'a [kurbo::Rect],
     views: &'a [[Option<Basis>; 2]],

@@ -102,7 +102,11 @@
 //! markers splat them on screen (`raster::Renderer::splat`).
 //! Until a cell's new image arrives it keeps its previous one, a preview
 //! of outdated content, and a cell that never had one shows the theme's
-//! background. Results wake the runtime through its waker and land on
+//! background. When the partition's rects change (the layout settling
+//! after a gesture, a resize), the old plot areas' tiles join the new
+//! areas' preview layers, mapped onto them, and the old gutter images stay
+//! drawn under the new runs until those render: no frame shows the
+//! background where content was. Results wake the runtime through its waker and land on
 //! `Event::Waken`, newest generation first: an older result never
 //! replaces a newer image. Zoom steps coalesce: each step's renders
 //! replace those still waiting on the pool, so at most one generation

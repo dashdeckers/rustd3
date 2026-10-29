@@ -247,10 +247,9 @@ impl Slot {
         }
     }
 
-    /// Draws the image with nearest filtering at bounds that land on its
-    /// device pixels, clipped to them, for a widget whose device origin is
-    /// `origin`; a slot with no image is filled with `background`.
-    pub(crate) fn draw<Renderer>(
+    /// Fills the slot with `background` when it has no image, for a widget
+    /// whose device origin is `origin`.
+    pub(crate) fn fill<Renderer>(
         &self,
         renderer: &mut Renderer,
         origin: [i32; 2],
@@ -259,18 +258,30 @@ impl Slot {
     ) where
         Renderer: image::Renderer<Handle = image::Handle>,
     {
+        if self.shown.is_some() {
+            return;
+        }
+        let [x0, y0, x1, y1] = self.rect;
+        let quad = Quad {
+            bounds: Rectangle {
+                x: (origin[0] + x0) as f32 / factor,
+                y: (origin[1] + y0) as f32 / factor,
+                width: (x1 - x0) as f32 / factor,
+                height: (y1 - y0) as f32 / factor,
+            },
+            ..Quad::default()
+        };
+        renderer.fill_quad(quad, background);
+    }
+
+    /// Draws the image, if there is one, with nearest filtering at bounds
+    /// that land on its device pixels, clipped to them, for a widget whose
+    /// device origin is `origin`.
+    pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, origin: [i32; 2], factor: f32)
+    where
+        Renderer: image::Renderer<Handle = image::Handle>,
+    {
         let Some(shown) = &self.shown else {
-            let [x0, y0, x1, y1] = self.rect;
-            let quad = Quad {
-                bounds: Rectangle {
-                    x: (origin[0] + x0) as f32 / factor,
-                    y: (origin[1] + y0) as f32 / factor,
-                    width: (x1 - x0) as f32 / factor,
-                    height: (y1 - y0) as f32 / factor,
-                },
-                ..Quad::default()
-            };
-            renderer.fill_quad(quad, background);
             return;
         };
         for band in &shown.bands {

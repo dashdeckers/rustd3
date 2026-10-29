@@ -73,6 +73,11 @@ impl Run {
         &mut self.slot
     }
 
+    /// The slot that shows it, as the run leaves the partition.
+    pub(crate) fn into_slot(self) -> Slot {
+        self.slot
+    }
+
     /// The content hash of its cells, whose hashes are `hashes` (one per
     /// partition cell): FNV-1a 64 of theirs in order.
     pub(crate) fn hash(&self, hashes: &[u64]) -> u64 {

@@ -207,6 +207,12 @@ pub(crate) fn intersect(a: [i32; 4], b: [i32; 4]) -> [i32; 4] {
     [x0, y0, x1, y1]
 }
 
+/// Whether device rects `a` and `b` share a pixel.
+pub(crate) fn meets(a: [i32; 4], b: [i32; 4]) -> bool {
+    let [x0, y0, x1, y1] = intersect(a, b);
+    x0 < x1 && y0 < y1
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Grid, SIZE, intersect};
