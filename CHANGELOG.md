@@ -49,7 +49,10 @@ The first release.
   handles; fitting to all data, a live window or the visible data.
 - Marks: dots, line, area, ribbon, bars and spans, rect, histogram,
   densities, rules, image (raster heatmaps) and notes; per-point color and
-  size channels; hatching.
+  size channels; hatching. A density over more than 10,000 values is
+  estimated from linearly binned values convolved with the kernel
+  (`stats::Kde::binned`), within a relative 1e-3 of the exact sum and
+  about a hundred times faster on a million values; below, it is exact.
 - Axes, legends and colorbars; layout from text measured with typst;
   typst text and math in every label; themes with seaborn's styles,
   contexts and palettes; `fig.check` for figures that will not read

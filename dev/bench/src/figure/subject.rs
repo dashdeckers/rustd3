@@ -358,7 +358,42 @@ fn long_line(rec: &Recording<f64>) -> Figure<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Subject, count};
+    use rustd3_figure::stats::Kde;
+
+    use super::{Data, Subject, count};
+
+    #[test]
+    fn the_stats_figures_binned_density_is_within_a_thousandth_of_the_exact_one() {
+        // D22.11 (3): the stats figure's 1M values take the binned path;
+        // the exact sum, 200 points × 1M kernels, is split over the cores.
+        let Data::Stats(values) = Subject::Stats.data() else {
+            panic!("the stats figure's values");
+        };
+        let kde = Kde::new(values.iter().copied()).expect("values that vary");
+        assert!(values.len() > Kde::BINNED);
+        let binned = kde.grid(200, 3.0);
+        assert_eq!(binned, kde.binned(200, 3.0));
+        let threads = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
+        let chunk = binned.len().div_ceil(threads);
+        let exact: Vec<f64> = std::thread::scope(|scope| {
+            let parts: Vec<_> = binned
+                .chunks(chunk)
+                .map(|part| {
+                    scope.spawn(|| part.iter().map(|&(x, _)| kde.eval(x)).collect::<Vec<_>>())
+                })
+                .collect();
+            parts
+                .into_iter()
+                .flat_map(|part| part.join().expect("a chunk of the exact sum"))
+                .collect()
+        });
+        let worst = binned
+            .iter()
+            .zip(&exact)
+            .map(|(&(_, b), e)| ((b - e) / e).abs())
+            .fold(0.0, f64::max);
+        assert!(worst <= 1e-3, "{worst}");
+    }
 
     #[test]
     fn subjects_are_named_as_the_workloads_name_sizes() {

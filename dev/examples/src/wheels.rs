@@ -315,3 +315,34 @@ pub fn simulate() -> Vec<Sample> {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use rustd3_figure::stats::Kde;
+
+    use super::{SOURCES, Wheel, simulate};
+
+    #[test]
+    fn the_wheel_figures_densities_binned_are_within_a_thousandth_of_exact() {
+        // D22.11 (3): its densities hold 200 to 600 values, so they draw
+        // exactly; binned, each of the twelve stays within 1e-3 of that.
+        let samples = simulate();
+        for wheel in [Wheel::FL, Wheel::FR, Wheel::RL, Wheel::RR] {
+            for source in SOURCES {
+                let values = samples
+                    .iter()
+                    .filter(|d| d.wheel == wheel && d.source == source)
+                    .map(|d| d.value);
+                let kde = Kde::new(values).expect("values that vary");
+                let (binned, exact) = (kde.binned(200, 3.0), kde.grid(200, 3.0));
+                assert_eq!(exact, kde.exact(200, 3.0), "below the threshold");
+                let worst = binned
+                    .iter()
+                    .zip(&exact)
+                    .map(|(b, e)| ((b.1 - e.1) / e.1).abs())
+                    .fold(0.0, f64::max);
+                assert!(worst <= 1e-3, "{wheel:?} {source:?}: {worst}");
+            }
+        }
+    }
+}

@@ -61,7 +61,9 @@ struct Density {
 /// `kdeplot`). The curve is over the data, not the view, so zooming does
 /// not reshape it; its width on `w` is peak-normalized to 1. The values
 /// enter fitting on `y` (the curve's tails do not); `w` spans 0 to 1, held
-/// at 0. Fewer than two finite values, or values that are all equal, draw
+/// at 0. Over more than [`Kde::BINNED`] values the curve is the binned
+/// estimate ([`Kde::grid`]), within a relative 1e-3 of the exact one.
+/// Fewer than two finite values, or values that are all equal, draw
 /// nothing, and [`Figure::check`](crate::Figure::check) reports
 /// [`Error::Density`].
 ///
