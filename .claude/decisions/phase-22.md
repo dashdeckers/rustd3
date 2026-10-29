@@ -980,3 +980,164 @@ The lines and dots of the bench's workloads cost per segment and per
 dot, so a half pass is a second render of nearly the same cost; on a
 machine whose pool keeps up the full pass lands as soon, and on one that
 does not, the half pass is what delays it.
+
+### Followups
+
+- **Built (Phase 31g).** 4b, B: 0d9cef5 (the gutters and overlays wait
+  ahead of the tiles while a gesture lasts); 4b, C after it: 7b9a614 (a
+  fit per kind of render); item 5, B: 35f4712 (`Sample`'s variants
+  `#[non_exhaustive]`). Numbers in "Measurements, Phase 31g" below.
+
+## Measurements, Phase 31g
+
+2026-10-29, Phase 31g (3cbf0f0 … 15762cb), on b948663; the user's run of
+31e (`bench-results/20261029T071522Z`) is what it answers. Windowed
+under Xvfb (2 cores at 2.1 GHz, Mesa lavapipe for wgpu, no vsync: frame
+intervals are not display intervals), `--native-factor 1 --refresh-hz
+60`, 2 runs per cell, `--threads 1` and `2`; diagnostics, not rule
+outcomes. Release builds; single runs on a shared container (±30 %).
+
+**Commits, each with a test that fails without it.**
+
+| Commit | What | Test |
+| --- | --- | --- |
+| 3cbf0f0 `perf(iced)` | D22.6 (4d): a drag's entering column renders inline when the cost model says it fits; wheel gestures and brushes keep tiles on the pool | `a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool` |
+| 0d9cef5 `perf(iced)` | D22.7 (4b), B: during a gesture the gutters and overlays wait ahead of the tiles; inline unchanged | `during_a_gesture_the_gutters_wait_ahead_of_the_tiles` |
+| 7b9a614 `perf(iced)` | D22.7 (4b), C: the cost model fits tiles apart from gutters and overlays | `tiles_and_cells_are_fitted_apart` |
+| 35f4712 `feat(iced)` | D22.7 item 5, B: `probe::Sample`'s variants `#[non_exhaustive]`, the bench's patterns `..` | the `Sample` doctests (`compile_fail` twin) |
+| e2e4c39 `feat(bench)` | `also` composes a real gesture frame on the software renderer (item 4's harness) | `an_areas_images_compose_into_one_and_the_rest_stay` |
+| 81b7301 `perf(iced)` | item 4 (b): on a renderer that reports no scale, an area that shows previews is composed on the CPU and drawn as one image (`Mosaic`) | `on_the_software_renderer_an_area_with_previews_draws_one_image`, the mosaic's three |
+| 8334798 `perf(figure)` | item 5: a render cuts long stroked paths to the segments within the stroke's reach of it, dashed runs pre-dashed from their phase, one stroke call | `a_long_line_cut_to_each_tile_draws_what_it_drew_whole`, `raster::cull`'s two |
+| a5ad88c `feat(bench)` | item 6: `rustd3-bench suite`; `run.sh` a wrapper; `--cpu-limit` | `the_first_windows_idle_frames_give_the_refresh_rate`, `each_platform_limits_the_cores_its_own_way`, the CLI test |
+| 15762cb `test(figure)` | the cut test's module gated on the `raster` feature, as the module it tests | `cargo test -p rustd3-figure --no-default-features` compiles |
+
+**4b, B then C** (`zoom-lines` × `trace`; the axis lag is, per generation
+planned in a burst, the time from its first frame to the first render
+of each axis strip for it or a newer one, median over generations and
+strips, as D22.7 measured it):
+
+| Cell | b948663 | B | B and C |
+| --- | --- | --- | --- |
+| wgpu, 1 thread: axis lag p50 ms; strips inline | 426; 309/369 | 49; 377/996 | 0; 935/935 |
+| wgpu, 2 threads | 351; 232/332 | 62; 220/712 | 0; 711/711 |
+| tiny-skia, 1 thread | 300; 389/472 | 55; 365/824 | 0; 778/798 |
+| tiny-skia, 2 threads | 167; 199/452 | 75; 193/672 | 0; 607/632 |
+| latency p95 ms (wgpu 1, 2; tiny-skia 1, 2) | 1,244, 1,159; 1,689, 1,145 | 1,231, 1,117; 1,218, 1,152 | 1,228, 1,136; 1,157, 1,162 |
+
+With B alone the strips render ahead of the tiles but mostly on the
+pool; with C every strip's prediction is its own and nearly all render
+inline. Latency does not move here: one or two pool threads render a
+step's ~30 tiles in more than the 33 ms between steps. On the user's 8
+workers a step's tiles took about 17 ms wall (D22.7), so the strips
+were what kept a generation from completing there; only the user's run
+can show it.
+
+**Item 4: software compositing.** iced's tiny-skia draws a raster image
+through tiny-skia's high-precision pipeline (its `Gather` and `Bilinear`
+stages have no low-precision version), after clearing and refilling a
+frame-sized clip mask, and converts every handle it has not drawn the
+frame before; an integer-translate image is already drawn nearest
+whatever its `FilterMethod` (`tiny-skia-0.12.0/src/shaders/pattern.rs:112-123`),
+and the widget already draws tiles and gutters `Nearest`, so candidate
+(a) as written was in place. `also`'s new row (headless tiny-skia, 1600 ×
+1000 logical, the widget driven through a burst and a drag with every
+frame composed; first = the frame's first composition, which converts
+its new handles; warm = later ones; replays of the kept frame's images):
+
+| Frame | Before 81b7301: images (scaled), Mpx drawn, new handles | first / warm ms | (a) all nearest, warm | (b) one image per area: warm, first + CPU | After 81b7301: images, new handles | widget's draw + first ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| `trace` mid-burst zoom at 1 | 68 (37), 3.1, 22 (5.8 MB) | 92 / 77 | 42 | 19, 24 + 9 | 13, 2 | 5 + 23 |
+| `trace` mid-burst zoom at 2 | 332 (254), 16.8, 66 (17 MB) | 573 / 565 | 371 | 93, 125 + 86 | 13, 2 | 12 + 87 |
+| `scatter100k` mid-burst zoom at 1 | 32 (0), 1.6, 24 (6.3 MB) | 33 / 27 | 20 | 18, 20 + 2 | 7, 1 | 6 + 22 |
+| `scatter100k` mid-burst zoom at 2 | 104 (0), 6.4, 96 (25 MB) | 177 / 126 | 123 | 98, 101 + 7 | 7, 1 | 12 + 87 |
+| `trace` mid-drag pan at 1 | 39 (0), 1.6, 0 | 24 / 30 | 27 | 23, 26 + 2 | unchanged | 0 + 21 |
+| `trace` mid-drag pan at 2 | 103 (0), 6.5, 0 | 124 / 131 | 114 | 87, 104 + 6 | unchanged | 0 + 140 |
+
+An empty frame (the screenshot's fixed cost) composes in 3.5–6 ms at 1
+and 16–35 ms at 2. (b) is built for areas that show previews (zooms and
+settles): 3–6× there. For pans it would save nothing at 1 and 10–25 % at 2
+while converting the area's whole image every frame, so pans draw as
+before. (c), fewer new handles, comes with (b): a mosaic is one new
+handle per area a frame instead of every landed tile; a mid-drag pan has
+none. Windowed (tiny-skia, `zoom-lines`, on 7b9a614 → 81b7301): frame
+p99 `trace` 93 → 45 ms (1 thread) and 101 → 73 (2), `scatter100k` 81 →
+51 and 85 → 65; dropped frames 454 → 300 / 378, 406 → 297 / 375; UI frame
+p99 15 → 22 ms (the mosaic is drawn on the UI thread); latency within the
+noise. Screenshots (ffmpeg x11grab, lossless) mid-burst and mid-drag at
+1 and 2 on both backends: no seam (a scan of each frame's plot areas for
+1-px background rows or columns found none where the data is), no
+misplaced or blank tile; tiny-skia's previews are crisper than its
+bilinear ones were and thin spikes a px narrower; the 25-fps recordings
+show a black frame every 1.6 s on both backends and on the drag too, the
+recorder's, not the widget's.
+
+**Item 5: one `trace` tile mid-zoom** (`also`'s new row: the top area's
+layer at the widget's overscan, a ×1.6 zoom, the 256-device-px tile in
+its second column across its middle, single-threaded, medians of 15,
+three rounds):
+
+| | At 1 | At 2 |
+| --- | --- | --- |
+| Stroked paths meeting the tile, their segments | 2, 15,497 | 2, 29,156 |
+| Segments within the stroke's reach of it | 2,012 | 1,871 |
+| kurbo's stroke expansion of the whole paths alone | 3.8–4.7 ms | 6.6–8.6 ms |
+| The tile's render, before → after the cut | 7.0–9.3 → 3.4–4.8 ms | 10.8–14.4 → 3.7–3.8 ms |
+| A render of no command (the fixed cost) | 0.11 ms | 0.11 ms |
+
+vello_cpu expands the stroke over the whole path (kurbo) before culling
+to its viewport, so most of a tile went to geometry it never draws. The
+cut is a segment-by-segment clip (a scan of the elements costs a few µs),
+not a separate binary search for x-monotone lines. D18.3's stitched
+trace against its whole render is unchanged (381 px over 2/255, 276
+over 16, max 237/255). Windowed (`zoom-lines` × `trace`, 81b7301 →
+8334798): latency p95 wgpu 1,170 → 1,050 and 1,113 → 1,038 ms, tiny-skia
+1,108 → 1,036 and 1,087 → 1,009; frame p99 wgpu 114 → 86 and 137 → 79.
+
+**Item 6: the runner.** Linux: `rustd3-bench suite` and the `run.sh`
+wrapper checked under Xvfb (with the plans cut to two cells for the
+check, not committed): without `--refresh-hz` the suite stops after
+smoke (Xvfb paces no frames: 13–29 % of the hover intervals within 5 % of
+the median, against 96 % on the user's display); with it, every plan,
+"Skipping weak-4cores: this machine has 2 cores.", `weak-2cores` under
+`taskset -c 0-1` with its report heading saying so, the summary and the
+tar line. Windows: the `cmd /C start "" /B /WAIT /AFFINITY` path and
+`cfg` code compile here only as Linux code; no Windows target is
+installed, so it is unverified. macOS: untested (`--threads` fallback).
+
+**Before (b948663) → after (a5ad88c)**, the brief's cells, under Xvfb
+(latency p95; `drag-resize` the last step's p95, report-only):
+
+| Backend, pool | Cell | Latency p95 ms | Frame p99 ms | UI frame p99 ms | Previews | Drops |
+| --- | --- | --- | --- | --- | --- | --- |
+| wgpu, 1 | pan-x × trace | 127 → 24 | 42 → 35 | 14.6 → 15.0 | 0.10 → 0.00 | 212 → 121 |
+| wgpu, 1 | pan-x × scatter100k | 69 → 20 | 40 → 29 | 12.1 → 11.6 | 0.09 → 0.01 | 123 → 30 |
+| wgpu, 1 | zoom-lines × trace | 1,244 → 1,058 | 122 → 85 | 21.0 → 21.2 | 0.61 → 0.41 | 446 → 364 |
+| wgpu, 1 | zoom-lines × scatter100k | 1,072 → 1,080 | 96 → 90 | 18.9 → 21.9 | 0.57 → 0.58 | 378 → 376 |
+| wgpu, 1 | zoom-lines × label-churn | 1,738 → 1,065 | 122 → 86 | 23.5 → 22.5 | 0.63 → 0.43 | 437 → 376 |
+| wgpu, 1 | drag-resize × trace | 254 → 318 | 79 → 63 | 25.6 → 41.0 | 0.47 → 0.38 | 132 → 183 |
+| wgpu, 2 | pan-x × trace | 91 → 24 | 41 → 34 | 15.5 → 15.0 | 0.09 → 0.00 | 222 → 132 |
+| wgpu, 2 | pan-x × scatter100k | 55 → 20 | 33 → 31 | 11.1 → 12.0 | 0.07 → 0.01 | 68 → 34 |
+| wgpu, 2 | zoom-lines × trace | 1,159 → 1,033 | 139 → 79 | 33.4 → 22.8 | 0.42 → 0.36 | 464 → 372 |
+| wgpu, 2 | zoom-lines × scatter100k | 1,054 → 1,037 | 94 → 88 | 21.8 → 22.4 | 0.44 → 0.40 | 400 → 390 |
+| wgpu, 2 | zoom-lines × label-churn | 1,163 → 1,029 | 138 → 74 | 36.9 → 23.1 | 0.48 → 0.36 | 466 → 370 |
+| wgpu, 2 | drag-resize × trace | 337 → 309 | 76 → 72 | 43.2 → 34.5 | 0.36 → 0.36 | 262 → 234 |
+| tiny-skia, 1 | pan-x × trace | 71 → 30 | 38 → 38 | 12.0 → 11.8 | 0.07 → 0.00 | 411 → 396 |
+| tiny-skia, 1 | pan-x × scatter100k | 163 → 29 | 31 → 34 | 7.8 → 9.1 | 0.13 → 0.03 | 100 → 218 |
+| tiny-skia, 1 | zoom-lines × trace | 1,689 → 1,033 | 85 → 52 | 13.2 → 23.6 | 0.16 → 0.14 | 434 → 329 |
+| tiny-skia, 1 | zoom-lines × scatter100k | 1,085 → 1,063 | 85 → 70 | 9.6 → 23.8 | 0.38 → 0.47 | 434 → 356 |
+| tiny-skia, 1 | zoom-lines × label-churn | 1,182 → 1,049 | 83 → 57 | 14.8 → 26.2 | 0.20 → 0.20 | 431 → 360 |
+| tiny-skia, 1 | drag-resize × trace | 414 → 209 | 63 → 46 | 15.9 → 21.4 | 0.04 → 0.04 | 354 → 267 |
+| tiny-skia, 2 | pan-x × trace | 96 → 30 | 37 → 37 | 11.6 → 11.9 | 0.11 → 0.00 | 419 → 409 |
+| tiny-skia, 2 | pan-x × scatter100k | 56 → 27 | 35 → 32 | 8.5 → 8.3 | 0.08 → 0.02 | 200 → 177 |
+| tiny-skia, 2 | zoom-lines × trace | 1,145 → 1,023 | 105 → 58 | 17.2 → 20.1 | 0.10 → 0.12 | 470 → 350 |
+| tiny-skia, 2 | zoom-lines × scatter100k | 1,078 → 1,033 | 91 → 64 | 13.4 → 19.9 | 0.42 → 0.31 | 482 → 362 |
+| tiny-skia, 2 | zoom-lines × label-churn | 1,174 → 1,012 | 114 → 56 | 19.7 → 20.9 | 0.17 → 0.15 | 495 → 350 |
+| tiny-skia, 2 | drag-resize × trace | 445 → 241 | 81 → 44 | 23.0 → 19.1 | 0.03 → 0.04 | 388 → 263 |
+
+Pans: a drag's entering column inline (item 1) takes the previews to 0
+and the latency p95 to 20–30 ms. Zooms: frame p99 down by a third to a
+half on both backends; latency p95 about 1.0–1.1 s here, where one or
+two pool threads cannot finish a step's tiles between steps. Under Xvfb
+a tiny-skia frame is not paced by a display, so the user's 117–133 ms
+gesture frames on Wayland are not reproduced here; the architect's
+Linux diagnostic is what tells whether they are CPU time.
