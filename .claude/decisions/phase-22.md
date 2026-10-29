@@ -1358,3 +1358,65 @@ comparable.
   text only), `start /AFFINITY` (as in 31g), and the archive written
   there. A Wayland session (`nogpu-x11` at the levels) and a display that
   paces frames (the measured rate) are the user's to see.
+
+## D22.10 — The benchmark for users of the plotting library alone
+
+**Date:** 2026-10-29 · **Context:** the user: "This should handle the
+case where users are not interested in the iced integration, only the
+plotting library", and "I will run the benchmark command on all my
+machines … and benefit from only needing to clone and run the same
+cargo command everywhere." · **Status:** decided
+
+### Decision
+
+(architect, 2026-10-29)
+
+1. **A `figure` profile at every level.** It is headless and uses no
+   iced, so it runs on any machine.
+   - **What it measures.** For representative figures, each stage a
+     library user pays for: resolve (layout, including typst text),
+     building the drawing list, PNG at 1× and 2× through the library's
+     own output call and settings, SVG and PDF. GIF is measured at
+     `--full` only.
+   - **Metrics.** Median, min and p90 wall time over repetitions, with
+     the first (cold) repetition reported apart; output bytes; peak RSS
+     where the platform gives it.
+   - **Figures at `--quick`, about 1–2 minutes:**
+     - `trace`'s line chart: 3 series of 1M samples, time axis;
+     - `scatter100k`;
+     - `grid16`'s small multiples;
+     - a label-heavy figure with typst math;
+     - a statistical figure: histogram and density of 1M values;
+     - a 1000 × 1000 heatmap.
+   - **At `--default`, about 5 minutes:** the same, plus scaling ladders:
+     lines of 10k to 10M samples, scatters of 1k to 1M markers, more
+     repetitions, and the `dev/examples` presets and wheel figure as
+     real-world figures.
+   - **At `--full`:** ladders to 10M markers and GIF.
+   - There are no registered budgets; it is report-only. The CPU
+     reference puts the numbers on a scale across machines.
+2. **`--figure-only`** runs the CPU reference and the `figure` profile:
+   no display measurement and no windows. Its archive and `results.json`
+   have the same format, with the profile `figure`. `compare` and
+   `report` read it.
+3. **A build without iced.**
+   - `rustd3-bench` and `rustd3-examples` gain a default feature
+     `widget` that brings in iced, `rustd3-iced` and the window code.
+   - `cargo rustd3-bench-figure [--quick | --default | --full]` is a
+     second alias, `run --release -p rustd3-bench --no-default-features
+     --`. It builds no iced, winit or wgpu, and implies `--figure-only`.
+   - `cargo rustd3-bench` stays the one command that runs everything,
+     the figure profile included. It is the command the user runs on
+     every machine.
+4. **Naming and docs.** `--help` and the READMEs present the benchmark
+   as rustd3's, the library and its widget alike: `cargo rustd3-bench`
+   for everything, and `cargo rustd3-bench-figure` for library-only
+   users and for servers and CI without a display. The issue form asks
+   which one was run.
+
+### Why
+
+Most of rustd3's users may never open a window: they export figures. A
+benchmark that needs iced to build, and a display to run, would not
+serve them. The no-iced build keeps their path light on every
+platform the library supports.
