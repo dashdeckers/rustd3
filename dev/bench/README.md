@@ -225,6 +225,26 @@ if you can (the raw files let the agent rebuild the report with
   act on the scatters, which zoom vibration and temperature along y; its
   x is a band scale, so `pan-x` is n/a and `4k`'s pan half moves nothing.
 
+## The upstream reproduction (D22.8)
+
+`rustd3-bench repro-software` is plain iced with nothing of rustd3
+(`src/repro.rs`, one screen): 40 images of 256 × 256 px cover a 1600 ×
+1000 window and move 1 px a frame, redrawn every frame as during a drag.
+After a 2 s warm-up it measures for 10 s and prints the frames drawn, the
+frame interval's p50, p90 and p99, the process's CPU seconds per second
+and the session's display variables. On Linux,
+
+```bash
+dev/bench/repro-software.sh
+```
+
+builds the bench and runs it four times, tiny-skia and wgpu, each on
+Wayland and on X11 through XWayland (about a minute), then prints a
+table; send it and `bench-results/repro-<stamp>/`. By hand, the backend is
+iced's `ICED_BACKEND`: `ICED_BACKEND=tiny-skia
+target/release/rustd3-bench repro-software [--out FILE]`, with `env -u
+WAYLAND_DISPLAY` before the binary for X11.
+
 ## Headless
 
 Agents run `--headless` only (`--plan smoke` by default: every scenario ×

@@ -16,6 +16,7 @@ mod record;
 mod recorder;
 mod replay;
 mod report;
+mod repro;
 mod rule;
 mod scenario;
 mod stats;
@@ -64,6 +65,7 @@ fn main() -> ExitCode {
         }
         Command::Replay { out } => write_replays(&out),
         Command::Record { out } => recorder::record(out).map_err(Into::into),
+        Command::ReproSoftware { out } => repro_software(out),
         Command::Run(options) => run(&options, &args),
         Command::Suite(suite) => std::env::current_exe()
             .map_err(Into::into)
@@ -145,6 +147,18 @@ fn write_replays(out: &Path) -> Result<(), Box<dyn Error>> {
         replay.write(&path)?;
         println!("{}: {} events", path.display(), replay.events.len());
     }
+    Ok(())
+}
+
+/// `repro-software` into `out`, else `bench-results/repro-<UTC stamp>.txt`.
+fn repro_software(out: Option<PathBuf>) -> Result<(), Box<dyn Error>> {
+    let out = out.unwrap_or_else(|| {
+        PathBuf::from("bench-results").join(format!("repro-{}.txt", system::stamp()))
+    });
+    if let Some(dir) = out.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    repro::run(out, system::clk_tck())?;
     Ok(())
 }
 

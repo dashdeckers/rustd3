@@ -42,6 +42,11 @@ pub enum Command {
     Raster(Options),
     /// Print the items earlier phases asked to be measured.
     Also,
+    /// D22.8's plain-iced reproduction: moving images, continuous redraws.
+    ReproSoftware {
+        /// `--out FILE`; `None` is `bench-results/repro-<UTC stamp>.txt`.
+        out: Option<PathBuf>,
+    },
     /// Print the user's procedure and the flags.
     Help,
 }
@@ -226,6 +231,14 @@ Commands:
           the cells as drawn, CPU only, into DIR/raster.csv
   also                    the items earlier phases asked to be measured
                           (the report's \"Also measured\"; release)
+  repro-software [--out FILE]
+          D22.8's plain-iced reproduction for upstream, no rustd3: 40
+          images moving 1 px a frame in a 1600 x 1000 window, redrawn
+          every frame; the backend from ICED_BACKEND; prints and writes
+          (default bench-results/repro-<UTC stamp>.txt) the frame
+          intervals and CPU use; env -u WAYLAND_DISPLAY for X11.
+          dev/bench/repro-software.sh runs both backends on Wayland and
+          on X11
 ";
 
 impl Command {
@@ -256,6 +269,13 @@ impl Command {
             }),
             "record" => Ok(Command::Record {
                 out: single_out(rest)?,
+            }),
+            "repro-software" => Ok(Command::ReproSoftware {
+                out: if rest.is_empty() {
+                    None
+                } else {
+                    Some(single_out(rest)?)
+                },
             }),
             "report" => match rest {
                 [dir] if !dir.starts_with("--") => Ok(Command::Report {
@@ -764,6 +784,7 @@ mod tests {
             "replay --out d",
             "suite",
             "record --out f.jsonl",
+            "repro-software",
             "report d",
             "list",
             "raster --plan default --out target/bench-raster",
@@ -818,6 +839,13 @@ mod tests {
             );
         }
         assert!(Command::parse(&args("run --plan")).is_err());
+        assert_eq!(
+            Command::parse(&args("repro-software --out r.txt")),
+            Ok(Command::ReproSoftware {
+                out: Some(PathBuf::from("r.txt"))
+            })
+        );
+        assert!(Command::parse(&args("repro-software --backend wgpu")).is_err());
         assert!(Command::parse(&args("run --factor 0")).is_err());
         assert!(Command::parse(&args("run --workload wheel")).is_err());
         assert!(Command::parse(&args("run --workload wheels,label-churn")).is_ok());
