@@ -824,7 +824,7 @@ on every machine.
 
 ## D22.7 — Two D22.6 items measure worse as written: 4b and item 5
 
-**Date:** 2026-10-29 · **Context:** Phase 31f: D22.6 (4b) built on bdfa439 (item 4, C), item 5 (B made progressive) built on 2e47bf1 (4a), each measured and not committed · **Status:** open
+**Date:** 2026-10-29 · **Context:** Phase 31f: D22.6 (4b) built on bdfa439 (item 4, C), item 5 (B made progressive) built on 2e47bf1 (4a), each measured and not committed · **Status:** decided
 
 Both patches apply to 7cba714 as they stand:
 `/tmp/claude-0/rustd3-bench31f/patches/0001-perf-iced-during-a-gesture-the-axes-render-ahead-of-.patch`
@@ -949,7 +949,15 @@ Item 5:
 
 ### Decision
 
-Recommendation for 4b: B. The axes' lag came from the pool's order, not
+(architect, 2026-10-29) **4b: B**, the order alone. **Item 5: B**:
+`Sample`'s variants become `#[non_exhaustive]`, with no half pass and no
+any-resolution column. Half resolution is closed for 0.1. The user's run
+of 31e on the Ryzen (`bench-results/20261029T071522Z`, the full plan)
+shows that `trace`'s zoom latency is the cost of each tile's geometry
+(raster critical path 134 ms on 8 workers, the cost model's calibration
+12×). That cost is what the next session goes after, not pixels.
+
+The original recommendation, for the record: for 4b, B. The axes' lag came from the pool's order, not
 from inline renders: behind the tiles each step replaced, a strip that
 did not fit the frame budget never rendered until the burst ended. Ahead
 of them it renders within a frame or two, and the strips that fit stay
