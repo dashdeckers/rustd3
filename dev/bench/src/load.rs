@@ -244,6 +244,7 @@ fn old(files: &BTreeMap<String, Vec<u8>>, path: &Path) -> Option<Results> {
         complete: true,
         machine,
         display,
+        cpu_reference: Vec::new(),
         profiles,
     })
 }

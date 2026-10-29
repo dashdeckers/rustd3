@@ -29,6 +29,7 @@ use crate::cli::Backend;
 use crate::display::{self, Display};
 use crate::plan::{Plan, Selection};
 use crate::privacy::{self, Identity};
+use crate::reference;
 use crate::report;
 use crate::results::{self, Results};
 use crate::rule;
@@ -117,6 +118,10 @@ pub const NO_XWAYLAND: &str = "it runs only in a Linux Wayland session with XWay
 /// The display measurement's allowance in the estimate beyond its plan,
 /// s: a window opening once.
 const DISPLAY_MARGIN_S: f64 = 3.0;
+
+/// The CPU reference's allowance in the estimate, s (about 10 here, on
+/// two cores at 2.1 GHz).
+const REFERENCE_S: f64 = 15.0;
 
 impl Level {
     /// Its flag's name.
@@ -226,6 +231,7 @@ impl Level {
         let display = Plan::Display.cells(native, &Selection::default());
         let display = Plan::Display.estimate_s(&display) + DISPLAY_MARGIN_S;
         display
+            + REFERENCE_S
             + profiles
                 .iter()
                 .filter(|(_, skip)| skip.is_none())
@@ -383,6 +389,7 @@ impl Request {
             "  display    one window measures the refresh rate and scale factor, and which \
              renderer iced chooses"
         );
+        println!("  cpu        three single-threaded timings: the CPU reference");
         for (profile, skip) in &profiles {
             match skip {
                 Some(why) => println!("  {:<10} skipped: {why}", profile.name),
@@ -443,6 +450,7 @@ impl Request {
             complete: false,
             machine: results::Machine::here(),
             display: display.clone(),
+            cpu_reference: Vec::new(),
             profiles: profiles
                 .iter()
                 .map(|(p, skip)| {
@@ -461,6 +469,16 @@ impl Request {
             let system = format!("{notes}\n{diagnostics}");
             save(&dir, &archive, results, &system, &identity)
         };
+        println!("== cpu: the CPU reference, single-threaded timings");
+        let begin = std::time::Instant::now();
+        results.cpu_reference = reference::measure();
+        println!("  ({:.1} s)", begin.elapsed().as_secs_f64());
+        for timing in &results.cpu_reference {
+            let ms = timing
+                .ms
+                .map_or_else(|| "not measured".to_owned(), |ms| format!("{ms:.2} ms"));
+            println!("  {:<17} {ms}", timing.name);
+        }
         // An archive after every step: std cannot catch Ctrl-C portably,
         // so an interrupted level leaves the last whole one.
         save(&results, &notes)?;

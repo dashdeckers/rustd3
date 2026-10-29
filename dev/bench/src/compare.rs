@@ -18,6 +18,7 @@ pub fn markdown(a: &Results, b: &Results, names: [&str; 2]) -> String {
         names[0], names[1]
     );
     machines(&mut md, a, b);
+    reference(&mut md, a, b);
     let mut profiles: Vec<&str> = a.profiles.iter().map(|p| p.name.as_str()).collect();
     for profile in &b.profiles {
         if !profiles.contains(&profile.name.as_str()) {
@@ -95,6 +96,43 @@ fn ran<'a>(results: &'a Results, name: &str) -> Option<&'a Profile> {
         .profiles
         .iter()
         .find(|p| p.name == name && matches!(p.status, Status::Done | Status::Failed))
+}
+
+/// The CPU reference's timings of both and B/A.
+fn reference(md: &mut String, a: &Results, b: &Results) {
+    let mut names: Vec<&str> = a.cpu_reference.iter().map(|r| r.name.as_str()).collect();
+    for timing in &b.cpu_reference {
+        if !names.contains(&timing.name.as_str()) {
+            names.push(&timing.name);
+        }
+    }
+    if names.is_empty() {
+        return;
+    }
+    let _ = writeln!(
+        md,
+        "## CPU reference\n\n| Timing | A ms | B ms | B/A |\n| --- | --- | --- | --- |"
+    );
+    for name in names {
+        let ms = |r: &Results| {
+            r.cpu_reference
+                .iter()
+                .find(|t| t.name == name)
+                .and_then(|t| t.ms)
+        };
+        let (va, vb) = (ms(a), ms(b));
+        let ratio = match (va, vb) {
+            (Some(va), Some(vb)) if va > 0.0 => format!("{:.2}", vb / va),
+            (Some(_) | None, Some(_) | None) => "—".to_owned(),
+        };
+        let _ = writeln!(
+            md,
+            "| {name} | {} | {} | {ratio} |",
+            results::value(va, 2, false),
+            results::value(vb, 2, false)
+        );
+    }
+    let _ = writeln!(md);
 }
 
 /// Why `results` has no profile `name` to compare.

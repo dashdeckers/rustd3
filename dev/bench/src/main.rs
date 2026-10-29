@@ -22,6 +22,7 @@ mod privacy;
 mod raster;
 mod record;
 mod recorder;
+mod reference;
 mod replay;
 mod report;
 mod repro;

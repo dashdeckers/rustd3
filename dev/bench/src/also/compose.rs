@@ -148,6 +148,12 @@ pub(super) fn frames() -> Row {
     }
 }
 
+/// The warm composition of the `trace` frame kept mid-zoom at factor 1,
+/// ms (the CPU reference's); `None` without a headless tiny-skia renderer.
+pub(super) fn zoom_frame_ms() -> Option<f64> {
+    keep(Workload::Trace, Gesture::Zoom, 1.0).map(|kept| kept.warm)
+}
+
 /// One cell of the row.
 fn describe(workload: Workload, gesture: Gesture, k: f32, kept: &Kept) -> String {
     let scaled = kept

@@ -8,6 +8,7 @@ use std::fmt::Write as _;
 use serde::{Deserialize, Serialize};
 
 use crate::display::Display;
+use crate::reference::Reference;
 use crate::system;
 
 /// The format `results.json` is written in.
@@ -30,6 +31,9 @@ pub struct Results {
     pub machine: Machine,
     /// The display, and how the level knows it.
     pub display: Display,
+    /// The CPU reference's timings.
+    #[serde(default)]
+    pub cpu_reference: Vec<Reference>,
     /// The profiles, in order, those skipped and those not yet run
     /// included.
     pub profiles: Vec<Profile>,
@@ -289,6 +293,7 @@ impl Results {
             );
         }
         self.machine_table(&mut md);
+        self.reference(&mut md);
         self.flags(&mut md);
         let _ = writeln!(md, "## Profiles\n");
         for profile in &self.profiles {
@@ -340,6 +345,26 @@ impl Results {
             set(m.x11),
             self.display.describe()
         );
+    }
+
+    /// The CPU reference's timings.
+    fn reference(&self, md: &mut String) {
+        if self.cpu_reference.is_empty() {
+            return;
+        }
+        let _ = writeln!(
+            md,
+            "## CPU reference\n\nSingle-threaded, headless, at factor 1: medians of a few \
+             repetitions, which put this machine on a scale with others.\n\n\
+             | Timing | median ms | of |\n| --- | --- | --- |"
+        );
+        for timing in &self.cpu_reference {
+            let ms = timing
+                .ms
+                .map_or_else(|| "not measured".to_owned(), |ms| format!("{ms:.2}"));
+            let _ = writeln!(md, "| {} | {ms} | {} |", timing.what, timing.repetitions);
+        }
+        let _ = writeln!(md);
     }
 
     /// What the reader must know before the numbers: headless, an
@@ -578,6 +603,12 @@ pub mod tests {
                 x11: true,
             },
             display,
+            cpu_reference: vec![crate::reference::Reference {
+                name: "trace-tile".to_owned(),
+                what: "one trace tile".to_owned(),
+                ms: Some(4.0 * k),
+                repetitions: 7,
+            }],
             profiles: vec![
                 profile("native", vec![cell("pan-x", k), cell("zoom-lines", k)]),
                 Profile::planned(
@@ -610,6 +641,7 @@ pub mod tests {
             "{md}"
         );
         assert!(md.contains("| CPU | AMD Ryzen 7 5800X, 16 cores |"), "{md}");
+        assert!(md.contains("| one trace tile | 4.00 | 7 |"), "{md}");
         assert!(md.contains("60 Hz (measured from idle frames)"), "{md}");
         assert!(md.contains("- nogpu-x11 skipped: it runs only in a Linux Wayland session."));
         assert!(
