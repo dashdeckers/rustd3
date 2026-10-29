@@ -1,283 +1,358 @@
-# rustd3-bench: run sheet
+# rustd3-bench
 
-The full-frame benchmark drives the real `Plot` widget with replayed
-input, one cold process per run, and writes raw records, CSVs and a
-`report.md` that evaluates the decision rule registered in
-`.claude/decisions/phase-22.md` (D22.1). Its first verdict built Phase 31
-(tiles, pan translation, the renderer pool, marker splatting); this is
-the rerun the rule asks for: its outcome says whether the image path now
-suffices or a GPU data layer is recommended, and D22.4's weak profiles
-say how the widget holds up on weaker machines and without a GPU.
+The benchmark of rustd3's `Plot` widget. It drives the real widget with
+replayed input, one cold process per run, and measures frame intervals,
+the latency from input to a sharp frame, previews, the UI thread, CPU and
+memory. One command runs it on any machine and packs one file to attach
+to an issue, so a performance problem on your machine comes with the
+numbers that explain it (D22.9 in `.claude/decisions/phase-22.md`).
 
-## Before you run
+## The one command
 
-Plug in power and close other GPU-heavy apps. Leave the compositor as it
-is; `system.txt` records the session, the displays and the scaling.
-
-The operational readings are fixed before any run; numbers never change
-them. `target/release/rustd3-bench list` prints them, then the plans and
-cells.
-
-## The run
-
-`rustd3-bench suite` runs the whole benchmark on Linux, Windows and
-macOS alike. From the repository root:
+From a checkout of rustd3:
 
 ```bash
-# Linux: the script builds the release bench, then runs the suite
-dev/bench/run.sh
+cargo rustd3-bench --quick
 ```
 
-```powershell
-# Windows (PowerShell)
-cargo build --release -p rustd3-bench
-.\target\release\rustd3-bench.exe suite
-```
+`cargo rustd3-bench` is an alias (`.cargo/config.toml`) for `cargo run
+--release -p rustd3-bench --`; `dev/bench/run.sh` does the same on Linux
+and macOS. The first release build compiles iced, wgpu and typst: several
+minutes. The flags:
+
+| Flag | |
+| --- | --- |
+| `--quick` | about 10 minutes: what a performance issue needs |
+| `--default` | about 75 minutes, the default: the registered verdict run and the weak profiles |
+| `--full` | hours (the estimate is printed first): every cell of every plan |
+| `--out DIR` | where results go, `bench-results` by default |
+| `--refresh-hz HZ` | the display's refresh rate, for a display that cannot be measured |
+| `--native-factor F` | the display's scale factor, likewise |
+
+Before anything runs, the level prints its steps and an estimate of the
+time: each run's scenario plus 4 s to start and settle, summed over the
+plans' cells and runs; real machines vary. Windows then open and close by
+themselves; keep your hands off the mouse and keyboard until it prints
+the archive's path. Real input is ignored, but focus changes can disturb
+the compositor. A tiling window manager should float the windows (they
+are not resizable); one that resizes them anyway is flagged.
+
+## The levels
+
+Every level starts the same way:
+
+1. **display**: one window for a few seconds (`run --plan display`, a
+   3 s hover on `trace` at data ÷ 100) on the renderer iced chooses. Its
+   idle frames give the refresh rate: the median frame interval, when at
+   least half the intervals lie within 5 % of it and it lies within
+   20–500 Hz. The window reports the scale factor, and its renderer says
+   whether iced found a GPU. `--refresh-hz` and `--native-factor` win
+   over what it measures.
+2. **cpu**: the CPU reference, single-threaded and headless at factor 1,
+   medians of a few repetitions, about 5 s: one 256 px tile of `trace`
+   mid-zoom; the `scatter100k` plot area with its markers filled, then
+   splatted; and a `trace` frame mid-zoom composed by iced's software
+   renderer. They put a machine on a scale with others.
+
+Then its profiles, each a `run` of a plan into its own directory:
+
+| Profile | `--quick` | `--default` | `--full` |
+| --- | --- | --- | --- |
+| `native`: the renderer iced chooses (wgpu, or tiny-skia without a GPU), desktop budgets | `hover`, `pan-x`, `zoom-lines` on `trace` and `scatter100k`, `drag-resize` on `trace`; 3 runs | the default plan: D22.1's verdict run, its rule outcome | the full plan: every scenario × workload × factor, 5 runs |
+| `nogpu`: tiny-skia, weak budgets | `pan-x`, `zoom-lines` on `trace`; 3 runs | the weak plan, 5 runs | the weak plan |
+| `nogpu-x11`: tiny-skia on X11 through XWayland, a Linux Wayland session only (D22.8), report-only | as `nogpu` | the weak plan | the weak plan |
+| `4cores`, `2cores`: iced's renderer limited to 4 and 2 cores, weak budgets | — | the weak plan | the weak plan |
+
+`--full` ends with every `also` measurement (`also.md`). The quick level
+is report-only: its cells are held to the budgets to show where each
+stands, and its verdicts decide nothing. The default level is the
+registered verdict run unchanged, so its history stays comparable.
+
+### Any machine, no stops
+
+- **No display** (SSH, CI, a console: on Linux and the BSDs neither
+  `WAYLAND_DISPLAY` nor `DISPLAY` is set), or the display measurement's
+  window never drew: every profile runs `--headless` on iced's headless
+  renderers, virtual frames at 60 Hz, and the report says why. Headless
+  numbers are report-only.
+- **A display that paces no frames** (a VM, Xvfb, a remote desktop): the
+  level runs at 60 Hz (or `--refresh-hz`), and the report marks every
+  frame budget as assuming that rate.
+- **No GPU adapter**: iced falls back to tiny-skia, so `native` is the
+  software renderer, which the report says; `nogpu` would repeat it and
+  is skipped. (An explicit `--backend wgpu` opens no window there; the
+  levels use `--backend auto`, which leaves the choice to iced.)
+- **Fewer cores than a profile**: it is skipped, and the report says so.
+- **Limiting cores**: `taskset -c 0-(n-1)` on Linux when present; `cmd /C
+  start "" /B /WAIT /AFFINITY <mask>` on Windows; otherwise (macOS, or
+  Linux without `taskset`) nothing is pinned and the widget's render pool
+  is set to n − 1 threads (`--threads`). Each weak report's heading says
+  which.
+- **A run that crashes or hangs**: it is killed two minutes past its
+  scenario's length, recorded as failed (its cell shows the runs read of
+  those planned), and the level goes on.
+- **Ctrl-C**: the archive is written after the display measurement and
+  after every profile, so an interrupted level leaves the last whole one
+  (std cannot catch the signal portably); its `results.json` reads
+  `"complete": false` and its report names the profiles that did not run.
+- `system76-power`, where present, is set to `performance` while the
+  level runs and restored after.
+
+Linux is where the levels are checked (under Xvfb, and headless). Windows
+and macOS build from the same code with no platform-specific code path
+beyond the core limits and the machine description, and are unverified.
+
+## The archive
+
+A level writes `bench-results/<UTC stamp>-<level>/` and packs it into
+`bench-results/rustd3-bench-<level>-<UTC stamp>.tar.gz`, whose path it
+prints last: the one file to attach. Inside:
+
+| Path | Content |
+| --- | --- |
+| `report.md` | the machine and display, the CPU reference, flags, every profile's budgets met and missed with its key metrics, and at the default and full levels the rule's outcome |
+| `results.json` | the same, machine-readable (below) |
+| `PRIVACY.md` | what the archive holds |
+| `system.txt` | how each profile ran (skips, core limits), then the session type and desktop, whether `WAYLAND_DISPLAY` and `DISPLAY` are set, `xrandr --current`, `cosmic-randr list`, GNOME's scaling factors, `nvidia-smi`, `uname -srm` and `/etc/os-release`, each where present |
+| `run-<profile>.log` | each step's console |
+| `display/`, `<profile>/` | each run's directory (below) |
+
+Nothing personal goes in. `system.txt` never takes `uname -a` (it prints
+the host name) nor the display variables' values (`DISPLAY` can name a
+host). Before packing, every text file is rewritten: the results
+directory's own path goes, so paths are relative to it; the home
+directory becomes `~`; the host name `<host>` (as written and in lower
+case); the user name, where it is a path component, `<user>`. Archive
+entries carry no owner. `PRIVACY.md` lists the rest.
+
+### Reading a submission
 
 ```bash
-# macOS (untested: no macOS machine has run it yet)
-cargo build --release -p rustd3-bench
-target/release/rustd3-bench suite
+rustd3-bench compare A B   # two directories or archives side by side
+rustd3-bench report A      # rebuild and print a level's report
 ```
 
-The first release build compiles iced, wgpu and typst: several minutes.
-The suite prints what it will do, switches `system76-power` to
-`performance` where that tool exists (restoring your profile at the
-end), and runs, into `bench-results/<UTC stamp>/` under the directory it
-was started in:
+`compare` prints the two machines and their CPU references side by side,
+then per profile and cell frame p50 and p99, latency p95, preview share,
+drops, UI frame p99 and CPU s/s of A and B with B/A, and marks the cells
+and profiles only one side has. `report` rebuilds each profile's report
+from its raw records (in place for a directory, in a temporary directory
+for an archive), then `results.json` and `report.md`, and prints the
+report. Both also read a suite's directory from before the levels (one
+directory per plan: `default/` is read as `native`, `weak-nogpu/` as
+`nogpu`, and so on), from its `summary.csv` files, without rebuilding;
+`report` on one run's directory (`meta.json` at its top) rebuilds it as
+before.
 
-1. `smoke/`, about 6 minutes: every scenario × workload once in windows,
-   to see that windows open, take the replayed input and close. Its
-   windows measure the display: the refresh rate is their idle frame
-   interval (the median interval of the hover runs' frames, when at least
-   half of them lie within 5 % of it and it is between 20 and 500 Hz;
-   otherwise, as in a session without vsync such as Xvfb, the suite stops
-   and asks for `--refresh-hz`), and the scale factor the one iced reports
-   for them. The plans after smoke use both.
-2. `default/`, about 47 minutes: the verdict's rerun.
-3. `weak-nogpu/`, about 7 minutes: the `weak` plan on the software
-   renderer (`--backend tiny-skia`), as on a machine without a GPU.
-4. `weak-nogpu-x11/`, about 7 minutes, only in a Linux Wayland session
-   with XWayland (`WAYLAND_DISPLAY` and `DISPLAY` both set): the same
-   plan again with `WAYLAND_DISPLAY` removed (`run --xwayland`), so its
-   windows open on X11 through XWayland. On Wayland, iced's software
-   renderer reaches the widget about 8 frames a second during a gesture
-   where X11 draws hundreds (D22.8); this profile measures the widget's
-   software path apart from that. It is report-only, and its report's
-   heading says so. Elsewhere the suite skips it and says so in one line.
-5. `weak-4cores/` and `weak-2cores/`, about 7 minutes each: the `weak`
-   plan on wgpu limited to 4 and to 2 cores. On Linux the bench is
-   pinned with `taskset -c 0-3` and `0-1` when `taskset` is installed;
-   on Windows with `cmd /C start "" /B /WAIT /AFFINITY F` and `3`;
-   elsewhere (macOS, or Linux without `taskset`) nothing is pinned and
-   the widget's render pool is set to 3 and 1 threads (`--threads`), as
-   it would be on 4 and 2 cores. Each weak report's heading says which
-   (`meta.json`'s `cpu_limit`). A machine with fewer cores skips the
-   profile, with a message.
+### `results.json`
 
-About 76 minutes in all, 83 in a Wayland session, plus the build. Each
-plan's console goes to `run-<plan>.log` (`run-smoke.log`,
-`run-default.log`, `run-weak-nogpu.log`, …) and the diagnostics to
-`system.txt`, beside them; its first lines say the refresh rate and
-factor the suite used, how each weak profile's cores were limited, and
-whether `weak-nogpu-x11` ran. The suite ends with the directory, each
-report's rule outcome and the `tar` command for sending it.
+Format 1. Unknown fields are to be ignored; a new required field or a
+changed meaning raises `format`.
 
-- `--refresh-hz 144` and `--native-factor 1.25` (on Linux `HZ=144
-  FACTOR=1.25 dev/bench/run.sh`) override what the first windows report;
-  without them the first windows ask for factor 1 (GNOME's
-  `scaling-factor`, when set, on Linux) and run at a provisional 60 Hz.
-- `--smoke-only` stops after smoke.
-- `--focus` runs D22.5's focus plan in place of smoke and the default
-  plan, then the weak profiles, into the same layout: `probe/`,
-  about 2 minutes, one run of the focus plan's first cell, whose windows
-  measure the display as smoke's do; `focus/`, about 17 minutes; then
-  `weak-nogpu/`, `weak-nogpu-x11/` (Wayland sessions), `weak-4cores/`
-  and `weak-2cores/`. About 40 minutes in all, 47 in a Wayland session,
-  plus the build.
-- `--out DIR` writes under `DIR` instead of `bench-results`.
+| Field | Content |
+| --- | --- |
+| `format` | 1 |
+| `rustd3` | `version`, `commit` (`git rev-parse HEAD`, or "unknown"), `iced` (the pinned revision) |
+| `level` | `quick`, `default` or `full` |
+| `stamp` | the level's start, UTC, `YYYYmmddTHHMMSSZ` |
+| `complete` | false in the archive of an interrupted level |
+| `machine` | `os`, `release`, `kernel`, `arch`, `cpu`, `cores`, `ram_mb`, `gpu` (each "unknown" or 0 where no tool says), `session`, `desktop` (`XDG_SESSION_TYPE`, `XDG_CURRENT_DESKTOP`, or "unset"), `wayland`, `x11` (whether `WAYLAND_DISPLAY`, `DISPLAY` are set) |
+| `display` | `headless` (why, or null), `refresh_hz`, `refresh`, `native_factor`, `factor` (`refresh` and `factor`: `given`, `measured` or `assumed`), `backend` (the renderer iced chose: `wgpu` or `tiny-skia`, or null) |
+| `cpu_reference` | per timing `name` (`trace-tile`, `scatter-filled`, `scatter-splatted`, `composition`), `what`, `ms` (the median, or null when not measured), `repetitions` |
+| `profiles` | in order, those skipped and not run included; each below |
 
-Smoke runs each cell once, so its report reads "inconclusive" everywhere
-by design: verdicts need 5 runs per cell, and smoke only checks that
-windows open, take the replayed input and close.
+A profile: `name`, `what` (a line), `plan`, `backend` (asked: `auto`,
+`tiny-skia`), `ran` (the renderers its runs ran on), `budgets` (`desktop`
+or `weak`), `limit` (how its cores were limited, or null), `xwayland`,
+`headless`, `status` (`done`, `failed`, `skipped`, `pending`), `reason`
+(why skipped, or what failed), `outcome` (its outcome line), `checks`
+(`met`, `missed`, `inconclusive`) and `cells`. A cell: `scenario`,
+`workload`, `factor`, `runs` (planned), `read` (runs with records),
+`applies` (false: the workload has no such cell), `metrics` (each per-run
+statistic's median across runs, named as in `summary.csv`:
+`frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`, `drops`,
+`latency_p50_ms`, `latency_p95_ms`, `preview_share`, `ui_event_p99_ms`,
+`ui_frame_p99_ms`, `raster_critical_ms`, `inline_share`, `cpu_s_per_s`,
+`upload_mb_per_s`, `resolve_ms`, `list_ms`, `calibration`, and per
+scenario `latency_p95_pan_ms`, `latency_p95_zoom_ms`,
+`preview_share_pan`, `cold_ms`, `last_step_latency_p50_ms`,
+`last_step_latency_p95_ms`, `rss_max_mb`, `gpu_max_mb`) and `budgets`: per
+budget `budget` (`frame p99`, `pan latency p95`, `zoom latency p95`,
+`preview share`, `pan: ` or `zoom: ` before `4k`'s halves), `limit` (ms,
+or a share), `n`, `mean`, `ci` (the 95% interval, from two runs) and
+`verdict` (`met`, `missed`, `inconclusive`).
 
-Windows open and close for about 70 minutes after smoke, 77 in a Wayland
-session (the default plan's 140 runs of about 16 s and one 10-minute
-soak, then 3 × 25 runs, or 4 × 25); do not touch the mouse or keyboard.
-Real input is ignored during a run, but focus changes and pointer warps
-can still disturb the compositor. Bench windows are not resizable, so a
-tiling window manager should float them at their size; one that resizes
-a window anyway is flagged in the report ("window resized by the window
-manager"), and the replayed positions follow the window's real size.
+## For developers
 
-The default plan: (A) the ten scenarios other than `soak` on `trace` at
-your native factor; (B) `hover`, `pan-x`, `zoom-lines` on `scatter100k`,
-`scatter1m`, `grid16` and `label-churn` at native; (C) `pan-x` and
-`zoom-lines` on `trace` at the other factors of 1, 1.25, 1.5 and 2; (D)
-`soak` once. Five runs per cell: 29 cells, 141 runs. The rule, readings
-and budgets are D22.1's, unchanged: `drag-resize` (A), added with D22.5,
-is report-only, and no budget reads it.
+### The commands
 
-Two scenarios resize the window. `resize` jumps between three fixed sizes
-every 500 ms, one re-layout each; it is not a drag. `drag-resize` drags
-the window by a corner as a user does: a step every 16 ms for 1.5 s, down
-to 70% of the window's real size and back, a drag every 3 s; the report's
-"Window drags" section gives its frame intervals, dropped frames and the
-latency from each drag's last step to the first current frame. Since D22.3 the factor cells (C) keep
-the standard window's 1600 × 1000 device px at every factor (a window of
-1600 / k × 1000 / k logical px at factor k), which fits a 1080p display,
-and `4k` reads "n/a: display too small" when the window the compositor
-gave is below 3840 × 2160 device px.
+`rustd3-bench --help` lists them under "Advanced (developers)":
 
-The focus plan (D22.5) reruns what Phase 31e changed, five runs each at
-the native factor: `zoom-lines` and `zoom-pixels` on `trace`;
-`zoom-lines` on `trace` at the other three factors; `zoom-lines` on
-`scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
-`trace` and `scatter1m`; `drag-resize` on `trace` and `grid16` (13 cells,
-65 runs). Its report shows each cell against the desktop budgets, marked
-report-only: it is not the rule's run and decides nothing.
+- `run`: one plan into `--out DIR/<UTC stamp>/`, every flag of the
+  benchmark (`--plan`, `--scenario`, `--workload`, `--factor`, `--runs`,
+  `--backend wgpu|tiny-skia|auto`, `--budgets desktop|weak`,
+  `--present-mode`, `--headless`, `--readback`, `--render`, `--caching`,
+  `--threads`, `--replay`, `--data-scale`, `--cpu-limit`, `--xwayland`,
+  `--no-also`). Windowed, `--refresh-hz` and `--native-factor` are
+  required; the benchmark never guesses them. Headless they default to 60
+  and 2, and `--headless` without `--plan` runs `smoke`.
+- `list`: the readings, scenarios, workloads, plans and a plan's cells.
+- `raster`: the raster variants (envelope fills, marker splatting)
+  against the cells as drawn, CPU only, into `raster.csv`.
+- `also`: the items earlier phases asked to be measured.
+- `replay --out DIR`, `record --out FILE`: the generated replays; your
+  own input in the `trace` window as a replay (Escape stops).
+- `report PATH`, `compare A B`: above.
+- `repro-software`: D22.8's plain-iced reproduction (below).
+- `child`: one scenario × workload × factor × run (internal).
 
-The weak plan (D22.4): `hover`, `pan-x` and `zoom-lines` on `trace`,
-`pan-x` and `zoom-lines` on `scatter100k`, at the native factor, five
-runs each (5 cells, 25 runs). Its budgets, registered before any run: p99
-frame interval ≤ 2 T, pan latency p95 ≤ 150 ms, zoom latency p95 ≤ 250 ms,
-preview share ≤ 25% during pans; each profile's report has its own "Weak
-profile" section and outcome line. They never decide the GPU layer, which
-stays with the default plan.
+### Plans
 
-### By hand
+- `default` (the verdict's, D22.1): (A) the ten scenarios other than
+  `soak` on `trace` at the native factor; (B) `hover`, `pan-x`,
+  `zoom-lines` on `scatter100k`, `scatter1m`, `grid16` and `label-churn`
+  at native; (C) `pan-x` and `zoom-lines` on `trace` at the other factors
+  of 1, 1.25, 1.5 and 2; (D) `soak` once. Five runs per cell: 29 cells,
+  141 runs. `drag-resize` (A), added with D22.5, is report-only. Since
+  D22.3 the factor cells keep 1600 × 1000 device px at every factor (a
+  window of 1600 / k × 1000 / k logical px), which fits a 1080p display,
+  and `4k` reads "n/a: display too small" below 3840 × 2160 device px.
+- `weak` (D22.4): `hover`, `pan-x` and `zoom-lines` on `trace`, `pan-x`
+  and `zoom-lines` on `scatter100k`, at native, five runs each.
+- `quick` (D22.9): the quick level's cells, three runs each.
+- `display` (D22.9): one 3 s `hover` on `trace`, data ÷ 100.
+- `focus` (D22.5): `zoom-lines` and `zoom-pixels` on `trace`;
+  `zoom-lines` on `trace` at the other three factors and on
+  `scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
+  `trace` and `scatter1m`; `drag-resize` on `trace` and `grid16`.
+  Report-only: `run --plan focus` only.
+- `smoke`: every scenario × workload once at factor 2, durations ÷ 5,
+  data ÷ 100, `soak` 20 s; `scripts/check.sh full` runs it headless.
+- `full`: every scenario × workload × factor, five runs.
 
-The same steps without the script, from the repository root:
+Two scenarios resize the window: `resize` jumps between three fixed sizes
+every 500 ms; `drag-resize` drags a corner as a user does (a step every
+16 ms for 1.5 s, down to 70% of the window and back, a drag every 3 s),
+and the report's "Window drags" section gives its frame intervals,
+dropped frames and the latency from each drag's last step to the first
+current frame.
 
-```bash
-cargo build --release -p rustd3-bench
-system76-power profile performance
-target/release/rustd3-bench run --plan smoke --refresh-hz <HZ> \
-    --native-factor <F> --factor <F> --out ~/bench-out
-target/release/rustd3-bench run --plan default --refresh-hz <HZ> \
-    --native-factor <F> --out ~/bench-out
-target/release/rustd3-bench run --plan weak --backend tiny-skia \
-    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
-# Wayland sessions only: the same on X11 through XWayland (report-only)
-target/release/rustd3-bench run --plan weak --backend tiny-skia --xwayland \
-    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
-taskset -c 0-3 target/release/rustd3-bench run --plan weak \
-    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
-taskset -c 0-1 target/release/rustd3-bench run --plan weak \
-    --refresh-hz <HZ> --native-factor <F> --out ~/bench-out
-```
+### The registered rule
 
-On Windows the pinned runs start with `cmd /C start "" /B /WAIT
-/AFFINITY F` (4 cores) or `3` (2 cores) in place of `taskset`; elsewhere
-`--threads 3` or `--threads 1` sets the widget's render pool instead.
-`--cpu-limit TEXT` records how in `meta.json` and the weak report.
+The rule and its operational readings were registered before any run
+(D22.1) and never change after seeing data; `rustd3-bench list` prints
+them.
 
-`--refresh-hz` and `--native-factor` are required for a windowed run; the
-benchmark never guesses them. `--factor <F>` runs smoke at your factor
-instead of 2. The `window_factor` in the first line of each file under
-`raw/` is the factor iced reported for that window.
+**Budgets.** p99 frame interval ≤ 1.5 × the display's frame period;
+input-to-sharp p95 under 100 ms for pans and 150 ms for zooms; preview
+share under 10% during pans. Each budget is met, missed or inconclusive by
+its 95% interval; the 10-minute memory run is one run per configuration.
 
-## What it writes
+**Rule.** A missed budget is attributed to the UI thread (resolve, text,
+M4, list), raster (the worker's critical path) or upload. If any pan or
+zoom budget is missed and attributed to raster or upload, Phase 31 is
+built (tiles, translation, the pool, envelope fills, splatting) and this
+benchmark is rerun; a GPU data layer is recommended only if that rerun
+still misses. UI-thread misses route to moving list building off the UI
+thread, not to a GPU layer. If every budget is met, Phase 31 is skipped.
 
-Each plan's run directory (`bench-results/<stamp>/smoke/` and `default/`
-from the script, `<--out>/<UTC stamp>/` by hand):
+**Operational readings.**
+
+1. With vsync, intervals are multiples of the period T, so p99 ≤ 1.5 T
+   means the 99th-percentile frame was not a missed frame. A dropped
+   frame is an interval > 1.5 T, counted as round(interval / T) − 1.
+2. Pans are `pan-x`, `pan-y` and the pan half of `4k`; zooms are
+   `zoom-lines`, `zoom-pixels` and the zoom half of `4k`.
+3. A budget is missed when the 95% CI of the per-run statistic lies
+   entirely above it, met when entirely below, inconclusive otherwise
+   (rerun that cell with `--runs 10`).
+4. Preview share = frames with `previews + missing > 0` / frames, from the
+   first input to 300 ms after the last, per run. An outdated axis strip
+   is a preview.
+5. Attribution of a missed budget over its offending frames or latency
+   windows: UI = `update_ms + draw_ms` (stage split from the probe);
+   raster = Σ `Raster.duration` of the sharp frame's generation (the
+   single worker's critical path; inline renders included and flagged);
+   upload = Σ `Frame.uploaded` MB × the run's least-squares slope of frame
+   interval on uploaded MB. The largest share names the bucket; the
+   report shows all three.
+
+**Weak profile (D22.4).** The `weak` plan (`hover`, `pan-x` and
+`zoom-lines` on `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the
+native factor, five runs each) runs without a GPU (`--backend tiny-skia`)
+and on wgpu pinned to 4 and to 2 cores, each its own report. Budgets: p99
+frame interval ≤ 2 T; pan latency p95 ≤ 150 ms; zoom latency p95 ≤ 250
+ms; preview share ≤ 25% during pans. Each is met, missed or inconclusive
+by the readings above; a miss is attributed as above and becomes work for
+Phase 31 while it is open, else a recorded 0.2 item. These profiles never
+reopen the GPU-layer question, which stays with the desktop profile.
+
+The levels hold the quick level's native cells to the desktop budgets and
+its software cells to the weak ones, report-only (`--budgets`).
+
+### What a run writes
 
 | File | Content |
 | --- | --- |
-| `meta.json` | machine, cores (as pinned), GPU and driver, session (and `xwayland`: X11 through XWayland), present mode, backend, refresh, factors, render threads, caching, compiler, revisions, the cost model's constants and its measured calibration |
-| `system.txt` | the session's variables, `xrandr --current`, `cosmic-randr list`, the GNOME scaling factors, `nvidia-smi`, `uname -a`, `/etc/os-release` (each if present, 5 s at most) |
+| `meta.json` | machine, cores (as pinned), GPU and driver, session (and `xwayland`), present mode, backend asked, budgets, refresh, factors, render threads, caching, compiler, revisions, the command line, the cost model's constants and its measured calibration |
+| `system.txt` | as in the archive |
 | `replays/*.jsonl` | the generated input, one event per line |
-| `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster, `sys` and (under `--caching verify`) mismatch record of one run |
+| `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster, `sys` and (under `--caching verify`) mismatch record of one run; its first line names the renderer that ran |
 | `frames.csv`, `inputs.csv`, `memory.csv` | per frame, per input (with its latency), RSS and GPU samples |
 | `summary.csv` | per cell and metric: n, median, mean, 95% CI, budget, verdict |
-| `report.md` | readings, budget table, metrics, attribution, memory, flags, also measured, the rule's outcome |
+| `report.md` | readings, budget table, metrics, window drags, attribution, memory, flags, also measured (without `--no-also`), the outcome |
 
-## What to send back
+### Optional runs
 
-```bash
-tar czf bench.tgz -C bench-results <stamp>    # by hand: -C ~/bench-out <stamp>
-```
-
-At least `report.md`, `summary.csv` and `meta.json`; the whole directory
-if you can (the raw files let the agent rebuild the report with
-`rustd3-bench report <dir>`).
-
-## Optional runs
-
-- `--backend tiny-skia`: the software renderer (the `weak` plan's no-GPU
-  profile holds it to budgets; other plans report it).
-- `--render inline`: every changed cell rendered on the UI thread, the
-  pure synchronous path.
+- `--render inline`: every changed cell rendered on the UI thread.
 - `--threads N`: the widget's render pool of N threads (1 to 64) instead
   of its default, the available parallelism less one, 1 to 8.
-- `--caching verify`: every image the widget keeps or translates renders
-  again after the real renders and is compared; the report's Flags count
-  the ones that differed by more than 1/255.
-- Your own touchpad: `rustd3-bench record --out zoom.jsonl` opens the
-  `trace` window and records your input until Escape; then
-  `rustd3-bench run --plan default --refresh-hz <HZ> --native-factor <F>
-  --scenario zoom-pixels --replay zoom.jsonl --out ~/bench-out`.
-- A cell the report calls inconclusive: rerun it with `--scenario`,
-  `--workload`, `--factor` and `--runs 10`.
-- The wheel figure (Part I's worked example, 960 × 760, no recordings):
-  `--workload wheels` with any plan; it is in `smoke` and `full`, not in
-  the verdict's `default` plan, which stays as registered. Its gestures
-  act on the scatters, which zoom vibration and temperature along y; its
-  x is a band scale, so `pan-x` is n/a and `4k`'s pan half moves nothing.
+- `--caching verify`: every kept or translated image renders again and is
+  compared; the report's Flags count those that differed by over 1/255.
+- Your own touchpad: `rustd3-bench record --out zoom.jsonl`, then `run
+  --scenario zoom-pixels --replay zoom.jsonl` with the display's flags.
+- An inconclusive cell: rerun it with `--scenario`, `--workload`,
+  `--factor` and `--runs 10`.
+- The wheel figure (960 × 760, no recordings): `--workload wheels` with
+  any plan; it is in `smoke` and `full`, not in `default`.
 
-## The upstream reproduction (D22.8)
+### The upstream reproduction (D22.8)
 
 `rustd3-bench repro-software` is plain iced with nothing of rustd3
-(`src/repro.rs`, one screen): 40 images of 256 × 256 px cover a 1600 ×
-1000 window and move 1 px a frame, redrawn every frame as during a drag.
-After a 2 s warm-up it measures for 10 s and prints the frames drawn, the
-frame interval's p50, p90 and p99, the process's CPU seconds per second
-and the session's display variables. On Linux,
+(`src/repro.rs`): 40 images of 256 × 256 px (`--single`: one
+window-sized image) cover a 1600 × 1000 window and move 1 px a frame,
+redrawn every frame. After a 2 s warm-up it measures for 10 s and prints
+the frames drawn, the frame interval's p50, p90 and p99, the CPU seconds
+per second and the session's display variables. On Linux
+`dev/bench/repro-software.sh` builds the bench and runs it on both
+renderers, on Wayland and on X11 through XWayland, then prints a table.
+By hand: `ICED_BACKEND=tiny-skia target/release/rustd3-bench
+repro-software [--out FILE]`, with `env -u WAYLAND_DISPLAY` for X11.
 
-```bash
-dev/bench/repro-software.sh
-```
+### Headless
 
-builds the bench and runs it four times, tiny-skia and wgpu, each on
-Wayland and on X11 through XWayland (about a minute), then prints a
-table; send it and `bench-results/repro-<stamp>/`. By hand, the backend is
-iced's `ICED_BACKEND`: `ICED_BACKEND=tiny-skia
-target/release/rustd3-bench repro-software [--out FILE]`, with `env -u
-WAYLAND_DISPLAY` before the binary for X11.
+Agents run the windowed benchmark only under Xvfb for verification, and
+`--headless` otherwise. Headless frame intervals are not display
+intervals: every headless number is report-only. `scripts/check.sh full`
+runs the smoke plan on tiny-skia and fails only on errors.
 
-## Headless
+### Also measured
 
-Agents run `--headless` only (`--plan smoke` by default: every scenario ×
-workload once at factor 2, durations ÷ 5, data ÷ 100 (the wheel figure's
-data is fixed), `soak` 20 s, about 5 minutes on a 2-core container). Headless frame intervals are not
-display intervals: every headless number is report-only.
-`scripts/check.sh full` runs the smoke plan on tiny-skia and fails only on
-errors.
-
-## Also measured
-
-Beside the scenarios, `run` measures in its own process, and the report
-lists under "Also measured":
+`run` measures in its own process, unless `--no-also`, and the report
+lists under "Also measured" (`rustd3-bench also` prints the same):
 
 - D19.3: the 200k-dot plot-area cell (1600 × 1000 at 2) rendered with
-  vello_cpu's pool, against the cost model, and its calibration factor;
-- D18.3: the trace example at 2×, its cells rendered at their own
-  origins against the whole canvas (vello_cpu's origin-dependent dashes),
-  as pixels over 2/255 and 16/255;
-- D15.3: a 1 px line thinned at one column per device px at 2×, the share
-  of columns whose top or bottom ink moves more than 1 px against every
-  sample stroked;
+  vello_cpu's pool, against the cost model;
+- D18.3: the trace example at 2×, its cells rendered at their own origins
+  against the whole canvas, as pixels over 2/255 and 16/255;
+- D15.3: a 1 px line thinned at one column per device px at 2×, against
+  every sample stroked;
 - D21.1: resolving the windowed trace from a fresh cache and in a steady
-  layout after an append, with the labels looked up.
-- Phase 31g: a real gesture frame composed by iced's software renderer
-  (tiny-skia, headless): the widget driven through a zoom burst and a
-  drag over `trace` and `scatter100k` at 1 and 2, every frame composed;
-  a mid-burst and a mid-drag frame's images, scaled images, new handles
-  and composition time (the first, which converts the new handles, and
-  warm), and the same images replayed with no image, as captured, every
-  image nearest, and each plot area's images composed into one on the CPU.
-- Phase 31g: one tile of `trace` mid-zoom (256 device px, the top plot
-  area's layer at the widget's overscan, a ×1.6 zoom about its centre,
-  1600 × 1000 at 1 and 2), single-threaded: its time, the stroke segments
-  of the commands that meet it against those within its reach, kurbo's
-  stroke expansion of their whole paths, and its fixed cost.
+  layout after an append;
+- D22.4: a pan's UI-thread work on the scatters, and a plot area of tiles
+  drawn per frame on iced's headless renderers;
+- Phase 31: renders per frame of a pan, and one axis gutter's render;
+- Phase 31g: a gesture frame composed by iced's software renderer, as
+  captured and replayed as each candidate would draw it, and one `trace`
+  tile mid-zoom;
+- D31.2: the `scatter100k` plot area, markers filled and splatted.

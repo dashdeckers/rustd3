@@ -70,6 +70,19 @@ The first release.
   that pans move by whole device pixels, a render pool and a cost model
   fitted on the machine it runs on.
 
+### Benchmark (`rustd3-bench`, in the repository)
+
+- One entry point, `cargo rustd3-bench [--quick | --default | --full]`,
+  on any machine: it measures the display, runs headless without one,
+  falls back to the software renderer without a GPU, skips what the
+  machine cannot run, and records failed runs without stopping.
+- One file to attach to an issue,
+  `bench-results/rustd3-bench-<level>-<UTC stamp>.tar.gz`, with
+  `report.md`, a versioned `results.json`, a CPU reference and
+  `PRIVACY.md`; no host name, user name or home path goes in.
+- `rustd3-bench compare A B` and `rustd3-bench report A` read a
+  directory or an archive.
+
 ### Later (0.2)
 
 Each has its place in the design and waits for a consumer or for the
