@@ -694,6 +694,14 @@ ms, 32.0 → 24.3 ms.
       31.8 / 160 → 94 / 9 % / 37.1 / 20.3 / 120 → 75 / 8 % / 32.4 /
       16.4 / 83. Within the weak budgets (150 ms, 25 %); smoother frames
       for a little latency.
+   e. **wgpu zoom frames on `trace`** (lavapipe, 2 runs) got slower
+      with items 1–3: frame p95 64 → 83 ms, p99 84 → 123 ms, dropped
+      frames 383 → 412, UI frame p99 46.9 → 42.0 ms; on `scatter100k`
+      p99 107 → 95 ms. No measurement here separates the three items;
+      likely lavapipe's rasterizer sharing the two cores with a worker
+      that item 3 keeps busy through the burst. The user's focus run
+      reads it on real hardware; if zoom frames are worse there, item 3
+      is the first to revisit.
 
 ### Options
 
