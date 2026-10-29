@@ -26,7 +26,7 @@ use std::thread;
 use iced::advanced::renderer::{self, Headless as _};
 
 use crate::also;
-use crate::cli::Backend;
+use crate::cli::widget::Backend;
 use crate::display::{self, Display};
 use crate::level::{Level, Outline, Request, Widget};
 use crate::plan::{self, Plan, Selection};
@@ -715,7 +715,7 @@ mod tests {
     use std::path::Path;
 
     use super::{Level, Limit, Machine, mask, xwayland_on};
-    use crate::cli::Backend;
+    use crate::cli::widget::{self, Backend};
     use crate::display::{Display, Measured};
     use crate::plan::Plan;
     use crate::rule;
@@ -867,7 +867,10 @@ mod tests {
              --native-factor 1 --headless --out o/native"
         );
         // Each round-trips through run's parser.
-        let Ok(crate::cli::Command::Run(options)) = crate::cli::Command::parse(&args) else {
+        let Ok(crate::cli::Command::Widget(command)) = crate::cli::Command::parse(&args) else {
+            panic!("a widget command");
+        };
+        let widget::Command::Run(options) = *command else {
             panic!("a run");
         };
         assert!(options.headless && !options.also);

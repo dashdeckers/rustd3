@@ -10,6 +10,7 @@
 use iced::Size;
 
 use crate::replay::{Button, Delta, Event, Replay, Timed};
+use crate::workload;
 
 /// One of the benchmark's scenarios.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -40,8 +41,11 @@ pub enum Scenario {
     Soak,
 }
 
-/// The default window, logical px.
-pub const WINDOW: Size = Size::new(1600.0, 1000.0);
+/// The default window, logical px: the workloads' size.
+pub const WINDOW: Size = Size::new(
+    workload::WINDOW.width as f32,
+    workload::WINDOW.height as f32,
+);
 
 /// The 4K window in device px.
 pub const FOUR_K: Size = Size::new(3840.0, 2160.0);

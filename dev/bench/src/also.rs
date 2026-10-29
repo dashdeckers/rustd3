@@ -31,6 +31,7 @@ use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::{Sample, Target as Slot};
 use rustd3_iced::plot::{Probe, Render, cost};
 
+use crate::reference::{first_area, median_render_ms, zoomed_tile};
 use crate::scenario::WINDOW;
 use crate::stats::percentile;
 use crate::workload::Workload;
@@ -945,69 +946,6 @@ fn tile_geometry() -> Row {
         item: "Phase 31g: one trace tile (256 device px) mid-zoom, single-threaded".to_owned(),
         value: format!("{} (medians of 15)", parts.join("; ")),
     }
-}
-
-/// `fig`'s list at `k` with the top plot area's layer drawn as the pool
-/// draws it mid-zoom (the widget's overscan of two tiles, the x domain a
-/// zoom of ×1.6 about the area's centre gives, 1600 × 1000), and the
-/// 256-device-px tile in its second column across the area's middle,
-/// list px.
-pub fn zoomed_tile(fig: &Figure<'_>, k: f64) -> Result<(List, Rect), &'static str> {
-    let target = Target::Screen { scale: k };
-    let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
-    let mut cache = Cache::default();
-    let fresh = fig.resolve(size, &mut cache, &Held::default(), target);
-    let &area = fresh.plot_areas().first().ok_or("no plot area")?;
-    let range = [area.x0, area.x1];
-    let zoomed = fresh
-        .scale_at(0)
-        .and_then(|x| x.zoom_px(range, area.center().x, 1.6))
-        .ok_or("the time handle does not zoom")?;
-    let mut held = Held::default();
-    held.hold_erased(0, zoomed);
-    held.overscan(520.0 / k);
-    cache.begin();
-    let resolved = fig.resolve(size, &mut cache, &held, target);
-    let list = fig.draw_resolved(&mut cache, &resolved);
-    let side = 256.0 / k;
-    let middle = area.center().y;
-    let tile = Rect::new(
-        area.x0 + side,
-        middle - side / 2.0,
-        area.x0 + 2.0 * side,
-        middle + side / 2.0,
-    );
-    Ok((list, tile))
-}
-
-/// `fig`'s list at `k`, 1600 × 1000, and its first plot area, list px.
-pub fn first_area(fig: &Figure<'_>, k: f64) -> Option<(List, Rect)> {
-    let target = Target::Screen { scale: k };
-    let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
-    let mut cache = Cache::default();
-    let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let &area = resolved.plot_areas().first()?;
-    Some((fig.draw_resolved(&mut cache, &resolved), area))
-}
-
-/// The median of `n` single-threaded renders of `rect` of `list` at `k`,
-/// markers splatted when `splat`, after one to warm the renderer, ms.
-pub fn median_render_ms(list: &List, rect: Rect, k: f64, splat: bool, n: usize) -> f64 {
-    let bounds = Bounds::of(list, &mut Outlines::default());
-    let mut renderer = raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Detect,
-    });
-    renderer.splat(splat);
-    let _ = renderer.render(list, &bounds, rect, k);
-    let times: Vec<f64> = (0..n)
-        .map(|_| {
-            let begin = Instant::now();
-            let _ = renderer.render(list, &bounds, rect, k);
-            begin.elapsed().as_secs_f64() * 1e3
-        })
-        .collect();
-    percentile(&times, 50.0).unwrap_or(0.0)
 }
 
 /// The warm composition of a `trace` frame mid-zoom by iced's software

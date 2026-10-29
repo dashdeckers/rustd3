@@ -9,6 +9,7 @@
 //! `bench-results/<UTC stamp>-<level>/`, packed into one archive after
 //! each, and nothing stops a level.
 
+#[cfg(feature = "widget")]
 pub mod widget;
 
 use std::error::Error;
@@ -55,7 +56,7 @@ pub struct Request {
 }
 
 /// The widget's part of a level, in a build with the `widget` feature
-/// ([`widget::Part`]): the display measurement before the CPU reference,
+/// (`widget::Part`): the display measurement before the CPU reference,
 /// then, after the figure profile, the profiles that drive the `Plot`
 /// widget, and at `--full` the `also` measurements.
 pub trait Widget {

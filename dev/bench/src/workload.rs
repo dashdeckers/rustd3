@@ -1,19 +1,21 @@
 //! [`Workload`]: the figures the benchmark drives, with their data
 //! generated deterministically by xorshift64* from fixed seeds. Their
 //! layout and data are fixed here for repeatable timing; they are not the
-//! example figures.
+//! example figures. What the widget's scenarios need of them (window
+//! sizes, where gestures act, which scenarios apply) is in `window`,
+//! with the `widget` feature.
 
 mod grid;
 mod label_churn;
 mod scatter;
 pub mod trace;
 mod wheels;
+#[cfg(feature = "widget")]
+mod window;
 
-use iced::Size;
 use rustd3_core::jiff::Timestamp;
 use rustd3_figure::Figure;
-
-use crate::scenario::{Anchors, Scenario};
+use rustd3_figure::kurbo::Size;
 
 /// One of the benchmark's figures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -32,6 +34,10 @@ pub enum Workload {
     /// Part I's wheel figure at 960 × 760.
     Wheels,
 }
+
+/// The widget's standard window and the size its figures are drawn at,
+/// logical px.
+pub const WINDOW: Size = Size::new(1600.0, 1000.0);
 
 /// A workload's data, owned by the app between frames.
 #[derive(Debug)]
@@ -85,55 +91,6 @@ impl Workload {
         match self {
             Workload::Trace | Workload::Grid16 | Workload::LabelChurn => true,
             Workload::Scatter100k | Workload::Scatter1m | Workload::Wheels => false,
-        }
-    }
-
-    /// The logical size of its figure where a scenario uses the standard
-    /// window: the wheel figure keeps its own; the others take the
-    /// scenario's.
-    pub fn size(self) -> Option<Size> {
-        match self {
-            Workload::Wheels => Some(wheels::SIZE),
-            Workload::Trace
-            | Workload::Scatter100k
-            | Workload::Scatter1m
-            | Workload::Grid16
-            | Workload::LabelChurn => None,
-        }
-    }
-
-    /// Whether a panel of its figure zooms an x handle, which a
-    /// horizontal drag pans: the wheel figure's x is a band scale.
-    pub fn pans_x(self) -> bool {
-        match self {
-            Workload::Trace
-            | Workload::Scatter100k
-            | Workload::Scatter1m
-            | Workload::Grid16
-            | Workload::LabelChurn => true,
-            Workload::Wheels => false,
-        }
-    }
-
-    /// Whether it supports `scenario`; a cell it does not is "n/a": `live`
-    /// and `soak` need recordings, `pan-x` an x that pans. (`4k`'s pan
-    /// half on a figure whose x does not pan moves nothing; its zoom half
-    /// does.)
-    pub fn supports(self, scenario: Scenario) -> bool {
-        (self.has_recordings() || !scenario.needs_recordings())
-            && (self.pans_x() || scenario != Scenario::PanX)
-    }
-
-    /// Where its scenarios' gestures act: the standard figures' panels,
-    /// or the wheel figure's scatters, which zoom.
-    pub fn anchors(self) -> Anchors {
-        match self {
-            Workload::Wheels => wheels::ANCHORS,
-            Workload::Trace
-            | Workload::Scatter100k
-            | Workload::Scatter1m
-            | Workload::Grid16
-            | Workload::LabelChurn => Anchors::STANDARD,
         }
     }
 
@@ -246,7 +203,6 @@ mod tests {
     use rustd3_figure::list::Command;
 
     use super::{Data, Rng, Workload};
-    use crate::scenario::Scenario;
 
     #[test]
     fn trace_has_three_channels_of_one_million() {
@@ -266,20 +222,7 @@ mod tests {
     }
 
     #[test]
-    fn scatters_have_no_live_cells() {
-        for workload in [Workload::Scatter100k, Workload::Scatter1m] {
-            assert!(!workload.supports(Scenario::Live));
-            assert!(!workload.supports(Scenario::Soak));
-            assert!(workload.supports(Scenario::PanX));
-        }
-        assert!(Workload::Grid16.supports(Scenario::Live));
-    }
-
-    #[test]
-    fn the_wheel_figure_has_no_recordings_and_does_not_scale() {
-        assert!(!Workload::Wheels.supports(Scenario::Live));
-        assert!(!Workload::Wheels.supports(Scenario::Soak));
-        assert!(Workload::Wheels.supports(Scenario::ZoomLines));
+    fn the_wheel_figure_does_not_scale() {
         let Data::Wheels(wheels) = Workload::Wheels.data(0.01) else {
             panic!("wheel data");
         };

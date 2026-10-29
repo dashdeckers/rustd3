@@ -12,7 +12,7 @@ use rustd3_iced::Plot;
 use rustd3_iced::plot::Probe;
 use rustd3_iced::plot::probe::Sample;
 
-use crate::cli::Child;
+use crate::cli::widget::Child;
 use crate::driver::Driver;
 use crate::record::{self, Record};
 use crate::replay::{Cue, Replay};

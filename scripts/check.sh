@@ -26,12 +26,25 @@ touched() {  # packages with uncommitted changes or changed in HEAD
   done | sort -u
 }
 
+# The benchmark built without the widget, as `cargo rustd3-bench-figure`
+# builds it (D22.10): no iced, winit or wgpu in its tree, clippy on it and
+# the examples it uses, its tests.
+no_widget() {
+  if cargo tree -q -p rustd3-bench --no-default-features -e normal --prefix none \
+      | grep -E '^(iced|winit|wgpu)'; then
+    echo "rustd3-bench without the widget builds the crates above" >&2; return 1
+  fi
+  cargo clippy -p rustd3-bench -p rustd3-examples --all-targets --no-default-features -- -D warnings
+  TZ=Asia/Kathmandu cargo test -q -p rustd3-bench --no-default-features
+}
+
 quick() {
   cargo fmt --all --check
   cargo clippy --workspace --all-targets --all-features -- -D warnings
   local pkgs=("$@")
   if [ ${#pkgs[@]} -eq 0 ]; then mapfile -t pkgs < <(touched); fi
   for p in "${pkgs[@]}"; do TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features; done
+  if printf '%s\n' "${pkgs[@]}" | grep -qxE 'rustd3-(bench|examples)'; then no_widget; fi
   if [ "${RUSTD3_FUZZ:-0}" = 1 ]; then TZ=Asia/Kathmandu cargo test -q -p rustd3-core --release --test main fuzz; fi
   TZ=Asia/Kathmandu cargo run -q -p rustd3-harness -- --check
 }
@@ -51,6 +64,7 @@ fresh() {
 full() {
   fresh
   cargo clippy --workspace --all-targets --all-features -- -D warnings
+  no_widget
   for p in "${PACKAGES[@]}"; do
     TZ=Asia/Kathmandu cargo test -q -p "$p" --no-default-features
     TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features

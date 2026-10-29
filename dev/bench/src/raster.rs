@@ -21,7 +21,7 @@ use rustd3_figure::list::{Bounds, Outlines};
 use rustd3_figure::raster::{Image, Renderer, Settings, Simd};
 use rustd3_figure::{Cache, Held, Target};
 
-use crate::cli::Options;
+use crate::cli::widget::Options;
 use crate::scenario::Scenario;
 use crate::stats::percentile;
 use crate::workload::Workload;

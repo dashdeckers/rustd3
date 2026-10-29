@@ -267,11 +267,9 @@ fn window_factor(headers: &[record::Run]) -> Option<f32> {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsStr;
-    use std::fs;
 
-    use super::{Display, Measured, Source, idle_hz, read, unreachable};
-    use crate::metrics::tests::header;
-    use crate::record::{self, Record};
+    use super::{Display, Measured, Source, idle_hz, unreachable};
+    use crate::record::Record;
 
     /// Frames every `period` ms from 0 for `n` frames.
     fn frames(period: f64, n: u32) -> Vec<Record> {
@@ -307,8 +305,15 @@ mod tests {
         assert_eq!(idle_hz(&[]), None);
     }
 
+    #[cfg(feature = "widget")]
     #[test]
     fn the_measurement_reads_the_rate_the_factor_and_the_backend() {
+        use std::fs;
+
+        use super::read;
+        use crate::metrics::tests::header;
+        use crate::record;
+
         let raw = std::env::temp_dir().join(format!("rustd3-display-{}", std::process::id()));
         fs::create_dir_all(&raw).unwrap();
         assert_eq!(read(&raw), None, "no run wrote a file");

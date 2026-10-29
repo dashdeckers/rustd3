@@ -8,11 +8,17 @@ license.workspace = true
 publish = false
 autotests = false
 
+[features]
+default = ["widget"]
+# The iced examples and use cases (focus_context, update_pattern, the
+# README's iced code); without it the figures alone build (D22.10).
+widget = ["dep:rustd3-iced", "dep:iced"]
+
 [dependencies]
 rustd3-core = { workspace = true, features = ["derive"] }
 rustd3-figure = { workspace = true, features = ["fonts", "png", "pdf", "gif", "helpers"] }
-rustd3-iced = { workspace = true, features = ["figure"] }
-iced = { workspace = true, features = ["advanced", "canvas"] }
+rustd3-iced = { workspace = true, features = ["figure"], optional = true }
+iced = { workspace = true, features = ["advanced", "canvas"], optional = true }
 
 [dev-dependencies]
 rustd3-testkit.workspace = true
@@ -22,6 +28,22 @@ png.workspace = true
 [[test]]
 name = "main"
 path = "tests/main/main.rs"
+
+[[example]]
+name = "focus_context"
+required-features = ["widget"]
+
+[[example]]
+name = "readme_canvas"
+required-features = ["widget"]
+
+[[example]]
+name = "readme_plot"
+required-features = ["widget"]
+
+[[example]]
+name = "update_pattern"
+required-features = ["widget"]
 
 [lints]
 workspace = true

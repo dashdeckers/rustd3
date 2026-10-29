@@ -66,10 +66,6 @@ pub enum Data {
     Wheels(Vec<wheels::Sample>),
 }
 
-/// The size the profile's own figures are drawn at, logical px: the
-/// widget's standard window, at which the CPU reference draws.
-pub const SIZE: Size = Size::new(1600.0, 1000.0);
-
 /// The values of the statistical figure.
 const VALUES: usize = 1_000_000;
 
@@ -128,7 +124,8 @@ impl Subject {
         }
     }
 
-    /// Its size, logical px.
+    /// Its size, logical px: the widget's standard window, at which the
+    /// CPU reference draws, or a real-world figure's own.
     pub fn size(self) -> Size {
         match self {
             Subject::Preset(_) => presets::SIZE,
@@ -139,7 +136,7 @@ impl Subject {
             | Subject::Labels
             | Subject::Stats
             | Subject::Heatmap
-            | Subject::Line(_) => SIZE,
+            | Subject::Line(_) => workload::WINDOW,
         }
     }
 

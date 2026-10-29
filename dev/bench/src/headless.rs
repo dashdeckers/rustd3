@@ -19,7 +19,7 @@ use iced::{Color, Event, Size, mouse, window};
 use iced_runtime::user_interface::{self, UserInterface};
 
 use crate::app::{App, Effect, Message};
-use crate::cli::Readback;
+use crate::cli::widget::Readback;
 use crate::record::Record;
 use crate::system;
 
