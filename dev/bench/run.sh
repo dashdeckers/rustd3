@@ -4,10 +4,14 @@
 # verdict's run), then D22.4's weak plan three times (about 7 minutes
 # each): without a GPU (tiny-skia), and on wgpu pinned to 4 and to 2 cores.
 # About 76 minutes in all, into bench-results/<UTC stamp>/{smoke,default,
-# weak-nogpu,weak-4cores,weak-2cores}/.
+# weak-nogpu,weak-4cores,weak-2cores}/. With --focus, D22.5's focus plan
+# (about 17 minutes, report-only) replaces smoke and default, after one run
+# of its first cell that checks the windows' factor: about 40 minutes, into
+# bench-results/<UTC stamp>/{probe,focus,weak-nogpu,weak-4cores,weak-2cores}/.
 #
 #   dev/bench/run.sh               smoke, default, the weak profiles
 #   dev/bench/run.sh --smoke-only  smoke only
+#   dev/bench/run.sh --focus       the focus plan, the weak profiles
 #
 # HZ (the display's refresh rate) and FACTOR (its scale factor) override
 # detection, e.g. HZ=144 FACTOR=1.25 dev/bench/run.sh.
@@ -15,15 +19,23 @@ set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/../.."
 
 smoke_only=false
+focus=false
 case "${1:-}" in
   "") ;;
   --smoke-only) smoke_only=true ;;
-  *) echo "usage: dev/bench/run.sh [--smoke-only]" >&2; exit 2 ;;
+  --focus) focus=true ;;
+  *) echo "usage: dev/bench/run.sh [--smoke-only | --focus]" >&2; exit 2 ;;
 esac
 
-plans="the smoke plan (about 6 min; its numbers do not count)"
-$smoke_only || plans="$plans, the default plan (about 47 min, the verdict's run), then the weak \
-profiles (about 21 min: no GPU, 4 cores, 2 cores); about 76 min in all"
+weak="the weak profiles (about 21 min: no GPU, 4 cores, 2 cores)"
+if $focus; then
+  plans="one run of the focus plan's first cell (about 2 min; a check of the windows' factor), \
+the focus plan (about 17 min, report-only), then $weak; about 40 min in all"
+else
+  plans="the smoke plan (about 6 min; its numbers do not count)"
+  $smoke_only || plans="$plans, the default plan (about 47 min, the verdict's run), then $weak; \
+about 76 min in all"
+fi
 echo "rustd3-bench: build, then $plans, into bench-results/<UTC stamp>/."
 echo "Keep hands off the mouse and keyboard while windows open and close."
 
@@ -81,30 +93,38 @@ plan() {
   return "$status"
 }
 
-# Smoke at the native factor, so its windows have the default plan's size.
-plan smoke --plan smoke --refresh-hz "$HZ" --native-factor "$FACTOR" --factor "$FACTOR" \
-  || { echo "The smoke plan failed (see $out/run-smoke.log); the default plan was not run." >&2; exit 1; }
+# The first windows at the native factor, whose factor iced reports: the
+# smoke plan, or with --focus one run of the focus plan's first cell.
+if $focus; then
+  first=probe
+  plan probe --plan focus --scenario zoom-lines --workload trace --factor "$FACTOR" --runs 1 \
+    --refresh-hz "$HZ" --native-factor "$FACTOR" \
+    || { echo "The probe run failed (see $out/run-probe.log); the focus plan was not run." >&2; exit 1; }
+else
+  first=smoke
+  # Smoke at the native factor, so its windows have the default plan's size.
+  plan smoke --plan smoke --refresh-hz "$HZ" --native-factor "$FACTOR" --factor "$FACTOR" \
+    || { echo "The smoke plan failed (see $out/run-smoke.log); the default plan was not run." >&2; exit 1; }
+fi
 
-# The factor iced reported for the smoke windows (each raw file's first line).
-observed=$(head -qn1 "$out"/smoke/raw/*.jsonl | grep -o '"window_factor":[0-9.]\+' | cut -d: -f2 \
+# The factor iced reported for those windows (each raw file's first line).
+observed=$(head -qn1 "$out"/$first/raw/*.jsonl | grep -o '"window_factor":[0-9.]\+' | cut -d: -f2 \
   | sort | uniq -c | sort -rn | awk 'NR == 1 {print $2}' || true)
 factor=$FACTOR
 if [ -n "$observed" ] && awk -v a="$observed" -v b="$FACTOR" 'BEGIN {exit !(a - b > 1e-3 || b - a > 1e-3)}'; then
-  echo "The windows' scale factor is $observed, not $FACTOR: the default plan uses $observed."
+  echo "The windows' scale factor is $observed, not $FACTOR: the plans after $first use $observed."
   factor=$observed
 fi
 
 {
-  echo "# dev/bench/run.sh: HZ=$HZ FACTOR=$FACTOR, observed window factor ${observed:-none}, default plan at $factor"
+  echo "# dev/bench/run.sh: HZ=$HZ FACTOR=$FACTOR, observed window factor ${observed:-none}, plans after $first at $factor"
   echo "# power profile before the run: ${previous:-unknown}"
   echo
-  cat "$out/smoke/system.txt"
+  cat "$out/$first/system.txt"
 } > "$out/system.txt"
 
-status=0
-if ! $smoke_only; then
-  plan default --plan default --refresh-hz "$HZ" --native-factor "$factor" || status=$?
-  # D22.4's weak profiles, each held to the weak budgets in its own report.
+# D22.4's weak profiles, each held to the weak budgets in its own report.
+weak_profiles() {
   plan weak-nogpu --plan weak --backend tiny-skia --refresh-hz "$HZ" --native-factor "$factor" \
     || status=$?
   cores=$(nproc --all 2>/dev/null || getconf _NPROCESSORS_ONLN)
@@ -118,11 +138,20 @@ if ! $smoke_only; then
         --native-factor "$factor" || status=$?
     fi
   done
+}
+
+status=0
+if $focus; then
+  plan focus --plan focus --refresh-hz "$HZ" --native-factor "$factor" || status=$?
+  weak_profiles
+elif ! $smoke_only; then
+  plan default --plan default --refresh-hz "$HZ" --native-factor "$factor" || status=$?
+  weak_profiles
 fi
 
 echo
 echo "Results: $out"
-for name in smoke default weak-nogpu weak-4cores weak-2cores; do
+for name in smoke probe default focus weak-nogpu weak-4cores weak-2cores; do
   if [ -f "$out/$name/report.md" ]; then
     echo "== $name: rule outcome"
     sed -n '/^## Rule outcome/,$p' "$out/$name/report.md" | sed '1d;/^$/d'

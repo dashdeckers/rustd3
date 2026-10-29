@@ -159,7 +159,8 @@ run sheet):
      (the verdict's) and D22.4's weak plan three times (tiny-skia, then
      wgpu on 4 and on 2 cores), about 76 minutes; do not touch the mouse
      or keyboard. HZ and FACTOR override the detected refresh rate and
-     scale factor.
+     scale factor. --focus runs D22.5's focus plan (report-only) in place
+     of smoke and default, then the weak plans: about 40 minutes.
   3. By hand instead: cargo build --release -p rustd3-bench, then
      target/release/rustd3-bench run --plan default --refresh-hz <HZ>
        --native-factor <F> --out ~/bench-out
@@ -170,7 +171,7 @@ run sheet):
      at least report.md, summary.csv, meta.json of each plan.
 
 Commands:
-  run     [--plan smoke|quick|default|weak|full] [--scenario A,B] [--workload A,B]
+  run     [--plan smoke|quick|default|weak|focus|full] [--scenario A,B] [--workload A,B]
           [--factor 1,1.25] [--runs N] [--refresh-hz HZ] [--native-factor F]
           [--backend wgpu|tiny-skia]
           [--present-mode vsync|no_vsync|immediate|fifo|fifo_relaxed|mailbox]
@@ -184,7 +185,8 @@ Commands:
           listed factors instead of 2). `weak` is D22.4's plan for weaker
           machines, held to its own budgets: run it with --backend
           tiny-skia, and under `taskset -c 0-3` and `taskset -c 0-1`
-          (dev/bench/run.sh does). --threads sets the widget's render
+          (dev/bench/run.sh does). `focus` is D22.5's report-only plan
+          of what Phase 31e changed. --threads sets the widget's render
           pool (1 to 64; default the available parallelism less one, 1 to
           8); --caching verify renders every kept image again and reports
           what differs.

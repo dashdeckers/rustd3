@@ -24,6 +24,14 @@ pub enum Plan {
     /// factor, five runs each, held to the weak profile's budgets; run
     /// without a GPU (`--backend tiny-skia`) and on 4 and 2 cores.
     Weak,
+    /// D22.5's rerun of what Phase 31e changed, five runs each, at the
+    /// native factor unless named: `zoom-lines` and `zoom-pixels` on
+    /// `trace`; `zoom-lines` on `trace` at the other three factors and on
+    /// `scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
+    /// `trace` and `scatter1m`; `drag-resize` on `trace` and `grid16`.
+    /// Report-only: held to the desktop budgets to show where the cells
+    /// stand, it is not the rule's run.
+    Focus,
     /// Every scenario × workload × factor, five runs each.
     Full,
 }
@@ -74,11 +82,12 @@ const OVERHEAD_MS: f64 = 4_000.0;
 
 impl Plan {
     /// Every plan.
-    pub const ALL: [Plan; 5] = [
+    pub const ALL: [Plan; 6] = [
         Plan::Smoke,
         Plan::Quick,
         Plan::Default,
         Plan::Weak,
+        Plan::Focus,
         Plan::Full,
     ];
 
@@ -89,6 +98,7 @@ impl Plan {
             Plan::Quick => "quick",
             Plan::Default => "default",
             Plan::Weak => "weak",
+            Plan::Focus => "focus",
             Plan::Full => "full",
         }
     }
@@ -104,7 +114,7 @@ impl Plan {
         let runs = match self {
             Plan::Smoke => 1,
             Plan::Quick => 2,
-            Plan::Default | Plan::Weak | Plan::Full => 5,
+            Plan::Default | Plan::Weak | Plan::Focus | Plan::Full => 5,
         };
         let cell = |scenario, workload, factor| Cell {
             scenario,
@@ -152,6 +162,25 @@ impl Plan {
                     cells.push(cell(scenario, Workload::Scatter100k, native));
                 }
             }
+            Plan::Focus => {
+                for scenario in [Scenario::ZoomLines, Scenario::ZoomPixels] {
+                    cells.push(cell(scenario, Workload::Trace, native));
+                }
+                for factor in FACTORS {
+                    if factor != native {
+                        cells.push(cell(Scenario::ZoomLines, Workload::Trace, factor));
+                    }
+                }
+                for workload in REGISTERED {
+                    cells.push(cell(Scenario::ZoomLines, workload, native));
+                }
+                for workload in [Workload::Trace, Workload::Scatter1m] {
+                    cells.push(cell(Scenario::PanX, workload, native));
+                }
+                for workload in [Workload::Trace, Workload::Grid16] {
+                    cells.push(cell(Scenario::DragResize, workload, native));
+                }
+            }
             Plan::Full => {
                 let mut factors = FACTORS.to_vec();
                 if !factors.contains(&native) {
@@ -186,7 +215,9 @@ impl Plan {
         match (self, scenario) {
             (Plan::Smoke, Scenario::Soak) => 20_000.0,
             (Plan::Smoke, _) => scenario.duration_ms() / 5.0,
-            (Plan::Quick | Plan::Default | Plan::Weak | Plan::Full, _) => scenario.duration_ms(),
+            (Plan::Quick | Plan::Default | Plan::Weak | Plan::Focus | Plan::Full, _) => {
+                scenario.duration_ms()
+            }
         }
     }
 
@@ -194,7 +225,7 @@ impl Plan {
     pub fn data_scale(self) -> f64 {
         match self {
             Plan::Smoke => 0.01,
-            Plan::Quick | Plan::Default | Plan::Weak | Plan::Full => 1.0,
+            Plan::Quick | Plan::Default | Plan::Weak | Plan::Focus | Plan::Full => 1.0,
         }
     }
 
@@ -372,6 +403,43 @@ mod tests {
         // About 6.5 minutes a profile on real hardware.
         let minutes = Plan::Weak.estimate_s(&cells) / 60.0;
         assert!((6.0..7.0).contains(&minutes), "{minutes}");
+    }
+
+    #[test]
+    fn focus_plan_has_d22_5s_cells() {
+        let cells = Plan::Focus.cells(1.0, &Selection::default());
+        let named: Vec<(Scenario, Workload, f32)> = cells
+            .iter()
+            .map(|c| (c.scenario, c.workload, c.factor))
+            .collect();
+        assert_eq!(
+            named,
+            [
+                (Scenario::ZoomLines, Workload::Trace, 1.0),
+                (Scenario::ZoomPixels, Workload::Trace, 1.0),
+                (Scenario::ZoomLines, Workload::Trace, 1.25),
+                (Scenario::ZoomLines, Workload::Trace, 1.5),
+                (Scenario::ZoomLines, Workload::Trace, 2.0),
+                (Scenario::ZoomLines, Workload::Scatter100k, 1.0),
+                (Scenario::ZoomLines, Workload::Scatter1m, 1.0),
+                (Scenario::ZoomLines, Workload::Grid16, 1.0),
+                (Scenario::ZoomLines, Workload::LabelChurn, 1.0),
+                (Scenario::PanX, Workload::Trace, 1.0),
+                (Scenario::PanX, Workload::Scatter1m, 1.0),
+                (Scenario::DragResize, Workload::Trace, 1.0),
+                (Scenario::DragResize, Workload::Grid16, 1.0),
+            ]
+        );
+        assert!(cells.iter().all(|c| c.runs == 5 && c.applies()));
+        // The factor cells keep 1600 × 1000 device px (D22.3).
+        assert!(cells.iter().all(|c| {
+            let w = c.window(1.0);
+            (w.width * c.factor - 1600.0).abs() < 1e-3
+        }));
+        // About 17 minutes on real hardware.
+        let minutes = Plan::Focus.estimate_s(&cells) / 60.0;
+        assert!((16.0..18.0).contains(&minutes), "{minutes}");
+        assert_eq!(Plan::parse("focus"), Some(Plan::Focus));
     }
 
     #[test]

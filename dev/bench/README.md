@@ -56,6 +56,12 @@ sending it.
 - `HZ=144 FACTOR=1.25 dev/bench/run.sh` overrides detection; with no
   refresh rate found, the script stops and asks for `HZ`.
 - `dev/bench/run.sh --smoke-only` stops after smoke.
+- `dev/bench/run.sh --focus` runs D22.5's focus plan in place of smoke and
+  the default plan, then the three weak profiles, into the same layout:
+  `probe/`, about 2 minutes, one run of the focus plan's first cell at your
+  factor, whose windows' factor corrects `FACTOR` as smoke's do; `focus/`,
+  about 17 minutes; then `weak-nogpu/`, `weak-4cores/` and
+  `weak-2cores/`. About 40 minutes in all, plus the build.
 
 Smoke runs each cell once, so its report reads "inconclusive" everywhere
 by design: verdicts need 5 runs per cell, and smoke only checks that
@@ -88,6 +94,14 @@ the standard window's 1600 × 1000 device px at every factor (a window of
 1600 / k × 1000 / k logical px at factor k), which fits a 1080p display,
 and `4k` reads "n/a: display too small" when the window the compositor
 gave is below 3840 × 2160 device px.
+
+The focus plan (D22.5) reruns what Phase 31e changed, five runs each at
+the native factor: `zoom-lines` and `zoom-pixels` on `trace`;
+`zoom-lines` on `trace` at the other three factors; `zoom-lines` on
+`scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
+`trace` and `scatter1m`; `drag-resize` on `trace` and `grid16` (13 cells,
+65 runs). Its report shows each cell against the desktop budgets, marked
+report-only: it is not the rule's run and decides nothing.
 
 The weak plan (D22.4): `hover`, `pan-x` and `zoom-lines` on `trace`,
 `pan-x` and `zoom-lines` on `scatter100k`, at the native factor, five

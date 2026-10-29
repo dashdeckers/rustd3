@@ -26,6 +26,16 @@ const SMOKE: &str = "one run per cell, a check of the windowed path only (window
 const SMOKE_OUTCOME: &str = "no verdict by design: smoke only checks the windowed path; \
                              verdicts need the default plan's 5 runs per cell";
 
+/// What the focus plan is, said before its budget table.
+const FOCUS: &str = "the focus plan reruns what Phase 31e changed (D22.5): the zooms, two \
+                     pans and the window drags. Its cells are held to the desktop budgets the \
+                     rule uses (D22.1) to show where each stands; it is not the rule's run, \
+                     and its verdicts decide nothing.";
+
+/// The focus plan's outcome line, in place of the rule's.
+const FOCUS_OUTCOME: &str = "report-only: the focus plan is not the rule's run; its verdicts \
+                             show where each cell stands against the desktop budgets";
+
 /// One planned cell and its runs.
 struct Cell<'a> {
     planned: &'a Planned,
@@ -125,16 +135,24 @@ pub fn build(dir: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let line = if smoke(&meta) {
         let _ = writeln!(summary, "Smoke plan: {SMOKE}\n");
         SMOKE_OUTCOME
+    } else if focus(&meta) {
+        let _ = writeln!(summary, "Focus plan, report-only: {FOCUS}\n");
+        FOCUS_OUTCOME
     } else {
         outcome.line(profile)
     };
-    budgets(&mut summary, &cells, &checks);
+    budgets(&mut summary, &cells, &checks, focus(&meta));
     Ok(format!("{summary}Rule outcome{headless}: {line}"))
 }
 
 /// Whether the run is the smoke plan at one run per cell.
 fn smoke(meta: &Meta) -> bool {
     meta.plan == Plan::Smoke.name() && meta.cells.iter().all(|cell| cell.runs <= 1)
+}
+
+/// Whether the run is the focus plan, which is report-only.
+fn focus(meta: &Meta) -> bool {
+    meta.plan == Plan::Focus.name()
 }
 
 /// Every frame pass of every run.
@@ -391,6 +409,9 @@ fn markdown(
         meta.command
     );
     let _ = writeln!(md, "## The registered rule\n\n{}", rule::READINGS);
+    if focus(meta) {
+        let _ = writeln!(md, "## Focus plan (report-only)\n\n{FOCUS}\n");
+    }
     let profile = Profile::of(&meta.plan);
     if profile == Profile::Weak {
         let gpu = if meta.backend == "tiny-skia" {
@@ -406,7 +427,7 @@ fn markdown(
             rule::WEAK
         );
     }
-    budgets(&mut md, cells, checks);
+    budgets(&mut md, cells, checks, focus(meta));
     metrics(&mut md, cells);
     drags(&mut md, cells);
     attribution(&mut md, cells, checks);
@@ -434,6 +455,8 @@ fn markdown(
     let line = if smoke(meta) {
         let _ = writeln!(md, "**Smoke plan:** {SMOKE}\n");
         SMOKE_OUTCOME
+    } else if focus(meta) {
+        FOCUS_OUTCOME
     } else {
         outcome.line(profile)
     };
@@ -446,11 +469,22 @@ fn markdown(
     md
 }
 
-/// The budget table: a row per cell, "n/a" cells included.
-fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)]) {
+/// The budget table: a row per cell, "n/a" cells included; its heading
+/// says so when the plan is `report_only`.
+fn budgets(
+    md: &mut String,
+    cells: &[Cell<'_>],
+    checks: &[(usize, Scenario, Check)],
+    report_only: bool,
+) {
+    let heading = if report_only {
+        "Budgets (report-only: the desktop budgets the rule uses; not the rule's run)"
+    } else {
+        "Budgets"
+    };
     let _ = writeln!(
         md,
-        "## Budgets\n\nPer-run statistic: mean [95% CI] over n runs; verdict by reading 3. \
+        "## {heading}\n\nPer-run statistic: mean [95% CI] over n runs; verdict by reading 3. \
          \"—\": the budget does not apply to the scenario; \"n/a\": the workload has no such \
          cell; \"n/a: display too small\": a `4k` window the compositor gave below 3840 × 2160 \
          device px (D22.3).\n"
