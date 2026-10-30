@@ -4,6 +4,7 @@
 //! to `usize::MAX` and random strings, from fixed seeds. Nothing panics,
 //! and what comes back keeps the documented rules.
 
+mod color;
 mod format;
 mod scale;
 mod shape;
