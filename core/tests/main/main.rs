@@ -16,6 +16,7 @@ mod examples;
 mod fixtures;
 mod format;
 mod fuzz;
+mod hostile;
 mod interact;
 mod interpolate;
 mod join;
