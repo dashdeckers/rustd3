@@ -14,6 +14,8 @@ mod hatch;
 #[cfg(feature = "helpers")]
 mod helpers;
 mod hit;
+#[cfg(feature = "fonts")]
+mod hostile;
 mod layout;
 mod legend;
 mod list;
