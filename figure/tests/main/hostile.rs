@@ -10,10 +10,9 @@ use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme;
 use rustd3_core::shape::Curve;
 use rustd3_figure::colorbar::{Extend, colorbar};
-use rustd3_figure::kurbo::{Point, Rect, Size};
+use rustd3_figure::kurbo::Size;
 use rustd3_figure::layout::{Cell, Grid, em, px};
 use rustd3_figure::legend::{Inset, Slot, legend};
-use rustd3_figure::list::{Bounds, Outlines};
 use rustd3_figure::mark::{self, Bins};
 use rustd3_figure::scale::{Fit, ScaleRef};
 use rustd3_figure::theme::{Context, Style};
@@ -93,7 +92,14 @@ fn figure(rng: &mut Rng) -> Figure<'static> {
     let heat = fig.scale(scale::sequential([rng.f64(), rng.f64()], scheme::viridis));
     let band = fig.scale(scale::band(["p", "q", "r"]).padding(rng.f64()));
     for _ in 0..1 + rng.below(3) {
-        let cell = Cell::new(rng.small(3), rng.small(3)).span(rng.small(3), rng.small(3));
+        let far = |rng: &mut Rng| {
+            if rng.chance(0.05) {
+                rng.count()
+            } else {
+                rng.small(3)
+            }
+        };
+        let cell = Cell::new(far(rng), far(rng)).span(far(rng), far(rng));
         let panel = fig.panel_at(cell);
         for _ in 0..rng.below(4) {
             match rng.below(13) {
@@ -258,13 +264,19 @@ fn random_figures_check_draw_and_write_without_panicking() {
         }
         #[cfg(feature = "raster")]
         {
+            use rustd3_figure::kurbo::{Point, Rect};
+            use rustd3_figure::list::{Bounds, Outlines};
+            use rustd3_figure::raster::{Renderer, Settings};
+
             let scale = if rng.chance(0.8) { 1.0 } else { rng.f64() };
             let list = fig.draw_with(&mut cache(), size, Target::File { scale }, &Held::default());
             let bounds = Bounds::of(&list, &mut Outlines::default());
             let area = Rect::from_origin_size(Point::ORIGIN, size);
-            let _ =
-                rustd3_figure::raster::Renderer::new(rustd3_figure::raster::Settings::default())
-                    .render(&list, &bounds, area, scale);
+            // A render allocates the pixels asked for: past 16 Mpx that
+            // measures memory, not robustness.
+            if size.area() * scale * scale <= 16e6 || size.area().is_nan() {
+                let _ = Renderer::new(Settings::default()).render(&list, &bounds, area, scale);
+            }
         }
         #[cfg(feature = "pdf")]
         {
