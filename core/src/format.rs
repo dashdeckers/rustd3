@@ -25,6 +25,7 @@
 mod decimal;
 pub mod literal;
 mod locale;
+#[rustfmt::skip]
 mod locales;
 mod precision;
 mod specifier;

@@ -16,14 +16,20 @@
 //! assert_eq!(scheme::viridis(0.5).format_hex(), "#21918c");
 //! ```
 
+#[rustfmt::skip]
 mod categorical;
 mod cyclical;
 mod diverging;
+#[rustfmt::skip]
 mod inferno;
+#[rustfmt::skip]
 mod magma;
+#[rustfmt::skip]
 mod plasma;
 mod sequential;
+#[rustfmt::skip]
 mod stops;
+#[rustfmt::skip]
 mod viridis;
 
 pub use categorical::{ACCENT, DARK2, PAIRED, PASTEL1, PASTEL2, SET1, SET2, SET3, TABLEAU10};
