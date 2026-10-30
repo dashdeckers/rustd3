@@ -40,7 +40,10 @@ impl Figure<'_> {
     /// Fits every fitted handle's domain to the data of every mark that
     /// uses it (held handles keep the held scale), and lays the grid out
     /// for `size`, measuring every label through `cache`'s text cache, one
-    /// batch per layout pass. `target` is kept in the result.
+    /// batch per layout pass. `target` is kept in the result. A side of
+    /// `size` that is not a finite number of zero or more is taken as 0:
+    /// such a figure has no room for its panels, which
+    /// [`check`](Figure::check) reports.
     ///
     /// Each pass takes every axis's tick count from its length in the last
     /// placement (one tick per 80 px across, per 35 px up, at least 2;
@@ -121,6 +124,8 @@ impl Figure<'_> {
         target: Target,
         areas: Option<&layout::Areas>,
     ) -> Resolved {
+        let side = |v: f64| if v.is_finite() && v >= 0.0 { v } else { 0.0 };
+        let size = kurbo::Size::new(side(size.width), side(size.height));
         let rects = areas.and_then(|a| a.fit(size, self.panels.len()));
         let counts = self.nice_counts(size, target, rects);
         let fitted = self.fitted(held, &counts);

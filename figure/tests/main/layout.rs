@@ -163,6 +163,44 @@ fn weights_and_gaps_that_are_not_finite_lengths_take_the_defaults() {
 }
 
 #[test]
+fn a_size_that_is_not_finite_and_positive_leaves_no_room() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    fig.panel(0, 0)
+        .mark(rustd3_figure::mark::histogram([1.0, 2.0, 2.0], x, y))
+        .axis(axis::bottom(x));
+    for size in [
+        Size::new(-640.0, 480.0),
+        Size::new(640.0, f64::NAN),
+        Size::new(f64::INFINITY, 480.0),
+    ] {
+        let resolved = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
+        let area = resolved.plot_areas()[0];
+        assert!(
+            [area.x0, area.y0, area.x1, area.y1]
+                .iter()
+                .all(|v| v.is_finite())
+                && area.width() >= 0.0
+                && area.height() >= 0.0,
+            "{size:?}: {area:?}"
+        );
+        let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+        assert!(
+            list.size.width >= 0.0 && list.size.height >= 0.0,
+            "{size:?}"
+        );
+        let issues = fig.check(size);
+        assert!(
+            issues
+                .iter()
+                .any(|i| matches!(i, rustd3_figure::check::Issue::NoRoom { .. })),
+            "{size:?}: {issues:?}"
+        );
+    }
+}
+
+#[test]
 fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));
