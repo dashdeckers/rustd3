@@ -2093,6 +2093,7 @@ mod tests {
     use crate::plot::probe::{self, Probe, Sample, Stage};
     use crate::plot::slot::Slot;
     use crate::plot::tile::{self, Tile};
+    #[cfg(target_os = "linux")]
     use crate::plot::worker::Pool;
     use crate::plot::{Caching, Render, fixture};
 

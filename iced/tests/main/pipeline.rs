@@ -680,6 +680,7 @@ fn expensive_refresh_uses_the_worker() {
     );
 }
 
+#[cfg(target_os = "linux")]
 #[test]
 fn threads_sets_the_pool_size() {
     // Each size starts a pool of as many threads at its first jobs, the
