@@ -4,6 +4,7 @@
 //! to `usize::MAX` and random strings, from fixed seeds. Nothing panics,
 //! and what comes back keeps the documented rules.
 
+mod format;
 mod scale;
 
 /// Why `ticks` break the tick rules over `domain`: finite, strictly
