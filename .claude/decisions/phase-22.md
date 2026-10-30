@@ -1759,3 +1759,105 @@ running at 629 of 1,132 native runs, at 13:18 UTC):
 - Offscreen, every frame composes the whole window, so `hover` pays full
   composition (83–117 ms at factor 2). A window's damage tracking would
   redraw the overlay only. Hover's software numbers are an upper bound.
+
+## D22.14 — Software zooms: every frame of a burst brings a new step
+
+**Date:** 2026-10-30 · **Context:** Phase 31l, the desktop's `--full`
+run on 4805f0c (software zoom latency p95 = the wheel burst's length) ·
+**Status:** open
+
+### Issue
+
+On the Ryzen (16 threads), the software profile's zoom latency p95 is
+975–1,125 ms on `trace`, `scatter100k` and `grid16` at factors 1 and 2:
+the 1 s wheel burst. The native path reaches 22 ms on the same machine;
+the software raster critical paths are 16–129 ms and its preview share
+53–82 %. The question: does the widget never show a generation current
+mid-burst (a), does the probe miss one that is (b), does the pool fall
+behind (c), or something else (d)?
+
+### Investigation
+
+The desktop archive's raw records, `zoom-lines × trace × 1`, run 1, the
+first burst (wheel steps every 33.3 ms from 157 ms; `prev` the slots
+the probe counts as previews; the rasters are those drained before the
+next frame):
+
+| Frame | at ms | Generation | Steps | prev | UI + composition ms | Tiles landed before the next frame |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 149 | 1 | 0 | 0 | 29.1 + 23.9 | (first frame, inline) |
+| 2 | 232 | 3 | 3 | 24 | 4.4 + 16.9 | 24 of 24 of generation 3 |
+| 3 | 266 | 5 | 1 | 24 | 4.5 + 14.4 | 24 of 24 of 5 |
+| 4 | 299 | 7 | 1 | 24 | 4.5 + 14.6 | 24 of 24 of 7 |
+| … 5–28 | +33.3 each | +2 each | 1 each | 24 | 4.7–7.0 + 14.2–15.4 | 24 of 24 each |
+| 29 | 1,132 | 57 | 1 (the last) | 24 | 6.6 + 14.7 | 24 of 24 of 57 |
+| 30 | 1,166 | 57 | 0 | **0** | 0.1 + 17.2 | — |
+
+- Each step plans a generation (two a frame: the widget's step, then
+  the app's rebuild; the second renders). During a wheel gesture tiles
+  render on the pool only (`plot/state.rs`, `render`, `pooled`), so the
+  frame that applies a step draws the previous step's tiles, mapped: 24
+  of 24 visible tiles are previews.
+- **The pool keeps up:** every pooled tile of a generation was drained
+  before the next frame in 5,050 of 5,050 generations, all zoom runs of
+  the archive (3 workloads, 2 factors, 5 runs). The results land
+  (`plot/area.rs`, `land`: a tile of an earlier grid joins the preview
+  layer), but by the next frame the next step has begun a new grid.
+- **The frame period is the wheel's:** a software frame costs 18–28 ms at
+  factor 1 (cost p50; `trace` 19.9, of which composition 14–15), more
+  than the 16.7 ms period, so paced frames come every 33.3 ms, the
+  wheel's interval at 30 Hz. At factor 2 frames are 81–124 ms apart and
+  take 2–4 steps each. Of 1,186–1,195 burst frames per cell at 1 and
+  351–522 at 2, none is sharp; the first frame without a new step is
+  sharp in 40 of 40 bursts in every cell. An input's first sharp frame
+  is the burst's end, so the p95 is the burst's length. The native path
+  draws at 60 Hz: every other frame has no new step and shows the last
+  one's tiles, 22 ms.
+- **Not (b):** the tiles a burst frame shows are the previous step's,
+  scaled by one step; counting them as previews is right. With
+  `--render inline` (here, 2 cores, factor 1, 2 runs) each frame shows
+  its own step: latency p50/p95 42/92 ms (`trace`) and 59/109
+  (`scatter100k`), previews 0 %, every burst frame sharp, at a frame cost
+  p50 of 74 and 95 ms against 33 and 31 with `auto` (frames 100 ms apart,
+  three steps each).
+- **Not (a):** mid-burst frames (`--frames … --every 2`) show the
+  previous step's tiles crisp, nearest, without seams or holes, and the
+  frame after the burst sharp.
+- **The cadence decides:** the same scenario with the wheel at 10 Hz
+  (a temporary local change, not committed): `trace` at 1 goes sharp
+  between steps, latency p50/p95 584/1,025 → 134/292 ms. `scatter100k`
+  stays at 359/875: on 2 cores its 24 tiles take 1–2 frames (c, here
+  only; the Ryzen's pool keeps up).
+- Here (2 cores at 2.1 GHz), `--threads 1`, `2`, `8` and the default all
+  read p95 1,025–1,092 ms at 1 and 1,209–4,075 at 2: the pool's size
+  does not move it while every frame brings a step.
+
+So it is (d): when a software frame costs more than one refresh period,
+frames come no faster than the wheel's steps, every frame applies one,
+and no frame is sharp until the burst ends. The widget shows each step
+one frame late, sharp but scaled, as D22.5 (2) intends.
+
+### Options
+
+| | **A — No widget change; D22.13 upstream** | B — Join the pool on a wheel frame | C — Wheel steps inline | D — The metric reads continuous input |
+| --- | --- | --- | --- | --- |
+| Approach | Composition below the period brings frames back to 60 Hz, with a frame between steps | The frame that applied a step waits, up to a deadline, for its visible tiles on the pool before drawing | A step's visible tiles render on the UI thread when the cost model says they fit (as a drag's column, D22.6 (4d)) | Besides input-to-sharp, per input the first frame showing its step or a later one anywhere (preview layer included), and the sharp share of burst frames; the registered budget unchanged |
+| Effect | Ryzen at 1: frame 18–28 → roughly 9–17 ms at D22.13's −70 % of composition, latency near native where it falls below 16.7; at 2 frames stay over 33 ms and the reading stays | Every frame sharp; Ryzen: a generation's 16–129 ms of raster over 15 threads, a few ms a frame | Measured here: p95 92–109 ms, frame cost ×2.4–3, 10 frames a second | Reports the one-frame lag the user sees (33 ms at 1) |
+| Cost / risk | none here; waits on the pin | a blocking wait on the UI thread; on few cores it costs what C costs | lower frame rate wherever tiles are slow | a metric change; reports compare less directly with earlier runs |
+
+### Decision
+
+Recommended: A, with D in the report (not the rule). The software path
+does what D22.5 (2) asks, and the number follows from its frame rate,
+which D22.13 addresses. B is the one widget-side lever that keeps the
+frame rate on a fast machine; it would be measured against A once the
+pin moves, if factor 2 matters. C trades frame rate for the reading.
+
+### Followups
+
+- When the iced pin moves (D22.13), the software profile's `zoom-lines`
+  at 1 on the Ryzen: if frame cost p50 falls below 16.7 ms, latency p95
+  should fall below 50 ms.
+- Found on the way: the experiment's `--factor` narrowed a profile's
+  cells but never reached its run, which measured every factor of its
+  plan; fixed in Phase 31l (`fix(bench)`).
