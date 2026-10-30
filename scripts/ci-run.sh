@@ -11,8 +11,9 @@ log=$(mktemp)
 status=${PIPESTATUS[0]}
 if [ "$status" -ne 0 ]; then
   echo "::error::$* failed with exit status $status"
-  grep -nE '^(error|warning)(\[E[0-9]+\])?:|^Diff in |panicked at|^test .* FAILED|^failures:|^---- .* stdout ----|^thread .* panicked|FAILED|assertion' "$log" \
-    | sed 's/\x1b\[[0-9;]*m//g' | head -n 9 | while IFS= read -r line; do
+  sed 's/\x1b\[[0-9;]*m//g' "$log" \
+    | grep -nE '^(error|warning)(\[E[0-9]+\])?:|^Diff in |panicked at|^test .* FAILED$|^failures:|^---- .* stdout ----|^thread .* panicked|^assertion ' \
+    | head -n 9 | while IFS= read -r line; do
       echo "::error::${line:0:400}"
     done
 fi
