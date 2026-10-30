@@ -162,6 +162,7 @@ fn weights_and_gaps_that_are_not_finite_lengths_take_the_defaults() {
     assert_eq!(areas(Grid::new().row_gaps([em(1e308)])), plain);
 }
 
+#[cfg(feature = "fonts")]
 #[test]
 fn a_size_that_is_not_finite_and_positive_leaves_no_room() {
     let mut fig = Figure::new();
@@ -230,6 +231,7 @@ fn an_outward_offset_that_is_not_finite_is_ignored() {
     }
 }
 
+#[cfg(feature = "fonts")]
 #[test]
 fn a_cell_past_the_grids_tracks_is_reported_and_not_drawn() {
     let mut fig = Figure::new();

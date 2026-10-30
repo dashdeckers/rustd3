@@ -277,6 +277,10 @@ impl<'a> Figure<'a> {
 
     /// The cells asked for past the grid's tracks, in the order first
     /// asked.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(dead_code, reason = "fig.check reads it, and needs fonts")
+    )]
     pub(crate) fn outside(&self) -> &[Cell] {
         &self.outside
     }
