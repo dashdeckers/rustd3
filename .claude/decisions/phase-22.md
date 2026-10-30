@@ -1861,3 +1861,15 @@ pin moves, if factor 2 matters. C trades frame rate for the reading.
 - Found on the way: the experiment's `--factor` narrowed a profile's
   cells but never reached its run, which measured every factor of its
   plan; fixed in Phase 31l (`fix(bench)`).
+
+### Architect's decision
+
+(architect, 2026-10-30) **A and D.** The widget stays as it is: a
+software burst shows the previous step's tiles crisp and correctly
+placed, and that is right while frames are slower than wheel steps.
+The report adds the continuous-input reading (the first frame showing
+each step or a later one, and the sharp share of burst frames),
+report-only and outside the rule. The check comes when the iced pin
+moves for D22.13: on the Ryzen, `trace` zoom latency p95 at factor 1
+should fall below 50 ms once frame cost p50 is under 16.7 ms.
+
