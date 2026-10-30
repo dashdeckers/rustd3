@@ -2,7 +2,7 @@
 //! [`Map`] of regions of one resolved figure.
 //!
 //! Hit testing reports points, not axes, so each axis's strip comes from
-//! the resolved layout (D20.2): its panel's plot area, its side, and its
+//! the resolved layout: its panel's plot area, its side, and its
 //! plan's offset and thickness, along the plot area's edge.
 
 use rustd3_core::axis::Orient;

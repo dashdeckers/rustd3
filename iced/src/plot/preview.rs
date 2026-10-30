@@ -6,8 +6,8 @@
 //! resolved. Figure scales apply pixel-space operations affinely in output
 //! space, so two points, the cell's edges, determine the map for every
 //! continuous transform. The object-safe figure scale cannot map a
-//! position, so the points come from the gestures' transforms instead
-//! (D20.3): each handle keeps the [`View`] its gestures applied since its
+//! position, so the points come from the gestures' transforms instead:
+//! each handle keeps the [`View`] its gestures applied since its
 //! epoch began, in shares of its range, and each shown plot-area image
 //! keeps, per axis, the [`Basis`] its cell was planned at; the map is the
 //! current view after the inverse of the planned one, `T_c ∘ T_r⁻¹`.
@@ -110,7 +110,7 @@ impl Affine1 {
     /// `shares`, a map of range shares, as a map of device px along
     /// `along` for a cell whose device edges along it are `edges`,
     /// rendered in the plot area `from` and shown in the plot area `to`
-    /// (list px; the same area unless a new layout moved it, D22.6 (4a)),
+    /// (list px; the same area unless a new layout moved it),
     /// at `factor` device px per list px: two points, the cell's edges,
     /// taken to shares of `from`, through `shares`, and back to device px
     /// of `to`.
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn a_new_layout_maps_the_old_area_onto_the_new_one() {
-        // D22.6 (4a): the layout settles with the area's left edge 10 list
+        // The layout settles with the area's left edge 10 list
         // px further right and its bottom 5 px higher, at factor 2. The
         // same shares put the old area's edges on the new one's, whatever
         // the views did.

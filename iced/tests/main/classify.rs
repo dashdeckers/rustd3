@@ -1,4 +1,4 @@
-//! Phase 31's invalidation by dependency through the headless harness on
+//! Invalidation by dependency through the headless harness on
 //! the backend `ICED_TEST_BACKEND` names: a pan keeps what does not depend
 //! on the panned handle, a style change during a pan re-renders the plot
 //! area, and gutter cells that change together merge into one image.
@@ -152,7 +152,7 @@ fn against(shot: &Shot, reference: &rustd3_figure::raster::Image) -> u8 {
 
 /// How many tiles of a grid anchored at device x `x` (y at the area's top)
 /// meet the plot area `area`: those a drag's frame renders when every
-/// tile changes, the ring waiting for the drag to end (D22.5 (1)).
+/// tile changes, the ring waiting for the drag to end.
 fn shown(area: [i64; 4], x: i64) -> i64 {
     let span = |a: i64, b: i64, at: i64| {
         (b - 1 - at).div_euclid(tiles::TILE) - (a - at).div_euclid(tiles::TILE) + 1
@@ -196,7 +196,7 @@ fn unchanged_panels_are_kept() {
     // A drag over the left panel pans its own x: the right panel, its
     // tiles and the gutter cells that show only its axes, render nothing,
     // and neither does the left area, whose entering column of the ring
-    // waits for the drag to end (D22.5 (1)); the release's frame, the
+    // waits for the drag to end; the release's frame, the
     // layout settled, is sharp.
     let k = 1.0;
     let (tx, rx) = mpsc::channel();
@@ -271,7 +271,7 @@ fn style_change_during_a_pan_re_renders() {
     // back with another color mid-drag, its positions moved but its style
     // hash did not stay: every tile of the area that shows renders, and
     // the frame is the new color's at the snapped domain; the ring renders
-    // once the drag ends (D22.5 (1)).
+    // once the drag ends.
     let blue = Rgb::new(30.0, 60.0, 140.0);
     let red = Rgb::new(200.0, 30.0, 30.0);
     for k in [1.0_f32, 2.0] {
@@ -348,9 +348,8 @@ fn style_change_during_a_pan_re_renders() {
 fn visible_y_refit_during_a_pan_re_renders() {
     // A drag by whole pixels moves x, and the y handle, fitted to what x
     // shows, grows to the data entering on the right in the same refresh:
-    // the views say translation, the scales do not (D31.7), so every tile
-    // of the area that shows renders at once (the ring once the drag ends,
-    // D22.5 (1)) and the frame is the refitted figure.
+    // the views say translation, the scales do not, so every tile of the
+    // area that shows renders at once (the ring once the drag ends) and the frame is the refitted figure.
     let (x, drag_px) = ([0.0, 50.0], -37.0_f32);
     for k in [1.0_f32, 2.0] {
         let (tx, rx) = mpsc::channel();

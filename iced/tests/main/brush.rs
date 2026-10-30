@@ -55,7 +55,7 @@ pub fn hours(t: Timestamp) -> f64 {
     t.duration_since(start()).as_secs_f64() / 3600.0
 }
 
-/// Use case 1 as a figure: a focus panel over `window` above a context
+/// A focus-and-context view as a figure: a focus panel over `window` above a context
 /// panel over all 30 days, which brushes the focus's window; the app owns
 /// the window when it `listens`.
 pub struct FocusContext {

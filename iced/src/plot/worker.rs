@@ -5,10 +5,10 @@
 //! The pool's threads are the widget's only parallelism: each owns a
 //! `raster::Renderer` with no thread pool of vello_cpu's own (`threads:
 //! 0`), as the UI thread's inline renderer does too, so vello_cpu's pool
-//! never runs beside them and oversubscribes the cores (D22.6). By
+//! never runs beside them and oversubscribes the cores. By
 //! default the pool has a thread per core but one (the UI's), 1 to 8,
 //! counted by `available_parallelism`, which respects the process's CPU
-//! affinity; with one thread the pool is Phase 19's single worker.
+//! affinity; with one thread the pool is a single worker.
 
 use std::io;
 use std::num::NonZero;

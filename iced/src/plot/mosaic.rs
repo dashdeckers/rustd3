@@ -12,7 +12,7 @@
 //! composed in 77 and 565 ms. Laid here first (rows copied for images at
 //! 1:1, scaled ones sampled at each pixel's centre, nearest) and drawn as
 //! one image, the same frames compose in about a third and a sixth of
-//! that (Phase 31g). The GPU renderer draws the images as they are.
+//! that. The GPU renderer draws the images as they are.
 
 use iced_core::image::{self, FilterMethod};
 use iced_core::{Color, Rectangle};

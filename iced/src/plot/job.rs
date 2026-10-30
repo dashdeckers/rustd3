@@ -86,14 +86,14 @@ pub(crate) struct Done {
     pub(super) queued: Option<Duration>,
     pub(super) duration: Option<Duration>,
     /// The render's time on the monotonic clock, which the cost model
-    /// fits whether or not a probe is attached (D31.8).
+    /// fits whether or not a probe is attached.
     pub(super) elapsed: Duration,
     pub(super) view: [Option<Basis>; 2],
 }
 
 impl Spot {
     /// The kind of render the cost model fits a job for this spot with:
-    /// a tile's, or a gutter run's and an overlay's (D22.7 (4b), C).
+    /// a tile's, or a gutter run's and an overlay's.
     pub(crate) fn kind(self) -> Kind {
         match self {
             Spot::Tile { .. } => Kind::Tile,
@@ -155,12 +155,12 @@ impl Job {
 
 /// `render`'s result and how long it took on the monotonic clock. The
 /// `Plot` widget times its own renders for its cost model, and this is the
-/// one place it reads a clock it was not given (D31.8): what it renders
+/// one place it reads a clock it was not given: what it renders
 /// never depends on the reading, only whether later jobs render inline or
 /// on the pool, which the frame interval already decides.
 #[expect(
     clippy::disallowed_methods,
-    reason = "the Plot widget times its own renders for its cost model (D31.8)"
+    reason = "the Plot widget times its own renders for its cost model"
 )]
 fn timed<T>(render: impl FnOnce() -> T) -> (T, Duration) {
     let start = Instant::now();

@@ -1,5 +1,5 @@
-//! `pointer::Tracker`: iced events in, `interact::Pointer` input out, row
-//! by row as Phase 11's table states it.
+//! `pointer::Tracker`: iced events in, `interact::Pointer` input out, one
+//! row per event kind.
 
 use std::time::Duration;
 

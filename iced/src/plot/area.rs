@@ -2,14 +2,14 @@
 //! partition cuts it, the tiles of an earlier grid shown as a preview, and
 //! the overlays of what stays put over them.
 //!
-//! A refresh moves each area to the views its axes show now (D20.3: each
-//! lead handle's view in shares of its range). Measured from the views
+//! A refresh moves each area to the views its axes show now (each lead
+//! handle's view in shares of its range). Measured from the views
 //! the grid began at, a move by whole device pixels on both axes moves the
 //! grid's origin by as much: keys stay, squares move, and every tile's
 //! image, rendered over its whole square, moves along and stays valid, so
 //! a pan renders only the keys entering the area's grown rect, a column
-//! per 256 px (D31.6). Once the figure is resolved, the lead handles'
-//! scales confirm it (D31.7): compared with the scales the area's layer
+//! per 256 px. Once the figure is resolved, the lead handles'
+//! scales confirm it: compared with the scales the area's layer
 //! was last drawn with at the area's two edges, each must have moved by
 //! the grid's whole pixels; a scale that moved otherwise (a `Fit::Visible`
 //! y refitting during an x pan, a domain the app changed mid-drag)
@@ -21,13 +21,13 @@
 //! flight when a zoom began the grid anew, a tile of an earlier grid,
 //! joins the preview layer too: a burst of zoom steps shows sharp but
 //! stale tiles as they finish, not only the tiles from before the burst
-//! scaled ever further (D22.5 (2)). The preview layer is drawn oldest
+//! scaled ever further. The preview layer is drawn oldest
 //! first; a tile whose mapped rect newer ones cover goes. When a new
 //! layout replaces the area (its rect or the partition changed, as when
 //! the layout settles after a gesture), the new area takes the old one's
 //! tiles with an image and its preview layer into its own, each mapped
 //! from the plot area it was rendered in to the new one, so that no frame
-//! shows the background where content was (D22.6 (4a)).
+//! shows the background where content was.
 //!
 //! The keys cover the area grown by one tile on every side: the overscan
 //! ring, rendered after the visible tiles, which a pan brings into view
@@ -264,7 +264,7 @@ impl Area {
 
     /// Whether the lead scales `now` (each by its handle) moved from those
     /// the layer was last drawn with as the grid moved, by `by` device px
-    /// at `factor`: the two-point test of a translation (D31.7), at the
+    /// at `factor`: the two-point test of a translation, at the
     /// area's two edges along each axis, each scale set to the area's
     /// range in list px. An axis led by no handle before and now passes;
     /// another handle, or a scale that cannot place what the other drew
@@ -324,8 +324,8 @@ impl Area {
     /// The area's layer is `hash`, of style hash `style`, at
     /// `generation`, its grid having `moved`: after a translation that
     /// kept the layer's style, an image that showed the layer before and
-    /// covers its tile shows it now (the rules of Phase 31's dependency
-    /// classification: a translation renders only entering tiles, anything
+    /// covers its tile shows it now (invalidation by dependency: a
+    /// translation renders only entering tiles, anything
     /// else every tile); every other tile that does not show it, or that
     /// has no image and no pending render, is marked pending (every tile
     /// with `every`). True when one was.
@@ -692,8 +692,8 @@ impl Area {
     }
 
     /// Shows what `old`, the area this one replaces in a new layout (its
-    /// rect or the partition changed), showed until this one's tiles land
-    /// (D22.6 (4a)): `old`'s preview layer and its tiles with an image join
+    /// rect or the partition changed), showed until this one's tiles land:
+    /// `old`'s preview layer and its tiles with an image join
     /// the preview layer, each mapped from the plot area it was rendered
     /// in to this one through the views it was planned at and `now`, at
     /// `factor`, the factor `old`'s images were rendered at; one whose

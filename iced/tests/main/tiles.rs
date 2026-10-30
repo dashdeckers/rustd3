@@ -41,7 +41,7 @@ pub fn bound(backend: &str) -> u8 {
 
 /// Dots on a smooth curve and the curve itself over x [0, 100] and y
 /// [-1.2, 1.2], with left and bottom axes; the panel zooms both. Nothing
-/// overlaps itself densely, so renders at any origin agree (D18.3).
+/// overlaps itself densely, so renders at any origin agree.
 pub fn figure(x: [f64; 2]) -> Figure<'static> {
     handled(x).0
 }
@@ -376,10 +376,10 @@ struct Dragged {
 #[test]
 fn pan_renders_only_entering_tiles() {
     // The spot checks: a 900 × 600 device-px plot area, its ring of 6 × 5
-    // keys resident, each rendered over its whole square (D31.6). +37 px:
+    // keys resident, each rendered over its whole square. +37 px:
     // no visible tile renders, and the column i = −2 that enters the ring
-    // (its 5 rows, each its square [−475, −219)) waits for the drag to end
-    // (D22.5 (1)): no tile renders in the drag's frame; −37 px: no key
+    // (its 5 rows, each its square [−475, −219)) waits for the drag to end:
+    // no tile renders in the drag's frame; −37 px: no key
     // enters, and the ring column i = 4, rendered over [1024, 1280), lies
     // at [987, 1243), its square: no tile renders. The release ends the
     // drag and the layout settles (the panned axis's labels reach out
@@ -735,7 +735,8 @@ const RATE: f64 = 10_000.0;
 /// three channels of `n` samples at 10 kHz, each a slow sine, a 7 Hz tone
 /// and uniform noise (a 64-bit LCG seeded per channel), with a 120 Hz
 /// burst for 0.2 s every 10 s. Thinned for the screen, its strokes
-/// overlap themselves densely (D18.3).
+/// overlap themselves densely, where vello_cpu's output depends on the
+/// render's origin.
 fn trace(n: usize) -> Recording<f64> {
     let tau = std::f64::consts::TAU;
     let channels = [1_u64, 2, 3].map(|seed| {
@@ -814,12 +815,12 @@ fn inside(a: &Shot, b: &Shot, rects: &[[i64; 4]]) -> (u8, usize) {
 }
 
 /// The bound of translated tiles against tiles re-rendered at the same
-/// keys on [`trace`], measured (D18.3, `decisions/phase-31.md`).
+/// keys on [`trace`], measured.
 const TRACE_BOUND: u8 = 1;
 
 #[test]
 fn translated_tiles_match_re_rendered_ones_on_a_trace() {
-    // D18.3: vello_cpu's output on the trace depends on the render's
+    // vello_cpu's output on the trace depends on the render's
     // origin. A tile renders from its key's square, which moves with the
     // data, so a translated tile and the same key rendered again after
     // the pan (`Caching::Off` renders every tile each frame) share it.
@@ -957,12 +958,9 @@ fn pan_replay(rec: &Recording<f64>, k: f32, frames: u32) -> Option<(Vec<Replayed
 
 #[test]
 fn a_pan_over_a_trace_keeps_the_plot_areas_current() {
-    // D22.1: the benchmark's pan-x over the trace showed outdated plot
-    // areas on 94% of frames: each frame re-rendered whole plot-area
-    // cells, which the worker delivered a frame late. With tiles, the
-    // translated images cover the plot areas: a worker that keeps up
-    // leaves no frame outdated. The ring's entering columns wait for the
-    // drag to end (D22.5 (1)) and render at its release.
+    // During a pan the translated tiles cover the plot areas, so a
+    // worker that keeps up leaves no frame outdated. The ring's entering
+    // columns wait for the drag to end and render at its release.
     let _workers = crate::pipeline::workers();
     let rec = trace(400_000);
     for k in [1.0_f32, 2.0] {

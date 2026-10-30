@@ -1,26 +1,26 @@
 //! [`Budget`]: the frame budget from the last two `RedrawRequested`
 //! instants, and the widget's cost model: a fixed overhead per render plus
 //! a time per pixel and per work item, fitted to every render the widget
-//! makes but `Caching::Verify`'s checks (D31.10), each timed by the widget
-//! itself whether or not a probe is attached (D31.8), and seeded by
-//! [`cost`]'s constants (D22.4). The constants were
-//! fitted on one machine; the fit follows the one the widget runs on, its
-//! cores and its render paths, and learns the overhead small renders pay
-//! (D22.1 measured 2.78 times the constants' time over a run's renders,
-//! mostly small cells, against 0.18 for one large cell).
+//! makes but `Caching::Verify`'s checks, each timed by the widget itself
+//! whether or not a probe is attached, and seeded by [`cost`]'s constants.
+//! The constants were fitted on one machine; the fit follows the one the
+//! widget runs on, its cores and its render paths, and learns the overhead
+//! small renders pay (measured at 2.78 times the constants' time over a
+//! run's renders, mostly small cells, against 0.18 for one large cell).
 //!
 //! The fit is an exponentially weighted least-squares one: each new render
-//! weighs 1/16 of it (Phase 19's moving average), and a prior holds each
+//! weighs 1/16 of it, as a moving average over 16 renders would, and a
+//! prior holds each
 //! coefficient at its seed with the weight of a tenth of a render, so a
 //! direction the renders never vary in (only tiles of one size, say) keeps
 //! its seed while the renders decide the rest.
 //!
 //! Tiles and cells (gutter runs and overlays) are fitted apart, each from
-//! its own renders ([`Kind`], D22.7 (4b), option C): a plot area's tiles
+//! its own renders ([`Kind`]): a plot area's tiles
 //! cost per segment and per dot, many at once on the pool, while an axis
-//! strip costs its glyphs and its size, so one fit of both predicted a
-//! strip at ten times what it took and sent it to the pool behind the
-//! tiles.
+//! strip costs its glyphs and its size; one fit of both would predict a
+//! strip at about ten times what it takes and send it to the pool behind
+//! the tiles.
 
 use iced_core::time::{Duration, Instant};
 
@@ -322,8 +322,8 @@ mod tests {
                 "{pixels} px, {work}: {fit} against {real}"
             );
         }
-        // An overhead of 0.4 ms each: 21 small renders no longer fit half
-        // of 16.7 ms, which the constants alone (0.02 ms each) allowed.
+        // An overhead of 0.4 ms each: 21 small renders do not fit half of
+        // 16.7 ms, which the constants alone (0.02 ms each) would allow.
         let small: f64 = (0..21).map(|_| budget.predict(Kind::Tile, 1_800, 0)).sum();
         assert!(!budget.is_inline(small), "{small} ms");
         let seeded = Budget::default();
@@ -348,7 +348,7 @@ mod tests {
 
     #[test]
     fn tiles_and_cells_are_fitted_apart() {
-        // D22.7 (4b), C: tiles of a long trace cost 5 ms per 65,536 px and
+        // Tiles of a long trace cost 5 ms per 65,536 px and
         // a little per item, on a contended pool; axis strips 0.05 ms, 0.3
         // ms per 65,536 px and 2 µs per item. Each kind's prediction
         // follows its own renders: a 31.5 kpx strip of 40 items is

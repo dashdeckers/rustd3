@@ -7,7 +7,7 @@
 //! draw; cells rendered on the pool report their `Raster` sample when
 //! their result is drained, on `Event::Waken`. Without a probe nothing is
 //! sent; the widget times its renders for its cost model either way, on
-//! the monotonic clock (D31.8), and reports none of those readings.
+//! the monotonic clock, and reports none of those readings.
 //!
 //! ```
 //! use std::sync::mpsc;
@@ -97,7 +97,7 @@ pub enum Sample {
         target: Target,
         /// Device pixels of the cell or tile.
         pixels: u32,
-        /// The cell's `work` (Phase 17), for the cost model; a tile's
+        /// The cell's `work` (its drawing-list part's), for the cost model; a tile's
         /// share of its plot area's, by pixels.
         work: u64,
         /// Time between planning and the start of the render.

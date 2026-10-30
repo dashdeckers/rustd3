@@ -38,7 +38,7 @@ const LARGE: Size = Size::new(1600.0, 1000.0);
 
 /// The expensive scatter's dots. The cost model predicts 12.8 + 500 ms
 /// at 2; with vello_cpu's crates optimized in the dev profile, a debug
-/// build renders its plot area in about a second (D19.1).
+/// build renders its plot area in about a second.
 const DOTS: usize = 200_000;
 
 /// The cheap figures' logical size.
@@ -825,7 +825,7 @@ fn tiles_near_the_cursor_render_first() {
 #[test]
 fn large_marker_sets_splat_on_screen() {
     // A markers command of 10,000 points or more renders from stamps on
-    // screen (within D31.2's 32/255 of the PNG, which fills every dot);
+    // screen (within 32/255 of the PNG, which fills every dot);
     // one point fewer fills them as the PNG does.
     let k = 1.0;
     for (n, bound_of) in [(9_999, None), (10_000, Some(32))] {
