@@ -38,7 +38,7 @@ pub trait Binned: Position {
 }
 
 /// How a histogram bins numbers. Weights, densities, cumulative counts and
-/// explicit edges are the helpers' (Phase 38).
+/// explicit edges are the helpers' (`helpers::stats`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Bins {
     /// d3.bin's nice bins: thresholds from d3's `ticks(min, max, n)` over

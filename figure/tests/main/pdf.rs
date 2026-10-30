@@ -1,6 +1,6 @@
 //! PDF output: units, determinism, images, errors, text and fonts, and
 //! the poppler round trip of the kitchen sink and the example figures
-//! against vello_cpu's render of the same list (D17.2).
+//! against vello_cpu's render of the same list.
 
 use std::sync::Arc;
 
@@ -249,7 +249,7 @@ fn round_trip(list: &List) -> [f64; 2] {
 }
 
 /// Asserts the round trip of `list` against the scores measured for it
-/// (D37.1): outlined glyphs within the spec's bound, text within 1.25 ×
+/// as bounds: outlined glyphs within their measurement, text within 1.25 ×
 /// its measurement, which poppler's glyph placement drives.
 #[cfg(feature = "raster")]
 fn assert_round_trip(name: &str, list: &List, [text, outlined]: [f64; 2]) {

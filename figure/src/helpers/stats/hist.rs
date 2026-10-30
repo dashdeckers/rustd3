@@ -11,7 +11,7 @@ use crate::mark::{self, Binned};
 
 pub use stacked::{Stacked, stacked};
 
-/// The most bins `Auto` makes, as `Count` (Phase 34's cap).
+/// The most bins `Auto` makes, as `Count` (the histogram mark's cap).
 const COUNT: usize = 10_000;
 
 /// How a histogram bins its values: [`mark::Bins`]' two rules plus
@@ -166,7 +166,7 @@ pub(super) fn default_bins(n: usize) -> Bins {
     Bins::Nice(sturges(n))
 }
 
-/// The edges Phase 34's histograms make for `finite` values by `rule`:
+/// The edges the histogram mark makes for `finite` values by `rule`:
 /// the same bins, read back from them.
 fn binned(finite: &[f64], rule: mark::Bins) -> Vec<f64> {
     let bars = <scale::Linear as Binned>::bars(finite, Some(rule));

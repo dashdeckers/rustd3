@@ -1,6 +1,6 @@
 //! The kitchen sink: a hand-built list with every command, paint and clip
 //! the backends must agree on, and its font, shaped naively through
-//! ttf-parser's cmap (typst arrives in Phase 13).
+//! ttf-parser's cmap, so the list needs no typst.
 
 use std::f64::consts::{FRAC_PI_2, TAU};
 use std::sync::Arc;

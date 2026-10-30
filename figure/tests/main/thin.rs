@@ -221,11 +221,11 @@ fn vibration() -> &'static (Recording<f64>, Vec<usize>) {
     })
 }
 
-/// The prototype's view of the vibration trace (`proto/thin2`): x over
+/// A view of the vibration trace: x over
 /// [0, 100] s, y over [−2.4, 2.4] in a plot area 1000 × 240 px, stroked
-/// `width` px wide (the prototype's 1, or the theme's 2) in (30, 60, 140);
+/// `width` px wide (1, or the theme's 2) in (30, 60, 140);
 /// the figure's size; its x and y handles.
-fn prototype(thin: Thin, width: f64) -> (Figure<'static>, Size, [ScaleRef<Linear>; 2]) {
+fn vibration_view(thin: Thin, width: f64) -> (Figure<'static>, Size, [ScaleRef<Linear>; 2]) {
     let (rec, _) = vibration();
     let mut fig = Figure::new();
     let t = fig.scale(scale::linear().domain([0.0, 100.0]));
@@ -250,7 +250,7 @@ fn ranged(resolved: &Resolved, h: ScaleRef<Linear>, range: [f64; 2]) -> Linear {
         .clone()
 }
 
-/// What the prototype's figure draws for `target`: the thinned path, the
+/// What the vibration figure draws for `target`: the thinned path, the
 /// plot area, the list, and core's M4 at `per_px` columns per list px
 /// over the same edges.
 struct Thinned {
@@ -263,7 +263,7 @@ struct Thinned {
 
 fn thinned(target: Target, per_px: f64, width: f64) -> Thinned {
     let (rec, _) = vibration();
-    let (fig, size, [t, v]) = prototype(Thin::Auto, width);
+    let (fig, size, [t, v]) = vibration_view(Thin::Auto, width);
     let mut cache = cache();
     let list = fig.draw_with(&mut cache, size, target, &Held::default());
     assert_eq!(cache.stats().m4_queries, 1);
@@ -321,9 +321,9 @@ fn the_trace_on_screen_keeps_four_points_per_column_and_every_impact() {
         .iter()
         .filter(|i| kept.binary_search(i).is_ok())
         .count();
-    // Performance's 3,949 came from edges `100 × c / 1000`; the scale's
+    // Edges `100 × c / 1000` keep 3,949 points; the scale's
     // inverse rounds 246 of the 1,001 edges an ulp apart from those, which
-    // moves 127 boundaries that fall exactly on a sample by one (D15.1).
+    // moves 127 boundaries that fall exactly on a sample by one.
     assert_eq!((lines.len(), lines.points(), found), (1, 3947, 50));
 }
 
@@ -335,18 +335,18 @@ fn the_trace_for_vector_output_takes_four_columns_per_px() {
     assert_eq!(points(&thinned.path), thinned.places);
     let lines = &thinned.lines;
     assert!(lines.points() <= 4 * 4000 + 2 * lines.len() + 2);
-    // Performance: 15,429, with edges `100 × c / 4000` (see above).
+    // Edges `100 × c / 4000` keep 15,429 (see above).
     assert_eq!(lines.points(), 15_427);
 }
 
-/// The plot area of the prototype's figure with every sample stroked,
+/// The plot area of the vibration figure with every sample stroked,
 /// rendered at `scale`: 1 px wide at 1×, the theme's 2 px at 2×. What
 /// thinned lines are measured against.
 #[cfg(feature = "raster")]
 fn every_sample(scale: f64) -> &'static Image {
     static RENDERS: [OnceLock<Image>; 2] = [OnceLock::new(), OnceLock::new()];
     RENDERS[usize::from(scale > 1.0)].get_or_init(|| {
-        let (fig, size, _) = prototype(Thin::Off, scale);
+        let (fig, size, _) = vibration_view(Thin::Off, scale);
         let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
         assert_eq!(vertices(paths(&list)[0]), 1_000_000);
         render(&list, list.parts[1].bounds, scale)
@@ -368,7 +368,7 @@ fn pixels_off(a: &Image, b: &Image) -> f64 {
 /// half covered by the line, its red channel half-way or more from white
 /// to the line's 30. A fainter anti-aliasing fringe is not where a reader
 /// sees the band end; counting it moves a column's end by a whole impact
-/// whenever a 1 px impact line sits near a pixel edge (D15.1).
+/// whenever a 1 px impact line sits near a pixel edge.
 #[cfg(feature = "raster")]
 fn ink(image: &Image) -> Vec<Option<(u32, u32)>> {
     (0..image.width)
@@ -418,7 +418,7 @@ fn the_trace_on_screen_is_within_12_percent_and_its_columns_within_3_percent() {
 }
 
 /// At 2× the line has the theme's width: a 1 px line at one column per
-/// device px stripes at 2×, 24% of its columns off (D15.3).
+/// device px stripes at 2×, 24% of its columns off.
 #[cfg(feature = "raster")]
 #[test]
 fn the_trace_at_2x_keeps_the_bounds_per_device_pixel() {

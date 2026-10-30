@@ -1,4 +1,4 @@
-//! `Renderer::splat` (D31.2): markers composited from eighth-pixel
+//! `Renderer::splat`: markers composited from eighth-pixel
 //! coverage stamps against the markers filled point by point.
 
 use rustd3_core::{scale, scheme};
@@ -10,8 +10,7 @@ use rustd3_figure::{Cache, Figure, Held, Target, axis};
 
 use super::vello::diff;
 
-/// The bound D31.2 registered: splatted markers within 32/255 of filled
-/// ones.
+/// Splatted markers stay within 32/255 of filled ones.
 const BOUND: u8 = 32;
 
 /// `n` dots of a wobbling sine with a curve drawn over them and axes,

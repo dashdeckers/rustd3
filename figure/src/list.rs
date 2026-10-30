@@ -65,7 +65,7 @@ pub struct Part {
     pub hash: u64,
 }
 
-// Phase 19 moves `Arc<List>` to a render worker.
+// The `Plot` widget moves `Arc<List>` to its render workers.
 const _: () = {
     fn assert<T: Send + Sync>() {}
     let _ = assert::<List>;

@@ -300,7 +300,7 @@ fn parent(interval: Interval) -> Option<Interval> {
 
 /// Each of `instants`' count of units of `time`'s tick interval for about
 /// `count` ticks from the Unix epoch floored to that interval in the
-/// scale's zone (Phase 27's `Interval::count`, the step ignored), so the
+/// scale's zone (`Interval::count`, the step ignored), so the
 /// kept labels stay on the same instants while a time axis pans; `None`
 /// when a boundary or count leaves jiff's range or `i64`.
 fn intervals(time: &Time, instants: &[Timestamp], count: usize) -> Option<Vec<i64>> {

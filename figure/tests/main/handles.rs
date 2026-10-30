@@ -165,7 +165,7 @@ fn at(s: &str) -> Timestamp {
     s.parse().expect("an instant")
 }
 
-/// Part I's Berlin day: local midnight to midnight across the end of
+/// A day in Berlin: local midnight to midnight across the end of
 /// daylight saving time, 25 hours.
 fn berlin_day() -> [Timestamp; 2] {
     [at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z")]
@@ -288,8 +288,8 @@ fn fortnight(width: f64) -> (Figure<'static>, Size) {
 #[test]
 fn a_fitted_fortnight_keeps_every_label_that_fits() {
     // Two-day ticks from 10-19 to 10-31, and 11-01 a day after 10-31: of
-    // the two, 10-31's label is on the finer rung and gives way alone
-    // (D40.4 (1)), so the month's label ("2026-11", the axis's only year)
+    // the two, 10-31's label is on the finer rung and gives way alone,
+    // so the month's label ("2026-11", the axis's only year)
     // stays, and the rest keep a stride of 1.
     let days = [
         "10-19", "10-21", "10-23", "10-25", "10-27", "10-29", "2026-11",
@@ -553,7 +553,7 @@ fn diverging_handles_paint_as_d3_and_keep_their_middle() {
         "rgb(107, 172, 208)",
     ];
     assert_eq!(paints, d3.map(|c| Some(c.to_string())));
-    // D33.2: data on one side of the middle keeps it, so the ramp does
+    // Data on one side of the middle keeps it, so the ramp does
     // not reverse.
     assert_eq!(r.scale(fitted).get_domain(), [0.0, 0.0, 5.0]);
     assert_eq!(Kind::domain(r.scale(fitted)), Some([0.0, 5.0]));

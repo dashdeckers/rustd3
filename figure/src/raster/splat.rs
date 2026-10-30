@@ -1,4 +1,4 @@
-//! Marker splatting (D31.2): a markers command whose points share one
+//! Marker splatting: a markers command whose points share one
 //! solid paint table and one size, drawn through groups that only scale
 //! and translate and clip to rectangles, is composited from coverage
 //! stamps of its shape instead of filled once per point. The shape is

@@ -102,10 +102,10 @@ fn resvg_renders_the_example_figures_as_their_pngs() {
     let (files, same) = agreement("trace", &trace::trace(&rec), trace::SIZE, trace::SCALE);
     // resvg and vello_cpu shade the trace's impacts (a stroke up and back
     // down within a quarter px, overlapping itself) 0.0258 apart on the
-    // very same vector list (D15.2); on the PNG's own list 0.0200.
+    // very same vector list; on the PNG's own list 0.0200.
     assert!(same <= 0.03, "trace: tile score {same:.4}");
     // The SVG file is not snapped: the PNG's plot areas sit up to half a
-    // device px elsewhere (D17.2), 0.0473 at 2x.
+    // device px elsewhere, 0.0473 at 2x.
     assert!(files <= 0.05, "trace files: tile score {files:.4}");
     let fig = scatter::scatter(scatter::POINTS);
     let (files, same) = agreement("scatter", &fig, scatter::SIZE, scatter::SCALE);

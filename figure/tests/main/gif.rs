@@ -173,7 +173,7 @@ fn a_frame_matches_the_png_of_its_figure_within_the_bound() {
         d.worst_tile(),
         100.0 * d.share_over()
     );
-    // Measured: max 60/255, tile score 0.0095 (decisions/phase-37.md).
+    // Measured: max 60/255, tile score 0.0095.
     assert!(d.max() <= 90, "max {}", d.max());
     assert!(
         d.tile_score() <= 1.5 * 0.0095,
