@@ -114,7 +114,8 @@ pub fn line() -> Line {
 }
 
 /// d3.line() with accessors over a slice of data, a wrapper of
-/// [`line`] for data that is not geometry yet: x and y 0, every datum defined, until set.
+/// [`line()`] for data that is not geometry yet: x and y 0, every
+/// datum defined, until set.
 pub fn line_of<'a, D>() -> LineOf<'a, D> {
     LineOf::default()
 }
