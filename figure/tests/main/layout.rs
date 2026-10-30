@@ -136,6 +136,33 @@ fn a_missing_gap_is_one_em() {
 }
 
 #[test]
+fn weights_and_gaps_that_are_not_finite_lengths_take_the_defaults() {
+    let areas = |grid: Grid| {
+        let mut fig = Figure::new();
+        fig.layout(grid);
+        fig.panel(0, 0);
+        fig.panel(1, 1);
+        resolve(&fig, &Held::default()).plot_areas().to_vec()
+    };
+    let plain = areas(Grid::new());
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -1.0] {
+        let weighed = areas(Grid::new().rows([bad, 1.0]).cols([1.0, bad]));
+        assert_eq!(weighed, plain, "weight {bad}");
+    }
+    // Equal weights split equally, however small or large.
+    for equal in [5e-324, f64::MAX] {
+        let weighed = areas(Grid::new().rows([equal, equal]).cols([equal, equal]));
+        assert_eq!(weighed, plain, "weights {equal}");
+    }
+    for bad in [f64::NAN, f64::INFINITY] {
+        let gapped = areas(Grid::new().row_gaps([em(bad)]).col_gaps([px(bad)]));
+        assert_eq!(gapped, plain, "gap {bad}");
+    }
+    // Finite in em, infinite in px.
+    assert_eq!(areas(Grid::new().row_gaps([em(1e308)])), plain);
+}
+
+#[test]
 fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));
