@@ -52,9 +52,12 @@ pub fn render(pdf: &[u8], dpi: f64) -> Image {
     }
 }
 
-/// The text `pdftotext` extracts.
+/// The text `pdftotext` extracts, as UTF-8 with `\n` line ends (Windows
+/// builds default to the system code page and `\r\n`).
 pub fn text(pdf: &[u8]) -> String {
-    String::from_utf8(run("pdftotext", &["-", "-"], pdf)).expect("pdftotext writes UTF-8")
+    String::from_utf8(run("pdftotext", &["-enc", "UTF-8", "-", "-"], pdf))
+        .expect("pdftotext writes UTF-8")
+        .replace("\r\n", "\n")
 }
 
 /// The fonts `pdffonts` lists.
