@@ -187,12 +187,7 @@ mod tests {
     use super::*;
 
     fn rows(image: &ImageData) -> Vec<[u8; 4]> {
-        image
-            .data
-            .data()
-            .chunks_exact(4)
-            .map(|c| [c[0], c[1], c[2], c[3]])
-            .collect()
+        image.data.data().as_chunks::<4>().0.to_vec()
     }
 
     fn colors(n: usize) -> Vec<Rgb> {

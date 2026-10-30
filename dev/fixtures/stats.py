@@ -1,7 +1,7 @@
 """matplotlib 3.11.2's statistics behind rustd3-figure's `helpers`, with
 numpy and scipy as matplotlib calls them.
 
-Writes stats.json next to this file, for Phase 38's spot-check data X (n =
+Writes stats.json next to this file, for the helpers' spot-check data X (n =
 15) and two small datasets: `cbook.boxplot_stats` with `whis=1.5` and
 `whis=(5, 95)` (and over a single value), numpy's default "linear"
 quantiles, `Axes.hist` with 10 and 5 equal bins, density, cumulative

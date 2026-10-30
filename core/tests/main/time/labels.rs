@@ -61,7 +61,7 @@ fn labels_read_the_scales_zone() {
     );
 }
 
-/// Part I's Berlin day: the end of daylight saving time on 800 px.
+/// A day in Berlin: the end of daylight saving time on 800 px.
 fn berlin_day() -> time::Time {
     time::time(zone("Europe/Berlin"))
         .domain([at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z")])

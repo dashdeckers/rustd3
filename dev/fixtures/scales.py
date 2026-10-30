@@ -15,6 +15,7 @@ would make the values depend on the machine.
 """
 
 import json
+import math
 import os
 import pathlib
 
@@ -106,6 +107,22 @@ def asinh(domain, width):
     return inside(values, domain)
 
 
+def exact_power(v):
+    """Whether |v| is an exact power of ten (0 is not)."""
+    return v != 0 and 10 ** round(math.log10(abs(v))) == abs(v)
+
+
+def asinh_case(domain, width):
+    # AsinhLocator floors log10 of sinh(arcsinh(10^k)), which lands an ulp
+    # under 10^k on glibc and on 10^k on AVX-512 numpy: at a domain end
+    # that is an exact power of ten its tick depends on the libm, so
+    # rustd3 reads the decade a relative 1e-9 above the power and ticks
+    # the end itself. Those cases are recorded, not compared.
+    platform = any(exact_power(v) for v in domain)
+    extra = {"compared": not platform, **({"reason": "asinh-power"} if platform else {})}
+    return case(domain, asinh(domain, width), linear_width=rounded(width), **extra)
+
+
 def case(domain, ticks, **params):
     return {"count": COUNT, "domain": [rounded(v) for v in domain], "ticks": ticks, **params}
 
@@ -122,7 +139,7 @@ def main():
         "matplotlib": matplotlib.__version__,
         "symlog": symlog_cases,
         "logit": [case(d, logit(d), compared=True) for d in LOGIT],
-        "asinh": [case(d, asinh(d, w), compared=True, linear_width=rounded(w)) for d, w in ASINH],
+        "asinh": [asinh_case(d, w) for d, w in ASINH],
     }
     path = pathlib.Path(__file__).with_name("scales.json")
     path.write_text(json.dumps(fixture, indent=1, sort_keys=True) + "\n")

@@ -268,8 +268,10 @@ fn changed(before: &Shot, after: &Shot) -> Vec<(u32, u32)> {
     let width = before.width;
     before
         .rgba
-        .chunks_exact(4)
-        .zip(after.rgba.chunks_exact(4))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(after.rgba.as_chunks::<4>().0.iter())
         .enumerate()
         .filter(|(_, (a, b))| a != b)
         .map(|(i, _)| (i as u32 % width, i as u32 / width))
@@ -621,7 +623,8 @@ const APPEND: usize = 1_000;
 /// ± the amplitude (each peak's argument rounds to within an ulp of
 /// ±π/2 + 2πk, where the sine rounds to ±1) and one of each lies in every
 /// two seconds, so neither appends nor `drop_front` move a fitted y; and
-/// it is smooth, so no thinned stroke overlaps itself (D18.3).
+/// it is smooth, so no thinned stroke overlaps itself (where vello_cpu's
+/// output would depend on the render's origin).
 fn wave(from: usize, n: usize, seed: usize) -> Vec<f64> {
     let (hz, amplitude) = [(1.0, 0.9), (2.0, 0.7), (0.5, 0.5)][seed % 3];
     (from..from + n)
@@ -969,7 +972,7 @@ fn ten_hz_appends_stay_sharp() {
     assert!(predicted <= 16.7 / 2.0, "{predicted} ms");
     drop(grown);
     // Where the renders run is forced: the widget fits its cost model to
-    // its own renders (D31.8), here a debug build's, so `Render::Auto`'s
+    // its own renders, here a debug build's, so `Render::Auto`'s
     // choice is the machine's; the prediction above is the seed's.
     // Frames 100 ms apart.
     let plot = live(&top, &bottom, follow, k, Render::Inline, None);
@@ -988,7 +991,7 @@ fn ten_hz_appends_stay_sharp() {
         let shot = harness.frame(t + Duration::from_millis(100) * step);
         // Every changed cell and tile rendered in the frame: it is the
         // sharp one, which differs from the PNG only where vello_cpu's
-        // output depends on a cell's origin where strokes cross (D18.3); a
+        // output depends on a cell's origin where strokes cross; a
         // preview would be shifted.
         let diff = against(&shot, &trace(&top, &bottom, follow).0, size, k);
         worst = worst.max(diff.max());
@@ -1106,7 +1109,7 @@ fn a_gesture_holds_a_windowed_handle() {
     println!("held window, {backend}: an append renders {after:?}");
     // The x domain stays: no axis moves, and no gutter cell renders. The
     // samples appended past the view lie in the upper plot area's ring,
-    // whose tiles render again (D31.5); the frame shows the same pixels.
+    // whose tiles render again; the frame shows the same pixels.
     assert!(
         after.iter().all(|cell| areas.contains(cell)),
         "{backend}: {after:?}"

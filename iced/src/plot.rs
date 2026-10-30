@@ -124,7 +124,7 @@
 //! newer images cover it. Dropping the widget's state joins the threads.
 //! [`Plot::probe`] reports what each frame cost and what it showed, timed
 //! by a clock the app supplies. The only clock the library reads itself is
-//! the monotonic one around each render, for the cost model (D31.8): what
+//! the monotonic one around each render, for the cost model: what
 //! it renders never depends on it, only where later renders run.
 //!
 //! **Gestures.** A wheel over a plot area zooms every handle its panel

@@ -26,7 +26,7 @@ pub struct Line<'a> {
 /// of lines right of the plot area when there is more than one series.
 /// The first series' key is "0", pandas' name for an unnamed column.
 ///
-/// The line of Part I's Helpers, over one channel of a recording:
+/// A line over one channel of a recording:
 ///
 /// ```
 /// use rustd3_core::scale;

@@ -214,7 +214,7 @@ fn bins() -> Vec<String> {
 
 #[test]
 fn turned_boxes_keep_every_kth_label_with_a_smaller_stride() {
-    // Phase 16's row at 320 px keeps every fourth bin flat; turned, the
+    // Flat, the row at 320 px keeps every fourth bin; turned, the
     // ink boxes (about 11 px tall) need d·|sin θ| ≥ h at a band step of
     // about 16 px: every second at 30°, every one at 45° and 90°.
     let mut kept = Vec::new();

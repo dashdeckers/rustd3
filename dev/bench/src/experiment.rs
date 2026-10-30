@@ -1,5 +1,5 @@
 //! [`Experiment`]: the flags that narrow or vary a level for one question
-//! on one machine (D22.11 (1), D22.12 (3)): which profiles run (`--only`),
+//! on one machine: which profiles run (`--only`),
 //! which of their cells (`--scenario`, `--workload`, `--factor`), how many
 //! runs a cell (`--runs`), the widget's `--render`, `--threads` and
 //! `--caching`, and a [`Sweep`] of one of those three, each value its own

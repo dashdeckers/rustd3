@@ -7,7 +7,7 @@
 //! millisecond, rounded down to 5e5. Checked back, the model gives 21.7 ms
 //! for the whole figure and 7.7 ms without the dots. They seed each
 //! widget's own fit, which adds a fixed overhead per render and follows
-//! the machine from its timed renders (D22.4); public so the benchmark can
+//! the machine from its timed renders; public so the benchmark can
 //! record them.
 
 /// Device pixels rasterized per millisecond.

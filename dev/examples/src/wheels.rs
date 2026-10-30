@@ -1,4 +1,4 @@
-//! The worked example of Part I's Figures: four wheels, three sources and
+//! The wheel figure: four wheels, three sources and
 //! 20 speed bins. Per wheel, a scatter of value over speed bin with its
 //! distributions attached on the right and a histogram of counts attached
 //! below, on shared scales: a 4 × 4 grid of 52 marks over 5,600 samples
@@ -93,8 +93,8 @@ pub fn hatched<'a>(samples: &[Sample], inset: bool) -> Figure<'a> {
 
 /// The wheel figure of `samples` with the sources in `palette`'s colors,
 /// its histograms' bars hatched with `hatch` when given.
-// The body is Part I's worked example line for line, in its vertical
-// style, so rustfmt leaves it as written; the hatch is Phase 35's.
+// The body is written in a vertical style that reads as the figure's
+// outline, so rustfmt leaves it as written.
 #[rustfmt::skip]
 pub fn figure_with<'a>(
     samples: &[Sample],
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn the_wheel_figures_densities_binned_are_within_a_thousandth_of_exact() {
-        // D22.11 (3): its densities hold 200 to 600 values, so they draw
+        // Its densities hold 200 to 600 values, so they draw
         // exactly; binned, each of the twelve stays within 1e-3 of that.
         let samples = simulate();
         for wheel in [Wheel::FL, Wheel::FR, Wheel::RL, Wheel::RR] {

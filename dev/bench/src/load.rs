@@ -1,6 +1,6 @@
-//! Reading results back for `compare` and `report` (D22.9 (5)): a
-//! level's directory or archive by its `results.json`, and the layout
-//! before D22.9 (a suite's directory of plans, or one plan's) by each
+//! Reading results back for `compare` and `report`: a level's directory
+//! or archive by its `results.json`, and the layout from before the
+//! levels (a suite's directory of plans, or one plan's) by each
 //! plan's `summary.csv`, `meta.json` and `report.md`, read only.
 
 use std::collections::BTreeMap;
@@ -14,7 +14,7 @@ use crate::results::{self, Cell, Check, Counts, Results, Status};
 use crate::system::Meta;
 
 /// The results at `path`: a directory or a `.tar.gz` archive of a level,
-/// or of the layout before D22.9.
+/// or of the layout from before the levels.
 pub fn results(path: &Path) -> Result<Results, Box<dyn Error>> {
     let files = files(path)?;
     if let Some(json) = files.get("results.json") {
@@ -72,7 +72,7 @@ pub fn files(path: &Path) -> Result<BTreeMap<String, Vec<u8>>, Box<dyn Error>> {
     Ok(files)
 }
 
-/// The layout before D22.9: a plan's directory (`summary.csv` at the
+/// The layout from before the levels: a plan's directory (`summary.csv` at the
 /// top), or a suite's (one per plan), as results whose profiles keep
 /// their cells' medians and budgets; the suite's plan names become the
 /// profiles' (`default` → `native`, `weak-nogpu` → `nogpu`, …).
@@ -169,7 +169,7 @@ fn old(files: &BTreeMap<String, Vec<u8>>, path: &Path) -> Option<Results> {
                 cells,
                 ..results::Profile::planned(
                     name,
-                    format!("plan {plan} (`{dir}/`, the layout before D22.9)"),
+                    format!("plan {plan} (`{dir}/`, the layout from before the levels)"),
                     None,
                 )
             }
@@ -216,7 +216,7 @@ fn old(files: &BTreeMap<String, Vec<u8>>, path: &Path) -> Option<Results> {
     let display = Display {
         headless: meta
             .is_some_and(|m| m.headless)
-            .then(|| "headless (the layout before D22.9)".to_owned()),
+            .then(|| "headless (the layout from before the levels)".to_owned()),
         refresh_hz: meta.map_or_else(
             || number(&report, "; ", " Hz (T = ").unwrap_or(60.0),
             |m| m.refresh_hz,
@@ -239,7 +239,7 @@ fn old(files: &BTreeMap<String, Vec<u8>>, path: &Path) -> Option<Results> {
             ),
             iced: meta.map_or_else(unknown, |m| m.iced_rev.clone()),
         },
-        level: "the layout before D22.9".to_owned(),
+        level: "the layout from before the levels".to_owned(),
         stamp,
         complete: true,
         machine,
@@ -403,8 +403,8 @@ mod tests {
              mode AutoVsync (iced default); 59.96 Hz (T = 16.68 ms), native factor 1; render \
              auto.\n\nAMD Ryzen 7 5800X 8-Core Processor (16 cores, 64215 MiB); kernel 6.17; GPU \
              NVIDIA GeForce RTX 3090, 595.104.02; session wayland, desktop COSMIC; rustc 1.97.0; \
-             iced 3cbdacc; workspace 920ac26.\n\n## Rule outcome\n\n52 checks.\n\n**still \
-             raster/upload bound after Phase 31 → GPU data layer recommended**\n",
+             iced 3cbdacc; workspace 920ac26.\n\n## Rule outcome\n\n52 checks.\n\n**raster/upload \
+             bound on the tiled image path → GPU data layer recommended**\n",
         )
         .unwrap();
         let old = results(&dir).unwrap();
@@ -413,7 +413,7 @@ mod tests {
         let native = &old.profiles[0];
         assert_eq!(
             native.outcome.as_deref(),
-            Some("still raster/upload bound after Phase 31 → GPU data layer recommended")
+            Some("raster/upload bound on the tiled image path → GPU data layer recommended")
         );
         let cell = &native.cells[0];
         assert_eq!((cell.name().as_str(), cell.runs), ("pan-x × trace × 1", 5));

@@ -3,7 +3,7 @@
 //! and changed nothing else keeps its translated tiles.
 //!
 //! A pan changes every position in a plot area's layer, so its part hashes
-//! (Phase 17) all change; the style hash leaves positions out and keeps the
+//! all change; the style hash leaves positions out and keeps the
 //! paints, stroke styles (width, caps, joins, the dash pattern without its
 //! offset, which follows the column grid), marker shapes and paint tables,
 //! fonts, sizes and glyph ids, images, and the commands' kinds and groups.

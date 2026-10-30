@@ -1,12 +1,12 @@
-//! The widget's part of a level (D22.9), built with the `widget`
+//! The widget's part of a level, built with the `widget`
 //! feature: the display measurement before the CPU reference, then, after
 //! the figure profile, the [`Profile`]s that drive the `Plot` widget, each a
 //! `run` of a plan in its own directory of the level's with its console in
-//! `run-<profile>.log`: the software path offscreen (D22.12, headless on
-//! any machine), the native backend (iced's own choice), the software
-//! renderer, the software renderer on X11 in a Linux Wayland session
-//! (D22.8), and at the default and full levels the weak plan on 4 and on 2
-//! cores (D22.4); at `--full`, every `also` measurement last. A
+//! `run-<profile>.log`: the software path offscreen (headless on any
+//! machine), the native backend (iced's own choice), the software
+//! renderer, the software renderer on X11 in a Linux Wayland session,
+//! and at the default and full levels the weak plan on 4 and on 2
+//! cores; at `--full`, every `also` measurement last. A
 //! core count is enforced by pinning the bench where the system offers it
 //! (`taskset` on Linux, `start /AFFINITY` on Windows) and otherwise by the
 //! widget's render pool (`--threads`), and the report says which. Without
@@ -84,11 +84,11 @@ pub struct Profile {
     pub budgets: rule::Profile,
     /// The cores it is limited to.
     pub cores: Option<usize>,
-    /// Its windows open on X11 through XWayland (D22.8).
+    /// Its windows open on X11 through XWayland.
     pub xwayland: bool,
     /// It composes its frames offscreen, headless whatever the display, at
     /// 60 Hz and a native factor of 2 so that its cells keep 1600 × 1000
-    /// logical px at both factors (D22.12).
+    /// logical px at both factors.
     pub offscreen: bool,
     /// After its name, a sweep's value (`@threads=2`), else empty.
     pub variant: String,
@@ -97,7 +97,7 @@ pub struct Profile {
     pub extra: Vec<String>,
 }
 
-/// The software profile's frame rate: no display paces it (D22.12).
+/// The software profile's frame rate: no display paces it.
 const OFFSCREEN_HZ: f64 = 60.0;
 
 /// The native factor the software profile runs at: its factor-1 and
@@ -413,6 +413,10 @@ impl Profile {
             let names: Vec<&str> = workloads.iter().map(|w| w.name()).collect();
             args.extend(["--workload".to_owned(), names.join(",")]);
         }
+        if let Some(factors) = &self.selection.factors {
+            let factors: Vec<String> = factors.iter().map(f32::to_string).collect();
+            args.extend(["--factor".to_owned(), factors.join(",")]);
+        }
         if let Some(runs) = self.selection.runs {
             args.extend(["--runs".to_owned(), runs.to_string()]);
         }
@@ -683,7 +687,7 @@ impl Widget for Part {
 
     fn finish(&mut self, dir: &Path, notes: &mut String) -> Result<(), Box<dyn Error>> {
         if self.level == Level::Full {
-            println!("== also: the items earlier phases asked to be measured (also.md)");
+            println!("== also: the measurements beside the scenarios (also.md)");
             match std::panic::catch_unwind(also::measure) {
                 Ok(md) => fs::write(dir.join("also.md"), md)?,
                 Err(_) => {
@@ -939,7 +943,7 @@ mod tests {
         else {
             panic!("{quick:?}");
         };
-        // D22.12: the software path offscreen, one run a cell at quick.
+        // The software path offscreen, one run a cell at quick.
         assert_eq!(
             (software.plan, software.backend, software.budgets),
             (Plan::Software, Backend::TinySkia, rule::Profile::Weak)
@@ -973,10 +977,9 @@ mod tests {
         assert_eq!(default[4].0.cores, Some(4));
         assert!(default[0].0.cells(1.0).iter().all(|c| c.runs == 3));
         assert_eq!(Level::Full.profiles(DESKTOP)[1].0.plan, Plan::Full);
-        // About 10 minutes for quick, 75 for default (D22.9), each with the
-        // figure profile's 1 and 4 (D22.10): here 8.5 and 71 without the
-        // X11 profile, 10 and 77 with it; and the software profile's 6.2
-        // and 18.6 (D22.12).
+        // About 10 minutes for quick, 75 for default, each with the figure
+        // profile's 1 and 4: here 8.5 and 71 without the X11 profile, 10
+        // and 77 with it; and the software profile's 6.2 and 18.6.
         let minutes =
             |level: Level, machine| level.estimate_s(&level.profiles(machine), 1.0) / 60.0;
         let wayland = Machine {
@@ -1135,7 +1138,8 @@ mod tests {
         let frames = (PathBuf::from("f"), 1);
         let args = two
             .args(&display, Path::new("o/x"), Some(&frames))
-            .join(" ");
+            .join(" ")
+            .replace('\\', "/");
         assert!(
             args.ends_with("--frames f/software@threads=2 --every 1 --threads 2 --out o/x"),
             "{args}"
@@ -1151,6 +1155,19 @@ mod tests {
         assert_eq!(software.cells(1.0).len(), 8);
         assert_eq!(nogpu.name, "nogpu");
         assert!(why.contains("select none of its cells"), "{why}");
+        // Factors given reach the profile's run, as its cells say.
+        let one = part("--quick --only software --scenario zoom-lines --factor 1");
+        let selected = one.select(DESKTOP, 1.0);
+        let [(software, None)] = &selected[..] else {
+            panic!("{selected:?}");
+        };
+        let factors: Vec<f32> = software.cells(1.0).iter().map(|c| c.factor).collect();
+        assert_eq!(factors, [1.0; 3]);
+        let args = software.args(&display, Path::new("o"), None).join(" ");
+        assert!(
+            args.contains(" --scenario zoom-lines --factor 1 "),
+            "{args}"
+        );
     }
 
     #[test]

@@ -103,7 +103,7 @@ function chain(root, steps, ctx) {
       build(suffix);
     }
     else if (prop === "copy") [code, muts] = [current() + (muts ? "" : ".clone()"), null];
-    else if (prop === "tickFormat") skip("gap: time tick formats (Phase 28)");
+    else if (prop === "tickFormat") skip("gap: time tick formats");
     else if (prop === "clamp") skip("api: d3's clamp() getter (only domain and range have get_)");
     else skip("api: d3's interpolate on a time scale (its f64 range is interpolated linearly)");
   }

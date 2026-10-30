@@ -79,7 +79,7 @@ impl Memory {
 }
 
 /// The instant `ns` nanoseconds from the epoch, when it lies in jiff's
-/// range (jiff's own constructor does not check it, D27.2 (7)).
+/// range (jiff's own constructor does not check it).
 pub(crate) fn instant(ns: i128) -> Option<Timestamp> {
     let range = Timestamp::MIN.as_nanosecond()..=Timestamp::MAX.as_nanosecond();
     range

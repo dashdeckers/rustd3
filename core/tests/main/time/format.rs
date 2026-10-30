@@ -1,4 +1,4 @@
-//! Time formats: Phase 28's spot rows, recomputed with d3-time-format
+//! Time formats: spot rows, computed with d3-time-format
 //! 4.1.0 in Node under `TZ=America/Los_Angeles`, and the port's own rows
 //! (`%N`, composites that refer to themselves).
 

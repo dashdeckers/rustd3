@@ -1,4 +1,4 @@
-//! `rustd3-bench repro-software`: D22.8's reproduction for iced, plain
+//! `rustd3-bench repro-software`: a reproduction for iced, plain
 //! iced with nothing of rustd3. A grid of 40 distinct 256 × 256 images
 //! (`widget::image`, handles made once) covers a 1600 × 1000 window and
 //! moves 1 logical px a frame; with `--single`, one image larger than the

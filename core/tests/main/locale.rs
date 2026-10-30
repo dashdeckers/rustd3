@@ -1,4 +1,4 @@
-//! The figure locale and the batch rule: Part I's Formats, time and color
+//! The figure locale and the batch rule: the formats, times and colors
 //! table under `NEUTRAL` and `EN_US`, and axes whose labels group all or
 //! nothing.
 
@@ -25,7 +25,7 @@ fn a_number_locale_makes_a_figure_locale() {
 
     use rustd3_core::format::{self, Definition};
 
-    // The number half only: the time half stays neutral (D11.2), where
+    // The number half only: the time half stays neutral, where
     // EN_US pairs d3's.
     assert_eq!(
         Locale::from(format::Locale::EN_US).number(),
@@ -197,7 +197,7 @@ fn the_constants_pair_the_number_and_time_tables_of_their_language() {
         assert_eq!((locale.number(), locale.time()), (&number, &time));
     }
     assert_eq!(Locale::default().time(), &time::Locale::default());
-    // A runtime number table keeps the neutral time half (D11.2).
+    // A runtime number table keeps the neutral time half.
     let runtime = Locale::from(format::Locale::new(format::Definition::default()));
     assert_eq!(runtime.time(), &time::Locale::NEUTRAL);
 }

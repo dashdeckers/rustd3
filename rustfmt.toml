@@ -2,3 +2,15 @@ style_edition = "2024"
 use_field_init_shorthand = true
 use_try_shorthand = true
 newline_style = "Unix"
+
+# One line when it fits, and one element per line when it does not:
+# function parameters, call arguments, method chains, struct literals and
+# imports never wrap into a partly filled second line.
+fn_params_layout = "Tall"
+
+# Nightly only (`cargo +nightly fmt`; CI checks with it, and
+# .vscode/settings.json points rust-analyzer at it). Stable rustfmt skips
+# these two with a warning.
+imports_layout = "HorizontalVertical"
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"

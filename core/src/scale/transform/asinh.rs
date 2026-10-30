@@ -7,7 +7,8 @@ use crate::format::{Format, InvalidFormat, Locale, Specifier};
 use crate::scale::{TickFormat, Transform};
 use crate::ticks;
 
-/// The most values the rule returns: Phase 3's cap at its largest.
+/// The most values the rule returns: the tick generators' cap at its
+/// largest.
 const MAX_TICKS: usize = 10_000;
 /// `AsinhLocator`'s `symthresh`: ends this close to symmetric about 0 tick
 /// as if they were.
@@ -99,13 +100,15 @@ impl Transform for Asinh {
     }
 }
 
-/// `sign(x)·10^⌊ln|x| / ln 10⌋`, 0 for 0: matplotlib's rounding, whose
-/// quotient falls just below k at some exact powers 10ᵏ (10³, 10⁶, 10⁹).
+/// `sign(x)·10^⌊log10|x|⌋`, 0 for 0, with the decade read a relative
+/// 1e-9 above the exact power: a value one ulp under 10ᵏ, as the
+/// platform's `sinh(asinh(10ᵏ))` can return, still ticks at 10ᵏ, so the
+/// ticks do not depend on the libm in use.
 fn power_below(x: f64) -> f64 {
     if x == 0.0 {
         0.0
     } else {
-        x.signum() * ticks::pow10((x.abs().ln() / LN_10).floor())
+        x.signum() * ticks::pow10((x.abs().ln() / LN_10 + 1e-9).floor())
     }
 }
 

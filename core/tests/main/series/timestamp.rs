@@ -1,4 +1,4 @@
-//! Recordings of instants: Phase 9's suite for `Timestamp` x, with a 1 kHz
+//! Recordings of instants: the recording suite for `Timestamp` x, with a 1 kHz
 //! clock from 2026-10-25T00:00:00Z and column edges from a time scale.
 
 use rustd3_core::jiff::{SignedDuration, Timestamp};

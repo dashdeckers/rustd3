@@ -1,4 +1,4 @@
-//! `anim`: Part I's use case 2 lifecycle trace (100 ms transitions, 20 ms
+//! `anim`: the update pattern's lifecycle trace (100 ms transitions, 20 ms
 //! stagger, cubic in-out), and `Animated`'s and `Marks`' own rules, at
 //! fixed offsets from one base instant.
 
@@ -9,7 +9,7 @@ use rustd3_core::anim::{Animated, Marks, Phase, Timing};
 use rustd3_core::ease::{Ease, Mode};
 use rustd3_core::interpolate::Interpolate;
 
-/// Use case 2's mark: everything that animates is a field.
+/// The update pattern's mark: everything that animates is a field.
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Bar {
     y: f64,
@@ -44,7 +44,7 @@ fn ms(t0: Instant, n: u64) -> Instant {
     t0 + Duration::from_millis(n)
 }
 
-/// Use case 2's targets for the top bars `(name, value)`: a row each,
+/// The update pattern's targets for the top bars `(name, value)`: a row each,
 /// width = value (an identity x scale), opaque.
 fn bars<'a>(data: &[(&'a str, f64)]) -> Vec<(&'a str, Bar)> {
     data.iter()
@@ -61,7 +61,7 @@ fn bars<'a>(data: &[(&'a str, f64)]) -> Vec<(&'a str, Bar)> {
         .collect()
 }
 
-/// The marks' widths at `now` as Part I prints them: `a=7.4(exit)`.
+/// The marks' widths at `now`, as `a=7.4(exit)`.
 fn widths(marks: &Marks<&str, Bar>, now: Instant) -> String {
     marks
         .values(now)

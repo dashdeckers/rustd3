@@ -1,5 +1,4 @@
-//! d3-shape over iterators of already-scaled geometry (Part I, Accessors,
-//! option A): lines and areas with d3's curves, their radial forms, pies
+//! d3-shape over iterators of already-scaled geometry: lines and areas with d3's curves, their radial forms, pies
 //! and arcs, stacks and symbols, each drawing into any
 //! [`PathContext`](crate::path::PathContext).
 //!
@@ -114,8 +113,9 @@ pub fn line() -> Line {
     Line::default()
 }
 
-/// d3.line() with accessors over a slice of data (Part I, Accessors,
-/// option B): x and y 0, every datum defined, until set.
+/// d3.line() with accessors over a slice of data, a wrapper of
+/// [`line()`] for data that is not geometry yet: x and y 0, every
+/// datum defined, until set.
 pub fn line_of<'a, D>() -> LineOf<'a, D> {
     LineOf::default()
 }
@@ -136,7 +136,7 @@ pub fn arc() -> Arc {
     Arc::default()
 }
 
-/// d3.stack() over columns (Part I, Shapes and `PathContext`): one layer per
+/// d3.stack() over columns: one layer per
 /// column, in the columns' order on a zero baseline, each `[y0, y1]` per
 /// row; rows are the shortest column's length.
 ///

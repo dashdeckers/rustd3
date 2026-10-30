@@ -12,7 +12,7 @@ autotests = false
 default = ["widget"]
 # The Plot widget's benchmark: iced, rustd3-iced and the window code.
 # Without it, `cargo rustd3-bench-figure` builds the plotting library's
-# figure profile alone (D22.10).
+# figure profile alone.
 widget = ["dep:rustd3-iced", "dep:iced", "dep:iced_runtime", "rustd3-examples/widget"]
 
 [dependencies]
@@ -24,7 +24,7 @@ iced = { workspace = true, features = ["advanced", "canvas"], optional = true }
 iced_runtime = { workspace = true, optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
-# The submission archive's gzip (D22.9); 1.1.10 is already in the lock tree.
+# The submission archive's gzip; 1.1.10 is already in the lock tree.
 flate2 = "1.1.10"
 
 [dev-dependencies]

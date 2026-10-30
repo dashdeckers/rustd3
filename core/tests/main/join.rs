@@ -16,7 +16,7 @@ fn sides<'a>(enter: &[&'a str], update: &[&'a str], exit: &[&'a str]) -> Join<&'
 #[test]
 fn join_matches_d3_data_join() {
     let rows: [(&[&str], &[&str], Join<&str>); 6] = [
-        // Part I, Data and identity.
+        // Enter, update and exit by key.
         (
             &["a", "b", "c"],
             &["b", "c", "d"],

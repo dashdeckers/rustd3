@@ -5,7 +5,7 @@
 /// not aligned to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Ladder {
-    /// Part I's neutral ladder: `%Y`, `%Y-%m`, `%m-%d`, `%H:%M`,
+    /// The neutral ladder: `%Y`, `%Y-%m`, `%m-%d`, `%H:%M`,
     /// `%H:%M:%S`, then `%S.%L`, `%S.%f` and `%S.%N` below the second.
     #[default]
     Iso,

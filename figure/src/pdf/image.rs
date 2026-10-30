@@ -19,8 +19,9 @@ pub(crate) struct Rgba {
 impl Rgba {
     /// `rgba`, `width × height × 4` straight bytes, split into channels.
     pub(crate) fn new(width: u32, height: u32, rgba: &[u8]) -> Rgba {
-        let colors = rgba.chunks_exact(4).flat_map(|p| [p[0], p[1], p[2]]);
-        let alphas = rgba.chunks_exact(4).map(|p| p[3]);
+        let (pixels, _) = rgba.as_chunks::<4>();
+        let colors = pixels.iter().flat_map(|p| [p[0], p[1], p[2]]);
+        let alphas = pixels.iter().map(|p| p[3]);
         Rgba {
             width,
             height,

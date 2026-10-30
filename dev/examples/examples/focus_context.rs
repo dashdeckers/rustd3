@@ -1,4 +1,4 @@
-//! Use case 1, focus and context: zoom the detail view with the wheel,
+//! Focus and context: zoom the detail view with the wheel,
 //! pan it by dragging, brush a window in the overview below.
 
 use rustd3_examples::focus_context::App;

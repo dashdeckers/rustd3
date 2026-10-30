@@ -92,7 +92,7 @@ fn nan_is_not_admitted() {
 
 #[test]
 fn no_data_gives_the_unit_domain() {
-    // matplotlib gives ±0.055 (D10.2 (5)).
+    // matplotlib gives ±0.055; a unit domain reads better.
     assert_eq!(fitted(&[], false, Fit::All), [0.0, 1.0]);
 }
 

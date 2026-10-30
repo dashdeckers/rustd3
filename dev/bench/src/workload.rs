@@ -31,7 +31,7 @@ pub enum Workload {
     /// `trace` on a UTC time axis around midnight: labels that change as
     /// pans cross the day and on every zoom.
     LabelChurn,
-    /// Part I's wheel figure at 960 × 760.
+    /// The wheel figure at 960 × 760.
     Wheels,
 }
 

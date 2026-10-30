@@ -1,5 +1,5 @@
 //! Chart presets: the marks, legend and axes each draws, the stack
-//! offsets' spot rows, the line sketch of Part I's Helpers, and an empty
+//! offsets' spot rows, a line over a recording, and an empty
 //! `fig.check` for each at its default size.
 
 use rustd3_core::scale::{self, AnyContinuous};

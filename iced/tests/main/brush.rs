@@ -55,7 +55,7 @@ pub fn hours(t: Timestamp) -> f64 {
     t.duration_since(start()).as_secs_f64() / 3600.0
 }
 
-/// Use case 1 as a figure: a focus panel over `window` above a context
+/// A focus-and-context view as a figure: a focus panel over `window` above a context
 /// panel over all 30 days, which brushes the focus's window; the app owns
 /// the window when it `listens`.
 pub struct FocusContext {
@@ -611,8 +611,10 @@ fn changed_in(a: &Shot, b: &Shot, [x0, y0, x1, y1]: [u32; 4]) -> (usize, usize) 
     let mut counts = (0, 0);
     for (i, (p, q)) in a
         .rgba
-        .chunks_exact(4)
-        .zip(b.rgba.chunks_exact(4))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(b.rgba.as_chunks::<4>().0.iter())
         .enumerate()
     {
         if p != q {

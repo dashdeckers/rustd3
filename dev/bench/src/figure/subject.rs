@@ -44,7 +44,7 @@ pub enum Subject {
     Line(usize),
     /// A chart preset of `dev/examples` (one of `presets::NAMES`).
     Preset(&'static str),
-    /// Part I's wheel figure from `dev/examples`.
+    /// The wheel figure from `dev/examples`.
     Wheels,
 }
 
@@ -364,7 +364,7 @@ mod tests {
 
     #[test]
     fn the_stats_figures_binned_density_is_within_a_thousandth_of_the_exact_one() {
-        // D22.11 (3): the stats figure's 1M values take the binned path;
+        // The stats figure's 1M values take the binned path;
         // the exact sum, 200 points × 1M kernels, is split over the cores.
         let Data::Stats(values) = Subject::Stats.data() else {
             panic!("the stats figure's values");

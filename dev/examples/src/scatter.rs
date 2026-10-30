@@ -21,8 +21,7 @@ const CLUSTERS: [(&str, [f64; 2]); 3] = [("a", [0.0, 0.0]), ("b", [2.5, 1.0]), (
 /// `n` points in three Gaussian clusters, point `i` in cluster `i % 3`, as
 /// one dots mark per cluster filled with its palette color: three
 /// `Markers` commands however many points there are. The normal deviates
-/// come from the wheel figure's LCG (seed 11) through Box–Muller
-/// (`proto/figmodel/examples/wheels_auto.rs`).
+/// come from the wheel figure's LCG (seed 11) through Box–Muller.
 pub fn scatter(n: usize) -> Figure<'static> {
     let mut seed = 11_u32;
     let mut u = move || {

@@ -1,6 +1,4 @@
-//! What earlier phases asked the benchmark to measure beside its
-//! scenarios (D19.3, D18.3, D15.3, D21.1, D22.4, Phase 31's gutters, Phase
-//! 31g's software compositing): figure-level renders, resolves and lists,
+//! What the benchmark measures beside its scenarios: figure-level renders, resolves and lists,
 //! the widget's tiles drawn on iced's headless renderers, a real gesture
 //! frame composed by its software renderer ([`compose`]), its renders per
 //! frame of a pan and one tile of a long trace's geometry, timed in this
@@ -39,7 +37,7 @@ use crate::workload::Workload;
 /// One measured item.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Row {
-    /// What was measured, with the decision that asked for it.
+    /// What was measured.
     pub item: String,
     /// The result.
     pub value: String,
@@ -62,8 +60,8 @@ pub fn measure() -> String {
         splat_speed(),
     ];
     let mut md = String::from(
-        "## Also measured\n\nFigure-level items earlier phases asked for, measured in this build \
-         and process (not in a child):\n\n| Item | Result |\n| --- | --- |\n",
+        "## Also measured\n\nFigure-level and widget items beside the scenarios, measured in this \
+         build and process (not in a child):\n\n| Item | Result |\n| --- | --- |\n",
     );
     for row in rows {
         let _ = writeln!(md, "| {} | {} |", row.item, row.value);
@@ -71,7 +69,7 @@ pub fn measure() -> String {
     md
 }
 
-/// D19.3: the 200k-dot plot-area cell of `iced/tests/main/pipeline.rs`'s
+/// The 200k-dot plot-area cell of `iced/tests/main/pipeline.rs`'s
 /// scatter at 1600 × 1000 logical at 2, rendered as the widget's worker
 /// renders it (vello_cpu's pool), against the cost model.
 fn dense_scatter() -> Row {
@@ -92,7 +90,7 @@ fn dense_scatter() -> Row {
     let (k, size) = (2.0, Size::new(1600.0, 1000.0));
     let (list, cells) = cut(&fig, size, k);
     let Some(cell) = cells.cells.iter().max_by_key(|cell| cell.work) else {
-        return failed("D19.3: 200k-dot plot-area cell, release", "no cell");
+        return failed("the 200k-dot plot-area cell, release", "no cell");
     };
     let bounds = Bounds::of(&list, &mut Outlines::default());
     let mut renderer = raster::Renderer::new(Settings::parallel());
@@ -108,7 +106,7 @@ fn dense_scatter() -> Row {
     let pixels = (cell.rect.width() * cell.rect.height()) as u64;
     let model = cost::model_ms(pixels, cell.work);
     Row {
-        item: "D19.3: the 200k-dot plot-area cell (1600 × 1000 at 2), vello_cpu's pool".to_owned(),
+        item: "the 200k-dot plot-area cell (1600 × 1000 at 2), vello_cpu's pool".to_owned(),
         value: format!(
             "{measured:.1} ms (median of 3; {pixels} px, {} items); model {model:.1} ms; calibration \
              {:.3}",
@@ -118,9 +116,10 @@ fn dense_scatter() -> Row {
     }
 }
 
-/// D18.3: the trace example at 2×: its cells rendered at their own
-/// origins, stitched, against the whole canvas rendered at once
-/// (single-threaded, baseline SIMD, as D18.3 measured).
+/// The trace example at 2×: its cells rendered at their own origins,
+/// stitched, against the whole canvas rendered at once (single-threaded,
+/// baseline SIMD). vello_cpu's output where strokes overlap depends on
+/// the render's origin; this measures by how much.
 fn origin_dashes() -> Row {
     let rec = example::recording(example::SAMPLES);
     let fig = example::trace(&rec);
@@ -133,12 +132,12 @@ fn origin_dashes() -> Row {
     });
     let whole = Rect::from_origin_size(Point::ORIGIN, list.size);
     let Ok(whole) = renderer.render(&list, &bounds, whole, k) else {
-        return failed("D18.3", "the whole canvas did not render");
+        return failed("trace cells stitched", "the whole canvas did not render");
     };
     let (mut over, mut over16, mut max) = (0_u64, 0_u64, 0_u8);
     for cell in &cells.cells {
         let Ok(image) = renderer.render(&list, &bounds, scaled(cell.rect, k), k) else {
-            return failed("D18.3", "a cell did not render");
+            return failed("trace cells stitched", "a cell did not render");
         };
         let (x0, y0) = (cell.rect.x0 as u32, cell.rect.y0 as u32);
         for y in 0..image.height {
@@ -152,7 +151,7 @@ fn origin_dashes() -> Row {
     }
     Row {
         item: format!(
-            "D18.3: the trace example ({} × {} at 2, 3 × 1M samples), {} cells stitched against the \
+            "the trace example ({} × {} at 2, 3 × 1M samples), {} cells stitched against the \
              whole render",
             example::SIZE.width,
             example::SIZE.height,
@@ -162,14 +161,14 @@ fn origin_dashes() -> Row {
     }
 }
 
-/// D15.3: a 1 px line thinned at one column per device px on a 2×
+/// A 1 px line thinned at one column per device px on a 2×
 /// display, against every sample stroked: the share of pixel columns
 /// whose top or bottom ink moves more than 1 px, and of pixels off by
-/// more than 16/255 (the prototype's view of the trace, as Phase 15).
+/// more than 16/255 (the vibration trace over [0, 100] s, 1000 × 240 px).
 fn thin_line() -> Row {
     let (x, y, _) = example::signal(1_000_000, 42);
     let Ok(rec) = Recording::new(Clock::Explicit(x), [y]) else {
-        return failed("D15.3", "the recording");
+        return failed("thinned 1 px line", "the recording");
     };
     let k = 2.0;
     let render = |thin: Thin, target: Target| -> Option<Image> {
@@ -201,10 +200,10 @@ fn thin_line() -> Row {
     let thinned = render(Thin::Auto, Target::Screen { scale: k });
     let every = render(Thin::Off, Target::Vector);
     let (Some(thinned), Some(every)) = (thinned, every) else {
-        return failed("D15.3", "a render failed");
+        return failed("thinned 1 px line", "a render failed");
     };
     if (thinned.width, thinned.height) != (every.width, every.height) {
-        return failed("D15.3", "the two renders differ in size");
+        return failed("thinned 1 px line", "the two renders differ in size");
     }
     let pixels = (0..thinned.height)
         .flat_map(|y| (0..thinned.width).map(move |x| (x, y)))
@@ -223,18 +222,18 @@ fn thin_line() -> Row {
         .count() as f64
         / f64::from(thinned.width);
     Row {
-        item: "D15.3: a 1 px line thinned at one column per device px at 2×, against every sample"
+        item: "a 1 px line thinned at one column per device px at 2×, against every sample"
             .to_owned(),
         value: format!(
-            "{:.1}% of columns off by more than 1 px (Phase 15: 24.3%); {:.2}% of pixels off by \
-             more than 16/255 (4.32%)",
+            "{:.1}% of columns off by more than 1 px (reference 24.3%); {:.2}% of pixels off by \
+             more than 16/255 (reference 4.32%)",
             100.0 * columns,
             100.0 * pixels
         ),
     }
 }
 
-/// D21.1: resolving the `trace` workload with x on `Fit::Window(10.0)` at
+/// Resolving the `trace` workload with x on `Fit::Window(10.0)` at
 /// 1600 × 1000 at 2: from a fresh cache (two rounds: the window's column
 /// count is not known yet) and in a steady layout after an append (one
 /// round), with the labels the text cache looked up per resolve.
@@ -276,10 +275,9 @@ fn windowed_resolve() -> Row {
     }
     let median = |values: &[f64]| percentile(values, 50.0).unwrap_or(0.0);
     Row {
-        item:
-            "D21.1: resolving the windowed trace (1600 × 1000 at 2), fresh cache against a steady \
+        item: "resolving the windowed trace (1600 × 1000 at 2), fresh cache against a steady \
                layout after an append"
-                .to_owned(),
+            .to_owned(),
         value: format!(
             "fresh {:.2} ms, {fresh_lookups} label lookups, last round {fresh_passes} layout \
              pass(es); steady {:.2} ms, {steady_lookups} lookups, {steady_passes} pass(es) \
@@ -290,7 +288,7 @@ fn windowed_resolve() -> Row {
     }
 }
 
-/// D22.4 (4): the UI thread's work per frame of a pan on the scatters at
+/// The UI thread's work per frame of a pan on the scatters at
 /// full size, 1600 × 1000 at 1, as the widget does it: resolving with both
 /// handles held at the pan's domains (3 px further each frame) and
 /// drawing the list (the probe's resolve and list stages), then the
@@ -306,7 +304,7 @@ fn scatter_lists() -> Row {
         let mut cache = Cache::default();
         let fresh = fig.resolve(size, &mut cache, &Held::default(), target);
         let Some(&area) = fresh.plot_areas().first() else {
-            return failed("D22.4 (4)", "no plot area");
+            return failed("a pan's UI-thread work", "no plot area");
         };
         let ranges = [(0, [0.0, area.width()]), (1, [area.height(), 0.0])];
         let mut stages: [Vec<f64>; 5] = Default::default();
@@ -319,7 +317,7 @@ fn scatter_lists() -> Row {
                     0.0
                 };
                 let Some(scale) = fresh.scale_at(index).and_then(|s| s.pan_px(range, dx)) else {
-                    return failed("D22.4 (4)", "a handle that does not pan");
+                    return failed("a pan's UI-thread work", "a handle that does not pan");
                 };
                 held.hold_erased(index, scale);
             }
@@ -353,13 +351,12 @@ fn scatter_lists() -> Row {
         ));
     }
     Row {
-        item: "D22.4 (4): a pan's UI-thread work on the scatters (1600 × 1000 at 1, full size)"
-            .to_owned(),
+        item: "a pan's UI-thread work on the scatters (1600 × 1000 at 1, full size)".to_owned(),
         value: format!("{} (medians of 9 frames)", parts.join("; ")),
     }
 }
 
-/// D22.4 (3): a 1600 × 1000 device-px plot area of tiles drawn per frame
+/// A 1600 × 1000 device-px plot area of tiles drawn per frame
 /// of a pan at factor 1 on iced's headless renderers: a drag in steps of 3
 /// px, every visible tile translated (drawn at whole device pixels, no
 /// resampling); per frame the widget's `draw` and the renderer composing
@@ -377,7 +374,7 @@ fn tile_draw() -> Row {
         })
         .collect();
     Row {
-        item: "D22.4 (3): a 1600 × 1000 plot area of tiles drawn per frame of a pan (headless, \
+        item: "a 1600 × 1000 plot area of tiles drawn per frame of a pan (headless, \
                factor 1)"
             .to_owned(),
         value: format!("{} (medians of 30 frames)", parts.join("; ")),
@@ -532,7 +529,7 @@ fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
     ))
 }
 
-/// Phase 31's gutters: per frame of a `pan-x` replay over the `trace`
+/// Per frame of a `pan-x` replay over the `trace`
 /// workload (full size, 1600 × 1000 logical at 1 and 2, `Render::Auto`,
 /// the default pool, headless without drawing), the renders of the frame,
 /// inline in its update and on the pool until the pool falls silent for
@@ -554,7 +551,7 @@ fn pan_frames() -> Row {
         }
     }
     Row {
-        item: "Phase 31: renders per frame of a pan-x over trace (1600 × 1000, Auto, pool drained)"
+        item: "renders per frame of a pan-x over trace (1600 × 1000, Auto, pool drained)"
             .to_owned(),
         value: format!("{} (means of 40 frames)", parts.join("; ")),
     }
@@ -722,7 +719,7 @@ impl Driven {
     }
 }
 
-/// Phase 31's gutters: what one render of the `trace` workload's bottom
+/// What one render of the `trace` workload's bottom
 /// axis strip (the cell under its bottom plot area, 1600 × 1000 at 1 and
 /// 2) spends its time on, as a pool thread renders it (single-threaded):
 /// the list as drawn, without its glyph runs, without its strokes, and no
@@ -739,7 +736,7 @@ fn gutter_costs() -> Row {
         let mut cache = Cache::default();
         let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
         let Some(&area) = resolved.plot_areas().get(1) else {
-            return failed("Phase 31 gutters", "no bottom plot area");
+            return failed("an axis gutter render", "no bottom plot area");
         };
         let list = fig.draw_resolved(&mut cache, &resolved);
         let (_, ys) = resolved.edges();
@@ -782,12 +779,12 @@ fn gutter_costs() -> Row {
         }
     }
     Row {
-        item: "Phase 31: one axis gutter render of trace, single-threaded (1600 × 1000)".to_owned(),
+        item: "one axis gutter render of trace, single-threaded (1600 × 1000)".to_owned(),
         value: format!("{} (medians of 15)", parts.join("; ")),
     }
 }
 
-/// D31.2: the `scatter100k` plot area (1600 × 1000 at 1 and 2) rendered
+/// The `scatter100k` plot area (1600 × 1000 at 1 and 2) rendered
 /// single-threaded as the pool renders it, its markers filled and
 /// splatted (`Renderer::splat`), medians of 5, and the largest channel
 /// difference.
@@ -797,7 +794,7 @@ fn splat_speed() -> Row {
     let mut parts = Vec::new();
     for k in [1.0, 2.0] {
         let Some((list, area)) = first_area(&fig, k) else {
-            return failed("D31.2", "no plot area");
+            return failed("scatter100k filled and splatted", "no plot area");
         };
         let bounds = Bounds::of(&list, &mut Outlines::default());
         let mut renderer = raster::Renderer::new(Settings {
@@ -819,7 +816,7 @@ fn splat_speed() -> Row {
         let (filled, a) = time(false);
         let (splatted, b) = time(true);
         let (Some(a), Some(b)) = (a, b) else {
-            return failed("D31.2", "a render failed");
+            return failed("scatter100k filled and splatted", "a render failed");
         };
         let max = a
             .rgba
@@ -834,13 +831,12 @@ fn splat_speed() -> Row {
         ));
     }
     Row {
-        item: "D31.2: the scatter100k plot area, single-threaded, markers filled and splatted"
-            .to_owned(),
+        item: "the scatter100k plot area, single-threaded, markers filled and splatted".to_owned(),
         value: format!("{} (medians of 5)", parts.join("; ")),
     }
 }
 
-/// Phase 31g: one tile of `trace` mid-zoom, as the pool renders it: the
+/// One tile of `trace` mid-zoom, as the pool renders it: the
 /// top plot area's layer drawn with the widget's overscan of two tiles at
 /// the x domain a zoom of ×1.6 about the area's centre gives (1600 × 1000
 /// at 1 and 2), and a 256-device-px tile of it (its second column, across
@@ -856,7 +852,7 @@ fn tile_geometry() -> Row {
     for k in [1.0, 2.0] {
         let (list, tile) = match zoomed_tile(&fig, k) {
             Ok(found) => found,
-            Err(why) => return failed("Phase 31g: a trace tile", why),
+            Err(why) => return failed("a trace tile mid-zoom", why),
         };
         let bounds = Bounds::of(&list, &mut Outlines::default());
         let (mut segments, mut reaching, mut paths) = (0, 0, Vec::new());
@@ -944,13 +940,13 @@ fn tile_geometry() -> Row {
         ));
     }
     Row {
-        item: "Phase 31g: one trace tile (256 device px) mid-zoom, single-threaded".to_owned(),
+        item: "one trace tile (256 device px) mid-zoom, single-threaded".to_owned(),
         value: format!("{} (medians of 15)", parts.join("; ")),
     }
 }
 
 /// The warm composition of a `trace` frame mid-zoom by iced's software
-/// renderer at factor 1 (Phase 31g's harness, [`compose`]), ms; `None`
+/// renderer at factor 1 ([`compose`]'s harness), ms; `None`
 /// without a headless tiny-skia renderer.
 pub fn composition_ms() -> Option<f64> {
     compose::zoom_frame_ms()
@@ -1004,7 +1000,7 @@ fn channel_diff(a: &Image, ax: u32, ay: u32, b: &Image, bx: u32, by: u32) -> u8 
 }
 
 /// Each pixel column's topmost and bottommost row at least half covered
-/// by the (30, 60, 140) line: red at most 142, as Phase 15 measures.
+/// by the (30, 60, 140) line: red at most 142.
 fn ink(image: &Image) -> Vec<Option<(u32, u32)>> {
     (0..image.width)
         .map(|x| {

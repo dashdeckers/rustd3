@@ -1,6 +1,6 @@
 //! Writes every chart preset of `helpers::chart` as SVG and as a PNG at 2×
 //! into the directory given on the command line, `target/presets` by
-//! default: lines, the symlog line of Part I's Helpers, a scatter, grouped,
+//! default: lines, a symlog line of a recording's RMS, a scatter, grouped,
 //! stacked and diverging bars, a stacked area, a pie, a donut, a heatmap
 //! and a keyed heatmap, each at the presets' 640 × 480. Prints what
 //! `fig.check` finds for each (nothing, at that size).
@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             write(&dir, name, fig)?;
             continue;
         }
-        // Part I's sketch, written by the preset's own savers.
+        // The RMS line, written by the preset's own savers.
         for issue in fig.check(presets::SIZE) {
             eprintln!("line_symlog: {issue:?}");
         }

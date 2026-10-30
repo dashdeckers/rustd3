@@ -15,7 +15,7 @@ const TINY: f64 = 1e-15;
 const STICKY_TOLERANCE: f64 = 1e-5;
 /// The domains tried, in order, when there is no data: matplotlib's
 /// linear start [0, 1], `LogLocator.nonsingular`'s [1, 10] and
-/// `LogitLocator.nonsingular`'s [1e-7, 1 − 1e-7] (D10.1).
+/// `LogitLocator.nonsingular`'s [1e-7, 1 − 1e-7].
 const EMPTY: [[f64; 2]; 3] = [[0.0, 1.0], [1.0, 10.0], [1e-7, 1.0 - 1e-7]];
 
 /// Domain fitting for one scale type: margins, nonsingular, sticky edges.

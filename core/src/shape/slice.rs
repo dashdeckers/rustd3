@@ -1,7 +1,7 @@
 //! [`Slice`], one wedge of a pie.
 
-/// One wedge: d3's arc datum, with positions in place of `data` (Part I,
-/// Shapes and `PathContext`). Plain data: [`Pie::layout`](crate::shape::Pie::layout)
+/// One wedge: d3's arc datum, with positions in place of `data`. Plain
+/// data: [`Pie::layout`](crate::shape::Pie::layout)
 /// writes it and [`Arc`](crate::shape::Arc) draws it; a literal draws any
 /// sector or annulus.
 #[derive(Debug, Clone, Copy, PartialEq)]

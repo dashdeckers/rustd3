@@ -1,11 +1,10 @@
-//! `LineOf`, Part I's option B, against the iterator-first line (option A)
-//! it wraps.
+//! `LineOf`, the accessor line, against the iterator-first line it wraps.
 
 use rustd3_core::path;
 use rustd3_core::scale;
 use rustd3_core::shape::{self, Curve};
 
-/// Part I's readings: a time and a value that may be missing.
+/// Readings: a time and a value that may be missing.
 struct Reading {
     t: f64,
     value: Option<f64>,

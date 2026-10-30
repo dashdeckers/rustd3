@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn uneven_edges_keep_their_own_digits() {
-        // D25.3 (8): d3's `,f` at the smallest gap read 7.25 as "7".
+        // d3's `,f` at the smallest gap would read 7.25 as "7".
         assert_eq!(
             read(&[3.0, 7.25, 9.0, 14.5, 20.0]),
             ["3.00", "7.25", "9.00", "14.50", "20.00"]

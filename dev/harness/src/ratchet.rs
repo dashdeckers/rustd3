@@ -280,13 +280,13 @@ mod tests {
         let r = ratchet("#\nd3-x/test/a.js:1:1\n");
         let verdict = r.check(&outcomes(&[(
             "d3-x/test/a.js:1:1",
-            Outcome::Skip("gap: phase 26"),
+            Outcome::Skip("gap: not ported"),
         )]));
         assert_eq!(
             verdict.regressions,
             [Regression::Skipped(
                 "d3-x/test/a.js:1:1".to_owned(),
-                "gap: phase 26"
+                "gap: not ported"
             )]
         );
     }

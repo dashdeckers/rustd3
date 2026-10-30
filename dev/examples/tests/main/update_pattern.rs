@@ -1,4 +1,4 @@
-//! Use case 2 at fixed instants: `t0` is any instant and `ms(n)` is `n`
+//! The update pattern at fixed instants: `t0` is any instant and `ms(n)` is `n`
 //! milliseconds after it; the values depend only on the offsets.
 
 use std::time::{Duration, Instant};

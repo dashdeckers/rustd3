@@ -178,7 +178,7 @@ fn a_zoom_renders_the_tiles_that_show_and_the_ring_once_it_ends() {
 
 #[test]
 fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
-    // D22.5 (2): the pool takes a tile of the first step's grid; three more
+    // The pool takes a tile of the first step's grid; three more
     // steps arrive before it finishes. The queue holds the newest step's
     // jobs alone after each, and the finished tile, of a grid three steps
     // old, shows through the preview mapping instead of being dropped.
@@ -238,7 +238,7 @@ fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
 
 #[test]
 fn no_tile_renders_inline_while_a_gesture_lasts() {
-    // D22.5 (3): under `Render::Auto` the bare panel's tiles are cheap
+    // Under `Render::Auto` the bare panel's tiles are cheap
     // enough to render inline, and do when idle; during a wheel gesture
     // they go to the pool; once it ends, inline renders resume (the ring).
     let mut state = state();
@@ -313,7 +313,7 @@ fn no_tile_renders_inline_while_a_gesture_lasts() {
 
 #[test]
 fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
-    // D22.6 (4d): under `Render::Auto` a drag's entering column renders
+    // Under `Render::Auto` a drag's entering column renders
     // inline when the cost model says it fits, as idle renders do (on the
     // pool it lands a frame later, a long one on the software renderer); a
     // wheel step's tiles still go to the pool.
@@ -414,7 +414,7 @@ fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
 
 #[test]
 fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
-    // D22.5 (6): while a gesture lasts the widget's images go in one layer
+    // While a gesture lasts the widget's images go in one layer
     // whose bounds differ from one draw to the next, which iced's software
     // renderer damages whole (one rect a frame, each image drawn once);
     // idle, the layer keeps the widget's bounds. Of the previews only those
@@ -470,7 +470,7 @@ fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
 
 #[test]
 fn on_the_software_renderer_an_area_with_previews_draws_one_image() {
-    // Phase 31g, item 4 (b): a renderer that reports no scale (iced's
+    // A renderer that reports no scale (iced's
     // software one) draws a plot area that shows a preview layer as one
     // image composed on the CPU, at the area's rect and nearest; the GPU
     // renderer draws its previews and tiles one by one. Once every tile is
@@ -544,7 +544,7 @@ fn on_the_software_renderer_an_area_with_previews_draws_one_image() {
 
 #[test]
 fn during_a_gesture_the_gutters_wait_ahead_of_the_tiles() {
-    // D22.7 (4b): a wheel step over a panel with axes changes its tiles,
+    // A wheel step over a panel with axes changes its tiles,
     // its axis strips and the overlays over its edges; on the pool the
     // gutters and overlays render first, so the axes keep step with the
     // data. Idle, the tiles that show still go first.
@@ -586,7 +586,7 @@ fn during_a_gesture_the_gutters_wait_ahead_of_the_tiles() {
 
 #[test]
 fn the_hit_index_waits_for_a_gesture_to_end_and_hover_stays_right() {
-    // D22.5 (7): the index is built for a widget that hovers, not during
+    // The index is built for a widget that hovers, not during
     // a gesture (scatter1m spent 46–62 ms a pan frame on it), and by the
     // refresh after; meanwhile nothing is hit-tested, so no outdated
     // point is reported.
@@ -853,7 +853,7 @@ fn layout_holds_during_a_wheel_gesture() {
 
 #[test]
 fn the_first_draw_of_a_gesture_damages_the_widget_whole() {
-    // D22.6 (4c): iced's software renderer redraws a layer whole only when
+    // iced's software renderer redraws a layer whole only when
     // its bounds differ from the last frame's; otherwise it damages each
     // moved image apart and redraws every image once per damaged rect,
     // which took a tiny-skia zoom burst's first frame 10–11 s at factor 2
@@ -914,7 +914,7 @@ fn frames(samples: impl IntoIterator<Item = Sample>) -> Vec<(u32, u32)> {
 
 #[test]
 fn the_layout_settling_after_a_zoom_leaves_no_slot_blank() {
-    // D22.6 (4a): eight-line wheel steps near the bottom of `tall` narrow y
+    // Eight-line wheel steps near the bottom of `tall` narrow y
     // until its labels take two decimals, so the layout settles at the
     // gesture's end with the plot area narrower: a new partition, every
     // run, tile and overlay new. With every render on the pool, the old

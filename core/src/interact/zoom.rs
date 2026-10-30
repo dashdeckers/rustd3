@@ -177,8 +177,8 @@ impl Zoom {
         }
     }
 
-    /// A drag is in progress (use case 1 syncs the brush only between
-    /// gestures).
+    /// A drag is in progress (a focus-and-context view syncs the brush
+    /// only between gestures).
     pub fn is_active(&self) -> bool {
         self.gesture.grab.is_some()
     }

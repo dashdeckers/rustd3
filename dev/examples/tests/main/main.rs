@@ -1,4 +1,4 @@
-//! rustd3-examples' tests: the core-level use cases driven headlessly
+//! rustd3-examples' tests: the core-level apps driven headlessly
 //! through `iced_test`'s simulator, on `ICED_TEST_BACKEND`'s renderer (with
 //! the `widget` feature), the wheel figure, and the root README's iced
 //! code.

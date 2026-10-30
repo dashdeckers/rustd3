@@ -1,6 +1,7 @@
 //! Examples of rustd3 at both levels: a multi-channel trace, a scatter,
-//! the four-wheel figure, the two core-level use cases and the chart
-//! presets, shared with the benchmark. The use cases draw in iced and
+//! the four-wheel figure, two core-level apps (focus and context, the
+//! update pattern) and the chart presets, shared with the benchmark. The
+//! apps draw in iced and
 //! need the `widget` feature (on by default); the figures do not.
 
 #[cfg(feature = "widget")]

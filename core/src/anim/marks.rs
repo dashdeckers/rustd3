@@ -25,7 +25,7 @@ pub enum Phase {
 /// [`values`](Marks::values) samples every mark at an `Instant`, exiting
 /// ones included until they finish and are pruned.
 ///
-/// Part I's use case 2 (100 ms transitions, 20 ms stagger, cubic in-out;
+/// The update pattern (100 ms transitions, 20 ms stagger, cubic in-out;
 /// marks enter from 0 and exit to 0): new data at 60 ms, mid-flight, sends
 /// `a` out from where it is, retargets `b` without a jump and enters `c`
 /// one stagger step later.

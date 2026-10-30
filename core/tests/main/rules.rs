@@ -1,14 +1,14 @@
-//! Phase 5's continuous scales: tick rules and the `ticks::` blocks, the
+//! The continuous scales: tick rules and the `ticks::` blocks, the
 //! symlog, logit, asinh and func transforms, `piecewise` and
 //! `AnyContinuous`, against d3-scale 4.0.2, matplotlib 3.11.2's locators
-//! and the fscale prototype.
+//! and reference values computed with them.
 
 use rustd3_core::format::{InvalidFormat, Locale};
 use rustd3_core::scale::{self, TickRule};
 use rustd3_core::ticks;
 use rustd3_testkit::obs::{ToObs, Tolerance};
 
-/// Frequency laid out by period: Part I's user transform.
+/// Frequency laid out by period: a user transform.
 #[derive(Clone, Copy)]
 struct Reciprocal;
 
@@ -353,42 +353,49 @@ fn logit_nice_leaves_the_domain_alone() {
 fn asinh_ticks_signed_powers_of_ten() {
     assert_eq!(
         asinh_ticks([-1000.0, 1000.0]),
-        [-100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0]
+        [-1000.0, -100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0, 1000.0]
     );
     assert_eq!(
         asinh_ticks([0.0, 1e6]),
-        [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5]
+        [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]
     );
     assert_eq!(asinh_ticks([-3.0, 3.0]), [-1.0, -0.1, 0.0, 0.1, 1.0]);
     assert_eq!(asinh_ticks([0.0, 100.0]), [0.0, 0.1, 1.0, 10.0, 100.0]);
+    // A domain end at an exact power of ten ticks, whatever the platform's
+    // sinh(asinh(10^k)) returns: matplotlib's floor there depends on its
+    // libm.
+    assert_eq!(asinh_ticks([1.0, 1e4]), [1.0, 10.0, 100.0, 1e3, 1e4]);
 }
 
 #[test]
 fn asinh_ticks_every_other_decade_over_eighteen_orders() {
-    // matplotlib on AVX-512 numpy keeps ±1e9: its arcsinh(1e9) is one ulp
-    // above glibc's, which this port's arithmetic matches (D5.1).
+    // The decade is read a relative 1e-9 above the exact power, so the
+    // ends ±1e9 tick whatever the platform's asinh and sinh return.
     assert_eq!(
         asinh_ticks([-1e9, 1e9]),
-        [-1e8, -1e7, -1e5, -1e3, -10.0, 0.0, 10.0, 1e3, 1e5, 1e7, 1e8]
+        [-1e9, -1e7, -1e5, -1e3, -10.0, 0.0, 10.0, 1e3, 1e5, 1e7, 1e9]
     );
 }
 
 #[test]
 fn asinh_ticks_lopsided_and_nearly_symmetric_domains() {
     assert_eq!(asinh_ticks([-50.0, 5.0]), [-10.0, -1.0, -0.1, 0.0, 1.0]);
-    assert_eq!(asinh_ticks([1.0, 1e4]), [1.0, 10.0, 100.0, 1000.0]);
+    assert_eq!(asinh_ticks([1.0, 1e4]), [1.0, 10.0, 100.0, 1000.0, 1e4]);
     assert_eq!(asinh_ticks([-50.0, 45.0]), [-10.0, -1.0, 0.0, 1.0, 10.0]);
 }
 
 #[test]
 fn asinh_ticks_follow_the_linear_width() {
     let a = scale::asinh().linear_width(10.0).domain([-1000.0, 1000.0]);
-    assert_eq!(a.ticks(10), [-100.0, -10.0, 0.0, 10.0, 100.0]);
+    assert_eq!(
+        a.ticks(10),
+        [-1000.0, -100.0, -10.0, 0.0, 10.0, 100.0, 1000.0]
+    );
 }
 
 #[test]
 fn asinh_ticks_follow_a_descending_domain() {
-    assert_eq!(asinh_ticks([1e4, 1.0]), [1000.0, 100.0, 10.0, 1.0]);
+    assert_eq!(asinh_ticks([1e4, 1.0]), [1e4, 1000.0, 100.0, 10.0, 1.0]);
 }
 
 #[test]

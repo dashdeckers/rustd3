@@ -6,9 +6,9 @@
 //! The widget draws its plot areas with an overscan of two tiles (512
 //! device px), so that a pan can bring in what lies beyond the view: a
 //! thinned line crossing a plot area's left or right edge continues past
-//! it there, where the file output ends it one sample beyond the edge
-//! (Phase 15). Within half a line width of the edge the two differ (up to
-//! 32/255 measured, D31.4), so the reference takes each plot area's pixels
+//! it there, where the file output ends it one sample beyond the edge.
+//! Within half a line width of the edge the two differ (up to
+//! 32/255 measured), so the reference takes each plot area's pixels
 //! from the figure drawn with the same overscan without the other panels'
 //! plot-area layers (which the overscan grows over it); everything else is
 //! the PNG's.
@@ -160,7 +160,7 @@ fn render(list: &List, size: kurbo::Size, scale: f64) -> raster::Image {
 /// Composites `image` source-over onto `background`.
 fn onto(image: &mut raster::Image, background: iced::Color) {
     let [r, g, b, a] = background.into_rgba8().map(f64::from);
-    for pixel in image.rgba.chunks_exact_mut(4) {
+    for pixel in image.rgba.as_chunks_mut::<4>().0.iter_mut() {
         let alpha = f64::from(pixel[3]) / 255.0;
         let under = a / 255.0 * (1.0 - alpha);
         let out = alpha + under;

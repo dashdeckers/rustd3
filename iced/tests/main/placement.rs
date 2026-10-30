@@ -255,8 +255,8 @@ fn a_sub_2mib_image_shows_in_its_first_frame() {
 
 #[test]
 fn a_larger_image_needs_a_tick() {
-    // The section's 1000 × 600, and an image of exactly BAND_BYTES, which
-    // Phase 18 bands too.
+    // A 1000 × 600 image, and one of exactly BAND_BYTES, which is banded
+    // too.
     for (width, height, bytes) in [(1000, 600, 2_400_000), (1024, 512, BAND_BYTES)] {
         let rgba = solid(width, height, [200, 40, 120, 255]);
         let placed = Placed::new(0, 0, width, height, rgba);

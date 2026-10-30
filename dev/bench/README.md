@@ -3,14 +3,14 @@
 The benchmark of rustd3: the plotting library and its `Plot` widget. For
 the library, it times figures from data to SVG, PDF and PNG through the
 library's own calls, headless, each in a process of its own (the figure
-profile, D22.10). For the widget, it drives the real widget with
+profile). For the widget, it drives the real widget with
 replayed input, one cold process per run, and measures frame intervals,
 the latency from input to a sharp frame, previews, the UI thread, CPU
 and memory; on the software renderer it also composes every frame
-offscreen and times it by part (the software profile, D22.12). One
-command runs it on any machine and packs one file to attach to an issue,
-so a performance problem on your machine comes with the numbers that
-explain it (D22.9 and D22.10 in `.claude/decisions/phase-22.md`).
+offscreen and times it by part (the software profile). One command runs
+it on any machine and packs one file to attach to an issue, so a
+performance problem on your machine comes with the numbers that explain
+it: open an issue and attach the archive.
 
 ## The two commands
 
@@ -22,8 +22,8 @@ cargo rustd3-bench-figure --quick   # the library alone: no iced, no window
 ```
 
 `cargo rustd3-bench` is an alias (`.cargo/config.toml`) for `cargo run
---release -p rustd3-bench --`, the same on every platform; the repository
-has no shell script for it (D22.11 (4)). Its first release build compiles iced, wgpu and typst: several
+--release -p rustd3-bench --`, the same on every platform, with no shell
+script. Its first release build compiles iced, wgpu and typst: several
 minutes. It runs everything, the figure profile included, and is the
 command for any machine with a display.
 
@@ -59,8 +59,8 @@ are not resizable); one that resizes them anyway is flagged.
 
 ### Experiments
 
-A level also takes flags that narrow or vary it for one question (D22.11
-(1)), so that a question about one case is one command and one archive on
+A level also takes flags that narrow or vary it for one question, so
+that a question about one case is one command and one archive on
 the machine that shows it. They are recorded in `results.json`
 (`experiment`) and in the level's report, whose "Experiment" section says
 what it ran instead of the level's usual profiles.
@@ -100,11 +100,11 @@ Every level starts the same way:
    mid-zoom; the `scatter100k` plot area with its markers filled, then
    splatted; and a `trace` frame mid-zoom composed by iced's software
    renderer. They put a machine on a scale with others.
-3. **figure**: the plotting library alone (D22.10), headless: figures
+3. **figure**: the plotting library alone, headless: figures
    timed from data to SVG, PDF and PNG, each in a process of its own
    ([below](#the-figure-profile)).
 4. **software**: the `Plot` widget on iced's software renderer, offscreen
-   (D22.12), headless on any machine: every frame composed into a pixmap
+   headless on any machine: every frame composed into a pixmap
    and timed by part ([below](#the-software-profile)).
 
 With `--figure-only`, or built without the widget, a level skips the
@@ -114,10 +114,10 @@ its own directory:
 
 | Profile | `--quick` | `--default` | `--full` |
 | --- | --- | --- | --- |
-| `software`: tiny-skia offscreen, headless at 60 Hz, weak budgets, report-only (D22.12) | `hover`, `pan-x`, `zoom-lines`, `drag-resize` on `trace`, `scatter100k` and `grid16` at factors 1 and 2; 1 run | the same, 3 runs | the same, 5 runs |
-| `native`: the renderer iced chooses (wgpu, or tiny-skia without a GPU), desktop budgets | `hover`, `pan-x`, `zoom-lines` on `trace` and `scatter100k`, `drag-resize` on `trace`; 3 runs | the default plan: D22.1's verdict run, its rule outcome | the full plan: every scenario × workload × factor, 5 runs |
+| `software`: tiny-skia offscreen, headless at 60 Hz, weak budgets, report-only | `hover`, `pan-x`, `zoom-lines`, `drag-resize` on `trace`, `scatter100k` and `grid16` at factors 1 and 2; 1 run | the same, 3 runs | the same, 5 runs |
+| `native`: the renderer iced chooses (wgpu, or tiny-skia without a GPU), desktop budgets | `hover`, `pan-x`, `zoom-lines` on `trace` and `scatter100k`, `drag-resize` on `trace`; 3 runs | the default plan: the registered verdict run, its rule outcome | the full plan: every scenario × workload × factor, 5 runs |
 | `nogpu`: tiny-skia, weak budgets | `pan-x`, `zoom-lines` on `trace`; 3 runs | the weak plan, 5 runs | the weak plan |
-| `nogpu-x11`: tiny-skia on X11 through XWayland, a Linux Wayland session only (D22.8), report-only | as `nogpu` | the weak plan | the weak plan |
+| `nogpu-x11`: tiny-skia on X11 through XWayland, a Linux Wayland session only, report-only | as `nogpu` | the weak plan | the weak plan |
 | `4cores`, `2cores`: iced's renderer limited to 4 and 2 cores, weak budgets | — | the weak plan | the weak plan |
 
 `--full` ends with every `also` measurement (`also.md`). The quick level
@@ -157,7 +157,7 @@ hold their bytes to what `save_svg`, `save_pdf` and `save_png` write.
 | `scatter1k` … `scatter1m` | 1600 × 1000 | 1k, 10k, 1M markers (and `scatter100k`) | default, full |
 | `scatter10m` | 1600 × 1000 | 10M markers | full |
 | `preset-…` | 640 × 480 | the 11 chart presets of `dev/examples` | default, full |
-| `wheels` | 960 × 760 | Part I's wheel figure | default, full |
+| `wheels` | 960 × 760 | the wheel figure of `dev/examples`: 4 × 4 panels, 52 marks | default, full |
 
 `--quick` times each stage 7 times after a cold first repetition,
 `--default` 10 times, `--full` 15. Metrics per figure and stage: the cold
@@ -180,7 +180,7 @@ bytes) and `run-figure.log`; the level's `report.md` shows the medians.
 ### The software profile
 
 The `Plot` widget's software path as a user without a GPU gets it,
-measured where nothing else intervenes (D22.12): the real widget, driven
+measured where nothing else intervenes: the real widget, driven
 through the gestures with replayed input on iced's software renderer
 (tiny-skia), headless. No window, display or compositor is involved, so
 the profile runs on any machine, and what it measures is the widget's and
@@ -209,7 +209,7 @@ tiny-skia`, one cold process per run.
   showing it sharp, and its split: the UI work and compositions of the
   frames before that frame, and the rest, waiting (on the pool, and for
   the next frame).
-- **Budgets.** D22.4's weak ones, report-only, the frame budget read as
+- **Budgets.** The weak ones, report-only, the frame budget read as
   the frame's cost: a frame must be produced within 2 T (33.3 ms).
   Attribution puts composition where a display would put upload.
 - **Frames to look at.** `--frames DIR [--every N]` writes every N-th
@@ -318,7 +318,7 @@ before.
 
 Format 2 (format 1, before the figure profile, reads as a level without
 it). Unknown fields are to be ignored; a new required field or a changed
-meaning raises `format`. The software profile (D22.12) is a widget
+meaning raises `format`. The software profile is a widget
 profile whose `plan` is `software` and whose `frame p99` budget reads each
 frame's cost, not its interval.
 
@@ -385,11 +385,11 @@ before `4k`'s halves), `limit` (ms, or a share), `n`, `mean`, `ci` (the
 - `list`: the readings, scenarios, workloads, plans and a plan's cells.
 - `raster`: the raster variants (envelope fills, marker splatting)
   against the cells as drawn, CPU only, into `raster.csv`.
-- `also`: the items earlier phases asked to be measured.
+- `also`: the measurements beside the scenarios (below).
 - `replay --out DIR`, `record --out FILE`: the generated replays; your
   own input in the `trace` window as a replay (Escape stops).
 - `report PATH`, `compare A B`: above.
-- `repro-software`: D22.8's plain-iced reproduction (below).
+- `repro-software`: a plain-iced reproduction (below).
 - `child`: one scenario × workload × factor × run (internal).
 - `figure-child --level L --subject NAME`: one figure of the figure
   profile timed in this process, printed as JSON (internal).
@@ -400,25 +400,25 @@ no iced, winit or wgpu in its tree, clippy, its tests).
 
 ### Plans
 
-- `default` (the verdict's, D22.1): (A) the ten scenarios other than
+- `default` (the verdict's): (A) the ten scenarios other than
   `soak` on `trace` at the native factor; (B) `hover`, `pan-x`,
   `zoom-lines` on `scatter100k`, `scatter1m`, `grid16` and `label-churn`
   at native; (C) `pan-x` and `zoom-lines` on `trace` at the other factors
   of 1, 1.25, 1.5 and 2; (D) `soak` once. Five runs per cell: 29 cells,
-  141 runs. `drag-resize` (A), added with D22.5, is report-only. Since
-  D22.3 the factor cells keep 1600 × 1000 device px at every factor (a
+  141 runs. `drag-resize` (A) is report-only. The factor cells keep
+  1600 × 1000 device px at every factor (a
   window of 1600 / k × 1000 / k logical px), which fits a 1080p display,
   and `4k` reads "n/a: display too small" below 3840 × 2160 device px.
-- `weak` (D22.4): `hover`, `pan-x` and `zoom-lines` on `trace`, `pan-x`
+- `weak`: `hover`, `pan-x` and `zoom-lines` on `trace`, `pan-x`
   and `zoom-lines` on `scatter100k`, at native, five runs each.
-- `quick` (D22.9): the quick level's cells, three runs each.
-- `display` (D22.9): one 3 s `hover` on `trace`, data ÷ 100.
-- `focus` (D22.5): `zoom-lines` and `zoom-pixels` on `trace`;
+- `quick`: the quick level's cells, three runs each.
+- `display`: one 3 s `hover` on `trace`, data ÷ 100.
+- `focus`: `zoom-lines` and `zoom-pixels` on `trace`;
   `zoom-lines` on `trace` at the other three factors and on
   `scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
   `trace` and `scatter1m`; `drag-resize` on `trace` and `grid16`.
   Report-only: `run --plan focus` only.
-- `software` (D22.12): `hover`, `pan-x`, `zoom-lines`, `drag-resize` on
+- `software`: `hover`, `pan-x`, `zoom-lines`, `drag-resize` on
   `trace`, `scatter100k` and `grid16` at factors 1 and 2, three runs each;
   run headless on tiny-skia with `--native-factor 2`, so both factors keep
   1600 × 1000 logical px. Report-only, the weak budgets, the frame budget
@@ -437,7 +437,7 @@ current frame.
 ### The registered rule
 
 The rule and its operational readings were registered before any run
-(D22.1) and never change after seeing data; `rustd3-bench list` prints
+and never change after seeing data; `rustd3-bench list` prints
 them.
 
 **Budgets.** p99 frame interval ≤ 1.5 × the display's frame period;
@@ -446,12 +446,13 @@ share under 10% during pans. Each budget is met, missed or inconclusive by
 its 95% interval; the 10-minute memory run is one run per configuration.
 
 **Rule.** A missed budget is attributed to the UI thread (resolve, text,
-M4, list), raster (the worker's critical path) or upload. If any pan or
-zoom budget is missed and attributed to raster or upload, Phase 31 is
-built (tiles, translation, the pool, envelope fills, splatting) and this
-benchmark is rerun; a GPU data layer is recommended only if that rerun
-still misses. UI-thread misses route to moving list building off the UI
-thread, not to a GPU layer. If every budget is met, Phase 31 is skipped.
+M4, list), raster (the worker's critical path) or upload. The widget's
+image path is tiles that pans translate, rendered on a pool, with
+envelope fills and marker splatting; if any pan or zoom budget is missed
+and attributed to raster or upload on it, a GPU data layer is
+recommended. UI-thread misses route to moving list building off the UI
+thread, not to a GPU layer. If every budget is met, the image path
+suffices.
 
 **Operational readings.**
 
@@ -474,14 +475,14 @@ thread, not to a GPU layer. If every budget is met, Phase 31 is skipped.
    interval on uploaded MB. The largest share names the bucket; the
    report shows all three.
 
-**Weak profile (D22.4).** The `weak` plan (`hover`, `pan-x` and
+**Weak profile.** The `weak` plan (`hover`, `pan-x` and
 `zoom-lines` on `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the
 native factor, five runs each) runs without a GPU (`--backend tiny-skia`)
 and on wgpu pinned to 4 and to 2 cores, each its own report. Budgets: p99
 frame interval ≤ 2 T; pan latency p95 ≤ 150 ms; zoom latency p95 ≤ 250
 ms; preview share ≤ 25% during pans. Each is met, missed or inconclusive
-by the readings above; a miss is attributed as above and becomes work for
-Phase 31 while it is open, else a recorded 0.2 item. These profiles never
+by the readings above; a miss is attributed as above and becomes an item
+for a later release. These profiles never
 reopen the GPU-layer question, which stays with the desktop profile.
 
 The levels hold the quick level's native cells to the desktop budgets and
@@ -496,7 +497,7 @@ its software cells to the weak ones, report-only (`--budgets`).
 | `replays/*.jsonl` | the generated input, one event per line |
 | `raw/<scenario>__<workload>__f<factor>__r<k>.jsonl` | every frame, input, stage, raster, `sys` and (under `--caching verify`) mismatch record of one run; its first line names the renderer that ran |
 | `frames.csv`, `inputs.csv`, `memory.csv` | per frame, per input (with its latency), RSS and GPU samples |
-| `parts.csv` | headless, every frame read back: per composed frame its UI work, composition and wait on the pool (D22.12) |
+| `parts.csv` | headless, every frame read back: per composed frame its UI work, composition and wait on the pool |
 | `summary.csv` | per cell and metric: n, median, mean, 95% CI, budget, verdict |
 | `report.md` | readings, budget table, metrics, window drags, attribution, memory, flags, also measured (without `--no-also`), the outcome |
 
@@ -514,23 +515,24 @@ its software cells to the weak ones, report-only (`--budgets`).
 - The wheel figure (960 × 760, no recordings): `--workload wheels` with
   any plan; it is in `smoke` and `full`, not in `default`.
 
-### The upstream reproduction (D22.8)
+### The upstream reproduction
 
 `rustd3-bench repro-software` is plain iced with nothing of rustd3
 (`src/repro.rs`): 40 images of 256 × 256 px (`--single`: one
 window-sized image) cover a 1600 × 1000 window and move 1 px a frame,
 redrawn every frame. After a 2 s warm-up it measures for 10 s and prints
 the frames drawn, the frame interval's p50, p90 and p99, the CPU seconds
-per second and the session's display variables. It stays an advanced
-command for D22.8's upstream question; D22.12 measures the software path
-offscreen instead. Run it on each renderer, on Wayland and on X11
+per second and the session's display variables. It is an advanced command
+for a question to iced upstream (why iced's software renderer presents
+few frames on Wayland); the software profile measures the widget's
+software path offscreen. Run it on each renderer, on Wayland and on X11
 through XWayland: `ICED_BACKEND=tiny-skia target/release/rustd3-bench
 repro-software [--out FILE]` (and `ICED_BACKEND=wgpu` as the control),
 with `env -u WAYLAND_DISPLAY` for X11.
 
 ### Headless
 
-Agents run the windowed benchmark only under Xvfb for verification, and
+Automated checks run the windowed benchmark only under Xvfb, and
 `--headless` otherwise. Headless frame intervals are not display
 intervals: every headless number is report-only. `scripts/check.sh full`
 runs the smoke plan on tiny-skia and fails only on errors.
@@ -540,22 +542,22 @@ runs the smoke plan on tiny-skia and fails only on errors.
 `run` measures in its own process, unless `--no-also`, and the report
 lists under "Also measured" (`rustd3-bench also` prints the same):
 
-- D19.3: the 200k-dot plot-area cell (1600 × 1000 at 2) rendered with
+- the 200k-dot plot-area cell (1600 × 1000 at 2) rendered with
   vello_cpu's pool, against the cost model;
-- D18.3: the trace example at 2×, its cells rendered at their own origins
+- the trace example at 2×, its cells rendered at their own origins
   against the whole canvas, as pixels over 2/255 and 16/255;
-- D15.3: a 1 px line thinned at one column per device px at 2×, against
+- a 1 px line thinned at one column per device px at 2×, against
   every sample stroked;
-- D21.1: resolving the windowed trace from a fresh cache and in a steady
+- resolving the windowed trace from a fresh cache and in a steady
   layout after an append;
-- D22.4: a pan's UI-thread work on the scatters, and a plot area of tiles
+- a pan's UI-thread work on the scatters, and a plot area of tiles
   drawn per frame on iced's headless renderers;
-- Phase 31: renders per frame of a pan, and one axis gutter's render;
-- Phase 31g: a gesture frame composed by iced's software renderer, as
+- renders per frame of a pan, and one axis gutter's render;
+- a gesture frame composed by iced's software renderer, as
   captured and replayed as each candidate would draw it, and one `trace`
   tile mid-zoom;
-- D31.2: the `scatter100k` plot area, markers filled and splatted;
-- D22.13: a 1400 × 800 area of opaque images composed by iced's software
+- the `scatter100k` plot area, markers filled and splatted;
+- a 1400 × 800 area of opaque images composed by iced's software
   renderer as tiles clipped to the area and each to itself, as one image,
   and as as many tiny images, against no image: tiny-skia's cost per
   image and per pixel at factors 1 and 2.

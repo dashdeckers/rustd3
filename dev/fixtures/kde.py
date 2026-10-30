@@ -1,7 +1,7 @@
 """scipy 1.18.1's gaussian_kde and seaborn 0.13.2's KDE, for rustd3's
 `stats::Kde`.
 
-Writes kde.json next to this file, for Phase 34's spot-check data X (n =
+Writes kde.json next to this file, for the density spot-check data X (n =
 15): Scott's bandwidth as scipy computes it (the sample standard
 deviation, the factor n^(-1/5) and h = sqrt of the kernel covariance),
 scipy's density at seven points, and seaborn's support grid (gridsize 200,

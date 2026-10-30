@@ -1,7 +1,7 @@
 """The wheel figure's data and fitted domains, for rustd3-examples' wheels.
 
-Replays `simulate()` of `dev/examples/src/wheels.rs` (seed 11, the LCG
-and Box-Muller of `proto/figmodel/examples/wheels_auto.rs`) and `trend`,
+Replays `simulate()` of `dev/examples/src/wheels.rs` (seed 11, its LCG
+and Box-Muller) and `trend`,
 and writes wheels.json next to this file: the sample counts, the mark,
 markers and bar counts of the figure, per fitted handle the extent of
 what its marks report and its domain padded by 5% per side (dots, lines

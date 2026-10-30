@@ -220,7 +220,7 @@ impl Ctx<'_> {
     /// ([`Held::grids`](crate::Held::grids)), else, when the plot area is
     /// grown, the grid from its left edge at the target's density (the
     /// grid a widget holds before a drag moves it); `None` otherwise (the
-    /// file outputs, which thin on Phase 15's columns).
+    /// file outputs, which thin on the target's own columns).
     pub(crate) fn grid(&self, x: usize) -> Option<thin::Grid> {
         self.resolved.grid(x).or_else(|| {
             (self.resolved.overscan() > 0.0).then_some(thin::Grid {
@@ -233,7 +233,7 @@ impl Ctx<'_> {
     /// The thinning column edges of the plot area for a line on the x
     /// handle at table position `x` whose scale's bridge is `indexed`: on
     /// [`Ctx::grid`] over the view, else `round(w × columns)` columns
-    /// across it (Phase 15's columns).
+    /// across it ([`Target`](crate::Target)'s columns per list px).
     pub(crate) fn edges<D>(&self, indexed: &dyn Indexed<D>, x: usize) -> Option<Vec<D>> {
         let view = self.view();
         match self.grid(x) {

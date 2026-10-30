@@ -147,13 +147,17 @@ pub fn logit() -> Logit {
 }
 
 /// An inverse hyperbolic sine scale: linear width 1, domain [0, 1], range
-/// [0, 1]; ticks at signed powers of ten, as matplotlib's asinh scale.
+/// [0, 1]; ticks at signed powers of ten, as matplotlib's asinh scale,
+/// a domain end at an exact power of ten included.
 ///
 /// ```
 /// use rustd3_core::scale;
 ///
 /// let a = scale::asinh().domain([-1000.0, 1000.0]);
-/// assert_eq!(a.ticks(10), [-100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0]);
+/// assert_eq!(
+///     a.ticks(10),
+///     [-1000.0, -100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0, 1000.0]
+/// );
 /// ```
 pub fn asinh() -> Asinh {
     continuous(transform::Asinh::new(1.0))

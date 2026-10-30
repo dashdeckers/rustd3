@@ -8,8 +8,8 @@ pub enum Fit<Span> {
     All,
     /// The newest `span` of x, for live data: the window is the view, with
     /// no margin. For an x handle whose widest panel has a plot area `w`
-    /// thinning columns wide (device px on screen, Phase 15's count for
-    /// files and vector output), with `col = span / w` and `last` the
+    /// thinning columns wide (device px on screen, the target's column
+    /// count for files and vector output), with `col = span / w` and `last` the
     /// largest x its marks admit, the domain is `[right − w·col, right]`
     /// where `right = ceil(last / col)·col`: appends move it by whole
     /// columns, so the thinning columns of one update are the last ones

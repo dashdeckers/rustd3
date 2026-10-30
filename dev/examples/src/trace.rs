@@ -22,8 +22,7 @@ const RATE: f64 = 10_000.0;
 
 /// A vibration-like trace of `n` samples at 10 kHz: drift, a 7 Hz tone,
 /// noise, 0.2 s bursts every 10 s and 50 one-sample impacts, from an LCG
-/// seeded with `seed` (`proto/thin2/src/main.rs`, whose numbers seed 42
-/// gives). Returns x in seconds, y, and the impacts' sample indices,
+/// seeded with `seed`. Returns x in seconds, y, and the impacts' sample indices,
 /// sorted.
 pub fn signal(n: usize, seed: u64) -> (Vec<f64>, Vec<f64>, Vec<usize>) {
     let mut state = seed;

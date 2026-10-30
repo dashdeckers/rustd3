@@ -70,9 +70,14 @@ impl Lines {
                     continue;
                 }
                 let mut picks = [a, b - 1, a, a, a, a];
-                for (pair, found) in picks[2..].chunks_exact_mut(2).zip(extremes(a..b)) {
+                for (pair, found) in picks[2..]
+                    .as_chunks_mut::<2>()
+                    .0
+                    .iter_mut()
+                    .zip(extremes(a..b))
+                {
                     if let Some(found) = found {
-                        pair.copy_from_slice(&[found.min.0, found.max.0]);
+                        *pair = [found.min.0, found.max.0];
                     }
                 }
                 picks.sort_unstable();

@@ -6,12 +6,13 @@
 mod derive;
 #[cfg(feature = "figure")]
 mod figure;
+mod readme;
 
 use rustd3::jiff::Timestamp;
 use rustd3::jiff::tz::TimeZone;
 use rustd3::{axis, scale, time};
 
-/// `doc` (a README, or a crate's `//!` lines) as words one space apart.
+/// `doc` (a crate's `//!` lines) as words one space apart.
 fn flat(doc: &str) -> String {
     let lines = doc
         .lines()
@@ -22,11 +23,10 @@ fn flat(doc: &str) -> String {
 
 #[test]
 fn the_crate_docs_map_the_component_crates_names_before_their_first_example() {
-    // The README is the facade's crate doc.
-    let readme = flat(include_str!("../../README.md"));
+    let facade = flat(include_str!("../../src/lib.rs"));
     let figure = flat(include_str!("../../figure/src/lib.rs"));
     let notes = [
-        (&readme, "`rustd3_iced` is not re-exported"),
+        (&facade, "`rustd3_iced` is not re-exported"),
         (
             &figure,
             "`rustd3_iced` (the `Plot` widget) is used directly",

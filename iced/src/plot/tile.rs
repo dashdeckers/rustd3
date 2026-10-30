@@ -7,7 +7,7 @@
 //! is the square `[origin.x + SIZE·i, origin.x + SIZE·(i + 1)) ×
 //! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))`, and an area has the keys
 //! whose squares meet its device rect grown by one tile on each side: the
-//! overscan ring. Every tile renders its whole square (D31.6), so a ring
+//! overscan ring. Every tile renders its whole square, so a ring
 //! tile reaches up to two tiles beyond the area, which the list's overscan
 //! covers. A tile's image is 256 × 256 × 4 = 262,144 B, far under
 //! `BAND_BYTES`, so it is one band, and wgpu's 2048² atlas layers hold 64

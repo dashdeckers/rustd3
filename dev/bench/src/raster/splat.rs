@@ -407,7 +407,7 @@ fn stamps(shape: &BezPath, linear: Affine) -> Result<Vec<Stamp>, raster::Error> 
                 width,
                 height,
                 offset,
-                coverage: image.rgba.chunks_exact(4).map(|p| p[3]).collect(),
+                coverage: image.rgba.as_chunks::<4>().0.iter().map(|p| p[3]).collect(),
             });
         }
     }

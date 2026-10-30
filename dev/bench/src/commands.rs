@@ -240,7 +240,7 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
                 command.env("ICED_PRESENT_MODE", mode.name());
             }
             if options.xwayland {
-                // winit prefers Wayland while this is set (D22.8).
+                // winit prefers Wayland while this is set.
                 command.env_remove("WAYLAND_DISPLAY");
             }
             let begin = Instant::now();
@@ -261,8 +261,8 @@ fn run(options: &Options, args: &[String]) -> Result<(), Box<dyn Error>> {
     }
     if options.also {
         println!(
-            "rustd3-bench: measuring the items earlier phases asked for (D15.3, D18.3, D19.3, \
-             D21.1)"
+            "rustd3-bench: measuring the items beside the scenarios (thinning, cell origins, the \
+             dense scatter, the windowed resolve)"
         );
         fs::write(dir.join("also.md"), also::measure())?;
     }

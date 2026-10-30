@@ -1,7 +1,7 @@
 # `cargo rustd3-bench [--quick | --default | --full]` from a checkout: the
-# benchmark's one entry point (dev/bench/README.md, D22.9), the plotting
-# library and its Plot widget. `cargo rustd3-bench-figure` builds it without
-# iced and runs the plotting library's part alone (D22.10).
+# benchmark's one entry point (dev/bench/README.md), the plotting library
+# and its Plot widget. `cargo rustd3-bench-figure` builds it without iced
+# and runs the plotting library's part alone.
 [alias]
 rustd3-bench = ["run", "--release", "-p", "rustd3-bench", "--"]
 rustd3-bench-figure = ["run", "--release", "-p", "rustd3-bench", "--no-default-features", "--"]

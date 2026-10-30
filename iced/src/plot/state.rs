@@ -41,7 +41,7 @@ pub(crate) struct State {
     /// The renderer of what renders inline, single-threaded whatever the
     /// pool's size: vello_cpu's own pool costs about 4 ms a render on two
     /// cores whatever its size, and the pool is the widget's only
-    /// parallelism (D22.6).
+    /// parallelism.
     raster: raster::Renderer,
     /// Glyph outlines the list's command bounds are measured with.
     outlines: Outlines,
@@ -64,8 +64,7 @@ pub(crate) struct State {
     /// (its tiles do).
     gutters: Vec<Run>,
     /// Gutter images of an earlier layout: each stays drawn under the runs
-    /// that meet it until every one of them shows an image of its own
-    /// (D22.6 (4a)).
+    /// that meet it until every one of them shows an image of its own.
     former: Vec<Slot>,
     /// What the last repaint drew from, which every render reads.
     drawn: Option<Drawn>,
@@ -881,7 +880,7 @@ impl State {
     }
 
     /// The two-point test of each area [`follow`](State::follow)
-    /// translated by the views (D31.7): the scales `resolved` gives its
+    /// translated by the views: the scales `resolved` gives its
     /// lead handles, against those its layer was last drawn with, must
     /// have moved by the grid's whole pixels at `k` at its edges. An area
     /// whose scales moved otherwise (a `Fit::Visible` y refitting during
@@ -1109,7 +1108,7 @@ impl State {
         // them as they land. A drag's tiles are the column entering the
         // area, which renders inline when it fits as idle renders do: on
         // the pool it lands a frame later, and on the software renderer a
-        // frame is long (D22.6 (4d)).
+        // frame is long.
         let pooled = self.is_active() && !self.is_dragging();
         let (mut here, mut there): (Vec<Job>, Vec<Job>) = match pipeline.render {
             Render::Inline => (jobs, Vec::new()),
@@ -1342,7 +1341,7 @@ impl State {
     /// tiles of each group nearest the last gesture input first (each
     /// area's centre without one). During a gesture the gutters and the
     /// overlays go first, so that on the pool the axes render ahead of the
-    /// tiles each step replaces and keep step with the data (D22.7 (4b));
+    /// tiles each step replaces and keep step with the data;
     /// and the ring waits: each step of a zoom would render it all again,
     /// two to three times the tiles that show.
     fn waiting(&self) -> Vec<At> {
@@ -1435,7 +1434,7 @@ impl State {
     /// areas when their rects differ (every run, tile and overlay new and
     /// changed; at the factor the images shown were rendered at, the old
     /// runs' images stay drawn under the new runs and the old areas' join
-    /// the new ones' preview layers until theirs land, D22.6 (4a)); else
+    /// the new ones' preview layers until theirs land); else
     /// finds the gutter runs whose content hash differs
     /// from their slot's, each area's tiles that its layer's hash, its
     /// style and its grid's move leave stale, and the overlays whose rects
@@ -1475,7 +1474,7 @@ impl State {
                 .collect()
         } else {
             // What the old layout shows stays until the new slots' images
-            // land, when it was rendered at this factor (D22.6 (4a)).
+            // land, when it was rendered at this factor.
             let carry = self.drawn.as_ref().is_some_and(|drawn| drawn.k == k);
             self.owner = cell_rects
                 .iter()
@@ -1572,9 +1571,9 @@ impl State {
     }
 
     /// Applies a rendered job, reported to `probe` as rendered `inline` or
-    /// not: its time joins the cost model's fit (every render, D31.8, but
+    /// not: its time joins the cost model's fit (every render but
     /// `Caching::Verify`'s checks, which are not the work the model
-    /// predicts, D31.10); it is shown when it belongs to this partition and
+    /// predicts); it is shown when it belongs to this partition and
     /// is newer than its slot's image. True when it is shown.
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
         if done.check {
@@ -1964,7 +1963,7 @@ struct Drawn {
 }
 
 /// The points of a markers command from which the widget splats it
-/// (`raster::Renderer::splat`, D31.2): the large marker sets on screen.
+/// (`raster::Renderer::splat`): the large marker sets on screen.
 pub(crate) const SPLAT: usize = 10_000;
 
 /// Where the parts of `fixed` (the chrome without the figure's
@@ -2094,6 +2093,7 @@ mod tests {
     use crate::plot::probe::{self, Probe, Sample, Stage};
     use crate::plot::slot::Slot;
     use crate::plot::tile::{self, Tile};
+    #[cfg(target_os = "linux")]
     use crate::plot::worker::Pool;
     use crate::plot::{Caching, Render, fixture};
 
@@ -2506,7 +2506,7 @@ mod tests {
 
     #[test]
     fn renders_calibrate_the_cost_model_without_a_probe() {
-        // D31.8: the widget times its own renders, so one refresh that no
+        // The widget times its own renders, so one refresh that no
         // probe watches moves the fit off its seed.
         let mut state = state(480.0, 320.0);
         assert!(refresh(&mut state, &fixture::grid(), 2.0) > 0);
@@ -2537,7 +2537,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn inline_renders_start_no_thread_whatever_the_pool_size() {
-        // D22.6 (4), C: what renders inline renders single-threaded, so the
+        // What renders inline renders single-threaded, so the
         // pool's threads (named `rustd3-plot`) are the widget's only ones.
         // In a thread of its own name, a state renders inline, then on a
         // pool of `threads`; no thread keeps that name from it. typst lays
@@ -2588,7 +2588,7 @@ mod tests {
 
     #[test]
     fn verify_checks_leave_the_cost_model_as_it_was() {
-        // D31.10: a check renders at background priority and is not the
+        // A check renders at background priority and is not the
         // work the model predicts. A rebuild of an equal figure keeps every
         // slot, so its refresh renders nothing but checks.
         let pipeline = Pipeline {

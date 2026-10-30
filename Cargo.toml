@@ -19,6 +19,14 @@ all-features = true
 name = "main"
 path = "tests/main/main.rs"
 
+# The README's examples; `tests/main/readme.rs` holds the README to them.
+[[example]]
+name = "core_level"
+
+[[example]]
+name = "figure_png"
+required-features = ["png", "fonts"]
+
 [features]
 default = ["fonts"]
 figure = ["dep:rustd3-figure"]

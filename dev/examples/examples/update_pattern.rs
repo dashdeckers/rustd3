@@ -1,4 +1,4 @@
-//! Use case 2, the general update pattern: a top-five bar chart that
+//! The general update pattern: a top-five bar chart that
 //! re-ranks every 1.5 s, bars entering, moving and leaving in staggered
 //! transitions.
 

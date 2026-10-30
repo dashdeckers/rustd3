@@ -1,4 +1,4 @@
-//! The `figure` profile (D22.10): what a user of the plotting library
+//! The `figure` profile: what a user of the plotting library
 //! alone pays, at every level, headless and without iced, so it runs on
 //! any machine. For each [`Subject`], each [`Stage`] from building the
 //! figure to its files is timed through the library's public API with its

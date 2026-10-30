@@ -1,5 +1,5 @@
 //! [`Kde`]: a Gaussian kernel density estimate with Scott's bandwidth,
-//! exact or, over many values, binned (D22.11 (3)).
+//! exact or, over many values, binned.
 
 use std::f64::consts::TAU;
 

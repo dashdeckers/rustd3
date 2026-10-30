@@ -1,4 +1,4 @@
-//! The `wheels` workload: Part I's wheel figure from
+//! The `wheels` workload: the wheel figure from
 //! `rustd3_examples::wheels`, 4 × 4 panels and 52 marks over its 5,600
 //! samples, at its own 960 × 760; the wheel zooms vibration and
 //! temperature on the scatters. It holds no recording, and its data does

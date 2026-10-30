@@ -173,8 +173,8 @@ impl Renderer {
     /// only scale and translate and clip to rectangles, lays each point's
     /// stamp at the nearest eighth-pixel phase instead of filling its
     /// shape, within 32/255 of the filled markers and several times
-    /// faster for large marker sets (D31.2). Everything else renders as
-    /// before. The `Plot` widget turns it on for screen renders of
+    /// faster for large marker sets. Everything else renders as with
+    /// splatting off. The `Plot` widget turns it on for screen renders of
     /// markers commands of at least 10,000 points; file outputs never do.
     pub fn splat(&mut self, on: bool) -> &mut Renderer {
         self.splat = on;

@@ -132,7 +132,7 @@ impl Domains {
 
     /// Returns `key` to its fitted domain: the widget's own scale and the
     /// published one go, so the figure resolves the handle as it is built;
-    /// it is no longer touched; its zoom and its preview view start afresh.
+    /// it counts as untouched; its zoom and its preview view start afresh.
     pub(crate) fn reset(&mut self, key: Key) {
         self.owned.remove(&key);
         self.pending.remove(&key);

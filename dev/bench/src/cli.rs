@@ -13,7 +13,7 @@ use crate::level::{Level, Request};
 /// What the process does.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    /// A level, the one entry point (D22.9): the CPU reference and the
+    /// A level, the one entry point: the CPU reference and the
     /// figure profile, and with the widget the display measurement and
     /// the widget's profiles.
     Level(Box<Request>),
@@ -97,8 +97,8 @@ hands off the mouse and keyboard.
   --default   about 95 minutes, the default: the figures with ladders of
               lines and scatters, the presets and the wheel figure; the
               software profile, 3 runs a cell; the registered verdict run
-              (D22.1's rule outcome) and the weak profiles (no GPU, 4 cores,
-              2 cores; D22.4).
+              (the rule's outcome) and the weak profiles (no GPU, 4 cores,
+              2 cores).
   --full      hours: the figures to 10M markers and GIFs; the software
               profile, 5 runs a cell; every scenario x workload x factor on
               the native backend, the weak profiles and every `also`
@@ -160,9 +160,9 @@ Advanced (developers):
           --native-factor are required; headless, they default to 60 and 2,
           and --headless without --plan is --plan smoke. --scenario,
           --workload and --factor restrict any plan (smoke runs at the
-          listed factors instead of 2). `weak` is D22.4's plan, held to the
-          weak budgets (as --budgets weak holds any plan); `focus` is D22.5's
-          report-only plan; `software` is D22.12's, run --headless on
+          listed factors instead of 2). `weak` is the weaker machines' plan,
+          held to the weak budgets (as --budgets weak holds any plan);
+          `focus` is report-only; `software` runs --headless on
           tiny-skia, every frame's cost timed by part (parts.csv).
           --frames (headless) writes the composed frames as PNGs. --backend auto leaves the choice to iced (wgpu,
           or tiny-skia without a GPU adapter). --threads sets the widget's
@@ -170,12 +170,12 @@ Advanced (developers):
           1 to 8); --caching verify renders every kept image again and
           reports what differs. --xwayland (Linux, a Wayland session with
           XWayland) removes WAYLAND_DISPLAY from the runs, whose windows then
-          open on X11 (D22.8). --cpu-limit records how the cores were limited.
+          open on X11. --cpu-limit records how the cores were limited.
   list    [run's flags]   scenarios, workloads, plans and a plan's cells
   raster  [--plan P] [--workload A,B] [--data-scale F] [--out DIR]
           the raster variants (envelope fills, marker splatting) against
           the cells as drawn, CPU only, into DIR/raster.csv
-  also                    the items earlier phases asked to be measured
+  also                    the measurements beside the scenarios
                           (the report's \"Also measured\"; release)
   replay  --out DIR       write the generated replays
   record  --out FILE      record your own input in the trace window as a
@@ -193,7 +193,7 @@ Advanced (developers):
                           CPU s/s (the software profile's frame cost by part)
                           of A and B and B/A
   repro-software [--single] [--out FILE]
-          D22.8's plain-iced reproduction for upstream, no rustd3: 40
+          a plain-iced reproduction for upstream, no rustd3: 40
           images (--single: one window-sized image, so that drawing is
           cheap and presentation shows) moving 1 px a frame in a
           1600 x 1000 window, redrawn every frame; the backend from

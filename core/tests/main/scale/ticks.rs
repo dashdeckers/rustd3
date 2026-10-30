@@ -330,13 +330,15 @@ fn logit_and_asinh_label_with_their_own_formats() {
     assert_eq!(
         labels(&a, 10, &Locale::EN_US),
         [
+            "\u{2212}1,000",
             "\u{2212}100",
             "\u{2212}10",
             "\u{2212}1",
             "0",
             "1",
             "10",
-            "100"
+            "100",
+            "1,000"
         ]
     );
 }

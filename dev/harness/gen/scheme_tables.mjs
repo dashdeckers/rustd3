@@ -4,7 +4,7 @@
 // core/src/scheme/stops.rs: the last stop row of each ColorBrewer scheme;
 // core/src/scheme/{viridis,magma,inferno,plasma}.rs: the 256-entry tables
 // and their ramps; core/src/scheme/categorical.rs: the categorical schemes
-// Phase 7 left out. Output is sorted and reproduced byte for byte; nothing
+// beyond Category10 and Observable10. Output is sorted and reproduced byte for byte; nothing
 // is printed on success.
 import { writeFileSync } from "node:fs";
 import { rgb } from "d3-color";

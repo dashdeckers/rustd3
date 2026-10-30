@@ -1,4 +1,4 @@
-//! Themes: the builder example of Part I's Themes, defaults and builder
+//! Themes: a builder example, defaults and builder
 //! validation, sizes and styles as a drawn figure shows them, and nice
 //! domains.
 

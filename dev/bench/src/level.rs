@@ -1,8 +1,8 @@
-//! [`Level`]: the benchmark's one entry point (D22.9),
+//! [`Level`]: the benchmark's one entry point,
 //! `rustd3-bench [--quick | --default | --full]`, the same on Linux,
 //! Windows and macOS. A level prints what it will run and an estimate,
 //! takes the CPU reference, times the plotting library alone (the
-//! `figure` profile, D22.10), and around them runs the widget's part
+//! `figure` profile), and around them runs the widget's part
 //! ([`Widget`]: the display measurement first, the profiles that drive
 //! the `Plot` widget after), unless `--figure-only` or a build without the
 //! `widget` feature leaves it out. Every step lands in
@@ -51,16 +51,16 @@ pub struct Request {
     /// `--native-factor`: the display's factor, instead of the window's.
     pub native: Option<f32>,
     /// `--figure-only`: the plotting library alone, the CPU reference and
-    /// the figure profile, no window (D22.10 (2)).
+    /// the figure profile, no window.
     pub figure_only: bool,
     /// `--dry-run` (hidden): print the plan and the estimate, run nothing.
     pub dry_run: bool,
     /// `--frames DIR`: the software profile writes its composed frames as
-    /// PNGs under DIR (D22.12).
+    /// PNGs under DIR.
     pub frames: Option<PathBuf>,
     /// `--every N`: with `--frames`, every N-th frame.
     pub every: u32,
-    /// The experiment flags (D22.11 (1)): which profiles and cells, the
+    /// The experiment flags: which profiles and cells, the
     /// widget's settings, a sweep.
     pub experiment: Experiment,
 }
@@ -135,7 +135,7 @@ impl Level {
             }
             Level::Default => {
                 "the figure profile with its ladders, the software path offscreen, the \
-                 registered verdict run (D22.1's rule outcome) and the weak profiles (D22.4)"
+                 registered verdict run (the rule's outcome) and the weak profiles"
             }
             Level::Full => {
                 "the figure profile with its ladders and GIFs, the software path offscreen, every \
@@ -448,8 +448,9 @@ mod tests {
             let entry = entries.iter().find(|e| e.path.ends_with(name)).unwrap();
             String::from_utf8_lossy(&entry.data).into_owned()
         };
+        // Paths keep the platform's separator.
         assert_eq!(
-            read("run-native.log"),
+            read("run-native.log").replace('\\', "/"),
             "report: native/report.md\nthread 'main' panicked at ~/.cargo/x.rs:1:2 on <host>\n"
         );
         assert_eq!(

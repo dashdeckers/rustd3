@@ -9,7 +9,7 @@
 //! three passes, as `winit/src/lib.rs:788-830`); draw; screenshot.
 //!
 //! On the software renderer this is the software profile's offscreen
-//! frame (D22.12): the screenshot is iced composing the frame into a
+//! frame: the screenshot is iced composing the frame into a
 //! pixmap. Before the first frame the loop times the readback of an empty
 //! frame, the screenshot's fixed cost; with `--frames` it writes every
 //! n-th frame as a PNG on a thread of its own.

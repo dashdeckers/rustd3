@@ -481,8 +481,8 @@ fn paints(colors: impl Iterator<Item = Rgb>) -> Paints {
     Paints { table, index }
 }
 
-/// Point `i`'s jitter in [0, 1): a splitmix64-style hash of its index
-/// (`proto/figmodel`'s), the same on every run and platform.
+/// Point `i`'s jitter in [0, 1): a splitmix64-style hash of its index,
+/// the same on every run and platform.
 fn jitter(i: usize) -> f64 {
     let mut z = (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
     z ^= z >> 29;

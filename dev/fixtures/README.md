@@ -13,7 +13,7 @@ dev/fixtures` shows whether a regeneration changed anything.
 ## d3 fixtures (`*.mjs`)
 
 Plain Node scripts, with no `node_modules`: they import d3 from the
-sources vendored under `dev/harness/d3/` (from Phase 2) through the
+sources vendored under `dev/harness/d3/` through the
 resolve hook, so the values are those of the measured d3 versions.
 
 ```bash
