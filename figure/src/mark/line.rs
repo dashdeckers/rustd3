@@ -148,7 +148,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     /// pattern's phase is 0 at the first point drawn in the column holding
     /// the grid's origin, measured along its run.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let slot = self.slot(ctx);
         let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
         let band = ctx.band();
@@ -189,7 +191,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     /// through the draw's memo, so no second query), every placed point
     /// otherwise.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let slot = self.slot(ctx);
         let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
         let area = ctx.rect().with_origin(Point::ORIGIN);

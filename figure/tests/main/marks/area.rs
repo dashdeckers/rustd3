@@ -90,7 +90,10 @@ fn an_area_is_held_at_its_base() {
     let (mut fig, x, y) = fitted();
     fig.panel(0, 0)
         .mark(area([(0.0, 1.0), (1.0, 3.0), (2.0, 2.0)], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.0, 3.15]), "{domain:?}");
     let (mut fig, x, y) = fitted();
     fig.panel(0, 0).mark(
@@ -98,7 +101,10 @@ fn an_area_is_held_at_its_base() {
             .base(-1.0)
             .base(f64::NAN),
     );
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [-1.0, 3.2]), "{domain:?}");
 }
 
@@ -162,7 +168,7 @@ fn a_ribbon_of_rows_fits_both_edges_and_draws_upper_then_lower() {
         y,
     ));
     let resolved = resolve(&fig, &Held::default());
-    let domain = resolved.scale(y).get_domain();
+    let domain = resolved.scale(y).unwrap().get_domain();
     assert!(close(domain, [0.375, 3.125]), "{domain:?}");
     let list = draw(&fig);
     let polygons = polygons(&list);
@@ -185,13 +191,19 @@ fn a_ribbon_reaching_zero_holds_it_and_stands_on_the_axis() {
     let (mut fig, x, y) = fitted();
     fig.panel(0, 0)
         .mark(ribbon([(0.0, 0.0, 2.0), (1.0, 0.0, 4.0)], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.0, 4.2]), "{domain:?}");
     // A ribbon whose upper edge reaches 0 from below holds it at the top.
     let (mut fig, x, y) = fitted();
     fig.panel(0, 0)
         .mark(ribbon([(0.0, -2.0, 0.0), (1.0, -1.0, -0.5)], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [-2.1, 0.0]), "{domain:?}");
     // Two channels of a recording: the lower one's least value is 0.
     let low: Vec<f64> = (0..1000).map(|i| f64::from(i % 10)).collect();
@@ -208,7 +220,10 @@ fn a_ribbon_reaching_zero_holds_it_and_stands_on_the_axis() {
     let mut fig = Figure::new();
     let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
     fig.panel(0, 0).mark(ribbon_series(lower, upper, x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.0, 11.55]), "{domain:?}");
 }
 
@@ -235,7 +250,7 @@ fn band() -> Recording<f64> {
 
 /// `h`'s resolved scale over `range`, as a mark sees it.
 fn ranged(resolved: &Resolved, h: ScaleRef<Linear>, range: [f64; 2]) -> Linear {
-    let scale = Scale::with_range(resolved.scale(h), range);
+    let scale = Scale::with_range(resolved.scale(h).expect("a handle of this figure"), range);
     scale
         .as_any()
         .downcast_ref::<Linear>()

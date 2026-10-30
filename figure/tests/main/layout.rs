@@ -316,20 +316,20 @@ fn one_panel_reaches_by_its_axes_ticks_pads_and_widest_or_tallest_labels() {
         p.axis(axis::left(y)).axis(axis::bottom(x));
     });
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(x).get_domain(), [-0.5, 10.5]);
+    assert_eq!(r.scale(x).unwrap().get_domain(), [-0.5, 10.5]);
     assert_eq!(
-        labels(r.scale(x)),
+        labels(r.scale(x).unwrap()),
         (0..=10).map(|i| i.to_string()).collect::<Vec<_>>()
     );
     assert_eq!(
-        r.scale(y).get_domain().map(|v| format!("{v:.2}")),
+        r.scale(y).unwrap().get_domain().map(|v| format!("{v:.2}")),
         ["-0.15", "3.15"]
     );
     assert_eq!(
-        r.scale(y).tick_set(10).values(),
+        r.scale(y).unwrap().tick_set(10).values(),
         [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     );
-    assert_eq!(labels(r.scale(y))[0], "0.0");
+    assert_eq!(labels(r.scale(y).unwrap())[0], "0.0");
     let area = r.plot_areas()[0];
     // left: 8 + 4.667 + 23.325 ("0.0"); bottom: 8 + 4.667 + 14.667 (the
     // line box, which holds the digits' ink).

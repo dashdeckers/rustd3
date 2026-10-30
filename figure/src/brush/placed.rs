@@ -1,6 +1,5 @@
 //! [`Placed`]: a brush as a panel stores it, its handles' types erased.
 
-use crate::figure;
 use crate::scale::{Invert, Kind, Position, Scale, ScaleRef};
 
 use super::Dim;
@@ -90,14 +89,12 @@ impl Placed {
         (self.place)(over, window)
     }
 
-    /// The brush with its handles checked against figure `figure`: debug
-    /// builds panic for a handle of another figure.
-    pub(crate) fn of(self, figure: figure::Id) -> Placed {
-        let _ = self.over.of(figure);
-        if let Some(target) = self.target {
-            let _ = target.of(figure);
-        }
-        self
+    /// The handles the brush is over and sets.
+    pub(crate) fn handles(&self) -> Vec<ScaleRef<()>> {
+        [Some(self.over), self.target]
+            .into_iter()
+            .flatten()
+            .collect()
     }
 }
 

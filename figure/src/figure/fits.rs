@@ -19,7 +19,9 @@ use crate::theme::Theme;
 /// what is reported. The figure's own marks also report the labels they
 /// draw, so that they are shaped in the figure's one batch of text, and
 /// the palette keys they draw in, with what they draw (a line, dots, a
-/// filled shape) and their hatch, which legend swatches repeat.
+/// filled shape) and their hatch, which legend swatches repeat. A handle
+/// of another figure is ignored, and recorded with the panel whose mark
+/// reported it.
 pub struct Fits {
     figure: figure::Id,
     /// One per table entry: a `Slot<S>` for the fitted ones.
@@ -43,6 +45,9 @@ pub struct Fits {
     /// Per table entry, the panels whose marks place it across their plot
     /// areas (their x), each once.
     across: Vec<Vec<usize>>,
+    /// The (panel, handle position) of each handle of another figure a
+    /// mark reported, each once.
+    foreign: Vec<(usize, usize)>,
 }
 
 /// What the marks reported: per table entry its slot, filled when it is
@@ -53,6 +58,7 @@ pub(super) struct Reports {
     pub(super) across: Vec<Vec<usize>>,
     pub(super) labels: Vec<Key>,
     pub(super) keys: Vec<Reported>,
+    pub(super) foreign: Vec<(usize, usize)>,
 }
 
 /// A mark drawn in a palette's color for a key: the palette's position in
@@ -186,6 +192,7 @@ impl Fits {
             pending: None,
             panel: 0,
             across,
+            foreign: Vec::new(),
         }
     }
 
@@ -209,12 +216,16 @@ impl Fits {
         x: ScaleRef<X>,
         y: ScaleRef<Y>,
     ) -> Option<X> {
+        let Some(index) = x.of(self.figure) else {
+            self.note(x.index());
+            return None;
+        };
         let pending = self.pending.as_ref()?;
-        if pending.get(x.of(self.figure)).copied().unwrap_or(true) {
+        if pending.get(index).copied().unwrap_or(true) {
             return None;
         }
         self.slot(y)?;
-        self.scale(x)
+        self.scale(x)?
             .with_range([0.0, 1.0])
             .as_any()
             .downcast_ref::<X>()
@@ -241,12 +252,10 @@ impl Fits {
     }
 
     /// `h`'s scale before fitting: as a gesture holds it, or as built (a
-    /// mark's bridge to its x scale's index, its y scale's admission test).
-    pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> &S {
-        self.scales[h.of(self.figure)]
-            .as_any()
-            .downcast_ref()
-            .expect("invariant: a handle's scale has the handle's type")
+    /// mark's bridge to its x scale's index, its y scale's admission test);
+    /// `None` for a handle of another figure.
+    pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
+        self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
     }
 
     /// The figure's theme, as [`Ctx::theme`](crate::mark::Ctx::theme) gives
@@ -324,11 +333,15 @@ impl Fits {
     /// which legend swatches of that key repeat.
     pub(crate) fn key(
         &mut self,
-        palette: usize,
+        palette: ScaleRef<()>,
         key: Box<dyn Any>,
         glyph: Swatch,
         hatch: Option<&Hatch>,
     ) {
+        let Some(palette) = palette.of(self.figure) else {
+            self.note(palette.index());
+            return;
+        };
         self.keys.push(Reported {
             palette,
             key,
@@ -346,7 +359,10 @@ impl Fits {
     /// its plot area, which a `Fit::Window` handle's columns are counted
     /// in.
     pub(crate) fn across<S: Kind>(&mut self, h: ScaleRef<S>) {
-        let index = h.of(self.figure);
+        let Some(index) = h.of(self.figure) else {
+            self.note(h.index());
+            return;
+        };
         if let Some(panels) = self.across.get_mut(index)
             && !panels.contains(&self.panel)
         {
@@ -361,13 +377,25 @@ impl Fits {
             across: self.across,
             labels: self.labels,
             keys: self.keys,
+            foreign: self.foreign,
         }
     }
 
     /// `h`'s slot, if it is fitted and not held.
     fn slot<S: Kind>(&mut self, h: ScaleRef<S>) -> Option<&mut Slot<S>> {
-        let index = h.of(self.figure);
+        let Some(index) = h.of(self.figure) else {
+            self.note(h.index());
+            return None;
+        };
         self.slots.get_mut(index)?.as_mut()?.downcast_mut()
+    }
+
+    /// Records handle position `handle` of another figure, reported by a
+    /// mark of the panel reporting now.
+    fn note(&mut self, handle: usize) {
+        if !self.foreign.contains(&(self.panel, handle)) {
+            self.foreign.push((self.panel, handle));
+        }
     }
 }
 

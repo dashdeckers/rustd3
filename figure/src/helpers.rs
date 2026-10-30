@@ -27,9 +27,15 @@
 //!
 //! let values = vec![1.2, 2.3, 2.9, 3.1, 3.4, 3.8, 4.0, 4.4, 4.7, 5.1, 14.0];
 //! let mut grid = subplots(1, 2);
-//! let (x0, x1, y) = (grid.x(0), grid.x(1), grid.y(0));
-//! grid.panel(0, 0).mark(stats::boxplot([(0.0, values.clone())], x0, y));
-//! grid.panel(0, 1).mark(stats::boxplot([(0.0, values)], x1, y).notch(true));
+//! let (Some(x0), Some(x1), Some(y)) = (grid.x(0), grid.x(1), grid.y(0)) else {
+//!     return;
+//! };
+//! if let Some(left) = grid.panel(0, 0) {
+//!     left.mark(stats::boxplot([(0.0, values.clone())], x0, y));
+//! }
+//! if let Some(right) = grid.panel(0, 1) {
+//!     right.mark(stats::boxplot([(0.0, values)], x1, y).notch(true));
+//! }
 //! let fig = grid.into_figure();
 //! ```
 

@@ -884,7 +884,7 @@ fn fit_window_follows_in_whole_device_columns() {
             };
             let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
             let resolved = fig.resolve(size, &mut Cache::default(), &Held::default(), target);
-            let domain = resolved.scale(x).get_domain();
+            let domain = resolved.scale(x).unwrap().get_domain();
             let columns = (resolved.plot_areas()[0].width() * f64::from(k)).round();
             let col = 10.0 / columns;
             let (list, cells) = partition(&fig, LIVE, k);

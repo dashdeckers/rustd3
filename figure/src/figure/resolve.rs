@@ -34,6 +34,9 @@ struct Fitted {
     pending: Vec<bool>,
     labels: Vec<Key>,
     keys: Rc<[Reported]>,
+    /// The (panel, handle position) of the handles of other figures marks
+    /// reported.
+    foreign: Vec<(usize, usize)>,
 }
 
 impl Figure<'_> {
@@ -158,6 +161,7 @@ impl Figure<'_> {
             let mut resolved = Resolved::new(self.id, scales, locale, target, size);
             resolved.bind(&self.panels, windowed.clone());
             resolved.keyed(Rc::clone(&fitted.keys));
+            resolved.foreign(fitted.foreign.clone());
             resolved.thin_on(held.grid_table().clone(), held.overscanned());
             let layout = Layout::new(self, &resolved, cache.text(), &fitted.labels, size, rects);
             resolved.place(layout, title.clone(), rects.is_some());
@@ -293,6 +297,7 @@ impl Figure<'_> {
             pending,
             labels: reports.labels,
             keys: reports.keys.into(),
+            foreign: reports.foreign,
         }
     }
 

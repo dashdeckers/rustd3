@@ -8,6 +8,7 @@ use crate::axis;
 use crate::colorbar::Draw;
 use crate::figure::Resolved;
 use crate::layout::collide;
+use crate::scale::ScaleRef;
 use crate::text::Text;
 
 /// A colorbar's long axis on side `orient` of its bar, its labels those of
@@ -25,6 +26,15 @@ impl<'g, 'a: 'g> axis::Draw<'g> for Side<'g, 'a> {
 
     fn handle(&self) -> usize {
         self.bar.handle()
+    }
+
+    fn scale(&self) -> ScaleRef<()> {
+        self.bar.scale()
+    }
+
+    /// Untinted.
+    fn tint_handle(&self) -> Option<ScaleRef<()>> {
+        None
     }
 
     /// Untinted: the theme's ink.

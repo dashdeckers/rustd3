@@ -28,9 +28,13 @@ pub struct Subplots<'a> {
 /// let mut grid = subplots(2, 3);
 /// for row in 0..2 {
 ///     for col in 0..3 {
-///         let (x, y) = (grid.x(col), grid.y(row));
+///         let (Some(x), Some(y)) = (grid.x(col), grid.y(row)) else {
+///             continue;
+///         };
 ///         let k = (row * 3 + col) as f64;
-///         grid.panel(row, col).mark(dots([(k, 1.0), (k + 1.0, 2.0)], x, y));
+///         if let Some(panel) = grid.panel(row, col) {
+///             panel.mark(dots([(k, 1.0), (k + 1.0, 2.0)], x, y));
+///         }
 ///     }
 /// }
 /// grid.figure().title("Six panels, three x and two y scales");
@@ -51,32 +55,19 @@ pub fn subplots<'a>(rows: usize, cols: usize) -> Subplots<'a> {
 }
 
 impl<'a> Subplots<'a> {
-    /// Column `col`'s x handle.
-    ///
-    /// # Panics
-    ///
-    /// When `col` is not below the column count.
-    pub fn x(&self, col: usize) -> ScaleRef<Linear> {
-        self.x[col]
+    /// Column `col`'s x handle; `None` past the last column.
+    pub fn x(&self, col: usize) -> Option<ScaleRef<Linear>> {
+        self.x.get(col).copied()
     }
 
-    /// Row `row`'s y handle.
-    ///
-    /// # Panics
-    ///
-    /// When `row` is not below the row count.
-    pub fn y(&self, row: usize) -> ScaleRef<Linear> {
-        self.y[row]
+    /// Row `row`'s y handle; `None` past the last row.
+    pub fn y(&self, row: usize) -> Option<ScaleRef<Linear>> {
+        self.y.get(row).copied()
     }
 
-    /// The panel in cell `(row, col)`. Debug builds panic for a cell
-    /// outside the grid, where a release build makes a panel without axes.
-    pub fn panel(&mut self, row: usize, col: usize) -> &mut Panel<'a> {
-        debug_assert!(
-            row < self.y.len() && col < self.x.len(),
-            "a cell outside the grid"
-        );
-        self.fig.panel(row, col)
+    /// The panel in cell `(row, col)`; `None` for a cell outside the grid.
+    pub fn panel(&mut self, row: usize, col: usize) -> Option<&mut Panel<'a>> {
+        (row < self.y.len() && col < self.x.len()).then(|| self.fig.panel(row, col))
     }
 
     /// The figure, for its title, theme, legends or more scales.

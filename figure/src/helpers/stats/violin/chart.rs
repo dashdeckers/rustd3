@@ -221,7 +221,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
     /// the inner box plots' or quartiles' strokes. Groups whose key or
     /// values cannot be placed are skipped.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let w = ctx.rect().width();
         let band = guard::band(w, ctx.rect().height());
         let dodge = self.fill.slot(ctx).filter(|_| self.dodge);
@@ -297,7 +299,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
     /// A fill key the palette lacks; keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         self.fill.issues(ctx, issues);
-        let sx = ctx.raw(self.x);
+        let Some(sx) = ctx.raw(self.x) else {
+            return;
+        };
         let outside = self
             .groups
             .iter()

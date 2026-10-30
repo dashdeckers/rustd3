@@ -95,7 +95,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
     /// One `Stroke` command of every bar and cap, clamped to the guard band
     /// and, on raster targets, on whole device pixels.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = guard::band(ctx.rect().width(), ctx.rect().height());
         let (snap, width) = (ctx.snap(), ctx.theme().get_line_width());
         let at = |v: f64| sy.position(&v).filter(|p| p.is_finite());
@@ -135,7 +137,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
 
     /// Keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-        let sx = ctx.raw(self.x);
+        let Some(sx) = ctx.raw(self.x) else {
+            return;
+        };
         let outside = self
             .rows
             .iter()

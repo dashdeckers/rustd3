@@ -217,7 +217,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
     /// clipped to the guard band, then its hatch when set; nothing when no
     /// run has two points or the base cannot be placed.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = ctx.band();
         let Some(base) = reach(&sy, self.base, [band.y0, band.y1]) else {
             return;
@@ -346,7 +348,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
         }
         super::fit(&self.lower, self.x, self.y, fits);
         super::fit(&self.upper, self.x, self.y, fits);
-        let (sx, sy) = (fits.scale(self.x), fits.scale(self.y));
+        let (Some(sx), Some(sy)) = (fits.scale(self.x), fits.scale(self.y)) else {
+            return;
+        };
         if reaches_zero(&self.lower, sx, sy) || reaches_zero(&self.upper, sx, sy) {
             fits.stick(self.y, 0.0);
         }
@@ -361,7 +365,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
         if self.error.is_some() {
             return;
         }
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = ctx.band();
         let row = |i: usize| {
             let (a, low) = self.lower.get(i)?;

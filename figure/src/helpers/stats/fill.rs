@@ -29,11 +29,11 @@ struct Keyed<C: Paint> {
 
 impl<C: Paint> Lookup for Keyed<C> {
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb> {
-        ctx.raw(self.palette).paint(&self.key)
+        ctx.raw(self.palette)?.paint(&self.key)
     }
 
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
-        ctx.raw(self.palette).slot(&self.key)
+        ctx.raw(self.palette)?.slot(&self.key)
     }
 }
 

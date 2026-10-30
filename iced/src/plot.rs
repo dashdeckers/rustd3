@@ -509,7 +509,8 @@ impl<'a, Message> Plot<'a, Message> {
     /// end stops in the scale's own type, and continues from the domain it
     /// last published until it ends, so updates the app applies late lose
     /// no distance. Only continuous handles change. A later `on_change`
-    /// for the same handle replaces this one.
+    /// for the same handle replaces this one. A handle of another figure
+    /// has no domain here: the listener is not added.
     ///
     /// The message carries the domain in the scale's own type: a time
     /// handle publishes instants, and a message of numbers for it does not
@@ -550,6 +551,9 @@ impl<'a, Message> Plot<'a, Message> {
     where
         S: Kind + 'static,
     {
+        if !self.figure.owns(handle) {
+            return self;
+        }
         let listener = Listener::new(handle, f);
         self.listeners.retain(|other| other.key() != listener.key());
         self.listeners.push(listener);
@@ -562,7 +566,8 @@ impl<'a, Message> Plot<'a, Message> {
     /// right, top to bottom), while a gesture changes it and when it ends;
     /// `f(None)` when it ends empty (a click without a drag) or a double
     /// click clears it. One message per brush per frame, the latest. A
-    /// later `on_brush` for the same handle replaces this one.
+    /// later `on_brush` for the same handle replaces this one. A handle of
+    /// another figure has no brush here: the listener is not added.
     ///
     /// A drag over a brushed plot area brushes (the wheel still zooms):
     /// a press outside the selection starts a new one, on it moves it, on
@@ -609,6 +614,9 @@ impl<'a, Message> Plot<'a, Message> {
         over: ScaleRef<A>,
         f: impl Fn(Option<[<A as Kind>::Domain; 2]>) -> Message + 'a,
     ) -> Self {
+        if !self.figure.owns(over) {
+            return self;
+        }
         let listener = brush::Listener::new(over, f);
         self.brushes.retain(|other| other.key() != listener.key());
         self.brushes.push(listener);

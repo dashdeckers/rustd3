@@ -59,10 +59,16 @@ impl<C> legend::Draw for Colors<C>
 where
     C: Paint<Domain = f64> + Ticks<Domain = f64>,
 {
+    fn scale(&self) -> ScaleRef<()> {
+        self.handle.erased()
+    }
+
     /// One dot per entry in the color the scale gives it; one it gives
     /// none (`None`) takes the theme's gray.
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
-        let scale = resolved.scale(self.handle);
+        let Some(scale) = resolved.scale(self.handle) else {
+            return Vec::new();
+        };
         super::entries(self.handle, self.count, None, resolved)
             .into_iter()
             .map(|(v, label)| Entry {

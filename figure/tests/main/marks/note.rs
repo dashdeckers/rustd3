@@ -107,8 +107,8 @@ fn a_notes_point_enters_fitting_and_the_text_does_not() {
         ));
     let r = resolve(&fig, &Held::default());
     let close = |a: [f64; 2], b: [f64; 2]| (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9;
-    assert!(close(r.scale(x).get_domain(), [-0.15, 3.15]));
-    assert!(close(r.scale(y).get_domain(), [-0.1, 2.1]));
+    assert!(close(r.scale(x).unwrap().get_domain(), [-0.15, 3.15]));
+    assert!(close(r.scale(y).unwrap().get_domain(), [-0.1, 2.1]));
 }
 
 #[test]

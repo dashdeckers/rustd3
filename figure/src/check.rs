@@ -121,6 +121,25 @@ pub enum Issue {
         /// The cell's first column.
         col: usize,
     },
+    /// A scale handle of another figure ([`ScaleRef`](crate::scale::ScaleRef)
+    /// carries its figure): the marks, axes, guides, zooms and brushes
+    /// given it draw nothing (a palette of another figure leaves its marks
+    /// in the theme's gray and its axis untinted; a mark's values on the
+    /// figure's own handles still fit them). One issue per panel and
+    /// handle.
+    ForeignHandle {
+        /// The panel it was given to; `None` for a figure slot's guide.
+        panel: Option<usize>,
+        /// The handle's position in its own figure's table
+        /// ([`ScaleRef::index`](crate::scale::ScaleRef::index)).
+        handle: usize,
+    },
+    /// A handle fitted with `Fit::Window` on a categorical scale, which
+    /// has no span to window: it fits as `Fit::All`.
+    CategoricalWindow {
+        /// The handle's position in the figure's table.
+        handle: usize,
+    },
     /// Data keys outside a band or point scale's domain, which draw
     /// nothing: one issue per handle, over every mark that uses it.
     OutsideDomain {

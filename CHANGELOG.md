@@ -101,6 +101,15 @@ rule is:
 - `raster::Renderer::render` with bounds of another list is
   `raster::Error::Bounds`.
 - `Resolved::panel_cell` returns `None` for a panel the figure lacks.
+- A scale handle of another figure finds no scale: `Resolved::scale` and
+  `mark::Ctx::x`, `y` and `raw` return `Option`, the marks, axes, guides,
+  zooms, brushes and widget listeners given one draw or do nothing, and
+  `fig.check` reports `check::Issue::ForeignHandle`; `Figure::owns` tells
+  whether a handle is the figure's. `draw_resolved` resolves afresh for a
+  `Resolved` of another figure. `Fit::Window` on a categorical scale fits
+  as `Fit::All` and is reported (`check::Issue::CategoricalWindow`).
+  `helpers::Subplots::x`, `y` and `panel` return `Option` outside the
+  grid.
 - The `Plot` widget takes a scale factor above 8 as 8, and renders a
   widget wider or taller than 65,408 device px at the factor that fits
   it.

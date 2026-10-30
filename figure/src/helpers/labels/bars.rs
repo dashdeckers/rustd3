@@ -116,7 +116,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
     /// is placed and the point lies within the guard band around the plot
     /// area.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = guard::band(ctx.rect().width(), ctx.rect().height());
         let format = self.formatter(ctx.locale());
         let pad = self.padding * PX_PER_PT;
@@ -143,7 +145,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
 
     /// Keys outside a band or point domain, which draw nothing.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-        let sx = ctx.x(self.x);
+        let Some(sx) = ctx.x(self.x) else {
+            return;
+        };
         let count = self
             .rows
             .iter()

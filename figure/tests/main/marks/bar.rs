@@ -46,13 +46,19 @@ fn banded() -> (
 fn bars_from_a_base_are_held_at_zero_and_dots_are_not() {
     let (mut fig, x, y) = banded();
     fig.panel(0, 0).mark(bar_y([("a", 3.0)], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.0, 3.15]), "{domain:?}");
     let (mut fig, x, y) = banded();
     fig.panel(0, 0)
         .mark(dots([("a", 3.0)], x, y))
         .mark(dots([("b", -1.0)], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [-1.2, 3.2]), "{domain:?}");
 }
 
@@ -61,12 +67,18 @@ fn span_bars_away_from_zero_hold_neither_end_and_ignore_a_base() {
     let (mut fig, x, y) = banded();
     fig.panel(0, 0)
         .mark(bar_y_spans([("a", [1.0, 3.0])], x, y).base(-5.0));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.9, 3.1]), "{domain:?}");
     let (mut fig, x, y) = banded();
     fig.panel(0, 0)
         .mark(bar_y([("a", 3.0)], x, y).base(1.0).base(f64::INFINITY));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [1.0, 3.1]), "{domain:?}");
 }
 
@@ -77,20 +89,29 @@ fn span_bars_hold_an_end_at_zero_so_stacks_stand_on_the_axis() {
     fig.panel(0, 0)
         .mark(bar_y_spans([("a", [0.0, 3.0]), ("b", [0.0, 1.0])], x, y))
         .mark(bar_y_spans([("a", [3.0, 4.0]), ("b", [1.0, 2.0])], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.0, 4.2]), "{domain:?}");
     // Diverging: 0 lies inside the data, so both margins stay.
     let (mut fig, x, y) = banded();
     fig.panel(0, 0)
         .mark(bar_y_spans([("a", [0.0, 3.0]), ("b", [-2.0, 0.0])], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [-2.25, 3.25]), "{domain:?}");
     // Horizontal spans hold 0 along x.
     let mut fig = Figure::new();
     let x = fig.fit(scale::linear());
     let y = fig.scale(scale::band(["a"]));
     fig.panel(0, 0).mark(bar_x_spans([([0.0, 2.0], "a")], x, y));
-    let domain = resolve(&fig, &Held::default()).scale(x).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(x)
+        .unwrap()
+        .get_domain();
     assert!(close(domain, [0.0, 2.1]), "{domain:?}");
 }
 
@@ -103,8 +124,11 @@ fn a_rect_fits_all_four_edges_and_fills_one_command_per_row_in_one_part() {
         y,
     ));
     let resolved = resolve(&fig, &Held::default());
-    assert!(close(resolved.scale(x).get_domain(), [-0.15, 3.15]));
-    assert!(close(resolved.scale(y).get_domain(), [-0.2, 4.2]));
+    assert!(close(
+        resolved.scale(x).unwrap().get_domain(),
+        [-0.15, 3.15]
+    ));
+    assert!(close(resolved.scale(y).unwrap().get_domain(), [-0.2, 4.2]));
     let list = draw(&fig);
     let parts: Vec<_> = list.parts.iter().filter(|p| role(p.id) == 6).collect();
     assert_eq!(parts.len(), 1);
@@ -221,7 +245,7 @@ fn horizontal_bars_mirror_vertical_ones() {
         .mark(bar_x([(4.0, "a"), (2.0, "b")], x, y))
         .mark(bar_x_spans([([1.0, 3.0], "b")], x, y));
     let resolved = resolve(&fig, &Held::default());
-    assert!(close(resolved.scale(x).get_domain(), [0.0, 4.2]));
+    assert!(close(resolved.scale(x).unwrap().get_domain(), [0.0, 4.2]));
     let area = resolved.plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let px = |v: f64| v / 4.2 * w;

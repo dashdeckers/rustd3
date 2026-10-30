@@ -170,11 +170,11 @@ fn the_bodies_ends_fit_y_and_cut_runs_past_the_data() {
         .mark(violin([("a", X.to_vec())], x, plain))
         .mark(violin([("a", X.to_vec())], x, cut).cut(2.0).points(50));
     let r = resolve(&fig, &Held::default());
-    let [lo, hi] = r.scale(plain).get_domain();
+    let [lo, hi] = r.scale(plain).unwrap().get_domain();
     assert!(near(lo, 1.2 - 0.05 * 12.8) && near(hi, 14.0 + 0.05 * 12.8));
     let h = Kde::new(X).expect("varies").bandwidth();
     let (a, b) = (1.2 - 2.0 * h, 14.0 + 2.0 * h);
-    let [lo, hi] = r.scale(cut).get_domain();
+    let [lo, hi] = r.scale(cut).unwrap().get_domain();
     assert!(near(lo, a - 0.05 * (b - a)) && near(hi, b + 0.05 * (b - a)));
 }
 

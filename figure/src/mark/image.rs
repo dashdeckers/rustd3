@@ -156,7 +156,9 @@ where
     /// its edges on device pixels on raster targets; nothing when the
     /// extent cannot be placed or has no area.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = ctx.band();
         let across =
             ends(&sx, self.grid.x).and_then(|p| Span::new(p, self.grid.cols, [band.x0, band.x1]));
@@ -171,7 +173,9 @@ where
         if rect.width() <= 0.0 || rect.height() <= 0.0 {
             return;
         }
-        let palette = ctx.scale(self.color);
+        let Some(palette) = ctx.scale(self.color) else {
+            return;
+        };
         let (width, height) = (across.last - across.first, up.last - up.first);
         let mut rgba = Vec::with_capacity(width * height * 4);
         for k in up.first..up.last {

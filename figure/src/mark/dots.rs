@@ -413,13 +413,15 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// a color and a finite radius when its channels give them, and at
     /// most its radius outside `area` (the panel's coordinates: the plot
     /// area, or the view a widget grows it to); none when a channel keeps
-    /// an error.
+    /// an error or a handle is of another figure.
     fn placed<'c>(&'c self, ctx: &Ctx<'_>, area: kurbo::Rect) -> impl Iterator<Item = Placed> + 'c {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let scales = ctx.x(self.x).zip(ctx.y(self.y));
         let r = self.radius(ctx);
         let most = largest(ctx);
         let slot = self.color.slot(ctx).filter(|_| self.dodge);
-        let along_y = sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0;
+        let along_y = scales
+            .as_ref()
+            .is_some_and(|(sx, sy)| sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0);
         // Unjittered dots skip the hash: 0.5 + 0 × (u − 0.5) is 0.5.
         let share = move |i: usize| {
             if self.jitter == 0.0 {
@@ -428,7 +430,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
                 0.5 + self.jitter * (jitter(i) - 0.5)
             }
         };
-        let count = if self.error().is_some() {
+        let count = if self.error().is_some() || scales.is_none() {
             0
         } else {
             self.points.len()
@@ -448,6 +450,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
             .enumerate()
             .take(count)
             .filter_map(move |(i, (a, b))| {
+                let (sx, sy) = scales.as_ref()?;
                 let fill = match &fills {
                     Some(fills) => Some(fills.get(i).copied().flatten()?),
                     None => None,
@@ -457,9 +460,9 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
                     None => r,
                 };
                 let at = if along_y {
-                    Point::new(at(&sx, &a)?, across(&sy, &b, slot, share(i))?)
+                    Point::new(at(sx, &a)?, across(sy, &b, slot, share(i))?)
                 } else {
-                    Point::new(across(&sx, &a, slot, share(i))?, at(&sy, &b)?)
+                    Point::new(across(sx, &a, slot, share(i))?, at(sy, &b)?)
                 };
                 within(area.inflate(r.abs(), r.abs()), at).then_some(Placed {
                     index: i,

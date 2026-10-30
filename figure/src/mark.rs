@@ -142,20 +142,22 @@ impl<'r> Ctx<'r> {
 }
 
 impl Ctx<'_> {
-    /// `h`'s resolved scale across the plot area, over [0, w].
-    pub fn x<S: Position>(&self, h: ScaleRef<S>) -> S {
+    /// `h`'s resolved scale across the plot area, over [0, w]; `None` for
+    /// a handle of another figure, which a mark draws nothing for.
+    pub fn x<S: Position>(&self, h: ScaleRef<S>) -> Option<S> {
         self.ranged(h, [0.0, self.rect.width()])
     }
 
-    /// `h`'s resolved scale up the plot area, over [h, 0].
-    pub fn y<S: Position>(&self, h: ScaleRef<S>) -> S {
+    /// `h`'s resolved scale up the plot area, over [h, 0]; `None` for a
+    /// handle of another figure.
+    pub fn y<S: Position>(&self, h: ScaleRef<S>) -> Option<S> {
         self.ranged(h, [self.rect.height(), 0.0])
     }
 
     /// `h`'s resolved scale as it is, before any panel's range (a palette,
-    /// say).
-    pub fn raw<S: Kind>(&self, h: ScaleRef<S>) -> S {
-        self.scale(h).clone()
+    /// say); `None` for a handle of another figure.
+    pub fn raw<S: Kind>(&self, h: ScaleRef<S>) -> Option<S> {
+        self.scale(h).cloned()
     }
 
     /// The plot area, in list px.
@@ -247,8 +249,9 @@ impl Ctx<'_> {
         self.frame.borrow_mut()
     }
 
-    /// `h`'s resolved scale, borrowed.
-    pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> &S {
+    /// `h`'s resolved scale, borrowed; `None` for a handle of another
+    /// figure.
+    pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
         self.resolved.scale(h)
     }
 
@@ -279,13 +282,15 @@ impl Ctx<'_> {
     }
 
     /// `h`'s resolved scale over `range`.
-    fn ranged<S: Kind>(&self, h: ScaleRef<S>, range: [f64; 2]) -> S {
-        self.scale(h)
+    fn ranged<S: Kind>(&self, h: ScaleRef<S>, range: [f64; 2]) -> Option<S> {
+        let ranged = self
+            .scale(h)?
             .with_range(range)
             .as_any()
             .downcast_ref::<S>()
             .expect("invariant: a scale's with_range keeps its type")
-            .clone()
+            .clone();
+        Some(ranged)
     }
 }
 
@@ -338,8 +343,8 @@ fn fit<'a, X: Position, Y: Position>(
         return;
     }
     let extent = points.indexed().and_then(|channel| {
-        let ys = fits.scale(y);
-        fits.scale(x)
+        let ys = fits.scale(y)?;
+        fits.scale(x)?
             .indexed()?
             .series_extent(&channel, None, &|v| admits(ys, v))
     });
@@ -373,8 +378,9 @@ fn visible<'a, X: Position, Y: Position>(
     y: ScaleRef<Y>,
     fits: &mut Fits,
 ) {
-    if let (Some(channel), Some(indexed)) = (points.indexed(), window.indexed()) {
-        let ys = fits.scale(y);
+    if let (Some(channel), Some(indexed), Some(ys)) =
+        (points.indexed(), window.indexed(), fits.scale(y))
+    {
         let extent = indexed.series_extent(&channel, Kind::domain(window), &|v| admits(ys, v));
         for v in extent.iter().flat_map(|e| e.y).flatten() {
             if let Some(v) = value(v) {
@@ -457,7 +463,9 @@ fn outside<X: Position, Y: Position>(
     if points.indexed().is_some() {
         return;
     }
-    let (sx, sy) = (ctx.scale(x), ctx.scale(y));
+    let (Some(sx), Some(sy)) = (ctx.scale(x), ctx.scale(y)) else {
+        return;
+    };
     let (mut across, mut up) = (0, 0);
     for (a, b) in points.iter() {
         across += usize::from(sx.position(&a).is_none());

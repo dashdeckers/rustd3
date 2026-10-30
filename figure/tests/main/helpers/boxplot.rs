@@ -192,7 +192,10 @@ fn whisker_ends_and_fliers_fit_y_and_the_box_holds_no_zero() {
     let x = fig.scale(scale::band(["a"]));
     let y = fig.fit(scale::linear());
     fig.panel(0, 0).mark(boxplot([("a", X.to_vec())], x, y));
-    let [lo, hi] = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let [lo, hi] = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(
         near(lo, 1.2 - 0.05 * 12.8) && near(hi, 14.0 + 0.05 * 12.8),
         "{lo} {hi}"
@@ -202,7 +205,10 @@ fn whisker_ends_and_fliers_fit_y_and_the_box_holds_no_zero() {
     let y = fig.fit(scale::linear());
     fig.panel(0, 0)
         .mark(boxplot([("a", X.to_vec())], x, y).whis(Whis::Iqr(10.0)));
-    let [lo, hi] = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let [lo, hi] = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(
         near(lo, 1.2 - 0.05 * 12.8) && near(hi, 14.0 + 0.05 * 12.8),
         "{lo} {hi}"

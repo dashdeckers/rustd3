@@ -7,6 +7,8 @@ mod colorbar;
 mod draw;
 mod figure;
 mod fit;
+#[cfg(feature = "fonts")]
+mod foreign;
 #[cfg(all(feature = "gif", feature = "fonts"))]
 mod gif;
 mod handles;

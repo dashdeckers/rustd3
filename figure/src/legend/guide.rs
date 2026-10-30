@@ -2,6 +2,7 @@
 
 use crate::colorbar;
 use crate::legend::Draw;
+use crate::scale::ScaleRef;
 
 /// What a figure slot ([`Figure::legend`](crate::Figure::legend)) or a
 /// panel corner ([`Panel::legend`](crate::Panel::legend)) holds: a
@@ -24,4 +25,14 @@ pub(crate) enum Stored<'a> {
     Keys(Box<dyn Draw>),
     /// A colorbar.
     Bar(Box<dyn colorbar::Draw<'a> + 'a>),
+}
+
+impl Stored<'_> {
+    /// The handle the guide is drawn from.
+    pub(crate) fn handles(&self) -> [ScaleRef<()>; 1] {
+        match self {
+            Stored::Keys(keys) => [keys.scale()],
+            Stored::Bar(bar) => [bar.scale()],
+        }
+    }
 }

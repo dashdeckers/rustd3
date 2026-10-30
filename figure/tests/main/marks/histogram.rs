@@ -43,8 +43,8 @@ fn a_histogram_of_numbers_draws_d3s_nice_sturges_bins_held_at_zero() {
     fig.panel(0, 0).mark(histogram(X, x, y));
     let resolved = resolve(&fig, &Held::default());
     let (dx, dy) = (
-        resolved.scale(x).get_domain(),
-        resolved.scale(y).get_domain(),
+        resolved.scale(x).unwrap().get_domain(),
+        resolved.scale(y).unwrap().get_domain(),
     );
     assert!(
         (dx[0] + 0.8).abs() < 1e-12 && (dx[1] - 16.8).abs() < 1e-12,
@@ -104,7 +104,7 @@ fn a_histogram_of_keys_counts_each_band_and_dodges_into_its_slot() {
             .dodge(),
     );
     let resolved = resolve(&fig, &Held::default());
-    let dy = resolved.scale(count).get_domain();
+    let dy = resolved.scale(count).unwrap().get_domain();
     assert!(dy[0] == 0.0 && (dy[1] - 3.15).abs() < 1e-12, "{dy:?}");
     let area = resolved.plot_areas()[0];
     let (w, h) = (area.width(), area.height());
@@ -176,7 +176,10 @@ fn a_histogram_asking_for_more_nice_bins_than_ticks_allow_keeps_them_apart() {
     let y = fig.fit(scale::linear());
     fig.panel(0, 0)
         .mark(histogram(values, x, y).bins(Bins::Nice(1_000_000)));
-    let dy = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let dy = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(dy[1] < 10.0, "one collapsed bin would count 5,000: {dy:?}");
 }
 

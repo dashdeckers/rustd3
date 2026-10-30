@@ -271,7 +271,9 @@ impl<'a, Y: Position<Domain = f64>, W: Position<Domain = f64>> Mark<'a> for Dens
     /// A `Fill` at 0.35 opacity, the hatch when set, and a `Stroke` of the
     /// region between the curve and `w = 0`, clipped to the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sy, sw) = (ctx.y(self.y), ctx.x(self.w));
+        let (Some(sy), Some(sw)) = (ctx.y(self.y), ctx.x(self.w)) else {
+            return;
+        };
         let band = ctx.band();
         let at = |v: f64, d: f64| {
             let x = reach(&sw, d, [band.x0, band.x1])?;
@@ -297,7 +299,9 @@ impl<'a, X: Position<Domain = f64>, H: Position<Domain = f64>> Mark<'a> for Dens
     /// A `Fill` at 0.35 opacity, the hatch when set, and a `Stroke` of the
     /// region between the curve and `h = 0`, clipped to the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sh) = (ctx.x(self.x), ctx.y(self.h));
+        let (Some(sx), Some(sh)) = (ctx.x(self.x), ctx.y(self.h)) else {
+            return;
+        };
         let band = ctx.band();
         let at = |v: f64, d: f64| {
             let x = sx.position(&v).filter(|p| p.is_finite())?;

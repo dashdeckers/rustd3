@@ -78,10 +78,16 @@ impl<S> legend::Draw for Sizes<S>
 where
     S: Kind<Domain = f64, Output = f64> + Ticks<Domain = f64>,
 {
+    fn scale(&self) -> ScaleRef<()> {
+        self.handle.erased()
+    }
+
     /// One dot per entry of the radius the scale gives it, skipped when
     /// that radius is not finite and positive.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry> {
-        let scale = resolved.scale(self.handle);
+        let Some(scale) = resolved.scale(self.handle) else {
+            return Vec::new();
+        };
         let values = self.values.as_deref();
         super::entries(self.handle, self.count, values, resolved)
             .into_iter()

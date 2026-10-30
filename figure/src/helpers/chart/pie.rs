@@ -126,7 +126,9 @@ impl<'a, K: PartialEq + Clone + Display + 'static> Mark<'a> for Wedges<K> {
         let inner = self.inner * outer;
         let centre = Affine::translate(Vec2::new(area.width() / 2.0, area.height() / 2.0));
         let arc = shape::arc().inner_radius(inner).outer_radius(outer);
-        let palette = ctx.raw(self.color);
+        let Some(palette) = ctx.raw(self.color) else {
+            return;
+        };
         let values = self.slices.iter().map(|(_, v)| *v);
         for slice in shape::pie().layout(values) {
             if slice.end_angle <= slice.start_angle {

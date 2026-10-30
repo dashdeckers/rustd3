@@ -370,7 +370,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
     /// One `Fill` command per bar with area, clipped to the guard band, its
     /// edges on device pixels on raster targets, and its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let w = ctx.rect().width();
         let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]);
@@ -384,7 +386,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
     /// below its value; a span's second end) when it lies in the plot
     /// area, with its row's index.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let w = ctx.rect().width();
         let band = ctx.band();
         let area = ctx.rect().with_origin(Point::ORIGIN);
@@ -399,8 +403,10 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
     /// A fill key the palette lacks; keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         super::unknown(&self.bars.color, ctx, issues);
-        let count = self.bars.outside(ctx.scale(self.x));
-        super::outside_count(self.x.index(), count, issues);
+        if let Some(sx) = ctx.scale(self.x) {
+            let count = self.bars.outside(sx);
+            super::outside_count(self.x.index(), count, issues);
+        }
     }
 }
 
@@ -413,7 +419,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
     /// One `Fill` command per bar with area, clipped to the guard band, its
     /// edges on device pixels on raster targets, and its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let h = ctx.rect().height();
         let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]);
@@ -427,7 +435,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
     /// base left of its value; a span's second end) when it lies in the
     /// plot area, with its row's index.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let h = ctx.rect().height();
         let band = ctx.band();
         let area = ctx.rect().with_origin(Point::ORIGIN);
@@ -442,7 +452,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
     /// A fill key the palette lacks; keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         super::unknown(&self.bars.color, ctx, issues);
-        let count = self.bars.outside(ctx.scale(self.y));
-        super::outside_count(self.y.index(), count, issues);
+        if let Some(sy) = ctx.scale(self.y) {
+            let count = self.bars.outside(sy);
+            super::outside_count(self.y.index(), count, issues);
+        }
     }
 }
