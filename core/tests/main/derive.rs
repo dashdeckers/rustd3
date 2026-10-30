@@ -1,5 +1,5 @@
-//! `#[derive(Interpolate)]`: the spot checks of Phase 24 and use case 2's
-//! `Bar` against its hand-written impl.
+//! `#[derive(Interpolate)]`: spot checks, and the update pattern's `Bar`
+//! against its hand-written impl.
 
 use std::marker::PhantomData;
 
@@ -23,14 +23,14 @@ struct Mark<T> {
     label: String,
 }
 
-/// Generic over a parameter that only a nested field names (D24.1).
+/// Generic over a parameter that only a nested field names.
 #[derive(Debug, Clone, PartialEq, Interpolate)]
 struct Nested<T> {
     m: Mark<T>,
     k: f64,
 }
 
-/// A parameter that only a skipped `PhantomData` names (D24.1).
+/// A parameter that only a skipped `PhantomData` names.
 #[derive(Debug, Clone, PartialEq, Interpolate)]
 struct Tagged<U> {
     x: f64,
@@ -47,7 +47,7 @@ mod plain {
     }
 }
 
-/// Use case 2's `Bar` with Part I's hand-written impl.
+/// The update pattern's `Bar` with a hand-written impl.
 mod hand {
     use rustd3_core::interpolate::Interpolate;
 
@@ -72,7 +72,7 @@ mod hand {
     }
 }
 
-/// Use case 2's `Bar`, derived.
+/// The update pattern's `Bar`, derived.
 mod derived {
     use rustd3_core::interpolate::Interpolate;
 

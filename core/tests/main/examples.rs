@@ -1,5 +1,5 @@
-//! The examples of Part I's "Formats, time and color" and the color rows of
-//! "Scales", as the specification prints them.
+//! Worked examples of formats, time and color, and of the color scales,
+//! with the values d3 prints for them.
 
 use rustd3_core::color::{Hcl, Hsl, Rgb};
 use rustd3_core::interpolate::{self, Interpolate};

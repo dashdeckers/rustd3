@@ -1,5 +1,5 @@
 //! M4 from the index against a raw scan of the same samples, over the
-//! prototypes' traces (`proto/thin2`): a vibration-like signal and a slow
+//! two generated traces: a vibration-like signal and a slow
 //! signal with gaps of 1 to 50,000 samples, 1,000,000 samples each.
 
 use std::hint::black_box;
@@ -13,7 +13,7 @@ use super::{Lcg, m4_scan, thinned_by_index};
 /// The traces' sample count.
 const N: usize = 1_000_000;
 
-/// A trace as the prototype built it, and its recording on an explicit
+/// A generated trace, and its recording on an explicit
 /// clock of the same x.
 struct Trace {
     x: Vec<f64>,
@@ -67,14 +67,14 @@ impl Trace {
 /// Column edges in samples and polylines.
 type Thinned = (Vec<usize>, Vec<Vec<usize>>);
 
-/// The prototype's data-space column edges: `columns + 1` of them.
+/// Data-space column edges: `columns + 1` of them.
 fn edges(view: [f64; 2], columns: usize) -> Vec<f64> {
     (0..=columns)
         .map(|c| view[0] + (view[1] - view[0]) * c as f64 / columns as f64)
         .collect()
 }
 
-/// `proto/thin2/src/main.rs`, `signal(n)`: drift, a 7 Hz tone, noise,
+/// Drift, a 7 Hz tone, noise,
 /// 0.2 s bursts every 10 s and 50 one-sample impacts at 10 kHz, seed 42.
 fn signal() -> &'static Trace {
     static TRACE: OnceLock<Trace> = OnceLock::new();
@@ -112,7 +112,7 @@ fn vibration(n: usize) -> (Vec<f64>, Vec<f64>, Vec<usize>) {
     (x, y, impacts)
 }
 
-/// `proto/thin2/src/bin/gaps.rs`: a 0.1 Hz tone with noise, seed 9, with
+/// A 0.1 Hz tone with noise, seed 9, with
 /// four gaps each of 1, 10, 100, 1,000, 10,000 and 50,000 samples (some
 /// overlap), the first sample a gap and the last NaN.
 fn gaps() -> &'static Trace {

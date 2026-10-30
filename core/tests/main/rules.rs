@@ -1,14 +1,14 @@
-//! Phase 5's continuous scales: tick rules and the `ticks::` blocks, the
+//! The continuous scales: tick rules and the `ticks::` blocks, the
 //! symlog, logit, asinh and func transforms, `piecewise` and
 //! `AnyContinuous`, against d3-scale 4.0.2, matplotlib 3.11.2's locators
-//! and the fscale prototype.
+//! and reference values computed with them.
 
 use rustd3_core::format::{InvalidFormat, Locale};
 use rustd3_core::scale::{self, TickRule};
 use rustd3_core::ticks;
 use rustd3_testkit::obs::{ToObs, Tolerance};
 
-/// Frequency laid out by period: Part I's user transform.
+/// Frequency laid out by period: a user transform.
 #[derive(Clone, Copy)]
 struct Reciprocal;
 
@@ -366,7 +366,7 @@ fn asinh_ticks_signed_powers_of_ten() {
 #[test]
 fn asinh_ticks_every_other_decade_over_eighteen_orders() {
     // matplotlib on AVX-512 numpy keeps ±1e9: its arcsinh(1e9) is one ulp
-    // above glibc's, which this port's arithmetic matches (D5.1).
+    // above glibc's, which this port's arithmetic matches.
     assert_eq!(
         asinh_ticks([-1e9, 1e9]),
         [-1e8, -1e7, -1e5, -1e3, -10.0, 0.0, 10.0, 1e3, 1e5, 1e7, 1e8]

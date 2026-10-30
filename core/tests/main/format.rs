@@ -445,7 +445,7 @@ fn degenerate_values_under_the_tables_match_d3() {
             "−00\u{a0}000\u{a0}000\u{a0}001\u{a0}234,5",
         ),
         (&Locale::RU_RU, ".2s", 1e-30, "0,000001y"),
-        // d3's toFixed switches to "1e+21円" here; Phase 3 writes no
+        // d3's toFixed switches to "1e+21円" here; the port writes no
         // exponent notation that JavaScript's printing adds.
         (
             &Locale::JA_JP,

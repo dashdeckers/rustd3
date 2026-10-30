@@ -7,7 +7,8 @@ use crate::format::{Format, InvalidFormat, Locale, Specifier};
 use crate::scale::{TickFormat, Transform};
 use crate::ticks;
 
-/// The most values the rule returns: Phase 3's cap at its largest.
+/// The most values the rule returns: the tick generators' cap at its
+/// largest.
 const MAX_TICKS: usize = 10_000;
 /// `AsinhLocator`'s `symthresh`: ends this close to symmetric about 0 tick
 /// as if they were.

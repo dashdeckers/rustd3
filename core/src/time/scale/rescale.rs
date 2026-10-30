@@ -1,4 +1,4 @@
-//! [`Time`]'s gestures: Phase 10's [`Rescale`] in `i128` nanoseconds
+//! [`Time`]'s gestures: the continuous scales' [`Rescale`] in `i128` nanoseconds
 //! from the domain's start, where only differences pass through `f64`.
 
 use crate::interact::{self, Rescale};

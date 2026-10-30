@@ -1,4 +1,4 @@
-//! [`Time`]'s padding: Phase 10's [`Pad`] in `i128` nanoseconds, with
+//! [`Time`]'s padding: the continuous scales' [`Pad`] in `i128` nanoseconds, with
 //! matplotlib's date rule for flat extents.
 
 use jiff::Timestamp;
@@ -15,10 +15,10 @@ const DAY: i128 = 24 * HOUR;
 const EMPTY: [i128; 2] = [0, DAY];
 /// How far a flat extent widens per side: an hour, so one sample's axis
 /// reads in hours and minutes (matplotlib's `DateLocator.nonsingular`
-/// widens by two years, D33.1).
+/// widens by two years).
 const WIDEN: i128 = HOUR;
 /// How far inside the extent a sticky value still stops the margin,
-/// relative to the span, as Phase 10's `Pad`.
+/// relative to the span, as in the continuous scales' `Pad`.
 const STICKY_TOLERANCE: f64 = 1e-5;
 
 /// matplotlib's autoscaling of a date axis: no data gives 1970-01-01 to

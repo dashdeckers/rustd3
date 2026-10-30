@@ -17,8 +17,8 @@ mod svg;
 pub use error::Error;
 pub use svg::SvgPath;
 
-/// d3's canvas path interface: the one drawing seam (Part I, Shapes and
-/// `PathContext`). Coordinates are in pixels, y pointing down.
+/// d3's canvas path interface: the one drawing seam between generators and
+/// backends. Coordinates are in pixels, y pointing down.
 pub trait PathContext {
     /// Starts a new subpath at (`x`, `y`).
     fn move_to(&mut self, x: f64, y: f64);

@@ -17,7 +17,7 @@ fn plus(t0: Timestamp, ns: i128) -> Timestamp {
     Timestamp::from_nanosecond(t0.as_nanosecond() + ns).expect("an instant in range")
 }
 
-/// Part I's Berlin day: the end of daylight saving time on 800 px.
+/// A day in Berlin: the end of daylight saving time on 800 px.
 fn berlin_day() -> time::Time {
     time::time(zone("Europe/Berlin"))
         .domain([at("2026-10-24T22:00:00Z"), at("2026-10-25T23:00:00Z")])
@@ -352,7 +352,7 @@ fn pad_fits_dates_as_matplotlib() {
         x.pad(None, 0.05, &[]),
         [at("1970-01-01T00:00:00Z"), at("1970-01-02T00:00:00Z")]
     );
-    // D33.1: an hour per side, then 5% of the two hours.
+    // An hour per side, then 5% of the two hours.
     let noon = at("2026-01-01T12:00:00Z");
     assert_eq!(
         x.pad(Some([noon, noon]), 0.05, &[]),

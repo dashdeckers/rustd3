@@ -15,7 +15,7 @@ use crate::time::{self, Interval, Time};
 /// were chosen with, positioned by `apply` and labelled tick by tick
 /// through the locale's time half.
 ///
-/// Part I's Berlin day across the end of daylight saving time, with d3's
+/// A day in Berlin across the end of daylight saving time, with d3's
 /// 3-hour interval, under the neutral locale's ISO ladder and d3's:
 ///
 /// ```

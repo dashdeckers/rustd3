@@ -123,7 +123,7 @@ pub enum Interval {
 /// 2000-01-01 to 2000-01-02 in `zone`, range [0, 1], ticks laid out in
 /// `zone` (days of the month).
 ///
-/// Part I's Berlin day, across the end of daylight saving time: d3's
+/// A day in Berlin across the end of daylight saving time: d3's
 /// 3-hour interval, at local midnight, 03:00 … 21:00 and midnight again.
 ///
 /// ```

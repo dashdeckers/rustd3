@@ -7,7 +7,7 @@ mod timestamp;
 
 use rustd3_core::series::{self, Clock, Coordinate, Data, Error, Points, Recording};
 
-/// The prototypes' generator: a 64-bit LCG, uniform in [0, 1).
+/// A seeded generator: a 64-bit LCG, uniform in [0, 1).
 struct Lcg(u64);
 
 impl Lcg {
@@ -45,8 +45,8 @@ fn thinned_by_index<X: Coordinate>(
 }
 
 /// The raw-scan reference: column edges by `partition_point` over `x`, NaN
-/// runs and per-column extremes by scanning `y`, and M4 as rustd3.md
-/// writes it (Phase 9, Extremes and M4).
+/// runs and per-column extremes by scanning `y`, and M4 by its
+/// definition: first, last, least and greatest per column.
 fn m4_scan<X: PartialOrd>(
     x: &[X],
     y: &[f64],
@@ -56,7 +56,7 @@ fn m4_scan<X: PartialOrd>(
     scan(x, &[y], edges, valid)
 }
 
-/// The raw-scan reference of a joint query (Phase 34): runs where no
+/// The raw-scan reference of a joint query: runs where no
 /// channel of `ys` is NaN, and per column each channel's extremes.
 fn scan<X: PartialOrd>(
     x: &[X],
