@@ -112,6 +112,15 @@ pub enum Issue {
         /// What the mark kept from when it was built.
         error: crate::mark::Error,
     },
+    /// A panel asked for in a cell that reaches past the grid's 4,096
+    /// tracks a side ([`layout::Cell`](crate::layout::Cell)): it is not
+    /// laid out or drawn. One issue per cell, in the order first asked.
+    OutsideGrid {
+        /// The cell's first row.
+        row: usize,
+        /// The cell's first column.
+        col: usize,
+    },
     /// Data keys outside a band or point scale's domain, which draw
     /// nothing: one issue per handle, over every mark that uses it.
     OutsideDomain {

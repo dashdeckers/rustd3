@@ -231,6 +231,34 @@ fn an_outward_offset_that_is_not_finite_is_ignored() {
 }
 
 #[test]
+fn a_cell_past_the_grids_tracks_is_reported_and_not_drawn() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0).axis(axis::bottom(x));
+    fig.panel(usize::MAX, 0).axis(axis::bottom(x));
+    fig.panel_at(Cell::new(1, 1).span(usize::MAX, 1));
+    fig.panel(4096, 0);
+    fig.panel(4096, 0);
+    let resolved = resolve(&fig, &Held::default());
+    assert_eq!(resolved.plot_areas().len(), 1);
+    let outside: Vec<_> = fig
+        .check(Size::new(640.0, 480.0))
+        .into_iter()
+        .filter_map(|issue| {
+            if let rustd3_figure::check::Issue::OutsideGrid { row, col } = issue {
+                Some((row, col))
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(outside, [(usize::MAX, 0), (1, 1), (4096, 0)]);
+    let mut last = Figure::new();
+    last.panel(4095, 4095);
+    assert_eq!(resolve(&last, &Held::default()).plot_areas().len(), 1);
+}
+
+#[test]
 fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));

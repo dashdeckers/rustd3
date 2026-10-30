@@ -2,9 +2,16 @@
 
 use std::ops::Range;
 
+/// The most tracks the grid has a side: a cell past them is not laid out.
+pub(crate) const MOST: usize = 4096;
+
 /// Where a panel sits in the grid: the rows and columns it spans. A
 /// spanning panel's reaches count against its outer tracks, and its plot
-/// area runs from its first track's start to its last track's end.
+/// area runs from its first track's start to its last track's end. The
+/// grid has at most 4,096 tracks a side: a panel in a cell that reaches
+/// past them is not laid out or drawn, and
+/// [`Figure::check`](crate::Figure::check) reports it
+/// ([`Issue::OutsideGrid`](crate::check::Issue::OutsideGrid)).
 ///
 /// ```
 /// use rustd3_figure::Figure;
@@ -26,8 +33,8 @@ impl Cell {
     /// The cell in row `row` and column `col`, one track each way.
     pub fn new(row: usize, col: usize) -> Cell {
         Cell {
-            rows: row..row + 1,
-            cols: col..col + 1,
+            rows: row..row.saturating_add(1),
+            cols: col..col.saturating_add(1),
         }
     }
 
@@ -36,9 +43,14 @@ impl Cell {
     pub fn span(self, rows: usize, cols: usize) -> Cell {
         let (row, col) = (self.rows.start, self.cols.start);
         Cell {
-            rows: row..row + rows.max(1),
-            cols: col..col + cols.max(1),
+            rows: row..row.saturating_add(rows.max(1)),
+            cols: col..col.saturating_add(cols.max(1)),
         }
+    }
+
+    /// Whether the cell lies within the grid's [`MOST`] tracks a side.
+    pub(crate) fn within(&self) -> bool {
+        self.rows.end <= MOST && self.cols.end <= MOST
     }
 
     /// The rows it spans.

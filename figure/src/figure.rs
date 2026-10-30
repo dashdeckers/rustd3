@@ -65,6 +65,10 @@ pub struct Figure<'a> {
     id: Id,
     scales: Vec<Entry>,
     panels: Vec<Panel<'a>>,
+    /// The cells asked for past the grid's tracks, and the panel that
+    /// stands in for them, never laid out or drawn.
+    outside: Vec<Cell>,
+    detached: Option<Box<Panel<'a>>>,
     grid: Grid,
     title: Option<Text>,
     theme: Theme,
@@ -96,6 +100,8 @@ impl<'a> Figure<'a> {
             id: Id(NEXT.fetch_add(1, Ordering::Relaxed)),
             scales: Vec::new(),
             panels: Vec::new(),
+            outside: Vec::new(),
+            detached: None,
             grid: Grid::default(),
             title: None,
             theme: Theme::default(),
@@ -190,8 +196,18 @@ impl<'a> Figure<'a> {
 
     /// The panel spanning `at`, made on first use: the same cell and span
     /// give the same panel. Panels whose cells overlap are laid out over
-    /// each other.
+    /// each other. A cell reaching past the grid's 4,096 tracks a side
+    /// gives a panel that is never laid out or drawn, which
+    /// [`check`](Figure::check) reports.
     pub fn panel_at(&mut self, at: Cell) -> &mut Panel<'a> {
+        if !at.within() {
+            if !self.outside.contains(&at) {
+                self.outside.push(at.clone());
+            }
+            return self
+                .detached
+                .get_or_insert_with(|| Box::new(Panel::new(at)));
+        }
         let i = match self.panels.iter().position(|p| *p.cell() == at) {
             Some(i) => i,
             None => {
@@ -257,6 +273,12 @@ impl<'a> Figure<'a> {
     /// The panels, in the order of their first use.
     pub(crate) fn panels(&self) -> &[Panel<'a>] {
         &self.panels
+    }
+
+    /// The cells asked for past the grid's tracks, in the order first
+    /// asked.
+    pub(crate) fn outside(&self) -> &[Cell] {
+        &self.outside
     }
 
     /// The grid.

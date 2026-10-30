@@ -54,6 +54,10 @@ impl Figure<'_> {
         }
         cache.end(frame.into_inner());
         issues.extend(per_handle(marks));
+        issues.extend(self.outside().iter().map(|cell| Issue::OutsideGrid {
+            row: cell.rows().start,
+            col: cell.cols().start,
+        }));
         issues
     }
 }
