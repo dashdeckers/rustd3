@@ -611,8 +611,10 @@ fn changed_in(a: &Shot, b: &Shot, [x0, y0, x1, y1]: [u32; 4]) -> (usize, usize) 
     let mut counts = (0, 0);
     for (i, (p, q)) in a
         .rgba
-        .chunks_exact(4)
-        .zip(b.rgba.chunks_exact(4))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(b.rgba.as_chunks::<4>().0.iter())
         .enumerate()
     {
         if p != q {

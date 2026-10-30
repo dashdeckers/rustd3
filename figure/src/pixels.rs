@@ -7,7 +7,7 @@ use peniko::{ImageAlphaType, ImageData, ImageFormat};
 pub(crate) fn straight(image: &ImageData) -> Result<Vec<u8>, &'static str> {
     let mut rgba = rgba(image)?;
     if image.alpha_type == ImageAlphaType::AlphaPremultiplied {
-        for px in rgba.chunks_exact_mut(4) {
+        for px in rgba.as_chunks_mut::<4>().0 {
             let a = u16::from(px[3]);
             for c in &mut px[..3] {
                 if let Some(v) = (u16::from(*c) * 255 + a / 2).checked_div(a) {
@@ -24,7 +24,7 @@ pub(crate) fn straight(image: &ImageData) -> Result<Vec<u8>, &'static str> {
 pub(crate) fn premultiplied(image: &ImageData) -> Result<Vec<u8>, &'static str> {
     let mut rgba = rgba(image)?;
     if image.alpha_type == ImageAlphaType::Alpha {
-        for px in rgba.chunks_exact_mut(4) {
+        for px in rgba.as_chunks_mut::<4>().0 {
             let a = u16::from(px[3]);
             for c in &mut px[..3] {
                 *c = u8::try_from((u16::from(*c) * a + 127) / 255).unwrap_or(u8::MAX);
@@ -40,7 +40,7 @@ fn rgba(image: &ImageData) -> Result<Vec<u8>, &'static str> {
     match image.format {
         ImageFormat::Rgba8 => {}
         ImageFormat::Bgra8 => {
-            for px in data.chunks_exact_mut(4) {
+            for px in data.as_chunks_mut::<4>().0 {
                 px.swap(0, 2);
             }
         }

@@ -1138,7 +1138,8 @@ mod tests {
         let frames = (PathBuf::from("f"), 1);
         let args = two
             .args(&display, Path::new("o/x"), Some(&frames))
-            .join(" ");
+            .join(" ")
+            .replace('\\', "/");
         assert!(
             args.ends_with("--frames f/software@threads=2 --every 1 --threads 2 --out o/x"),
             "{args}"

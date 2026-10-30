@@ -825,8 +825,10 @@ fn resvg_draws_text_elements_close_to_the_outlines() {
     let (w, h, outlined) = resvg_render(&svg(&list, svg::Text::Outlines));
     let (_, _, elements) = resvg_render(&svg(&list, svg::Text::Elements));
     let off = outlined
-        .chunks_exact(4)
-        .zip(elements.chunks_exact(4))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(elements.as_chunks::<4>().0)
         .filter(|(a, b)| a.iter().zip(*b).any(|(c, d)| c.abs_diff(*d) > 16))
         .count();
     let share = off as f64 / f64::from(w * h);

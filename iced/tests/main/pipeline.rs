@@ -541,8 +541,10 @@ fn previous_image_stays_until_the_new_one_arrives() {
         let [x0, y0, x1, y1] = cell(&legend("B"), MEDIUM, k, index);
         let changed: Vec<(u32, u32)> = old
             .rgba
-            .chunks_exact(4)
-            .zip(settled.shot.rgba.chunks_exact(4))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .zip(settled.shot.rgba.as_chunks::<4>().0.iter())
             .enumerate()
             .filter(|(_, (a, b))| a != b)
             .map(|(i, _)| (i as u32 % old.width, i as u32 / old.width))

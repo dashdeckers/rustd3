@@ -51,8 +51,8 @@ pub(crate) struct Band {
 impl Band {
     /// Rows `rows` of a cell, shown by `handle`.
     pub(crate) fn new(rows: Range<i32>, handle: image::Handle) -> Band {
-        let opaque =
-            rgba(&handle).is_some_and(|pixels| pixels.chunks_exact(4).all(|p| p[3] == 255));
+        let opaque = rgba(&handle)
+            .is_some_and(|pixels| pixels.as_chunks::<4>().0.iter().all(|p| p[3] == 255));
         Band {
             rows,
             handle,

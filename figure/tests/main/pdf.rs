@@ -211,7 +211,13 @@ fn a_clip_of_no_area_clips_everything() {
         list::Clip::Rect(Rect::new(20.0, 20.0, 20.0, 80.0)),
     ] {
         let back = empty(clip);
-        let black = back.rgba.chunks_exact(4).filter(|p| p[0] == 0).count();
+        let black = back
+            .rgba
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .filter(|p| p[0] == 0)
+            .count();
         assert_eq!(black, 100, "only the fill after the group draws");
     }
 }

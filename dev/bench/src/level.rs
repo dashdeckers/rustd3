@@ -448,8 +448,9 @@ mod tests {
             let entry = entries.iter().find(|e| e.path.ends_with(name)).unwrap();
             String::from_utf8_lossy(&entry.data).into_owned()
         };
+        // Paths keep the platform's separator.
         assert_eq!(
-            read("run-native.log"),
+            read("run-native.log").replace('\\', "/"),
             "report: native/report.md\nthread 'main' panicked at ~/.cargo/x.rs:1:2 on <host>\n"
         );
         assert_eq!(

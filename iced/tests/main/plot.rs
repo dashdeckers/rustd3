@@ -268,8 +268,10 @@ fn changed(before: &Shot, after: &Shot) -> Vec<(u32, u32)> {
     let width = before.width;
     before
         .rgba
-        .chunks_exact(4)
-        .zip(after.rgba.chunks_exact(4))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(after.rgba.as_chunks::<4>().0.iter())
         .enumerate()
         .filter(|(_, (a, b))| a != b)
         .map(|(i, _)| (i as u32 % width, i as u32 / width))

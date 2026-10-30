@@ -579,7 +579,9 @@ impl Window {
         }
         for drawn in &mut images {
             drawn.opaque = match &drawn.handle {
-                Handle::Rgba { pixels, .. } => pixels.chunks_exact(4).all(|p| p[3] == 255),
+                Handle::Rgba { pixels, .. } => {
+                    pixels.as_chunks::<4>().0.iter().all(|p| p[3] == 255)
+                }
                 Handle::Path(..) | Handle::Bytes(..) => false,
             };
         }

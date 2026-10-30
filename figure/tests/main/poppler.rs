@@ -35,7 +35,9 @@ pub fn render(pdf: &[u8], dpi: f64) -> Image {
     buffer.truncate(frame.buffer_size());
     let rgba = match frame.color_type {
         png::ColorType::Rgb => buffer
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .flat_map(|p| [p[0], p[1], p[2], 0xff])
             .collect(),
         png::ColorType::Rgba => buffer,

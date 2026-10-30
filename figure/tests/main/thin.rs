@@ -357,7 +357,12 @@ fn every_sample(scale: f64) -> &'static Image {
 #[cfg(feature = "raster")]
 fn pixels_off(a: &Image, b: &Image) -> f64 {
     assert_eq!((a.width, a.height), (b.width, b.height));
-    let pixels = a.rgba.chunks_exact(4).zip(b.rgba.chunks_exact(4));
+    let pixels = a
+        .rgba
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(b.rgba.as_chunks::<4>().0);
     let off = pixels
         .filter(|(p, q)| p.iter().zip(*q).any(|(c, d)| c.abs_diff(*d) > 16))
         .count();

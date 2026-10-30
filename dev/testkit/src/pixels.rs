@@ -76,7 +76,12 @@ impl Diff {
         let columns = width.div_ceil(tile);
         let mut sums = vec![0_u64; index(columns * u64::from(a.height).div_ceil(tile))];
         let (mut max, mut over) = (0_u8, 0_u64);
-        let pixels = a.rgba.chunks_exact(4).zip(b.rgba.chunks_exact(4));
+        let pixels = a
+            .rgba
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .zip(b.rgba.as_chunks::<4>().0);
         for (i, (p, q)) in (0_u64..).zip(pixels) {
             let sum = &mut sums[index(i / width / tile * columns + i % width / tile)];
             for (c, d) in p.iter().zip(q) {

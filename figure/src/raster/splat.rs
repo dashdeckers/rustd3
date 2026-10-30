@@ -180,7 +180,7 @@ fn lay(
         let coverage = &stamp.coverage[row + (xs - x0) as usize..row + (xe - x0) as usize];
         let start = (y as usize * width + xs as usize) * 4;
         let pixels = &mut data[start..start + coverage.len() * 4];
-        for (&c, pixel) in coverage.iter().zip(pixels.chunks_exact_mut(4)) {
+        for (&c, pixel) in coverage.iter().zip(pixels.as_chunks_mut::<4>().0) {
             match c {
                 0 => {}
                 255 if opaque => pixel.copy_from_slice(&solid),

@@ -160,7 +160,7 @@ fn render(list: &List, size: kurbo::Size, scale: f64) -> raster::Image {
 /// Composites `image` source-over onto `background`.
 fn onto(image: &mut raster::Image, background: iced::Color) {
     let [r, g, b, a] = background.into_rgba8().map(f64::from);
-    for pixel in image.rgba.chunks_exact_mut(4) {
+    for pixel in image.rgba.as_chunks_mut::<4>().0.iter_mut() {
         let alpha = f64::from(pixel[3]) / 255.0;
         let under = a / 255.0 * (1.0 - alpha);
         let out = alpha + under;
