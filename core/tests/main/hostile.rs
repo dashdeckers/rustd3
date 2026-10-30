@@ -6,6 +6,7 @@
 
 mod format;
 mod scale;
+mod shape;
 
 /// Why `ticks` break the tick rules over `domain`: finite, strictly
 /// monotone in the domain's order (so sorted and without duplicates), and
