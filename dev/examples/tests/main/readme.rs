@@ -1,16 +1,17 @@
-//! The root README's iced code compiles: its `text` blocks, which the
-//! facade's doctests cannot build (the facade has no rustd3-iced), are the
-//! `readme_canvas` and `readme_plot` examples with the facade's paths.
+//! The root README's `Plot` widget code compiles: its last `rust` block,
+//! which the facade cannot build (it has no rustd3-iced), is the
+//! `readme_plot` example with the facade's paths. The facade's
+//! `tests/main/readme.rs` holds the other blocks to its own examples.
 
-/// The README, which is also the facade's crate documentation.
+/// The README, whose `rust` blocks are compiled examples.
 const README: &str = include_str!("../../../../README.md");
 
-/// The README's code blocks fenced as `text`, in order.
-fn text_blocks() -> Vec<String> {
+/// The README's code blocks fenced as `rust`, in order.
+fn rust_blocks() -> Vec<String> {
     let mut blocks = Vec::new();
     let mut lines = README.lines();
     while let Some(line) = lines.next() {
-        if line == "```text" {
+        if line == "```rust" {
             let block: Vec<&str> = lines.by_ref().take_while(|l| *l != "```").collect();
             blocks.push(block.join("\n") + "\n");
         }
@@ -32,11 +33,10 @@ fn as_in_readme(example: &str) -> String {
 }
 
 #[test]
-fn the_readme_iced_code_is_the_compiled_examples() {
-    let examples = [
-        include_str!("../../examples/readme_canvas.rs"),
-        include_str!("../../examples/readme_plot.rs"),
-    ]
-    .map(as_in_readme);
-    assert_eq!(text_blocks(), examples);
+fn the_readme_plot_code_is_the_compiled_example() {
+    let blocks = rust_blocks();
+    assert_eq!(
+        blocks.last(),
+        Some(&as_in_readme(include_str!("../../examples/readme_plot.rs")))
+    );
 }

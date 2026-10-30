@@ -34,7 +34,7 @@ name = "focus_context"
 required-features = ["widget"]
 
 [[example]]
-name = "readme_canvas"
+name = "canvas"
 required-features = ["widget"]
 
 [[example]]

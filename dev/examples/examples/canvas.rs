@@ -1,7 +1,6 @@
-//! The root README's iced canvas, compiled: d3's scales, line and bottom
-//! axis drawn into an iced canvas, with iced writing the axis labels. The
-//! code below this header is the README's, with `rustd3_core` for the
-//! facade's `rustd3` (`tests/main/readme.rs` checks that).
+//! An iced canvas drawn with the core level: d3's scales, line and bottom
+//! axis drawn into an iced canvas, with iced writing the axis labels
+//! (`GUIDE.md`, "The core level in an iced canvas").
 
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::canvas;
