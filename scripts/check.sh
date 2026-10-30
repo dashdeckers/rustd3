@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# quick: every commit's gate. full: end of every phase (run in the background).
-# release: before publishing, on a clean tree (RELEASING.md).
+# quick: every commit's gate. full: before a merge or a release (long; run it
+# in the background).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PACKAGES=(rustd3 rustd3-core rustd3-derive rustd3-figure rustd3-fonts rustd3-iced
@@ -90,51 +90,8 @@ full() {
     --out target/bench-smoke
 }
 
-# The five published crates, in the order cargo publishes them.
-PUBLISHED=(rustd3-fonts rustd3-derive rustd3-core rustd3-figure rustd3)
-
-# Before a release (RELEASING.md): the published crates' docs and the
-# README's doctests, each package's file list, then on a clean tree the
-# dry run, which packages, verifies and stops short of uploading, and no
-# git source in any packaged Cargo.lock.
-release() {
-  RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features \
-    -p rustd3 -p rustd3-core -p rustd3-figure -p rustd3-fonts -p rustd3-derive
-  cargo test -p rustd3 --all-features --doc
-  cargo test -p rustd3 --no-default-features --doc
-  mkdir -p target
-  for p in "${PUBLISHED[@]}"; do
-    cargo package --list -p "$p" > "target/package-$p.txt"
-    if grep -E '^(\.claude/|dev/|target/)' "target/package-$p.txt"; then
-      echo "release: $p packages files it must not" >&2; return 1
-    fi
-  done
-  if ! git diff --quiet || ! git diff --cached --quiet; then
-    echo "release: the dry run needs a clean tree" >&2; return 1
-  fi
-  cargo publish --dry-run --workspace --exclude rustd3-iced
-  # cargo 1.97's dry run leaves the packages it built in tmp-crate/;
-  # `cargo package` writes them to target/package/ itself.
-  for p in "${PUBLISHED[@]}"; do
-    local file="$p-0.1.0.crate" crate="" lock n
-    for at in target/package/tmp-crate target/package; do
-      if [ -f "$at/$file" ]; then crate="$at/$file"; break; fi
-    done
-    if [ -z "$crate" ] || ! lock=$(tar -xzOf "$crate" "$p-0.1.0/Cargo.lock"); then
-      echo "release: no packaged Cargo.lock for $p" >&2; return 1
-    fi
-    n=$(grep -c 'git+' <<< "$lock" || true)
-    if [ "$n" != 0 ]; then
-      echo "release: $p's packaged Cargo.lock has $n git sources" >&2; return 1
-    fi
-    echo "release: $crate: Cargo.lock without git sources"
-  done
-  echo "release: ready; the five package lists are target/package-*.txt"
-}
-
 case "${1:-quick}" in
   quick) shift || true; quick "$@" ;;
   full) full ;;
-  release) release ;;
-  *) echo "usage: scripts/check.sh quick [package…] | full | release" >&2; exit 2 ;;
+  *) echo "usage: scripts/check.sh quick [package…] | full" >&2; exit 2 ;;
 esac

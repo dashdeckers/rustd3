@@ -1,8 +1,0 @@
-[package]
-name = "d3"
-version.workspace = true
-edition.workspace = true
-
-[dependencies]
-jiff = "0.2"
-d3-core = { path = "../../poc/core" }
