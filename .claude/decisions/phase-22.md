@@ -1723,3 +1723,39 @@ revision that has it, in its own commit with the iced tests rerun on
 both backends, and the software profile measures the change. A and C
 stay unbuilt: they gain 12 % and cost UI-thread time or latency.
 
+
+## Two runs on 4805f0c: the Windows laptop's quick level and the desktop's full level (in progress)
+
+**Windows** (`rustd3-bench-quick-20261030T115836Z`): an Intel Core Ultra 7
+255U (14 threads) with Intel graphics, 31.5 GiB, Windows 11 26200. Other
+work ran during the benchmark. It is the first Windows run: every
+profile built and ran, and CPU s/s and peak RSS read n/a as designed.
+The CPU reference is about 2.4× the Ryzen's (tile 4.99 ms, scatter
+filled 276 ms and splatted 42 ms, composition 30.9 ms).
+- **software (offscreen):** frame cost p50 is 25–49 ms at factor 1 and
+  126–648 ms at factor 2. `grid16` at 2 composes in 487–687 ms a frame,
+  against about 120 ms on the Ryzen: 5×, beyond the CPU ratio, because
+  D22.13's per-image mask grows with the frame. At factor 2, zooms on
+  `scatter100k` and `grid16` take 8.7 and 11.6 s, with raster critical
+  paths of 1.5–1.75 s (18× the Ryzen's): the pool competed with the
+  other work.
+- **native (wgpu, Intel graphics):** pans miss, with UI frame p99 of 53–62
+  ms (Ryzen 4.6). Zoom latency is 1.2–2.7 s and `drag-resize` 2.0 s.
+  Inconclusive under load; a clean rerun is needed.
+
+**Desktop `--full`** (`rustd3-bench-full-20261030T100017Z`, still
+running at 629 of 1,132 native runs, at 13:18 UTC):
+- **figure:** the stats build takes 20.8 ms (2,614 before the binned
+  density). `scatter10m` peaks at 7.6 GiB with a 16.2 s PDF. GIF costs
+  280–450 ms per figure.
+- **software (5 runs):** pans have 31–33 ms latency p95 at factor 1 and
+  113–137 ms at 2. **Every zoom's latency p95 is 975–1,125 ms, the burst's
+  length**, at both factors, where the native wgpu path reaches 22 ms on
+  the same machine. Raster critical paths are 16–129 ms, and the preview
+  share is 53–82 % (native: 34 %). The software path has no generation
+  current until the burst ends. Suspects: 31g's mosaic, with an area that
+  shows any preview drawn as one composed image (does it hold previews
+  or swallow new tiles?), or the latency accounting of mosaic areas.
+- Offscreen, every frame composes the whole window, so `hover` pays full
+  composition (83–117 ms at factor 2). A window's damage tracking would
+  redraw the overlay only. Hover's software numbers are an upper bound.
