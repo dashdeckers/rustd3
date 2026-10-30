@@ -225,13 +225,19 @@ impl Rng {
 /// Runs `cases` cases of `property`, each with a generator seeded from
 /// `seed` and the case's number, so that a case reruns alone. The first
 /// case that panics fails the run with `name`, the seed, the case and the
-/// panic's message. `RUSTD3_FUZZ=1` runs ten times as many cases.
+/// panic's message. `RUSTD3_FUZZ=1` runs ten times as many cases;
+/// `RUSTD3_TRACE=1` prints each case before it runs, for a case that
+/// aborts or hangs instead of panicking.
 pub fn run(name: &str, seed: u64, cases: usize, mut property: impl FnMut(&mut Rng)) {
     let cases = match std::env::var("RUSTD3_FUZZ").as_deref() {
         Ok("1") => cases.saturating_mul(10),
         Ok(_) | Err(_) => cases,
     };
+    let trace = std::env::var("RUSTD3_TRACE").is_ok_and(|v| v == "1");
     for case in 0..cases {
+        if trace {
+            eprintln!("{name}: seed {seed:#x}, case {case}");
+        }
         let mut rng = case_rng(seed, case);
         let outcome = panic::catch_unwind(AssertUnwindSafe(|| property(&mut rng)));
         if let Err(payload) = outcome {
