@@ -413,6 +413,10 @@ impl Profile {
             let names: Vec<&str> = workloads.iter().map(|w| w.name()).collect();
             args.extend(["--workload".to_owned(), names.join(",")]);
         }
+        if let Some(factors) = &self.selection.factors {
+            let factors: Vec<String> = factors.iter().map(f32::to_string).collect();
+            args.extend(["--factor".to_owned(), factors.join(",")]);
+        }
         if let Some(runs) = self.selection.runs {
             args.extend(["--runs".to_owned(), runs.to_string()]);
         }
@@ -1151,6 +1155,19 @@ mod tests {
         assert_eq!(software.cells(1.0).len(), 8);
         assert_eq!(nogpu.name, "nogpu");
         assert!(why.contains("select none of its cells"), "{why}");
+        // Factors given reach the profile's run, as its cells say.
+        let one = part("--quick --only software --scenario zoom-lines --factor 1");
+        let selected = one.select(DESKTOP, 1.0);
+        let [(software, None)] = &selected[..] else {
+            panic!("{selected:?}");
+        };
+        let factors: Vec<f32> = software.cells(1.0).iter().map(|c| c.factor).collect();
+        assert_eq!(factors, [1.0; 3]);
+        let args = software.args(&display, Path::new("o"), None).join(" ");
+        assert!(
+            args.contains(" --scenario zoom-lines --factor 1 "),
+            "{args}"
+        );
     }
 
     #[test]
