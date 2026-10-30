@@ -27,7 +27,7 @@ touched() {  # packages with uncommitted changes or changed in HEAD
 }
 
 # The benchmark built without the widget, as `cargo rustd3-bench-figure`
-# builds it (D22.10): no iced, winit or wgpu in its tree, clippy on it and
+# builds it: no iced, winit or wgpu in its tree, clippy on it and
 # the examples it uses, its tests.
 no_widget() {
   if cargo tree -q -p rustd3-bench --no-default-features -e normal --prefix none \

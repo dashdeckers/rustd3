@@ -1,10 +1,10 @@
-//! [`Reference`]: the CPU reference (D22.9 (6)), a few headless,
+//! [`Reference`]: the CPU reference, a few headless,
 //! single-threaded timings of fixed renders that put a submitting machine
 //! on a scale with ours, taken at every level after the display
 //! measurement, into `results.json` and the report: one `trace` tile
-//! mid-zoom (Phase 31g's), the `scatter100k` plot area with its markers
-//! filled and splatted (D31.2's), and the software composition of a
-//! `trace` frame mid-zoom (Phase 31g's harness), which needs iced and is
+//! mid-zoom, the `scatter100k` plot area with its markers filled and
+//! splatted, and the software composition of a `trace` frame mid-zoom,
+//! which needs iced and is
 //! not measured in a build without the widget. Each is a median of a few
 //! repetitions, at factor 1, 1600 × 1000; a panic in one is caught and
 //! recorded as not measured.

@@ -28,9 +28,8 @@ const SMOKE_OUTCOME: &str = "no verdict by design: smoke only checks the windowe
                              verdicts need the default plan's 5 runs per cell";
 
 /// What the focus plan is, said before its budget table.
-const FOCUS: &str = "the focus plan reruns what Phase 31e changed (D22.5): the zooms, two \
-                     pans and the window drags. Its cells are held to the desktop budgets the \
-                     rule uses (D22.1) to show where each stands; it is not the rule's run, \
+const FOCUS: &str = "the focus plan runs the zooms, two pans and the window drags. Its cells \
+                     are held to the desktop budgets the rule uses to show where each stands; it is not the rule's run, \
                      and its verdicts decide nothing.";
 
 /// The focus plan's outcome line, in place of the rule's.
@@ -38,7 +37,7 @@ const FOCUS_OUTCOME: &str = "report-only: the focus plan is not the rule's run; 
                              show where each cell stands against the desktop budgets";
 
 /// What the display plan is, said before its verdicts.
-const DISPLAY: &str = "the display measurement that starts every level (D22.9): one short \
+const DISPLAY: &str = "the display measurement that starts every level: one short \
                        window whose idle frames give the refresh rate and which reports the \
                        scale factor and the renderer iced chose. Its numbers decide nothing.";
 
@@ -47,9 +46,9 @@ const DISPLAY_OUTCOME: &str = "no verdict by design: the display measurement onl
                                display";
 
 /// What the quick plan is, said before its budget table.
-const QUICK: &str = "the quick level (D22.9) runs what a performance issue needs, three runs a \
-                     cell. Its cells are held to the desktop budgets (D22.1) on the native \
-                     backend and to the weak budgets (D22.4) on the software renderer, to show \
+const QUICK: &str = "the quick level runs what a performance issue needs, three runs a cell. \
+                     Its cells are held to the desktop budgets on the native backend and to \
+                     the weak budgets on the software renderer, to show \
                      where each stands; it is not the rule's run, and its verdicts decide \
                      nothing.";
 
@@ -57,7 +56,7 @@ const QUICK: &str = "the quick level (D22.9) runs what a performance issue needs
 const QUICK_OUTCOME: &str = "report-only, the quick level: ";
 
 /// What the software plan is, said before its budget table.
-const SOFTWARE: &str = "the software profile (D22.12) drives the real `Plot` widget through the \
+const SOFTWARE: &str = "the software profile drives the real `Plot` widget through the \
                         gestures with replayed input on iced's software renderer (tiny-skia), \
                         headless: no window, display or compositor. Every frame is composed into \
                         an offscreen pixmap and read back, paced at 60 Hz in the replay's clock, \
@@ -66,11 +65,11 @@ const SOFTWARE: &str = "the software profile (D22.12) drives the real `Plot` wid
                         screenshot, whose fixed cost an empty frame shows), and after a frame \
                         that still shows previews the wait on the pool until the next. The frame \
                         budget reads the cost: a frame must be produced within 2 T. The cells \
-                        are held to the weak budgets (D22.4) to show where each stands; its \
+                        are held to the weak budgets to show where each stands; its \
                         verdicts decide nothing.";
 
 /// What the software plan's outcome line starts with.
-const SOFTWARE_OUTCOME: &str = "report-only, the software path offscreen (D22.12): ";
+const SOFTWARE_OUTCOME: &str = "report-only, the software path offscreen: ";
 
 /// What a run's report is, by its plan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,13 +92,13 @@ enum Kind {
 const XWAYLAND: &str = "This is a Wayland session; these runs had `WAYLAND_DISPLAY` removed, so \
                         winit opened their windows on X11 through XWayland. On Wayland, iced's \
                         software renderer reaches the widget about 8 frames a second during a \
-                        gesture where X11 draws hundreds (D22.8: winit's frame throttling with \
+                        gesture where X11 draws hundreds (winit's frame throttling with \
                         softbuffer's presentation, not the widget's drawing). This profile \
                         measures the widget's software path apart from that; it decides \
                         nothing, and the `nogpu` profile stays the no-GPU one.";
 
 /// What the X11 profile's outcome line starts with.
-const XWAYLAND_OUTCOME: &str = "report-only, X11 through XWayland (D22.8): ";
+const XWAYLAND_OUTCOME: &str = "report-only, X11 through XWayland: ";
 
 /// One planned cell and its runs.
 struct Cell<'a> {
@@ -110,7 +109,7 @@ struct Cell<'a> {
     failed: u32,
     /// For a windowed `4k` cell, the smallest device size the compositor
     /// gave its windows when one fell short of 3840 × 2160: the cell is
-    /// then "n/a: display too small" (D22.3).
+    /// then "n/a: display too small".
     small: Option<[f32; 2]>,
 }
 
@@ -413,7 +412,7 @@ fn frames_csv(cells: &[Cell<'_>]) -> String {
     out
 }
 
-/// Every composed frame of every run, by part (D22.12).
+/// Every composed frame of every run, by part.
 fn parts_csv(cells: &[Cell<'_>]) -> String {
     let mut out =
         String::from("scenario,workload,factor,run,at_ms,ui_ms,compose_ms,wait_ms,stale\n");
@@ -793,7 +792,7 @@ fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Chec
         "## {heading}\n\nPer-run statistic: mean [95% CI] over n runs; verdict by reading 3. \
          \"—\": the budget does not apply to the scenario; \"n/a\": the workload has no such \
          cell; \"n/a: display too small\": a `4k` window the compositor gave below 3840 × 2160 \
-         device px (D22.3).\n"
+         device px.\n"
     );
     let _ = writeln!(
         md,
@@ -856,7 +855,7 @@ fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Chec
     let _ = writeln!(md);
 }
 
-/// The frames' cost by part, for runs composed offscreen (D22.12):
+/// The frames' cost by part, for runs composed offscreen:
 /// medians across runs. Nothing when no run was.
 fn parts(md: &mut String, cells: &[Cell<'_>]) {
     if !cells.iter().flat_map(|c| &c.runs).any(Metrics::is_composed) {
@@ -1153,7 +1152,7 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
             let _ = writeln!(
                 md,
                 "- {}: the compositor gave a {w:.0}×{h:.0} device px window, below {}×{}: n/a \
-                 (display too small, D22.3)",
+                 (display too small)",
                 cell_name(cell),
                 scenario::FOUR_K.width,
                 scenario::FOUR_K.height
@@ -1259,8 +1258,8 @@ fn flags(md: &mut String, cells: &[Cell<'_>], meta: &Meta) {
     );
     let _ = writeln!(
         md,
-        "- label-churn labels a UTC time axis around midnight by its own ticks (Phase 34's real \
-         time formats, in place of Phase 22's stand-in labels)\n"
+        "- label-churn labels a UTC time axis around midnight by its own ticks, with the \
+         neutral locale's time formats\n"
     );
 }
 

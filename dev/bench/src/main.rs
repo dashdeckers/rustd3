@@ -1,11 +1,11 @@
 //! rustd3-bench: the benchmark of rustd3. Its one entry point is a level
-//! (`rustd3-bench [--quick | --default | --full]`, D22.9), which takes a
-//! CPU reference and times the plotting library alone (the figure profile,
-//! D22.10) and, with the `widget` feature (the default), drives the real
+//! (`rustd3-bench [--quick | --default | --full]`), which takes a CPU
+//! reference and times the plotting library alone (the figure profile)
+//! and, with the `widget` feature (the default), drives the real
 //! `Plot` widget through a wrapper that replays time-stamped input, in a
 //! window or headlessly, one cold process per run, and writes raw records,
-//! CSV summaries and a report that evaluates the decision rule registered
-//! before any run. Without the feature it builds no iced, winit or wgpu
+//! CSV summaries and a report that evaluates the rule registered before
+//! any run. Without the feature it builds no iced, winit or wgpu
 //! and runs the library's part alone. `--help` prints what the build runs.
 
 // Without the widget, its modules are out and some of what the rest

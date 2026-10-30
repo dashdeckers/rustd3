@@ -1,6 +1,7 @@
-//! The decision rule, registered before any run: budgets per cell, their
-//! verdicts by 95% interval, the attribution of each miss, and the
-//! outcome that decides Phase 31.
+//! The rule, registered before any run: budgets per cell, their verdicts
+//! by 95% interval, the attribution of each miss, and the outcome that
+//! says whether the image path suffices or a GPU data layer is
+//! recommended.
 
 use crate::metrics::{Half, Metrics, Part, Shares};
 use crate::scenario::Scenario;
@@ -15,12 +16,13 @@ share under 10% during pans. Each budget is met, missed or inconclusive by
 its 95% interval; the 10-minute memory run is one run per configuration.
 
 **Rule.** A missed budget is attributed to the UI thread (resolve, text,
-M4, list), raster (the worker's critical path) or upload. If any pan or
-zoom budget is missed and attributed to raster or upload, Phase 31 is
-built (tiles, translation, the pool, envelope fills, splatting) and this
-benchmark is rerun; a GPU data layer is recommended only if that rerun
-still misses. UI-thread misses route to moving list building off the UI
-thread, not to a GPU layer. If every budget is met, Phase 31 is skipped.
+M4, list), raster (the worker's critical path) or upload. The widget's
+image path is tiles that pans translate, rendered on a pool, with
+envelope fills and marker splatting; if any pan or zoom budget is missed
+and attributed to raster or upload on it, a GPU data layer is
+recommended. UI-thread misses route to moving list building off the UI
+thread, not to a GPU layer. If every budget is met, the image path
+suffices.
 
 **Operational readings.**
 
@@ -44,26 +46,26 @@ thread, not to a GPU layer. If every budget is met, Phase 31 is skipped.
    report shows all three.
 ";
 
-/// The weak profile's budgets and how its outcome reads (D22.4),
+/// The weak profile's budgets and how its outcome reads,
 /// registered before any run.
 pub const WEAK: &str = "\
-**Weak profile (D22.4).** The `weak` plan (`hover`, `pan-x` and
+**Weak profile.** The `weak` plan (`hover`, `pan-x` and
 `zoom-lines` on `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the
 native factor, five runs each) runs without a GPU (`--backend tiny-skia`)
 and on wgpu pinned to 4 and to 2 cores, each its own report. Budgets: p99
 frame interval ≤ 2 T; pan latency p95 ≤ 150 ms; zoom latency p95 ≤ 250
 ms; preview share ≤ 25% during pans. Each is met, missed or inconclusive
-by the readings above; a miss is attributed as above and becomes work for
-Phase 31 while it is open, else a recorded 0.2 item. These profiles never
+by the readings above; a miss is attributed as above and becomes an item
+for a later release. These profiles never
 reopen the GPU-layer question, which stays with the desktop profile.
 ";
 
 /// Which budgets a plan's cells are held to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Profile {
-    /// The verdict's (D22.1): the desktop.
+    /// The verdict's: the desktop.
     Desktop,
-    /// D22.4's weaker machines (the `weak` plan).
+    /// Weaker machines (the `weak` plan).
     Weak,
 }
 
@@ -86,7 +88,7 @@ pub enum Reading {
     /// The intervals between frames on a display (reading 1).
     Display,
     /// The cost of producing each frame offscreen, its UI work and its
-    /// composition (D22.12): a frame must be produced within the budget.
+    /// composition: a frame must be produced within the budget.
     Offscreen,
 }
 
@@ -300,29 +302,25 @@ impl Outcome {
         }
     }
 
-    /// The outcome's line in a report of `profile`. Phase 31 is built, so
-    /// a desktop run is the rerun the rule asks for: a raster or upload
-    /// miss now recommends the GPU data layer; the weak profiles never
-    /// decide it (D22.4).
+    /// The outcome's line in a report of `profile`: on the desktop a
+    /// raster or upload miss recommends the GPU data layer; the weak
+    /// profiles never decide it.
     pub fn line(self, profile: Profile) -> &'static str {
         match (profile, self) {
-            (Profile::Desktop, Outcome::Sufficient) => {
-                "image path sufficient — Phase 31 built, no GPU data layer"
-            }
+            (Profile::Desktop, Outcome::Sufficient) => "image path sufficient — no GPU data layer",
             (Profile::Desktop, Outcome::UiBound) => {
                 "UI-thread bound → move list building off the UI thread (0.2); no GPU data layer"
             }
             (Profile::Desktop, Outcome::RasterBound) => {
-                "still raster/upload bound after Phase 31 → GPU data layer recommended"
+                "raster/upload bound on the tiled image path → GPU data layer recommended"
             }
             (Profile::Weak, Outcome::Sufficient) => "weak profile: every budget met",
             (Profile::Weak, Outcome::UiBound) => {
-                "weak profile: missed on the UI thread → Phase 31 work while it is open, else a \
-                 0.2 item"
+                "weak profile: missed on the UI thread → an item for a later release"
             }
             (Profile::Weak, Outcome::RasterBound) => {
-                "weak profile: missed on raster/upload → Phase 31 work while it is open, else a \
-                 0.2 item (never the GPU-layer question)"
+                "weak profile: missed on raster/upload → an item for a later release (never the \
+                 GPU-layer question)"
             }
             (Profile::Desktop | Profile::Weak, Outcome::Pending) => {
                 "no verdict yet: some budget is inconclusive and none missed; rerun the \
@@ -374,7 +372,7 @@ mod tests {
         // Its outcome never asks for the GPU layer.
         let line = Outcome::RasterBound.line(Profile::Weak);
         assert!(
-            line.contains("0.2 item") && !line.contains("recommended"),
+            line.contains("a later release") && !line.contains("recommended"),
             "{line}"
         );
     }

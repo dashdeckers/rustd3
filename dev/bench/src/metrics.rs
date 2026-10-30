@@ -1,8 +1,8 @@
-//! [`Metrics`]: one run's records as the decision rule reads them: frame
+//! [`Metrics`]: one run's records as the rule reads them: frame
 //! intervals, input-to-sharp latency, preview share, UI busy time, the
 //! raster critical path, CPU and upload rates, memory, and the shares of
 //! UI, raster and upload in any window of frames; for a headless run that
-//! read every frame back, each frame's cost by [`Part`] (D22.12).
+//! read every frame back, each frame's cost by [`Part`].
 
 use std::collections::HashMap;
 
@@ -38,7 +38,7 @@ pub struct Frame {
     pub ui_ms: f64,
 }
 
-/// One frame composed offscreen, by part (D22.12): the widget's UI work,
+/// One frame composed offscreen, by part: the widget's UI work,
 /// iced's composition into the pixmap, and after a frame that still shows
 /// previews or missing tiles the time to the next frame, which the loop
 /// spends waiting on the pool's renders.

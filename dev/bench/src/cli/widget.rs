@@ -33,9 +33,9 @@ pub enum Command {
     List(Options),
     /// Measure the raster variants on the plan's workloads (CPU only).
     Raster(Options),
-    /// Print the items earlier phases asked to be measured.
+    /// Print the measurements beside the scenarios.
     Also,
-    /// D22.8's plain-iced reproduction: moving images, continuous redraws.
+    /// A plain-iced reproduction: moving images, continuous redraws.
     ReproSoftware {
         /// `--out FILE`; `None` is `bench-results/repro-<UTC stamp>.txt`.
         out: Option<PathBuf>,
@@ -88,10 +88,10 @@ pub struct Options {
     pub cpu_limit: Option<String>,
     /// `--xwayland`: the runs' windows open on X11 through XWayland in a
     /// Linux Wayland session (`WAYLAND_DISPLAY` removed from their
-    /// environment); D22.8's report-only profile, which `suite` runs.
+    /// environment); a report-only profile, which `suite` runs.
     pub xwayland: bool,
     /// `--frames DIR` (headless): every `every`-th composed frame written as
-    /// a PNG under `DIR/<cell>__r<run>/`, to look at (D22.12).
+    /// a PNG under `DIR/<cell>__r<run>/`, to look at.
     pub frames: Option<PathBuf>,
     /// `--every N`: with `--frames`, every N-th frame; 1 by default.
     pub every: u32,

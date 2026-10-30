@@ -1,7 +1,7 @@
-//! [`Results`]: a level's `results.json` (D22.9 (4)), the summary a
+//! [`Results`]: a level's `results.json`, the summary a
 //! submission is read by, versioned by its `format` (the schema is in
 //! `dev/bench/README.md`), and the level's `report.md`, written from it.
-//! Format 2 adds the figure profile's figures (D22.10); format 1 reads as
+//! Format 2 adds the figure profile's figures; format 1 reads as
 //! a level without them.
 
 use std::collections::BTreeMap;
@@ -39,7 +39,7 @@ pub struct Results {
     /// the widget): the CPU reference and the figure profile, no display.
     #[serde(default)]
     pub figure_only: bool,
-    /// The experiment flags the level ran with (D22.11 (1)), if any.
+    /// The experiment flags the level ran with, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub experiment: Option<Experiment>,
     /// The CPU reference's timings.
@@ -126,7 +126,7 @@ pub struct Profile {
     pub figures: Vec<Figure>,
 }
 
-/// One figure of the figure profile (D22.10).
+/// One figure of the figure profile.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Figure {
     /// `trace`, `scatter100k`, `line10m`, `preset-pie`, …
@@ -248,8 +248,8 @@ pub const KEY: [Key; 7] = [
     ("cpu_s_per_s", "CPU s/s", 2, false),
 ];
 
-/// The same for the software profile, whose frames are composed offscreen
-/// (D22.12): the frame's cost and its parts, then latency.
+/// The same for the software profile, whose frames are composed offscreen:
+/// the frame's cost and its parts, then latency.
 pub const SOFTWARE_KEY: [Key; 8] = [
     ("cost_p50_ms", "cost p50 ms", 1, false),
     ("cost_p99_ms", "cost p99 ms", 1, false),
@@ -377,7 +377,7 @@ impl Results {
         if self.level == "full" {
             let _ = writeln!(
                 md,
-                "`also.md` holds every `also` measurement (the items earlier phases asked for).\n"
+                "`also.md` holds every `also` measurement (the items beside the scenarios).\n"
             );
         }
         if !self.complete {
@@ -404,7 +404,7 @@ impl Results {
         if let Some(experiment) = &self.experiment {
             let _ = writeln!(
                 md,
-                "## Experiment\n\nThis level ran with experiment flags (D22.11), to answer one \
+                "## Experiment\n\nThis level ran with experiment flags, to answer one \
                  question: its profiles and cells are not the level's usual ones.\n"
             );
             for line in experiment.describe() {
@@ -430,8 +430,8 @@ impl Results {
             }
             let _ = writeln!(
                 md,
-                "\nThe native profile's line is D22.1's rule outcome; the weak profiles' are \
-                 D22.4's.\n"
+                "\nThe native profile's line is the rule's outcome; the weak profiles' are the \
+                 weak profile's.\n"
             );
         }
         md

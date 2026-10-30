@@ -1,4 +1,4 @@
-//! Phase 31g: a real gesture frame of the `Plot` widget composed by
+//! A real gesture frame of the `Plot` widget composed by
 //! iced's software renderer, headlessly. The widget is driven on
 //! tiny-skia through a zoom burst (a wheel line every 33 ms) and a drag (5
 //! px a frame) over `trace` and `scatter100k` at factors 1 and 2, every
@@ -128,7 +128,7 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Shown {
 /// The row: per workload, gesture and factor, the kept frame and the
 /// candidates replayed.
 pub(super) fn frames() -> Row {
-    let item = "Phase 31g: a gesture frame composed by tiny-skia (headless, 1600 × 1000 logical, \
+    let item = "a gesture frame composed by tiny-skia (headless, 1600 × 1000 logical, \
                 Auto, the default pool)"
         .to_owned();
     let mut parts = Vec::new();
@@ -148,13 +148,13 @@ pub(super) fn frames() -> Row {
     }
 }
 
-/// D22.13: what tiny-skia's composition of a frame costs per image and per
+/// What tiny-skia's composition of a frame costs per image and per
 /// pixel, at factors 1 and 2: a 1400 × 800 logical area of opaque images
 /// as 256-device-px tiles clipped to the area (as the widget draws a plot
 /// area's tiles) and each to itself, as one image, and as as many 4 × 4
 /// px images as there are tiles, against a frame of no image.
 pub(super) fn per_images() -> Row {
-    let item = "D22.13: a frame of images composed by tiny-skia (headless, 1600 × 1000 logical, \
+    let item = "a frame of images composed by tiny-skia (headless, 1600 × 1000 logical, \
                 warm medians of 8)"
         .to_owned();
     let mut parts = Vec::new();

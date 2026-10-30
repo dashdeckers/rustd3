@@ -1,5 +1,5 @@
 //! [`Display`]: what a level learns about the display before its
-//! profiles run (D22.9), in place of the smoke plan's six minutes. One
+//! profiles run, in a few seconds. One
 //! short windowed run (`run --plan display`: `hover` on `trace` for 3 s,
 //! data ÷ 100) on iced's own choice of renderer gives the refresh rate
 //! (its idle frames' median interval, when they are paced), the scale

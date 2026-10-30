@@ -15,24 +15,24 @@ pub enum Plan {
     /// Every scenario × workload once at factor 2, durations ÷ 5, data ÷
     /// 100, `soak` 20 s: the headless check.
     Smoke,
-    /// The display measurement that starts every level (D22.9): one
+    /// The display measurement that starts every level: one
     /// `hover` on `trace` at the native factor for 3 s, data ÷ 100, whose
     /// frames give the refresh rate and whose window gives the factor and
     /// the backend iced chose.
     Display,
-    /// The quick level's cells (D22.9): `hover`, `pan-x` and `zoom-lines`
+    /// The quick level's cells: `hover`, `pan-x` and `zoom-lines`
     /// on `trace` and `scatter100k`, and `drag-resize` on `trace`, at the
     /// native factor, three runs each; report-only. Its software profile
     /// selects `pan-x` and `zoom-lines` on `trace`.
     Quick,
     /// The verdict's cells: five runs each, `soak` once.
     Default,
-    /// D22.4's weaker machines: `hover`, `pan-x` and `zoom-lines` on
+    /// Weaker machines: `hover`, `pan-x` and `zoom-lines` on
     /// `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the native
     /// factor, five runs each, held to the weak profile's budgets; run
     /// without a GPU (`--backend tiny-skia`) and on 4 and 2 cores.
     Weak,
-    /// D22.5's rerun of what Phase 31e changed, five runs each, at the
+    /// The zooms, pans and window drags, five runs each, at the
     /// native factor unless named: `zoom-lines` and `zoom-pixels` on
     /// `trace`; `zoom-lines` on `trace` at the other three factors and on
     /// `scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
@@ -42,7 +42,7 @@ pub enum Plan {
     Focus,
     /// Every scenario × workload × factor, five runs each.
     Full,
-    /// D22.12's software path offscreen: `hover`, `pan-x`, `zoom-lines`
+    /// The software path offscreen: `hover`, `pan-x`, `zoom-lines`
     /// and `drag-resize` on `trace`, `scatter100k` and `grid16` at factors
     /// 1 and 2, three runs each, on iced's software renderer headless,
     /// every frame composed into an offscreen pixmap; held to the weak
@@ -82,8 +82,8 @@ pub struct Selection {
 pub const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
 
 /// The workloads besides `trace` that `quick` and `default` run `hover`,
-/// `pan-x` and `zoom-lines` on, as D22.1 registered them before any run;
-/// `wheels` (Phase 34) runs in `smoke` and `full`.
+/// `pan-x` and `zoom-lines` on, as registered before any run; `wheels`
+/// runs in `smoke` and `full`.
 const REGISTERED: [Workload; 4] = [
     Workload::Scatter100k,
     Workload::Scatter1m,
@@ -95,14 +95,14 @@ const REGISTERED: [Workload; 4] = [
 /// estimate's allowance on real hardware.
 pub const OVERHEAD_MS: f64 = 4_000.0;
 
-/// The software plan's factors (D22.12).
+/// The software plan's factors.
 pub const SOFTWARE_FACTORS: [f32; 2] = [1.0, 2.0];
 
-/// The software plan's workloads (D22.12).
+/// The software plan's workloads.
 const SOFTWARE_WORKLOADS: [Workload; 3] =
     [Workload::Trace, Workload::Scatter100k, Workload::Grid16];
 
-/// The software plan's scenarios (D22.12).
+/// The software plan's scenarios.
 const SOFTWARE_SCENARIOS: [Scenario; 4] = [
     Scenario::Hover,
     Scenario::PanX,
@@ -326,7 +326,7 @@ impl Cell {
     /// The window's logical size on a display of factor `native`: the
     /// scenario's; at another factor k (the factor cells) the standard
     /// window's 1600 × 1000 device px, 1600 / k × 1000 / k logical px, so
-    /// it fits a 1080p display (D22.3). A workload with a size of its own
+    /// it fits a 1080p display. A workload with a size of its own
     /// (the wheel figure) keeps it wherever the scenario does not ask for
     /// the 4k window.
     pub fn window(&self, native: f32) -> Size {
@@ -385,8 +385,8 @@ mod tests {
 
     #[test]
     fn default_plan_has_the_pre_registered_cells() {
-        // (A) holds `drag-resize` since D22.5, report-only: no budget reads
-        // it, so the rule's cells are D22.1's.
+        // (A) holds `drag-resize`, report-only: no budget reads it, so the
+        // rule's cells are the registered ones.
         let cells = Plan::Default.cells(2.0, &Selection::default());
         assert_eq!(cells.len(), 10 + 12 + 6 + 1);
         let runs: u32 = cells.iter().map(|c| c.runs).sum();
@@ -467,7 +467,7 @@ mod tests {
 
     #[test]
     fn factor_cells_keep_1600_by_1000_device_px() {
-        // D22.3: on a display of factor 1 the factor cells at 1.25, 1.5
+        // On a display of factor 1 the factor cells at 1.25, 1.5
         // and 2 ask for 1600 × 1000 device px, and the native cells keep
         // the standard window.
         let cells = Plan::Default.cells(1.0, &Selection::default());
@@ -551,7 +551,7 @@ mod tests {
             ]
         );
         assert!(cells.iter().all(|c| c.runs == 5 && c.applies()));
-        // The factor cells keep 1600 × 1000 device px (D22.3).
+        // The factor cells keep 1600 × 1000 device px.
         assert!(cells.iter().all(|c| {
             let w = c.window(1.0);
             (w.width * c.factor - 1600.0).abs() < 1e-3

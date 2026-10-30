@@ -1,7 +1,7 @@
-//! `rustd3-bench compare A B` (D22.9 (5)): two results, each a level's
-//! directory or archive (or the layout before D22.9), side by side: the
+//! `rustd3-bench compare A B`: two results, each a level's directory or
+//! archive (or a suite's directory from before the levels), side by side: the
 //! machines, then per profile and cell the key metrics of A and B and
-//! their ratio B/A (per figure and stage for the figure profile, D22.10),
+//! their ratio B/A (per figure and stage for the figure profile),
 //! with the cells and profiles only one side has marked.
 
 use std::fmt::Write as _;

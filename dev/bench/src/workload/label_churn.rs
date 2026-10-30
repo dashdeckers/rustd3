@@ -3,8 +3,7 @@
 //! midnight UTC, and x is a UTC time handle labelled by its own ticks in
 //! the figure's locale (the neutral ISO ladder: seconds or sub-seconds,
 //! minutes, and the date at the day boundary), so pans across midnight and
-//! zooms bring label strings the text cache has not seen. Phase 22's
-//! stand-in labelled a linear x `t+{v:.4} s` at 16 ticks.
+//! zooms bring label strings the text cache has not seen.
 
 use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_core::series::Clock;

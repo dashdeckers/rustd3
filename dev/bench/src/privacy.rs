@@ -1,4 +1,4 @@
-//! [`Identity`]: what a submitted archive must not hold (D22.9 (4)): the
+//! [`Identity`]: what a submitted archive must not hold: the
 //! home directory, the host name and the user name. Before a level packs
 //! its results it rewrites every text file through [`Identity::scrub`]:
 //! the results directory's own path goes (paths are relative to it), the
@@ -28,7 +28,7 @@ pub struct Identity {
 pub const PRIVACY: &str = "\
 # What this archive holds
 
-`rustd3-bench` wrote this archive for a performance report (D22.9). It
+`rustd3-bench` wrote this archive for a performance report. It
 holds what the benchmark measured and a description of the machine, and
 nothing else: no host name, no user name, no home path (paths are relative
 to the results directory, or start with `~` for the home directory), no

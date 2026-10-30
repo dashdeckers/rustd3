@@ -1,5 +1,5 @@
-//! The `raster` command: the two raster variants Phase 31 measures before
-//! it builds either, on every plot-area cell of the plan's workloads at
+//! The `raster` command: the two raster variants, envelope fills and
+//! marker splatting, on every plot-area cell of the plan's workloads at
 //! factor 1 and 2 in the standard window and at 4K, each rendered with the
 //! figure's raster path on one vello_cpu thread (as each thread of the
 //! widget's pool renders): thinned lines stroked as drawn against envelope

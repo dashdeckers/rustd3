@@ -1,4 +1,4 @@
-//! The submission archive (D22.9 (4)): a results directory packed as a
+//! The submission archive: a results directory packed as a
 //! ustar archive written here and gzipped with `flate2`, and read back in
 //! memory by `compare` and `report`. Entries carry no owner (uid, gid and
 //! their names are empty); their times are the pack's.
