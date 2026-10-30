@@ -7,6 +7,7 @@ mod boxplot;
 mod ecdf;
 mod errorbar;
 mod hist;
+mod hostile;
 mod labels;
 mod presets;
 mod subplots;
