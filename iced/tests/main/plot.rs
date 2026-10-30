@@ -1138,3 +1138,37 @@ fn a_gesture_holds_a_windowed_handle() {
     );
     assert_ne!(reset.rgba, held.rgba, "{backend}");
 }
+
+/// One inline frame of `plot` at `size` logical px on a factor-1 host,
+/// drawn; nothing when the backend is skipped.
+fn one_frame(plot: Plot<'static, ()>, size: Size) {
+    let Some(mut harness) = Harness::new(plot, size, 1.0) else {
+        return;
+    };
+    let now = headless::epoch();
+    let _ = harness.events(&[Event::Window(iced::window::Event::RedrawRequested(now))]);
+    harness.draw();
+}
+
+#[test]
+fn a_widget_wider_than_the_renderer_draws_renders_at_the_factor_that_fits() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0)
+        .mark(line(vec![(0.0, 0.0), (1.0, 1.0)], x, y))
+        .axis(axis::bottom(x))
+        .axis(axis::left(y));
+    // 80,000 device px wide at 2: its axis strip is wider than any render.
+    let plot = Plot::new(fig).render(Render::Inline).scale_factor(2.0);
+    one_frame(plot, Size::new(40_000.0, 200.0));
+}
+
+#[test]
+fn a_factor_of_a_billion_renders_at_eight() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0).axis(axis::bottom(x));
+    let plot = Plot::new(fig).render(Render::Inline).scale_factor(1e9);
+    one_frame(plot, SIZE);
+}

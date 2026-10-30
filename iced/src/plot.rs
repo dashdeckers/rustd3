@@ -368,7 +368,11 @@ impl<'a, Message> Plot<'a, Message> {
     /// `Simulator` has no window: it snapshots at 2 and tells widgets no
     /// factor, so a test that snapshots a `Plot` passes the snapshot's
     /// factor here; without it the widget draws for 1 and the snapshot
-    /// shows each of its pixels doubled.
+    /// shows each of its pixels doubled. A factor that is not finite and
+    /// positive is skipped for the next in the chain; one above 8, from
+    /// here or from the window, is taken as 8; and a widget wider or
+    /// taller than 65,408 device px, the most the renderer draws, renders
+    /// at the factor that fits it.
     ///
     /// ```text
     /// let plot = Plot::new(fig).scale_factor(2.0); // as iced_test snapshots
@@ -705,8 +709,10 @@ where
         {
             state.rescale(*scale_factor);
         }
-        let factor =
-            scale_factor::resolve(self.scale_factor, renderer.scale(), state.window_factor());
+        let factor = scale_factor::fit(
+            scale_factor::resolve(self.scale_factor, renderer.scale(), state.window_factor()),
+            layout.bounds().size(),
+        );
         // Gesture input is queued for the next `RedrawRequested`, which the
         // tracker translates first (a double click comes from it).
         if let Some(pointer) = state.translate(event, layout.bounds(), cursor, factor) {
