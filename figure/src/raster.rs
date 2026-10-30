@@ -72,6 +72,15 @@ pub enum Error {
     /// draw.
     #[error(transparent)]
     List(#[from] list::Error),
+    /// Bounds with another number of commands than the list rendered: the
+    /// bounds of another list.
+    #[error("bounds of {found} commands for a list of {commands}")]
+    Bounds {
+        /// The commands the bounds cover.
+        found: usize,
+        /// The list's commands.
+        commands: usize,
+    },
 }
 
 /// How a [`Renderer`] runs vello_cpu.
@@ -190,7 +199,8 @@ impl Renderer {
     /// reach the area (dashes keep their phase), so a tile of a long line
     /// strokes its own part of it.
     ///
-    /// `bounds` must be [`Bounds::of`] this list.
+    /// `bounds` must be [`Bounds::of`] this list; bounds of another
+    /// number of commands are [`Error::Bounds`].
     pub fn render(
         &mut self,
         list: &List,
@@ -199,7 +209,12 @@ impl Renderer {
         scale: f64,
     ) -> Result<Image, Error> {
         list::check(list)?;
-        debug_assert_eq!(bounds.len(), list.commands.len());
+        if bounds.len() != list.commands.len() {
+            return Err(Error::Bounds {
+                found: bounds.len(),
+                commands: list.commands.len(),
+            });
+        }
         let (width, height) = device(area, scale)?;
         self.context.reset_and_resize(width, height);
         let mut pixmap = vello_cpu::Pixmap::new(width, height);
