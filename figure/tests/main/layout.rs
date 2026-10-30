@@ -201,6 +201,19 @@ fn a_size_that_is_not_finite_and_positive_leaves_no_room() {
 }
 
 #[test]
+fn a_span_that_negative_gaps_pull_back_is_empty_not_inverted() {
+    // Reaches that leave no room, and a negative gap that pulls the second
+    // column back past the start of the first.
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.layout(Grid::new().col_gaps([px(-400.0)]));
+    fig.panel(0, 0).axis(axis::left(y).outward(600.0));
+    fig.panel_at(Cell::new(1, 0).span(1, 2));
+    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    assert!(areas.iter().all(|a| a.width() >= 0.0), "{areas:?}");
+}
+
+#[test]
 fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));
