@@ -45,8 +45,9 @@ impl Transform for Asinh {
     /// 0 than half a step dropped and 0 added when they straddle it); each
     /// step mapped back is rounded down to a signed power of ten, as
     /// matplotlib does through `⌊ln|x| / ln 10⌋`; fewer than two distinct
-    /// powers give equal steps of the ends instead. Values outside the
-    /// domain are dropped; domain order; empty for a non-finite end.
+    /// powers give equal steps of the ends instead, each value once (one
+    /// tick for a zero-width domain). Values outside the domain are
+    /// dropped; domain order; empty for a non-finite end.
     fn ticks(&self, domain: [f64; 2], count: usize) -> Vec<f64> {
         let reverse = domain[1] < domain[0];
         let [a, b] = if reverse {
@@ -78,7 +79,10 @@ impl Transform for Asinh {
         z.sort_by(f64::total_cmp);
         z.dedup();
         if z.len() < 2 {
+            // Equal steps of a zero-width or subnormal span repeat a value;
+            // each tick is kept once.
             z = linspace(low, high, steps.min(MAX_TICKS));
+            z.dedup();
         }
         z.retain(|v| (a..=b).contains(v));
         if reverse {
