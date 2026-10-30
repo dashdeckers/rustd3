@@ -104,6 +104,27 @@ fn size_by_stamps_a_unit_circle_at_per_point_radii_and_skips_sizes_that_are_not_
 }
 
 #[test]
+fn radii_are_drawn_at_most_three_times_the_plot_areas_larger_side() {
+    let (mut fig, x, y) = fitted();
+    let radius = fig.scale(scale::linear().domain([0.0, 1.0]).range([0.0, 1e300]));
+    fig.panel(0, 0)
+        .mark(dots([(0.0, 0.0), (1.0, 1.0)], x, y).size_by(radius, [1.0, -1.0]))
+        .mark(dots([(0.0, 0.0)], x, y).r(f64::MAX));
+    let list = draw(&fig);
+    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let most = 3.0 * area.width().max(area.height());
+    let markers: Vec<_> = marked(&list);
+    let Command::Markers { sizes, .. } = &markers[0] else {
+        panic!("markers");
+    };
+    assert_eq!(sizes.as_deref(), Some(&[most, -most][..]));
+    let Command::Markers { shape, .. } = &markers[1] else {
+        panic!("markers");
+    };
+    assert!((shape.bounding_box().width() - 2.0 * most).abs() < 1e-6 * most);
+}
+
+#[test]
 fn a_dot_is_dropped_when_more_than_its_own_radius_outside_the_plot_area() {
     let mut fig = Figure::new();
     let x = fig.scale(scale::linear().domain([0.0, 10.0]));
