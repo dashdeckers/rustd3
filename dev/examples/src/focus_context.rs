@@ -1,4 +1,4 @@
-//! Use case 1, focus and context, at the core level: three sensor traces
+//! Focus and context at the core level: three sensor traces
 //! over 30 days in a detail view (wheel to zoom, drag to pan) above an
 //! overview (drag to brush a window, drag the window to move it). One
 //! field, `visible`, is the window both views show; the zoom and the brush
@@ -290,7 +290,8 @@ impl canvas::Program<Message> for Overview<'_> {
         let brush =
             brush.get_or_insert_with(|| BrushX::new([[r0, 0.0], [r1, f64::from(OVERVIEW_HEIGHT)]]));
         // Between gestures follow the app's window; during one, the view may
-        // not have caught up with our own messages yet (use case 1's bug).
+        // not have caught up with our own messages yet, and syncing then
+        // would pull the brush back under the pointer.
         if !brush.is_active() {
             let shown = self.app.visible.map(|t| x.apply(t));
             brush.set_selection((self.app.visible != self.app.full).then_some(shown));

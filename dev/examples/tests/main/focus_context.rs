@@ -1,4 +1,4 @@
-//! Use case 1 through the simulator: each test sends events to the view,
+//! Focus and context through the simulator: each test sends events to the view,
 //! applies the messages it published to the app in order, and checks the
 //! window the app shows.
 

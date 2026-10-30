@@ -1,7 +1,7 @@
 // d3-scale's scaleOrdinal over number or string keys and values: `s(x)` is
 // `apply_or_insert(x)`, d3's implicit growth, until `.unknown(…)` is set,
-// then `apply(&x)`; `.unknown(undefined)` sets none and leaves `apply`
-// (D7.2). Key and value types are named once the test is read (finish): a
+// then `apply(&x)`; `.unknown(undefined)` sets none and leaves `apply`.
+// Key and value types are named once the test is read (finish): a
 // scale is {t: "ordinal", types: {id, k, v}, implicit}.
 import { skip } from "../expr.mjs";
 import { calls, chain, list } from "./band.mjs";

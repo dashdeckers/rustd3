@@ -1,6 +1,6 @@
 [package]
 name = "rustd3-examples"
-description = "rustd3's examples: trace, scatter, the wheel figure, the use cases and presets"
+description = "rustd3's examples: trace, scatter, the wheel figure, focus and context, the update pattern and presets"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,8 +10,8 @@ autotests = false
 
 [features]
 default = ["widget"]
-# The iced examples and use cases (focus_context, update_pattern, the
-# README's iced code); without it the figures alone build (D22.10).
+# The iced examples (focus_context, update_pattern, the README's iced
+# code); without it the figures alone build.
 widget = ["dep:rustd3-iced", "dep:iced"]
 
 [dependencies]

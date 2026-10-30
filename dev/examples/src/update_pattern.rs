@@ -1,4 +1,4 @@
-//! Use case 2, the general update pattern, at the core level: a top-five
+//! The general update pattern at the core level: a top-five
 //! bar chart that re-ranks on new data, bars entering from zero width,
 //! moving to their new rows and shrinking out, staggered 20 ms apart and
 //! interrupted by the next update mid-flight. Everything that animates is

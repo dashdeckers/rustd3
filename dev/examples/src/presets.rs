@@ -1,5 +1,5 @@
 //! The chart presets of `helpers::chart` over fixed data, each at the
-//! presets' 640 × 480: lines, the symlog line of Part I's Helpers, a
+//! presets' 640 × 480: lines, a symlog line of a recording's RMS, a
 //! scatter, grouped, stacked and diverging bars, a stacked area, a pie, a
 //! donut, a heatmap and a keyed heatmap. The `presets` example writes them
 //! as files; the benchmark's figure profile times them.
@@ -64,7 +64,7 @@ impl Default for Data {
     }
 }
 
-/// Part I's sketch of a preset: the recording's RMS on a symlog y with
+/// A line preset: the recording's RMS on a symlog y with
 /// minor ticks, titled with typst math.
 pub fn rms(data: &Data) -> chart::Line<'_> {
     let channel = data

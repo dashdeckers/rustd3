@@ -1,4 +1,4 @@
-//! The wheel figure, Part I's worked example: its samples, marks, bars and
+//! The wheel figure: its samples, marks, bars and
 //! fitted domains against `dev/fixtures/wheels.json` (written by
 //! `wheels.py`), its checks at two sizes, its labels and lowering, text
 //! snapshots of its list and SVG, and its PDF through poppler.
@@ -254,8 +254,7 @@ fn every_style_checks_clean_at_paper_and_notebook_on_960_by_760() {
     }
 }
 
-// Part I's test (Text and math): talk is too big for 960 × 760, and fits
-// 1600 × 1200.
+// The talk context is too big for 960 × 760, and fits 1600 × 1200.
 #[test]
 fn wheels_fit_at_talk() {
     let samples = wheels::simulate();
@@ -280,8 +279,7 @@ fn the_wheel_figures_64_labels_are_64_runs_of_365_glyphs_in_one_font() {
         })
         .collect();
     let glyphs: usize = runs.iter().map(|r| r.glyphs.len()).sum();
-    // Part I's sketch had 65 labels in 66 runs of 371 glyphs and two fonts;
-    // here one title, four panel titles ("Wheel: RL" two runs), 50 tick
+    // One title, four panel titles ("Wheel: RL" two runs), 50 tick
     // labels, 8 axis titles, 4 rule labels and the legend's 4.
     assert_eq!((runs.len(), glyphs, list.fonts.len()), (64, 365, 1));
 }
@@ -387,8 +385,8 @@ fn words(text: &str) -> String {
 
 #[test]
 fn wheels_pdf() {
-    // Tile scores measured with text and with outlined glyphs (D37.1); the
-    // text's are poppler's glyph placement, the outlines' the spec's bound.
+    // Tile scores measured with text and with outlined glyphs; the text's
+    // are bound by poppler's glyph placement.
     for (name, fig, [text_score, outlined_score]) in [
         ("wheels", wheel_figure(false), [0.0756, 0.0204]),
         (
@@ -437,7 +435,7 @@ fn wheels_pdf() {
                 );
             }
         }
-        // One font: Phase 34's 64 runs are all DejaVu Sans.
+        // One font: the 64 runs are all DejaVu Sans.
         let fonts = poppler::fonts(&text);
         assert_eq!(fonts.len(), 1, "{name}: {fonts:?}");
         assert!(
