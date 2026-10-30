@@ -214,6 +214,23 @@ fn a_span_that_negative_gaps_pull_back_is_empty_not_inverted() {
 }
 
 #[test]
+fn an_outward_offset_that_is_not_finite_is_ignored() {
+    let areas = |outward: Option<f64>| {
+        let mut fig = Figure::new();
+        let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+        let bottom = axis::bottom(x);
+        fig.panel(0, 0).axis(match outward {
+            Some(px) => bottom.outward(px),
+            None => bottom,
+        });
+        resolve(&fig, &Held::default()).plot_areas().to_vec()
+    };
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert_eq!(areas(Some(bad)), areas(None), "{bad}");
+    }
+}
+
+#[test]
 fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));

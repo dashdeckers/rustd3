@@ -195,10 +195,15 @@ impl<'a, S: Kind> Axis<'a, S> {
 
     /// Moves the axis `px` away from the plot area, as matplotlib's outward
     /// spines. Without it the axis sits on the plot area, or, after an axis
-    /// on the same side, 8 px past that axis's decorations.
+    /// on the same side, 8 px past that axis's decorations. A `px` that is
+    /// not finite leaves the offset as it was.
     pub fn outward(self, px: f64) -> Self {
         Axis {
-            outward: Some(px),
+            outward: if px.is_finite() {
+                Some(px)
+            } else {
+                self.outward
+            },
             ..self
         }
     }
