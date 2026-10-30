@@ -129,13 +129,10 @@ impl Resolved {
 
     /// (row, col) of a flat panel index, as `hit::Hit::panel` reports it:
     /// the first row and column of the panel's grid cell (panels are
-    /// numbered in the order of their first use, not row by row).
-    ///
-    /// # Panics
-    ///
-    /// For a panel index the figure does not have.
-    pub fn panel_cell(&self, panel: usize) -> (usize, usize) {
-        self.cells[panel]
+    /// numbered in the order of their first use, not row by row); `None`
+    /// for a panel the figure does not have.
+    pub fn panel_cell(&self, panel: usize) -> Option<(usize, usize)> {
+        self.cells.get(panel).copied()
     }
 
     /// The brush placed on panel `panel` ([`Panel::brush`]); `None` for a

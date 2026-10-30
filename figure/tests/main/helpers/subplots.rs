@@ -27,7 +27,7 @@ fn a_two_by_three_grid_labels_only_its_outer_axes() {
     let r = resolve(&fig, &Held::default());
     assert_eq!(r.plot_areas().len(), 6);
     for panel in 0..6 {
-        let (row, col) = r.panel_cell(panel);
+        let (row, col) = r.panel_cell(panel).expect("a panel of the grid");
         let bottom = r.plan(panel, 0).expect("a bottom axis");
         let left = r.plan(panel, 1).expect("a left axis");
         assert!(bottom.shown && left.shown, "panel {panel}");

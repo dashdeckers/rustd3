@@ -228,8 +228,16 @@ fn flat_panel_indices_map_back_to_their_cells() {
     }
     fig.panel_at(layout::Cell::new(2, 0).span(1, 2));
     let r = resolve(&fig, &Held::default());
-    let cells: Vec<_> = (0..5).map(|panel| r.panel_cell(panel)).collect();
-    assert_eq!(cells, [(1, 1), (0, 0), (1, 0), (0, 1), (2, 0)]);
+    let cells: Vec<_> = (0..6).map(|panel| r.panel_cell(panel)).collect();
+    let expected = [(1, 1), (0, 0), (1, 0), (0, 1), (2, 0)];
+    assert_eq!(
+        cells,
+        expected
+            .map(Some)
+            .into_iter()
+            .chain([None])
+            .collect::<Vec<_>>()
+    );
 }
 
 #[test]

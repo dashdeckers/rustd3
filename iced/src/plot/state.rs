@@ -762,13 +762,16 @@ impl State {
             let Some(scale) = resolved.scale_at(placed.over()) else {
                 continue;
             };
+            let Some(cell) = resolved.panel_cell(panel) else {
+                continue;
+            };
             let target = placed.target().and_then(|target| {
                 let key = Key::new(target, resolved.scale_at(target)?);
                 self.domains.current(key, resolved)
             });
             let spot = brush::Spot {
                 panel,
-                cell: resolved.panel_cell(panel),
+                cell,
                 placed,
                 over: Key::new(placed.over(), scale),
                 scale,

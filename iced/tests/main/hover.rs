@@ -139,7 +139,7 @@ fn hovering_a_dot_reports_its_index() {
             (DOTS_PANEL, 0, 1),
             "{backend}"
         );
-        assert_eq!(resolved.panel_cell(hover.panel), (1, 0), "{backend}");
+        assert_eq!(resolved.panel_cell(hover.panel), Some((1, 0)), "{backend}");
         assert_eq!(hover.at, dot, "{backend}: widget coordinates");
         // The line's samples and the bars' value ends are hovered too.
         let sample = at(areas[0], (2.5, 5.0 + 3.0 * 2.0f64.sin()));
