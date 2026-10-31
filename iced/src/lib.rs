@@ -4,8 +4,19 @@
 //! level, behind the `figure` feature, the `Plot` widget shows rendered
 //! images of a figure with interaction feedback drawn on top.
 //!
+//! An app depends on the `rustd3` facade and on this crate; the examples
+//! here are written with the facade's paths (`rustd3::shape`,
+//! `rustd3::figure::Figure`), which are `rustd3_core::shape` and
+//! `rustd3_figure::Figure` in the component crates.
+//!
+//! The crate depends on iced at git revision 3cbdacc and its signatures
+//! name iced's types (`Event`, `Rectangle`, `mouse::Cursor`, `Point`,
+//! `Length`, `Element`, `canvas::Path`): the app depends on iced at the
+//! same revision and names them through `iced`.
+//!
 //! ```
-//! use rustd3_core::shape;
+//! # mod rustd3 { pub use rustd3_core::shape; }
+//! use rustd3::shape;
 //!
 //! // Core level: the app draws d3's shapes into its own canvas geometry.
 //! let trace = rustd3_iced::path(|p| {

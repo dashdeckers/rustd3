@@ -42,8 +42,9 @@ const DOUBLE_CLICK_PX: f64 = 6.0;
 /// time; a second press before the redraw takes its place.
 ///
 /// ```
+/// # mod rustd3 { pub use rustd3_core::interact; }
 /// use iced_core::{mouse, Event, Point, Rectangle, Size};
-/// use rustd3_core::interact::{Delta, Pointer};
+/// use rustd3::interact::{Delta, Pointer};
 /// use rustd3_iced::pointer::Tracker;
 ///
 /// let mut tracker = Tracker::new();

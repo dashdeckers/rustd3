@@ -18,7 +18,8 @@ const EPSILON: f64 = 1e-6;
 /// semantics: a negative radius draws nothing.
 ///
 /// ```
-/// use rustd3_core::path::PathContext;
+/// # mod rustd3 { pub use rustd3_core::path; }
+/// use rustd3::path::PathContext;
 ///
 /// let wedge = rustd3_iced::path(|p| {
 ///     p.move_to(10.0, 0.0);
@@ -160,7 +161,8 @@ impl<'a> IcedPath<'a> {
 /// [`PathContext`].
 ///
 /// ```
-/// use rustd3_core::shape;
+/// # mod rustd3 { pub use rustd3_core::shape; }
+/// use rustd3::shape;
 ///
 /// let trace = rustd3_iced::path(|p| shape::line().draw([(0.0, 120.0), (320.0, 120.0)], p));
 /// assert_eq!(trace.raw().iter().count(), 3); // begin, line, end

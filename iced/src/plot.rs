@@ -11,10 +11,11 @@
 //! window, and its view shows that window, while y stays the widget's:
 //!
 //! ```no_run
+//! # mod rustd3 { pub use rustd3_core::scale; pub use rustd3_figure as figure; }
 //! use iced::Element;
-//! use rustd3_core::scale;
-//! use rustd3_figure::mark::line;
-//! use rustd3_figure::{Figure, axis};
+//! use rustd3::scale;
+//! use rustd3::figure::mark::line;
+//! use rustd3::figure::{Figure, axis};
 //! use rustd3_iced::Plot;
 //!
 //! struct App {
@@ -192,12 +193,13 @@
 //! `drop_front` renders the same way:
 //!
 //! ```no_run
+//! # mod rustd3 { pub use rustd3_core::{scale, series}; pub use rustd3_figure as figure; }
 //! use iced::Element;
-//! use rustd3_core::scale;
-//! use rustd3_core::series::Recording;
-//! use rustd3_figure::mark::line;
-//! use rustd3_figure::scale::Fit;
-//! use rustd3_figure::{Figure, axis};
+//! use rustd3::scale;
+//! use rustd3::series::Recording;
+//! use rustd3::figure::mark::line;
+//! use rustd3::figure::scale::Fit;
+//! use rustd3::figure::{Figure, axis};
 //! use rustd3_iced::Plot;
 //!
 //! struct Live {
@@ -444,7 +446,8 @@ impl<'a, Message> Plot<'a, Message> {
     /// each value with the last one it rendered.
     ///
     /// ```no_run
-    /// use rustd3_figure::Figure;
+    /// # mod rustd3 { pub use rustd3_figure as figure; }
+    /// use rustd3::figure::Figure;
     /// use rustd3_iced::Plot;
     ///
     /// /// The app's state: a counter it bumps when it replaces an image's
@@ -473,7 +476,8 @@ impl<'a, Message> Plot<'a, Message> {
     /// so the pool is the widget's only parallelism whatever its size.
     ///
     /// ```no_run
-    /// use rustd3_figure::Figure;
+    /// # mod rustd3 { pub use rustd3_figure as figure; }
+    /// use rustd3::figure::Figure;
     /// use rustd3_iced::Plot;
     ///
     /// // Leave the other cores to the app's own work.
@@ -494,10 +498,11 @@ impl<'a, Message> Plot<'a, Message> {
     /// its cost model either way.
     ///
     /// ```no_run
+    /// # mod rustd3 { pub use rustd3_figure as figure; }
     /// use std::sync::mpsc;
     ///
     /// use iced_core::time::Instant;
-    /// use rustd3_figure::Figure;
+    /// use rustd3::figure::Figure;
     /// use rustd3_iced::Plot;
     /// use rustd3_iced::plot::Probe;
     /// use rustd3_iced::plot::probe::Sample;
@@ -540,8 +545,9 @@ impl<'a, Message> Plot<'a, Message> {
     /// compile (E0631, expected `fn([Timestamp; 2]) -> _`).
     ///
     /// ```compile_fail,E0631
-    /// use rustd3_core::time;
-    /// use rustd3_figure::Figure;
+    /// # mod rustd3 { pub use rustd3_core::time; pub use rustd3_figure as figure; }
+    /// use rustd3::time;
+    /// use rustd3::figure::Figure;
     /// use rustd3_iced::Plot;
     ///
     /// enum Msg {
@@ -554,12 +560,13 @@ impl<'a, Message> Plot<'a, Message> {
     /// ```
     ///
     /// ```
-    /// use rustd3_core::time;
-    /// use rustd3_figure::Figure;
+    /// # mod rustd3 { pub use rustd3_core::{jiff, time}; pub use rustd3_figure as figure; }
+    /// use rustd3::time;
+    /// use rustd3::figure::Figure;
     /// use rustd3_iced::Plot;
     ///
     /// enum Msg {
-    ///     Range([rustd3_core::jiff::Timestamp; 2]),
+    ///     Range([rustd3::jiff::Timestamp; 2]),
     /// }
     ///
     /// let mut fig = Figure::new();
@@ -608,9 +615,10 @@ impl<'a, Message> Plot<'a, Message> {
     /// band handle has no domain values, and `brush::x` does not take one.
     ///
     /// ```no_run
-    /// use rustd3_core::jiff::Timestamp;
-    /// use rustd3_core::time;
-    /// use rustd3_figure::{Figure, brush};
+    /// # mod rustd3 { pub use rustd3_core::{jiff, time}; pub use rustd3_figure as figure; }
+    /// use rustd3::jiff::Timestamp;
+    /// use rustd3::time;
+    /// use rustd3::figure::{Figure, brush};
     /// use rustd3_iced::Plot;
     ///
     /// #[derive(Debug, Clone)]
@@ -662,9 +670,10 @@ impl<'a, Message> Plot<'a, Message> {
     /// builds it, and nothing is hit-tested meanwhile.
     ///
     /// ```no_run
-    /// use rustd3_core::scale;
-    /// use rustd3_figure::mark::dots;
-    /// use rustd3_figure::Figure;
+    /// # mod rustd3 { pub use rustd3_core::scale; pub use rustd3_figure as figure; }
+    /// use rustd3::scale;
+    /// use rustd3::figure::mark::dots;
+    /// use rustd3::figure::Figure;
     /// use rustd3_iced::Plot;
     /// use rustd3_iced::plot::Hover;
     ///
