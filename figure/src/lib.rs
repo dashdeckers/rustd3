@@ -52,6 +52,9 @@
 //! - `helpers`: one-call charts, statistical charts and subplots
 //!   (`helpers`).
 
+// Builders and pure functions say so: a result dropped is a bug.
+#![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
+
 pub use kurbo;
 pub use peniko;
 

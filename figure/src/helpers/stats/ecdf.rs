@@ -60,6 +60,7 @@ where
 impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Ecdf<X, Y> {
     /// The complementary distribution, 1 − ECDF: a step down by 1/n at
     /// each sorted value, from 1 to 0.
+    #[must_use]
     pub fn complementary(self, yes: bool) -> Self {
         Self {
             complementary: yes,
@@ -69,6 +70,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Ecdf<X, Y> {
 
     /// Strokes the steps with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Some(keyed(palette, key)),

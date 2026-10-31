@@ -25,6 +25,7 @@ pub trait Kind: Scale + Clone {
     /// This scale with its domain fitted to `extent` (`None`: no admitted
     /// data) through core's `scale::Pad`: `margin` of the span per side,
     /// stopped by `sticky` values. Categorical scales keep their domain.
+    #[must_use]
     fn fitted(
         &self,
         extent: Option<&[Self::Domain; 2]>,
@@ -38,6 +39,7 @@ pub trait Kind: Scale + Clone {
     /// sticky, 0.0)`, which band, point, ordinal, color and binned scales
     /// keep; continuous scales round with core's `nice(count)`, time
     /// scales to the tick interval for `count`.
+    #[must_use]
     fn niced(
         &self,
         extent: Option<&[Self::Domain; 2]>,

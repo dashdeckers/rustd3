@@ -63,6 +63,7 @@ impl<K> Bar<K> {
     /// let series = vec!["a".to_string(), "b".into(), "c".into()];
     /// let fig = chart::bar(rows, series).mode(Mode::Diverging).figure();
     /// ```
+    #[must_use]
     pub fn mode(self, m: Mode) -> Self {
         Bar { mode: m, ..self }
     }

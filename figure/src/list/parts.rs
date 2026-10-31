@@ -59,6 +59,7 @@ pub struct Cell {
 impl Cells {
     /// The cell containing a device pixel; cells are half-open, so a pixel
     /// on the last edge, or outside the canvas, is in none.
+    #[must_use]
     pub fn cell_at(&self, device: [i32; 2]) -> Option<usize> {
         let col = at(&self.cols, device[0])?;
         let row = at(&self.rows, device[1])?;
@@ -79,6 +80,7 @@ impl Cells {
 /// point of a `Markers` command and one per glyph of a `Glyphs` command;
 /// a part that touches several cells counts fully in each. Parts that
 /// draw nothing (bounds of no area) touch no cell.
+#[must_use]
 pub fn cells(list: &List, xs: &[f64], ys: &[f64], scale: f64) -> Cells {
     let cols = edges(xs, scale);
     let rows = edges(ys, scale);

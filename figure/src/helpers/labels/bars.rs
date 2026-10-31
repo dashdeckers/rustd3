@@ -69,6 +69,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
     /// `""` (up to 12 significant digits, trailing zeros trimmed), which
     /// writes what matplotlib's default `%g` writes for values of six
     /// significant digits or fewer.
+    #[must_use]
     pub fn format(self, spec: Specifier) -> Self {
         Self {
             format: spec,
@@ -79,6 +80,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
     /// The distance between a bar's end and its label, pt (3 by default,
     /// not scaled by the theme's context, as matplotlib's `padding`). A
     /// distance that is not finite leaves it as it was.
+    #[must_use]
     pub fn padding(self, pt: f64) -> Self {
         Self {
             padding: if pt.is_finite() { pt } else { self.padding },
@@ -88,6 +90,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
 
     /// Each label inside its bar, its line box centred halfway between the
     /// bar's base and its end (matplotlib's `label_type="center"`).
+    #[must_use]
     pub fn center(self) -> Self {
         Self {
             center: true,

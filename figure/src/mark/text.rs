@@ -64,6 +64,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
     /// Which point of the text's box sits at the note's point; its first
     /// line's start by default. Its lines align by the anchor's horizontal
     /// half.
+    #[must_use]
     pub fn anchor(self, a: Anchor) -> Self {
         Self { anchor: a, ..self }
     }
@@ -71,6 +72,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
     /// Moves the text `dx` px right and `dy` px down from its point, as
     /// Observable Plot's `dx` and `dy`. An offset that is not finite leaves
     /// it as it was.
+    #[must_use]
     pub fn offset(self, dx: f64, dy: f64) -> Self {
         let offset = Vec2::new(dx, dy);
         Self {
@@ -85,6 +87,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
 
     /// The text's color, for spans without their own; the theme's ink by
     /// default.
+    #[must_use]
     pub fn fill(self, c: Rgb) -> Self {
         Self {
             fill: Some(c),

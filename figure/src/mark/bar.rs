@@ -312,6 +312,7 @@ macro_rules! builders {
             /// Fills the bars with `palette`'s color for `key`, looked up
             /// when the figure draws; a key the palette lacks draws the
             /// theme's gray.
+            #[must_use]
             pub fn fill<C: Paint>(mut self, palette: ScaleRef<C>, key: C::Domain) -> Self {
                 self.bars.color = Color::keyed(palette, key);
                 self
@@ -319,6 +320,7 @@ macro_rules! builders {
 
             /// Hatches every bar with `h`, after its fill; legend swatches
             /// of the fill key repeat it.
+            #[must_use]
             pub fn hatch(mut self, h: Hatch) -> Self {
                 self.bars.hatch = Some(h);
                 self
@@ -327,6 +329,7 @@ macro_rules! builders {
             /// Places the bars in their fill key's slot of the band, the
             /// band split into one sub-band per palette key in the palette's
             /// order, so that bars of several marks stand side by side.
+            #[must_use]
             pub fn dodge(mut self) -> Self {
                 self.bars.dodge = true;
                 self
@@ -337,6 +340,7 @@ macro_rules! builders {
             /// the keys' positions. Band scales give their bandwidth and
             /// ignore it. A width that is not finite and positive leaves it
             /// as it was.
+            #[must_use]
             pub fn width(mut self, px: f64) -> Self {
                 self.bars.width = positive(px).or(self.bars.width);
                 self
@@ -346,6 +350,7 @@ macro_rules! builders {
             /// 0 by default. It applies to rows of values only: span rows
             /// carry both ends and ignore it. A base that is not finite
             /// leaves it as it was.
+            #[must_use]
             pub fn base(mut self, v: f64) -> Self {
                 if let Rows::Values { base, .. } = &mut self.bars.rows
                     && v.is_finite()

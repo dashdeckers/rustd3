@@ -129,6 +129,7 @@ where
 impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
     /// Points of each body's curve; 100 by default. A count below 2
     /// leaves it as it was.
+    #[must_use]
     pub fn points(self, n: usize) -> Self {
         let points = if n >= 2 { n } else { self.points };
         Self { points, ..self }.traced()
@@ -137,6 +138,7 @@ impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
     /// How far past the data the bodies run, in bandwidths; 0 by default
     /// (matplotlib), seaborn's default is 2. A value that is not finite
     /// and not negative leaves it as it was.
+    #[must_use]
     pub fn cut(self, k: f64) -> Self {
         let cut = if k.is_finite() && k >= 0.0 {
             k
@@ -147,6 +149,7 @@ impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
     }
 
     /// What is drawn inside each body; [`Inner::Box`] by default.
+    #[must_use]
     pub fn inner(self, inner: Inner) -> Self {
         Self { inner, ..self }
     }
@@ -154,6 +157,7 @@ impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
     /// Fills the bodies with `palette`'s color for `key` (at 0.35 opacity,
     /// the outline opaque), looked up when the figure draws; a key the
     /// palette lacks draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             fill: Fill::keyed(palette, key),
@@ -164,6 +168,7 @@ impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
     /// Places each group in its fill key's part of the slot, the slot split
     /// into one part per palette key in the palette's order, so that
     /// violins of several marks stand side by side.
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,

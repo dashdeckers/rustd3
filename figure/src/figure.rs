@@ -304,6 +304,7 @@ impl<'a> Figure<'a> {
 
     /// Whether handle `h` is of this figure: a handle of another figure
     /// finds no scale here, and what uses it draws nothing.
+    #[must_use]
     pub fn owns<S>(&self, h: ScaleRef<S>) -> bool {
         h.of(self.id).is_some()
     }
@@ -344,6 +345,7 @@ impl<'a> Figure<'a> {
     /// fig.theme(Theme::default().ink(Rgb::hex(0xff0000)));
     /// assert_eq!(fig.get_theme().get_ink(), Rgb::hex(0xff0000));
     /// ```
+    #[must_use]
     pub fn get_theme(&self) -> &Theme {
         &self.theme
     }

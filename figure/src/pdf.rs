@@ -75,6 +75,7 @@ pub enum Error {
 
 impl Options {
     /// Glyphs as filled outlines instead of text (no fonts embedded).
+    #[must_use]
     pub fn outlined(self, yes: bool) -> Self {
         Options {
             outlined: yes,
@@ -83,6 +84,7 @@ impl Options {
     }
 
     /// The document's title, written to its metadata.
+    #[must_use]
     pub fn title(self, t: impl Into<String>) -> Self {
         Options {
             title: Some(t.into()),

@@ -72,6 +72,7 @@ impl<X: Position, Y: Position<Domain = f64>> ErrorBar<X, Y> {
     /// Caps reaching `pt` points to each side of each bar, matplotlib's
     /// `capsize`. A size that is not finite and positive leaves them as
     /// they were.
+    #[must_use]
     pub fn caps(self, pt: f64) -> Self {
         let caps = if pt.is_finite() && pt > 0.0 {
             Some(pt)

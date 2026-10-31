@@ -92,6 +92,7 @@ impl<K> Clone for Legend<K> {
 }
 
 /// A legend of `palette`'s keys.
+#[must_use]
 pub fn legend<K>(palette: ScaleRef<Ordinal<K, Rgb>>) -> Legend<K>
 where
     K: PartialEq + Clone + Display + 'static,
@@ -105,6 +106,7 @@ where
 
 impl<K> Legend<K> {
     /// A title before the entries: left of a row, above a column.
+    #[must_use]
     pub fn title(self, t: impl Into<Text>) -> Self {
         Legend {
             title: Some(t.into()),
@@ -114,6 +116,7 @@ impl<K> Legend<K> {
 
     /// What every entry shows in its key's color, a square, a dot or a
     /// line, in place of the swatch of the key's marks.
+    #[must_use]
     pub fn glyph(self, g: Swatch) -> Self {
         Legend {
             glyph: Some(g),

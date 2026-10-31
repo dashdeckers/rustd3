@@ -81,12 +81,14 @@ impl From<String> for Text {
 
 impl Text {
     /// This text followed by `piece`.
+    #[must_use]
     pub fn push(mut self, piece: impl Into<Text>) -> Self {
         self.pieces.extend(piece.into().pieces);
         self
     }
 
     /// Whether the text has no characters.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.pieces.iter().all(|piece| match piece {
             Piece::Span(span) => span.is_empty(),
@@ -98,6 +100,7 @@ impl Text {
     /// [`Span`]), markup as it was given. A span followed by markup ends
     /// with `;`, so markup that starts with `(`, `[` or `.` does not
     /// continue the span's expression.
+    #[must_use]
     pub fn typst(&self) -> String {
         let mut out = String::new();
         let mut after_span = false;

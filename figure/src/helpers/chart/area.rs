@@ -38,6 +38,7 @@ pub struct Area<'a> {
 /// let wind = x.iter().map(|m| 3.0 - 0.1 * m).collect();
 /// let fig = chart::area(vec![solar, wind], x).y_label("GW").figure();
 /// ```
+#[must_use]
 pub fn area<'a>(columns: Vec<Vec<f64>>, x: Vec<f64>) -> Area<'a> {
     Area {
         columns,

@@ -62,6 +62,7 @@ impl<S> ScaleRef<S> {
 
     /// Position in the scale table (the widget keys state by it and the
     /// scale's `TypeId`).
+    #[must_use]
     pub fn index(self) -> usize {
         self.index as usize
     }

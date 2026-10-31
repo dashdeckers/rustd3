@@ -77,6 +77,7 @@ impl<S: Position> Rule<S> {
 
     /// The line's and the label's color; by default the theme palette's
     /// first.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Some(c),
@@ -86,6 +87,7 @@ impl<S: Position> Rule<S> {
 
     /// The line's width in px; by default the theme's line width. A width
     /// that is not finite and positive leaves it as it was.
+    #[must_use]
     pub fn width(self, px: f64) -> Self {
         Self {
             width: positive(px).or(self.width),
@@ -96,6 +98,7 @@ impl<S: Position> Rule<S> {
     /// Dashes: on and off lengths in px, from the line's start. A pattern
     /// with a negative or non-finite length, or none longer than 0, leaves
     /// the line as it was.
+    #[must_use]
     pub fn dash(self, pattern: impl IntoIterator<Item = f64>) -> Self {
         let dash = dashes(pattern).unwrap_or(self.dash);
         Self { dash, ..self }
@@ -103,6 +106,7 @@ impl<S: Position> Rule<S> {
 
     /// Text at the line's top end (`rule_x`, beside the line) or right end
     /// (`rule_y`, above it), at tick-label size in the line's color.
+    #[must_use]
     pub fn label(self, text: impl Into<Text>) -> Self {
         Self {
             label: Some(text.into()),

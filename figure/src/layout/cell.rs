@@ -31,6 +31,7 @@ pub struct Cell {
 
 impl Cell {
     /// The cell in row `row` and column `col`, one track each way.
+    #[must_use]
     pub fn new(row: usize, col: usize) -> Cell {
         Cell {
             rows: row..row.saturating_add(1),
@@ -40,6 +41,7 @@ impl Cell {
 
     /// The same first row and column, spanning `rows` rows and `cols`
     /// columns; a span of 0 is taken as 1.
+    #[must_use]
     pub fn span(self, rows: usize, cols: usize) -> Cell {
         let (row, col) = (self.rows.start, self.cols.start);
         Cell {

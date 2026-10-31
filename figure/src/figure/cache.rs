@@ -58,6 +58,7 @@ impl Cache {
     }
 
     /// What the cache holds and has done.
+    #[must_use]
     pub fn stats(&self) -> Stats {
         Stats {
             text: self.text.stats(),

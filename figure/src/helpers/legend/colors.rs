@@ -32,6 +32,7 @@ pub struct Colors<C> {
 /// let heat = fig.scale(scale::sequential([1.0, 100.0], scheme::viridis));
 /// fig.legend(Slot::Bottom, legend::colors(heat).count(3));
 /// ```
+#[must_use]
 pub fn colors<C>(handle: ScaleRef<C>) -> Colors<C>
 where
     C: Paint<Domain = f64> + Ticks<Domain = f64>,
@@ -41,6 +42,7 @@ where
 
 impl<C> Colors<C> {
     /// About `n` entries: the scale's ticks for count `n`.
+    #[must_use]
     pub fn count(self, n: usize) -> Self {
         Self { count: n, ..self }
     }

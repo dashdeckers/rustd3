@@ -257,7 +257,7 @@ fn random_figures_check_draw_and_write_without_panicking() {
     hostile::run("figure", 0xF1_6E, CASES, |rng| {
         let fig = figure(rng);
         let size = size(rng);
-        fig.check(size);
+        let _ = fig.check(size);
         let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
         if let Ok(lowered) = lower::lower(&list, svg::CAPS) {
             let _ = svg::write(&lowered.list, &svg::Options::default());

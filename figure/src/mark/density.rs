@@ -225,6 +225,7 @@ macro_rules! builders {
             /// Fills the region with `palette`'s color for `key` (at 0.35
             /// opacity, the outline opaque), looked up when the figure
             /// draws; a key the palette lacks draws the theme's gray.
+            #[must_use]
             pub fn fill<C: Paint>(mut self, palette: ScaleRef<C>, key: C::Domain) -> Self {
                 self.density.color = Color::keyed(palette, key);
                 self
@@ -232,6 +233,7 @@ macro_rules! builders {
 
             /// Hatches the region with `h`, between its fill and its
             /// outline; legend swatches of the fill key repeat it.
+            #[must_use]
             pub fn hatch(mut self, h: Hatch) -> Self {
                 self.density.hatch = Some(h);
                 self
@@ -241,6 +243,7 @@ macro_rules! builders {
             /// the values' units, instead of Scott's; [`adjust`](Self::adjust)
             /// still multiplies it. A bandwidth that is not finite and
             /// positive leaves it as it was.
+            #[must_use]
             pub fn bandwidth(mut self, h: f64) -> Self {
                 self.density.bandwidth = positive(h).or(self.density.bandwidth);
                 self.density = self.density.traced();
@@ -250,6 +253,7 @@ macro_rules! builders {
             /// Multiplies the bandwidth by `f`, seaborn's `bw_adjust`: above 1
             /// smoother, below 1 more detailed. A factor that is not finite and
             /// positive leaves it as it was.
+            #[must_use]
             pub fn adjust(mut self, f: f64) -> Self {
                 self.density.adjust = positive(f).unwrap_or(self.density.adjust);
                 self.density = self.density.traced();

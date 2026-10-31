@@ -40,18 +40,21 @@ macro_rules! finish {
     (impl[$($g:tt)*] $preset:ty) => {
         impl<$($g)*> $preset {
             /// The plot area's title (the panel's), centred over it.
+            #[must_use]
             pub fn title(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.title = Some(t.into());
                 self
             }
 
             /// The label of the axis along x, under its tick labels.
+            #[must_use]
             pub fn x_label(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.x_label = Some(t.into());
                 self
             }
 
             /// The label of the axis along y, beside its tick labels.
+            #[must_use]
             pub fn y_label(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.y_label = Some(t.into());
                 self
@@ -60,6 +63,7 @@ macro_rules! finish {
             /// The size the files are written at, logical px: 640 × 480 by
             /// default, matplotlib's 6.4 × 4.8 in at 100 dpi. A side that is
             /// not finite and positive leaves the size as it was.
+            #[must_use]
             pub fn size(mut self, w: f64, h: f64) -> Self {
                 self.setup.size(w, h);
                 self
@@ -70,6 +74,7 @@ macro_rules! finish {
             /// set.
             ///
             /// [`Theme::default`]: crate::Theme::default
+            #[must_use]
             pub fn theme(mut self, t: crate::Theme) -> Self {
                 self.setup.theme = t;
                 self
@@ -78,6 +83,7 @@ macro_rules! finish {
             /// Minor ticks on the axes that have them, as
             /// [`axes::defaults`](crate::helpers::axes::defaults) turns them
             /// on; on by default.
+            #[must_use]
             pub fn minor(mut self, on: bool) -> Self {
                 self.setup.minor = on;
                 self

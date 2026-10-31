@@ -57,16 +57,19 @@ impl Shaped {
     }
 
     /// The advance width of the widest line, px.
+    #[must_use]
     pub fn width(&self) -> f64 {
         self.width
     }
 
     /// From the top of the ink to the first baseline, px.
+    #[must_use]
     pub fn ascent(&self) -> f64 {
         self.ascent
     }
 
     /// From the first baseline to the bottom of the ink, px.
+    #[must_use]
     pub fn descent(&self) -> f64 {
         self.descent
     }
@@ -74,17 +77,20 @@ impl Shaped {
     /// From the first baseline down to the last line's, px: 0 for one
     /// line. Read from the runs set at the label's largest size, so
     /// scripts do not count as lines.
+    #[must_use]
     pub fn last(&self) -> f64 {
         self.last
     }
 
     /// Glyphs typst drew as .notdef because no font has them (fig.check
     /// reports them).
+    #[must_use]
     pub fn missing(&self) -> usize {
         self.missing
     }
 
     /// The box relative to the anchor point, before rotation.
+    #[must_use]
     pub fn bounds(&self, anchor: Anchor) -> Rect {
         let (dx, dy) = self.offset(anchor);
         Rect::new(dx, dy - self.ascent, dx + self.width, dy + self.descent)

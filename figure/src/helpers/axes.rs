@@ -21,6 +21,7 @@ use crate::scale::Kind;
 /// let y = fig.scale(scale::symlog().constant(1.0).domain([0.0, 5000.0]));
 /// fig.panel(0, 0).axis(axes::defaults(axis::left(y)));
 /// ```
+#[must_use]
 pub fn defaults<'a, S: Kind>(axis: Axis<'a, S>) -> Axis<'a, S> {
     axis.minor(true)
 }

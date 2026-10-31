@@ -40,6 +40,7 @@ pub struct Subplots<'a> {
 /// grid.figure().title("Six panels, three x and two y scales");
 /// let fig = grid.into_figure();
 /// ```
+#[must_use]
 pub fn subplots<'a>(rows: usize, cols: usize) -> Subplots<'a> {
     let mut fig = Figure::new();
     let x: Vec<_> = (0..cols).map(|_| fig.fit(scale::linear())).collect();
@@ -56,11 +57,13 @@ pub fn subplots<'a>(rows: usize, cols: usize) -> Subplots<'a> {
 
 impl<'a> Subplots<'a> {
     /// Column `col`'s x handle; `None` past the last column.
+    #[must_use]
     pub fn x(&self, col: usize) -> Option<ScaleRef<Linear>> {
         self.x.get(col).copied()
     }
 
     /// Row `row`'s y handle; `None` past the last row.
+    #[must_use]
     pub fn y(&self, row: usize) -> Option<ScaleRef<Linear>> {
         self.y.get(row).copied()
     }
@@ -76,6 +79,7 @@ impl<'a> Subplots<'a> {
     }
 
     /// The figure, done.
+    #[must_use]
     pub fn into_figure(self) -> Figure<'a> {
         self.fig
     }

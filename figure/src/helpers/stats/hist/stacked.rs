@@ -78,6 +78,7 @@ where
     Y: Position<Domain = f64>,
 {
     /// How the union of the values is binned.
+    #[must_use]
     pub fn bins(self, b: Bins) -> Self {
         Self {
             bins: Some(b),
@@ -88,6 +89,7 @@ where
     /// Heights as densities over all groups (matplotlib's `stacked=True,
     /// density=True`): counts divided by the total count of every group and
     /// the bin's width, so the stack's area sums to 1.
+    #[must_use]
     pub fn density(self, yes: bool) -> Self {
         Self {
             density: yes,

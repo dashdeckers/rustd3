@@ -46,11 +46,13 @@ impl Placed {
     }
 
     /// The axis it selects along.
+    #[must_use]
     pub fn dim(&self) -> Dim {
         self.dim
     }
 
     /// The table position of the handle it brushes over.
+    #[must_use]
     pub fn over(&self) -> usize {
         self.over.index()
     }

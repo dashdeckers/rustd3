@@ -138,6 +138,7 @@ where
 impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// How numbers are binned; band and point scales count keys and ignore
     /// it.
+    #[must_use]
     pub fn bins(self, b: Bins) -> Self {
         Self {
             bars: X::bars(&self.values, Some(b)),
@@ -147,6 +148,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
 
     /// Fills the bars with `palette`'s color for `key`, looked up when the
     /// figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -156,6 +158,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
 
     /// Hatches every bar with `h`, after its fill; legend swatches of the
     /// fill key repeat it.
+    #[must_use]
     pub fn hatch(self, h: Hatch) -> Self {
         Self {
             hatch: Some(h),
@@ -166,6 +169,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// Places the bars in their fill key's slot of each band or bin, split
     /// into one part per palette key in the palette's order, so that the
     /// bars of several histograms stand side by side.
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,

@@ -53,11 +53,13 @@ pub enum Length {
 }
 
 /// `x` times the theme's tick-label size.
+#[must_use]
 pub fn em(x: f64) -> Length {
     Length::Em(x)
 }
 
 /// `x` px exactly.
+#[must_use]
 pub fn px(x: f64) -> Length {
     Length::Px(x)
 }
@@ -88,11 +90,13 @@ pub struct Grid {
 
 impl Grid {
     /// Equal tracks with `em(1.0)` gaps.
+    #[must_use]
     pub fn new() -> Self {
         Grid::default()
     }
 
     /// The rows' relative heights, top to bottom.
+    #[must_use]
     pub fn rows(self, weights: impl IntoIterator<Item = f64>) -> Self {
         Grid {
             rows: weights.into_iter().map(weight).collect(),
@@ -101,6 +105,7 @@ impl Grid {
     }
 
     /// The columns' relative widths, left to right.
+    #[must_use]
     pub fn cols(self, weights: impl IntoIterator<Item = f64>) -> Self {
         Grid {
             cols: weights.into_iter().map(weight).collect(),
@@ -109,6 +114,7 @@ impl Grid {
     }
 
     /// Gap `i` is the whitespace between row `i` and row `i + 1`.
+    #[must_use]
     pub fn row_gaps(self, gaps: impl IntoIterator<Item = Length>) -> Self {
         Grid {
             row_gaps: gaps.into_iter().collect(),
@@ -117,6 +123,7 @@ impl Grid {
     }
 
     /// Gap `i` is the whitespace between column `i` and column `i + 1`.
+    #[must_use]
     pub fn col_gaps(self, gaps: impl IntoIterator<Item = Length>) -> Self {
         Grid {
             col_gaps: gaps.into_iter().collect(),

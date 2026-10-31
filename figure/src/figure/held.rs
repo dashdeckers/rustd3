@@ -48,6 +48,7 @@ impl Held {
 
     /// The scale `h` holds; `None` when it holds none or one of another
     /// type.
+    #[must_use]
     pub fn get<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
         let (kind, scale) = self.scales.get(&h.index())?;
         if *kind == TypeId::of::<S>() {
@@ -82,6 +83,7 @@ impl Held {
 
     /// The column grid of the handle at table position `handle`, if one is
     /// set.
+    #[must_use]
     pub fn grids_for(&self, handle: usize) -> Option<thin::Grid> {
         self.grids.get(&handle).copied()
     }

@@ -149,6 +149,7 @@ const _: () = {
 #[cfg(feature = "raster")]
 impl Renderer {
     /// A renderer with `settings`; a pool, if any, starts now.
+    #[must_use]
     pub fn new(settings: Settings) -> Self {
         let level = match settings.simd {
             Simd::Detect => vello_cpu::Level::try_detect().unwrap_or(vello_cpu::Level::baseline()),

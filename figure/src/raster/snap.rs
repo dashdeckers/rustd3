@@ -9,12 +9,14 @@
 ///
 /// assert_eq!(snap::edge(10.3, 1.5), 10.0);
 /// ```
+#[must_use]
 pub fn edge(x: f64, scale: f64) -> f64 {
     (x * scale).round() / scale
 }
 
 /// The width of a hairline in list px: at least one device px,
 /// `max(1, round(w·s)) / s`.
+#[must_use]
 pub fn width(w: f64, scale: f64) -> f64 {
     device_width(w, scale) / scale
 }
@@ -28,6 +30,7 @@ pub fn width(w: f64, scale: f64) -> f64 {
 ///
 /// assert_eq!(snap::line(10.3, 1.0, 2.0), 10.5);
 /// ```
+#[must_use]
 pub fn line(x: f64, w: f64, scale: f64) -> f64 {
     let device = x * scale;
     if device_width(w, scale) % 2.0 == 1.0 {

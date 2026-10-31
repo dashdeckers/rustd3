@@ -86,6 +86,7 @@ const _: () = {
 /// 6 pop
 /// part 0 1..7 bounds(40,20,300,200)
 /// ```
+#[must_use]
 pub fn dump(list: &List, options: dump::Options) -> String {
     dump::write(list, options)
 }
@@ -93,6 +94,7 @@ pub fn dump(list: &List, options: dump::Options) -> String {
 /// A stroke of `width` with butt caps and miter joins limited at 4, the
 /// SVG, tiny-skia and PDF defaults; kurbo's own default is round, which
 /// backends would draw differently at every corner.
+#[must_use]
 pub const fn stroke(width: f64) -> kurbo::Stroke {
     kurbo::Stroke::new(width)
         .with_caps(Cap::Butt)
@@ -103,6 +105,7 @@ pub const fn stroke(width: f64) -> kurbo::Stroke {
 /// A solid brush of `color`, its channels rounded to 8 bits: the paint of
 /// every fill and stroke the figure's own marks append, so a custom mark's
 /// commands in the same color render, and hash, as theirs do.
+#[must_use]
 pub fn brush(color: Rgb) -> Brush {
     let [r, g, b, a] = text::channels(color);
     Brush::Solid(Color::from_rgba8(r, g, b, a))

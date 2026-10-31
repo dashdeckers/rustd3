@@ -81,6 +81,7 @@ where
 
 impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
     /// How the values are binned.
+    #[must_use]
     pub fn bins(self, b: Bins) -> Self {
         Self {
             bins: Some(b),
@@ -92,6 +93,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
     /// Each value's weight, in the values' order: bins sum weights instead
     /// of counting. Their count must be the values' (non-finite values
     /// included), or the histogram draws nothing.
+    #[must_use]
     pub fn weights(self, w: impl IntoIterator<Item = f64>) -> Self {
         Self {
             weights: Some(w.into_iter().collect()),
@@ -102,6 +104,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
 
     /// Heights as densities: count / (total weight · width), so the bars'
     /// area sums to 1.
+    #[must_use]
     pub fn density(self, yes: bool) -> Self {
         Self {
             density: yes,
@@ -112,6 +115,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
 
     /// Heights as running sums from the first bin; with `density`, the last
     /// is 1.
+    #[must_use]
     pub fn cumulative(self, yes: bool) -> Self {
         Self {
             cumulative: yes,
@@ -123,6 +127,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
     /// The outline only, matplotlib's `histtype="step"`: one line up from
     /// 0 at the first edge, along the tops and down to 0 at the last, in
     /// the theme's line width.
+    #[must_use]
     pub fn step(self, yes: bool) -> Self {
         Self { step: yes, ..self }
     }
@@ -130,6 +135,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
     /// Fills the bars (or strokes the outline) with `palette`'s color for
     /// `key`, looked up when the figure draws; a key the palette lacks
     /// draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Some(keyed(palette, key)),

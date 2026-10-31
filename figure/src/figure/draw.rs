@@ -15,6 +15,7 @@ impl Figure<'_> {
     /// and nothing held: what `save_svg` writes. Repeated outputs of one
     /// figure keep a cache and call [`draw_with`](Figure::draw_with).
     #[cfg(feature = "fonts")]
+    #[must_use]
     pub fn draw(&self, size: kurbo::Size) -> List {
         self.draw_with(
             &mut Cache::default(),

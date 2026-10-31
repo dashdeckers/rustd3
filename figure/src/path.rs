@@ -37,11 +37,13 @@ pub struct Bez {
 
 impl Bez {
     /// An empty path.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// The recorded path.
+    #[must_use]
     pub fn finish(self) -> BezPath {
         self.path
     }

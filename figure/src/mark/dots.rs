@@ -160,6 +160,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// let color = fig.scale(scale::ordinal([Source::Hub, Source::Bearing], scheme::COLORBLIND));
     /// fig.panel(0, 0).mark(dots([(0.0, 1.0)], x, y).fill(color, Source::Bearing));
     /// ```
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -168,6 +169,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     }
 
     /// Fills the dots with `c`.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Color::Fixed(c),
@@ -179,6 +181,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// A radius that is not finite and positive leaves it as it was. Radii,
     /// these and `size_by`'s, are drawn at most three times the plot
     /// area's larger side, the guard band's reach.
+    #[must_use]
     pub fn r(self, px: f64) -> Self {
         Self {
             r: positive(px).or(self.r),
@@ -206,6 +209,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     ///     .mark(dots([("mon", 1.0), ("mon", 2.0)], day, y).fill(color, "a").dodge().jitter(0.8))
     ///     .mark(dots([("tue", 1.5)], day, y).fill(color, "b").dodge());
     /// ```
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,
@@ -219,6 +223,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// same data jitters the same way in every render and on every
     /// platform. Clamped to [0, 1]; 0 by default (the band's middle). NaN
     /// leaves it as it was.
+    #[must_use]
     pub fn jitter(self, share: f64) -> Self {
         Self {
             jitter: if share.is_nan() {
@@ -232,6 +237,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
 
     /// The dots' opacity, clamped to [0, 1]; 1 by default. NaN leaves it as
     /// it was.
+    #[must_use]
     pub fn opacity(self, a: f64) -> Self {
         Self {
             opacity: if a.is_nan() {
@@ -269,6 +275,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     ///         .size_by(radius, [10.0, 50.0, 100.0]),
     /// );
     /// ```
+    #[must_use]
     pub fn fill_by<C>(self, palette: ScaleRef<C>, values: impl IntoIterator<Item = f64>) -> Self
     where
         C: Paint<Domain = f64>,
@@ -289,6 +296,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// truncated: the mark draws nothing and
     /// [`Figure::check`](crate::Figure::check) reports
     /// [`Error::ChannelLength`].
+    #[must_use]
     pub fn size_by<S>(self, radius: ScaleRef<S>, values: impl IntoIterator<Item = f64>) -> Self
     where
         S: Position<Domain = f64>,

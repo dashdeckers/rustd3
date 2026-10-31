@@ -59,6 +59,7 @@ pub fn pie<K: Display>(slices: &[(K, f64)], inner: f64, outer: f64) -> Pie<K> {
 impl<K> Pie<K> {
     /// Each label as its slice's share of the total of the positive values,
     /// written `.0%` in the figure's locale ("50%"), in place of its key.
+    #[must_use]
     pub fn percent(self, on: bool) -> Self {
         Self {
             percent: on,
@@ -70,6 +71,7 @@ impl<K> Pie<K> {
     /// middle angle, in place of halfway between the radii. A radius that is
     /// not between 0 and the outer radius leaves the ring as it was: labels
     /// outside the pie are not in v0.1.
+    #[must_use]
     pub fn radius(self, r: f64) -> Self {
         let inside = (0.0..=self.outer).contains(&r);
         Self {

@@ -95,18 +95,21 @@ impl<X: Position, Y: Position<Domain = f64>> BoxPlot<X, Y> {
     /// Notched boxes: narrowing to half their width at the median, the
     /// notch from `notch_low` to `notch_high` (matplotlib's shape); the
     /// median line spans the waist.
+    #[must_use]
     pub fn notch(self, yes: bool) -> Self {
         Self { notch: yes, ..self }
     }
 
     /// How far the whiskers reach; [`Whis::Iqr(1.5)`](Whis::Iqr) by
     /// default.
+    #[must_use]
     pub fn whis(self, whis: Whis) -> Self {
         Self { whis, ..self }.summarized()
     }
 
     /// Fills the boxes with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             fill: Fill::keyed(palette, key),
@@ -117,6 +120,7 @@ impl<X: Position, Y: Position<Domain = f64>> BoxPlot<X, Y> {
     /// Places each group in its fill key's part of the slot, the slot split
     /// into one part per palette key in the palette's order, so that box
     /// plots of several marks stand side by side.
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,
@@ -126,6 +130,7 @@ impl<X: Position, Y: Position<Domain = f64>> BoxPlot<X, Y> {
 
     /// Marks each group's mean with a triangle in ink (matplotlib's
     /// `showmeans`).
+    #[must_use]
     pub fn means(self, yes: bool) -> Self {
         Self { means: yes, ..self }
     }

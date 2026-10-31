@@ -102,6 +102,7 @@ impl<S> Clone for Colorbar<'_, S> {
 }
 
 /// A colorbar of the color scale behind `handle`.
+#[must_use]
 pub fn colorbar<'a, S>(handle: ScaleRef<S>) -> Colorbar<'a, S>
 where
     S: Paint<Domain = f64> + Ramp,
@@ -117,6 +118,7 @@ where
 
 impl<'a, S> Colorbar<'a, S> {
     /// A title along the bar, past its tick labels, as an axis's.
+    #[must_use]
     pub fn title(self, t: impl Into<Text>) -> Self {
         Colorbar {
             title: Some(t.into()),
@@ -125,6 +127,7 @@ impl<'a, S> Colorbar<'a, S> {
     }
 
     /// End triangles for the values the scale clamps; none by default.
+    #[must_use]
     pub fn extend(self, e: Extend) -> Self {
         Colorbar { extend: e, ..self }
     }
@@ -133,6 +136,7 @@ impl<'a, S> Colorbar<'a, S> {
     /// the bar's length as an axis's does: one tick per 80 px across, per
     /// 35 px up, at least 2. Binned scales tick at their edges whatever the
     /// count.
+    #[must_use]
     pub fn ticks(self, count: usize) -> Self {
         Colorbar {
             count: Some(count),
@@ -142,6 +146,7 @@ impl<'a, S> Colorbar<'a, S> {
 
     /// Each label is `f(value)`, borrowing for `'a` as an axis's format
     /// does.
+    #[must_use]
     pub fn format(self, f: impl Fn(f64) -> String + 'a) -> Self {
         let format: Format<'a> = Rc::new(f);
         Colorbar {

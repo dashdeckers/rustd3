@@ -144,44 +144,52 @@ impl<'r> Ctx<'r> {
 impl Ctx<'_> {
     /// `h`'s resolved scale across the plot area, over [0, w]; `None` for
     /// a handle of another figure, which a mark draws nothing for.
+    #[must_use]
     pub fn x<S: Position>(&self, h: ScaleRef<S>) -> Option<S> {
         self.ranged(h, [0.0, self.rect.width()])
     }
 
     /// `h`'s resolved scale up the plot area, over [h, 0]; `None` for a
     /// handle of another figure.
+    #[must_use]
     pub fn y<S: Position>(&self, h: ScaleRef<S>) -> Option<S> {
         self.ranged(h, [self.rect.height(), 0.0])
     }
 
     /// `h`'s resolved scale as it is, before any panel's range (a palette,
     /// say); `None` for a handle of another figure.
+    #[must_use]
     pub fn raw<S: Kind>(&self, h: ScaleRef<S>) -> Option<S> {
         self.scale(h).cloned()
     }
 
     /// The plot area, in list px.
+    #[must_use]
     pub fn rect(&self) -> kurbo::Rect {
         self.rect
     }
 
     /// The figure's theme.
+    #[must_use]
     pub fn theme(&self) -> &Theme {
         self.theme
     }
 
     /// The panel's index, in the order of first use.
+    #[must_use]
     pub fn panel(&self) -> usize {
         self.panel
     }
 
     /// The mark's index in its panel, in insertion order.
+    #[must_use]
     pub fn mark(&self) -> usize {
         self.mark
     }
 
     /// Device pixels per list px of the target drawn for: 1 for vector
     /// output.
+    #[must_use]
     pub fn scale_factor(&self) -> f64 {
         self.resolved.target().scale_factor()
     }
@@ -192,6 +200,7 @@ impl Ctx<'_> {
     /// ([`Snap::line`]) through it to come out as crisp as the rect and
     /// rule marks on raster targets; vector output keeps everything as it
     /// is.
+    #[must_use]
     pub fn snap(&self) -> Snap {
         Snap::of(self.resolved.target())
     }
@@ -260,6 +269,7 @@ impl Ctx<'_> {
     /// it. A custom mark places it into its list with
     /// [`Shaped::place`], sized by [`Shaped::width`] and its line box
     /// ([`Ctx::line`]).
+    #[must_use]
     pub fn label(&self, key: &Key) -> Option<&Shaped> {
         self.text.get(key)?.ok()
     }
@@ -267,6 +277,7 @@ impl Ctx<'_> {
     /// The figure's locale ([`Figure::locale`](crate::Figure::locale)). A
     /// custom mark that writes numbers (value labels, annotations) formats
     /// them in it, as axes write their tick labels.
+    #[must_use]
     pub fn locale(&self) -> &rustd3_core::locale::Locale {
         self.resolved.locale()
     }
@@ -277,6 +288,7 @@ impl Ctx<'_> {
     /// helpers' value labels sit), not by each label's ink box, places
     /// their baselines from it: labels with and without descenders then
     /// line up.
+    #[must_use]
     pub fn line(&self, size: f64) -> [f64; 2] {
         self.text.fonts().line(size)
     }

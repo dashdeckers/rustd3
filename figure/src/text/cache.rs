@@ -119,6 +119,7 @@ impl Cache {
     }
 
     /// The label of `key`, if it is cached: shaped, or typst's error.
+    #[must_use]
     pub fn get(&self, key: &Key) -> Option<Result<&Shaped, &Error>> {
         self.entries
             .get(key)
@@ -139,6 +140,7 @@ impl Cache {
     }
 
     /// What the cache holds and has done.
+    #[must_use]
     pub fn stats(&self) -> Stats {
         Stats {
             entries: self.entries.len(),

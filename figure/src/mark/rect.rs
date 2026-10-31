@@ -62,6 +62,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Rect<X, Y> {
     /// Fills the rectangles with `palette`'s color for `key`, looked up
     /// when the figure draws; a key the palette lacks draws the theme's
     /// gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             fill: Some(Color::keyed(palette, key)),
@@ -72,6 +73,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Rect<X, Y> {
     /// Outlines the rectangles in `palette`'s color for `key`, 1 pt wide
     /// (seaborn's patch edges). As in Observable Plot, a stroked rectangle
     /// without [`fill`](Rect::fill) is not filled.
+    #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             stroke: Some(Color::keyed(palette, key)),

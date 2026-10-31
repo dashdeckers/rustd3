@@ -175,6 +175,7 @@ pub enum Direction {
 }
 
 /// A figure size in px: `size(1600.0, 1200.0)`.
+#[must_use]
 pub fn size(width: f64, height: f64) -> kurbo::Size {
     kurbo::Size::new(width, height)
 }

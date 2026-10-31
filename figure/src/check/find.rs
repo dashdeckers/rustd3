@@ -34,6 +34,7 @@ impl Figure<'_> {
     /// let issues = fig.check(size(640.0, 480.0));
     /// assert!(matches!(issues[..], [Issue::MissingGlyphs { count: 2, .. }]));
     /// ```
+    #[must_use]
     pub fn check(&self, size: kurbo::Size) -> Vec<Issue> {
         let mut cache = crate::Cache::default();
         let held = crate::Held::default();

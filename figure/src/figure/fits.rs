@@ -262,6 +262,7 @@ impl Fits {
     /// it while drawing. A custom mark that reports labels builds their
     /// [`Key`]s here from the theme's colors and sizes, so that the keys it
     /// looks up while drawing are the ones it reported.
+    #[must_use]
     pub fn theme(&self) -> &Theme {
         &self.theme
     }
@@ -270,6 +271,7 @@ impl Fits {
     /// [`Ctx::locale`](crate::mark::Ctx::locale) gives it while drawing. A
     /// custom mark that labels numbers writes them in it here, so that the
     /// labels it reports are the ones it draws.
+    #[must_use]
     pub fn locale(&self) -> &Locale {
         &self.locale
     }

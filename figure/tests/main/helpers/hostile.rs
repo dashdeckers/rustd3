@@ -21,7 +21,7 @@ fn draw(fig: &Figure<'_>, rng: &mut Rng) {
     } else {
         Size::new(rng.f64(), rng.f64())
     };
-    fig.check(size);
+    let _ = fig.check(size);
     fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
 }
 

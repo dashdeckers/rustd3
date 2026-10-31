@@ -68,6 +68,7 @@ impl<K> Pie<K> {
     ///
     /// let fig = chart::pie([("a", 3.0), ("b", 1.0), ("c", 2.0)]).inner(0.5).figure();
     /// ```
+    #[must_use]
     pub fn inner(self, share: f64) -> Self {
         let inner = if (0.0..1.0).contains(&share) {
             share
@@ -81,6 +82,7 @@ impl<K> Pie<K> {
 impl<K: PartialEq + Clone + Display + 'static> Pie<K> {
     /// The figure: one panel with the wedges and their labels, and its
     /// title.
+    #[must_use]
     pub fn figure<'a>(self) -> Figure<'a> {
         let Pie {
             slices,

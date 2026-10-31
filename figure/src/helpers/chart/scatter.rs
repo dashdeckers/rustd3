@@ -38,6 +38,7 @@ pub fn scatter<'a>(points: impl IntoIterator<Item = (f64, f64)>) -> Scatter<'a> 
 
 impl<'a> Scatter<'a> {
     /// The figure: one panel with the dots, its axes and title.
+    #[must_use]
     pub fn figure(self) -> Figure<'a> {
         let Scatter { points, setup } = self;
         let mut fig = setup.figure();

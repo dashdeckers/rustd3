@@ -38,6 +38,7 @@ pub struct Sizes<S> {
 /// fig.panel(0, 0)
 ///     .legend(Inset::TopLeft, legend::sizes(radius).values([10.0, 100.0]));
 /// ```
+#[must_use]
 pub fn sizes<S>(handle: ScaleRef<S>) -> Sizes<S>
 where
     S: Kind<Domain = f64, Output = f64> + Ticks<Domain = f64>,
@@ -51,12 +52,14 @@ where
 
 impl<S> Sizes<S> {
     /// About `n` entries: the scale's ticks for count `n`.
+    #[must_use]
     pub fn count(self, n: usize) -> Self {
         Self { count: n, ..self }
     }
 
     /// One entry per value in `v` inside the domain, in place of the
     /// scale's ticks, labelled as its ticks are.
+    #[must_use]
     pub fn values(self, v: impl IntoIterator<Item = f64>) -> Self {
         Self {
             values: Some(v.into_iter().collect()),

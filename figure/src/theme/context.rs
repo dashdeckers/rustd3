@@ -22,6 +22,7 @@ impl Context {
     ///
     /// assert_eq!(Context::Talk.scale(), 1.5);
     /// ```
+    #[must_use]
     pub fn scale(self) -> f64 {
         match self {
             Context::Paper => 0.8,

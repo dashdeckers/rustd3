@@ -51,6 +51,7 @@ pub struct Hatch {
 impl Hatch {
     /// One family of lines at `deg`, 6 pt apart and 0.8 pt wide in the
     /// theme's ink. An angle that is not finite hatches nothing.
+    #[must_use]
     pub fn lines(deg: f64) -> Self {
         Hatch {
             angles: vec![deg],
@@ -62,6 +63,7 @@ impl Hatch {
 
     /// Two families, at `deg` and `deg + 90`, otherwise as
     /// [`lines`](Hatch::lines).
+    #[must_use]
     pub fn cross(deg: f64) -> Self {
         Hatch {
             angles: vec![deg, deg + 90.0],
@@ -71,6 +73,7 @@ impl Hatch {
 
     /// `pt` between neighbouring lines of a family, 6 by default; a
     /// spacing that is not finite and positive leaves it as it was.
+    #[must_use]
     pub fn spacing(self, pt: f64) -> Self {
         Hatch {
             spacing: if pt.is_finite() && pt > 0.0 {
@@ -84,6 +87,7 @@ impl Hatch {
 
     /// Lines `pt` wide, 0.8 by default; a width that is not finite and
     /// positive leaves it as it was.
+    #[must_use]
     pub fn width(self, pt: f64) -> Self {
         Hatch {
             width: if pt.is_finite() && pt > 0.0 {
@@ -97,6 +101,7 @@ impl Hatch {
 
     /// Lines in `c`, the theme's ink by default; a color with a channel
     /// that is not finite leaves it as it was.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         let finite = [c.r, c.g, c.b, c.opacity].iter().all(|v| v.is_finite());
         Hatch {

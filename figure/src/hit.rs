@@ -99,6 +99,7 @@ impl Index {
     /// included: searched in the buckets the radius overlaps; of equally
     /// near points, the one reported first (panel, then mark, then point
     /// order).
+    #[must_use]
     pub fn nearest(&self, at: Point, radius: f64) -> Option<Hit> {
         let mut best: Option<Hit> = None;
         for (panel, grid) in self.panels.iter().enumerate() {
@@ -123,6 +124,7 @@ impl Index {
     }
 
     /// Whether no point is indexed.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }

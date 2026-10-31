@@ -71,6 +71,7 @@ pub fn line<'a, X: Position, Y: Position>(
 impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// Strokes the line with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -79,6 +80,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     }
 
     /// Strokes the line with `c`.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Color::Fixed(c),
@@ -88,6 +90,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
 
     /// The line's width in px; by default the theme's, 1.5 pt (2 px). A
     /// width that is not finite and positive leaves it as it was.
+    #[must_use]
     pub fn width(self, px: f64) -> Self {
         Self {
             width: positive(px).or(self.width),
@@ -101,6 +104,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// first sample of the column containing the grid's origin instead. A
     /// pattern with a negative or non-finite length, or none longer than 0,
     /// leaves the line as it was.
+    #[must_use]
     pub fn dash(self, pattern: impl IntoIterator<Item = f64>) -> Self {
         let dash = dashes(pattern).unwrap_or(self.dash);
         Self { dash, ..self }
@@ -108,12 +112,14 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
 
     /// How the line joins its points: d3's curves, straight by default.
     /// Thinned lines join their points straight.
+    #[must_use]
     pub fn curve(self, c: Curve) -> Self {
         Self { curve: c, ..self }
     }
 
     /// Whether the line thins a recording channel: [`Thin::Auto`] by
     /// default, [`Thin::Off`] to draw every sample.
+    #[must_use]
     pub fn thin(self, t: Thin) -> Self {
         Self { thin: t, ..self }
     }
@@ -121,6 +127,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// Vertices at the centre of the stroke key's sub-band (band x only):
     /// the band split into one sub-band per palette key, in the palette's
     /// order, so that a line runs through the dodged dots of its key.
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,
