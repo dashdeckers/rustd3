@@ -14,6 +14,9 @@
 //! assert_eq!(trace.raw().iter().count(), 4); // begin, two lines, end
 //! ```
 
+// Builders and pure functions say so: a result dropped is a bug.
+#![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
+
 mod path;
 #[cfg(feature = "figure")]
 pub mod plot;

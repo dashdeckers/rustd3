@@ -326,6 +326,7 @@ pub struct Plot<'a, Message> {
 
 impl<'a, Message> Plot<'a, Message> {
     /// Shows `figure`; the widget keeps it for relayouts.
+    #[must_use]
     pub fn new(figure: Figure<'a>) -> Self {
         Plot {
             figure,
@@ -346,6 +347,7 @@ impl<'a, Message> Plot<'a, Message> {
     }
 
     /// The widget's width; defaults to `Length::Fill`.
+    #[must_use]
     pub fn width(self, width: impl Into<Length>) -> Self {
         Plot {
             width: width.into(),
@@ -354,6 +356,7 @@ impl<'a, Message> Plot<'a, Message> {
     }
 
     /// The widget's height; defaults to `Length::Fill`.
+    #[must_use]
     pub fn height(self, height: impl Into<Length>) -> Self {
         Plot {
             height: height.into(),
@@ -379,6 +382,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// let mut ui = Simulator::with_size(Settings::default(), (800.0, 500.0), plot);
     /// ui.snapshot(&Theme::Light)?.matches_image("plot.png")?;
     /// ```
+    #[must_use]
     pub fn scale_factor(self, factor: f32) -> Self {
         Plot {
             scale_factor: Some(factor),
@@ -388,6 +392,7 @@ impl<'a, Message> Plot<'a, Message> {
 
     /// Crosshair in the hovered panel (default on): two lines one device
     /// pixel wide through the pointer, in the figure theme's ink at 40%.
+    #[must_use]
     pub fn crosshair(self, on: bool) -> Self {
         Plot {
             crosshair: on,
@@ -398,6 +403,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// Ring around the nearest data point (default on): the point of the
     /// hovered panel's marks nearest the pointer within 12 logical px,
     /// circled in the figure theme's ink.
+    #[must_use]
     pub fn highlight(self, on: bool) -> Self {
         Plot {
             highlight: on,
@@ -406,6 +412,7 @@ impl<'a, Message> Plot<'a, Message> {
     }
 
     /// Where changed cells rasterize; defaults to [`Render::Auto`].
+    #[must_use]
     pub fn render(self, render: Render) -> Self {
         Plot { render, ..self }
     }
@@ -414,6 +421,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// [`Caching::On`]. [`Caching::Off`] re-renders every cell whenever
     /// any changed, a diagnostic for the benchmark; [`Caching::Verify`]
     /// renders what it keeps again and reports what differs.
+    #[must_use]
     pub fn caching(self, caching: Caching) -> Self {
         Plot { caching, ..self }
     }
@@ -440,6 +448,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// }
     /// # let _ = App { replaced: 0 }.plot();
     /// ```
+    #[must_use]
     pub fn revision(self, revision: u64) -> Self {
         Plot { revision, ..self }
     }
@@ -459,6 +468,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// let plot = Plot::<()>::new(Figure::new()).threads(2);
     /// # let _ = plot;
     /// ```
+    #[must_use]
     pub fn threads(self, threads: usize) -> Self {
         Plot {
             threads: Some(threads.clamp(1, worker::MAX)),
@@ -495,6 +505,7 @@ impl<'a, Message> Plot<'a, Message> {
     ///     .count();
     /// # let _ = previews;
     /// ```
+    #[must_use]
     pub fn probe(self, probe: Probe) -> Self {
         Plot {
             probe: Some(probe),
@@ -543,6 +554,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// let x_time = fig.scale(time::utc());
     /// let plot: Plot<'_, Msg> = Plot::new(fig).on_change(x_time, Msg::Range);
     /// ```
+    #[must_use]
     pub fn on_change<S>(
         mut self,
         handle: ScaleRef<S>,
@@ -609,6 +621,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// }
     /// # let _ = view;
     /// ```
+    #[must_use]
     pub fn on_brush<A: Invert>(
         mut self,
         over: ScaleRef<A>,
@@ -655,6 +668,7 @@ impl<'a, Message> Plot<'a, Message> {
     /// let plot: Plot<'_, Message> = Plot::new(fig).on_hover(Message::Hovered);
     /// # let _ = plot;
     /// ```
+    #[must_use]
     pub fn on_hover(self, f: impl Fn(Option<Hover>) -> Message + 'a) -> Self {
         Plot {
             on_hover: Some(Box::new(f)),

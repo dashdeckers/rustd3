@@ -19,6 +19,7 @@ pub const ITEMS_PER_MS: f64 = 400.0;
 
 /// Modelled single-threaded time of one cell, in milliseconds: `pixels /
 /// PIXELS_PER_MS + work / ITEMS_PER_MS`.
+#[must_use]
 pub fn model_ms(pixels: u64, work: u64) -> f64 {
     pixels as f64 / PIXELS_PER_MS + work as f64 / ITEMS_PER_MS
 }
