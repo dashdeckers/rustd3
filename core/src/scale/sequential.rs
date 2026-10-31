@@ -337,7 +337,7 @@ impl<R: Clone, T: Transform> Ticks for Sequential<R, T> {
     /// `locale`.
     fn labels(&self, ticks: &ticks::Set<f64, f64>, locale: &locale::Locale) -> Vec<String> {
         super::ticks::labels(
-            self.tick_format_in(locale.number(), ticks.count(), None),
+            self.tick_format_in(locale.get_number(), ticks.get_count(), None),
             ticks,
             locale,
         )
@@ -345,7 +345,7 @@ impl<R: Clone, T: Transform> Ticks for Sequential<R, T> {
 
     /// The transform's minor ticks between the majors, inside the domain.
     fn minor(&self, ticks: &ticks::Set<f64, f64>) -> Vec<f64> {
-        super::ticks::minor(&self.transform, self.domain, ticks.values())
+        super::ticks::minor(&self.transform, self.domain, ticks.get_values())
     }
 
     /// `[0, 1]`: a colorbar maps it to pixels.

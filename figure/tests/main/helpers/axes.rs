@@ -108,7 +108,7 @@ fn minor_ticks_fill_fifths_of_a_linear_step_at_the_minor_size_without_labels() {
 fn symlog_axes_draw_the_decade_minors_of_core_ticks() {
     let symlog = scale::symlog().constant(1.0).domain([0.0, 5000.0]);
     let set = Ticks::tick_set(&symlog, 10);
-    assert_eq!(set.values(), [0.0, 1.0, 10.0, 100.0, 1000.0]);
+    assert_eq!(set.get_values(), [0.0, 1.0, 10.0, 100.0, 1000.0]);
     let decades: Vec<f64> = [1.0, 10.0, 100.0, 1000.0]
         .into_iter()
         .flat_map(|d| (2..=9).map(move |m| f64::from(m) * d))
@@ -139,12 +139,12 @@ fn log_axes_draw_decade_minors_beside_the_ticks_d3_blanks() {
     let y = fig.scale(log);
     fig.panel(0, 0).axis(axis::left(y).ticks(5).minor(true));
     let (strokes, texts) = axis_part(&draw(&fig), 0);
-    let blanked = texts.len() < set.values().len();
+    let blanked = texts.len() < set.get_values().len();
     let minor = &strokes[1].1;
     let majors = strokes[0].1.len();
     assert_eq!(
         majors + minor.len(),
-        set.values().len() + minors.len(),
+        set.get_values().len() + minors.len(),
         "every tick d3 gives and every core minor, majors blanked or not ({blanked})"
     );
     assert!(!minors.is_empty());

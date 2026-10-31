@@ -169,13 +169,13 @@ impl Locale {
 
     /// The number half, d3's `formatLocale`.
     #[must_use]
-    pub fn number(&self) -> &format::Locale {
+    pub fn get_number(&self) -> &format::Locale {
         &self.number
     }
 
     /// The time half, d3's `timeFormatLocale` with the tick-label ladder.
     #[must_use]
-    pub fn time(&self) -> &time::Locale {
+    pub fn get_time(&self) -> &time::Locale {
         &self.time
     }
 }

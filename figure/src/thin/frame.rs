@@ -91,15 +91,15 @@ impl Frame {
         grid: u64,
         valid: &dyn Fn(f64) -> bool,
     ) -> Option<m4::Lines> {
-        let recording = series.recording();
-        if upper.is_some_and(|upper| upper.recording().id() != recording.id()) {
+        let recording = series.get_recording();
+        if upper.is_some_and(|upper| upper.get_recording().get_id() != recording.get_id()) {
             return None;
         }
         let key = Key {
-            recording: recording.id(),
-            revision: recording.revision(),
-            channel: series.channel(),
-            upper: upper.map(Series::channel),
+            recording: recording.get_id(),
+            revision: recording.get_revision(),
+            channel: series.get_channel(),
+            upper: upper.map(Series::get_channel),
             grid,
             valid: fingerprint(valid),
         };

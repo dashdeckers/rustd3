@@ -165,7 +165,10 @@ where
     X: Position<Domain = C>,
     Y: Position<Domain = f64>,
 {
-    let (left, right) = (lower.recording().id(), upper.recording().id());
+    let (left, right) = (
+        lower.get_recording().get_id(),
+        upper.get_recording().get_id(),
+    );
     let error = (left != right).then_some(Error::Recordings { left, right });
     Ribbon::new(lower.into_points(), upper.into_points(), x, y, error)
 }

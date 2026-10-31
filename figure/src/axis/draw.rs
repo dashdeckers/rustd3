@@ -140,7 +140,7 @@ where
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>> {
         let ranged = self.ranged(resolved, length);
         self.set(&ranged, count)
-            .values()
+            .get_values()
             .iter()
             .map(|v| Ticks::position(&ranged, v, 0.0).filter(|p| p.is_finite()))
             .collect()
@@ -173,7 +173,7 @@ where
             return grid;
         }
         let set = self.set(scale, count);
-        let values = set.values();
+        let values = set.get_values();
         let positions = (0..values.len() as i64).collect();
         if numbers.is_some() || self.values.is_none() {
             return positions;
@@ -183,7 +183,7 @@ where
         let place = |key| Position::position(scale, key).map(f64::to_bits);
         let full = scale.tick_set(count);
         let mut at = HashMap::new();
-        for (i, key) in full.values().iter().enumerate() {
+        for (i, key) in full.get_values().iter().enumerate() {
             if let Some(bits) = place(key) {
                 at.entry(bits).or_insert(i as i64);
             }
@@ -204,7 +204,7 @@ where
             return Vec::new();
         };
         let interval = time.tick_interval(count);
-        let zone = time.zone();
+        let zone = time.get_zone();
         let step = i64::from(step(interval));
         let starts = |t: Timestamp| parent(interval).is_some_and(|p| p.floor(t, zone) == Some(t));
         let follows = |pair: &[Timestamp]| {
@@ -225,7 +225,7 @@ where
     }
 
     fn notation(&self, resolved: &Resolved, count: usize) -> Option<String> {
-        let locale = resolved.locale().number();
+        let locale = resolved.locale().get_number();
         Axis::notation(self, resolved.own(self.scale), count).map(|n| n.label(locale))
     }
 
@@ -248,7 +248,10 @@ where
         let scale = resolved.own(self.scale);
         let time = scale.as_any().downcast_ref::<Time>()?;
         let set = self.set(scale, count);
-        let instants = set.values().iter().map(|v| (v as &dyn Any).downcast_ref());
+        let instants = set
+            .get_values()
+            .iter()
+            .map(|v| (v as &dyn Any).downcast_ref());
         let instants: Option<Vec<Timestamp>> = instants.map(Option::<&Timestamp>::copied).collect();
         Some((time, instants?))
     }
@@ -317,7 +320,7 @@ fn parent(interval: Interval) -> Option<Interval> {
 /// when a boundary or count leaves jiff's range or `i64`.
 fn intervals(time: &Time, instants: &[Timestamp], count: usize) -> Option<Vec<i64>> {
     let interval = time.tick_interval(count);
-    let zone = time.zone();
+    let zone = time.get_zone();
     let epoch = interval.floor(Timestamp::UNIX_EPOCH, zone)?;
     instants
         .iter()

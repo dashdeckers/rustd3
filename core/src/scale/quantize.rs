@@ -20,7 +20,7 @@ use crate::ticks;
 /// assert_eq!((q.apply(0.2), q.apply(0.5), q.apply(0.9)), (Some(&"a"), Some(&"b"), Some(&"c")));
 /// assert_eq!(q.thresholds(), [0.3333333333333333, 0.6666666666666666]);
 /// assert_eq!(q.invert_extent(&"b"), Some([0.3333333333333333, 0.6666666666666666]));
-/// assert_eq!(q.tick_set(5).values(), [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]);
+/// assert_eq!(q.tick_set(5).get_values(), [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Quantize<R> {

@@ -131,11 +131,21 @@ Names and visibility settled before the first release:
 - `helpers::axes::defaults(axis)` is gone: `axis.minor(true)`.
 - Counts are `usize`: `path::SvgPath::with_digits(digits)` and
   `raster::Settings::threads`.
-- Readers are nouns unless a builder takes the name: `Theme::color`,
-  `gray`, `line_width`, `patch_width`, `density_width` and `marker` (were
-  `get_…`), and `time::Time::zone` (was `get_zone`); `get_domain`,
-  `get_range`, `get_ink`, `get_background`, `get_palette` and
-  `Figure::get_theme` keep `get_` beside their builders.
+- A method that reads a stored or configured value is `get_` and its
+  name, as the scales' `get_domain` and `get_range` are; predicates
+  (`is_`, `has_`, `wants_`), std's names (`len`, `iter`, `as_*`) and
+  computed quantities (`bandwidth`, `step`, `ticks`) keep theirs. Renamed
+  in rustd3-core: `format::Specifier`'s `fill`, `align`, `sign`,
+  `symbol`, `zero`, `width`, `comma`, `precision`, `trim`, `kind`;
+  `format::InvalidFormat::input`, `color::ParseColorError::input`,
+  `format::Format::locale`, `locale::Locale::{number, time}`,
+  `ticks::Set::{values, step, count}`, `axis::Label::{x, y, text,
+  anchor, dy}`, `series::Recording::{id, revision, offset}`,
+  `series::Series::{recording, channel}`, `series::Columns::edges`,
+  `series::m4::Extremes::{min, max}`, `anim::Animated::target`,
+  `interact::BrushX::selection` and `BrushY::selection`,
+  `interact::Modifiers::{shift, ctrl, alt, logo}`, each to `get_…`;
+  `time::Time::get_zone` keeps its name.
 - rustd3-iced: `Plot` is `rustd3_iced::Plot` and `Probe` is
   `rustd3_iced::plot::Probe` only (`plot::Plot` and `plot::probe::Probe`
   are gone).

@@ -20,7 +20,7 @@ fn examples_in_formats_time_and_color() {
     assert_eq!(Rgb::from(hsl).to_string(), "rgb(51, 153, 204)");
     assert_eq!(steel.brighter(1.0).to_string(), "rgb(100, 186, 255)");
     let error = "#zzz".parse::<Rgb>().expect_err("not a color");
-    assert_eq!(error.input(), "#zzz");
+    assert_eq!(error.get_input(), "#zzz");
     let gray = Rgb::hex(0x000000).lerp(&Rgb::hex(0xffffff), 0.5);
     assert_eq!(gray.to_string(), "rgb(128, 128, 128)");
 

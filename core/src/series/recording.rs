@@ -21,8 +21,8 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 ///
 /// let a = Recording::new(Clock::Regular { start: 0.0, period: 1.0 }, [[1.0, 2.0]])?;
 /// let b = a.clone();
-/// assert_ne!(a.id(), b.id());
-/// assert_eq!(a.revision(), b.revision());
+/// assert_ne!(a.get_id(), b.get_id());
+/// assert_eq!(a.get_revision(), b.get_revision());
 /// # Ok::<(), rustd3_core::series::Error>(())
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -190,17 +190,17 @@ impl<X: Coordinate> Recording<X> {
     }
 
     /// The recording's identity for caches.
-    pub fn id(&self) -> Id {
+    pub fn get_id(&self) -> Id {
         self.id
     }
 
     /// Bumped by every successful `extend` and every `drop_front` that dropped.
-    pub fn revision(&self) -> u64 {
+    pub fn get_revision(&self) -> u64 {
         self.revision
     }
 
     /// Absolute number of the current first sample (samples ever dropped).
-    pub fn offset(&self) -> u64 {
+    pub fn get_offset(&self) -> u64 {
         self.offset
     }
 
@@ -445,7 +445,7 @@ mod tests {
                     .m4(&grid, |y| y > -20.0)
                     .unwrap();
                 out.push((
-                    grid.edges().to_vec(),
+                    grid.get_edges().to_vec(),
                     lines.iter().map(<[usize]>::to_vec).collect(),
                 ));
             }
@@ -557,7 +557,7 @@ mod tests {
             err.to_string(),
             "a recording holds at most 4294967295 samples, got 4294967296"
         );
-        assert_eq!(rec.revision(), 0);
+        assert_eq!(rec.get_revision(), 0);
     }
 
     #[test]

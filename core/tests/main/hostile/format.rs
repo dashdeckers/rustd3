@@ -76,14 +76,14 @@ fn number_formats_parse_any_text_and_write_every_value() {
         let width = spec
             .parse::<format::Specifier>()
             .ok()
-            .and_then(|s| s.width());
+            .and_then(|s| s.get_width());
         if width.is_some_and(|w| w > WIDEST) {
             return;
         }
-        if let Ok(f) = locale.number().format(&spec) {
+        if let Ok(f) = locale.get_number().format(&spec) {
             writes_every_value(&f, rng);
         }
-        if let Ok(f) = locale.number().format_prefix(&spec, rng.f64()) {
+        if let Ok(f) = locale.get_number().format_prefix(&spec, rng.f64()) {
             writes_every_value(&f, rng);
         }
         if let Ok(f) = format::format(&spec) {
@@ -127,7 +127,7 @@ fn time_formats_write_any_instant_in_every_locale_and_zone() {
         let zone = rng.pick(&zones);
         let _ = time::format(&spec).format(t, zone);
         for locale in &LOCALES {
-            let _ = locale.time().format(&spec).format(t, zone);
+            let _ = locale.get_time().format(&spec).format(t, zone);
         }
         // ISO strings keep milliseconds and, through d3's `%Y`, four-digit
         // years: they read back within a millisecond in years 0 to 9999.

@@ -75,8 +75,8 @@ fn a_point_scale_is_a_band_scale_with_inner_padding_one() {
 fn a_bottom_axis_puts_ticks_at_the_points() {
     let s = scale::point(["a", "b", "c"]).range([0.0, 100.0]);
     let labels = axis::bottom(&s).labels();
-    let xs: Vec<f64> = labels.iter().map(|l| l.x()).collect();
+    let xs: Vec<f64> = labels.iter().map(|l| l.get_x()).collect();
     assert_eq!(xs, [0.5, 50.5, 100.5]);
     assert_eq!(s.extent(), [0.0, 100.0]);
-    assert_eq!(s.tick_set(3).values(), ["a", "b", "c"]);
+    assert_eq!(s.tick_set(3).get_values(), ["a", "b", "c"]);
 }

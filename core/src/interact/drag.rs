@@ -55,7 +55,7 @@ impl Drag {
                 button,
                 modifiers,
             } => {
-                if button != Button::Left || modifiers.ctrl() {
+                if button != Button::Left || modifiers.get_ctrl() {
                     return None;
                 }
                 let (sx, sy) = subject(x, y)?;

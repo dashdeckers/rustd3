@@ -86,7 +86,7 @@ impl Time {
 
     /// The zone ticks and nice lay intervals out in.
     #[must_use]
-    pub fn zone(&self) -> &TimeZone {
+    pub fn get_zone(&self) -> &TimeZone {
         &self.zone
     }
 

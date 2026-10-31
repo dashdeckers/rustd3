@@ -7,7 +7,7 @@
 /// use rustd3_core::color::Rgb;
 ///
 /// let error = "#zzz".parse::<Rgb>().unwrap_err();
-/// assert_eq!(error.input(), "#zzz");
+/// assert_eq!(error.get_input(), "#zzz");
 /// assert_eq!(error.to_string(), r##"not a CSS color: "#zzz""##);
 /// ```
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -22,7 +22,7 @@ impl ParseColorError {
 
     /// The string that did not parse, untrimmed.
     #[must_use]
-    pub fn input(&self) -> &str {
+    pub fn get_input(&self) -> &str {
         &self.0
     }
 }

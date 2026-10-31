@@ -208,7 +208,7 @@ fn a_new_value_rests_and_a_delayed_one_waits_where_it_was() {
         ..Timing::default()
     };
     value.go(8.0, ms(t0, 10), timing, Duration::from_millis(10));
-    assert_eq!(*value.target(), 8.0);
+    assert_eq!(*value.get_target(), 8.0);
     assert_eq!(value.value(ms(t0, 49)), 4.0);
     assert!(value.is_animating(ms(t0, 49)));
     assert_eq!(value.value(ms(t0, 100)), 6.0);

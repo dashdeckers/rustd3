@@ -147,7 +147,7 @@ impl Zoom {
                 button,
                 modifiers,
             } => {
-                if button == Button::Left && !modifiers.ctrl() {
+                if button == Button::Left && !modifiers.get_ctrl() {
                     self.gesture.grab = Some(t.invert((x, y)));
                 }
                 None
@@ -164,10 +164,10 @@ impl Zoom {
             }
             Pointer::DoubleClicked { x, y } => {
                 let held = self.gesture.modifiers;
-                if held.ctrl() {
+                if held.get_ctrl() {
                     return None;
                 }
-                let factor = if held.shift() { 0.5 } else { 2.0 };
+                let factor = if held.get_shift() { 0.5 } else { 2.0 };
                 let p = (x, y);
                 let next = translate(self.scale(t, t.k * factor), p, t.invert(p));
                 changed(self.constrain(next), t)
@@ -267,7 +267,7 @@ impl Zoom {
             Delta::Lines { x, y } => (x * LINE_PX, -y * PER_LINE),
             Delta::Pixels { x, y } => (x, -y * PER_PIXEL),
         };
-        let w = if modifiers.ctrl() { w * 10.0 } else { w };
+        let w = if modifiers.get_ctrl() { w * 10.0 } else { w };
         let k = self.clamped(t.k * 2f64.powf(w));
         let mut anchor = match burst {
             Some(anchor) if anchor.point == p => anchor,

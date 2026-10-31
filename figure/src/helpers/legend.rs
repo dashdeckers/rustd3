@@ -55,7 +55,7 @@ where
         return Vec::new();
     };
     let set = Ticks::tick_set(scale, count);
-    let chosen = values.map_or_else(|| set.values().to_vec(), <[f64]>::to_vec);
+    let chosen = values.map_or_else(|| set.get_values().to_vec(), <[f64]>::to_vec);
     let inside: Vec<f64> = match Kind::domain(scale) {
         Some([a, b]) => {
             let (low, high) = (a.min(b), a.max(b));
@@ -68,5 +68,5 @@ where
     };
     let set: ticks::Set<f64, <S as Ticks>::Step> = set.with_values(inside);
     let labels = Ticks::labels(scale, &set, resolved.locale());
-    set.values().iter().copied().zip(labels).collect()
+    set.get_values().iter().copied().zip(labels).collect()
 }

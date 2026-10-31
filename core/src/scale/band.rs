@@ -252,7 +252,7 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Band<K> {
 
     /// Each key's `Display`, d3's identity format; the locale is unused.
     fn labels(&self, ticks: &ticks::Set<K, ()>, _locale: &Locale) -> Vec<String> {
-        ticks.values().iter().map(ToString::to_string).collect()
+        ticks.get_values().iter().map(ToString::to_string).collect()
     }
 
     fn extent(&self) -> [f64; 2] {

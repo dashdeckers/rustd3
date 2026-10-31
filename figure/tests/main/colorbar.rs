@@ -239,11 +239,11 @@ fn ticks_sit_at_the_scales_positions_and_point_out_of_the_bar() {
     // As an axis as long: one tick per 35 px up.
     let count = (bar.height() / 35.0).round() as usize;
     let set = s.tick_set(count);
-    assert_eq!(set.values().len(), 17);
+    assert_eq!(set.get_values().len(), 17);
     assert_eq!(texts(cb), s.labels(&set, &Locale::NEUTRAL));
     let marks = ticks(cb);
-    assert_eq!(marks.len(), set.values().len());
-    for ([(x0, y0), (x1, y1)], v) in marks.iter().zip(set.values()) {
+    assert_eq!(marks.len(), set.get_values().len());
+    for ([(x0, y0), (x1, y1)], v) in marks.iter().zip(set.get_values()) {
         let y = bar.y1 - v / 80.0 * bar.height();
         assert!(close(*y0, y) && close(*y1, y), "{v}");
         assert!(close(*x0, bar.x1) && close(x1 - x0, TICK));

@@ -38,7 +38,7 @@ impl Columns {
 
     /// The sample index of each edge, non-decreasing.
     #[must_use]
-    pub fn edges(&self) -> &[usize] {
+    pub fn get_edges(&self) -> &[usize] {
         &self.edges
     }
 

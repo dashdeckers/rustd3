@@ -30,7 +30,7 @@ use crate::interact::brush::engine::{Dim, Engine};
 /// assert_eq!(brush.handle(to(10.0)), Some(BrushEvent::Brush(Some([10.0, 20.0]))));
 /// let release = Pointer::Released { button: Button::Left };
 /// assert_eq!(brush.handle(release), Some(BrushEvent::End(Some([10.0, 20.0]))));
-/// assert_eq!(brush.selection(), Some([10.0, 20.0]));
+/// assert_eq!(brush.get_selection(), Some([10.0, 20.0]));
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrushX {
@@ -63,7 +63,7 @@ impl BrushX {
 
     /// The selected x interval.
     #[must_use]
-    pub fn selection(&self) -> Option<[f64; 2]> {
+    pub fn get_selection(&self) -> Option<[f64; 2]> {
         self.engine.selection()
     }
 

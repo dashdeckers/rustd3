@@ -310,7 +310,7 @@ fn a_ribbon_over_two_channels_is_thinned_jointly_and_keeps_lower_below_upper() {
                 assert!(high.y <= low.y, "upper below lower at {high:?}, {low:?}");
             }
         }
-        for column in columns.edges().windows(2) {
+        for column in columns.get_edges().windows(2) {
             let samples = column[0]..column[1];
             if samples.start < 120_500 && samples.end > 120_000 {
                 continue;
@@ -318,7 +318,7 @@ fn a_ribbon_over_two_channels_is_thinned_jointly_and_keeps_lower_below_upper() {
             let raw = |s: usize, top: bool| {
                 let series = rec.series(s).expect("a channel");
                 let e = series.extremes(samples.clone(), |_| true)?;
-                Some(if top { e.max().0 } else { e.min().0 })
+                Some(if top { e.get_max().0 } else { e.get_min().0 })
             };
             let (Some(high), Some(low)) = (raw(1, true), raw(0, false)) else {
                 continue;
@@ -407,8 +407,8 @@ fn a_ribbon_over_two_recordings_draws_nothing() {
                 panel: 0,
                 mark: 0,
                 error: Error::Recordings {
-                    left: a.id(),
-                    right: b.id()
+                    left: a.get_id(),
+                    right: b.get_id()
                 }
             }]
         );

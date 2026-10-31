@@ -76,12 +76,16 @@ fn duplicate_keys_keep_their_first_position() {
 fn an_ordinal_scale_over_numbers_places_its_keys_on_an_axis() {
     let s = scale::ordinal(["lo", "mid", "hi"], [10.0, 50.0, 90.0]);
     let set = s.tick_set(10);
-    assert_eq!(set.values(), ["lo", "mid", "hi"]);
+    assert_eq!(set.get_values(), ["lo", "mid", "hi"]);
     assert_eq!(s.labels(&set, &Locale::NEUTRAL), ["lo", "mid", "hi"]);
     assert_eq!(s.position(&"mid", 0.5), Some(50.0));
     assert_eq!(s.position(&"x", 0.5), None);
     assert_eq!(s.extent(), [10.0, 90.0]);
-    let xs: Vec<f64> = axis::bottom(&s).labels().iter().map(|l| l.x()).collect();
+    let xs: Vec<f64> = axis::bottom(&s)
+        .labels()
+        .iter()
+        .map(|l| l.get_x())
+        .collect();
     assert_eq!(xs, [10.5, 50.5, 90.5]);
 }
 

@@ -111,7 +111,7 @@ fn main() -> Result<(), InvalidFormat> {
     let labels: Vec<String> = bottom
         .labels()
         .iter()
-        .map(|l| l.text().to_owned())
+        .map(|l| l.get_text().to_owned())
         .collect();
     assert_eq!(labels, ["0", "20", "40", "60", "80", "100"]);
 

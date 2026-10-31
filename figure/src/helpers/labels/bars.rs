@@ -106,7 +106,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
 
     /// The formatter of the labels under `locale`.
     fn formatter(&self, locale: &Locale) -> Format {
-        Format::new(locale.number(), self.format.clone())
+        Format::new(locale.get_number(), self.format.clone())
     }
 }
 

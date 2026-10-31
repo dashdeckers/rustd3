@@ -15,9 +15,9 @@ pub(super) const MAX_WIDTH: usize = (1 << 29) - 24;
 /// use rustd3_core::format::{Align, Kind, Sign, Specifier};
 ///
 /// let s: Specifier = "*^+12,.2f".parse()?;
-/// assert_eq!((s.fill(), s.align(), s.sign()), ('*', Align::Center, Sign::Plus));
-/// assert_eq!((s.width(), s.comma(), s.precision()), (Some(12), true, Some(2)));
-/// assert_eq!(s.kind(), Some(Kind::Fixed));
+/// assert_eq!((s.get_fill(), s.get_align(), s.get_sign()), ('*', Align::Center, Sign::Plus));
+/// assert_eq!((s.get_width(), s.get_comma(), s.get_precision()), (Some(12), true, Some(2)));
+/// assert_eq!(s.get_kind(), Some(Kind::Fixed));
 /// assert_eq!(s.with_precision(0).to_string(), "*^+12,.0f");
 /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
 /// ```
@@ -112,7 +112,7 @@ pub enum Kind {
 /// use rustd3_core::format;
 ///
 /// let error = format::format("10..f").unwrap_err();
-/// assert_eq!(error.input(), "10..f");
+/// assert_eq!(error.get_input(), "10..f");
 /// assert_eq!(error.to_string(), "invalid format: 10..f");
 /// ```
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -285,7 +285,7 @@ impl InvalidFormat {
 
     /// The specifier that did not parse.
     #[must_use]
-    pub fn input(&self) -> &str {
+    pub fn get_input(&self) -> &str {
         &self.0
     }
 }
@@ -293,61 +293,61 @@ impl InvalidFormat {
 impl Specifier {
     /// The fill character (default ` `).
     #[must_use]
-    pub fn fill(&self) -> char {
+    pub fn get_fill(&self) -> char {
         self.fill
     }
 
     /// The alignment (default [`Align::Right`]).
     #[must_use]
-    pub fn align(&self) -> Align {
+    pub fn get_align(&self) -> Align {
         self.align
     }
 
     /// The sign option (default [`Sign::Minus`]).
     #[must_use]
-    pub fn sign(&self) -> Sign {
+    pub fn get_sign(&self) -> Sign {
         self.sign
     }
 
     /// The `$` or `#` option.
     #[must_use]
-    pub fn symbol(&self) -> Option<Symbol> {
+    pub fn get_symbol(&self) -> Option<Symbol> {
         self.symbol
     }
 
     /// Whether `0` asks for zero padding.
     #[must_use]
-    pub fn zero(&self) -> bool {
+    pub fn get_zero(&self) -> bool {
         self.zero
     }
 
     /// The minimum width.
     #[must_use]
-    pub fn width(&self) -> Option<usize> {
+    pub fn get_width(&self) -> Option<usize> {
         self.width
     }
 
     /// Whether `,` asks for grouping.
     #[must_use]
-    pub fn comma(&self) -> bool {
+    pub fn get_comma(&self) -> bool {
         self.comma
     }
 
     /// The precision.
     #[must_use]
-    pub fn precision(&self) -> Option<usize> {
+    pub fn get_precision(&self) -> Option<usize> {
         self.precision
     }
 
     /// Whether `~` asks for insignificant zeros to be trimmed.
     #[must_use]
-    pub fn trim(&self) -> bool {
+    pub fn get_trim(&self) -> bool {
         self.trim
     }
 
     /// The type, if one is given.
     #[must_use]
-    pub fn kind(&self) -> Option<Kind> {
+    pub fn get_kind(&self) -> Option<Kind> {
         self.kind
     }
 

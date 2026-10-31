@@ -649,7 +649,7 @@ fn recording(n: usize, seeds: std::ops::Range<usize>) -> Recording<f64> {
 /// Appends `n` samples to every channel of `rec`, whose channels are live
 /// channels `seeds`, continuing their waves.
 fn append(rec: &mut Recording<f64>, seeds: std::ops::Range<usize>, n: usize) {
-    let from = usize::try_from(rec.offset()).expect("a small offset") + rec.len();
+    let from = usize::try_from(rec.get_offset()).expect("a small offset") + rec.len();
     let channels: Vec<Vec<f64>> = seeds.map(|seed| wave(from, n, seed)).collect();
     rec.extend(&[], channels).expect("a valid append");
 }
@@ -814,9 +814,9 @@ fn live_append_re_renders_only_touched_cells() {
     );
     let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
     let parked = harness.park();
-    let revision = top.revision();
+    let revision = top.get_revision();
     append(&mut top, TOP, APPEND);
-    assert_eq!(top.revision(), revision + 1);
+    assert_eq!(top.get_revision(), revision + 1);
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let mut harness = parked.resume(plot);
     let shot = harness.frame(t + Duration::from_millis(100));
@@ -1027,9 +1027,9 @@ fn drop_front_re_renders_the_cell() {
     let _ = rx.try_iter().count();
     let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
     let parked = harness.park();
-    let revision = top.revision();
+    let revision = top.get_revision();
     assert_eq!(top.drop_front(65_536), 65_536);
-    assert_eq!(top.revision(), revision + 1);
+    assert_eq!(top.get_revision(), revision + 1);
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let mut harness = parked.resume(plot);
     let shot = harness.frame(t + Duration::from_millis(100));

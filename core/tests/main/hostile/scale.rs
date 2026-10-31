@@ -122,12 +122,12 @@ fn continuous_scales_never_panic_and_keep_their_rules() {
         );
         let locale = rng.pick(&LOCALES);
         let labels = s.labels(&set, locale);
-        assert_eq!(labels.len(), set.values().len(), "{name} {d:?}");
-        for v in set.values() {
+        assert_eq!(labels.len(), set.get_values().len(), "{name} {d:?}");
+        for v in set.get_values() {
             s.position(v, 0.5);
         }
         let spec = rng.chance(0.5).then(|| rng.string(SPECIFIER, 8));
-        if let Ok(f) = s.tick_format_in(locale.number(), count, spec.as_deref()) {
+        if let Ok(f) = s.tick_format_in(locale.get_number(), count, spec.as_deref()) {
             let _ = f.format_all(&ticks);
             let _ = f.format(rng.f64());
         }
@@ -161,7 +161,7 @@ fn band_and_point_scales_never_panic() {
         let _ = b.step();
         let set = b.tick_set(rng.count());
         b.labels(&set, &Locale::NEUTRAL);
-        for v in set.values() {
+        for v in set.get_values() {
             b.position(v, rng.f64());
         }
         let p = scale::point(keys.clone())
@@ -194,7 +194,7 @@ fn ordinal_scales_never_panic() {
         o.apply_or_insert(u8::try_from(rng.below(256)).unwrap_or(0));
         let set = o.tick_set(rng.count());
         o.labels(&set, &Locale::NEUTRAL);
-        for v in set.values() {
+        for v in set.get_values() {
             o.position(v, 0.0);
         }
         o.extent();
@@ -248,7 +248,7 @@ fn quantize_quantile_and_threshold_scales_never_panic() {
         }
         let set = t.tick_set(count);
         t.labels(&set, &Locale::NEUTRAL);
-        for v in set.values() {
+        for v in set.get_values() {
             t.position(v, 0.0);
         }
     });
@@ -414,9 +414,9 @@ fn time_scales_never_panic_and_keep_their_rules() {
         let set = s.tick_set(count);
         let locale = rng.pick(&LOCALES);
         let labels = s.labels(&set, locale);
-        assert_eq!(labels.len(), set.values().len());
-        for t in set.values().iter().take(50) {
-            let _ = s.tick_label(*t, locale.time());
+        assert_eq!(labels.len(), set.get_values().len());
+        for t in set.get_values().iter().take(50) {
+            let _ = s.tick_label(*t, locale.get_time());
             s.position(t, 0.5);
         }
         let _ = s.tick_interval(count);

@@ -127,7 +127,11 @@ impl<'a, X, Y> Points<'a, X, Y> {
 impl<'a, X: Coordinate> Points<'a, X, f64> {
     /// One channel of a recording, borrowed with its index.
     pub(crate) fn from_series(series: Series<'a, X>) -> Self {
-        let repr = Repr::Series(series.recording(), series.channel(), std::convert::identity);
+        let repr = Repr::Series(
+            series.get_recording(),
+            series.get_channel(),
+            std::convert::identity,
+        );
         Self { repr }
     }
 }

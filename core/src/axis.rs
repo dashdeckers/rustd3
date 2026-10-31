@@ -12,7 +12,7 @@
 //!     "M0.5,6L0.5,0.5L960.5,0.5L960.5,6M0.5,0L0.5,6M480.5,0L480.5,6M960.5,0L960.5,6"
 //! );
 //! let labels = a.labels();
-//! assert_eq!((labels[1].x(), labels[1].y(), labels[1].text()), (480.5, 9.0, "50"));
+//! assert_eq!((labels[1].get_x(), labels[1].get_y(), labels[1].get_text()), (480.5, 9.0, "50"));
 //! ```
 
 mod label;
@@ -240,7 +240,7 @@ impl<'s, S: Ticks> Axis<'s, S> {
             }
         }
         let set = self.set();
-        self.marks(ctx, set.values(), k * self.inner);
+        self.marks(ctx, set.get_values(), k * self.inner);
         if self.minor {
             self.marks(ctx, &self.scale.minor(&set), k * self.minor_size);
         }
@@ -252,11 +252,11 @@ impl<'s, S: Ticks> Axis<'s, S> {
     pub fn labels(&self) -> Vec<Label> {
         let set = self.set();
         let texts = match &self.format {
-            Some(f) => set.values().iter().map(f).collect(),
+            Some(f) => set.get_values().iter().map(f).collect(),
             None => self.scale.labels(&set, &self.locale),
         };
         let across = self.orient.sign() * (self.inner.max(0.0) + self.padding);
-        set.values()
+        set.get_values()
             .iter()
             .zip(texts)
             .filter_map(|(value, text)| {

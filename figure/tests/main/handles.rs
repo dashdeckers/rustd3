@@ -526,7 +526,7 @@ fn sequential_handles_paint_as_d3_and_fit_without_margin() {
     );
     assert_eq!(r.scale(heat).unwrap().paint(&f64::NAN), None);
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(heat).unwrap(), 4).values(),
+        scale::Ticks::tick_set(r.scale(heat).unwrap(), 4).get_values(),
         [0.0, 20.0, 40.0, 60.0, 80.0]
     );
     // A palette key on a dot reaches the drawn paint.
@@ -562,7 +562,7 @@ fn diverging_handles_paint_as_d3_and_keep_their_middle() {
     assert_eq!(r.scale(fitted).unwrap().get_domain(), [0.0, 0.0, 5.0]);
     assert_eq!(Kind::domain(r.scale(fitted).unwrap()), Some([0.0, 5.0]));
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(rd_bu).unwrap(), 4).values(),
+        scale::Ticks::tick_set(r.scale(rd_bu).unwrap(), 4).get_values(),
         [-1.0, -0.5, 0.0, 0.5, 1.0]
     );
 }
@@ -579,7 +579,7 @@ fn linear_color_handles_interpolate_their_range_and_fit_without_margin() {
     let middle = r.scale(ramp).unwrap().paint(&3.0).expect("a color");
     assert_eq!(middle.to_string(), "rgb(128, 0, 128)");
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(ramp).unwrap(), 4).values(),
+        scale::Ticks::tick_set(r.scale(ramp).unwrap(), 4).get_values(),
         [2.0, 2.5, 3.0, 3.5, 4.0]
     );
 }
@@ -616,11 +616,11 @@ fn binned_handles_paint_their_bins_as_d3() {
     assert_eq!(r.scale(quantile).unwrap().paint(&3.0), Some(blue));
     // Binned scales tick at their edges.
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(q).unwrap(), 5).values(),
+        scale::Ticks::tick_set(r.scale(q).unwrap(), 5).get_values(),
         [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]
     );
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(t).unwrap(), 5).values(),
+        scale::Ticks::tick_set(r.scale(t).unwrap(), 5).get_values(),
         [0.0, 1.0]
     );
 }

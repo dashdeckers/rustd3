@@ -107,14 +107,14 @@ impl TickFormat {
     /// ```
     #[must_use]
     pub fn labels(&self, set: &ticks::Set<f64, f64>, locale: &locale::Locale) -> Vec<String> {
-        if self.format.locale() == locale.number() {
-            return self.format_all(set.values());
+        if self.format.get_locale() == locale.get_number() {
+            return self.format_all(set.get_values());
         }
         TickFormat {
-            format: self.format.with_locale(locale.number()),
+            format: self.format.with_locale(locale.get_number()),
             keep: self.keep,
         }
-        .format_all(set.values())
+        .format_all(set.get_values())
     }
 }
 
@@ -165,12 +165,12 @@ pub(crate) fn stepped(
     let specifier: Specifier = specifier.unwrap_or(",f").parse()?;
     // A precision the specifier sets wins; d3's NaN precision is None.
     let precise = |precision: Option<usize>, less: usize| match precision {
-        Some(p) if specifier.precision().is_none() => {
+        Some(p) if specifier.get_precision().is_none() => {
             specifier.clone().with_precision(p.saturating_sub(less))
         }
         Some(_) | None => specifier.clone(),
     };
-    Ok(match specifier.kind() {
+    Ok(match specifier.get_kind() {
         Some(Kind::Si) => Format::prefixed(
             locale,
             precise(format::precision_prefix(step, largest), 0),

@@ -257,7 +257,7 @@ let x = scale::linear().domain([0.0, 100.0]).range([0.0, 960.0]);
 let bottom = axis::bottom(&x).ticks(2);
 let d = path::svg(|p| bottom.draw(p)); // domain line and tick marks
 for label in bottom.labels() {
-    // label.x(), label.y(), label.text(), label.anchor(): your text
+    // label.get_x(), label.get_y(), label.get_text(), label.get_anchor(): your text
 }
 ```
 
@@ -439,7 +439,7 @@ frame.stroke(&wave, Stroke::default().with_width(2.0));
 let bottom = axis::bottom(&x);
 let ticks = rustd3_iced::path(|p| bottom.draw(p));
 for label in bottom.labels() {
-    // frame.fill_text(Text { content: label.text().to_owned(), … })
+    // frame.fill_text(Text { content: label.get_text().to_owned(), … })
 }
 ```
 

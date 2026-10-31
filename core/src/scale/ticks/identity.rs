@@ -24,7 +24,7 @@ impl Ticks for scale::Identity {
 
     /// d3's linear tick format for the set's count under `locale`.
     fn labels(&self, ticks: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
-        self.tick_format_in(locale.number(), ticks.count(), None)
+        self.tick_format_in(locale.get_number(), ticks.get_count(), None)
             .expect("invariant: the default tick format specifier parses")
             .labels(ticks, locale)
     }
@@ -32,7 +32,7 @@ impl Ticks for scale::Identity {
     /// Five equal steps between majors extended by one step on each side,
     /// inside the stops and off the majors.
     fn minor(&self, ticks: &ticks::Set<f64, f64>) -> Vec<f64> {
-        super::minor(&transform::Identity, self.get_domain(), ticks.values())
+        super::minor(&transform::Identity, self.get_domain(), ticks.get_values())
     }
 
     fn extent(&self) -> [f64; 2] {

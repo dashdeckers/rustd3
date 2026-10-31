@@ -39,7 +39,7 @@ pub(crate) fn labels(edges: &[f64], locale: &Locale) -> Vec<String> {
     }
     loop {
         let format = locale
-            .number()
+            .get_number()
             .format(&format!(",.{places}f"))
             .expect("invariant: `,.Nf` parses for N up to 20");
         let texts: Vec<String> = edges.iter().map(|v| format.format(*v)).collect();

@@ -16,7 +16,7 @@ use crate::series::{Columns, Coordinate, Error, Recording, m4, runs};
 /// // Sample index per column edge, from data-space edges (the x scale's
 /// // invert at pixel edges).
 /// let columns = rec.columns(&[1.5, 5.0, 8.5])?;
-/// assert_eq!(columns.edges(), [2, 5, 9]);
+/// assert_eq!(columns.get_edges(), [2, 5, 9]);
 /// // Admit what the y scale can draw (log: y > 0).
 /// let lines = s.m4(&columns, |y| y > 0.0)?;
 /// // Sample indices of each NaN-free run.
@@ -37,13 +37,13 @@ impl<'a, X: Coordinate> Series<'a, X> {
 
     /// The recording the channel belongs to.
     #[must_use]
-    pub fn recording(self) -> &'a Recording<X> {
+    pub fn get_recording(self) -> &'a Recording<X> {
         self.recording
     }
 
     /// The channel's number in its recording.
     #[must_use]
-    pub fn channel(self) -> usize {
+    pub fn get_channel(self) -> usize {
         self.channel
     }
 
@@ -74,7 +74,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
     #[must_use]
     pub fn extent(self) -> Option<[f64; 2]> {
         let extremes = self.extremes(0..self.len(), |_| true)?;
-        Some([extremes.min().1, extremes.max().1])
+        Some([extremes.get_min().1, extremes.get_max().1])
     }
 
     /// The earliest minimum and maximum of `samples` (clamped to the
@@ -111,7 +111,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
         self.stale(columns)?;
         let stored = self.stored();
         let runs = stored.runs().overlapping(columns.samples());
-        Ok(m4::Lines::thin(runs, columns.edges(), |samples| {
+        Ok(m4::Lines::thin(runs, columns.get_edges(), |samples| {
             [stored.extremes(samples, &valid), None]
         }))
     }
@@ -150,7 +150,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
         columns: &Columns,
         valid: impl Fn(f64) -> bool,
     ) -> Result<m4::Lines, Error<X>> {
-        let (left, right) = (self.recording.id(), upper.recording.id());
+        let (left, right) = (self.recording.get_id(), upper.recording.get_id());
         if left != right {
             return Err(Error::Recordings { left, right });
         }
@@ -161,7 +161,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
             lower.runs().overlapping(samples.clone()),
             upper.runs().overlapping(samples),
         );
-        Ok(m4::Lines::thin(&runs, columns.edges(), |samples| {
+        Ok(m4::Lines::thin(&runs, columns.get_edges(), |samples| {
             [
                 lower.extremes(samples.clone(), &valid),
                 upper.extremes(samples, &valid),
@@ -173,11 +173,13 @@ impl<'a, X: Coordinate> Series<'a, X> {
     /// revision.
     fn stale(self, columns: &Columns) -> Result<(), Error<X>> {
         let recording = self.recording;
-        if columns.recording() != recording.id() || columns.revision() != recording.revision() {
+        if columns.recording() != recording.get_id()
+            || columns.revision() != recording.get_revision()
+        {
             return Err(Error::Stale {
                 recording: columns.recording(),
                 built: columns.revision(),
-                current: recording.revision(),
+                current: recording.get_revision(),
             });
         }
         Ok(())

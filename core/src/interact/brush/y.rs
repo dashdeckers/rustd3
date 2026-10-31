@@ -54,7 +54,7 @@ impl BrushY {
 
     /// The selected y interval.
     #[must_use]
-    pub fn selection(&self) -> Option<[f64; 2]> {
+    pub fn get_selection(&self) -> Option<[f64; 2]> {
         self.engine.selection()
     }
 

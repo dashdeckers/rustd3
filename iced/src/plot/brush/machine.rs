@@ -32,8 +32,8 @@ impl Machine {
     /// The selected interval along the axis, list px.
     pub(crate) fn selection(&self) -> Option<[f64; 2]> {
         match self {
-            Machine::X(brush) => brush.selection(),
-            Machine::Y(brush) => brush.selection(),
+            Machine::X(brush) => brush.get_selection(),
+            Machine::Y(brush) => brush.get_selection(),
         }
     }
 

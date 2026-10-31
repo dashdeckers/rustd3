@@ -126,7 +126,7 @@ impl Format {
 
     /// The locale this format writes in.
     #[must_use]
-    pub fn locale(&self) -> &Locale {
+    pub fn get_locale(&self) -> &Locale {
         &self.locale
     }
 
@@ -212,7 +212,7 @@ impl Format {
         if grouped && !self.zero {
             digits = self.locale.group(&digits, usize::MAX);
         }
-        let width = self.specifier.width().unwrap_or(0);
+        let width = self.specifier.get_width().unwrap_or(0);
         let length = prefix.chars().count() + digits.chars().count() + suffix.chars().count();
         let mut padding = width.saturating_sub(length);
         if grouped && self.zero {
@@ -249,9 +249,12 @@ impl Format {
         specifier: Specifier,
         si: Option<(f64, &'static str)>,
     ) -> Format {
-        let (mut comma, mut trim, mut precision) =
-            (specifier.comma(), specifier.trim(), specifier.precision());
-        let kind = match specifier.kind() {
+        let (mut comma, mut trim, mut precision) = (
+            specifier.get_comma(),
+            specifier.get_trim(),
+            specifier.get_precision(),
+        );
+        let kind = match specifier.get_kind() {
             Some(Kind::Exponent) => Type::Exponent,
             Some(Kind::Fixed) => Type::Fixed,
             Some(Kind::General) => Type::General,
@@ -275,19 +278,19 @@ impl Format {
                 Type::General
             }
         };
-        let (zero, fill, align) = if specifier.zero()
-            || (specifier.fill() == '0' && specifier.align() == Align::AfterSign)
+        let (zero, fill, align) = if specifier.get_zero()
+            || (specifier.get_fill() == '0' && specifier.get_align() == Align::AfterSign)
         {
             (true, '0', Align::AfterSign)
         } else {
-            (false, specifier.fill(), specifier.align())
+            (false, specifier.get_fill(), specifier.get_align())
         };
-        let prefix = match specifier.symbol() {
+        let prefix = match specifier.get_symbol() {
             Some(Symbol::Currency) => locale.currency[0].to_string(),
             Some(Symbol::Base) => kind.base().to_owned(),
             None => String::new(),
         };
-        let mut suffix = match specifier.symbol() {
+        let mut suffix = match specifier.get_symbol() {
             Some(Symbol::Currency) => locale.currency[1].to_string(),
             Some(Symbol::Base) | None if kind.percent() => locale.percent.to_string(),
             Some(Symbol::Base) | None => String::new(),
@@ -316,7 +319,7 @@ impl Format {
 
     /// A number's sign, digits and suffix, before grouping and padding.
     fn number(&self, value: f64) -> Parts {
-        let sign = self.specifier.sign();
+        let sign = self.specifier.get_sign();
         let negative = value < 0.0 || 1.0 / value < 0.0;
         let (mut text, si) = if value.is_nan() {
             (self.locale.nan.to_string(), None)

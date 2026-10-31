@@ -25,10 +25,10 @@ fn quantize_ticks_are_its_bin_edges() {
     let q = scale::quantize([0.0, 1.0], ["a", "b", "c"]);
     let set = q.tick_set(5);
     assert_eq!(
-        set.values(),
+        set.get_values(),
         [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]
     );
-    assert_eq!(*set.step(), 0.3333333333333333);
+    assert_eq!(*set.get_step(), 0.3333333333333333);
     assert_eq!(q.position(&0.5, 0.0), Some(0.5));
     assert_eq!(
         q.labels(&set, &Locale::NEUTRAL),
@@ -74,8 +74,8 @@ fn quantile_drops_nan_from_its_sorted_domain() {
 fn quantile_ticks_run_from_the_least_to_the_greatest_value() {
     let q = scale::quantile(SAMPLE, [0, 1, 2, 3]);
     let set = q.tick_set(5);
-    assert_eq!(set.values(), [3.0, 7.25, 9.0, 14.5, 20.0]);
-    assert_eq!(*set.step(), 1.75);
+    assert_eq!(set.get_values(), [3.0, 7.25, 9.0, 14.5, 20.0]);
+    assert_eq!(*set.get_step(), 1.75);
     assert_eq!(q.position(&20.0, 0.0), Some(1.0));
     // precision_fixed(1.75) is 0 places, as d3 would label ticks 1.75 apart.
     assert_eq!(
@@ -89,7 +89,7 @@ fn an_empty_quantile_sample_maps_to_the_first_value_and_has_no_ticks() {
     let q = scale::quantile(Vec::new(), [0, 1, 2]);
     assert_eq!(q.apply(5.0), Some(&0));
     assert!(q.quantiles().iter().all(|t| t.is_nan()));
-    assert!(q.tick_set(5).values().is_empty());
+    assert!(q.tick_set(5).get_values().is_empty());
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn threshold_places_its_thresholds_as_equal_width_bins() {
     assert_eq!(t.position(&0.0, 0.0), Some(1.0 / 3.0));
     assert_eq!(t.position(&1.0, 0.0), Some(2.0 / 3.0));
     assert_eq!(t.position(&0.5, 0.0), None);
-    assert_eq!(t.tick_set(5).values(), [0.0, 1.0]);
+    assert_eq!(t.tick_set(5).get_values(), [0.0, 1.0]);
 }
 
 #[test]

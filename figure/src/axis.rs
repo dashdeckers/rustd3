@@ -331,7 +331,7 @@ where
     fn texts(&self, scale: &S, count: usize, locale: &Locale) -> Vec<String> {
         let set = self.set(scale, count);
         if let Some(format) = &self.format {
-            return set.values().iter().map(|v| format(v)).collect();
+            return set.get_values().iter().map(|v| format(v)).collect();
         }
         let mapped = self.notation(scale, count).zip(self.numbers(scale, count));
         let Some((notation, (values, domain))) = mapped else {
@@ -361,7 +361,7 @@ where
     /// `f64`.
     fn numbers(&self, scale: &S, count: usize) -> Option<(Vec<f64>, [f64; 2])> {
         let set = self.set(scale, count);
-        let values = set.values().iter().map(number).collect::<Option<_>>()?;
+        let values = set.get_values().iter().map(number).collect::<Option<_>>()?;
         let domain = Kind::domain(scale)?;
         let domain = (&domain as &dyn Any).downcast_ref::<[f64; 2]>()?;
         Some((values, *domain))

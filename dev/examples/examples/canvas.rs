@@ -62,8 +62,8 @@ impl canvas::Program<()> for Wave {
         frame.stroke(&ticks, Stroke::default().with_color(ink));
         for label in bottom.labels() {
             frame.fill_text(Text {
-                content: label.text().to_owned(),
-                position: Point::new(label.x() as f32, label.y() as f32),
+                content: label.get_text().to_owned(),
+                position: Point::new(label.get_x() as f32, label.get_y() as f32),
                 color: ink,
                 align_x: Horizontal::Center.into(),
                 align_y: Vertical::Top,

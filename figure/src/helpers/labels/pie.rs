@@ -91,7 +91,7 @@ impl<K> Pie<K> {
     fn texts(&self, locale: &Locale) -> Vec<Option<String>> {
         let total: f64 = self.positive().sum();
         let share = Format::new(
-            locale.number(),
+            locale.get_number(),
             ".0%"
                 .parse()
                 .expect("invariant: `.0%` is a valid specifier"),

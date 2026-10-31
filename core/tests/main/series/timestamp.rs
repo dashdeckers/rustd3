@@ -108,10 +108,10 @@ fn m4_over_a_time_scale_matches_a_full_scan() {
 fn drop_front_and_split_appends_equal_rebuilds() {
     let y = walk(200_000);
     let mut rec = regular(&y);
-    let revision = rec.revision();
+    let revision = rec.get_revision();
     assert_eq!(rec.drop_front(150_000), 131_072);
     assert_eq!(
-        (rec.len(), rec.offset(), rec.revision()),
+        (rec.len(), rec.get_offset(), rec.get_revision()),
         (68_928, 131_072, revision + 1)
     );
     assert_eq!(rec.x(0), Some(plus(start(), 131_072_000_000)));

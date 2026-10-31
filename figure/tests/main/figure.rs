@@ -401,7 +401,7 @@ fn figure_axis_ticks_follow_core_axis_positions() {
     assert_eq!(count, 8, "{area:?}");
     let expected: Vec<f64> = ranged
         .tick_set(count)
-        .values()
+        .get_values()
         .iter()
         .map(|v| area.x0 + Ticks::position(&ranged, v, 0.0).expect("placed"))
         .collect();

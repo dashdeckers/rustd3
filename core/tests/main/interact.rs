@@ -71,13 +71,13 @@ fn transforms_print_as_an_svg_transform_with_negative_zero_as_zero() {
 #[test]
 fn modifiers_union_holds_each_key_of_either() {
     let held = Modifiers::SHIFT.union(Modifiers::CTRL);
-    assert!(held.shift() && held.ctrl() && !held.alt() && !held.logo());
+    assert!(held.get_shift() && held.get_ctrl() && !held.get_alt() && !held.get_logo());
     let all = held.union(Modifiers::ALT).union(Modifiers::LOGO);
-    assert!(all.shift() && all.ctrl() && all.alt() && all.logo());
+    assert!(all.get_shift() && all.get_ctrl() && all.get_alt() && all.get_logo());
     assert_eq!(Modifiers::NONE.union(Modifiers::NONE), Modifiers::NONE);
     assert_eq!(held.union(Modifiers::SHIFT), held);
     assert_eq!(Modifiers::default(), Modifiers::NONE);
-    assert!(!Modifiers::NONE.shift());
+    assert!(!Modifiers::NONE.get_shift());
 }
 
 #[test]

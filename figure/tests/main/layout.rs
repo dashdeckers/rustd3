@@ -326,7 +326,7 @@ fn one_panel_reaches_by_its_axes_ticks_pads_and_widest_or_tallest_labels() {
         ["-0.15", "3.15"]
     );
     assert_eq!(
-        r.scale(y).unwrap().tick_set(10).values(),
+        r.scale(y).unwrap().tick_set(10).get_values(),
         [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     );
     assert_eq!(labels(r.scale(y).unwrap())[0], "0.0");

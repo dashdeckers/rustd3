@@ -28,7 +28,7 @@ pub(crate) fn extent<X: Coordinate>(
     valid: &dyn Fn(f64) -> bool,
 ) -> Option<Extent<X>> {
     let series = points.series()?;
-    let recording = series.recording();
+    let recording = series.get_recording();
     let samples = match x {
         None => 0..series.len(),
         Some((low, past)) => {
@@ -40,7 +40,7 @@ pub(crate) fn extent<X: Coordinate>(
     let x = [recording.x(samples.start)?, recording.x(last)?];
     let y = series
         .extremes(samples, valid)
-        .map(|e| [e.min().1, e.max().1]);
+        .map(|e| [e.get_min().1, e.get_max().1]);
     Some(Extent { x, y })
 }
 

@@ -73,8 +73,8 @@ fn berlin_example() {
     let st = berlin_day();
     assert_eq!(st.tick_interval(8), Interval::Hour(3));
     let set = st.tick_set(8);
-    assert_eq!(set.step(), &Interval::Hour(3));
-    assert_eq!(set.count(), 8);
+    assert_eq!(set.get_step(), &Interval::Hour(3));
+    assert_eq!(set.get_count(), 8);
     assert_eq!(
         st.labels(&set, &figure::Locale::default()),
         [
@@ -89,7 +89,7 @@ fn berlin_example() {
         ]
     );
     let positions: Vec<f64> = set
-        .values()
+        .get_values()
         .iter()
         .map(|t| st.position(t, 0.5).unwrap())
         .collect();
@@ -106,7 +106,7 @@ fn sub_second_labels() {
     let t0 = at("2026-10-25T12:00:00Z");
     let micro = time::utc().domain([t0, plus(t0, 10_000)]);
     let set = micro.tick_set(5);
-    assert_eq!(set.step(), &Interval::Microsecond(2));
+    assert_eq!(set.get_step(), &Interval::Microsecond(2));
     assert_eq!(
         micro.labels(&set, &figure::Locale::default()),
         [
@@ -121,14 +121,14 @@ fn sub_second_labels() {
     // A microsecond tick on an exact millisecond takes the millisecond rung.
     let across = time::utc().domain([plus(t0, 600_000), plus(t0, 1_400_000)]);
     let set = across.tick_set(4);
-    assert_eq!(set.step(), &Interval::Microsecond(200));
+    assert_eq!(set.get_step(), &Interval::Microsecond(200));
     assert_eq!(
         across.labels(&set, &figure::Locale::default()),
         ["00.000600", "00.000800", "00.001", "00.001200", "00.001400"]
     );
     let nano = time::utc().domain([plus(t0, 1_000), plus(t0, 1_010)]);
     let set = nano.tick_set(5);
-    assert_eq!(set.step(), &Interval::Nanosecond(2));
+    assert_eq!(set.get_step(), &Interval::Nanosecond(2));
     assert_eq!(
         nano.labels(&set, &figure::Locale::default()),
         [
@@ -204,7 +204,7 @@ fn spans_tick_and_label_as_d3s_scale_time() {
         let set = x.tick_set(5);
         let labels: Vec<String> = match locale {
             Some(locale) => set
-                .values()
+                .get_values()
                 .iter()
                 .map(|&t| x.tick_label(t, locale))
                 .collect(),

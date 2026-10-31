@@ -227,7 +227,7 @@ impl Transform for Log {
     ) -> Result<TickFormat, InvalidFormat> {
         let default = if self.base == 10.0 { "s" } else { "," };
         let specifier: Specifier = specifier.unwrap_or(default).parse()?;
-        let specifier = if self.integer() && specifier.precision().is_none() {
+        let specifier = if self.integer() && specifier.get_precision().is_none() {
             specifier.with_trim(true)
         } else {
             specifier

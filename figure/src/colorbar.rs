@@ -234,8 +234,8 @@ where
         let scale = resolved.own(self.handle);
         let set = scale.tick_set(count);
         match &self.format {
-            Some(format) => set.values().iter().map(|v| format(*v)).collect(),
-            None if binned => edges::labels(set.values(), resolved.locale()),
+            Some(format) => set.get_values().iter().map(|v| format(*v)).collect(),
+            None if binned => edges::labels(set.get_values(), resolved.locale()),
             None => scale.labels(&set, resolved.locale()),
         }
     }
@@ -244,7 +244,7 @@ where
         let scale = resolved.own(self.handle);
         scale
             .tick_set(count)
-            .values()
+            .get_values()
             .iter()
             .map(|v| Ticks::position(scale, v, 0.0).filter(|p| p.is_finite()))
             .collect()

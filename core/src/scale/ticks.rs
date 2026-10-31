@@ -141,8 +141,11 @@ pub(super) fn edges(values: Vec<f64>, count: usize) -> ticks::Set<f64, f64> {
 /// set's step (`,f` to [`precision_fixed`](crate::format::precision_fixed)
 /// of it) under `locale`, as one batch.
 pub(super) fn edge_labels(set: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
-    let largest = set.values().iter().fold(0.0, |m: f64, v| m.max(v.abs()));
-    tick_format::stepped(locale.number(), *set.step(), largest, None)
+    let largest = set
+        .get_values()
+        .iter()
+        .fold(0.0, |m: f64, v| m.max(v.abs()));
+    tick_format::stepped(locale.get_number(), *set.get_step(), largest, None)
         .expect("invariant: `,f` parses")
-        .format_all(set.values())
+        .format_all(set.get_values())
 }

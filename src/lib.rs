@@ -32,7 +32,7 @@
 //! let points = [(0.0, 0.5), (50.0, 1.0), (100.0, 0.0)].map(|(a, b)| (x.apply(a), y.apply(b)));
 //! assert_eq!(path::svg(|p| shape::line().draw(points, p)), "M0,50L480,0L960,100");
 //!
-//! let labels: Vec<String> = axis::bottom(&x).ticks(5).labels().iter().map(|l| l.text().to_owned()).collect();
+//! let labels: Vec<String> = axis::bottom(&x).ticks(5).labels().iter().map(|l| l.get_text().to_owned()).collect();
 //! assert_eq!(labels, ["0", "20", "40", "60", "80", "100"]);
 //! assert_eq!(rustd3::fmt!(".1%").format(0.123), "12.3%");
 //! ```

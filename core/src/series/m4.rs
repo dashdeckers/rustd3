@@ -12,7 +12,7 @@ use std::ops::Range;
 /// let rec = Recording::new(Clock::Regular { start: 0.0, period: 1.0 }, [[3.0, 1.0, f64::NAN, 5.0, 1.0]])?;
 /// let channel = rec.series(0).expect("one channel");
 /// let e = channel.extremes(0..5, |_| true).expect("finite values");
-/// assert_eq!((e.min(), e.max()), ((1, 1.0), (3, 5.0)));
+/// assert_eq!((e.get_min(), e.get_max()), ((1, 1.0), (3, 5.0)));
 /// # Ok::<(), rustd3_core::series::Error>(())
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -35,13 +35,13 @@ impl Extremes {
 
     /// The minimum's sample index and value.
     #[must_use]
-    pub fn min(&self) -> (usize, f64) {
+    pub fn get_min(&self) -> (usize, f64) {
         self.min
     }
 
     /// The maximum's sample index and value.
     #[must_use]
-    pub fn max(&self) -> (usize, f64) {
+    pub fn get_max(&self) -> (usize, f64) {
         self.max
     }
 }
