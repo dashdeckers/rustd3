@@ -56,6 +56,25 @@ pub struct Hit {
 
 /// The points a figure's marks draw, per panel in a uniform grid of 32 px
 /// buckets.
+///
+/// ```
+/// # #[cfg(feature = "fonts")] {
+/// use rustd3_core::scale;
+/// use rustd3_figure::kurbo::Size;
+/// use rustd3_figure::mark::dots;
+/// use rustd3_figure::{Cache, Figure, Held, Target};
+///
+/// let mut fig = Figure::new();
+/// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+/// fig.panel(0, 0).mark(dots([(0.0, 0.0), (1.0, 1.0)], x, y));
+/// let mut cache = Cache::default();
+/// let resolved = fig.resolve(Size::new(320.0, 240.0), &mut cache, &Held::default(), Target::Vector);
+/// let index = fig.hits(&resolved, &mut cache);
+/// assert_eq!(index.len(), 2);
+/// let far = index.nearest((-100.0, -100.0).into(), 12.0);
+/// assert!(far.is_none());
+/// # }
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct Index {
     panels: Vec<Grid>,

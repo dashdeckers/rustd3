@@ -124,6 +124,20 @@ impl Settings {
 
 /// Renders lists with vello_cpu, keeping one render context, its
 /// resources and the images of the last render between calls.
+///
+/// ```
+/// use rustd3_figure::kurbo::{Rect, Size};
+/// use rustd3_figure::list::{Bounds, List, Outlines};
+/// use rustd3_figure::raster::{Renderer, Settings, Simd};
+///
+/// let list = List { size: Size::new(40.0, 20.0), ..List::default() };
+/// let bounds = Bounds::of(&list, &mut Outlines::default());
+/// let mut renderer = Renderer::new(Settings { threads: 0, simd: Simd::Baseline });
+/// // The left half at 2 device px per list px.
+/// let image = renderer.render(&list, &bounds, Rect::new(0.0, 0.0, 20.0, 20.0), 2.0)?;
+/// assert_eq!((image.width, image.height), (40, 40));
+/// # Ok::<(), rustd3_figure::raster::Error>(())
+/// ```
 #[cfg(feature = "raster")]
 #[derive(Debug)]
 pub struct Renderer {

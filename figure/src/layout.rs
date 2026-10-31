@@ -44,6 +44,14 @@ pub(crate) const INSET: f64 = 0.5;
 
 /// A length in px, or in multiples of the theme's tick-label size, so gaps
 /// scale with the text. Plain data.
+///
+/// ```
+/// use rustd3_figure::layout::{Grid, Length, em, px};
+///
+/// assert_eq!((px(12.0), em(0.5)), (Length::Px(12.0), Length::Em(0.5)));
+/// let grid = Grid::new().cols([2.0, 1.0]).col_gaps([em(1.0)]).row_gaps([px(8.0)]);
+/// # let _ = grid;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
     /// Exact pixels.

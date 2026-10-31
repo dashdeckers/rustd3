@@ -12,6 +12,20 @@ use crate::figure;
 /// with another figure it finds no scale, what uses it draws nothing, and
 /// [`Figure::check`](crate::Figure::check) reports it
 /// ([`Issue::ForeignHandle`](crate::check::Issue::ForeignHandle)).
+///
+/// ```
+/// use rustd3_core::scale;
+/// use rustd3_figure::Figure;
+/// use rustd3_figure::mark::{dots, line};
+///
+/// let mut fig = Figure::new();
+/// let x = fig.fit(scale::linear());
+/// let y = fig.scale(scale::log().domain([1.0, 100.0]));
+/// // Two panels share x by sharing the handle; a copy is the same handle.
+/// fig.panel(0, 0).mark(line([(0.0, 1.0), (1.0, 10.0)], x, y));
+/// fig.panel(1, 0).mark(dots([(0.5, 50.0)], x, y));
+/// assert!(fig.owns(x) && !Figure::new().owns(x));
+/// ```
 pub struct ScaleRef<S> {
     figure: figure::Id,
     index: u32,
