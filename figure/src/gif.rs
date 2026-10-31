@@ -9,6 +9,7 @@ use std::time::Duration;
 #[cfg(feature = "fonts")]
 use kurbo::{Point, Rect, Size};
 
+#[cfg(feature = "fonts")]
 use crate::cache::Cache;
 #[cfg(feature = "fonts")]
 use crate::figure::{Figure, Held};

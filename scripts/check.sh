@@ -66,6 +66,11 @@ fresh() {
 full() {
   fresh
   cargo clippy --workspace --all-targets --all-features -- -D warnings
+  # figure's features without fonts, which neither the default nor the
+  # all-features build covers: the lib and its tests must build alone.
+  for f in raster helpers; do
+    cargo clippy -p rustd3-figure --all-targets --no-default-features --features "$f" -- -D warnings
+  done
   no_widget
   for p in "${PACKAGES[@]}"; do
     TZ=Asia/Kathmandu cargo test -q -p "$p" --no-default-features

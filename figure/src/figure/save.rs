@@ -4,6 +4,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+#[cfg(all(feature = "png", feature = "fonts"))]
 use crate::cache::Cache;
 #[cfg(feature = "fonts")]
 use crate::figure::Figure;
