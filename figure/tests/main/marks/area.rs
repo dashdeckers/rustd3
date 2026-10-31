@@ -398,10 +398,11 @@ fn a_ribbon_over_two_recordings_draws_nothing() {
     assert!(marked(&draw(&fig)).is_empty());
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
         use rustd3_figure::mark::Error;
         assert_eq!(
-            fig.check(size(640.0, 480.0)),
+            fig.check(Size::new(640.0, 480.0)),
             [Issue::Mark {
                 panel: 0,
                 mark: 0,

@@ -217,13 +217,17 @@ fn a_density_of_one_value_draws_nothing() {
     assert!(shapes(&draw(&fig)).is_empty());
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
         use rustd3_figure::mark::Error;
         let issue = |mark, values| Issue::Mark {
             panel: 0,
             mark,
             error: Error::Density { values },
         };
-        assert_eq!(fig.check(size(640.0, 480.0)), [issue(0, 1), issue(1, 2)]);
+        assert_eq!(
+            fig.check(Size::new(640.0, 480.0)),
+            [issue(0, 1), issue(1, 2)]
+        );
     }
 }

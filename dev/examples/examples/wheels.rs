@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 use rustd3_examples::wheels;
 use rustd3_figure::Theme;
-use rustd3_figure::check::size;
+use rustd3_figure::kurbo::Size;
 use rustd3_figure::theme::{Context, Style};
 
 /// Device px per logical px of the PNGs.
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let name = match &preset {
             Some((theme, suffix)) => {
                 fig.theme(theme.clone());
-                for issue in fig.check(size(wheels::SIZE.width, wheels::SIZE.height)) {
+                for issue in fig.check(Size::new(wheels::SIZE.width, wheels::SIZE.height)) {
                     eprintln!("{name}{suffix}: {issue:?}");
                 }
                 format!("{name}{suffix}")

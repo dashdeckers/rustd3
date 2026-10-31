@@ -26,12 +26,13 @@ impl Figure<'_> {
     /// issue, where its first mark reported them.
     ///
     /// ```
-    /// use rustd3_figure::check::{Issue, size};
+    /// use rustd3_figure::check::Issue;
+    /// use rustd3_figure::kurbo::Size;
     /// use rustd3_figure::Figure;
     ///
     /// let mut fig = Figure::new();
     /// fig.title("漢字").panel(0, 0);
-    /// let issues = fig.check(size(640.0, 480.0));
+    /// let issues = fig.check(Size::new(640.0, 480.0));
     /// assert!(matches!(issues[..], [Issue::MissingGlyphs { count: 2, .. }]));
     /// ```
     #[must_use]

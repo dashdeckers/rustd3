@@ -4,7 +4,7 @@
 //! (box plots, violins, histogram options, ECDF, error bars) with the
 //! statistics behind them as pure functions; value labels on bars and
 //! pies ([`labels`]); size and color legends of a scatter's channels
-//! ([`legend`]); axis defaults ([`axes`]); and one-call chart presets
+//! ([`legend`]); and one-call chart presets
 //! ending in a figure or a file ([`chart`]).
 //!
 //! Each helper is ordinary code over the figure's handles, marks and
@@ -39,7 +39,6 @@
 //! let fig = grid.into_figure();
 //! ```
 
-pub mod axes;
 pub mod chart;
 pub mod labels;
 pub mod legend;

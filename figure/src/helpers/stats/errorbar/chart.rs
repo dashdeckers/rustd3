@@ -16,7 +16,7 @@ const PX_PER_PT: f64 = 4.0 / 3.0;
 /// Error bars: per row, a vertical bar at its key from `value − below` to
 /// `value + above` (see [`errorbar`]).
 pub struct ErrorBar<X: Position, Y: Position<Domain = f64>> {
-    rows: Vec<(<X as Kind>::Domain, f64, super::Err)>,
+    rows: Vec<(<X as Kind>::Domain, f64, super::Reach)>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     /// How far the caps reach to each side, pt.
@@ -50,7 +50,7 @@ impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for ErrorBar<X, Y> 
 ///     .mark(bar_y([("a", 3.0), ("b", 4.5)], x, y))
 ///     .mark(
 ///         errorbar(
-///             [("a", 3.0, errorbar::Err::Sym(0.4)), ("b", 4.5, errorbar::Err::Asym(0.2, 0.8))],
+///             [("a", 3.0, errorbar::Reach::Sym(0.4)), ("b", 4.5, errorbar::Reach::Asym(0.2, 0.8))],
 ///             x,
 ///             y,
 ///         )
@@ -58,7 +58,7 @@ impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for ErrorBar<X, Y> 
 ///     );
 /// ```
 pub fn errorbar<X, Y>(
-    rows: impl IntoIterator<Item = (<X as Kind>::Domain, f64, super::Err)>,
+    rows: impl IntoIterator<Item = (<X as Kind>::Domain, f64, super::Reach)>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
 ) -> ErrorBar<X, Y>

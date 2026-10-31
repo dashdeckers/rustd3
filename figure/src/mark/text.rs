@@ -94,7 +94,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
     /// The text's color, for spans without their own; the theme's ink by
     /// default.
     #[must_use]
-    pub fn fill(self, c: Rgb) -> Self {
+    pub fn color(self, c: Rgb) -> Self {
         Self {
             fill: Some(c),
             ..self

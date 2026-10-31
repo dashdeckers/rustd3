@@ -183,7 +183,7 @@ fn the_bodies_ends_fit_y_and_cut_runs_past_the_data() {
 fn fig_check_is_empty_for_violins() {
     use rustd3_core::scheme::COLORBLIND;
     use rustd3_figure::axis;
-    use rustd3_figure::check::size;
+    use rustd3_figure::kurbo::Size;
 
     let (mut fig, x, y) = figure();
     let color = fig.scale(scale::ordinal(["left", "right"], COLORBLIND));
@@ -200,5 +200,5 @@ fn fig_check_is_empty_for_violins() {
                 .fill(color, "right")
                 .dodge(),
         );
-    assert!(fig.check(size(640.0, 480.0)).is_empty());
+    assert!(fig.check(Size::new(640.0, 480.0)).is_empty());
 }

@@ -123,6 +123,12 @@ Names and visibility settled before the first release:
   tests' feature, and hidden from the docs.
 - rustd3-core: `format::literal`, `fmt!`'s compile-time check, is hidden
   from the docs; `format::format(spec).is_ok()` is the run-time check.
+- `helpers::stats::errorbar::Err` is `errorbar::Reach`: it no longer
+  shadows the prelude's `Err`.
+- `mark::Note::fill(color)` is `Note::color(color)`, as every mark names a
+  literal color; `fill` and `stroke` take a palette and a key.
+- `check::size(w, h)` is gone: `kurbo::Size::new(w, h)`.
+- `helpers::axes::defaults(axis)` is gone: `axis.minor(true)`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

@@ -86,9 +86,9 @@ fn presets_and_statistics_never_panic() {
             .mark(stats::errorbar(
                 (0..rng.small(4)).map(|_| {
                     let e = if rng.chance(0.5) {
-                        stats::errorbar::Err::Sym(rng.f64())
+                        stats::errorbar::Reach::Sym(rng.f64())
                     } else {
-                        stats::errorbar::Err::Asym(rng.f64(), rng.f64())
+                        stats::errorbar::Reach::Asym(rng.f64(), rng.f64())
                     };
                     (*rng.pick(&["a", "b", "c"]), rng.f64(), e)
                 }),

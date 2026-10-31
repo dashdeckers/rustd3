@@ -7,8 +7,8 @@
 //! Every preset takes the same finishing builders: `.title(t)` (the panel's
 //! title), `.x_label(t)` and `.y_label(t)` (the axes' labels), `.size(w, h)`
 //! (640 × 480 px by default, matplotlib's 6.4 × 4.8 in at 100 dpi),
-//! `.theme(theme)` and `.minor(on)` (minor ticks, on by default: the axes
-//! go through [`axes::defaults`](crate::helpers::axes::defaults)), and ends
+//! `.theme(theme)` and `.minor(on)` (minor ticks,
+//! [`Axis::minor`](crate::axis::Axis::minor), on by default), and ends
 //! in `.figure()`, a [`Figure`](crate::Figure) to change further, or in a
 //! file at its size, `.save_svg(path)` or `.save_png(path, scale)`.
 //!
@@ -80,9 +80,8 @@ macro_rules! finish {
                 self
             }
 
-            /// Minor ticks on the axes that have them, as
-            /// [`axes::defaults`](crate::helpers::axes::defaults) turns them
-            /// on; on by default.
+            /// Minor ticks ([`Axis::minor`](crate::axis::Axis::minor)) on
+            /// the axes that have them; on by default.
             #[must_use]
             pub fn minor(mut self, on: bool) -> Self {
                 self.setup.minor = on;

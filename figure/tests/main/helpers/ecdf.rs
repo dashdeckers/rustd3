@@ -138,7 +138,8 @@ fn y_holds_zero_and_one_and_x_spans_the_values() {
 #[test]
 fn fig_check_reports_a_stroke_key_the_palette_lacks() {
     use rustd3_core::scheme::COLORBLIND;
-    use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::check::Issue;
+    use rustd3_figure::kurbo::Size;
 
     let (mut fig, x, y) = figure();
     let color = fig.scale(scale::ordinal(["a"], COLORBLIND));
@@ -146,7 +147,7 @@ fn fig_check_reports_a_stroke_key_the_palette_lacks() {
         .mark(ecdf(X, x, y).stroke(color, "a"))
         .mark(ecdf(X, x, y).stroke(color, "b"));
     assert_eq!(
-        fig.check(size(640.0, 480.0)),
+        fig.check(Size::new(640.0, 480.0)),
         [Issue::UnknownKey { panel: 0, mark: 1 }]
     );
 }

@@ -6,7 +6,6 @@ use rustd3_core::scale::{self, AnyContinuous};
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_core::series::{Clock, Recording};
 use rustd3_core::shape::{self, stack};
-use rustd3_figure::helpers::axes;
 use rustd3_figure::helpers::chart::{self, bar::Mode};
 use rustd3_figure::kurbo::{Rect, Shape, Size};
 use rustd3_figure::legend::{Slot, Swatch, legend};
@@ -177,8 +176,8 @@ fn the_line_sketch_of_helpers_is_its_composition_and_saves_1280_by_960() {
     manual
         .panel(0, 0)
         .mark(line(rec.series(0).expect("channel 0"), x, y).stroke(color, "0".into()))
-        .axis(axes::defaults(axis::bottom(x)))
-        .axis(axes::defaults(axis::left(y)))
+        .axis(axis::bottom(x).minor(true))
+        .axis(axis::left(y).minor(true))
         .title("RMS");
     let list = draw(&fig);
     assert_eq!(list.commands, draw(&manual).commands);

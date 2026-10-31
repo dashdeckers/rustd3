@@ -295,8 +295,9 @@ fn bars_with_no_area_and_keys_outside_the_band_draw_nothing() {
     assert!(filled(&draw(&fig)).is_empty());
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
-        let issues = fig.check(size(640.0, 480.0));
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
+        let issues = fig.check(Size::new(640.0, 480.0));
         assert_eq!(
             issues,
             [Issue::OutsideDomain {

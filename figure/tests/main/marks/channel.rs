@@ -174,10 +174,11 @@ fn a_channel_of_another_length_draws_and_fits_nothing_until_replaced() {
     assert_eq!(domain, [-0.05, 1.05], "nor does it fit");
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
         use rustd3_figure::mark::Error;
         assert_eq!(
-            fig.check(size(640.0, 480.0)),
+            fig.check(Size::new(640.0, 480.0)),
             [Issue::Mark {
                 panel: 0,
                 mark: 1,

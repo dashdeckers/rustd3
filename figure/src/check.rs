@@ -5,15 +5,16 @@
 //!
 //! ```
 //! use rustd3_core::scale;
-//! use rustd3_figure::check::{self, size};
+//! use rustd3_figure::check;
+//! use rustd3_figure::kurbo::Size;
 //! use rustd3_figure::{Figure, axis};
 //!
 //! let mut fig = Figure::new();
 //! let y = fig.scale(scale::linear().domain([0.0, 3.0]));
 //! fig.panel(0, 0).axis(axis::left(y).label("vibration RMS [m/s²]"));
 //! # #[cfg(feature = "fonts")] {
-//! assert!(fig.check(size(640.0, 480.0)).is_empty());
-//! let issues = fig.check(size(640.0, 120.0));
+//! assert!(fig.check(Size::new(640.0, 480.0)).is_empty());
+//! let issues = fig.check(Size::new(640.0, 120.0));
 //! assert!(matches!(
 //!     issues[..],
 //!     [check::Issue::Overflow { what: check::Element::AxisTitle, .. }]
@@ -173,10 +174,4 @@ pub enum Direction {
     Horizontal,
     /// Down the rows.
     Vertical,
-}
-
-/// A figure size in px: `size(1600.0, 1200.0)`.
-#[must_use]
-pub fn size(width: f64, height: f64) -> kurbo::Size {
-    kurbo::Size::new(width, height)
 }

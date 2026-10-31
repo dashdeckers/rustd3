@@ -4,7 +4,6 @@
 //! snapshots of its list and SVG, and its PDF through poppler.
 
 use rustd3_examples::wheels;
-use rustd3_figure::check::size;
 use rustd3_figure::kurbo::{Shape, Size, Vec2};
 use rustd3_figure::list::{self, Clip, Command, List, part};
 use rustd3_figure::lower::{self, Caps};
@@ -218,7 +217,7 @@ fn the_wheel_figure_checks_clean_in_at_most_four_layout_passes() {
     for inset in [false, true] {
         let fig = wheel_figure(inset);
         for (w, h) in [(960.0, 760.0), (1600.0, 1200.0)] {
-            assert_eq!(fig.check(size(w, h)), [], "{w} × {h}, inset {inset}");
+            assert_eq!(fig.check(Size::new(w, h)), [], "{w} × {h}, inset {inset}");
             let resolved = fig.resolve(
                 Size::new(w, h),
                 &mut Cache::default(),
@@ -247,7 +246,7 @@ fn every_style_checks_clean_at_paper_and_notebook_on_960_by_760() {
             for context in [Context::Paper, Context::Notebook] {
                 let mut fig = wheels::figure(&samples, inset);
                 fig.theme(Theme::seaborn(style, context));
-                let issues = fig.check(size(960.0, 760.0));
+                let issues = fig.check(Size::new(960.0, 760.0));
                 assert!(issues.is_empty(), "{style:?} {context:?}: {issues:#?}");
             }
         }
@@ -260,7 +259,7 @@ fn wheels_fit_at_talk() {
     let samples = wheels::simulate();
     let mut fig = wheels::figure(&samples, false);
     fig.theme(Theme::seaborn(Style::Ticks, Context::Talk));
-    let issues = fig.check(size(1600.0, 1200.0));
+    let issues = fig.check(Size::new(1600.0, 1200.0));
     assert!(issues.is_empty(), "{issues:#?}");
 }
 

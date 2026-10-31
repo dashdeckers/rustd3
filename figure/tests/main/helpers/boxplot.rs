@@ -290,7 +290,8 @@ fn means_are_marked_and_empty_groups_draw_nothing() {
 #[test]
 fn fig_check_is_empty_for_box_plots_and_reports_what_they_cannot_draw() {
     use rustd3_figure::axis;
-    use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::check::Issue;
+    use rustd3_figure::kurbo::Size;
 
     let (mut fig, x, y) = figure();
     let color = fig.scale(scale::ordinal(["left"], COLORBLIND));
@@ -298,10 +299,10 @@ fn fig_check_is_empty_for_box_plots_and_reports_what_they_cannot_draw() {
         .axis(axis::bottom(x))
         .axis(axis::left(y))
         .mark(boxplot([("a", X.to_vec()), ("b", vec![1.0, 2.0])], x, y).notch(true));
-    assert!(fig.check(size(640.0, 480.0)).is_empty());
+    assert!(fig.check(Size::new(640.0, 480.0)).is_empty());
     fig.panel(0, 0)
         .mark(boxplot([("z", X.to_vec())], x, y).fill(color, "right"));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     assert!(
         issues.contains(&Issue::UnknownKey { panel: 0, mark: 1 }),
         "{issues:?}"

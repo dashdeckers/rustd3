@@ -186,13 +186,14 @@ fn a_histogram_asking_for_more_nice_bins_than_ticks_allow_keeps_them_apart() {
 #[cfg(feature = "fonts")]
 #[test]
 fn keys_outside_the_band_are_reported_with_their_count() {
-    use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::check::Issue;
+    use rustd3_figure::kurbo::Size;
     let mut fig = Figure::new();
     let x = fig.scale(scale::band(["a", "b"]));
     let y = fig.fit(scale::linear());
     fig.panel(0, 0).mark(histogram(["a", "z", "z", "y"], x, y));
     assert_eq!(
-        fig.check(size(640.0, 480.0)),
+        fig.check(Size::new(640.0, 480.0)),
         [Issue::OutsideDomain {
             handle: x.index(),
             count: 3

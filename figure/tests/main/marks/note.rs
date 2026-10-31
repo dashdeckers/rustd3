@@ -82,7 +82,7 @@ fn a_note_places_its_anchor_at_its_point_moved_by_its_offset() {
             .anchor(above)
             .offset(3.0, -6.0)
             .offset(f64::NAN, 0.0)
-            .fill(red),
+            .color(red),
     );
     let (list, area) = drawn(&fig);
     let (runs, ink) = runs(&list);
@@ -126,9 +126,10 @@ fn a_note_beyond_the_guard_band_or_outside_its_band_draws_nothing() {
     assert!(runs.is_empty(), "{runs:?}");
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
         assert_eq!(
-            fig.check(size(640.0, 480.0)),
+            fig.check(Size::new(640.0, 480.0)),
             [Issue::OutsideDomain {
                 handle: x.index(),
                 count: 1

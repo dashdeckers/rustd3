@@ -62,8 +62,8 @@ fn bars_stand_at_their_keys_without_caps_by_default() {
     let (mut fig, x, y) = figure();
     fig.panel(0, 0).mark(errorbar(
         [
-            ("a", 4.0, errorbar::Err::Sym(1.0)),
-            ("b", 6.0, errorbar::Err::Asym(2.0, 0.5)),
+            ("a", 4.0, errorbar::Reach::Sym(1.0)),
+            ("b", 6.0, errorbar::Reach::Asym(2.0, 0.5)),
         ],
         x,
         y,
@@ -90,7 +90,7 @@ fn bars_stand_at_their_keys_without_caps_by_default() {
 fn caps_reach_their_points_to_each_side() {
     let (mut fig, x, y) = figure();
     fig.panel(0, 0)
-        .mark(errorbar([("a", 4.0, errorbar::Err::Sym(1.0))], x, y).caps(4.0));
+        .mark(errorbar([("a", 4.0, errorbar::Reach::Sym(1.0))], x, y).caps(4.0));
     let (segments, w, h) = segments(&fig);
     assert_eq!(segments.len(), 3);
     let reach = 4.0 * 4.0 / 3.0;
@@ -108,9 +108,9 @@ fn bar_ends_fit_y_and_bad_errors_draw_nothing() {
     let y = fig.fit(scale::linear());
     fig.panel(0, 0).mark(errorbar(
         [
-            ("a", 4.0, errorbar::Err::Sym(1.0)),
-            ("b", 6.0, errorbar::Err::Asym(2.0, 1.0)),
-            ("b", 50.0, errorbar::Err::Sym(-1.0)),
+            ("a", 4.0, errorbar::Reach::Sym(1.0)),
+            ("b", 6.0, errorbar::Reach::Asym(2.0, 1.0)),
+            ("b", 50.0, errorbar::Reach::Sym(-1.0)),
         ],
         x,
         y,
@@ -128,7 +128,8 @@ fn bar_ends_fit_y_and_bad_errors_draw_nothing() {
 #[test]
 fn fig_check_is_empty_for_error_bars_and_reports_keys_outside_the_band() {
     use rustd3_figure::axis;
-    use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::check::Issue;
+    use rustd3_figure::kurbo::Size;
     use rustd3_figure::mark::bar_y;
 
     let (mut fig, x, y) = figure();
@@ -139,19 +140,19 @@ fn fig_check_is_empty_for_error_bars_and_reports_keys_outside_the_band() {
         .mark(
             errorbar(
                 [
-                    ("a", 4.0, errorbar::Err::Sym(1.0)),
-                    ("b", 6.0, errorbar::Err::Sym(0.5)),
+                    ("a", 4.0, errorbar::Reach::Sym(1.0)),
+                    ("b", 6.0, errorbar::Reach::Sym(0.5)),
                 ],
                 x,
                 y,
             )
             .caps(3.0),
         );
-    assert!(fig.check(size(640.0, 480.0)).is_empty());
+    assert!(fig.check(Size::new(640.0, 480.0)).is_empty());
     fig.panel(0, 0)
-        .mark(errorbar([("z", 4.0, errorbar::Err::Sym(1.0))], x, y));
+        .mark(errorbar([("z", 4.0, errorbar::Reach::Sym(1.0))], x, y));
     assert_eq!(
-        fig.check(size(640.0, 480.0)),
+        fig.check(Size::new(640.0, 480.0)),
         [Issue::OutsideDomain {
             handle: x.index(),
             count: 1

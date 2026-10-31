@@ -282,7 +282,8 @@ fn a_hist_by_default_bins_as_histogram_does() {
 #[cfg(feature = "fonts")]
 #[test]
 fn fig_check_reports_tables_that_cannot_be_made() {
-    use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::check::Issue;
+    use rustd3_figure::kurbo::Size;
     use rustd3_figure::mark;
 
     let (mut fig, x, y) = figure();
@@ -290,7 +291,7 @@ fn fig_check_reports_tables_that_cannot_be_made() {
         .mark(hist(X, x, y).bins(Bins::Edges(vec![0.0, f64::INFINITY])))
         .mark(hist(X, x, y).weights([1.0, 2.0]))
         .mark(hist(X, x, y).density(true));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     let errors: Vec<_> = issues
         .iter()
         .filter_map(|i| {
@@ -326,7 +327,7 @@ fn fig_check_reports_tables_that_cannot_be_made() {
         .bins(Bins::Edges(vec![3.0, 1.0]))
         .add_to(fig.panel(0, 0));
     fig.panel(0, 0).mark(hist(X, x, y).fill(color, "a"));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     assert!(
         matches!(
             issues[..],

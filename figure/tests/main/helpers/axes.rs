@@ -1,11 +1,10 @@
-//! Axis defaults and minor ticks: core's `Ticks::minor` values drawn at the
+//! Minor ticks: core's `Ticks::minor` values drawn at the
 //! theme's minor tick size and width without labels, on linear, log and
 //! symlog axes; none on time and band axes, none without tick marks.
 
 use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_core::scale::{self, Ticks};
 use rustd3_core::time;
-use rustd3_figure::helpers::axes;
 use rustd3_figure::kurbo::{BezPath, PathEl, Point, Size};
 use rustd3_figure::list::{Command, List, part};
 use rustd3_figure::theme::{Context, Style};
@@ -118,8 +117,7 @@ fn symlog_axes_draw_the_decade_minors_of_core_ticks() {
     assert_eq!(Ticks::minor(&symlog, &set), decades);
     let mut fig = Figure::new();
     let y = fig.scale(symlog.clone());
-    fig.panel(0, 0)
-        .axis(axes::defaults(axis::left(y).ticks(10)));
+    fig.panel(0, 0).axis(axis::left(y).ticks(10).minor(true));
     let area = resolve(&fig, &Held::default()).plot_areas()[0];
     let (strokes, _) = axis_part(&draw(&fig), 0);
     let minor = &strokes[1].1;
@@ -159,8 +157,8 @@ fn time_and_band_axes_have_no_minor_ticks() {
     let x = fig.scale(time::utc().domain([t0, t0 + SignedDuration::from_hours(30)]));
     let keys = fig.scale(scale::band(["a", "b", "c"]));
     fig.panel(0, 0)
-        .axis(axes::defaults(axis::bottom(x)))
-        .axis(axes::defaults(axis::left(keys)));
+        .axis(axis::bottom(x).minor(true))
+        .axis(axis::left(keys).minor(true));
     let list = draw(&fig);
     assert_eq!(axis_part(&list, 0).0.len(), 1);
     assert_eq!(axis_part(&list, 1).0.len(), 1);
@@ -181,8 +179,7 @@ fn minor_ticks_are_tick_marks_so_styles_without_them_draw_none() {
 fn defaults_keep_offset_notation_on_beside_the_minor_ticks() {
     let mut fig = Figure::new();
     let x = fig.scale(scale::linear().domain([1e9, 1e9 + 1.0]));
-    fig.panel(0, 0)
-        .axis(axes::defaults(axis::bottom(x).ticks(5)));
+    fig.panel(0, 0).axis(axis::bottom(x).ticks(5).minor(true));
     let (strokes, texts) = axis_part(&draw(&fig), 0);
     assert!(texts.iter().any(|t| t == "+1e9"), "{texts:?}");
     assert_eq!(strokes.len(), 2);
@@ -190,7 +187,7 @@ fn defaults_keep_offset_notation_on_beside_the_minor_ticks() {
     let mut fig = Figure::new();
     let x = fig.scale(scale::linear().domain([1e9, 1e9 + 1.0]));
     fig.panel(0, 0)
-        .axis(axes::defaults(axis::bottom(x).ticks(5).offset(false)));
+        .axis(axis::bottom(x).ticks(5).offset(false).minor(true));
     let (_, texts) = axis_part(&draw(&fig), 0);
     assert!(!texts.iter().any(|t| t == "+1e9"), "{texts:?}");
 }

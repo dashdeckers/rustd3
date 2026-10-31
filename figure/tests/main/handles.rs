@@ -134,7 +134,8 @@ fn point_handles_place_their_keys_without_width() {
 #[cfg(feature = "fonts")]
 #[test]
 fn keys_outside_a_band_domain_are_reported_once_per_handle() {
-    use rustd3_figure::check::{Issue, size};
+    use rustd3_figure::check::Issue;
+    use rustd3_figure::kurbo::Size;
     use rustd3_figure::mark::rule_x;
 
     let mut fig = Figure::new();
@@ -142,7 +143,7 @@ fn keys_outside_a_band_domain_are_reported_once_per_handle() {
     let y = fig.scale(scale::linear().domain([0.0, 1.0]));
     fig.panel(0, 0)
         .mark(dots([("a", 0.5), ("z", 0.5)], band, y));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     let one = Issue::OutsideDomain {
         handle: band.index(),
         count: 1,
@@ -152,7 +153,7 @@ fn keys_outside_a_band_domain_are_reported_once_per_handle() {
     fig.panel(0, 1)
         .mark(line([("y", 0.0), ("z", 1.0), ("b", 0.5)], band, y))
         .mark(rule_x("w", band));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     let four = Issue::OutsideDomain {
         handle: band.index(),
         count: 4,
