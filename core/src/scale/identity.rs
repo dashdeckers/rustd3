@@ -94,6 +94,11 @@ impl Identity {
     }
 
     /// d3's `tickFormat(count, specifier)` under the neutral locale.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format(
         &self,
         count: usize,
@@ -103,6 +108,11 @@ impl Identity {
     }
 
     /// d3's `tickFormat(count, specifier)` under `locale`.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format_in(
         &self,
         locale: &format::Locale,

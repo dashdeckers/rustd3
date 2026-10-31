@@ -102,6 +102,11 @@ impl<'a, X: Coordinate> Series<'a, X> {
     /// `valid`), plus the samples just outside the columns when the run
     /// holds them. Columns built for another recording or revision are
     /// [`Error::Stale`].
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Stale`] for columns built for another recording or
+    /// revision.
     pub fn m4(self, columns: &Columns, valid: impl Fn(f64) -> bool) -> Result<m4::Lines, Error<X>> {
         self.stale(columns)?;
         let stored = self.stored();
@@ -133,6 +138,12 @@ impl<'a, X: Coordinate> Series<'a, X> {
     /// assert_eq!(lines.iter().collect::<Vec<_>>(), [&[0, 1, 2][..], &[4, 5, 7, 8, 9]]);
     /// # Ok::<(), rustd3_core::series::Error>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Recordings`] for channels of two recordings,
+    /// [`Error::Stale`] for columns built for another recording or
+    /// revision.
     pub fn m4_joint(
         self,
         upper: Series<'a, X>,

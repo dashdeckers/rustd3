@@ -94,6 +94,11 @@ impl SvgPath {
     }
 
     /// `arc` that reports a negative radius (d3 throws) instead of drawing nothing.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::NegativeRadius`](crate::path::Error::NegativeRadius) for `r
+    /// < 0`, the path unchanged.
     pub fn try_arc(
         &mut self,
         x: f64,
@@ -144,6 +149,11 @@ impl SvgPath {
 
     /// d3's arcTo: a line toward (`x1`, `y1`), then an arc of radius `r`
     /// tangent to the lines through (`x1`, `y1`) and (`x2`, `y2`).
+    ///
+    /// # Errors
+    ///
+    /// [`Error::NegativeRadius`](crate::path::Error::NegativeRadius) for `r
+    /// < 0`, the path unchanged.
     pub fn arc_to(&mut self, x1: f64, y1: f64, x2: f64, y2: f64, r: f64) -> Result<(), Error> {
         if r < 0.0 {
             return Err(Error::NegativeRadius(r));

@@ -70,6 +70,11 @@ pub trait Transform: Clone {
     /// With no specifier the result must be `Ok`: an override's default
     /// specifier must parse, since [`scale::Ticks::labels`] labels axes
     /// through it and panics otherwise.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse; never for `None`.
     fn tick_format(
         &self,
         locale: &Locale,

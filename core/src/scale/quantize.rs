@@ -105,6 +105,11 @@ impl<R> Quantize<R> {
 
     /// d3's `tickFormat(count, specifier)` over the domain under the
     /// neutral locale.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format(
         &self,
         count: usize,

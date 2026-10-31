@@ -193,6 +193,11 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
 
     /// d3's `tickFormat(count, specifier)` under the neutral locale; see
     /// [`tick_format_in`](Sequential::tick_format_in).
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format(
         &self,
         count: usize,
@@ -203,6 +208,11 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
 
     /// d3's `tickFormat(count, specifier)` under `locale`: the transform's
     /// tick format over the domain.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format_in(
         &self,
         locale: &Locale,

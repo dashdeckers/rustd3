@@ -35,6 +35,11 @@ pub fn iso_format(t: Timestamp) -> String {
 /// assert!(time::iso_parse("1990-01-01T00:00:00.000X").is_err());
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// jiff's error for a string that is not an RFC 3339 instant with an
+/// offset.
 pub fn iso_parse(s: &str) -> Result<Timestamp, jiff::Error> {
     s.parse()
 }

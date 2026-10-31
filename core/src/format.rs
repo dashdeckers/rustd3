@@ -451,12 +451,20 @@ impl Type {
 }
 
 /// `specifier` under the neutral default locale.
+///
+/// # Errors
+///
+/// [`InvalidFormat`] when `specifier` does not parse.
 pub fn format(specifier: &str) -> Result<Format, InvalidFormat> {
     Locale::NEUTRAL.format(specifier)
 }
 
 /// d3's formatPrefix under the neutral default locale: fixed-point, scaled
 /// to `value`'s SI prefix.
+///
+/// # Errors
+///
+/// [`InvalidFormat`] when `specifier` does not parse.
 pub fn format_prefix(specifier: &str, value: f64) -> Result<Format, InvalidFormat> {
     Locale::NEUTRAL.format_prefix(specifier, value)
 }

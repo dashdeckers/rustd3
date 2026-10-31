@@ -283,6 +283,11 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
 
     /// d3's `tickFormat(count, specifier)` under the neutral locale; see
     /// [`tick_format_in`](Continuous::tick_format_in).
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format(
         &self,
         count: usize,
@@ -305,6 +310,11 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// assert_eq!(f.format_all(&s.ticks(5)), ["0.00", "0.04", "0.16", "0.36", "0.64", "1.00"]);
     /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format_in(
         &self,
         locale: &Locale,

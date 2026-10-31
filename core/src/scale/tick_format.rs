@@ -136,6 +136,11 @@ impl Keep {
 /// tick step: significant digits for no type, `e`, `g`, `p` and `r`,
 /// decimal places for `f` and `%`, and for `s` decimal places under the SI
 /// prefix of the larger end.
+///
+/// # Errors
+///
+/// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier` does
+/// not parse.
 #[doc(alias = "tickFormat")]
 pub fn tick_format(
     locale: &Locale,
