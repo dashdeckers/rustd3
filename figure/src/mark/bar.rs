@@ -25,12 +25,24 @@ pub struct BarY<X: Position, Y: Position<Domain = f64>> {
     y: ScaleRef<Y>,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for BarY<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BarY").finish_non_exhaustive()
+    }
+}
+
 /// Horizontal bars: one filled rectangle per row, across its y key's band
 /// and from its base (or its span's first end) to its value along x.
 pub struct BarX<X: Position<Domain = f64>, Y: Position> {
     bars: Bars<<Y as Kind>::Domain>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
+}
+
+impl<X: Position<Domain = f64>, Y: Position> std::fmt::Debug for BarX<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BarX").finish_non_exhaustive()
+    }
 }
 
 /// What both orientations hold: rows of a key and a value or a span, and

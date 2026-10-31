@@ -65,6 +65,12 @@ pub struct Histogram<X: Binned, Y: Position<Domain = f64>> {
     dodge: bool,
 }
 
+impl<X: Binned, Y: Position<Domain = f64>> std::fmt::Debug for Histogram<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Histogram").finish_non_exhaustive()
+    }
+}
+
 /// A histogram of `values` on `x` with its counts on `y`, in the theme
 /// palette's first color: one bar per key on band and point scales, per
 /// bin of the finite values ([`Bins::Nice`] with Sturges' count by

@@ -15,6 +15,12 @@ pub struct Colors<C> {
     count: usize,
 }
 
+impl<C> std::fmt::Debug for Colors<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Colors").finish_non_exhaustive()
+    }
+}
+
 /// A legend of `handle`, a continuous color handle (a dots mark's
 /// [`fill_by`](crate::mark::Dots::fill_by)): one entry per tick of its
 /// resolved scale for about [`count`](Colors::count) ticks (5 by default),

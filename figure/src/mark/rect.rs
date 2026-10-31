@@ -27,6 +27,12 @@ pub struct Rect<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     stroke: Option<Color>,
 }
 
+impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for Rect<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Rect").finish_non_exhaustive()
+    }
+}
+
 /// One filled rectangle per row `([x0, x1], [y0, y1])` on `x` and `y`:
 /// all four edges enter fitting, none is held. Rows over shared bin edges
 /// stack histograms.

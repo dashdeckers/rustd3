@@ -55,6 +55,12 @@ pub struct Brush<A, B> {
     target: Option<ScaleRef<B>>,
 }
 
+impl<A, B> std::fmt::Debug for Brush<A, B> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Brush").finish_non_exhaustive()
+    }
+}
+
 impl<A, B> Clone for Brush<A, B> {
     fn clone(&self) -> Self {
         *self

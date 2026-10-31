@@ -31,6 +31,12 @@ pub struct Panel<'a> {
     foreign: Vec<usize>,
 }
 
+impl<'a> std::fmt::Debug for Panel<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Panel").finish_non_exhaustive()
+    }
+}
+
 impl<'a> Panel<'a> {
     /// An empty panel in grid cell `cell`.
     pub(crate) fn new(figure: figure::Id, cell: Cell) -> Panel<'a> {

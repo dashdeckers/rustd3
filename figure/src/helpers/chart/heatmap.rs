@@ -20,6 +20,12 @@ pub struct Heatmap {
     setup: Setup,
 }
 
+impl std::fmt::Debug for Heatmap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Heatmap").finish_non_exhaustive()
+    }
+}
+
 /// A heatmap of `grid`: an [`image`] of its cells through a sequential
 /// color scale fitted to its values (viridis unless
 /// [`colors`](Heatmap::colors) says otherwise), filling the plot area, and

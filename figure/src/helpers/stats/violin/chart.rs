@@ -56,6 +56,12 @@ pub struct Violin<X: Position, Y: Position<Domain = f64>> {
     dodge: bool,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Violin<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Violin").finish_non_exhaustive()
+    }
+}
+
 /// What one group draws.
 enum Body {
     /// No finite values: nothing.

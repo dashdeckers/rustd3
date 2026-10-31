@@ -39,6 +39,12 @@ pub struct BoxPlot<X: Position, Y: Position<Domain = f64>> {
     dodge: bool,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for BoxPlot<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BoxPlot").finish_non_exhaustive()
+    }
+}
+
 /// One box plot per group `(key, values)` on `x` and `y`, from
 /// [`boxplot::summary`](super::summary) with 1.5 × IQR whiskers. Each
 /// group sits in its key's band (as bars sit, on scales without bands): a

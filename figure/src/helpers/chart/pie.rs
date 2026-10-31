@@ -25,6 +25,12 @@ pub struct Pie<K> {
     setup: Setup,
 }
 
+impl<K> std::fmt::Debug for Pie<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Pie").finish_non_exhaustive()
+    }
+}
+
 /// The wedges of a pie, sized by the plot area they are drawn in, and
 /// their labels.
 struct Wedges<K> {

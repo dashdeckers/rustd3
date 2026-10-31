@@ -23,6 +23,12 @@ pub struct Held {
     overscan: f64,
 }
 
+impl std::fmt::Debug for Held {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Held").finish_non_exhaustive()
+    }
+}
+
 impl Held {
     /// Holds `scale` for handle `h`.
     pub fn hold<S: Kind>(&mut self, h: ScaleRef<S>, scale: S) {

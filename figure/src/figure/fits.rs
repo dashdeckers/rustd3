@@ -50,6 +50,12 @@ pub struct Fits {
     foreign: Vec<(usize, usize)>,
 }
 
+impl std::fmt::Debug for Fits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Fits").finish_non_exhaustive()
+    }
+}
+
 /// What the marks reported: per table entry its slot, filled when it is
 /// fitted and not held, and the panels that place it across; the labels
 /// marks draw; and the palette keys they draw in.

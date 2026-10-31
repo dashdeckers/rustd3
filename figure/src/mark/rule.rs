@@ -24,6 +24,12 @@ pub struct Rule<S: Position> {
     label: Option<Text>,
 }
 
+impl<S: Position> std::fmt::Debug for Rule<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Rule").finish_non_exhaustive()
+    }
+}
+
 /// The direction a rule's value is measured in.
 #[derive(Clone, Copy)]
 enum Along {

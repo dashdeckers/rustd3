@@ -21,6 +21,12 @@ pub struct Area<'a> {
     figure: PhantomData<&'a ()>,
 }
 
+impl<'a> std::fmt::Debug for Area<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Area").finish_non_exhaustive()
+    }
+}
+
 /// A stacked area chart of `columns` over `x`, each column a series with a
 /// value per x, stacked from 0 in the columns' order by `shape::stack`
 /// (offset none; matplotlib's `stackplot`): one opaque [`ribbon`] per

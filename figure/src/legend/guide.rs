@@ -19,6 +19,12 @@ pub trait Guide<'a> {
 /// A guide as the figure keeps it, its type erased.
 pub struct Erased<'a>(pub(crate) Stored<'a>);
 
+impl<'a> std::fmt::Debug for Erased<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Erased").finish_non_exhaustive()
+    }
+}
+
 /// A guide with its type erased: a legend's keys or a colorbar.
 pub(crate) enum Stored<'a> {
     /// A legend of an ordinal palette's keys.

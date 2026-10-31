@@ -67,6 +67,12 @@ pub struct Writer<W: std::io::Write> {
     renderer: raster::Renderer,
 }
 
+impl<W: std::io::Write> std::fmt::Debug for Writer<W> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Writer").finish_non_exhaustive()
+    }
+}
+
 /// Why a GIF cannot be written.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

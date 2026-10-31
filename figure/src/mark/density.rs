@@ -31,6 +31,12 @@ pub struct DensityY<Y: Position<Domain = f64>, W: Position<Domain = f64>> {
     w: ScaleRef<W>,
 }
 
+impl<Y: Position<Domain = f64>, W: Position<Domain = f64>> std::fmt::Debug for DensityY<Y, W> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DensityY").finish_non_exhaustive()
+    }
+}
+
 /// A kernel density estimate along x: the curve over the data's values on
 /// `x`, its height on `h` peak-normalized to 1, filled from `h = 0` at 0.35
 /// opacity and outlined 0.75 pt wide.
@@ -38,6 +44,12 @@ pub struct DensityX<X: Position<Domain = f64>, H: Position<Domain = f64>> {
     density: Density,
     x: ScaleRef<X>,
     h: ScaleRef<H>,
+}
+
+impl<X: Position<Domain = f64>, H: Position<Domain = f64>> std::fmt::Debug for DensityX<X, H> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DensityX").finish_non_exhaustive()
+    }
 }
 
 /// What both orientations hold: the values, their estimate and its curve.

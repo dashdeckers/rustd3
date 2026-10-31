@@ -22,6 +22,12 @@ pub struct Bars<X: Position, Y: Position<Domain = f64>> {
     center: bool,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Bars<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Bars").finish_non_exhaustive()
+    }
+}
+
 /// matplotlib's `bar_label` for bars of `data` drawn on `x` and `y` from 0
 /// (as [`bar_y`](crate::mark::bar_y) draws them): each finite value,
 /// written in the figure's locale, at its bar's end, centred across the

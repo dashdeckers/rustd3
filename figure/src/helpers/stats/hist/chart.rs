@@ -24,6 +24,12 @@ pub struct Hist<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     y: ScaleRef<Y>,
 }
 
+impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for Hist<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Hist").finish_non_exhaustive()
+    }
+}
+
 /// What a histogram draws through: its bars or its outline.
 enum Drawn<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     Bars(mark::Rect<X, Y>),

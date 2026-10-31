@@ -36,6 +36,12 @@ pub struct Dots<'a, X: Position, Y: Position> {
     size_by: Option<Result<Channel<f64>, Error>>,
 }
 
+impl<'a, X: Position, Y: Position> std::fmt::Debug for Dots<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Dots").finish_non_exhaustive()
+    }
+}
+
 /// One dot as drawn: its datum's index, where it is centred in the
 /// panel's coordinates, its color from `fill_by` and its radius in px.
 struct Placed {

@@ -23,6 +23,12 @@ pub struct Note<X: Position, Y: Position> {
     fill: Option<Rgb>,
 }
 
+impl<X: Position, Y: Position> std::fmt::Debug for Note<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Note").finish_non_exhaustive()
+    }
+}
+
 /// `text` at the point `at` on `x` and `y` (the middle of a band on band
 /// scales), its first line's start at the point by default (matplotlib's
 /// `text`, `ha="left"`, `va="baseline"`), at the axis-label size (12 pt)

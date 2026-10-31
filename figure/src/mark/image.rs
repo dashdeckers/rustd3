@@ -25,6 +25,17 @@ where
     color: ScaleRef<C>,
 }
 
+impl<X, Y, C> std::fmt::Debug for Image<X, Y, C>
+where
+    X: Position<Domain = f64>,
+    Y: Position<Domain = f64>,
+    C: Paint<Domain = f64>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Image").finish_non_exhaustive()
+    }
+}
+
 /// Values in `cols × rows` cells, row-major with row 0 at the extent's
 /// first y, and the data rectangle the cells cover, `[0, cols] × [0,
 /// rows]` unless given.

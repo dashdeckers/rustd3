@@ -110,6 +110,12 @@ pub struct Ctx<'r> {
     mark: usize,
 }
 
+impl<'r> std::fmt::Debug for Ctx<'r> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ctx").finish_non_exhaustive()
+    }
+}
+
 impl<'r> Ctx<'r> {
     /// What the marks of the panel whose plot area is `rect` see; they
     /// thin through the draw's `frame`.

@@ -25,6 +25,12 @@ pub struct Bar<K> {
     setup: Setup,
 }
 
+impl<K> std::fmt::Debug for Bar<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Bar").finish_non_exhaustive()
+    }
+}
+
 /// A bar chart of `rows`, each a key and its values in the order of
 /// `series`, the series' names: the keys on a band scale whose bars take
 /// 0.8 of each step (seaborn's), a fitted linear y, each series in its

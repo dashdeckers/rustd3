@@ -31,6 +31,12 @@ pub struct Line<'a, X: Position, Y: Position> {
     dodge: bool,
 }
 
+impl<'a, X: Position, Y: Position> std::fmt::Debug for Line<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Line").finish_non_exhaustive()
+    }
+}
+
 /// A line through `data` (pairs, a recording channel or two slices) on `x`
 /// and `y`, straight from point to point, solid, in the theme palette's
 /// first color and the theme's line width, thinned when `data` is a

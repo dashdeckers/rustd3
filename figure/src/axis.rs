@@ -99,6 +99,12 @@ pub struct Axis<'a, S: Kind> {
     palette: Option<ScaleRef<()>>,
 }
 
+impl<'a, S: Kind> std::fmt::Debug for Axis<'a, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Axis").finish_non_exhaustive()
+    }
+}
+
 impl<S: Kind> Clone for Axis<'_, S> {
     fn clone(&self) -> Self {
         Axis {

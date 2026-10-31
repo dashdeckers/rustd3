@@ -81,6 +81,12 @@ pub struct Figure<'a> {
     legends: Vec<(Slot, legend::Stored<'a>)>,
 }
 
+impl<'a> std::fmt::Debug for Figure<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Figure").finish_non_exhaustive()
+    }
+}
+
 /// One scale of the table, how to fit it when it is fitted, whether to
 /// what its panels' x shows (`Fit::Visible`), and the span of x it shows
 /// when it is a window (`Fit::Window`): its `Kind::Span`, boxed.

@@ -13,6 +13,12 @@ pub struct Scatter<'a> {
     setup: Setup,
 }
 
+impl<'a> std::fmt::Debug for Scatter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Scatter").finish_non_exhaustive()
+    }
+}
+
 /// A scatter plot of `points`: one [`mark::dots`] in the theme palette's
 /// first color at the theme's marker size on linear x and y scales fitted
 /// to them, a bottom and a left axis with minor ticks. One series, so no

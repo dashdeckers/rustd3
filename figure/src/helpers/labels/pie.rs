@@ -25,6 +25,12 @@ pub struct Pie<K> {
     keys: PhantomData<fn(&K)>,
 }
 
+impl<K> std::fmt::Debug for Pie<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Pie").finish_non_exhaustive()
+    }
+}
+
 /// One label per slice of a pie of `slices` between radii `inner` and
 /// `outer` (px; `inner` 0 for a pie, above it for a donut), centred on the
 /// pie's slice's arc centroid (d3's `arc.centroid`: the middle of its

@@ -15,6 +15,12 @@ pub struct Sizes<S> {
     values: Option<Vec<f64>>,
 }
 
+impl<S> std::fmt::Debug for Sizes<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Sizes").finish_non_exhaustive()
+    }
+}
+
 /// A legend of `handle`, a numeric handle whose output is a radius in px
 /// (a dots mark's [`size_by`](crate::mark::Dots::size_by)): one entry per
 /// tick of its resolved scale for about [`count`](Sizes::count) ticks (4

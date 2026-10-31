@@ -34,6 +34,12 @@ pub struct Area<'a, X: Position, Y: Position<Domain = f64>> {
     hatch: Option<Hatch>,
 }
 
+impl<'a, X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Area<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Area").finish_non_exhaustive()
+    }
+}
+
 /// The region between two lines with one x per row, a ribbon's lower and
 /// upper edge: one `Fill` command, broken where a row cannot be placed.
 pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
@@ -47,6 +53,12 @@ pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
     hatch: Option<Hatch>,
     thin: Thin,
     error: Option<Error>,
+}
+
+impl<'a, X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Ribbon<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ribbon").finish_non_exhaustive()
+    }
 }
 
 /// The region between `data` (pairs, a recording channel or two slices)

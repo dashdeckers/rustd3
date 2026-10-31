@@ -81,6 +81,12 @@ pub struct Legend<K> {
     glyph: Option<Swatch>,
 }
 
+impl<K> std::fmt::Debug for Legend<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Legend").finish_non_exhaustive()
+    }
+}
+
 impl<K> Clone for Legend<K> {
     fn clone(&self) -> Self {
         Legend {

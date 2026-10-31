@@ -23,6 +23,12 @@ pub struct ErrorBar<X: Position, Y: Position<Domain = f64>> {
     caps: Option<f64>,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for ErrorBar<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ErrorBar").finish_non_exhaustive()
+    }
+}
+
 /// One error bar per row `(key, value, error)` on `x` and `y`: a vertical
 /// line at the key (the middle of its band) from `value − below` to
 /// `value + above`, in ink and the theme's line width (matplotlib's

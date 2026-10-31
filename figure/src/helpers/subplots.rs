@@ -16,6 +16,12 @@ pub struct Subplots<'a> {
     y: Vec<ScaleRef<Linear>>,
 }
 
+impl<'a> std::fmt::Debug for Subplots<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Subplots").finish_non_exhaustive()
+    }
+}
+
 /// One panel per cell of a `rows × cols` grid; x fitted and shared per
 /// column, y per row, with bottom and left axes on every panel. Layout
 /// labels only the outer ones (the bottom row's x, the left column's y),

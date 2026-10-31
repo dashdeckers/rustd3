@@ -89,6 +89,12 @@ pub struct Colorbar<'a, S> {
     format: Option<Format<'a>>,
 }
 
+impl<'a, S> std::fmt::Debug for Colorbar<'a, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Colorbar").finish_non_exhaustive()
+    }
+}
+
 impl<S> Clone for Colorbar<'_, S> {
     fn clone(&self) -> Self {
         Colorbar {

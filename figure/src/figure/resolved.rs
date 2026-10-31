@@ -59,6 +59,12 @@ pub struct Resolved {
     foreign: Vec<(usize, usize)>,
 }
 
+impl std::fmt::Debug for Resolved {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Resolved").finish_non_exhaustive()
+    }
+}
+
 impl Resolved {
     /// The resolved scales of figure `figure` for `target` and `size`,
     /// labelled in `locale`, before layout.
