@@ -49,6 +49,16 @@ quantile and threshold scales live beside them in `rustd3::scale`.
 (`.domain([a, b])`, `.range([a, b])`, read back with `get_domain` and
 `get_range`). For band and ordinal scales the domain is a list of keys.
 
+**Builders and readers.** A builder takes a setting's name and returns
+the value it was called on with the setting changed (`.domain(d)`, and
+`with_precision(p)` on the types d3 reads as fields); a method that
+returns a stored or configured value is `get_` and the name
+(`get_domain()`, `Theme::get_line_width()`,
+`Specifier::get_precision()`), with or without a builder beside it.
+Predicates are `is_`, `has_` or `wants_`, std's names (`len`, `iter`,
+`into_*`) mean what they mean in std, and a method that computes keeps
+the name of what it gives (`bandwidth`, `ticks`, `invert`).
+
 **Tick.** A nicely rounded domain value a scale offers for labelling:
 `scale.ticks(count)`. The free functions in `rustd3::ticks` are d3-array's
 (`ticks`, `tick_step`, `nice`); `rustd3::ticks::Set` carries a scale's
