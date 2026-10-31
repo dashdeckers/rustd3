@@ -49,6 +49,7 @@ pub struct Table {
 
 /// Why a histogram's table could not be made.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A caller's edge that is not finite or not above the one before it.
     #[error("edge {index} is not finite or not above the one before: {value}")]

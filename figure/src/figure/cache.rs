@@ -22,6 +22,7 @@ pub struct Cache {
 
 /// What a figure cache holds and has done. Plain data.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Stats {
     /// The text cache's.
     pub text: text::Stats,

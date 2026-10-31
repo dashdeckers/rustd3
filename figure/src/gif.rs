@@ -75,6 +75,7 @@ impl<W: std::io::Write> std::fmt::Debug for Writer<W> {
 
 /// Why a GIF cannot be written.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A size whose device px exceed a GIF's `u16` sides.
     #[error("{width} × {height} device px exceeds GIF's 65,535 limit")]

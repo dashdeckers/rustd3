@@ -22,6 +22,7 @@ use crate::{lower, svg};
 
 /// Why a figure could not be saved.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// The file could not be written.
     #[error("cannot write {}: {source}", path.display())]

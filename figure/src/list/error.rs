@@ -3,6 +3,7 @@
 /// Why a list cannot be drawn: each variant names the command (or part)
 /// and the rejected value.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// Groups still open at the end of the list.
     #[error("{open} group(s) still open at the end of the list")]

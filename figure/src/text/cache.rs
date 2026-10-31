@@ -38,6 +38,7 @@ struct Entry {
 
 /// What a cache holds and has done.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Stats {
     /// Labels cached, shaped or failed.
     pub entries: usize,

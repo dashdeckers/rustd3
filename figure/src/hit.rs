@@ -39,6 +39,7 @@ pub use sink::Sink;
 
 /// A point a mark drew, found near a position. Plain data.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub struct Hit {
     /// The panel's index, in the order of first use.
     pub panel: usize,

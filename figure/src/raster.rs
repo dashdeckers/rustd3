@@ -45,6 +45,7 @@ pub struct Image {
 
 /// Why a list cannot be rendered.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A render with a side above 65,408 device px, or an image in the
     /// list with a side above 65,535 px.

@@ -153,6 +153,7 @@ pub enum Issue {
 
 /// What text overflows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Element {
     /// An axis title, longer than its axis.
     AxisTitle,

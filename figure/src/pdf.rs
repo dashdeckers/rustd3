@@ -41,6 +41,7 @@ pub struct Options {
 
 /// Why a list cannot be written as PDF.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A list whose size is not positive and finite.
     #[error("page size {width} × {height} px is not positive and finite")]
