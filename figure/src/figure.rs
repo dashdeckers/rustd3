@@ -2,7 +2,6 @@
 //! cells that refer to scales only through handles, a layout, a title and
 //! a theme; resolving it fits domains and lays the grid out.
 
-pub(crate) mod cache;
 mod decorate;
 mod draw;
 mod fits;
@@ -24,7 +23,6 @@ use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef, window};
 use crate::text::Text;
 use crate::theme::Theme;
 
-pub use cache::Cache;
 pub use fits::Fits;
 pub use held::Held;
 pub use resolved::Resolved;
@@ -53,7 +51,7 @@ pub(crate) struct Id(u64);
 /// let y = fig.fit(scale::linear());
 /// fig.panel(0, 0);
 /// # #[cfg(feature = "fonts")] {
-/// let mut cache = rustd3_figure::Cache::default();
+/// let mut cache = rustd3_figure::cache::Cache::default();
 /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), Target::Vector);
 /// assert_eq!(r.scale(x).map(|s| s.get_domain()), Some([0.0, 10.0]));
 /// // No mark gives y data: core's empty domain.
@@ -146,7 +144,7 @@ impl<'a> Figure<'a> {
     /// area (see [`Fit::Window`]): resolving lays the figure out with the
     /// window, measures the plot areas, and fits and lays out again until
     /// the column count it fitted with is the one it laid out (the last
-    /// count is remembered in the [`Cache`], so a layout that did not move
+    /// count is remembered in the [`Cache`](crate::cache::Cache), so a layout that did not move
     /// takes one pass). `Fit::Window(())` on a categorical scale (span
     /// `()`) means nothing: the handle fits as `Fit::All`, and
     /// [`check`](Figure::check) reports it.
@@ -167,7 +165,7 @@ impl<'a> Figure<'a> {
     /// let v = fig.fit(scale::linear());
     /// fig.panel(0, 0).mark(line(rec.series(0).expect("channel 0"), t, v));
     /// # #[cfg(feature = "fonts")] {
-    /// let mut cache = rustd3_figure::Cache::default();
+    /// let mut cache = rustd3_figure::cache::Cache::default();
     /// let target = Target::Screen { scale: 1.0 };
     /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), target);
     /// let [left, right] = r.scale(t).expect("a handle of this figure").get_domain();
@@ -180,7 +178,7 @@ impl<'a> Figure<'a> {
     /// resolved domain of its marks' x handles (read from a recording's
     /// index in O(log n)), merged across panels; its domain grows at once
     /// to contain the padded extent and shrinks only by whole eighths of
-    /// its last span, remembered in the [`Cache`] by handle index and
+    /// its last span, remembered in the [`Cache`](crate::cache::Cache) by handle index and
     /// scale type, so panning does not make it flicker. Used as x, or over
     /// an x that is itself `Fit::Visible`, it fits all its data.
     pub fn fit_with<S: Fittable>(&mut self, s: S, fit: Fit<S::Span>) -> ScaleRef<S> {

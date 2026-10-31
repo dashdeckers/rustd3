@@ -12,10 +12,11 @@
 use std::panic::{self, AssertUnwindSafe};
 use std::time::Instant;
 
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::Rect;
 use rustd3_figure::list::{Bounds, List, Outlines};
 use rustd3_figure::raster::{self, Settings, Simd};
-use rustd3_figure::{Cache, Figure, Held, Target};
+use rustd3_figure::{Figure, Held, Target};
 use serde::{Deserialize, Serialize};
 
 use crate::stats::percentile;

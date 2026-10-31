@@ -4,10 +4,11 @@
 use std::path::Path;
 use std::path::PathBuf;
 
+use crate::cache::Cache;
 #[cfg(feature = "fonts")]
 use crate::figure::Figure;
 #[cfg(all(feature = "png", feature = "fonts"))]
-use crate::figure::{Cache, Held};
+use crate::figure::Held;
 use crate::list;
 #[cfg(all(feature = "png", feature = "fonts"))]
 use crate::list::{Bounds, Outlines};

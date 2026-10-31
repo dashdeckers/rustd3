@@ -1,7 +1,7 @@
 //! Thinning long recordings at draw time: M4 per device-pixel column, its
 //! column boundaries shared per draw by every line on one clock
 //! ([`Frame`]), and its output memoized across draws in the figure's
-//! [`Cache`](crate::Cache).
+//! [`Cache`](crate::cache::Cache).
 //!
 //! A line whose x scale has the bridge to core's index
 //! ([`Position::indexed`](crate::scale::Position::indexed)) and whose data

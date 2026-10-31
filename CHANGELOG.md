@@ -139,6 +139,8 @@ Names and visibility settled before the first release:
 - rustd3-iced: `Plot` is `rustd3_iced::Plot` and `Probe` is
   `rustd3_iced::plot::Probe` only (`plot::Plot` and `plot::probe::Probe`
   are gone).
+- rustd3-figure: `cache` is the module of `Cache` and its `Stats`:
+  `rustd3_figure::Cache` is `cache::Cache`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

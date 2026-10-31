@@ -62,7 +62,7 @@ fn list_dump_of_scatter() {
 fn draw_is_a_vector_draw_with_a_fresh_cache() {
     let fig = scatter::scatter(30);
     let fresh = fig.draw_with(
-        &mut rustd3_figure::Cache::default(),
+        &mut rustd3_figure::cache::Cache::default(),
         SIZE,
         Target::Vector,
         &Held::default(),

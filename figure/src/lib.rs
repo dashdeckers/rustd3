@@ -63,6 +63,7 @@ pub use peniko;
 
 pub mod axis;
 pub mod brush;
+pub mod cache;
 pub mod check;
 pub mod colorbar;
 mod figure;
@@ -91,12 +92,7 @@ pub mod text;
 pub mod theme;
 pub mod thin;
 
-pub use figure::{Cache, Error, Figure, Fits, Held, Resolved};
+pub use figure::{Error, Figure, Fits, Held, Resolved};
 pub use panel::Panel;
 pub use target::Target;
 pub use theme::settings::Theme;
-
-/// What a figure's [`Cache`] reports.
-pub mod cache {
-    pub use crate::figure::cache::Stats;
-}

@@ -5,8 +5,9 @@
 use std::any::Any;
 use std::rc::Rc;
 
+use crate::cache::Cache;
 use crate::figure::fits::{Fits, Reported, Reports};
-use crate::figure::{Cache, Entry, Figure, Held, Resolved};
+use crate::figure::{Entry, Figure, Held, Resolved};
 use crate::layout::{self, Layout};
 use crate::scale::{Scale, visible};
 use crate::target::Target;
@@ -89,7 +90,7 @@ impl Figure<'_> {
     /// let y = fig.scale(scale::linear().domain([0.0, 3.0]));
     /// fig.panel(0, 0).axis(axis::left(y));
     /// # #[cfg(feature = "fonts")] {
-    /// let mut cache = rustd3_figure::Cache::default();
+    /// let mut cache = rustd3_figure::cache::Cache::default();
     /// let size = Size::new(640.0, 480.0);
     /// let target = Target::Screen { scale: 1.0 };
     /// let start = fig.resolve(size, &mut cache, &Held::default(), target);

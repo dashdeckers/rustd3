@@ -13,7 +13,7 @@
 //! let y = fig.scale(scale::linear().domain([0.0, 10.0]));
 //! fig.panel(0, 0).mark(dots([(2.0, 3.0), (7.0, 5.0)], x, y));
 //! # #[cfg(feature = "fonts")] {
-//! let mut cache = rustd3_figure::Cache::default();
+//! let mut cache = rustd3_figure::cache::Cache::default();
 //! let size = Size::new(640.0, 480.0);
 //! let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
 //! let index = fig.hits(&r, &mut cache);
@@ -31,7 +31,8 @@ use std::cell::RefCell;
 
 use kurbo::Point;
 
-use crate::figure::{Cache, Figure, Resolved};
+use crate::cache::Cache;
+use crate::figure::{Figure, Resolved};
 use crate::mark::Ctx;
 
 pub(crate) use grid::Grid;
@@ -62,7 +63,8 @@ pub struct Hit {
 /// use rustd3_core::scale;
 /// use rustd3_figure::kurbo::Size;
 /// use rustd3_figure::mark::dots;
-/// use rustd3_figure::{Cache, Figure, Held, Target};
+/// use rustd3_figure::{Figure, Held, Target};
+/// use rustd3_figure::cache::Cache;
 ///
 /// let mut fig = Figure::new();
 /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));

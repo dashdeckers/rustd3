@@ -9,8 +9,9 @@ use std::time::Duration;
 #[cfg(feature = "fonts")]
 use kurbo::{Point, Rect, Size};
 
+use crate::cache::Cache;
 #[cfg(feature = "fonts")]
-use crate::figure::{Cache, Figure, Held};
+use crate::figure::{Figure, Held};
 #[cfg(feature = "fonts")]
 use crate::list::{Bounds, Outlines};
 use crate::raster;

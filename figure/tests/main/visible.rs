@@ -2,10 +2,11 @@
 
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::series::{Clock, Recording};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::{Fit, ScaleRef};
-use rustd3_figure::{Cache, Figure, Held, Target};
+use rustd3_figure::{Figure, Held, Target};
 
 use crate::figure::cache;
 

@@ -76,8 +76,9 @@ impl Workload {
 
 #[cfg(test)]
 mod tests {
+    use rustd3_figure::cache::Cache;
     use rustd3_figure::kurbo::{Point, Size};
-    use rustd3_figure::{Cache, Held, Target};
+    use rustd3_figure::{Held, Target};
 
     use super::{ANCHORS, WHEELS};
     use crate::scenario::Scenario;

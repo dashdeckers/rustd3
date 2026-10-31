@@ -37,7 +37,7 @@ impl Figure<'_> {
     /// ```
     #[must_use]
     pub fn check(&self, size: kurbo::Size) -> Vec<Issue> {
-        let mut cache = crate::Cache::default();
+        let mut cache = crate::cache::Cache::default();
         let held = crate::Held::default();
         let resolved = self.resolve(size, &mut cache, &held, crate::Target::Vector);
         let mut issues = room(&resolved);

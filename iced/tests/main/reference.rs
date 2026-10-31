@@ -13,10 +13,11 @@
 //! plot-area layers (which the overscan grows over it); everything else is
 //! the PNG's.
 
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::list::{Bounds, Command, List, Outlines, part};
 use rustd3_figure::raster::{self, Settings, Simd};
-use rustd3_figure::{Cache, Figure, Held, Target, layout, thin};
+use rustd3_figure::{Figure, Held, Target, layout, thin};
 
 /// The widget's overscan: two tiles and a margin, device px.
 const OVERSCAN: f64 = 520.0;

@@ -311,7 +311,7 @@ let unit = Text::from("RMS [").push(text::typst("$m slash s^2$")).push("]");
 
 A `&str` or `String` converts into a literal `Text`. typst shapes each
 batch of new labels in one document; shaped labels live in the figure's
-`Cache` (`rustd3::figure::Cache`), keyed by text and style, so a redraw
+`Cache` (`rustd3::figure::cache::Cache`), keyed by text and style, so a redraw
 shapes only labels it has not seen. Without the `fonts` feature the app
 supplies fonts through `text::Fonts::with`. Tick labels are written
 through the figure's locale; axes drop labels that would collide, keeping

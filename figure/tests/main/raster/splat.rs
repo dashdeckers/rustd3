@@ -2,11 +2,12 @@
 //! coverage stamps against the markers filled point by point.
 
 use rustd3_core::{scale, scheme};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::list::{Bounds, Command, List, Outlines};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::raster::{Image, Renderer, Settings, Simd};
-use rustd3_figure::{Cache, Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Target, axis};
 
 use super::vello::diff;
 

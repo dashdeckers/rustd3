@@ -28,8 +28,9 @@ use iced::advanced::widget::{Meta, Tree, Widget};
 use iced::advanced::{Layout, Renderer as _, shell};
 use iced::{Event, Length, Rectangle, mouse, window};
 use iced_runtime::user_interface::{self, UserInterface};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::Size;
-use rustd3_figure::{Cache, Held, Target};
+use rustd3_figure::{Held, Target};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::Render;
 

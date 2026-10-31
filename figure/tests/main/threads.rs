@@ -4,7 +4,8 @@
 //! stay on the thread that built them (marks and scales are boxed trait
 //! objects without a `Send` bound).
 
-use rustd3_figure::{Cache, Target, Theme, hit, list, text};
+use rustd3_figure::cache::Cache;
+use rustd3_figure::{Target, Theme, hit, list, text};
 
 const fn send_sync<T: Send + Sync>() {}
 

@@ -4,12 +4,13 @@
 //! snapshots of its list and SVG, and its PDF through poppler.
 
 use rustd3_examples::wheels;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Shape, Size, Vec2};
 use rustd3_figure::list::{self, Clip, Command, List, part};
 use rustd3_figure::lower::{self, Caps};
 use rustd3_figure::raster::{self, Image, Settings, Simd};
 use rustd3_figure::theme::{Context, Style};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, Theme, pdf, svg};
+use rustd3_figure::{Figure, Held, Resolved, Target, Theme, pdf, svg};
 use rustd3_testkit::fixture::Fixture;
 use rustd3_testkit::obs::{Obs, ToObs, Tolerance};
 use rustd3_testkit::pixels::{self, Diff};

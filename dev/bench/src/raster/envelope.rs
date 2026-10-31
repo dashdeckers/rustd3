@@ -224,10 +224,11 @@ fn level(chain: &mut Vec<Point>, p: f64, q: f64, y: f64) {
 mod tests {
     use rustd3_core::scale;
     use rustd3_core::series::{Clock, Recording};
+    use rustd3_figure::cache::Cache;
     use rustd3_figure::kurbo::{Affine, BezPath, Point, Shape, Size};
     use rustd3_figure::list::Command;
     use rustd3_figure::mark::line;
-    use rustd3_figure::{Cache, Figure, Held, Target};
+    use rustd3_figure::{Figure, Held, Target};
 
     use super::{Band, envelope, outlines};
 

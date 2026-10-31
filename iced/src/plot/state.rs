@@ -8,9 +8,10 @@ use iced_core::shell::Waker;
 use iced_core::time::Instant;
 use iced_core::{Event, Point, Rectangle, Size, image, mouse};
 use rustd3_core::interact::{self, BrushEvent, Button, Modifiers, Pointer};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::list::{self, Command, List, Outlines};
 use rustd3_figure::scale::Scale;
-use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster, thin};
+use rustd3_figure::{Figure, Resolved, Target, Theme, hit, kurbo, raster, thin};
 
 use crate::plot::Probe;
 use crate::plot::area::{Area, Moved};

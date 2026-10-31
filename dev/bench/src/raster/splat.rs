@@ -551,11 +551,12 @@ fn fnv(bytes: impl IntoIterator<Item = u8>) -> u64 {
 #[cfg(test)]
 mod tests {
     use rustd3_core::scale;
+    use rustd3_figure::cache::Cache;
     use rustd3_figure::kurbo::{Rect, Size};
     use rustd3_figure::list::{Bounds, Outlines};
     use rustd3_figure::mark::dots;
     use rustd3_figure::raster::{Renderer, Settings};
-    use rustd3_figure::{Cache, Figure, Held, Target};
+    use rustd3_figure::{Figure, Held, Target};
 
     use super::{Plan, Stamps, blend, cover};
 

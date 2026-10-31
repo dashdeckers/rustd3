@@ -14,10 +14,11 @@ use iced::{Color, Event, Size};
 use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::legend::{self, Slot};
 use rustd3_figure::list;
 use rustd3_figure::mark::dots;
-use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis, kurbo};
+use rustd3_figure::{Figure, Held, Target, Theme, axis, kurbo};
 use rustd3_iced::Plot;
 #[cfg(feature = "__dev")]
 use rustd3_iced::plot::cost;

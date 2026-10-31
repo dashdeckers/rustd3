@@ -16,10 +16,11 @@ use std::fs;
 use std::time::Instant;
 
 use iced::Size;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::list::{Bounds, Outlines};
 use rustd3_figure::raster::{Image, Renderer, Settings, Simd};
-use rustd3_figure::{Cache, Held, Target};
+use rustd3_figure::{Held, Target};
 
 use crate::cli::widget::Options;
 use crate::scenario::Scenario;

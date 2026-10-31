@@ -726,7 +726,7 @@ fn drawn_with(
     size: Size,
     panel: u64,
     axis: u64,
-    cache: &mut rustd3_figure::Cache,
+    cache: &mut rustd3_figure::cache::Cache,
 ) -> Vec<String> {
     let list = fig.draw_with(cache, size, Target::Vector, &Held::default());
     texts(&list, panel, axis)

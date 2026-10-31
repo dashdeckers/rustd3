@@ -5,10 +5,11 @@
 
 use rustd3_core::scale::{self, Continuous, Linear, Log};
 use rustd3_core::series::{Clock, Recording};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::mark;
 use rustd3_figure::scale::{Fit, Kind, ScaleRef};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, axis};
+use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 
 use crate::figure::{Values, cache, line, resolve};
 

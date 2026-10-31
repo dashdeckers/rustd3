@@ -7,12 +7,13 @@ use rustd3_core::format;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ticks};
 use rustd3_core::scheme::COLORBLIND;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{BezPath, PathEl, Rect, Size};
 use rustd3_figure::list::{self, Command, GlyphRun, List, part};
 use rustd3_figure::mark::{Ctx, Mark};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::{Kind, ScaleRef};
-use rustd3_figure::{Cache, Figure, Fits, Held, Resolved, Target, Theme, axis, brush, layout};
+use rustd3_figure::{Figure, Fits, Held, Resolved, Target, Theme, axis, brush, layout};
 
 /// A mark that only reports values on one handle; with a base, it also
 /// sticks there, as bars do.

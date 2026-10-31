@@ -11,9 +11,10 @@
 use std::error::Error;
 use std::time::{Duration, Instant};
 
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Point, Rect, Size};
 use rustd3_figure::list::{Bounds, Outlines};
-use rustd3_figure::{Cache, Figure, Held, Target, gif, lower, pdf, raster, svg};
+use rustd3_figure::{Figure, Held, Target, gif, lower, pdf, raster, svg};
 
 /// One stage of a figure's way to its files.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
