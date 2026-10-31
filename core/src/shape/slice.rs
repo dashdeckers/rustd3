@@ -4,6 +4,16 @@
 /// data: [`Pie::layout`](crate::shape::Pie::layout)
 /// writes it and [`Arc`](crate::shape::Arc) draws it; a literal draws any
 /// sector or annulus.
+///
+/// ```
+/// use std::f64::consts::PI;
+///
+/// use rustd3_core::shape::{self, pie};
+///
+/// let slices = shape::pie().sort(pie::Sort::Input).layout([1.0, 3.0]);
+/// assert_eq!((slices[1].datum, slices[1].index), (1, 1));
+/// assert!((slices[0].end_angle - PI / 2.0).abs() < 1e-12);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Slice {
     /// Position of the datum in the input (d3's `data`, as an index).

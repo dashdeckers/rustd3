@@ -39,6 +39,13 @@ pub use slice::Slice;
 pub use symbol::Symbol;
 
 /// An item a line draws: a point, or `None` for a gap.
+///
+/// ```
+/// use rustd3_core::{path, shape};
+///
+/// let points = [Some((0.0, 0.0)), None, Some((10.0, 0.0)), Some((20.0, 5.0))];
+/// assert_eq!(path::svg(|p| shape::line().draw(points, p)), "M0,0ZM10,0L20,5");
+/// ```
 pub trait Vertex {
     /// The point, or `None` to break the line (d3's `defined`).
     fn vertex(self) -> Option<(f64, f64)>;

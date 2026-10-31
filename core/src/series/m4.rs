@@ -5,6 +5,16 @@ use std::ops::Range;
 
 /// Indices of the minimum and maximum of a sample range, with values; the
 /// earliest sample wins ties.
+///
+/// ```
+/// use rustd3_core::series::{Clock, Recording};
+///
+/// let rec = Recording::new(Clock::Regular { start: 0.0, period: 1.0 }, [[3.0, 1.0, f64::NAN, 5.0, 1.0]])?;
+/// let channel = rec.series(0).expect("one channel");
+/// let e = channel.extremes(0..5, |_| true).expect("finite values");
+/// assert_eq!((e.min(), e.max()), ((1, 1.0), (3, 5.0)));
+/// # Ok::<(), rustd3_core::series::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Extremes {
     min: (usize, f64),

@@ -15,6 +15,16 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 
 /// Identifies a recording for caches: a fresh `AtomicU64` value per
 /// recording, including clones.
+///
+/// ```
+/// use rustd3_core::series::{Clock, Recording};
+///
+/// let a = Recording::new(Clock::Regular { start: 0.0, period: 1.0 }, [[1.0, 2.0]])?;
+/// let b = a.clone();
+/// assert_ne!(a.id(), b.id());
+/// assert_eq!(a.revision(), b.revision());
+/// # Ok::<(), rustd3_core::series::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id(u64);
 

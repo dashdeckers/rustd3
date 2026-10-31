@@ -10,6 +10,17 @@ use std::str::FromStr;
 pub(super) const MAX_WIDTH: usize = (1 << 29) - 24;
 
 /// A parsed `[[fill]align][sign][symbol][0][width][,][.precision][~][type]`.
+///
+/// ```
+/// use rustd3_core::format::{Align, Kind, Sign, Specifier};
+///
+/// let s: Specifier = "*^+12,.2f".parse()?;
+/// assert_eq!((s.fill(), s.align(), s.sign()), ('*', Align::Center, Sign::Plus));
+/// assert_eq!((s.width(), s.comma(), s.precision()), (Some(12), true, Some(2)));
+/// assert_eq!(s.kind(), Some(Kind::Fixed));
+/// assert_eq!(s.with_precision(0).to_string(), "*^+12,.0f");
+/// # Ok::<(), rustd3_core::format::InvalidFormat>(())
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Specifier {
     fill: char,
