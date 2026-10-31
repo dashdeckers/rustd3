@@ -121,6 +121,8 @@ Names and visibility settled before the first release:
 - rustd3-iced: `plot::BAND_BYTES` and `plot::NUDGE` are crate-private;
   `plot::cost` is public only behind `__dev`, the benchmark's and the
   tests' feature, and hidden from the docs.
+- rustd3-core: `format::literal`, `fmt!`'s compile-time check, is hidden
+  from the docs; `format::format(spec).is_ok()` is the run-time check.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

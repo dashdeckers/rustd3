@@ -23,6 +23,9 @@
 //! ```
 
 mod decimal;
+// `fmt!`'s compile-time check, which the macro's expansion names from the
+// caller's crate: public for that alone.
+#[doc(hidden)]
 pub mod literal;
 mod locale;
 #[rustfmt::skip]
