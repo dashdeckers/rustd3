@@ -51,7 +51,7 @@ fn entries<S>(
 where
     S: Kind<Domain = f64> + Ticks<Domain = f64>,
 {
-    let Some(scale) = resolved.scale(handle) else {
+    let Some(scale) = resolved.get_scale(handle) else {
         return Vec::new();
     };
     let set = Ticks::tick_set(scale, count);

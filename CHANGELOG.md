@@ -100,15 +100,15 @@ rule is:
   `check::Issue::OutsideGrid`.
 - `raster::Renderer::render` with bounds of another list is
   `raster::Error::Bounds`.
-- `Resolved::panel_cell` returns `None` for a panel the figure lacks.
-- A scale handle of another figure finds no scale: `Resolved::scale` and
-  `mark::Ctx::x`, `y` and `raw` return `Option`, the marks, axes, guides,
+- `Resolved::get_panel_cell` returns `None` for a panel the figure lacks.
+- A scale handle of another figure finds no scale: `Resolved::get_scale` and
+  `mark::Ctx::x`, `y` and `get_raw` return `Option`, the marks, axes, guides,
   zooms, brushes and widget listeners given one draw or do nothing, and
   `fig.check` reports `check::Issue::ForeignHandle`; `Figure::owns` tells
   whether a handle is the figure's. `draw_resolved` resolves afresh for a
   `Resolved` of another figure. `Fit::Window` on a categorical scale fits
   as `Fit::All` and is reported (`check::Issue::CategoricalWindow`).
-  `helpers::Subplots::x`, `y` and `panel` return `Option` outside the
+  `helpers::Subplots::get_x`, `get_y` and `panel` return `Option` outside the
   grid.
 - The `Plot` widget takes a scale factor above 8 as 8, and renders a
   widget wider or taller than 65,408 device px at the factor that fits
@@ -144,8 +144,17 @@ Names and visibility settled before the first release:
   `series::Series::{recording, channel}`, `series::Columns::edges`,
   `series::m4::Extremes::{min, max}`, `anim::Animated::target`,
   `interact::BrushX::selection` and `BrushY::selection`,
-  `interact::Modifiers::{shift, ctrl, alt, logo}`, each to `get_…`;
-  `time::Time::get_zone` keeps its name.
+  `interact::Modifiers::{shift, ctrl, alt, logo}`. In rustd3-figure:
+  `mark::Ctx::{rect, theme, panel, mark, scale_factor, locale, raw,
+  label}`, `Fits::{theme, locale}`, `Resolved::{scale, scale_at,
+  plot_areas, zooms, axis, panel_cell, brush, plan, passes, areas,
+  held}`, `text::Shaped::{width, ascent, descent, last, missing}`,
+  `text::Cache::stats`, `cache::Cache::stats`, `scale::ScaleRef::index`,
+  `theme::Context::scale`, `brush::Placed::{dim, over, target}`,
+  `helpers::Subplots::{x, y}`. Each is `get_…`, and `Held::grids_for` is
+  `Held::get_grid`. `time::Time::get_zone` and the theme's `get_color`,
+  `get_gray`, `get_line_width`, `get_patch_width`, `get_density_width`
+  and `get_marker` keep their names.
 - rustd3-iced: `Plot` is `rustd3_iced::Plot` and `Probe` is
   `rustd3_iced::plot::Probe` only (`plot::Plot` and `plot::probe::Probe`
   are gone).

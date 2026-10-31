@@ -47,20 +47,20 @@ impl Placed {
 
     /// The axis it selects along.
     #[must_use]
-    pub fn dim(&self) -> Dim {
+    pub fn get_dim(&self) -> Dim {
         self.dim
     }
 
     /// The table position of the handle it brushes over.
     #[must_use]
-    pub fn over(&self) -> usize {
-        self.over.index()
+    pub fn get_over(&self) -> usize {
+        self.over.get_index()
     }
 
     /// The table position of the handle its selection sets
     /// ([`Brush::sets`](crate::brush::Brush::sets)), if any.
-    pub fn target(&self) -> Option<usize> {
-        self.target.map(ScaleRef::index)
+    pub fn get_target(&self) -> Option<usize> {
+        self.target.map(ScaleRef::get_index)
     }
 
     /// The selection `selection` (its ends in `over`'s range, in either
@@ -190,8 +190,8 @@ mod tests {
     #[test]
     fn a_brush_without_a_target_keeps_its_selection_as_its_own_domain() {
         let (_, _, alone) = handles();
-        assert_eq!(alone.dim(), brush::Dim::Y);
-        assert_eq!((alone.over(), alone.target()), (0, None));
+        assert_eq!(alone.get_dim(), brush::Dim::Y);
+        assert_eq!((alone.get_over(), alone.get_target()), (0, None));
         // Up a 300 px plot area: y runs from its bottom.
         let over = scale::linear().domain([0.0, 100.0]).range([300.0, 0.0]);
         let window = alone
@@ -228,7 +228,7 @@ mod tests {
         let full = fig.scale(time::utc().domain([start, end]));
         let focus = fig.fit(time::utc());
         let placed: brush::Placed = brush::x(full).sets(focus).into();
-        assert_eq!((placed.over(), placed.target()), (0, Some(1)));
+        assert_eq!((placed.get_over(), placed.get_target()), (0, Some(1)));
         // 719 px: one hour per pixel.
         let over = time::utc().domain([start, end]).range([0.0, 719.0]);
         let window = placed
@@ -251,6 +251,6 @@ mod tests {
         let panel: &mut Panel<'_> = fig.panel(0, 0);
         panel.brush(brush::x(x)).brush(brush::y(y));
         let placed = panel.brushing().expect("a brush");
-        assert_eq!((placed.dim(), placed.over()), (brush::Dim::Y, 1));
+        assert_eq!((placed.get_dim(), placed.get_over()), (brush::Dim::Y, 1));
     }
 }

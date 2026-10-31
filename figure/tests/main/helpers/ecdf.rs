@@ -24,7 +24,7 @@ fn figure() -> (Figure<'static>, ScaleRef<Linear>, ScaleRef<Linear>) {
 /// The vertices of the one line `fig` draws, in data units on x over
 /// [0, 16] and y over [0, 1].
 fn steps(fig: &Figure<'_>) -> Vec<(f64, f64)> {
-    let r = resolve(fig, &Held::default()).plot_areas()[0];
+    let r = resolve(fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (r.width(), r.height());
     let list = draw(fig);
     let paths: Vec<&BezPath> = marked(&list)
@@ -126,8 +126,8 @@ fn y_holds_zero_and_one_and_x_spans_the_values() {
     let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
     fig.panel(0, 0).mark(ecdf([f64::NAN, 3.0, 1.0, 2.0], x, y));
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(y).unwrap().get_domain(), [0.0, 1.0]);
-    let [lo, hi] = r.scale(x).unwrap().get_domain();
+    assert_eq!(r.get_scale(y).unwrap().get_domain(), [0.0, 1.0]);
+    let [lo, hi] = r.get_scale(x).unwrap().get_domain();
     assert!((lo - 0.9).abs() < 1e-12 && (hi - 3.1).abs() < 1e-12);
     let (mut fig, x, y) = figure();
     fig.panel(0, 0).mark(ecdf([f64::NAN], x, y));

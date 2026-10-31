@@ -203,7 +203,7 @@ where
     S: Paint<Domain = f64> + Ramp,
 {
     fn handle(&self) -> usize {
-        self.handle.index()
+        self.handle.get_index()
     }
 
     fn scale(&self) -> ScaleRef<()> {

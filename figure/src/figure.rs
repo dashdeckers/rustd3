@@ -53,10 +53,10 @@ pub(crate) struct Id(u64);
 /// # #[cfg(feature = "fonts")] {
 /// let mut cache = rustd3_figure::cache::Cache::default();
 /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), Target::Vector);
-/// assert_eq!(r.scale(x).map(|s| s.get_domain()), Some([0.0, 10.0]));
+/// assert_eq!(r.get_scale(x).map(|s| s.get_domain()), Some([0.0, 10.0]));
 /// // No mark gives y data: core's empty domain.
-/// assert_eq!(r.scale(y).map(|s| s.get_domain()), Some([0.0, 1.0]));
-/// assert_eq!(r.plot_areas().len(), 1);
+/// assert_eq!(r.get_scale(y).map(|s| s.get_domain()), Some([0.0, 1.0]));
+/// assert_eq!(r.get_plot_areas().len(), 1);
 /// # }
 /// ```
 pub struct Figure<'a> {
@@ -168,7 +168,7 @@ impl<'a> Figure<'a> {
     /// let mut cache = rustd3_figure::cache::Cache::default();
     /// let target = Target::Screen { scale: 1.0 };
     /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), target);
-    /// let [left, right] = r.scale(t).expect("a handle of this figure").get_domain();
+    /// let [left, right] = r.get_scale(t).expect("a handle of this figure").get_domain();
     /// assert!(right >= 19.99 && (right - left - 5.0).abs() < 1e-9);
     /// # }
     /// # Ok::<(), rustd3_core::series::Error>(())
@@ -196,7 +196,7 @@ impl<'a> Figure<'a> {
             window,
         });
         if categorical {
-            self.categorical.push(h.index());
+            self.categorical.push(h.get_index());
         }
         h
     }
@@ -280,8 +280,8 @@ impl<'a> Figure<'a> {
         let [h] = stored.handles();
         if h.of(self.id).is_some() {
             self.legends.push((slot, stored));
-        } else if !self.foreign.contains(&h.index()) {
-            self.foreign.push(h.index());
+        } else if !self.foreign.contains(&h.get_index()) {
+            self.foreign.push(h.get_index());
         }
         self
     }

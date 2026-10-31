@@ -64,11 +64,11 @@ fn key(text: String, theme: &Theme) -> Key {
 /// Appends the label of `key` centred across `at.x`, its line box's `edge`
 /// at `at.y`; nothing when typst rejected it.
 fn place(key: &Key, at: Point, edge: Edge, ctx: &Ctx<'_>, list: &mut List) {
-    let Some(shaped) = ctx.label(key) else {
+    let Some(shaped) = ctx.get_label(key) else {
         return;
     };
-    let [ascender, descender] = ctx.line(ctx.theme().label_text());
-    let last = shaped.last();
+    let [ascender, descender] = ctx.line(ctx.get_theme().label_text());
+    let last = shaped.get_last();
     let baseline = match edge {
         Edge::Bottom => at.y - descender - last,
         Edge::Top => at.y + ascender,

@@ -102,7 +102,7 @@ fn figure() -> (
 
 /// The plot area of `fig`'s only panel.
 fn area(fig: &Figure<'_>) -> Rect {
-    resolve(fig, &Held::default()).plot_areas()[0]
+    resolve(fig, &Held::default()).get_plot_areas()[0]
 }
 
 /// The points of every segment of `path`, in order.
@@ -193,7 +193,7 @@ fn whisker_ends_and_fliers_fit_y_and_the_box_holds_no_zero() {
     let y = fig.fit(scale::linear());
     fig.panel(0, 0).mark(boxplot([("a", X.to_vec())], x, y));
     let [lo, hi] = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(
@@ -206,7 +206,7 @@ fn whisker_ends_and_fliers_fit_y_and_the_box_holds_no_zero() {
     fig.panel(0, 0)
         .mark(boxplot([("a", X.to_vec())], x, y).whis(Whis::Iqr(10.0)));
     let [lo, hi] = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(
@@ -309,7 +309,7 @@ fn fig_check_is_empty_for_box_plots_and_reports_what_they_cannot_draw() {
     );
     assert!(
         issues.contains(&Issue::OutsideDomain {
-            handle: x.index(),
+            handle: x.get_index(),
             count: 1
         }),
         "{issues:?}"

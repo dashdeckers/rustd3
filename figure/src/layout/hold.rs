@@ -3,7 +3,7 @@
 use kurbo::{Rect, Size};
 
 /// Plot areas a gesture holds, with the size and panel count they were
-/// made for: [`Resolved::areas`](crate::Resolved::areas) takes them at the
+/// made for: [`Resolved::get_areas`](crate::Resolved::get_areas) takes them at the
 /// gesture's start, and
 /// [`Figure::resolve_held`](crate::Figure::resolve_held) keeps them while
 /// labels change, so the plot does not shift under the pointer.

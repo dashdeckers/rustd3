@@ -54,7 +54,7 @@ fn drawn(fig: &Figure<'_>, k: f64) -> (List, Rect) {
     let target = Target::Screen { scale: k };
     let mut cache = Cache::default();
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     (fig.draw_resolved(&mut cache, &resolved), area)
 }
 
@@ -144,7 +144,7 @@ fn splatted_dots_on_eighth_pixels_match_within_the_compositing() {
     let target = Target::Screen { scale: 1.0 };
     let mut cache = Cache::default();
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     assert_eq!(area.width(), 76.0, "one data unit per device px");
     let list = fig.draw_resolved(&mut cache, &resolved);
     let d = diff(

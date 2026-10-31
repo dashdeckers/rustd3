@@ -177,8 +177,8 @@ impl Labels {
         let [ascender, descender] = self.line;
         match self.orient {
             Orient::Bottom => ascender,
-            Orient::Top => -descender - shaped.last(),
-            Orient::Left | Orient::Right => (ascender - descender - shaped.last()) / 2.0,
+            Orient::Top => -descender - shaped.get_last(),
+            Orient::Left | Orient::Right => (ascender - descender - shaped.get_last()) / 2.0,
         }
     }
 
@@ -192,15 +192,15 @@ impl Labels {
             return self.oriented(shaped).aabb();
         }
         let [ascender, descender] = self.line;
-        let width = shaped.width();
+        let width = shaped.get_width();
         let x0 = match align(self.orient) {
             anchor::Horizontal::Start => 0.0,
             anchor::Horizontal::Middle => -width / 2.0,
             anchor::Horizontal::End => -width,
         };
         let b = self.baseline(shaped);
-        let top = (b - ascender).min(b - shaped.ascent());
-        let bottom = (b + shaped.last() + descender).max(b + shaped.descent());
+        let top = (b - ascender).min(b - shaped.get_ascent());
+        let bottom = (b + shaped.get_last() + descender).max(b + shaped.get_descent());
         Rect::new(x0, top, x0 + width, bottom)
     }
 
@@ -241,7 +241,12 @@ impl Labels {
     /// Rotated tick label `shaped`'s ink box turned about its first
     /// baseline's left end.
     fn turned(&self, shaped: &Shaped) -> Obb {
-        let ink = Rect::new(0.0, -shaped.ascent(), shaped.width(), shaped.descent());
+        let ink = Rect::new(
+            0.0,
+            -shaped.get_ascent(),
+            shaped.get_width(),
+            shaped.get_descent(),
+        );
         Obb::rotated(ink, self.angle)
     }
 
@@ -309,7 +314,7 @@ pub(crate) fn notation(orient: Orient) -> Anchor {
 
 /// The ink height of a shaped label.
 fn ink(shaped: &Shaped) -> f64 {
-    shaped.ascent() + shaped.descent()
+    shaped.get_ascent() + shaped.get_descent()
 }
 
 /// Each key's shaped label; `None` for an empty label, or one typst

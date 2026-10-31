@@ -23,7 +23,7 @@ impl<'a, Message> Listener<'a, Message> {
         S: Kind,
     {
         Listener {
-            key: Key::of::<S>(handle.index()),
+            key: Key::of::<S>(handle.get_index()),
             publish: Box::new(move |scale: &dyn Scale| {
                 let scale = scale.as_any().downcast_ref::<S>()?;
                 Kind::domain(scale).map(&f)

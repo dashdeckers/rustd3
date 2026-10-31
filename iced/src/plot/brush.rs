@@ -91,7 +91,7 @@ pub(crate) struct Brush {
 impl Brush {
     /// The state of the brush at `spot`, without a selection.
     pub(crate) fn new(spot: &Spot<'_>) -> Brush {
-        let dim = spot.placed.dim();
+        let dim = spot.placed.get_dim();
         Brush {
             cell: spot.cell,
             over: spot.over,
@@ -109,7 +109,9 @@ impl Brush {
     /// Whether this is the state of the brush at `spot`: the same grid
     /// cell, handle and axis.
     pub(crate) fn is(&self, spot: &Spot<'_>) -> bool {
-        self.cell == spot.cell && self.over == spot.over && self.placed.dim() == spot.placed.dim()
+        self.cell == spot.cell
+            && self.over == spot.over
+            && self.placed.get_dim() == spot.placed.get_dim()
     }
 
     /// Its panel's flat index in the last refresh.
@@ -150,19 +152,19 @@ impl Brush {
         if self.is_active() {
             return;
         }
-        let dim = placed.dim();
+        let dim = placed.get_dim();
         if area != self.extent {
             self.machine = Machine::new(dim, area);
             self.extent = area;
         }
         self.scale = spot.scale.with_range(range(dim, area));
-        let window = match placed.target() {
+        let window = match placed.get_target() {
             Some(_) => spot.target.as_deref(),
             None => self.selected.as_deref(),
         };
         let selection = window
             .and_then(|window| placed.place(&*self.scale, window))
-            .and_then(|ends| band(ends, along(dim, area), placed.target().is_some()));
+            .and_then(|ends| band(ends, along(dim, area), placed.get_target().is_some()));
         self.machine.set_selection(selection);
     }
 
@@ -199,7 +201,7 @@ impl Brush {
     /// without a target kept as a domain.
     pub(crate) fn report(&mut self, selection: Option<[f64; 2]>) {
         self.fresh = Some(selection);
-        if self.placed.target().is_none() {
+        if self.placed.get_target().is_none() {
             self.selected = self
                 .window(&*self.scale, selection)
                 .filter(|_| selection.is_some());
@@ -246,7 +248,7 @@ impl Brush {
         ]
         .map(device);
         let [x0, y0, x1, y1] = area;
-        let [x0, y0, x1, y1] = match self.placed.dim() {
+        let [x0, y0, x1, y1] = match self.placed.get_dim() {
             Dim::X => [device(a).max(x0), y0, device(b).min(x1), y1],
             Dim::Y => [x0, device(a).max(y0), x1, device(b).min(y1)],
         };

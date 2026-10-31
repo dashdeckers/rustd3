@@ -21,7 +21,7 @@ pub(crate) const RADIUS: f64 = 12.0;
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct Hover {
-    /// Flat panel index (`hit::Hit::panel`); `Resolved::panel_cell` maps it back.
+    /// Flat panel index (`hit::Hit::panel`); `Resolved::get_panel_cell` maps it back.
     pub panel: usize,
     /// Index of the mark in the panel's insertion order.
     pub mark: usize,

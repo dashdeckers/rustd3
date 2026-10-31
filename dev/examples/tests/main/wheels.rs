@@ -119,7 +119,9 @@ fn the_hatched_wheel_figure_hatches_its_232_bars_and_legend_squares() {
             assert_eq!(*r, rect);
             hatched += 1;
         } else {
-            let origin = resolved.plot_areas()[*panel as usize].origin().to_vec2();
+            let origin = resolved.get_plot_areas()[*panel as usize]
+                .origin()
+                .to_vec2();
             let corners = [(rect.x0, rect.y0), (rect.x1, rect.y1)]
                 .map(|(x, y)| (Vec2::new(x, y) + origin).dot(n) / 8.0);
             assert!(corners[0].ceil() > corners[1].floor(), "{rect:?}");
@@ -198,7 +200,7 @@ fn the_fitted_domains_match_the_fixture() {
         let (resolved, _) = drawn(&fig);
         // vib, temp and count are the second to fourth handles.
         for (index, name) in [(1, "vib"), (2, "temp"), (3, "count")] {
-            let scale = resolved.scale_at(index).expect("a handle");
+            let scale = resolved.get_scale_at(index).expect("a handle");
             let linear = scale
                 .as_any()
                 .downcast_ref::<rustd3_core::scale::Linear>()
@@ -225,7 +227,11 @@ fn the_wheel_figure_checks_clean_in_at_most_four_layout_passes() {
                 &Held::default(),
                 Target::Vector,
             );
-            assert!(resolved.passes() <= 4, "{} passes", resolved.passes());
+            assert!(
+                resolved.get_passes() <= 4,
+                "{} passes",
+                resolved.get_passes()
+            );
         }
     }
 }
@@ -323,7 +329,7 @@ fn the_wheel_figures_four_titles_share_two_baselines_one_per_row() {
     // Each row's baseline sits the title pad (8 px) and DejaVu Sans's
     // descender at 16 px above its scatters, which have no top axes.
     let descender = 492.0 / 2048.0 * 16.0;
-    let areas = resolved.plot_areas();
+    let areas = resolved.get_plot_areas();
     for (row, panel) in [(rows[0], 0), (rows[2], 6)] {
         let expected = areas[panel].y0 - 8.0 - descender;
         assert!((row - expected).abs() < 1e-9, "{row} against {expected}");

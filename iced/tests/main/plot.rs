@@ -262,7 +262,7 @@ fn plot_area(fig: &Figure<'_>, k: f32, i: usize) -> [u32; 4] {
         scale: f64::from(k),
     };
     let resolved = fig.resolve(size, &mut Cache::default(), &Held::default(), target);
-    let area = resolved.plot_areas()[i];
+    let area = resolved.get_plot_areas()[i];
     [area.x0, area.y0, area.x1, area.y1].map(|v| (v * f64::from(k)).round() as u32)
 }
 
@@ -475,7 +475,7 @@ fn plot_areas(fig: &Figure<'_>, size: Size, k: f32) -> Vec<kurbo::Rect> {
         scale: f64::from(k),
     };
     fig.resolve(size, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec()
 }
 
@@ -771,7 +771,7 @@ fn area_cell(fig: &Figure<'_>, size: Size, k: f32, cells: &Cells, panel: usize) 
     };
     let area = fig
         .resolve(size, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()[panel];
+        .get_plot_areas()[panel];
     let at = [area.x0, area.y0].map(|v| (v * f64::from(k)).round() as i32 + 1);
     cells
         .cell_at(at)
@@ -888,8 +888,8 @@ fn fit_window_follows_in_whole_device_columns() {
             };
             let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
             let resolved = fig.resolve(size, &mut Cache::default(), &Held::default(), target);
-            let domain = resolved.scale(x).unwrap().get_domain();
-            let columns = (resolved.plot_areas()[0].width() * f64::from(k)).round();
+            let domain = resolved.get_scale(x).unwrap().get_domain();
+            let columns = (resolved.get_plot_areas()[0].width() * f64::from(k)).round();
             let col = 10.0 / columns;
             let (list, cells) = partition(&fig, LIVE, k);
             let diff = against(&shot, &fig, LIVE, k);
@@ -1071,7 +1071,7 @@ fn a_gesture_holds_a_windowed_handle() {
         let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
         let target = Target::Screen { scale: 1.0 };
         fig.resolve(size, &mut Cache::default(), &Held::default(), target)
-            .plot_areas()[0]
+            .get_plot_areas()[0]
     };
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let Some(mut harness) = Harness::new(plot, LIVE, k) else {

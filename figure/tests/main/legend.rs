@@ -57,7 +57,7 @@ fn draw(fig: &Figure<'_>) -> List {
 
 /// The plot area of `fig`'s first panel at 640 × 480.
 fn area(fig: &Figure<'_>) -> Rect {
-    crate::figure::resolve(fig, &Held::default()).plot_areas()[0]
+    crate::figure::resolve(fig, &Held::default()).get_plot_areas()[0]
 }
 
 /// The commands of the part with id `id`.

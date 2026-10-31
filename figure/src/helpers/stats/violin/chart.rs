@@ -235,8 +235,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let w = ctx.rect().width();
-        let band = guard::band(w, ctx.rect().height());
+        let w = ctx.get_rect().width();
+        let band = guard::band(w, ctx.get_rect().height());
         let dodge = self.fill.slot(ctx).filter(|_| self.dodge);
         let slots = Slots::new(&sx, self.groups.iter().map(|(k, _)| k), w, dodge);
         let peak = self.peak();
@@ -289,7 +289,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
             }
         }
         let color = self.fill.resolve(ctx);
-        let edge = ctx.theme().density_width();
+        let edge = ctx.get_theme().get_density_width();
         if !bodies.elements().is_empty() {
             list.commands.push(Command::Fill {
                 path: bodies.clone(),
@@ -310,7 +310,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
     /// A fill key the palette lacks; keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         self.fill.issues(ctx, issues);
-        let Some(sx) = ctx.raw(self.x) else {
+        let Some(sx) = ctx.get_raw(self.x) else {
             return;
         };
         let outside = self
@@ -320,7 +320,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
             .count();
         if outside > 0 {
             issues.push(Issue::OutsideDomain {
-                handle: self.x.index(),
+                handle: self.x.get_index(),
                 count: outside,
             });
         }
@@ -364,7 +364,7 @@ impl<'c> Inside<'c> {
 
     /// The inner box width, px.
     fn box_width(&self) -> f64 {
-        BOX * LINE * self.ctx.theme().patch_width()
+        BOX * LINE * self.ctx.get_theme().get_patch_width()
     }
 
     /// A vertical line at `x` from `a` to `b` (px), clamped to the band.
@@ -421,8 +421,8 @@ impl<'c> Inside<'c> {
     /// Pushes the strokes: whiskers, boxes and medians, or the quartile
     /// lines with their dashes.
     fn finish(self, list: &mut List) {
-        let theme = self.ctx.theme();
-        let (ink, line) = (list::brush(theme.get_ink()), LINE * theme.patch_width());
+        let theme = self.ctx.get_theme();
+        let (ink, line) = (list::brush(theme.get_ink()), LINE * theme.get_patch_width());
         let box_width = self.box_width();
         let strokes = [
             (self.whiskers, WHISKER * box_width, ink.clone()),

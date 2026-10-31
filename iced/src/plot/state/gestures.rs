@@ -711,7 +711,7 @@ fn owned_domains_survive_rebuilds() {
         );
         assert_eq!(domain::<Linear>(state.domains.owned(x)), owned);
         let resolved = state.resolved.as_ref().expect("resolved");
-        assert_eq!(domain::<Linear>(resolved.scale_at(1)), owned);
+        assert_eq!(domain::<Linear>(resolved.get_scale_at(1)), owned);
     }
 }
 
@@ -737,7 +737,7 @@ fn state_is_dropped_when_the_handle_type_changes() {
     assert!(state.domains.owned(x).is_none());
     assert!(state.domains.owned(y).is_some());
     let resolved = state.resolved.as_ref().expect("resolved");
-    assert_eq!(domain::<Log>(resolved.scale_at(1)), [1.0, 100.0]);
+    assert_eq!(domain::<Log>(resolved.get_scale_at(1)), [1.0, 100.0]);
 }
 
 /// Dots on y (handle 0, linear [0, 3]) and x (handle 1, linear [0, 10]),
@@ -771,7 +771,7 @@ fn layout_holds_during_a_wheel_gesture() {
     let t0 = epoch();
     let y = Key::of::<Linear>(0);
     redraw::<()>(&mut state, &tall().0, t0, &[]);
-    let start = state.resolved.as_ref().expect("resolved").plot_areas()[0];
+    let start = state.resolved.as_ref().expect("resolved").get_plot_areas()[0];
     let at = Point::new(start.center().x, start.y1 - 2.0);
     // Eight wheel steps of eight lines near the bottom, 16 ms apart, the
     // view rebuilt after each: [0, 3] narrows to about a third, whose tick
@@ -786,7 +786,7 @@ fn layout_holds_during_a_wheel_gesture() {
     let (mut t, mut seen, mut grown) = (t0, Vec::new(), 0.0_f64);
     let mut look = |state: &State| {
         let resolved = state.resolved.as_ref().expect("resolved");
-        seen.push((resolved.held(), resolved.plot_areas()[0]));
+        seen.push((resolved.get_held(), resolved.get_plot_areas()[0]));
         grown = grown.max(reach - left(state));
     };
     for _ in 0..8 {
@@ -819,7 +819,7 @@ fn layout_holds_during_a_wheel_gesture() {
         &[],
     );
     let settled = state.resolved.as_ref().expect("resolved");
-    assert!(!settled.held());
+    assert!(!settled.get_held());
     let zoomed = domain::<Linear>(state.domains.owned(y));
     let mut held = Held::default();
     held.hold_erased(0, Box::new(scale::linear().domain(zoomed)));
@@ -829,12 +829,12 @@ fn layout_holds_during_a_wheel_gesture() {
     let fresh = tall()
         .0
         .resolve(size, &mut cache, &held, Target::Screen { scale: 1.0 });
-    let moved = settled.plot_areas()[0];
+    let moved = settled.get_plot_areas()[0];
     println!(
         "held layout: y {zoomed:?}; left edge {} held, {} once settled; labels grew {grown:.2} px outward",
         start.x0, moved.x0
     );
-    assert_eq!(moved, fresh.plot_areas()[0]);
+    assert_eq!(moved, fresh.get_plot_areas()[0]);
     assert_ne!(
         moved, start,
         "a relayout per step would have moved the area"
@@ -927,7 +927,7 @@ fn the_layout_settling_after_a_zoom_leaves_no_slot_blank() {
     let (fig, _) = tall();
     rendered(&mut state, &fig, t0);
     let before = state.areas[0].rect();
-    let start = state.resolved.as_ref().expect("resolved").plot_areas()[0];
+    let start = state.resolved.as_ref().expect("resolved").get_plot_areas()[0];
     let at = Point::new(start.center().x, start.y1 - 2.0);
     let (waker, wakes) = counting();
     let (tx, rx) = mpsc::channel();
@@ -1018,7 +1018,7 @@ fn published_domains_last_until_the_gesture_ends() {
     state.rebuilt();
     let (changed, messages) = redraw(&mut state, &fig, t0 + Duration::from_millis(32), &listeners);
     assert!(changed > 0 && messages.is_empty());
-    let shown = domain::<Linear>(state.resolved.as_ref().and_then(|r| r.scale_at(0)));
+    let shown = domain::<Linear>(state.resolved.as_ref().and_then(|r| r.get_scale_at(0)));
     assert_eq!(Some(shown), state.domains.published(y).map(|_| shown));
     // The gesture ends: the app's domain rules.
     redraw(
@@ -1028,6 +1028,6 @@ fn published_domains_last_until_the_gesture_ends() {
         &listeners,
     );
     assert!(state.domains.published(y).is_none());
-    let shown = domain::<Linear>(state.resolved.as_ref().and_then(|r| r.scale_at(0)));
+    let shown = domain::<Linear>(state.resolved.as_ref().and_then(|r| r.get_scale_at(0)));
     assert_eq!(shown, [0.0, 3.0]);
 }

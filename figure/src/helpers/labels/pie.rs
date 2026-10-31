@@ -119,26 +119,26 @@ impl<K> Pie<K> {
 impl<'a, K: 'a> Mark<'a> for Pie<K> {
     /// Reports the labels to be shaped; no values.
     fn fit(&self, fits: &mut Fits) {
-        for text in self.texts(fits.locale()).into_iter().flatten() {
-            let label = key(text, fits.theme());
+        for text in self.texts(fits.get_locale()).into_iter().flatten() {
+            let label = key(text, fits.get_theme());
             fits.label(label);
         }
     }
 
     /// Each positive slice's label centred on its centroid.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let rect = ctx.rect();
+        let rect = ctx.get_rect();
         let centre = Point::new(rect.width() / 2.0, rect.height() / 2.0);
         let (inner, outer) = self.ring.map_or((self.inner, self.outer), |r| (r, r));
         let arc = shape::arc().inner_radius(inner).outer_radius(outer);
         let slices = shape::pie().layout(self.slices.iter().map(|(_, v)| *v));
-        let texts = self.texts(ctx.locale());
+        let texts = self.texts(ctx.get_locale());
         for (slice, text) in slices.iter().zip(texts) {
             let Some(text) = text else { continue };
             let (dx, dy) = arc.centroid(slice);
             let at = centre + Vec2::new(dx, dy);
             if at.is_finite() {
-                place(&key(text, ctx.theme()), at, Edge::Middle, ctx, list);
+                place(&key(text, ctx.get_theme()), at, Edge::Middle, ctx, list);
             }
         }
     }

@@ -48,7 +48,12 @@ impl Figure<'_> {
         let (text, frame) = cache.start();
         let frame = RefCell::new(frame);
         let mut marks = Vec::new();
-        for (i, (panel, area)) in self.panels().iter().zip(resolved.plot_areas()).enumerate() {
+        for (i, (panel, area)) in self
+            .panels()
+            .iter()
+            .zip(resolved.get_plot_areas())
+            .enumerate()
+        {
             let ctx = Ctx::new(&resolved, self.get_theme(), *area, text, &frame);
             for (j, mark) in panel.marks().iter().enumerate() {
                 mark.issues(&ctx.at(i, j), &mut marks);
@@ -215,7 +220,7 @@ fn overflow(figure: &Figure<'_>, resolved: &Resolved, text: &text::Cache) -> Vec
     for (i, (laid, area)) in resolved
         .panels()
         .iter()
-        .zip(resolved.plot_areas())
+        .zip(resolved.get_plot_areas())
         .enumerate()
     {
         if let Some(width) = width(text, laid.title.as_ref()) {
@@ -263,7 +268,7 @@ fn legend(
 /// The advance width of `key`'s label, when there is one and typst shaped
 /// it.
 fn width(text: &text::Cache, key: Option<&Key>) -> Option<f64> {
-    Some(text.get(key?)?.ok()?.width())
+    Some(text.get(key?)?.ok()?.get_width())
 }
 
 /// Labels of `cache` (a fresh one, holding the figure's labels alone) with
@@ -274,9 +279,9 @@ fn labels(cache: &text::Cache) -> Vec<Issue> {
         .filter_map(|(key, shaped)| {
             let markup = key.markup();
             let issue = match shaped {
-                Ok(shaped) if shaped.missing() > 0 => Issue::MissingGlyphs {
+                Ok(shaped) if shaped.get_missing() > 0 => Issue::MissingGlyphs {
                     text: plain(markup),
-                    count: shaped.missing(),
+                    count: shaped.get_missing(),
                 },
                 Ok(_) | Err(text::Error::Font { .. }) => return None,
                 Err(text::Error::Markup { message, .. }) => Issue::Markup {

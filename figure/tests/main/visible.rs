@@ -19,7 +19,7 @@ fn ramp() -> Vec<(f64, f64)> {
 fn y_domain(fig: &Figure<'_>, y: ScaleRef<Linear>, cache: &mut Cache, held: &Held) -> [f64; 2] {
     let size = Size::new(640.0, 480.0);
     fig.resolve(size, cache, held, Target::Screen { scale: 1.0 })
-        .scale(y)
+        .get_scale(y)
         .expect("a handle of this figure")
         .get_domain()
 }
@@ -98,8 +98,8 @@ fn visible_on_x_fits_all_and_a_y_over_a_visible_x_fits_all() {
         &Held::default(),
         Target::Vector,
     );
-    near(r.scale(x).unwrap().get_domain(), [-5.0, 105.0]);
-    near(r.scale(y).unwrap().get_domain(), [-5.0, 105.0]);
+    near(r.get_scale(x).unwrap().get_domain(), [-5.0, 105.0]);
+    near(r.get_scale(y).unwrap().get_domain(), [-5.0, 105.0]);
 }
 
 #[test]

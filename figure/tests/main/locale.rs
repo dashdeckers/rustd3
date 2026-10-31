@@ -36,11 +36,11 @@ impl Total {
 
 impl<'a> Mark<'a> for Total {
     fn fit(&self, fits: &mut Fits) {
-        fits.label(self.key(fits.locale(), fits.theme()));
+        fits.label(self.key(fits.get_locale(), fits.get_theme()));
     }
 
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        if let Some(shaped) = ctx.label(&self.key(ctx.locale(), ctx.theme())) {
+        if let Some(shaped) = ctx.get_label(&self.key(ctx.get_locale(), ctx.get_theme())) {
             let anchor = Anchor {
                 h: anchor::Horizontal::Middle,
                 v: anchor::Vertical::Baseline,

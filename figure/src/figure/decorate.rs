@@ -44,7 +44,7 @@ impl Figure<'_> {
                 paint: list::brush(theme.get_background()),
             });
         });
-        let areas = resolved.plot_areas();
+        let areas = resolved.get_plot_areas();
         for (i, ((panel, laid), area)) in self
             .panels
             .iter()
@@ -94,7 +94,7 @@ impl Figure<'_> {
                 });
             }
             if let Some(title) = shaped(text, laid.title.as_ref()) {
-                let baseline = area.y0 - laid.heading - title.last();
+                let baseline = area.y0 - laid.heading - title.get_last();
                 let at = Point::new(area.center().x, baseline);
                 let anchor = Anchor {
                     h: anchor::Horizontal::Middle,
@@ -129,7 +129,7 @@ impl Figure<'_> {
 /// translated to its plot area and clipped to it (grown by a widget's
 /// overscan); nothing when no mark draws.
 fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
-    let area = ctx.rect();
+    let area = ctx.get_rect();
     let start = list.commands.len();
     list.commands.push(Command::Push {
         transform: Affine::translate(area.origin().to_vec2()),

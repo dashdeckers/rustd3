@@ -91,7 +91,7 @@ fn an_area_is_held_at_its_base() {
     fig.panel(0, 0)
         .mark(area([(0.0, 1.0), (1.0, 3.0), (2.0, 2.0)], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.0, 3.15]), "{domain:?}");
@@ -102,7 +102,7 @@ fn an_area_is_held_at_its_base() {
             .base(f64::NAN),
     );
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [-1.0, 3.2]), "{domain:?}");
@@ -130,7 +130,7 @@ fn an_area_is_one_polygon_per_run_down_to_its_base() {
         .fill(color, "b"),
     );
     let list = draw(&fig);
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let p = |a: f64, b: f64| Point::new(a / 4.0 * w, h - b / 4.0 * h);
     assert_eq!(
@@ -153,7 +153,7 @@ fn an_area_on_a_log_scale_reaches_down_past_the_plot_area() {
     let y = fig.scale(scale::log().domain([1.0, 100.0]));
     fig.panel(0, 0).mark(area([(0.0, 10.0), (1.0, 50.0)], x, y));
     let list = draw(&fig);
-    let h = resolve(&fig, &Held::default()).plot_areas()[0].height();
+    let h = resolve(&fig, &Held::default()).get_plot_areas()[0].height();
     let polygons = polygons(&list);
     assert_eq!(polygons.len(), 1);
     assert_eq!(polygons[0][0].y, 2.0 * h, "the guard band's bottom");
@@ -168,14 +168,14 @@ fn a_ribbon_of_rows_fits_both_edges_and_draws_upper_then_lower() {
         y,
     ));
     let resolved = resolve(&fig, &Held::default());
-    let domain = resolved.scale(y).unwrap().get_domain();
+    let domain = resolved.get_scale(y).unwrap().get_domain();
     assert!(close(domain, [0.375, 3.125]), "{domain:?}");
     let list = draw(&fig);
     let polygons = polygons(&list);
     assert_eq!(polygons.len(), 1);
     let ys: Vec<f64> = polygons[0].iter().map(|p| p.y).collect();
     let sy = |v: f64| {
-        let h = resolved.plot_areas()[0].height();
+        let h = resolved.get_plot_areas()[0].height();
         h * (domain[1] - v) / (domain[1] - domain[0])
     };
     let expected = [sy(2.0), sy(3.0), sy(0.5), sy(1.0)];
@@ -192,7 +192,7 @@ fn a_ribbon_reaching_zero_holds_it_and_stands_on_the_axis() {
     fig.panel(0, 0)
         .mark(ribbon([(0.0, 0.0, 2.0), (1.0, 0.0, 4.0)], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.0, 4.2]), "{domain:?}");
@@ -201,7 +201,7 @@ fn a_ribbon_reaching_zero_holds_it_and_stands_on_the_axis() {
     fig.panel(0, 0)
         .mark(ribbon([(0.0, -2.0, 0.0), (1.0, -1.0, -0.5)], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [-2.1, 0.0]), "{domain:?}");
@@ -221,7 +221,7 @@ fn a_ribbon_reaching_zero_holds_it_and_stands_on_the_axis() {
     let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
     fig.panel(0, 0).mark(ribbon_series(lower, upper, x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.0, 11.55]), "{domain:?}");
@@ -250,7 +250,10 @@ fn band() -> Recording<f64> {
 
 /// `h`'s resolved scale over `range`, as a mark sees it.
 fn ranged(resolved: &Resolved, h: ScaleRef<Linear>, range: [f64; 2]) -> Linear {
-    let scale = Scale::with_range(resolved.scale(h).expect("a handle of this figure"), range);
+    let scale = Scale::with_range(
+        resolved.get_scale(h).expect("a handle of this figure"),
+        range,
+    );
     scale
         .as_any()
         .downcast_ref::<Linear>()
@@ -270,12 +273,12 @@ fn a_ribbon_over_two_channels_is_thinned_jointly_and_keeps_lower_below_upper() {
         fig.panel(0, 0).mark(ribbon_series(lower, upper, t, v));
         let mut cache = cache();
         let list = fig.draw_with(&mut cache, size, target, &Held::default());
-        assert_eq!(cache.stats().m4_queries, 1);
+        assert_eq!(cache.get_stats().m4_queries, 1);
         let again = fig.draw_with(&mut cache, size, target, &Held::default());
-        assert_eq!((cache.stats().m4_queries, &again), (1, &list));
+        assert_eq!((cache.get_stats().m4_queries, &again), (1, &list));
 
         let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-        let area = resolved.plot_areas()[0];
+        let area = resolved.get_plot_areas()[0];
         let sx = ranged(&resolved, t, [0.0, area.width()]);
         let sy = ranged(&resolved, v, [area.height(), 0.0]);
         let n = (area.width() * scale).round() as u32;
@@ -350,7 +353,7 @@ fn a_ribbon_thin_off_or_of_rows_draws_every_row() {
     let list = fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
     let vertices: usize = polygons(&list).iter().map(Vec::len).sum();
     assert_eq!(vertices, 40_000);
-    assert_eq!(cache.stats().m4_queries, 0);
+    assert_eq!(cache.get_stats().m4_queries, 0);
 }
 
 #[test]
@@ -379,7 +382,7 @@ fn a_ribbon_over_a_time_recording_is_thinned_too() {
         Target::Screen { scale: 1.0 },
         &Held::default(),
     );
-    assert_eq!(cache.stats().m4_queries, 1);
+    assert_eq!(cache.get_stats().m4_queries, 1);
     let vertices: usize = polygons(&list).iter().map(Vec::len).sum();
     assert!(vertices < 2 * (6 * 640 + 4), "{vertices}");
 }

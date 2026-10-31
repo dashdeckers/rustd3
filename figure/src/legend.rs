@@ -163,14 +163,14 @@ where
     }
 
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
-        let Some(palette) = resolved.scale(self.palette) else {
+        let Some(palette) = resolved.get_scale(self.palette) else {
             return Vec::new();
         };
         palette
             .get_domain()
             .iter()
             .map(|key| {
-                let index = self.palette.index();
+                let index = self.palette.get_index();
                 let is = |k: &dyn Any| k.downcast_ref::<K>() == Some(key);
                 let glyph = self.glyph.or_else(|| resolved.glyph(index, is));
                 Entry {

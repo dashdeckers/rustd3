@@ -107,7 +107,7 @@ pub fn areas(fig: &Figure<'_>, k: f32) -> Vec<Rect> {
         scale: f64::from(k),
     };
     fig.resolve(size, &mut cache, &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec()
 }
 
@@ -1149,7 +1149,7 @@ fn zoomed_pixels_match_a_figure_built_with_the_published_domain() {
             scale: f64::from(k),
         };
         let resolved = start.resolve(size, &mut cache, &Held::default(), target);
-        let (area, held) = (resolved.plot_areas()[0], resolved.areas());
+        let (area, held) = (resolved.get_plot_areas()[0], resolved.get_areas());
         let Some(mut harness) = Harness::new(app.view(), SIZE, k) else {
             return;
         };

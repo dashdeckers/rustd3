@@ -20,10 +20,10 @@ impl Context {
     /// ```
     /// use rustd3_figure::theme::Context;
     ///
-    /// assert_eq!(Context::Talk.scale(), 1.5);
+    /// assert_eq!(Context::Talk.get_scale(), 1.5);
     /// ```
     #[must_use]
-    pub fn scale(self) -> f64 {
+    pub fn get_scale(self) -> f64 {
         match self {
             Context::Paper => 0.8,
             Context::Notebook => 1.0,

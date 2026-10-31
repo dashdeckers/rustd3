@@ -390,7 +390,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]);
         let rects = placed
@@ -406,9 +406,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let band = ctx.band();
-        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
         for (i, [x0, x1], [_, y]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
             let p = Point::new((x0 + x1) / 2.0, y);
             if within(area, p) {
@@ -422,7 +422,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         super::unknown(&self.bars.color, ctx, issues);
         if let Some(sx) = ctx.scale(self.x) {
             let count = self.bars.outside(sx);
-            super::outside_count(self.x.index(), count, issues);
+            super::outside_count(self.x.get_index(), count, issues);
         }
     }
 }
@@ -439,7 +439,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let h = ctx.rect().height();
+        let h = ctx.get_rect().height();
         let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]);
         let rects = placed
@@ -455,9 +455,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let h = ctx.rect().height();
+        let h = ctx.get_rect().height();
         let band = ctx.band();
-        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
         for (i, [y0, y1], [_, x]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
             let p = Point::new(x, (y0 + y1) / 2.0);
             if within(area, p) {
@@ -471,7 +471,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         super::unknown(&self.bars.color, ctx, issues);
         if let Some(sy) = ctx.scale(self.y) {
             let count = self.bars.outside(sy);
-            super::outside_count(self.y.index(), count, issues);
+            super::outside_count(self.y.get_index(), count, issues);
         }
     }
 }

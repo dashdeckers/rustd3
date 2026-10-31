@@ -488,7 +488,7 @@ impl State {
             .resolved
             .as_ref()
             .filter(|_| pressed)
-            .map(Resolved::areas);
+            .map(Resolved::get_areas);
         let Some(event) = self
             .brushes
             .get_mut(index)
@@ -504,8 +504,8 @@ impl State {
         let brush = &mut self.brushes[index];
         brush.report(selection);
         let set = self.resolved.as_ref().and_then(|resolved| {
-            let target = brush.placed().target()?;
-            let key = Key::new(target, resolved.scale_at(target)?);
+            let target = brush.placed().get_target()?;
+            let key = Key::new(target, resolved.get_scale_at(target)?);
             let template = self.domains.current(key, resolved)?;
             Some((key, brush.window(&*template, selection)?))
         });
@@ -594,9 +594,9 @@ impl State {
             .collect();
         if let Some(brush) = self.brushes.iter_mut().find(|brush| brush.panel() == panel) {
             brush.clear();
-            let target = brush.placed().target().and_then(|target| {
+            let target = brush.placed().get_target().and_then(|target| {
                 let resolved = self.resolved.as_ref()?;
-                Some(Key::new(target, resolved.scale_at(target)?))
+                Some(Key::new(target, resolved.get_scale_at(target)?))
             });
             keys.extend(target.filter(|key| !keys.contains(key)));
         }
@@ -643,7 +643,7 @@ impl State {
             tracks.push(Track::new(key, along, start, base));
         }
         if !tracks.is_empty() {
-            let held = Some(resolved.areas());
+            let held = Some(resolved.get_areas());
             let gesture = Gesture::new(region, kind, tracks, held, area);
             self.gesture = Some(match (kind, self.factor) {
                 (gesture::Kind::Drag, Some(factor)) => gesture.snap(f64::from(factor)),
@@ -757,25 +757,25 @@ impl State {
     /// the domain it selects (a target's as the widget shows it now).
     fn sync(&mut self, resolved: &Resolved) {
         let mut kept = Vec::with_capacity(self.brushes.len());
-        for (panel, &area) in resolved.plot_areas().iter().enumerate() {
-            let Some(&placed) = resolved.brush(panel) else {
+        for (panel, &area) in resolved.get_plot_areas().iter().enumerate() {
+            let Some(&placed) = resolved.get_brush(panel) else {
                 continue;
             };
-            let Some(scale) = resolved.scale_at(placed.over()) else {
+            let Some(scale) = resolved.get_scale_at(placed.get_over()) else {
                 continue;
             };
-            let Some(cell) = resolved.panel_cell(panel) else {
+            let Some(cell) = resolved.get_panel_cell(panel) else {
                 continue;
             };
-            let target = placed.target().and_then(|target| {
-                let key = Key::new(target, resolved.scale_at(target)?);
+            let target = placed.get_target().and_then(|target| {
+                let key = Key::new(target, resolved.get_scale_at(target)?);
                 self.domains.current(key, resolved)
             });
             let spot = brush::Spot {
                 panel,
                 cell,
                 placed,
-                over: Key::new(placed.over(), scale),
+                over: Key::new(placed.get_over(), scale),
                 scale,
                 area,
                 target,
@@ -866,7 +866,7 @@ impl State {
             .into_iter()
             .filter_map(|key| {
                 let listener = listeners.iter().find(|listener| listener.key() == key)?;
-                listener.publish(resolved.scale_at(key.index())?)
+                listener.publish(resolved.get_scale_at(key.index())?)
             })
             .collect();
         if !fitted.is_empty() {
@@ -915,7 +915,7 @@ impl State {
     fn leads<'r>(&self, panel: usize, resolved: &'r Resolved) -> [Option<(Key, &'r dyn Scale)>; 2] {
         [Along::X, Along::Y].map(|along| {
             let key = self.map.lead(panel, along)?;
-            Some((key, resolved.scale_at(key.index())?))
+            Some((key, resolved.get_scale_at(key.index())?))
         })
     }
 
@@ -990,7 +990,7 @@ impl State {
                 });
             }
         }
-        let lists = resolved.plot_areas();
+        let lists = resolved.get_plot_areas();
         let rects: Vec<[i32; 4]> = lists.iter().map(|area| device(*area, k)).collect();
         let layers = Layers::split(&list, rects.len(), &mut self.outlines);
         let (xs, ys) = resolved.edges();
@@ -2726,17 +2726,17 @@ mod tests {
         );
         cache.begin();
         let _ = fig.resolve(size, &mut cache, &Held::default(), target);
-        let warm = cache.stats().text.hits;
+        let warm = cache.get_stats().text.hits;
         cache.begin();
         let _ = fig.resolve(size, &mut cache, &Held::default(), target);
-        let one = cache.stats().text.hits - warm;
+        let one = cache.get_stats().text.hits - warm;
         assert!(one > 0);
         let mut state = state(640.0, 480.0);
         refresh(&mut state, &fig, 1.5);
-        let before = state.cache.stats().text.hits;
+        let before = state.cache.get_stats().text.hits;
         state.rebuilt();
         assert_eq!(refresh(&mut state, &fixture::grid(), 1.5), 0);
-        assert_eq!(state.cache.stats().text.hits - before, one);
+        assert_eq!(state.cache.get_stats().text.hits - before, one);
     }
 
     #[test]

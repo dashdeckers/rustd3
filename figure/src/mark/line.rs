@@ -187,9 +187,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
         if path.elements().is_empty() {
             return;
         }
-        let width = self.width.unwrap_or(ctx.theme().line_width());
+        let width = self.width.unwrap_or(ctx.get_theme().get_line_width());
         let mut style = stroke(width, &self.dash);
-        if let Some(grid) = ctx.grid(self.x.index()).filter(|_| anchored) {
+        if let Some(grid) = ctx.grid(self.x.get_index()).filter(|_| anchored) {
             style.dash_offset = phase(&items, grid, &self.dash);
         }
         list.commands.push(Command::Stroke {
@@ -209,7 +209,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
         };
         let slot = self.slot(ctx);
         let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
-        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
         let mut push = |i: usize, p: Option<Point>| {
             if let Some(p) = p.filter(|p| within(area, *p)) {
                 sink.push(i, p);

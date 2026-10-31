@@ -80,12 +80,12 @@ fn lines_report_their_points_and_thinned_ones_their_kept_samples_without_a_query
     let target = Target::Screen { scale: 1.0 };
     let held = Held::default();
     fig.draw_with(&mut cache, trace::SIZE, target, &held);
-    let queries = cache.stats().m4_queries;
+    let queries = cache.get_stats().m4_queries;
     let r = fig.resolve(trace::SIZE, &mut cache, &held, target);
     let index = fig.hits(&r, &mut cache);
-    assert_eq!(cache.stats().m4_queries, queries, "read from the memo");
+    assert_eq!(cache.get_stats().m4_queries, queries, "read from the memo");
     // M4 keeps at most four samples per column of each line's panel.
-    let columns: f64 = r.plot_areas().iter().map(|a| a.width()).sum();
+    let columns: f64 = r.get_plot_areas().iter().map(|a| a.width()).sum();
     assert!(index.len() > 1000 && (index.len() as f64) <= 3.0 * 4.0 * columns + 12.0);
 }
 
@@ -141,7 +141,7 @@ fn histogram_bars_are_found_at_the_centre_of_their_top_dodged_or_binned() {
     let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
     let index = fig.hits(&r, &mut cache);
     assert_eq!(index.len(), 4);
-    let [top, bottom] = [r.plot_areas()[0], r.plot_areas()[1]];
+    let [top, bottom] = [r.get_plot_areas()[0], r.get_plot_areas()[1]];
     let place = |area: rustd3_figure::kurbo::Rect, x: f64, y: f64| {
         Point::new(area.x0 + x * area.width(), area.y0 + y * area.height())
     };

@@ -43,15 +43,15 @@ fn a_histogram_of_numbers_draws_d3s_nice_sturges_bins_held_at_zero() {
     fig.panel(0, 0).mark(histogram(X, x, y));
     let resolved = resolve(&fig, &Held::default());
     let (dx, dy) = (
-        resolved.scale(x).unwrap().get_domain(),
-        resolved.scale(y).unwrap().get_domain(),
+        resolved.get_scale(x).unwrap().get_domain(),
+        resolved.get_scale(y).unwrap().get_domain(),
     );
     assert!(
         (dx[0] + 0.8).abs() < 1e-12 && (dx[1] - 16.8).abs() < 1e-12,
         "{dx:?}"
     );
     assert!(dy[0] == 0.0 && (dy[1] - 5.25).abs() < 1e-12, "{dy:?}");
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let px = |a: f64| (a + 0.8) / 17.6 * w;
     let py = |c: f64| h - c / 5.25 * h;
@@ -81,7 +81,7 @@ fn count_bins_are_numpys_equal_width_bins() {
     let y = fig.scale(scale::linear().domain([0.0, 4.0]));
     fig.panel(0, 0)
         .mark(histogram(X, x, y).bins(Bins::Count(10)));
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let heights: Vec<f64> = filled(&draw(&fig))
         .iter()
@@ -104,9 +104,9 @@ fn a_histogram_of_keys_counts_each_band_and_dodges_into_its_slot() {
             .dodge(),
     );
     let resolved = resolve(&fig, &Held::default());
-    let dy = resolved.scale(count).unwrap().get_domain();
+    let dy = resolved.get_scale(count).unwrap().get_domain();
     assert!(dy[0] == 0.0 && (dy[1] - 3.15).abs() < 1e-12, "{dy:?}");
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let step = w / 4.1;
     let bandwidth = 0.9 * step;
@@ -129,7 +129,7 @@ fn a_histogram_of_point_keys_takes_0_8_of_the_gap_between_its_keys() {
     let x = fig.scale(scale::point(["a", "b", "c"]));
     let y = fig.fit(scale::linear());
     fig.panel(0, 0).mark(histogram(["a", "c", "c"], x, y));
-    let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     let rects = filled(&draw(&fig));
     assert_eq!(rects.len(), 2);
     assert!((rects[0].width() - 0.8 * w).abs() < 1e-9, "{rects:?}");
@@ -155,7 +155,7 @@ fn dodged_histograms_of_numbers_share_each_bin() {
                 .fill(color, "b")
                 .dodge(),
         );
-    let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     let px = |v: f64| v / 4.0 * w;
     let spans: Vec<[f64; 2]> = filled(&draw(&fig)).iter().map(|r| [r.x0, r.x1]).collect();
     let expected = [[px(0.5), px(1.25)], [px(2.0), px(2.75)], [px(2.0), px(3.0)]];
@@ -177,7 +177,7 @@ fn a_histogram_asking_for_more_nice_bins_than_ticks_allow_keeps_them_apart() {
     fig.panel(0, 0)
         .mark(histogram(values, x, y).bins(Bins::Nice(1_000_000)));
     let dy = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(dy[1] < 10.0, "one collapsed bin would count 5,000: {dy:?}");
@@ -195,7 +195,7 @@ fn keys_outside_the_band_are_reported_with_their_count() {
     assert_eq!(
         fig.check(Size::new(640.0, 480.0)),
         [Issue::OutsideDomain {
-            handle: x.index(),
+            handle: x.get_index(),
             count: 3
         }]
     );

@@ -58,19 +58,19 @@ impl Shaped {
 
     /// The advance width of the widest line, px.
     #[must_use]
-    pub fn width(&self) -> f64 {
+    pub fn get_width(&self) -> f64 {
         self.width
     }
 
     /// From the top of the ink to the first baseline, px.
     #[must_use]
-    pub fn ascent(&self) -> f64 {
+    pub fn get_ascent(&self) -> f64 {
         self.ascent
     }
 
     /// From the first baseline to the bottom of the ink, px.
     #[must_use]
-    pub fn descent(&self) -> f64 {
+    pub fn get_descent(&self) -> f64 {
         self.descent
     }
 
@@ -78,14 +78,14 @@ impl Shaped {
     /// line. Read from the runs set at the label's largest size, so
     /// scripts do not count as lines.
     #[must_use]
-    pub fn last(&self) -> f64 {
+    pub fn get_last(&self) -> f64 {
         self.last
     }
 
     /// Glyphs typst drew as .notdef because no font has them (fig.check
     /// reports them).
     #[must_use]
-    pub fn missing(&self) -> usize {
+    pub fn get_missing(&self) -> usize {
         self.missing
     }
 

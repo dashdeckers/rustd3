@@ -28,7 +28,7 @@ fn at_height(fig: &Figure<'_>, height: f64) -> Size {
     let mut size = Size::new(640.0, height + 60.0);
     for _ in 0..20 {
         let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-        let h = r.plot_areas()[0].height();
+        let h = r.get_plot_areas()[0].height();
         if (h - height).abs() < 1e-9 {
             return size;
         }

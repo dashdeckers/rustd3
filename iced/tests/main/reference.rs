@@ -38,7 +38,7 @@ pub fn png_of(
         let resolved = fig.resolve(size, &mut cache, held, Target::Screen { scale });
         (
             fig.draw_resolved(&mut cache, &resolved),
-            resolved.plot_areas().to_vec(),
+            resolved.get_plot_areas().to_vec(),
         )
     };
     let (list, areas) = draw(&Held::default());
@@ -75,7 +75,7 @@ pub fn png_held_on(
         let resolved = fig.resolve_held(size, &mut cache, held, target, areas);
         (
             fig.draw_resolved(&mut cache, &resolved),
-            resolved.plot_areas().to_vec(),
+            resolved.get_plot_areas().to_vec(),
         )
     };
     let (list, rects) = draw(&Held::default());

@@ -94,7 +94,7 @@ where
     /// One dot per entry of the radius the scale gives it, skipped when
     /// that radius is not finite and positive.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry> {
-        let Some(scale) = resolved.scale(self.handle) else {
+        let Some(scale) = resolved.get_scale(self.handle) else {
             return Vec::new();
         };
         let values = self.values.as_deref();

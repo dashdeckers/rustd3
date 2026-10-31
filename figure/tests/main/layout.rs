@@ -30,7 +30,11 @@ fn shape(label: &str, size: f64) -> (f64, f64, f64) {
     let mut cache = text::Cache::new(crate::text::fonts());
     cache.prepare([&key]);
     let shaped = cache.get(&key).expect("prepared").expect("shaped");
-    (shaped.width(), shaped.ascent(), shaped.descent())
+    (
+        shaped.get_width(),
+        shaped.get_ascent(),
+        shaped.get_descent(),
+    )
 }
 
 /// `label` measured in the theme's ink at `size` px: (width, ink height).
@@ -103,7 +107,7 @@ fn the_figure_title_reserves_its_ink_height_and_eight_px() {
     let mut fig = Figure::new();
     fig.title("Hub vibration and bearing temperature");
     fig.panel(0, 0);
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     assert!(
         (area.y0 - (PAD + large_height + 8.0)).abs() < 1e-9,
         "{area:?}"
@@ -117,7 +121,7 @@ fn bare_panels_fill_the_padded_canvas_by_weight() {
     fig.layout(Grid::new().cols([1.0, 3.0]).col_gaps([px(10.0)]));
     fig.panel(0, 0);
     fig.panel(0, 1);
-    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    let areas = resolve(&fig, &Held::default()).get_plot_areas().to_vec();
     let free = 640.0 - 2.0 * PAD - 10.0;
     assert!((areas[0].x0 - PAD).abs() < 1e-9);
     assert!((areas[0].width() - free / 4.0).abs() < 1e-9);
@@ -130,7 +134,7 @@ fn a_missing_gap_is_one_em() {
     let mut fig = Figure::new();
     fig.panel(0, 0);
     fig.panel(1, 0);
-    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    let areas = resolve(&fig, &Held::default()).get_plot_areas().to_vec();
     let gap = areas[1].y0 - areas[0].y1;
     assert!((gap - 11.0 * 4.0 / 3.0).abs() < 1e-9, "{gap}");
 }
@@ -142,7 +146,7 @@ fn weights_and_gaps_that_are_not_finite_lengths_take_the_defaults() {
         fig.layout(grid);
         fig.panel(0, 0);
         fig.panel(1, 1);
-        resolve(&fig, &Held::default()).plot_areas().to_vec()
+        resolve(&fig, &Held::default()).get_plot_areas().to_vec()
     };
     let plain = areas(Grid::new());
     for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -1.0] {
@@ -177,7 +181,7 @@ fn a_size_that_is_not_finite_and_positive_leaves_no_room() {
         Size::new(f64::INFINITY, 480.0),
     ] {
         let resolved = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-        let area = resolved.plot_areas()[0];
+        let area = resolved.get_plot_areas()[0];
         assert!(
             [area.x0, area.y0, area.x1, area.y1]
                 .iter()
@@ -210,7 +214,7 @@ fn a_span_that_negative_gaps_pull_back_is_empty_not_inverted() {
     fig.layout(Grid::new().col_gaps([px(-400.0)]));
     fig.panel(0, 0).axis(axis::left(y).outward(600.0));
     fig.panel_at(Cell::new(1, 0).span(1, 2));
-    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    let areas = resolve(&fig, &Held::default()).get_plot_areas().to_vec();
     assert!(areas.iter().all(|a| a.width() >= 0.0), "{areas:?}");
 }
 
@@ -224,7 +228,7 @@ fn an_outward_offset_that_is_not_finite_is_ignored() {
             Some(px) => bottom.outward(px),
             None => bottom,
         });
-        resolve(&fig, &Held::default()).plot_areas().to_vec()
+        resolve(&fig, &Held::default()).get_plot_areas().to_vec()
     };
     for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
         assert_eq!(areas(Some(bad)), areas(None), "{bad}");
@@ -242,7 +246,7 @@ fn a_cell_past_the_grids_tracks_is_reported_and_not_drawn() {
     fig.panel(4096, 0);
     fig.panel(4096, 0);
     let resolved = resolve(&fig, &Held::default());
-    assert_eq!(resolved.plot_areas().len(), 1);
+    assert_eq!(resolved.get_plot_areas().len(), 1);
     let outside: Vec<_> = fig
         .check(Size::new(640.0, 480.0))
         .into_iter()
@@ -257,7 +261,7 @@ fn a_cell_past_the_grids_tracks_is_reported_and_not_drawn() {
     assert_eq!(outside, [(usize::MAX, 0), (1, 1), (4096, 0)]);
     let mut last = Figure::new();
     last.panel(4095, 4095);
-    assert_eq!(resolve(&last, &Held::default()).plot_areas().len(), 1);
+    assert_eq!(resolve(&last, &Held::default()).get_plot_areas().len(), 1);
 }
 
 #[test]
@@ -265,7 +269,7 @@ fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));
     fig.panel(0, 0);
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     assert!((area.width() - (640.0 - 2.0 * PAD) / 2.0).abs() < 1e-9);
 }
 
@@ -287,7 +291,7 @@ fn attached_panels_of_a_bare_grid_share_pixel_ranges_exactly() {
             .mark(line(x, [0.1, 9.7]))
             .mark(line(y, [0.0, 3.0]));
     }
-    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    let areas = resolve(&fig, &Held::default()).get_plot_areas().to_vec();
     assert_attached(&areas, &cells);
 }
 
@@ -316,21 +320,24 @@ fn one_panel_reaches_by_its_axes_ticks_pads_and_widest_or_tallest_labels() {
         p.axis(axis::left(y)).axis(axis::bottom(x));
     });
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(x).unwrap().get_domain(), [-0.5, 10.5]);
+    assert_eq!(r.get_scale(x).unwrap().get_domain(), [-0.5, 10.5]);
     assert_eq!(
-        labels(r.scale(x).unwrap()),
+        labels(r.get_scale(x).unwrap()),
         (0..=10).map(|i| i.to_string()).collect::<Vec<_>>()
     );
     assert_eq!(
-        r.scale(y).unwrap().get_domain().map(|v| format!("{v:.2}")),
+        r.get_scale(y)
+            .unwrap()
+            .get_domain()
+            .map(|v| format!("{v:.2}")),
         ["-0.15", "3.15"]
     );
     assert_eq!(
-        r.scale(y).unwrap().tick_set(10).get_values(),
+        r.get_scale(y).unwrap().tick_set(10).get_values(),
         [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     );
-    assert_eq!(labels(r.scale(y).unwrap())[0], "0.0");
-    let area = r.plot_areas()[0];
+    assert_eq!(labels(r.get_scale(y).unwrap())[0], "0.0");
+    let area = r.get_plot_areas()[0];
     // left: 8 + 4.667 + 23.325 ("0.0"); bottom: 8 + 4.667 + 14.667 (the
     // line box, which holds the digits' ink).
     let left = area.x0 - PAD;
@@ -354,8 +361,8 @@ fn an_axis_title_adds_the_label_pad_and_its_ink_height() {
     let (titled, ..) = one_panel(|p, x, _| {
         p.axis(axis::bottom(x).label("speed [km/h]"));
     });
-    let bare = resolve(&bare, &Held::default()).plot_areas()[0];
-    let titled = resolve(&titled, &Held::default()).plot_areas()[0];
+    let bare = resolve(&bare, &Held::default()).get_plot_areas()[0];
+    let titled = resolve(&titled, &Held::default()).get_plot_areas()[0];
     let added = bare.y1 - titled.y1;
     let ink = ink_height("speed [km/h]", 16.0);
     assert!((added - (16.0 / 3.0 + ink)).abs() < 1e-9, "{added} {ink}");
@@ -369,8 +376,8 @@ fn a_rotated_left_title_adds_its_ink_height_too() {
     let (titled, ..) = one_panel(|p, _, y| {
         p.axis(axis::left(y).label("vibration RMS [m/s²]"));
     });
-    let bare = resolve(&bare, &Held::default()).plot_areas()[0];
-    let titled = resolve(&titled, &Held::default()).plot_areas()[0];
+    let bare = resolve(&bare, &Held::default()).get_plot_areas()[0];
+    let titled = resolve(&titled, &Held::default()).get_plot_areas()[0];
     let added = titled.x0 - bare.x0;
     let ink = ink_height("vibration RMS [m/s²]", 16.0);
     assert!((added - (16.0 / 3.0 + ink)).abs() < 1e-9, "{added} {ink}");
@@ -381,12 +388,12 @@ fn an_unlabelled_axis_reaches_by_its_tick_and_an_outward_one_by_its_offset() {
     let (fig, ..) = one_panel(|p, _, y| {
         p.axis(axis::left(y).labels(false).label("ignored"));
     });
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     assert!((area.x0 - (PAD + 8.0)).abs() < 1e-9, "{area:?}");
     let (fig, ..) = one_panel(|p, _, y| {
         p.axis(axis::left(y).labels(false).outward(10.0));
     });
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     assert!((area.x0 - (PAD + 18.0)).abs() < 1e-9, "{area:?}");
 }
 
@@ -395,7 +402,7 @@ fn a_panel_title_adds_the_title_pad_the_descender_and_its_ink_ascent_on_top() {
     let (fig, ..) = one_panel(|p, _, _| {
         p.title("Wheel: RL");
     });
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let [_, descender] = line_box(16.0);
     let ascent = ink_ascent("Wheel: RL", 16.0);
     let expected = PAD + 8.0 + descender + ascent;
@@ -445,7 +452,7 @@ fn panel_titles_of_a_row_share_a_baseline_whatever_their_descenders_and_side_axe
     }
     let size = Size::new(640.0, 480.0);
     let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
-    let areas = resolve_at(&fig, size).plot_areas().to_vec();
+    let areas = resolve_at(&fig, size).get_plot_areas().to_vec();
     let [_, descender] = line_box(16.0);
     let [tick_ascender, tick_descender] = line_box(44.0 / 3.0);
     // The top axis reaches its tick, pad and line box.
@@ -469,7 +476,7 @@ fn tick_labels_at_the_ends_widen_the_sides_they_cross() {
     let x = fig.scale(scale::linear().domain([0.0, 10.0]));
     let y = fig.scale(scale::linear().domain([0.0, 3.0]));
     fig.panel(0, 0).axis(axis::bottom(x)).axis(axis::right(y));
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     // "0" overhangs the left end by half its advance, "3.0" the top by
     // half its line box, centred on the tick; the right axis's own reach is
     // wider than "10"'s half.
@@ -509,7 +516,7 @@ fn attached_panels_with_axes_and_titles_share_pixel_ranges_exactly() {
             panel.title(format!("panel {c}"));
         }
     }
-    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    let areas = resolve(&fig, &Held::default()).get_plot_areas().to_vec();
     assert_attached(&areas, &cells);
     assert!(areas[0].x0 < areas[1].x0 && areas[0].y0 < areas[2].y0);
 }
@@ -539,9 +546,9 @@ fn layout_settles_within_four_passes() {
             let fig = grid(n, n);
             let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
             assert!(
-                (2..=4).contains(&r.passes()),
+                (2..=4).contains(&r.get_passes()),
                 "{n}×{n} at {size:?}: {}",
-                r.passes()
+                r.get_passes()
             );
         }
     }
@@ -550,7 +557,7 @@ fn layout_settles_within_four_passes() {
             .axis(axis::bottom(x).ticks(5));
     });
     assert_eq!(
-        resolve(&fig, &Held::default()).passes(),
+        resolve(&fig, &Held::default()).get_passes(),
         2,
         "fixed counts settle at once"
     );
@@ -580,10 +587,10 @@ fn grids_of_shared_axes_settle_within_four_passes_labelled_on_the_outer_panels()
         let fig = shared(n);
         let size = Size::new(1600.0, 1200.0);
         let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-        assert!(r.passes() <= 4, "{n}×{n}: {}", r.passes());
+        assert!(r.get_passes() <= 4, "{n}×{n}: {}", r.get_passes());
         for (i, (row, col)) in (0..n).flat_map(|r| (0..n).map(move |c| (r, c))).enumerate() {
-            let left = r.plan(i, 0).expect("a left axis");
-            let bottom = r.plan(i, 1).expect("a bottom axis");
+            let left = r.get_plan(i, 0).expect("a left axis");
+            let bottom = r.get_plan(i, 1).expect("a bottom axis");
             assert!(left.shown && bottom.shown);
             assert_eq!(left.labeled, col == 0, "{n}×{n} panel {i}");
             assert_eq!(bottom.labeled, row == n - 1, "{n}×{n} panel {i}");
@@ -615,12 +622,12 @@ fn a_shared_axis_is_labelled_on_the_outer_panel_only() {
         p.axis(axis::left(y));
     });
     let r = resolve(&fig, &Held::default());
-    let left = r.plan(0, 0).expect("the left panel's axis");
-    let right = r.plan(1, 0).expect("the right panel's axis");
+    let left = r.get_plan(0, 0).expect("the left panel's axis");
+    let right = r.get_plan(1, 0).expect("the right panel's axis");
     assert!(left.shown && left.labeled, "{left:?}");
     assert!(right.shown && !right.labeled, "{right:?}");
     assert_eq!(right.thickness, 8.0, "ticks alone");
-    assert_eq!(r.plan(1, 1), None);
+    assert_eq!(r.get_plan(1, 1), None);
 }
 
 #[test]
@@ -630,11 +637,11 @@ fn a_second_axis_on_one_side_stacks_8_px_past_the_first() {
             .axis(axis::left(y).label("temp"));
     });
     let r = resolve(&fig, &Held::default());
-    let vib = r.plan(0, 0).expect("vib");
-    let temp = r.plan(0, 1).expect("temp");
+    let vib = r.get_plan(0, 0).expect("vib");
+    let temp = r.get_plan(0, 1).expect("temp");
     assert_eq!(vib.offset, 0.0);
     assert_eq!(temp.offset, vib.thickness + 8.0);
-    let area = r.plot_areas()[0];
+    let area = r.get_plot_areas()[0];
     assert!(
         (area.x0 - PAD - (temp.offset + temp.thickness)).abs() < 1e-9,
         "{area:?}"
@@ -649,11 +656,11 @@ fn a_stacked_axis_on_an_inner_panel_is_not_drawn() {
     });
     let r = resolve(&fig, &Held::default());
     let plans: Vec<_> = (0..2)
-        .map(|axis| r.plan(1, axis).expect("an axis"))
+        .map(|axis| r.get_plan(1, axis).expect("an axis"))
         .collect();
     assert!(plans[0].shown && !plans[0].labeled, "{plans:?}");
     assert!(!plans[1].shown, "{plans:?}");
-    let outer = r.plan(0, 1).expect("the left panel's temp axis");
+    let outer = r.get_plan(0, 1).expect("the left panel's temp axis");
     assert!(outer.shown && outer.labeled, "{outer:?}");
     // The undrawn axis takes no room: the right panel reaches by vib's ticks.
     let list = fig.draw_with(
@@ -677,7 +684,7 @@ fn labels_true_labels_an_inner_axis() {
         p.axis(axis::left(y).labels(true));
     });
     let r = resolve(&fig, &Held::default());
-    let inner = r.plan(1, 0).expect("the right panel's axis");
+    let inner = r.get_plan(1, 0).expect("the right panel's axis");
     assert!(inner.shown && inner.labeled, "{inner:?}");
 }
 
@@ -687,12 +694,12 @@ fn an_explicit_outward_axis_on_an_inner_panel_is_not_drawn_and_labels_false_draw
         p.axis(axis::left(y).outward(10.0));
     });
     let r = resolve(&fig, &Held::default());
-    assert!(!r.plan(1, 0).expect("an axis").shown);
+    assert!(!r.get_plan(1, 0).expect("an axis").shown);
     let fig = one_by_two(|p, y, _| {
         p.axis(axis::left(y).outward(10.0).labels(false));
     });
     let r = resolve(&fig, &Held::default());
-    let plan = r.plan(1, 0).expect("an axis");
+    let plan = r.get_plan(1, 0).expect("an axis");
     assert!(
         plan.shown && !plan.labeled && plan.offset == 10.0,
         "{plan:?}"
@@ -704,7 +711,7 @@ fn an_explicit_outward_axis_on_an_inner_panel_is_not_drawn_and_labels_false_draw
 /// overlap, attached panels share pixel ranges bit for bit.
 pub fn assert_layout(fig: &Figure<'_>, size: Size, target: Target, cells: &[(usize, usize)]) {
     let r = fig.resolve(size, &mut cache(), &Held::default(), target);
-    assert!(r.passes() <= 4, "{} passes", r.passes());
+    assert!(r.get_passes() <= 4, "{} passes", r.get_passes());
     let boxes = r.label_boxes();
     for (i, a) in boxes.iter().enumerate() {
         for b in &boxes[i + 1..] {
@@ -712,7 +719,7 @@ pub fn assert_layout(fig: &Figure<'_>, size: Size, target: Target, cells: &[(usi
             assert!(!overlap, "{a:?} overlaps {b:?}");
         }
     }
-    assert_attached(r.plot_areas(), cells);
+    assert_attached(r.get_plot_areas(), cells);
 }
 
 /// The texts of the tick labels drawn by axis `axis` of panel `panel`.
@@ -787,7 +794,7 @@ fn tick_labels_of_a_row_share_a_baseline_on_the_text_face_line_box() {
         .axis(axis::top(month));
     let size = Size::new(960.0, 720.0);
     let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
-    let areas = resolve_at(&fig, size).plot_areas().to_vec();
+    let areas = resolve_at(&fig, size).get_plot_areas().to_vec();
     let [ascender, descender] = line_box(44.0 / 3.0);
     let gap = 8.0 + 14.0 / 3.0;
     for (panel, (area, count)) in areas.iter().zip([3, 12]).enumerate() {
@@ -831,7 +838,7 @@ fn at_width(fig: &Figure<'_>, width: f64) -> Size {
     let mut size = Size::new(width + 60.0, 480.0);
     for _ in 0..20 {
         let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-        let w = r.plot_areas()[0].width();
+        let w = r.get_plot_areas()[0].width();
         if (w - width).abs() < 1e-9 {
             return size;
         }
@@ -911,7 +918,7 @@ fn kept_labels_only_change_at_the_ends_while_an_axis_pans() {
         let fig = every_five([start, start + 100.0]);
         let width = fig
             .resolve(size, &mut cache, &Held::default(), Target::Vector)
-            .plot_areas()[0]
+            .get_plot_areas()[0]
             .width();
         assert!((300.0..=540.0).contains(&width), "{width}");
         let kept: Vec<f64> = drawn_with(&fig, size, 0, 0, &mut cache)
@@ -1029,7 +1036,7 @@ fn spanning() -> Figure<'static> {
 fn a_spanning_panel_runs_from_its_first_column_to_its_last() {
     let fig = spanning();
     let r = resolve(&fig, &Held::default());
-    let areas = r.plot_areas();
+    let areas = r.get_plot_areas();
     let (first, second, span) = (areas[0], areas[1], areas[2]);
     assert!(
         same(span.x0, first.x0) && same(span.x1, second.x1),
@@ -1037,8 +1044,8 @@ fn a_spanning_panel_runs_from_its_first_column_to_its_last() {
     );
     // Its wide labels count against column 0's left track: the panel
     // above starts where it does, beyond the narrow labels' reach.
-    let narrow = r.plan(0, 0).expect("the top left panel's axis");
-    let reach = r.plan(2, 0).expect("the spanning panel's axis");
+    let narrow = r.get_plan(0, 0).expect("the top left panel's axis");
+    let reach = r.get_plan(2, 0).expect("the spanning panel's axis");
     assert!(reach.thickness > narrow.thickness + 20.0, "{reach:?}");
     assert!((first.x0 - PAD - reach.thickness).abs() < 1e-9, "{first:?}");
     assert!(span.y0 > first.y1 && same(first.y0, second.y0));
@@ -1049,10 +1056,10 @@ fn a_spanning_panel_below_makes_the_axes_above_it_inner() {
     let fig = spanning();
     let r = resolve(&fig, &Held::default());
     for panel in 0..2 {
-        let bottom = r.plan(panel, 1).expect("a bottom axis");
+        let bottom = r.get_plan(panel, 1).expect("a bottom axis");
         assert!(bottom.shown && !bottom.labeled, "{panel}: {bottom:?}");
     }
-    let outer = r.plan(2, 1).expect("the spanning panel's bottom axis");
+    let outer = r.get_plan(2, 1).expect("the spanning panel's bottom axis");
     assert!(outer.labeled);
 }
 
@@ -1061,9 +1068,9 @@ fn the_same_cell_and_span_give_the_same_panel() {
     let mut fig = spanning();
     fig.panel_at(Cell::new(1, 0).span(1, 2)).title("again");
     fig.panel(0, 1);
-    assert_eq!(resolve(&fig, &Held::default()).plot_areas().len(), 3);
+    assert_eq!(resolve(&fig, &Held::default()).get_plot_areas().len(), 3);
     fig.panel(1, 0);
-    assert_eq!(resolve(&fig, &Held::default()).plot_areas().len(), 4);
+    assert_eq!(resolve(&fig, &Held::default()).get_plot_areas().len(), 4);
 }
 
 /// One panel with a fixed `domain` on axis `side` asking 6 ticks, its
@@ -1143,11 +1150,15 @@ fn offset_false_prints_full_labels() {
 fn an_offset_label_takes_a_row_under_a_bottom_axis_and_the_top_above_a_left_one() {
     let size = Size::new(640.0, 480.0);
     let ink = ink_height("+1e9", 44.0 / 3.0);
-    let plan = |fig: &Figure<'_>| resolve(fig, &Held::default()).plan(0, 0).expect("an axis");
+    let plan = |fig: &Figure<'_>| {
+        resolve(fig, &Held::default())
+            .get_plan(0, 0)
+            .expect("an axis")
+    };
     let on = plan(&notation([1e9, 1e9 + 1.0], axis::bottom, true));
     let off = plan(&notation([0.0, 1.0], axis::bottom, true));
     assert!((on.thickness - off.thickness - (14.0 / 3.0 + ink)).abs() < 1e-9);
-    let area = |fig: &Figure<'_>| resolve(fig, &Held::default()).plot_areas()[0];
+    let area = |fig: &Figure<'_>| resolve(fig, &Held::default()).get_plot_areas()[0];
     let on = area(&notation([1e9, 1e9 + 1.0], axis::left, true));
     let off = area(&notation([0.0, 1.0], axis::left, true));
     // "1.0" overhangs the top by half its line box; "+1e9" sits a tick pad
@@ -1174,7 +1185,7 @@ fn log_axes_keep_their_labels_whatever_their_magnitude() {
     let y = fig.scale(scale::log().domain([1.0, 1e7]));
     fig.panel(0, 0).axis(axis::left(y));
     let r = resolve(&fig, &Held::default());
-    let count = r.plan(0, 0).expect("an axis").count;
+    let count = r.get_plan(0, 0).expect("an axis").count;
     let log = scale::log().domain([1.0, 1e7]);
     let own = log.labels(&log.tick_set(count), &Locale::default());
     let kept = drawn(&fig, size, 0, 0);
@@ -1196,26 +1207,26 @@ fn held_areas_keep_the_plot_while_labels_grow_outward() {
     let (fig, y) = held_left();
     let mut cache = cache();
     let start = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
-    assert!(!start.held());
+    assert!(!start.get_held());
     let mut held = Held::default();
     held.hold(y, scale::linear().domain([0.0, 30_000.0]));
-    let areas = start.areas();
+    let areas = start.get_areas();
     let during = fig.resolve_held(size, &mut cache, &held, Target::Vector, &areas);
-    assert!(during.held() && during.passes() == 1);
-    let (a, b) = (start.plot_areas()[0], during.plot_areas()[0]);
+    assert!(during.get_held() && during.get_passes() == 1);
+    let (a, b) = (start.get_plot_areas()[0], during.get_plot_areas()[0]);
     assert!(
         [(a.x0, b.x0), (a.y0, b.y0), (a.x1, b.x1), (a.y1, b.y1)]
             .iter()
             .all(|(p, q)| same(*p, *q)),
         "{a:?} {b:?}"
     );
-    let grown = during.plan(0, 0).expect("an axis").thickness
-        - start.plan(0, 0).expect("an axis").thickness;
+    let grown = during.get_plan(0, 0).expect("an axis").thickness
+        - start.get_plan(0, 0).expect("an axis").thickness;
     let widths = measure("30\u{202f}000", 44.0 / 3.0).0 - measure("3.0", 44.0 / 3.0).0;
     assert!((grown - widths).abs() < 1e-9, "{grown} {widths}");
     // Released, the layout is fresh and the plot area narrower by as much.
     let fresh = fig.resolve(size, &mut cache, &held, Target::Vector);
-    assert!((fresh.plot_areas()[0].x0 - a.x0 - grown).abs() < 1e-9);
+    assert!((fresh.get_plot_areas()[0].x0 - a.x0 - grown).abs() < 1e-9);
     let list = fig.draw_held(&mut cache, size, Target::Vector, &held, &areas);
     let labels = texts(&list, 0, 0);
     assert!(labels.contains(&"30\u{202f}000".to_string()), "{labels:?}");
@@ -1229,18 +1240,18 @@ fn areas_for_another_size_or_panel_count_are_ignored() {
     let size = Size::new(640.0, 480.0);
     let areas = fig
         .resolve(size, &mut cache, &Held::default(), Target::Vector)
-        .areas();
+        .get_areas();
     data(&areas);
     assert_eq!(areas.clone(), areas);
     let other = Size::new(800.0, 480.0);
     let r = fig.resolve_held(other, &mut cache, &Held::default(), Target::Vector, &areas);
-    assert!(!r.held());
+    assert!(!r.get_held());
     let fresh = fig.resolve(other, &mut cache, &Held::default(), Target::Vector);
-    assert_eq!(r.plot_areas(), fresh.plot_areas());
+    assert_eq!(r.get_plot_areas(), fresh.get_plot_areas());
     let (mut more, _) = held_left();
     more.panel(0, 1);
     let r = more.resolve_held(size, &mut cache, &Held::default(), Target::Vector, &areas);
-    assert!(!r.held());
+    assert!(!r.get_held());
 }
 
 #[test]
@@ -1251,7 +1262,7 @@ fn a_labelled_vertical_axis_on_screen_reserves_two_characters_of_slack() {
     let (fig, _) = held_left();
     let thickness = |target| {
         fig.resolve(size, &mut cache(), &Held::default(), target)
-            .plan(0, 0)
+            .get_plan(0, 0)
             .expect("an axis")
             .thickness
     };
@@ -1266,7 +1277,7 @@ fn a_labelled_vertical_axis_on_screen_reserves_two_characters_of_slack() {
     });
     let bottom = |target| {
         fig.resolve(size, &mut cache(), &Held::default(), target)
-            .plan(0, 0)
+            .get_plan(0, 0)
             .expect("an axis")
             .thickness
     };
@@ -1289,7 +1300,7 @@ fn labels_that_grow_past_held_reaches_give_way_to_a_larger_panels() {
     let start = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
     let mut held = Held::default();
     held.hold(right, scale::linear().domain([-100_000.0, 0.0]));
-    let areas = start.areas();
+    let areas = start.get_areas();
     let r = fig.resolve_held(size, &mut cache, &held, Target::Vector, &areas);
     let boxes = r.label_boxes();
     for (i, a) in boxes.iter().enumerate() {
@@ -1409,12 +1420,12 @@ fn raster_targets_put_plot_area_edges_and_hairlines_on_device_pixels() {
     let size = Size::new(960.0, 720.0);
     let vector = fig
         .resolve(size, &mut cache(), &Held::default(), Target::Vector)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec();
     for scale in [1.0, 1.25, 1.5, 2.0] {
         let target = Target::File { scale };
         let r = fig.resolve(size, &mut cache(), &Held::default(), target);
-        let areas = r.plot_areas();
+        let areas = r.get_plot_areas();
         for (a, v) in areas.iter().zip(&vector) {
             for (edge, raw) in [(a.x0, v.x0), (a.y0, v.y0), (a.x1, v.x1), (a.y1, v.y1)] {
                 assert!(whole(edge, scale), "{edge} at {scale}");
@@ -1489,7 +1500,7 @@ fn vector_output_keeps_plot_areas_unsnapped() {
     let size = Size::new(960.0, 720.0);
     let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
     let edges: Vec<f64> = r
-        .plot_areas()
+        .get_plot_areas()
         .iter()
         .flat_map(|a| [a.x0, a.y0, a.x1, a.y1])
         .collect();

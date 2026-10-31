@@ -74,7 +74,7 @@ where
     /// One dot per entry in the color the scale gives it; one it gives
     /// none (`None`) takes the theme's gray.
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
-        let Some(scale) = resolved.scale(self.handle) else {
+        let Some(scale) = resolved.get_scale(self.handle) else {
             return Vec::new();
         };
         super::entries(self.handle, self.count, None, resolved)

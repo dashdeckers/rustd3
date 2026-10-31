@@ -87,12 +87,12 @@ fn band_handles_keep_their_keys_and_place_bands_in_the_panel() {
         .mark(dots([("a", 0.5), ("z", 0.5)], band, y));
     let size = canvas(300.0, 200.0);
     let r = resolve(&fig, size);
-    let area = r.plot_areas()[0];
+    let area = r.get_plot_areas()[0];
     assert!(near(area.width(), 300.0, 1e-9), "{area:?}");
-    assert_eq!(r.scale(band).unwrap().get_domain(), ["a", "b", "c"]);
-    assert_eq!(Kind::domain(r.scale(band).unwrap()), None);
+    assert_eq!(r.get_scale(band).unwrap().get_domain(), ["a", "b", "c"]);
+    assert_eq!(Kind::domain(r.get_scale(band).unwrap()), None);
     // d3: a step of 300 / 3.1, half the outer padding's leftover first.
-    let b: Band<&str> = ranged(r.scale(band).unwrap(), [0.0, area.width()]);
+    let b: Band<&str> = ranged(r.get_scale(band).unwrap(), [0.0, area.width()]);
     let start = b.position(&"a").expect("a key");
     assert!(
         near(start, (300.0 - 2.9 * 300.0 / 3.1) / 2.0, 1e-9),
@@ -116,12 +116,12 @@ fn point_handles_place_their_keys_without_width() {
     let y = fig.scale(scale::linear().domain([0.0, 1.0]));
     fig.panel(0, 0).mark(line([("a", 0.0), ("c", 1.0)], p, y));
     let r = resolve(&fig, canvas(300.0, 200.0));
-    assert!(near(r.plot_areas()[0].width(), 300.0, 1e-9));
-    let ranged: Point<&str> = ranged(r.scale(p).unwrap(), [0.0, 300.0]);
+    assert!(near(r.get_plot_areas()[0].width(), 300.0, 1e-9));
+    let ranged: Point<&str> = ranged(r.get_scale(p).unwrap(), [0.0, 300.0]);
     let at = ["a", "b", "c"].map(|k| ranged.position(&k));
     assert_eq!(at, [Some(0.0), Some(150.0), Some(300.0)]);
     assert_eq!((ranged.bandwidth(), ranged.position(&"z")), (0.0, None));
-    assert_eq!(r.scale(p).unwrap().get_domain(), ["a", "b", "c"]);
+    assert_eq!(r.get_scale(p).unwrap().get_domain(), ["a", "b", "c"]);
     let mut fig = Figure::new();
     let p = fig.scale(scale::point(["low", "mid", "high"]));
     fig.panel(0, 0).axis(axis::left(p));
@@ -145,7 +145,7 @@ fn keys_outside_a_band_domain_are_reported_once_per_handle() {
         .mark(dots([("a", 0.5), ("z", 0.5)], band, y));
     let issues = fig.check(Size::new(640.0, 480.0));
     let one = Issue::OutsideDomain {
-        handle: band.index(),
+        handle: band.get_index(),
         count: 1,
     };
     assert_eq!(issues, [one]);
@@ -155,7 +155,7 @@ fn keys_outside_a_band_domain_are_reported_once_per_handle() {
         .mark(rule_x("w", band));
     let issues = fig.check(Size::new(640.0, 480.0));
     let four = Issue::OutsideDomain {
-        handle: band.index(),
+        handle: band.get_index(),
         count: 4,
     };
     assert_eq!(issues, [four]);
@@ -181,7 +181,7 @@ fn fitting_two_timestamps_a_microsecond_apart_pads_by_fifty_nanoseconds() {
     fig.panel(0, 0).mark(figure::line(x, [t, micro]));
     let r = resolve(&fig, canvas(640.0, 480.0));
     let ns = SignedDuration::from_nanos(50);
-    assert_eq!(r.scale(x).unwrap().get_domain(), [t - ns, micro + ns]);
+    assert_eq!(r.get_scale(x).unwrap().get_domain(), [t - ns, micro + ns]);
     // An f64 of epoch seconds in 2026 resolves about 240 ns.
     let seconds = t.as_nanosecond() as f64 / 1e9;
     assert!(seconds.next_up() - seconds > 2e-7);
@@ -200,14 +200,14 @@ fn time_handles_fit_their_data_with_five_percent_in_nanoseconds() {
     let r = resolve(&fig, canvas(640.0, 480.0));
     // 5% of 25 h is 75 min: matplotlib gives the same.
     let fitted = [at("2026-10-24T20:45:00Z"), at("2026-10-26T00:15:00Z")];
-    assert_eq!(r.scale(x).unwrap().get_domain(), fitted);
-    assert_eq!(Kind::domain(r.scale(x).unwrap()), Some(fitted));
+    assert_eq!(r.get_scale(x).unwrap().get_domain(), fitted);
+    assert_eq!(Kind::domain(r.get_scale(x).unwrap()), Some(fitted));
     // No data: matplotlib's empty date axis.
     let day = [Timestamp::UNIX_EPOCH, at("1970-01-02T00:00:00Z")];
-    assert_eq!(r.scale(empty).unwrap().get_domain(), day);
+    assert_eq!(r.get_scale(empty).unwrap().get_domain(), day);
     // Positions over the panel and back, to the nanosecond.
-    let area = r.plot_areas()[0];
-    let ranged: Time = ranged(r.scale(x).unwrap(), [0.0, area.width()]);
+    let area = r.get_plot_areas()[0];
+    let ranged: Time = ranged(r.get_scale(x).unwrap(), [0.0, area.width()]);
     let middle = at("2026-10-25T10:30:00Z");
     let p = ranged.position(&middle).expect("a position");
     assert!(near(p, area.width() / 2.0, 1e-9), "{p}");
@@ -222,7 +222,7 @@ fn berlin_labels_follow_the_iso_ladder_through_a_figure_axis() {
     fig.panel(0, 0).axis(axis::bottom(x).ticks(8));
     let size = canvas(800.0, 200.0);
     assert_eq!(
-        resolve(&fig, size).scale(x).unwrap().tick_interval(8),
+        resolve(&fig, size).get_scale(x).unwrap().tick_interval(8),
         time::Interval::Hour(3)
     );
     let ladder = [
@@ -245,9 +245,9 @@ fn hourly(domain: [Timestamp; 2], width: f64) -> (Figure<'static>, Size) {
 /// centre through the resolved scale, to the minute.
 fn kept(fig: &Figure<'_>, size: Size) -> Vec<Timestamp> {
     let r = resolve(fig, size);
-    let area = r.plot_areas()[0];
+    let area = r.get_plot_areas()[0];
     let x: Time = ranged(
-        r.scale_at(0)
+        r.get_scale_at(0)
             .and_then(|s| s.as_any().downcast_ref::<Time>())
             .expect("a time scale"),
         [area.x0, area.x1],
@@ -298,9 +298,9 @@ fn a_fitted_fortnight_keeps_every_label_that_fits() {
     for width in [500.0, 650.0, 800.0] {
         let (fig, size) = fortnight(width);
         let r = resolve(&fig, size);
-        let count = r.plan(0, 0).expect("a bottom axis").count;
+        let count = r.get_plan(0, 0).expect("a bottom axis").count;
         assert_eq!(
-            r.scale_at(0)
+            r.get_scale_at(0)
                 .and_then(|s| s.as_any().downcast_ref::<Time>())
                 .map(|t| t.tick_interval(count)),
             Some(time::Interval::Day(2))
@@ -436,10 +436,13 @@ fn a_time_window_moves_by_whole_columns_in_nanoseconds() {
         &Held::default(),
         target,
     );
-    assert!(near(r.plot_areas()[0].width(), 1000.0, 1e-9));
+    assert!(near(r.get_plot_areas()[0].width(), 1000.0, 1e-9));
     // The last sample at 123.456 s rounds up to the next 10 ms column.
     let ms = |n: i64| t0 + SignedDuration::from_millis(n);
-    assert_eq!(r.scale(x).unwrap().get_domain(), [ms(113_460), ms(123_460)]);
+    assert_eq!(
+        r.get_scale(x).unwrap().get_domain(),
+        [ms(113_460), ms(123_460)]
+    );
 }
 
 #[test]
@@ -456,7 +459,7 @@ fn a_visible_y_reads_a_timestamp_recording_through_its_index() {
         .mark(line(rec.series(0).expect("channel 0"), x, v));
     let r = resolve(&fig, canvas(640.0, 480.0));
     // Samples 1000 … 3000, ends included, padded by 5% of 2000.
-    assert_eq!(r.scale(v).unwrap().get_domain(), [900.0, 3100.0]);
+    assert_eq!(r.get_scale(v).unwrap().get_domain(), [900.0, 3100.0]);
 }
 
 #[test]
@@ -480,7 +483,7 @@ fn a_visible_time_handle_steps_in_whole_nanoseconds() {
             &Held::default(),
             Target::Vector,
         );
-        r.scale(t).unwrap().get_domain()
+        r.get_scale(t).unwrap().get_domain()
     };
     // Hours 0 … 10 padded by 30 min.
     let half = SignedDuration::from_mins(30);
@@ -515,18 +518,18 @@ fn sequential_handles_paint_as_d3_and_fit_without_margin() {
         .mark(dots([(0.5, 0.5)], x, x).fill(heat, 40.0));
     let r = resolve(&fig, canvas(300.0, 200.0));
     // d3 in Node: scaleSequential([0, 80], interpolateViridis).
-    let paints = [0.0, 20.0, 40.0, 80.0, 100.0].map(|v| hex(r.scale(heat).unwrap().paint(&v)));
+    let paints = [0.0, 20.0, 40.0, 80.0, 100.0].map(|v| hex(r.get_scale(heat).unwrap().paint(&v)));
     let d3 = ["#440154", "#3b528b", "#21918c", "#fde725", "#fde725"];
     assert_eq!(paints, d3.map(|c| Some(c.to_string())));
     // No margin on color: [3, 7] exactly, 5 at the middle of the ramp.
-    assert_eq!(r.scale(fitted).unwrap().get_domain(), [3.0, 7.0]);
+    assert_eq!(r.get_scale(fitted).unwrap().get_domain(), [3.0, 7.0]);
     assert_eq!(
-        hex(r.scale(fitted).unwrap().paint(&5.0)).as_deref(),
+        hex(r.get_scale(fitted).unwrap().paint(&5.0)).as_deref(),
         Some("#21918c")
     );
-    assert_eq!(r.scale(heat).unwrap().paint(&f64::NAN), None);
+    assert_eq!(r.get_scale(heat).unwrap().paint(&f64::NAN), None);
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(heat).unwrap(), 4).get_values(),
+        scale::Ticks::tick_set(r.get_scale(heat).unwrap(), 4).get_values(),
         [0.0, 20.0, 40.0, 60.0, 80.0]
     );
     // A palette key on a dot reaches the drawn paint.
@@ -550,7 +553,8 @@ fn diverging_handles_paint_as_d3_and_keep_their_middle() {
     fig.panel(0, 0).mark(figure::line(fitted, [2.0, 5.0]));
     let r = resolve(&fig, canvas(300.0, 200.0));
     // d3 in Node: scaleDiverging([-1, 0, 1], interpolateRdBu).
-    let paints = [-1.0, 0.0, 0.5].map(|v| r.scale(rd_bu).unwrap().paint(&v).map(|c| c.to_string()));
+    let paints =
+        [-1.0, 0.0, 0.5].map(|v| r.get_scale(rd_bu).unwrap().paint(&v).map(|c| c.to_string()));
     let d3 = [
         "rgb(103, 0, 31)",
         "rgb(242, 239, 238)",
@@ -559,10 +563,10 @@ fn diverging_handles_paint_as_d3_and_keep_their_middle() {
     assert_eq!(paints, d3.map(|c| Some(c.to_string())));
     // Data on one side of the middle keeps it, so the ramp does
     // not reverse.
-    assert_eq!(r.scale(fitted).unwrap().get_domain(), [0.0, 0.0, 5.0]);
-    assert_eq!(Kind::domain(r.scale(fitted).unwrap()), Some([0.0, 5.0]));
+    assert_eq!(r.get_scale(fitted).unwrap().get_domain(), [0.0, 0.0, 5.0]);
+    assert_eq!(Kind::domain(r.get_scale(fitted).unwrap()), Some([0.0, 5.0]));
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(rd_bu).unwrap(), 4).get_values(),
+        scale::Ticks::tick_set(r.get_scale(rd_bu).unwrap(), 4).get_values(),
         [-1.0, -0.5, 0.0, 0.5, 1.0]
     );
 }
@@ -575,11 +579,11 @@ fn linear_color_handles_interpolate_their_range_and_fit_without_margin() {
     let ramp = fig.fit(scale::linear().range([red, blue]));
     fig.panel(0, 0).mark(figure::line(ramp, [2.0, 4.0, 3.0]));
     let r = resolve(&fig, canvas(300.0, 200.0));
-    assert_eq!(r.scale(ramp).unwrap().get_domain(), [2.0, 4.0]);
-    let middle = r.scale(ramp).unwrap().paint(&3.0).expect("a color");
+    assert_eq!(r.get_scale(ramp).unwrap().get_domain(), [2.0, 4.0]);
+    let middle = r.get_scale(ramp).unwrap().paint(&3.0).expect("a color");
     assert_eq!(middle.to_string(), "rgb(128, 0, 128)");
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(ramp).unwrap(), 4).get_values(),
+        scale::Ticks::tick_set(r.get_scale(ramp).unwrap(), 4).get_values(),
         [2.0, 2.5, 3.0, 3.5, 4.0]
     );
 }
@@ -600,27 +604,30 @@ fn binned_handles_paint_their_bins_as_d3() {
         .mark(figure::line(t, [-5.0, 5.0]));
     let r = resolve(&fig, canvas(300.0, 200.0));
     // d3 in Node: scaleQuantize([0, 100], schemeBlues[5]).
-    assert_eq!(r.scale(q).unwrap().thresholds(), [20.0, 40.0, 60.0, 80.0]);
-    let paints = [10.0, 30.0, 99.0].map(|v| hex(r.scale(q).unwrap().paint(&v)));
+    assert_eq!(
+        r.get_scale(q).unwrap().thresholds(),
+        [20.0, 40.0, 60.0, 80.0]
+    );
+    let paints = [10.0, 30.0, 99.0].map(|v| hex(r.get_scale(q).unwrap().paint(&v)));
     assert_eq!(
         paints,
         ["#eff3ff", "#bdd7e7", "#08519c"].map(|c| Some(c.to_string()))
     );
-    assert_eq!(r.scale(fitted).unwrap().get_domain(), [10.0, 60.0]);
+    assert_eq!(r.get_scale(fitted).unwrap().get_domain(), [10.0, 60.0]);
     // d3: scaleThreshold([0, 1], [red, white, blue]); its thresholds stay.
-    let bins = [-1.0, 0.0, 0.5, 1.0].map(|v| r.scale(t).unwrap().paint(&v));
+    let bins = [-1.0, 0.0, 0.5, 1.0].map(|v| r.get_scale(t).unwrap().paint(&v));
     assert_eq!(bins, [Some(red), Some(white), Some(white), Some(blue)]);
-    assert_eq!(r.scale(t).unwrap().get_domain(), [0.0, 1.0]);
+    assert_eq!(r.get_scale(t).unwrap().get_domain(), [0.0, 1.0]);
     // The sample is the quantile scale's domain.
-    assert_eq!(r.scale(quantile).unwrap().quantiles(), [2.5]);
-    assert_eq!(r.scale(quantile).unwrap().paint(&3.0), Some(blue));
+    assert_eq!(r.get_scale(quantile).unwrap().quantiles(), [2.5]);
+    assert_eq!(r.get_scale(quantile).unwrap().paint(&3.0), Some(blue));
     // Binned scales tick at their edges.
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(q).unwrap(), 5).get_values(),
+        scale::Ticks::tick_set(r.get_scale(q).unwrap(), 5).get_values(),
         [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]
     );
     assert_eq!(
-        scale::Ticks::tick_set(r.scale(t).unwrap(), 5).get_values(),
+        scale::Ticks::tick_set(r.get_scale(t).unwrap(), 5).get_values(),
         [0.0, 1.0]
     );
 }

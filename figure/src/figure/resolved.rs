@@ -103,7 +103,7 @@ impl Resolved {
     /// The resolved scale behind a handle, before any panel's range;
     /// `None` for a handle of another figure.
     #[must_use]
-    pub fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
+    pub fn get_scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
         self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
     }
 
@@ -112,7 +112,7 @@ impl Resolved {
     /// placement drops those on handles of other figures, and a `Resolved`
     /// is drawn only for its own figure.
     pub(crate) fn own<S: Kind>(&self, h: ScaleRef<S>) -> &S {
-        self.scale(h)
+        self.get_scale(h)
             .expect("invariant: placed axes, guides and brushes are on their figure's handles")
     }
 
@@ -120,13 +120,13 @@ impl Resolved {
     /// erased (a widget keeps gesture state by position and `TypeId`);
     /// `None` past the table's end.
     #[must_use]
-    pub fn scale_at(&self, index: usize) -> Option<&dyn Scale> {
+    pub fn get_scale_at(&self, index: usize) -> Option<&dyn Scale> {
         self.scales.get(index).map(|scale| &**scale)
     }
 
     /// Plot-area rects in list px, one per panel in panel order.
     #[must_use]
-    pub fn plot_areas(&self) -> &[kurbo::Rect] {
+    pub fn get_plot_areas(&self) -> &[kurbo::Rect] {
         &self.areas
     }
 
@@ -134,7 +134,7 @@ impl Resolved {
     /// along y ([`Panel::zoom_x`], [`Panel::zoom_y`]); empty for a panel
     /// that zooms none and for one that does not exist.
     #[must_use]
-    pub fn zooms(&self, panel: usize) -> (&[usize], &[usize]) {
+    pub fn get_zooms(&self, panel: usize) -> (&[usize], &[usize]) {
         self.zooms
             .get(panel)
             .map_or((&[], &[]), |[x, y]| (x.as_slice(), y.as_slice()))
@@ -142,10 +142,10 @@ impl Resolved {
 
     /// The side of axis `axis` (in insertion order) of panel `panel`, and
     /// its handle's table position; `None` when there is no such axis.
-    /// With [`plan`](Resolved::plan)'s offset and thickness it bounds the
+    /// With [`get_plan`](Resolved::get_plan)'s offset and thickness it bounds the
     /// strip the axis draws in.
     #[must_use]
-    pub fn axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
+    pub fn get_axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
         self.axes.get(panel)?.get(axis).copied()
     }
 
@@ -154,21 +154,21 @@ impl Resolved {
     /// numbered in the order of their first use, not row by row); `None`
     /// for a panel the figure does not have.
     #[must_use]
-    pub fn panel_cell(&self, panel: usize) -> Option<(usize, usize)> {
+    pub fn get_panel_cell(&self, panel: usize) -> Option<(usize, usize)> {
         self.cells.get(panel).copied()
     }
 
     /// The brush placed on panel `panel` ([`Panel::brush`]); `None` for a
     /// panel without one and for one that does not exist.
     #[must_use]
-    pub fn brush(&self, panel: usize) -> Option<&brush::Placed> {
+    pub fn get_brush(&self, panel: usize) -> Option<&brush::Placed> {
         self.brushes.get(panel)?.as_ref()
     }
 
     /// How layout placed axis `axis` (in insertion order) of panel `panel`
     /// (in the order of first use); `None` when there is no such axis.
     #[must_use]
-    pub fn plan(&self, panel: usize, axis: usize) -> Option<Plan> {
+    pub fn get_plan(&self, panel: usize, axis: usize) -> Option<Plan> {
         Some(self.panels.get(panel)?.axes.get(axis)?.plan)
     }
 
@@ -208,20 +208,20 @@ impl Resolved {
 
     /// Layout passes until tick counts settled (1..=4).
     #[must_use]
-    pub fn passes(&self) -> usize {
+    pub fn get_passes(&self) -> usize {
         self.passes
     }
 
     /// The plot areas with the size they were laid out for, for a gesture
     /// to hold ([`Figure::resolve_held`](crate::Figure::resolve_held)).
     #[must_use]
-    pub fn areas(&self) -> layout::Areas {
+    pub fn get_areas(&self) -> layout::Areas {
         layout::Areas::new(self.areas.clone(), self.size)
     }
 
     /// True when this resolve used held areas.
     #[must_use]
-    pub fn held(&self) -> bool {
+    pub fn get_held(&self) -> bool {
         self.held
     }
 

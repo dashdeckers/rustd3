@@ -132,7 +132,7 @@ pub enum Issue {
         /// The panel it was given to; `None` for a figure slot's guide.
         panel: Option<usize>,
         /// The handle's position in its own figure's table
-        /// ([`ScaleRef::index`](crate::scale::ScaleRef::index)).
+        /// ([`ScaleRef::get_index`](crate::scale::ScaleRef::get_index)).
         handle: usize,
     },
     /// A handle fitted with `Fit::Window` on a categorical scale, which
@@ -145,7 +145,7 @@ pub enum Issue {
     /// nothing: one issue per handle, over every mark that uses it.
     OutsideDomain {
         /// The handle's position in the figure's scale table
-        /// ([`ScaleRef::index`](crate::scale::ScaleRef::index)).
+        /// ([`ScaleRef::get_index`](crate::scale::ScaleRef::get_index)).
         handle: usize,
         /// How many data values lie outside the domain.
         count: usize,

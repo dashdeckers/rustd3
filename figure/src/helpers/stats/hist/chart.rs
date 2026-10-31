@@ -218,8 +218,8 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Hist
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if let Err(e) = &self.table {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: e.clone().into(),
             });
         }

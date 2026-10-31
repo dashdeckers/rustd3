@@ -61,12 +61,12 @@ fn handles_index_the_table_in_order_and_compare_by_figure() {
     let mut fig = Figure::new();
     let x = fig.scale(scale::linear().domain([0.0, 2.0]));
     let y = fig.fit(scale::log());
-    assert_eq!((x.index(), y.index()), (0, 1));
+    assert_eq!((x.get_index(), y.get_index()), (0, 1));
     let copy = x;
     assert_eq!(copy, x);
     let mut other = Figure::new();
     let z = other.scale(scale::linear().domain([0.0, 2.0]));
-    assert_eq!(z.index(), x.index());
+    assert_eq!(z.get_index(), x.get_index());
     assert_ne!(format!("{z:?}"), "");
 }
 
@@ -77,7 +77,7 @@ fn unfitted_scales_keep_the_domain_they_were_built_with() {
     fig.panel(0, 0).mark(line(x, [0.0, 100.0]));
     assert_eq!(
         resolve(&fig, &Held::default())
-            .scale(x)
+            .get_scale(x)
             .unwrap()
             .get_domain(),
         [3.0, 7.0]
@@ -91,9 +91,9 @@ fn a_handle_from_another_figure_fits_nothing_when_a_mark_reports_on_it() {
     let mut fig = Figure::new();
     fig.fit(scale::linear());
     fig.panel(0, 0);
-    let bare = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    let bare = resolve(&fig, &Held::default()).get_plot_areas().to_vec();
     fig.panel(0, 0).mark(line(foreign, [1.0]));
-    assert_eq!(resolve(&fig, &Held::default()).plot_areas(), bare);
+    assert_eq!(resolve(&fig, &Held::default()).get_plot_areas(), bare);
 }
 
 #[test]
@@ -102,7 +102,7 @@ fn a_handle_from_another_figure_has_no_scale() {
     let foreign = first.fit(scale::linear());
     let mut fig = Figure::new();
     fig.fit(scale::linear());
-    assert!(resolve(&fig, &Held::default()).scale(foreign).is_none());
+    assert!(resolve(&fig, &Held::default()).get_scale(foreign).is_none());
 }
 
 #[test]
@@ -150,7 +150,7 @@ fn a_held_scale_of_another_type_is_ignored() {
     let mut held = Held::default();
     held.hold(log, scale::log().domain([1.0, 100.0]));
     assert_eq!(
-        resolve(&fig, &held).scale(x).unwrap().get_domain(),
+        resolve(&fig, &held).get_scale(x).unwrap().get_domain(),
         [-0.5, 10.5]
     );
 }
@@ -161,18 +161,18 @@ fn an_erased_hold_holds_like_a_typed_one() {
     let x = fig.fit(scale::linear());
     fig.panel(0, 0).mark(line(x, [0.0, 10.0]));
     let mut held = Held::default();
-    held.hold_erased(x.index(), Box::new(scale::linear().domain([2.0, 4.0])));
+    held.hold_erased(x.get_index(), Box::new(scale::linear().domain([2.0, 4.0])));
     assert_eq!(held.get(x).map(|s| s.get_domain()), Some([2.0, 4.0]));
     assert_eq!(
-        resolve(&fig, &held).scale(x).unwrap().get_domain(),
+        resolve(&fig, &held).get_scale(x).unwrap().get_domain(),
         [2.0, 4.0]
     );
     // Keyed by the boxed scale's own type: a log scale at x's position
     // is ignored.
-    held.hold_erased(x.index(), Box::new(scale::log().domain([1.0, 100.0])));
+    held.hold_erased(x.get_index(), Box::new(scale::log().domain([1.0, 100.0])));
     assert!(held.get(x).is_none());
     assert_eq!(
-        resolve(&fig, &held).scale(x).unwrap().get_domain(),
+        resolve(&fig, &held).get_scale(x).unwrap().get_domain(),
         [-0.5, 10.5]
     );
 }
@@ -186,15 +186,15 @@ fn the_resolved_scale_at_a_position_is_the_handles_without_its_type() {
         .mark(line(x, [0.0, 10.0]))
         .mark(line(y, [1.0, 1e3]));
     let r = resolve(&fig, &Held::default());
-    let erased = r.scale_at(x.index()).expect("position 0");
+    let erased = r.get_scale_at(x.get_index()).expect("position 0");
     let linear = erased
         .as_any()
         .downcast_ref::<Linear>()
         .expect("a linear scale");
-    assert_eq!(linear.get_domain(), r.scale(x).unwrap().get_domain());
-    let log = r.scale_at(y.index()).expect("position 1");
+    assert_eq!(linear.get_domain(), r.get_scale(x).unwrap().get_domain());
+    let log = r.get_scale_at(y.get_index()).expect("position 1");
     assert_eq!(log.as_any().type_id(), std::any::TypeId::of::<scale::Log>());
-    assert!(r.scale_at(2).is_none());
+    assert!(r.get_scale_at(2).is_none());
 }
 
 #[test]
@@ -212,10 +212,10 @@ fn panels_list_the_handles_they_zoom_once_each() {
     fig.panel(1, 0);
     let r = resolve(&fig, &Held::default());
     let none: &[usize] = &[];
-    assert_eq!(r.zooms(0), (&[0][..], &[1, 2][..]));
-    assert_eq!(r.zooms(1), (none, &[2][..]));
-    assert_eq!(r.zooms(2), (none, none));
-    assert_eq!(r.zooms(3), (none, none), "no such panel");
+    assert_eq!(r.get_zooms(0), (&[0][..], &[1, 2][..]));
+    assert_eq!(r.get_zooms(1), (none, &[2][..]));
+    assert_eq!(r.get_zooms(2), (none, none));
+    assert_eq!(r.get_zooms(3), (none, none), "no such panel");
 }
 
 #[test]
@@ -225,7 +225,10 @@ fn a_zoomed_handle_from_another_figure_is_not_zoomed() {
     let mut fig = Figure::new();
     fig.fit(scale::linear());
     fig.panel(0, 0).zoom_x(foreign);
-    assert_eq!(resolve(&fig, &Held::default()).zooms(0), (&[][..], &[][..]));
+    assert_eq!(
+        resolve(&fig, &Held::default()).get_zooms(0),
+        (&[][..], &[][..])
+    );
 }
 
 #[test]
@@ -237,7 +240,7 @@ fn flat_panel_indices_map_back_to_their_cells() {
     }
     fig.panel_at(layout::Cell::new(2, 0).span(1, 2));
     let r = resolve(&fig, &Held::default());
-    let cells: Vec<_> = (0..6).map(|panel| r.panel_cell(panel)).collect();
+    let cells: Vec<_> = (0..6).map(|panel| r.get_panel_cell(panel)).collect();
     let expected = [(1, 1), (0, 0), (1, 0), (0, 1), (2, 0)];
     assert_eq!(
         cells,
@@ -257,11 +260,11 @@ fn panels_report_their_brush() {
     fig.panel(0, 0).zoom_x(focus);
     fig.panel(1, 0).brush(brush::x(full).sets(focus));
     let r = resolve(&fig, &Held::default());
-    assert!(r.brush(0).is_none());
-    let placed = r.brush(1).expect("panel 1 brushes");
-    assert_eq!(placed.dim(), brush::Dim::X);
-    assert_eq!((placed.over(), placed.target()), (0, Some(1)));
-    assert!(r.brush(2).is_none(), "no such panel");
+    assert!(r.get_brush(0).is_none());
+    let placed = r.get_brush(1).expect("panel 1 brushes");
+    assert_eq!(placed.get_dim(), brush::Dim::X);
+    assert_eq!((placed.get_over(), placed.get_target()), (0, Some(1)));
+    assert!(r.get_brush(2).is_none(), "no such panel");
 }
 
 #[test]
@@ -271,7 +274,7 @@ fn a_brush_on_a_handle_from_another_figure_is_not_placed() {
     let mut fig = Figure::new();
     fig.fit(scale::linear());
     fig.panel(0, 0).brush(brush::x(foreign));
-    assert!(resolve(&fig, &Held::default()).brush(0).is_none());
+    assert!(resolve(&fig, &Held::default()).get_brush(0).is_none());
 }
 
 #[test]
@@ -281,10 +284,10 @@ fn axes_report_their_side_and_handle() {
     let y = fig.scale(scale::linear().domain([0.0, 1.0]));
     fig.panel(0, 0).axis(axis::left(y)).axis(axis::bottom(x));
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.axis(0, 0), Some((Orient::Left, y.index())));
-    assert_eq!(r.axis(0, 1), Some((Orient::Bottom, x.index())));
-    assert_eq!(r.axis(0, 2), None);
-    assert_eq!(r.axis(1, 0), None);
+    assert_eq!(r.get_axis(0, 0), Some((Orient::Left, y.get_index())));
+    assert_eq!(r.get_axis(0, 1), Some((Orient::Bottom, x.get_index())));
+    assert_eq!(r.get_axis(0, 2), None);
+    assert_eq!(r.get_axis(1, 0), None);
 }
 
 #[test]
@@ -293,8 +296,8 @@ fn categorical_handles_keep_their_keys() {
     let b = fig.fit(scale::band(["a", "b"]));
     fig.panel(0, 0).mark(line(b, ["c"]));
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(b).unwrap().get_domain(), ["a", "b"]);
-    assert_eq!(Kind::domain(r.scale(b).unwrap()), None);
+    assert_eq!(r.get_scale(b).unwrap().get_domain(), ["a", "b"]);
+    assert_eq!(Kind::domain(r.get_scale(b).unwrap()), None);
 }
 
 #[test]
@@ -306,7 +309,7 @@ fn the_cache_counts_the_figure_title_once_per_new_text() {
     fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
     cache.begin();
     fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
-    let stats = cache.stats().text;
+    let stats = cache.get_stats().text;
     // Each resolve runs two layout passes, each with the title in its
     // batch: one miss, then hits.
     assert_eq!((stats.entries, stats.misses, stats.hits), (1, 1, 3));
@@ -390,9 +393,9 @@ fn figure_axis_ticks_follow_core_axis_positions() {
         .mark(line(x, [0.0, 10.0]))
         .axis(axis::bottom(x));
     let resolved = resolve(&fig, &Held::default());
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let ranged = resolved
-        .scale(x)
+        .get_scale(x)
         .unwrap()
         .clone()
         .with_range([0.0, area.width()]);
@@ -546,7 +549,7 @@ fn decorations_are_parts_in_drawing_order_bounded_by_their_commands() {
     }
     assert_eq!(end, list.commands.len());
     assert_eq!(list.parts[0].bounds, Rect::new(0.0, 0.0, 640.0, 480.0));
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     assert_eq!(list.parts[1].bounds, area);
     let title = list.parts[10].bounds;
     // The title's ink top on the padding, to the glyphs' f32 precision.

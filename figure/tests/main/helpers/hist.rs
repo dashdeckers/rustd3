@@ -138,7 +138,7 @@ fn figure() -> (Figure<'static>, ScaleRef<Linear>, ScaleRef<Linear>) {
 /// Each mark part's filled rectangles in data units, on `fig`'s x over
 /// [0.5, 3.5] and y over [0, 4].
 fn rects(fig: &Figure<'_>, list: &List) -> Vec<Vec<([f64; 2], [f64; 2])>> {
-    let r = resolve(fig, &Held::default()).plot_areas()[0];
+    let r = resolve(fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (r.width(), r.height());
     let data = |b: Rect| {
         let x = |px: f64| 0.5 + px / w * 3.0;
@@ -243,7 +243,7 @@ fn a_hist_holds_its_base_and_draws_bars_or_its_outline() {
         .mark(hist(X, x, y).bins(Bins::Count(5)))
         .mark(hist(X, x, y).bins(Bins::Count(5)).step(true));
     let r = resolve(&fig, &Held::default());
-    let [lo, hi] = r.scale(y).unwrap().get_domain();
+    let [lo, hi] = r.get_scale(y).unwrap().get_domain();
     assert_eq!(lo, 0.0, "held at 0");
     assert!(near(hi, 7.0 * 1.05));
     let list = draw(&fig);

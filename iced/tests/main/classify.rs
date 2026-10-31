@@ -299,7 +299,7 @@ fn style_change_during_a_pan_re_renders() {
             };
             colored([0.0, 100.0], blue)
                 .resolve(logical, &mut Cache::default(), &Held::default(), target)
-                .areas()
+                .get_areas()
         };
         let (samples, _) = drag(
             &mut harness,
@@ -383,12 +383,15 @@ fn visible_y_refit_during_a_pan_re_renders() {
         let (first, hy) = rising(x);
         cache.begin();
         let resolved = first.resolve(logical, &mut cache, &Held::default(), target);
-        let (held, y0) = (resolved.areas(), resolved.scale(hy).unwrap().get_domain());
+        let (held, y0) = (
+            resolved.get_areas(),
+            resolved.get_scale(hy).unwrap().get_domain(),
+        );
         let (moved, hy) = rising(panned);
         cache.begin();
         let y1 = moved
             .resolve(logical, &mut cache, &Held::default(), target)
-            .scale(hy)
+            .get_scale(hy)
             .unwrap()
             .get_domain();
         let reference = reference::png_held(

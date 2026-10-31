@@ -17,7 +17,7 @@
 //! let size = Size::new(640.0, 480.0);
 //! let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
 //! let index = fig.hits(&r, &mut cache);
-//! let area = r.plot_areas()[0];
+//! let area = r.get_plot_areas()[0];
 //! let near = Point::new(area.x0 + 0.7 * area.width(), area.y0 + 0.5 * area.height());
 //! let hit = index.nearest(near, 8.0).expect("the second dot");
 //! assert_eq!((hit.panel, hit.mark, hit.index), (0, 0, 1));
@@ -98,7 +98,7 @@ impl Figure<'_> {
         let panels = self
             .panels()
             .iter()
-            .zip(resolved.plot_areas())
+            .zip(resolved.get_plot_areas())
             .enumerate()
             .map(|(i, (panel, area))| {
                 let ctx = Ctx::new(resolved, self.get_theme(), *area, text, &frame);

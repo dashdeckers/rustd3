@@ -28,7 +28,7 @@ impl<'a, Message> Listener<'a, Message> {
         A: Invert,
     {
         Listener {
-            key: Key::of::<A>(over.index()),
+            key: Key::of::<A>(over.get_index()),
             publish: Box::new(move |scale: &dyn Scale, selection| {
                 let Some([a, b]) = selection else {
                     return Some(f(None));

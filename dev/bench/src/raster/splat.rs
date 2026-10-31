@@ -605,7 +605,7 @@ mod tests {
         let list = fig.draw_with(&mut cache, size, target, &Held::default());
         let area: Rect = fig
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()[0];
+            .get_plot_areas()[0];
         assert_eq!(area.width(), 76.0);
         let bounds = Bounds::of(&list, &mut Outlines::default());
         let mut renderer = Renderer::new(Settings::default());

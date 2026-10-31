@@ -76,7 +76,7 @@ fn minor_ticks_fill_fifths_of_a_linear_step_at_the_minor_size_without_labels() {
     let mut fig = Figure::new();
     let x = fig.scale(scale::linear().domain([0.0, 10.0]));
     fig.panel(0, 0).axis(axis::bottom(x).ticks(5).minor(true));
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (strokes, texts) = axis_part(&draw(&fig), 0);
     assert_eq!(texts, ["0", "2", "4", "6", "8", "10"]);
     assert_eq!(strokes.len(), 2, "major and minor ticks");
@@ -118,7 +118,7 @@ fn symlog_axes_draw_the_decade_minors_of_core_ticks() {
     let mut fig = Figure::new();
     let y = fig.scale(symlog.clone());
     fig.panel(0, 0).axis(axis::left(y).ticks(10).minor(true));
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (strokes, _) = axis_part(&draw(&fig), 0);
     let minor = &strokes[1].1;
     assert_eq!(minor.len(), 28);

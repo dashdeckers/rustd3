@@ -172,7 +172,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BoxPlot<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let dodge = self.fill.slot(ctx).filter(|_| self.dodge);
         let slots = Slots::new(&sx, self.groups.iter().map(|(k, _)| k), w, dodge);
         let mut shapes = Shapes::new(ctx, self.notch);
@@ -206,7 +206,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BoxPlot<X, Y> {
     /// A fill key the palette lacks; keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         self.fill.issues(ctx, issues);
-        let Some(sx) = ctx.raw(self.x) else {
+        let Some(sx) = ctx.get_raw(self.x) else {
             return;
         };
         let outside = self
@@ -216,7 +216,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BoxPlot<X, Y> {
             .count();
         if outside > 0 {
             issues.push(Issue::OutsideDomain {
-                handle: self.x.index(),
+                handle: self.x.get_index(),
                 count: outside,
             });
         }
@@ -243,8 +243,8 @@ impl<'c> Shapes<'c> {
     fn new(ctx: &'c Ctx<'c>, notch: bool) -> Shapes<'c> {
         Shapes {
             ctx,
-            band: guard::band(ctx.rect().width(), ctx.rect().height()),
-            edge: ctx.theme().patch_width(),
+            band: guard::band(ctx.get_rect().width(), ctx.get_rect().height()),
+            edge: ctx.get_theme().get_patch_width(),
             notch,
             boxes: BezPath::new(),
             lines: BezPath::new(),
@@ -333,8 +333,8 @@ impl<'c> Shapes<'c> {
     /// Fliers at `ys` (px) on the line `x = centre`, those within a
     /// marker's radius of the plot area.
     fn fliers(&mut self, centre: f64, ys: impl Iterator<Item = f64>) {
-        let r = self.ctx.theme().marker() / 2.0;
-        let h = self.ctx.rect().height();
+        let r = self.ctx.get_theme().get_marker() / 2.0;
+        let h = self.ctx.get_rect().height();
         let shown = |y: &f64| (-r..=h + r).contains(y);
         self.fliers
             .extend(ys.filter(shown).map(|y| Point::new(centre, y)));
@@ -342,8 +342,8 @@ impl<'c> Shapes<'c> {
 
     /// The mean at `y` (px), when placed, on the line `x = centre`.
     fn mean(&mut self, centre: f64, y: Option<f64>) {
-        let r = self.ctx.theme().marker() / 2.0;
-        let h = self.ctx.rect().height();
+        let r = self.ctx.get_theme().get_marker() / 2.0;
+        let h = self.ctx.get_rect().height();
         if let Some(y) = y.filter(|y| (-r..=h + r).contains(y)) {
             self.means.push(Point::new(centre, y));
         }
@@ -358,7 +358,7 @@ impl<'c> Shapes<'c> {
     /// Pushes the boxes filled with `fill`, then the lines, the fliers and
     /// the means in ink.
     fn finish(self, fill: &Fill, list: &mut List) {
-        let theme = self.ctx.theme();
+        let theme = self.ctx.get_theme();
         let ink = list::brush(theme.get_ink());
         if !self.boxes.elements().is_empty() {
             list.commands.push(Command::Fill {
@@ -379,7 +379,7 @@ impl<'c> Shapes<'c> {
                 paint: ink.clone(),
             });
         }
-        let r = theme.marker() / 2.0;
+        let r = theme.get_marker() / 2.0;
         if !self.fliers.is_empty() {
             let ring = CircleSegment::new(Point::ORIGIN, r, r - self.edge, 0.0, TAU);
             list.commands.push(Command::Markers {

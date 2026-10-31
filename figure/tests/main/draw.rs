@@ -80,10 +80,10 @@ fn the_trace_figure_redraws_with_no_m4_query_and_no_typst_compile() {
     };
     let size = trace::SIZE;
     let first = fig.draw_with(&mut cache, size, target, &Held::default());
-    let before = cache.stats();
+    let before = cache.get_stats();
     assert_eq!(before.m4_queries, 3);
     let second = fig.draw_with(&mut cache, size, target, &Held::default());
-    let after = cache.stats();
+    let after = cache.get_stats();
     assert_eq!(
         (after.m4_queries, after.text.compiles),
         (before.m4_queries, before.text.compiles)

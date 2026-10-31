@@ -101,7 +101,7 @@ fn a_dot_at_nan_is_dropped_and_y_fits_the_others() {
         .mark(dots([(0.0, 0.0), (1.0, f64::NAN), (2.0, 1.0)], x, y));
     assert_eq!(
         crate::figure::resolve(&fig, &Held::default())
-            .scale(y)
+            .get_scale(y)
             .unwrap()
             .get_domain(),
         [-0.05, 1.05]
@@ -123,7 +123,7 @@ fn a_rule_widens_a_fitted_count_domain() {
         })
         .mark(rule_y(20.0, count));
     let domain = crate::figure::resolve(&fig, &Held::default())
-        .scale(count)
+        .get_scale(count)
         .unwrap()
         .get_domain();
     assert_eq!(domain, [0.0, 21.0]);
@@ -139,7 +139,7 @@ fn marks_draw_inside_one_group_clipped_to_the_plot_area() {
     let list = draw(&fig);
     let roles: Vec<u64> = list.parts.iter().map(|p| role(p.id)).collect();
     assert_eq!(roles, [0, 2, 6, 6, 3]);
-    let area = crate::figure::resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &Held::default()).get_plot_areas()[0];
     let push = &list.commands[list.parts[2].commands.start - 1];
     assert_eq!(
         *push,
@@ -245,7 +245,7 @@ fn dots_on_a_band_scale_sit_mid_band_and_keys_need_only_clone() {
         y,
     ));
     let list = draw(&fig);
-    let w = crate::figure::resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = crate::figure::resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     let (at, _) = markers(marked(&list)[0]);
     assert_eq!(at.len(), 1);
     assert!((at[0].x - 0.75 * w).abs() < 1e-9, "{} of {w}", at[0].x);
@@ -274,7 +274,7 @@ fn rules_cross_the_plot_area_at_their_value() {
         .mark(rule_y(2.5, y).width(1.0).dash([6.0, 3.0]))
         .mark(rule_x(5.0, x))
         .mark(rule_x(50.0, x));
-    let area = crate::figure::resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &Held::default()).get_plot_areas()[0];
     let list = draw(&fig);
     let strokes = strokes(&marked(&list));
     assert_eq!(strokes.len(), 2);
@@ -310,7 +310,7 @@ fn a_rule_label_sits_above_its_right_end_in_the_rule_color() {
     let list = fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
     let area = fig
         .resolve(size, &mut cache, &Held::default(), Target::Vector)
-        .plot_areas()[0];
+        .get_plot_areas()[0];
     let runs: Vec<_> = marked(&list)
         .into_iter()
         .filter_map(|c| {
@@ -350,10 +350,10 @@ fn a_rule_label_is_shaped_with_the_figure_labels_once() {
     let mut cache = cache();
     let size = Size::new(640.0, 480.0);
     fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
-    let first = cache.stats().text;
+    let first = cache.get_stats().text;
     assert_eq!((first.compiles, first.misses), (1, 1));
     fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
-    assert_eq!(cache.stats().text.compiles, 1);
+    assert_eq!(cache.get_stats().text.compiles, 1);
 }
 
 #[test]
@@ -369,7 +369,7 @@ fn a_rule_outside_the_plot_area_draws_nothing() {
 /// The single stroke a figure's marks drew, and the plot area.
 fn stroked(fig: &Figure<'_>) -> (BezPath, rustd3_figure::kurbo::Stroke, Brush, Rect) {
     let list = draw(fig);
-    let area = crate::figure::resolve(fig, &Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(fig, &Held::default()).get_plot_areas()[0];
     let marked = marked(&list);
     assert_eq!(marked.len(), 1, "{marked:?}");
     let Command::Stroke { path, style, paint } = marked[0] else {
@@ -398,7 +398,7 @@ fn a_line_far_outside_its_domain_stays_within_three_panel_sizes() {
     let y = fig.fit(scale::linear());
     fig.panel(0, 0).mark(line([(-1e9, 0.0), (1e9, 1.0)], x, y));
     let (path, ..) = stroked(&fig);
-    let area = crate::figure::resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let points = vertices(&path);
     assert_eq!(points.len(), 2);

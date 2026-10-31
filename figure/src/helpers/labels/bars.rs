@@ -114,9 +114,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
     /// Reports the labels to be shaped; no values.
     fn fit(&self, fits: &mut Fits) {
         fits.across(self.x);
-        let format = self.formatter(fits.locale());
+        let format = self.formatter(fits.get_locale());
         for (_, v) in self.rows.iter().filter(|(_, v)| v.is_finite()) {
-            let label = key(format.format(*v), fits.theme());
+            let label = key(format.format(*v), fits.get_theme());
             fits.label(label);
         }
     }
@@ -128,8 +128,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
-        let format = self.formatter(ctx.locale());
+        let band = guard::band(ctx.get_rect().width(), ctx.get_rect().height());
+        let format = self.formatter(ctx.get_locale());
         let pad = self.padding * PX_PER_PT;
         for (k, v) in self.rows.iter().filter(|(_, v)| v.is_finite()) {
             let x = sx.position(k).map(|p| p + sx.bandwidth() / 2.0);
@@ -147,7 +147,13 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
             };
             let at = Point::new(x, y);
             if at.is_finite() && mark::within(band, at) {
-                place(&key(format.format(*v), ctx.theme()), at, edge, ctx, list);
+                place(
+                    &key(format.format(*v), ctx.get_theme()),
+                    at,
+                    edge,
+                    ctx,
+                    list,
+                );
             }
         }
     }
@@ -164,7 +170,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
             .count();
         if count > 0 {
             issues.push(Issue::OutsideDomain {
-                handle: self.x.index(),
+                handle: self.x.get_index(),
                 count,
             });
         }

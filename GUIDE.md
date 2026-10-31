@@ -160,7 +160,7 @@ axes, legends, brushes and the widget's listeners all name scales by
 handle; two panels share a scale by sharing a handle. A handle's type
 decides what it can do: an axis needs `scale::Position`, a brush
 `scale::Invert`, a colorbar `colorbar::Ramp`. A handle carries its
-figure: given to another figure it finds no scale (`Resolved::scale` is
+figure: given to another figure it finds no scale (`Resolved::get_scale` is
 `None`), what uses it draws nothing, and `fig.check` reports
 `check::Issue::ForeignHandle`.
 
@@ -377,8 +377,8 @@ fig.theme(
 Styles are seaborn's (`DarkGrid`, `WhiteGrid`, `Dark`, `White`,
 `Ticks`), contexts scale every size at once (`Paper`, `Notebook`,
 `Talk`, `Poster`), palettes are seaborn's and d3's. `Theme::default()`
-is rustd3's own. Custom marks read the theme through `Theme::color`,
-`line_width` and the other readers.
+is rustd3's own. Custom marks read the theme through `Theme::get_color`,
+`get_line_width` and the other readers.
 
 ### Time, zones and locales
 

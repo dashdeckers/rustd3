@@ -230,7 +230,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     #[must_use]
     pub fn color<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         let tint: Tint<'a> =
-            Rc::new(move |resolved: &Resolved| resolved.scale(palette)?.paint(&key));
+            Rc::new(move |resolved: &Resolved| resolved.get_scale(palette)?.paint(&key));
         Axis {
             tint: Some(tint),
             palette: Some(palette.erased()),

@@ -309,7 +309,7 @@ mod tests {
         let list = fig.draw_with(&mut cache, size, target, &Held::default());
         let area = fig
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()[0];
+            .get_plot_areas()[0];
         let found = outlines(&list, area, k);
         assert_eq!(found.len(), 1, "one thinned line");
         let band = &found[0].path;

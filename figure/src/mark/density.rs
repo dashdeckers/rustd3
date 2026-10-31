@@ -208,7 +208,7 @@ impl Density {
         }
         list.commands.push(Command::Stroke {
             path,
-            style: stroke(ctx.theme().density_width(), &[]),
+            style: stroke(ctx.get_theme().get_density_width(), &[]),
             paint: list::brush(color),
         });
     }
@@ -218,8 +218,8 @@ impl Density {
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if self.curve.is_empty() {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: Error::Density {
                     values: self.values.len(),
                 },

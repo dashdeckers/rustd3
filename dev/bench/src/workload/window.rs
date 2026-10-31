@@ -117,14 +117,14 @@ mod tests {
             for y in [ANCHORS.top, ANCHORS.bottom] {
                 let at = Point::new(x, f64::from(y) * size.height);
                 let panel = resolved
-                    .plot_areas()
+                    .get_plot_areas()
                     .iter()
                     .position(|area| area.contains(at))
                     .expect("a plot area");
-                let (_, ys) = resolved.zooms(panel);
+                let (_, ys) = resolved.get_zooms(panel);
                 println!(
                     "{size:?}: {at:?} in panel {panel} of {:?}",
-                    resolved.plot_areas()[panel]
+                    resolved.get_plot_areas()[panel]
                 );
                 assert!(
                     !ys.is_empty(),

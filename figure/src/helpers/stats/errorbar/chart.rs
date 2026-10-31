@@ -105,8 +105,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
-        let (snap, width) = (ctx.snap(), ctx.theme().line_width());
+        let band = guard::band(ctx.get_rect().width(), ctx.get_rect().height());
+        let (snap, width) = (ctx.snap(), ctx.get_theme().get_line_width());
         let at = |v: f64| sy.position(&v).filter(|p| p.is_finite());
         let mut path = BezPath::new();
         for (key, value, error) in &self.rows {
@@ -137,14 +137,14 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
             list.commands.push(Command::Stroke {
                 path,
                 style: list::stroke(snap.width(width)),
-                paint: list::brush(ctx.theme().get_ink()),
+                paint: list::brush(ctx.get_theme().get_ink()),
             });
         }
     }
 
     /// Keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-        let Some(sx) = ctx.raw(self.x) else {
+        let Some(sx) = ctx.get_raw(self.x) else {
             return;
         };
         let outside = self
@@ -154,7 +154,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
             .count();
         if outside > 0 {
             issues.push(Issue::OutsideDomain {
-                handle: self.x.index(),
+                handle: self.x.get_index(),
                 count: outside,
             });
         }

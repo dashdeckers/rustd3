@@ -139,7 +139,7 @@ impl FocusContext {
         self.figure()
             .0
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()
+            .get_plot_areas()
             .to_vec()
     }
 }
@@ -528,7 +528,7 @@ fn a_drag_brushes_where_the_wheel_zooms() {
             &Held::default(),
             Target::Screen { scale: 1.0 },
         )
-        .plot_areas()[0];
+        .get_plot_areas()[0];
     let plot = Plot::new(fig)
         .render(Render::Inline)
         .scale_factor(1.0)
@@ -602,7 +602,7 @@ fn quad_areas(k: f32) -> Vec<Rect> {
     quad()
         .0
         .resolve(size, &mut cache, &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec()
 }
 

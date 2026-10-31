@@ -62,7 +62,7 @@ fn placed(run: &GlyphRun) -> (String, Point, f64) {
 
 /// `fig`'s plot area at 640 × 480.
 fn area(fig: &Figure<'_>) -> Rect {
-    resolve(fig, &Held::default()).plot_areas()[0]
+    resolve(fig, &Held::default()).get_plot_areas()[0]
 }
 
 /// Whether `a` is within `tolerance` of `b`.
@@ -159,7 +159,7 @@ fn bar_labels_of_keys_outside_the_band_draw_nothing_and_are_reported() {
     {
         let issues = fig.check(rustd3_figure::kurbo::Size::new(640.0, 480.0));
         let outside = rustd3_figure::check::Issue::OutsideDomain {
-            handle: x.index(),
+            handle: x.get_index(),
             count: 1,
         };
         assert!(issues.contains(&outside), "{issues:#?}");

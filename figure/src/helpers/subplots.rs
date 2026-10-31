@@ -34,7 +34,7 @@ impl<'a> std::fmt::Debug for Subplots<'a> {
 /// let mut grid = subplots(2, 3);
 /// for row in 0..2 {
 ///     for col in 0..3 {
-///         let (Some(x), Some(y)) = (grid.x(col), grid.y(row)) else {
+///         let (Some(x), Some(y)) = (grid.get_x(col), grid.get_y(row)) else {
 ///             continue;
 ///         };
 ///         let k = (row * 3 + col) as f64;
@@ -64,13 +64,13 @@ pub fn subplots<'a>(rows: usize, cols: usize) -> Subplots<'a> {
 impl<'a> Subplots<'a> {
     /// Column `col`'s x handle; `None` past the last column.
     #[must_use]
-    pub fn x(&self, col: usize) -> Option<ScaleRef<Linear>> {
+    pub fn get_x(&self, col: usize) -> Option<ScaleRef<Linear>> {
         self.x.get(col).copied()
     }
 
     /// Row `row`'s y handle; `None` past the last row.
     #[must_use]
-    pub fn y(&self, row: usize) -> Option<ScaleRef<Linear>> {
+    pub fn get_y(&self, row: usize) -> Option<ScaleRef<Linear>> {
         self.y.get(row).copied()
     }
 

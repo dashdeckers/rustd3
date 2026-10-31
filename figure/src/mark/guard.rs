@@ -19,7 +19,7 @@
 use kurbo::{Point, Rect};
 
 /// The guard band of a plot area `w × h` px in panel coordinates
-/// (`ctx.rect()`'s width and height for a mark): `[−w, 2w] × [−h, 2h]`.
+/// (`ctx.get_rect()`'s width and height for a mark): `[−w, 2w] × [−h, 2h]`.
 #[must_use]
 pub fn band(w: f64, h: f64) -> Rect {
     Rect::new(-w, -h, 2.0 * w, 2.0 * h)

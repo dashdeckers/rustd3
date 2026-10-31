@@ -151,7 +151,7 @@ impl<'a> Panel<'a> {
     pub(crate) fn zooms(&self) -> [Vec<usize>; 2] {
         self.zooms
             .each_ref()
-            .map(|handles| handles.iter().map(|h| h.index()).collect())
+            .map(|handles| handles.iter().map(|h| h.get_index()).collect())
     }
 
     /// The positions of the handles of other figures this panel's axes,
@@ -213,8 +213,8 @@ impl<'a> Panel<'a> {
     /// and `optional` is recorded for [`Figure::check`](crate::Figure::check).
     fn admit(&mut self, needed: &[ScaleRef<()>], optional: &[ScaleRef<()>]) -> bool {
         for h in needed.iter().chain(optional) {
-            if h.of(self.figure).is_none() && !self.foreign.contains(&h.index()) {
-                self.foreign.push(h.index());
+            if h.of(self.figure).is_none() && !self.foreign.contains(&h.get_index()) {
+                self.foreign.push(h.get_index());
             }
         }
         needed.iter().all(|h| h.of(self.figure).is_some())

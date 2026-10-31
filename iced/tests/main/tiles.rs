@@ -76,7 +76,7 @@ pub fn areas(fig: &Figure<'_>, size: Size, k: f32) -> Vec<[i64; 4]> {
     };
     let logical = kurbo::Size::new(f64::from(size.width), f64::from(size.height));
     fig.resolve(logical, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .iter()
         .map(|a| [a.x0, a.y0, a.x1, a.y1].map(|e| (e * f64::from(k)).round() as i64))
         .collect()
@@ -266,7 +266,7 @@ fn held(fig: &Figure<'_>, size: Size, k: f32) -> layout::Areas {
         scale: f64::from(k),
     };
     fig.resolve(logical, &mut Cache::default(), &Held::default(), target)
-        .areas()
+        .get_areas()
 }
 
 /// `shot` against `reference` (an image of the same size).
@@ -503,7 +503,7 @@ fn pan_recorded(k: f32, dash: &[f64], moves: &[i32]) -> Option<(u8, String)> {
             origin: px,
             density: f64::from(k),
         };
-        let grids = vec![(hx.index(), grid)];
+        let grids = vec![(hx.get_index(), grid)];
         let reference =
             reference::png_held_on(&moved, size, f64::from(k), Color::WHITE, (&held, grids));
         let diff = against(&shot, &reference);
@@ -665,7 +665,7 @@ fn drag_settles_on_the_exact_domain() {
     };
     let w = figure([0.0, 100.0])
         .resolve(logical, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()[0]
+        .get_plot_areas()[0]
         .width();
     let area = areas(&figure([0.0, 100.0]), SIZE, k)[0];
     let held = held(&figure([0.0, 100.0]), SIZE, k);

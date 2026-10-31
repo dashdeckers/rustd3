@@ -382,7 +382,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     /// Every point drawn in the plot area (not past it into an overscan),
     /// with its index in the data.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        for dot in self.placed(ctx, ctx.rect().with_origin(Point::ORIGIN)) {
+        for dot in self.placed(ctx, ctx.get_rect().with_origin(Point::ORIGIN)) {
             sink.push(dot.index, dot.at);
         }
     }
@@ -393,8 +393,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if let Some(error) = self.error() {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: error.clone(),
             });
         }
@@ -406,7 +406,10 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
 impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// Each dot's radius in px without `size_by`.
     fn radius(&self, ctx: &Ctx<'_>) -> f64 {
-        cap(self.r.unwrap_or(ctx.theme().marker() / 2.0), largest(ctx))
+        cap(
+            self.r.unwrap_or(ctx.get_theme().get_marker() / 2.0),
+            largest(ctx),
+        )
     }
 
     /// The error a channel keeps, `fill_by`'s first.
@@ -488,7 +491,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
 /// The guard band's reach, three times the plot area's larger side: a
 /// dot that wide covers the band from anywhere it is drawn.
 fn largest(ctx: &Ctx<'_>) -> f64 {
-    let rect = ctx.rect();
+    let rect = ctx.get_rect();
     3.0 * rect.width().abs().max(rect.height().abs())
 }
 

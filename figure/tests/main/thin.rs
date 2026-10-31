@@ -76,10 +76,10 @@ fn a_second_draw_of_an_unchanged_figure_runs_no_m4_query_and_no_typst_compile() 
     let size = Size::new(800.0, 600.0);
     let held = Held::default();
     let first = fig.draw_with(&mut cache, size, Target::Screen { scale: 1.0 }, &held);
-    let before = cache.stats();
+    let before = cache.get_stats();
     assert_eq!(before.m4_queries, 3);
     let second = fig.draw_with(&mut cache, size, Target::Screen { scale: 1.0 }, &held);
-    let after = cache.stats();
+    let after = cache.get_stats();
     assert_eq!(after.m4_queries, before.m4_queries);
     assert_eq!(after.text.compiles, before.text.compiles);
     assert_eq!(first, second);
@@ -98,7 +98,7 @@ fn an_append_reruns_m4_for_the_lines_of_that_recording() {
         let (t, v) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
         fig.panel(0, 0).mark(line(rec.series(0).expect("a"), t, v));
         fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
-        assert_eq!(cache.stats().m4_queries, queries, "round {round}");
+        assert_eq!(cache.get_stats().m4_queries, queries, "round {round}");
     }
 }
 
@@ -117,7 +117,7 @@ fn line_thin_off_on_a_million_samples_draws_every_sample() {
         &Held::default(),
     );
     assert_eq!(vertices(paths(&list)[0]), 1_000_000);
-    assert_eq!(cache.stats().m4_queries, 0);
+    assert_eq!(cache.get_stats().m4_queries, 0);
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn owned_points_are_drawn_as_given() {
         &Held::default(),
     );
     assert_eq!(vertices(paths(&list)[0]), 20_000);
-    assert_eq!(cache.stats().m4_queries, 0);
+    assert_eq!(cache.get_stats().m4_queries, 0);
 }
 
 /// The number of points M4 keeps for channel `c` of `rec` in a panel `w`
@@ -180,8 +180,8 @@ fn columns_on_a_log_x_scale_invert_device_pixel_edges() {
     let target = Target::Screen { scale: 2.0 };
     let list = fig.draw_with(&mut cache, size, target, &Held::default());
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let w = resolved.plot_areas()[0].width();
-    let want = expected::<Log>(&rec, 0, resolved.scale(t).unwrap(), w, 2.0, |_| true);
+    let w = resolved.get_plot_areas()[0].width();
+    let want = expected::<Log>(&rec, 0, resolved.get_scale(t).unwrap(), w, 2.0, |_| true);
     assert_eq!(vertices(paths(&list)[0]), want);
     assert!(want < 4 * (2.0 * w).round() as usize + 2, "{want}");
 }
@@ -242,7 +242,10 @@ fn vibration_view(thin: Thin, width: f64) -> (Figure<'static>, Size, [ScaleRef<L
 
 /// `h`'s resolved scale over `range`, as a mark sees it.
 fn ranged(resolved: &Resolved, h: ScaleRef<Linear>, range: [f64; 2]) -> Linear {
-    let scale = Scale::with_range(resolved.scale(h).expect("a handle of this figure"), range);
+    let scale = Scale::with_range(
+        resolved.get_scale(h).expect("a handle of this figure"),
+        range,
+    );
     scale
         .as_any()
         .downcast_ref::<Linear>()
@@ -266,9 +269,9 @@ fn thinned(target: Target, per_px: f64, width: f64) -> Thinned {
     let (fig, size, [t, v]) = vibration_view(Thin::Auto, width);
     let mut cache = cache();
     let list = fig.draw_with(&mut cache, size, target, &Held::default());
-    assert_eq!(cache.stats().m4_queries, 1);
+    assert_eq!(cache.get_stats().m4_queries, 1);
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let x = ranged(&resolved, t, [0.0, area.width()]);
     let y = ranged(&resolved, v, [area.height(), 0.0]);
     let n = (area.width() * per_px).round() as u32;
@@ -463,13 +466,13 @@ fn on_grid(
     }
     fig.panel(0, 0).mark(mark);
     let mut held = Held::default();
-    held.grids(vec![(x.index(), Grid { origin, density: k })]);
+    held.grids(vec![(x.get_index(), Grid { origin, density: k })]);
     let size = Size::new(640.0, 400.0);
     let target = Target::Screen { scale: k };
     let mut cache = cache();
     cache.begin();
     let resolved = fig.resolve(size, &mut cache, &held, target);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     (fig.draw_resolved(&mut cache, &resolved), area)
 }
 
@@ -619,7 +622,7 @@ fn dash_phase_is_zero_at_the_anchor() {
     grown.overscan(100.0);
     let mut anchored = Held::default();
     anchored.overscan(100.0).grids(vec![(
-        x.index(),
+        x.get_index(),
         Grid {
             origin: 0.0,
             density: 1.0,
@@ -649,7 +652,7 @@ fn overscan_extends_the_view() {
         let mut cache = cache();
         cache.begin();
         let resolved = fig.resolve(size, &mut cache, &held, Target::Screen { scale: 1.0 });
-        let area = resolved.plot_areas()[0];
+        let area = resolved.get_plot_areas()[0];
         (fig.draw_resolved(&mut cache, &resolved), area)
     };
     let (plain, area) = draw(0.0);

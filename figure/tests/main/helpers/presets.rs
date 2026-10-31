@@ -250,7 +250,7 @@ fn grouped_bars_are_one_dodged_bar_mark_per_series_in_four_fifths_of_each_step()
     // Side by side, each a third of 0.8 of the step, the step the plot
     // area's width over four keys (marks draw in the plot area's
     // coordinates).
-    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).get_plot_areas()[0];
     let step = area.width() / 4.0;
     for k in 0..4 {
         let left = step * (0.1 + k as f64);
@@ -428,13 +428,13 @@ fn a_stacked_area_is_one_ribbon_per_column_on_shape_stacks_edges() {
 /// `fig` drawn for vector output at a size whose plot area is `w × h`
 /// (a figure without axes, whose padding does not depend on its size).
 fn drawn_with_area(fig: &Figure<'_>, w: f64, h: f64) -> (List, Rect) {
-    let area = crate::figure::resolve(fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(fig, &rustd3_figure::Held::default()).get_plot_areas()[0];
     let size = Size::new(w + 640.0 - area.width(), h + 480.0 - area.height());
     let mut cache = crate::figure::cache();
     let held = rustd3_figure::Held::default();
     let area = fig
         .resolve(size, &mut cache, &held, Target::Vector)
-        .plot_areas()[0];
+        .get_plot_areas()[0];
     let list = fig.draw_with(&mut cache, size, Target::Vector, &held);
     (list, area)
 }
@@ -552,7 +552,7 @@ fn a_heatmap_fills_its_plot_area_with_its_grid_and_a_colorbar() {
     let list = draw(&fig);
     let marks = mark_parts(&list);
     assert_eq!(marks.len(), 1);
-    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).get_plot_areas()[0];
     let (rect, size, pixels) = image_of(marks[0]);
     assert_eq!(size, [3, 2]);
     assert!(near(rect.width(), area.width()) && near(rect.height(), area.height()));
@@ -576,7 +576,7 @@ fn heatmap_keys_give_band_axes_with_row_zero_on_top() {
         .figure();
     let list = draw(&fig);
     let (rect, size, pixels) = image_of(mark_parts(&list)[0]);
-    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).get_plot_areas()[0];
     assert_eq!(size, [3, 2]);
     assert!(near(rect.width(), area.width()) && near(rect.height(), area.height()));
     let low = rustd3_core::scheme::magma(0.0);

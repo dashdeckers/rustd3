@@ -77,14 +77,14 @@ impl<S> ScaleRef<S> {
     /// Position in the scale table (the widget keys state by it and the
     /// scale's `TypeId`).
     #[must_use]
-    pub fn index(self) -> usize {
+    pub fn get_index(self) -> usize {
         self.index as usize
     }
 
     /// The position in figure `figure`'s table: every use of a handle goes
     /// through here. `None` for a handle of another figure.
     pub(crate) fn of(self, figure: figure::Id) -> Option<usize> {
-        (self.figure == figure).then(|| self.index())
+        (self.figure == figure).then(|| self.get_index())
     }
 
     /// The same handle without its scale type, for lists of handles of

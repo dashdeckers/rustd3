@@ -69,9 +69,9 @@ fn handles_of_another_figure_draw_nothing_and_are_reported() {
     );
 
     let resolved = fig.resolve(SIZE, &mut cache(), &Held::default(), Target::Vector);
-    assert!(resolved.scale(ox).is_none());
-    assert_eq!(resolved.zooms(0), (&[][..], &[][..]));
-    assert!(resolved.brush(0).is_none());
+    assert!(resolved.get_scale(ox).is_none());
+    assert_eq!(resolved.get_zooms(0), (&[][..], &[][..]));
+    assert!(resolved.get_brush(0).is_none());
     assert!(!fig.owns(ox) && fig.owns(y));
 
     let mut found: Vec<(Option<usize>, usize)> = fig
@@ -87,11 +87,11 @@ fn handles_of_another_figure_draw_nothing_and_are_reported() {
         .collect();
     found.sort_unstable();
     let mut expected = vec![
-        (Some(0), ox.index()),
-        (Some(0), oy.index()),
-        (Some(0), palette.index()),
-        (Some(0), heat.index()),
-        (None, heat.index()),
+        (Some(0), ox.get_index()),
+        (Some(0), oy.get_index()),
+        (Some(0), palette.get_index()),
+        (Some(0), heat.get_index()),
+        (None, heat.get_index()),
     ];
     expected.sort_unstable();
     assert_eq!(found, expected);
@@ -115,7 +115,7 @@ fn a_palette_of_another_figure_leaves_an_axis_untinted_and_is_reported() {
     assert_eq!(commands(&fig), commands(&tinted(None)));
     assert!(fig.check(SIZE).contains(&Issue::ForeignHandle {
         panel: Some(0),
-        handle: palette.index()
+        handle: palette.get_index()
     }));
 }
 
@@ -144,8 +144,8 @@ fn a_window_on_a_categorical_scale_fits_all_and_is_reported() {
         fig.panel(0, 0)
             .mark(dots([("mon", 0.5), ("tue", 0.7)], day, y));
         let resolved = fig.resolve(SIZE, &mut cache(), &Held::default(), Target::Vector);
-        let domain = resolved.scale(day).unwrap().get_domain().to_vec();
-        (domain, fig.check(SIZE), day.index())
+        let domain = resolved.get_scale(day).unwrap().get_domain().to_vec();
+        (domain, fig.check(SIZE), day.get_index())
     };
     let (windowed, issues, handle) = fitted(Some(Fit::Window(())));
     let (all, plain, _) = fitted(None);

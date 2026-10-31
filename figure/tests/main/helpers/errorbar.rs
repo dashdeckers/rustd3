@@ -25,7 +25,7 @@ fn figure() -> (
 /// The segments of the one stroke `fig`'s marks draw, and the plot area's
 /// width and height.
 fn segments(fig: &Figure<'_>) -> (Vec<[Point; 2]>, f64, f64) {
-    let r = resolve(fig, &Held::default()).plot_areas()[0];
+    let r = resolve(fig, &Held::default()).get_plot_areas()[0];
     let list = draw(fig);
     let paths: Vec<&BezPath> = marked(&list)
         .into_iter()
@@ -116,7 +116,7 @@ fn bar_ends_fit_y_and_bad_errors_draw_nothing() {
         y,
     ));
     let [lo, hi] = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(near(lo, 3.0 - 0.2) && near(hi, 7.0 + 0.2), "{lo} {hi}");
@@ -154,7 +154,7 @@ fn fig_check_is_empty_for_error_bars_and_reports_keys_outside_the_band() {
     assert_eq!(
         fig.check(Size::new(640.0, 480.0)),
         [Issue::OutsideDomain {
-            handle: x.index(),
+            handle: x.get_index(),
             count: 1
         }]
     );

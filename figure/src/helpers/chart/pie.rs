@@ -126,15 +126,15 @@ impl<'a, K: PartialEq + Clone + Display + 'static> Mark<'a> for Wedges<K> {
     /// One `Fill` command per wedge that spans an angle, in its key's color
     /// (the theme's gray for a key the palette lacks), then the labels.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let area = ctx.rect();
-        let outer = 0.5 * area.width().min(area.height()) - 0.5 * ctx.theme().em();
+        let area = ctx.get_rect();
+        let outer = 0.5 * area.width().min(area.height()) - 0.5 * ctx.get_theme().em();
         if outer <= 0.0 || !outer.is_finite() {
             return;
         }
         let inner = self.inner * outer;
         let centre = Affine::translate(Vec2::new(area.width() / 2.0, area.height() / 2.0));
         let arc = shape::arc().inner_radius(inner).outer_radius(outer);
-        let Some(palette) = ctx.raw(self.color) else {
+        let Some(palette) = ctx.get_raw(self.color) else {
             return;
         };
         let values = self.slices.iter().map(|(_, v)| *v);
@@ -143,7 +143,9 @@ impl<'a, K: PartialEq + Clone + Display + 'static> Mark<'a> for Wedges<K> {
                 continue;
             }
             let key = &self.slices[slice.datum].0;
-            let color = palette.paint(key).unwrap_or_else(|| ctx.theme().gray());
+            let color = palette
+                .paint(key)
+                .unwrap_or_else(|| ctx.get_theme().get_gray());
             list.commands.push(Command::Fill {
                 path: centre * path::bez(|p| arc.draw(&slice, p)),
                 paint: list::brush(color),

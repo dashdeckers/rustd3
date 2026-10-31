@@ -98,7 +98,7 @@ where
     }
 
     fn handle(&self) -> usize {
-        self.scale.index()
+        self.scale.get_index()
     }
 
     fn scale(&self) -> ScaleRef<()> {

@@ -369,7 +369,7 @@ fn keep(workload: Workload, gesture: Gesture, k: f32) -> Option<Kept> {
     let areas: Vec<[i32; 4]> = data
         .figure(false)
         .resolve(size, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .iter()
         .map(|a| [a.x0, a.y0, a.x1, a.y1].map(|e| (e * f64::from(k)).round() as i32))
         .collect();

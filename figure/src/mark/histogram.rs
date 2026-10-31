@@ -215,7 +215,7 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
     /// Per bar, the centre of its top when it lies in the plot area, with
     /// the bar's index (in the order of [`Binned::bars`]).
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        let area = ctx.rect().with_origin(kurbo::Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(kurbo::Point::ORIGIN);
         for (i, [x0, x1], [_, top]) in self.placed(ctx) {
             let p = kurbo::Point::new((x0 + x1) / 2.0, top);
             if within(area, p) {
@@ -236,7 +236,7 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
             .filter(|([k, _], _)| sx.position(k).is_none())
             .map(|(_, count)| count)
             .sum();
-        super::outside_count(self.x.index(), outside as usize, issues);
+        super::outside_count(self.x.get_index(), outside as usize, issues);
     }
 }
 
@@ -249,7 +249,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return Vec::new();
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let band = ctx.band();
         let Some(base) = reach(&sy, 0.0, [band.y0, band.y1]) else {
             return Vec::new();

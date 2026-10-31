@@ -100,10 +100,10 @@ pub fn zoomed_tile(fig: &Figure<'_>, k: f64) -> Result<(List, Rect), &'static st
     let size = WINDOW;
     let mut cache = Cache::default();
     let fresh = fig.resolve(size, &mut cache, &Held::default(), target);
-    let &area = fresh.plot_areas().first().ok_or("no plot area")?;
+    let &area = fresh.get_plot_areas().first().ok_or("no plot area")?;
     let range = [area.x0, area.x1];
     let zoomed = fresh
-        .scale_at(0)
+        .get_scale_at(0)
         .and_then(|x| x.zoom_px(range, area.center().x, 1.6))
         .ok_or("the time handle does not zoom")?;
     let mut held = Held::default();
@@ -129,7 +129,7 @@ pub fn first_area(fig: &Figure<'_>, k: f64) -> Option<(List, Rect)> {
     let size = WINDOW;
     let mut cache = Cache::default();
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let &area = resolved.plot_areas().first()?;
+    let &area = resolved.get_plot_areas().first()?;
     Some((fig.draw_resolved(&mut cache, &resolved), area))
 }
 

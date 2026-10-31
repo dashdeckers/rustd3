@@ -113,7 +113,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         fits.across(self.x);
         fits.add(self.x, &self.at.0);
         fits.add(self.y, &self.at.1);
-        let key = self.key(fits.theme());
+        let key = self.key(fits.get_theme());
         fits.label(key);
     }
 
@@ -132,7 +132,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         if !within(band, p) {
             return;
         }
-        if let Some(shaped) = ctx.label(&self.key(ctx.theme())) {
+        if let Some(shaped) = ctx.get_label(&self.key(ctx.get_theme())) {
             shaped.place(list, p, self.anchor, 0.0);
         }
     }
@@ -145,7 +145,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         let up = ctx
             .scale(self.y)
             .is_some_and(|s| s.position(&self.at.1).is_none());
-        outside_count(self.x.index(), usize::from(across), issues);
-        outside_count(self.y.index(), usize::from(up), issues);
+        outside_count(self.x.get_index(), usize::from(across), issues);
+        outside_count(self.y.get_index(), usize::from(up), issues);
     }
 }

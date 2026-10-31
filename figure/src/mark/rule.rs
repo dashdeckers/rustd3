@@ -126,7 +126,7 @@ impl<S: Position> Rule<S> {
             Along::X => anchor::Horizontal::Start,
             Along::Y => anchor::Horizontal::End,
         };
-        let color = self.color.unwrap_or_else(|| theme.color());
+        let color = self.color.unwrap_or_else(|| theme.get_color());
         let text = self.label.as_ref()?;
         Some(Key::new(text, &theme.mark_label(align, color)))
     }
@@ -139,7 +139,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
             Along::X => fits.across(self.scale),
             Along::Y => {}
         }
-        if let Some(key) = self.key(fits.theme()) {
+        if let Some(key) = self.key(fits.get_theme()) {
             fits.label(key);
         }
     }
@@ -148,9 +148,9 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
     /// is placed within half the line's width of the plot area; nothing
     /// otherwise. On raster targets the line covers whole device pixels.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let theme = ctx.theme();
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let width = self.width.unwrap_or(theme.line_width());
+        let theme = ctx.get_theme();
+        let (w, h) = (ctx.get_rect().width(), ctx.get_rect().height());
+        let width = self.width.unwrap_or(theme.get_line_width());
         let (pos, length) = match self.along {
             Along::X => (ctx.x(self.scale).and_then(|s| at(&s, &self.value)), w),
             Along::Y => (ctx.y(self.scale).and_then(|s| at(&s, &self.value)), h),
@@ -172,14 +172,14 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
                 (anchor::Horizontal::End, anchor::Vertical::Bottom),
             ),
         };
-        let color = self.color.unwrap_or_else(|| theme.color());
+        let color = self.color.unwrap_or_else(|| theme.get_color());
         list.commands.push(Command::Stroke {
             path: line.to_path(0.1),
             style: stroke(width, &self.dash),
             paint: list::brush(color),
         });
         if let Some(key) = self.key(theme)
-            && let Some(shaped) = ctx.label(&key)
+            && let Some(shaped) = ctx.get_label(&key)
         {
             let (h, v) = corner;
             shaped.place(list, label, Anchor { h, v }, 0.0);
@@ -193,7 +193,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
             .is_some_and(|s| s.position(&self.value).is_none())
         {
             issues.push(Issue::OutsideDomain {
-                handle: self.scale.index(),
+                handle: self.scale.get_index(),
                 count: 1,
             });
         }

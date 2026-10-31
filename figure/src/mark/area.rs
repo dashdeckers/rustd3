@@ -358,7 +358,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
             return None;
         }
         let indexed = sx.indexed()?;
-        let edges = ctx.edges(indexed, self.x.index())?;
+        let edges = ctx.edges(indexed, self.x.get_index())?;
         let valid = |v| admits(sy, v);
         indexed.thin_joint(&self.lower, &self.upper, &edges, &valid, &mut ctx.frame())
     }
@@ -426,8 +426,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if let Some(error) = &self.error {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: error.clone(),
             });
         }
