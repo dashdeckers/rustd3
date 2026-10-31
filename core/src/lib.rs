@@ -32,6 +32,9 @@
 //! The `derive` feature adds `#[derive(Interpolate)]`, re-exported beside
 //! the trait as [`interpolate::Interpolate`].
 
+// Builders and pure functions say so: a result dropped is a bug.
+#![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
+
 pub mod anim;
 pub mod array;
 pub mod axis;

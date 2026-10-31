@@ -13,6 +13,12 @@
 //! Exit codes: 0 ok, 1 a regression or an internal error, 2 usage.
 
 #[rustfmt::skip]
+#[expect(
+    unused_must_use,
+    reason = "d3's tests call some functions for their effect on JavaScript state \
+              (a default locale, an interval's input left unmutated); the \
+              translation keeps the calls and drops their results"
+)]
 mod generated;
 mod prelude;
 mod ratchet;

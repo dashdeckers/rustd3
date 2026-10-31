@@ -55,31 +55,37 @@ impl Time {
 
     /// d3's `domain(d)`: the instants the range's ends map from; either
     /// order, equal ends included.
+    #[must_use]
     pub fn domain(self, domain: [Timestamp; 2]) -> Self {
         Time { domain, ..self }
     }
 
     /// d3's `domain()`.
+    #[must_use]
     pub fn get_domain(&self) -> [Timestamp; 2] {
         self.domain
     }
 
     /// d3's `range(r)`: the values the domain's ends map to.
+    #[must_use]
     pub fn range(self, range: [f64; 2]) -> Self {
         Time { range, ..self }
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> [f64; 2] {
         self.range
     }
 
     /// d3's `clamp(b)`: whether `apply` and `invert` keep to the domain.
+    #[must_use]
     pub fn clamp(self, clamp: bool) -> Self {
         Time { clamp, ..self }
     }
 
     /// The zone ticks and nice lay intervals out in.
+    #[must_use]
     pub fn get_zone(&self) -> &TimeZone {
         &self.zone
     }
@@ -89,6 +95,7 @@ impl Time {
     /// ends as d3's `interpolateNumber`; the middle of the range for equal
     /// ends, as d3's `normalize`. When clamping, the fraction is kept to
     /// [0, 1] first.
+    #[must_use]
     pub fn apply(&self, t: Timestamp) -> f64 {
         let span = self.span();
         let fraction = if span == 0 {
@@ -105,6 +112,7 @@ impl Time {
     /// within the domain when clamping. It saturates at jiff's first and
     /// last instants; a NaN `y`, where d3 has an Invalid Date, gives the
     /// domain's start.
+    #[must_use]
     pub fn invert(&self, y: f64) -> Timestamp {
         let offset = self.offset(self.kept(self.position(y)));
         time::saturating(self.start().saturating_add(offset))

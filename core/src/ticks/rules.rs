@@ -14,6 +14,7 @@ const MAX_DECADES: i32 = 400;
 
 /// d3's linear ticks in data space: `ticks(d[0], d[1], count)`, and none
 /// for a non-finite end (where d3 gives `[∞]` for equal infinite ends).
+#[must_use]
 pub fn linear(domain: [f64; 2], count: usize) -> Vec<f64> {
     if !domain[0].is_finite() || !domain[1].is_finite() {
         return Vec::new();
@@ -84,6 +85,7 @@ pub fn decades(domain: [f64; 2], constant: f64, count: usize) -> Vec<f64> {
 /// serves an integer base whose per-decade values would number above
 /// 10,000, and leaves out a power that overflows (`log2` of `f64::MAX`
 /// rounds up to 1024).
+#[must_use]
 pub fn log(base: f64, domain: [f64; 2], count: usize) -> Vec<f64> {
     let log = transform::Log::new(base).for_domain(domain);
     let reverse = domain[1] < domain[0];

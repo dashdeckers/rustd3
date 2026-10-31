@@ -40,6 +40,7 @@ pub struct BrushX {
 impl BrushX {
     /// d3's `brushX().extent(extent)`: the area a press can start in,
     /// [[x0, y0], [x1, y1]], without a selection.
+    #[must_use]
     pub fn new(extent: [[f64; 2]; 2]) -> Self {
         BrushX {
             engine: Engine::new(Dim::X, extent),
@@ -47,6 +48,7 @@ impl BrushX {
     }
 
     /// d3's `brush.handleSize(px)`: the handles' width, 6 by default.
+    #[must_use]
     pub fn handle_size(self, px: f64) -> Self {
         BrushX {
             engine: self.engine.handle_size(px),
@@ -60,6 +62,7 @@ impl BrushX {
     }
 
     /// The selected x interval.
+    #[must_use]
     pub fn selection(&self) -> Option<[f64; 2]> {
         self.engine.selection()
     }
@@ -73,6 +76,7 @@ impl BrushX {
 
     /// A gesture is in progress: an app syncs the brush from its own state
     /// only between gestures.
+    #[must_use]
     pub fn is_active(&self) -> bool {
         self.engine.is_active()
     }

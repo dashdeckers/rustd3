@@ -31,16 +31,19 @@ impl Columns {
         clippy::len_without_is_empty,
         reason = "a grid has at least one column"
     )]
+    #[must_use]
     pub fn len(&self) -> usize {
         self.edges.len() - 1
     }
 
     /// The sample index of each edge, non-decreasing.
+    #[must_use]
     pub fn edges(&self) -> &[usize] {
         &self.edges
     }
 
     /// The samples the columns cover: the first edge to the last.
+    #[must_use]
     pub fn samples(&self) -> Range<usize> {
         self.edges[0]..self.edges[self.edges.len() - 1]
     }

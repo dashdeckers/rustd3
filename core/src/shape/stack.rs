@@ -11,11 +11,13 @@ use crate::shape::Stack;
 
 impl Stack {
     /// The order layers stack in: d3's `stack.order`.
+    #[must_use]
     pub fn order(self, order: Order) -> Self {
         Self { order, ..self }
     }
 
     /// Where the stack's baseline is: d3's `stack.offset`.
+    #[must_use]
     pub fn offset(self, offset: Offset) -> Self {
         Self { offset, ..self }
     }
@@ -32,6 +34,7 @@ impl Stack {
     ///     .layout(&[&[3.0, 2.0, 1.0], &[1.0, 1.0, 4.0]]);
     /// assert_eq!(layers[0], [[0.0, 0.75], [0.0, 2.0 / 3.0], [0.0, 0.2]]);
     /// ```
+    #[must_use]
     pub fn layout(&self, columns: &[&[f64]]) -> Vec<Vec<[f64; 2]>> {
         let mut layers = unstacked(columns);
         let order = self.order.apply(&layers);
@@ -41,6 +44,7 @@ impl Stack {
 
     /// The stacking order `layout` used, bottom first: d3's `series[i].index`
     /// inverted, so `stacking_order(…)[0]` is the column at the baseline.
+    #[must_use]
     pub fn stacking_order(&self, columns: &[&[f64]]) -> Vec<usize> {
         self.order.apply(&unstacked(columns))
     }

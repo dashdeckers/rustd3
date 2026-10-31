@@ -25,6 +25,7 @@ pub struct Radial {
 
 /// d3.areaRadial(): straight segments down to the centre, `None` items
 /// breaking the area.
+#[must_use]
 pub fn radial() -> Radial {
     Radial::default()
 }
@@ -32,12 +33,14 @@ pub fn radial() -> Radial {
 impl Radial {
     /// Joins the points of both edges with `curve`, applied after the points
     /// are placed (d3's `curveRadial(curve)`).
+    #[must_use]
     pub fn curve(self, curve: Curve) -> Self {
         Self { curve, ..self }
     }
 
     /// A constant inner radius for `(angle, outer)` items: d3's
     /// `areaRadial().innerRadius(r)`. 3-tuple items carry their own.
+    #[must_use]
     pub fn inner_radius(self, inner_radius: f64) -> Self {
         Self {
             inner_radius,

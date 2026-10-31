@@ -78,11 +78,13 @@ impl PathContext for SvgPath {
 
 impl SvgPath {
     /// An empty path that prints numbers in full: `d3.path()`.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// d3.pathRound(digits): numbers rounded to `digits` places; above 15, unrounded.
+    #[must_use]
     pub fn with_digits(digits: u32) -> Self {
         let scale = usize::try_from(digits)
             .ok()

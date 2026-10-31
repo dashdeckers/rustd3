@@ -38,9 +38,11 @@ const MIN_SPAN: f64 = 1.0 / (1u64 << 40) as f64;
 pub trait Rescale: Sized {
     /// d3's `transform.rescaleX(scale)`: domain =
     /// range.map(invertX).map(scale.invert).
+    #[must_use]
     fn rescale_x(&self, t: &interact::Transform) -> Self;
 
     /// d3's `transform.rescaleY(scale)`.
+    #[must_use]
     fn rescale_y(&self, t: &interact::Transform) -> Self;
 
     /// Content follows the pointer by `dx` range units (pixels): the value

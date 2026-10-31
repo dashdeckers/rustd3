@@ -51,6 +51,7 @@ pub fn ordinal<K: PartialEq, V>(
 impl<K: PartialEq, V> Ordinal<K, V> {
     /// d3's `unknown(v)`: what [`apply`](Ordinal::apply) returns for a key
     /// outside the domain.
+    #[must_use]
     pub fn unknown(self, value: V) -> Self {
         Ordinal {
             unknown: Some(value),
@@ -60,6 +61,7 @@ impl<K: PartialEq, V> Ordinal<K, V> {
 
     /// d3's `domain(keys)`: the keys in order, duplicates keeping their
     /// first position.
+    #[must_use]
     pub fn domain(self, keys: impl IntoIterator<Item = K>) -> Self {
         Ordinal {
             keys: scale::unique(keys),
@@ -69,6 +71,7 @@ impl<K: PartialEq, V> Ordinal<K, V> {
 
     /// d3's `range(values)`: the values keys map to, reused in turn when
     /// there are more keys.
+    #[must_use]
     pub fn range(self, range: impl IntoIterator<Item = V>) -> Self {
         Ordinal {
             range: range.into_iter().collect(),

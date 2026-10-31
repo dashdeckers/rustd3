@@ -100,6 +100,7 @@ impl Locale {
     });
 
     /// The locale a definition states.
+    #[must_use]
     pub fn new(definition: Definition) -> Locale {
         let Definition {
             decimal,

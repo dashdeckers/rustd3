@@ -8,6 +8,7 @@ use crate::time::{self, Interval, Time};
 impl Time {
     /// d3's tick interval for `ticks(count)`: [`time::tick_interval`] over
     /// the domain, or [`time::utc_tick_interval`] for [`time::utc`].
+    #[must_use]
     pub fn tick_interval(&self, count: usize) -> Interval {
         let [start, stop] = self.domain;
         if self.utc_ticks {
@@ -21,6 +22,7 @@ impl Time {
     /// [`tick_interval`](Time::tick_interval) in the scale's zone, from the
     /// domain's start to its end, both included and in the domain's order;
     /// at most `min(10·count, 10_000)`.
+    #[must_use]
     pub fn ticks(&self, count: usize) -> Vec<Timestamp> {
         let [start, stop] = self.domain;
         if self.utc_ticks {
@@ -33,6 +35,7 @@ impl Time {
     /// d3's `ticks(interval)`: the boundaries of `interval` in the scale's
     /// zone over the domain, both ends included and in the domain's order;
     /// at most 10,000.
+    #[must_use]
     pub fn ticks_with(&self, interval: Interval) -> Vec<Timestamp> {
         let [start, stop] = self.domain;
         time::ticks_with(start, stop, interval, &self.zone)
@@ -60,6 +63,7 @@ impl Time {
     /// assert_eq!(x.clone().nice(0), x);
     /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
+    #[must_use]
     pub fn nice(self, count: usize) -> Self {
         let interval = self.tick_interval(count);
         self.nice_with(interval)
@@ -69,6 +73,7 @@ impl Time {
     /// to boundaries of `interval` in the scale's zone, a reversed domain
     /// staying reversed. The domain stays as it is when either boundary
     /// would leave jiff's range.
+    #[must_use]
     pub fn nice_with(self, interval: Interval) -> Self {
         let [start, stop] = self.domain;
         let reversed = stop < start;

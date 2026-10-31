@@ -130,6 +130,7 @@ impl From<Cubehelix> for Rgb {
 
 impl Cubehelix {
     /// Hue `h`, saturation `s` and lightness `l`, opaque.
+    #[must_use]
     pub const fn new(h: f64, s: f64, l: f64) -> Self {
         Cubehelix {
             h,
@@ -140,6 +141,7 @@ impl Cubehelix {
     }
 
     /// d3's `brighter(k)`: the lightness times (1/0.7)^k.
+    #[must_use]
     pub fn brighter(self, k: f64) -> Self {
         Cubehelix {
             l: self.l * BRIGHTER.powf(k),
@@ -148,6 +150,7 @@ impl Cubehelix {
     }
 
     /// d3's `darker(k)`: the lightness times 0.7^k.
+    #[must_use]
     pub fn darker(self, k: f64) -> Self {
         Cubehelix {
             l: self.l * DARKER.powf(k),

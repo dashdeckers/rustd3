@@ -89,6 +89,7 @@ impl From<Rgb> for Hsl {
 
 impl Hsl {
     /// d3's `brighter(k)`: the lightness times (1/0.7)^k.
+    #[must_use]
     pub fn brighter(self, k: f64) -> Self {
         Hsl {
             l: self.l * BRIGHTER.powf(k),
@@ -97,6 +98,7 @@ impl Hsl {
     }
 
     /// d3's `darker(k)`: the lightness times 0.7^k.
+    #[must_use]
     pub fn darker(self, k: f64) -> Self {
         Hsl {
             l: self.l * DARKER.powf(k),
@@ -106,6 +108,7 @@ impl Hsl {
 
     /// d3's `clamp()`: the hue into [0, 360), saturation and lightness
     /// into [0, 1] (NaN as 0), opacity into [0, 1] (NaN as 1).
+    #[must_use]
     pub fn clamp(self) -> Self {
         Hsl {
             h: clamp_hue(self.h),
@@ -117,6 +120,7 @@ impl Hsl {
 
     /// d3's `displayable()`: saturation in [0, 1] or undefined, lightness
     /// and opacity in [0, 1].
+    #[must_use]
     pub fn displayable(self) -> bool {
         ((0.0..=1.0).contains(&self.s) || self.s.is_nan())
             && (0.0..=1.0).contains(&self.l)
@@ -125,6 +129,7 @@ impl Hsl {
 
     /// d3's `formatHsl()`: `hsl(h, s%, l%)`, or `hsla(h, s%, l%, a)` when
     /// the clamped opacity is below 1, of the clamped components.
+    #[must_use]
     pub fn format_hsl(self) -> String {
         let a = super::clamp_opacity(self.opacity);
         let (h, s, l) = (

@@ -36,6 +36,7 @@ impl Log {
     /// let s = scale::sequential([1.0, 1000.0], scheme::viridis).transform(transform::Log::new(10.0));
     /// assert_eq!(s.apply(10.0).format_hex(), "#31688e");
     /// ```
+    #[must_use]
     pub fn new(base: f64) -> Log {
         Log {
             base,

@@ -142,6 +142,7 @@ pub enum Interval {
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
 #[doc(alias = "scaleTime")]
+#[must_use]
 pub fn time(zone: TimeZone) -> Time {
     Time::new(default_domain(&zone), zone, false)
 }
@@ -169,6 +170,7 @@ pub fn time(zone: TimeZone) -> Time {
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
 #[doc(alias = "scaleUtc")]
+#[must_use]
 pub fn utc() -> Time {
     Time::new(default_domain(&TimeZone::UTC), TimeZone::UTC, true)
 }

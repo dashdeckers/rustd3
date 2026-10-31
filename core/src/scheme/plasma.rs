@@ -16,6 +16,7 @@ use crate::color::Rgb;
 /// assert_eq!(scheme::plasma(1.0).format_hex(), "#f0f921");
 /// ```
 #[doc(alias = "interpolatePlasma")]
+#[must_use]
 pub fn plasma(t: f64) -> Rgb {
     super::ramp(&TABLE, t)
 }

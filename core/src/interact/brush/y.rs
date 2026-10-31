@@ -31,6 +31,7 @@ pub struct BrushY {
 impl BrushY {
     /// d3's `brushY().extent(extent)`: the area a press can start in,
     /// [[x0, y0], [x1, y1]], without a selection.
+    #[must_use]
     pub fn new(extent: [[f64; 2]; 2]) -> Self {
         BrushY {
             engine: Engine::new(Dim::Y, extent),
@@ -38,6 +39,7 @@ impl BrushY {
     }
 
     /// d3's `brush.handleSize(px)`: the handles' height, 6 by default.
+    #[must_use]
     pub fn handle_size(self, px: f64) -> Self {
         BrushY {
             engine: self.engine.handle_size(px),
@@ -51,6 +53,7 @@ impl BrushY {
     }
 
     /// The selected y interval.
+    #[must_use]
     pub fn selection(&self) -> Option<[f64; 2]> {
         self.engine.selection()
     }
@@ -64,6 +67,7 @@ impl BrushY {
 
     /// A gesture is in progress: an app syncs the brush from its own state
     /// only between gestures.
+    #[must_use]
     pub fn is_active(&self) -> bool {
         self.engine.is_active()
     }

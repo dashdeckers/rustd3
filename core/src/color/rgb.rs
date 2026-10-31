@@ -122,6 +122,7 @@ impl Interpolate for Rgb {
 
 impl Rgb {
     /// Channels `r`, `g`, `b`, opaque.
+    #[must_use]
     pub const fn new(r: f64, g: f64, b: f64) -> Self {
         Rgb {
             r,
@@ -132,6 +133,7 @@ impl Rgb {
     }
 
     /// The opaque color `0xrrggbb`; bits above the lowest 24 are ignored.
+    #[must_use]
     pub const fn hex(v: u32) -> Self {
         Rgb::new(
             ((v >> 16) & 0xff) as f64,
@@ -141,22 +143,26 @@ impl Rgb {
     }
 
     /// The same channels at `opacity`.
+    #[must_use]
     pub fn with_opacity(self, opacity: f64) -> Self {
         Rgb { opacity, ..self }
     }
 
     /// d3's `brighter(k)`: the channels times (1/0.7)^k.
+    #[must_use]
     pub fn brighter(self, k: f64) -> Self {
         self.scaled(BRIGHTER.powf(k))
     }
 
     /// d3's `darker(k)`: the channels times 0.7^k.
+    #[must_use]
     pub fn darker(self, k: f64) -> Self {
         self.scaled(DARKER.powf(k))
     }
 
     /// d3's `clamp()`: channels rounded and clamped to 0..=255 (NaN as 0),
     /// opacity clamped to [0, 1] (NaN as 1).
+    #[must_use]
     pub fn clamp(self) -> Self {
         let [r, g, b] = [self.r, self.g, self.b].map(|c| f64::from(clamp_channel(c)));
         Rgb {
@@ -169,6 +175,7 @@ impl Rgb {
 
     /// d3's `displayable()`: each channel in [−0.5, 255.5), so it rounds
     /// into 0..=255, and the opacity in [0, 1].
+    #[must_use]
     pub fn displayable(self) -> bool {
         let channel = |c: f64| (-0.5..255.5).contains(&c);
         channel(self.r) && channel(self.g) && channel(self.b) && (0.0..=1.0).contains(&self.opacity)
@@ -182,6 +189,7 @@ impl Rgb {
 
     /// d3's `formatHex8()`: `#rrggbbaa`, the opacity (NaN as 1) scaled to
     /// 0..=255 as a channel.
+    #[must_use]
     pub fn format_hex8(self) -> String {
         let opacity = if self.opacity.is_nan() {
             1.0

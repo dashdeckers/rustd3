@@ -66,6 +66,7 @@ impl<D> fmt::Debug for LineOf<'_, D> {
 
 impl<'a, D> LineOf<'a, D> {
     /// The x of each datum: d3's `line.x`.
+    #[must_use]
     pub fn x(self, x: impl Fn(&D) -> f64 + 'a) -> Self {
         Self {
             x: Box::new(x),
@@ -74,6 +75,7 @@ impl<'a, D> LineOf<'a, D> {
     }
 
     /// The y of each datum: d3's `line.y`.
+    #[must_use]
     pub fn y(self, y: impl Fn(&D) -> f64 + 'a) -> Self {
         Self {
             y: Box::new(y),
@@ -83,6 +85,7 @@ impl<'a, D> LineOf<'a, D> {
 
     /// Whether a datum is drawn; one that is not breaks the line: d3's
     /// `line.defined`.
+    #[must_use]
     pub fn defined(self, defined: impl Fn(&D) -> bool + 'a) -> Self {
         Self {
             defined: Box::new(defined),
@@ -91,6 +94,7 @@ impl<'a, D> LineOf<'a, D> {
     }
 
     /// Joins the points with `curve`: d3's `line.curve`.
+    #[must_use]
     pub fn curve(self, curve: Curve) -> Self {
         Self { curve, ..self }
     }

@@ -273,6 +273,7 @@ impl InvalidFormat {
     }
 
     /// The specifier that did not parse.
+    #[must_use]
     pub fn input(&self) -> &str {
         &self.0
     }
@@ -280,56 +281,67 @@ impl InvalidFormat {
 
 impl Specifier {
     /// The fill character (default ` `).
+    #[must_use]
     pub fn fill(&self) -> char {
         self.fill
     }
 
     /// The alignment (default [`Align::Right`]).
+    #[must_use]
     pub fn align(&self) -> Align {
         self.align
     }
 
     /// The sign option (default [`Sign::Minus`]).
+    #[must_use]
     pub fn sign(&self) -> Sign {
         self.sign
     }
 
     /// The `$` or `#` option.
+    #[must_use]
     pub fn symbol(&self) -> Option<Symbol> {
         self.symbol
     }
 
     /// Whether `0` asks for zero padding.
+    #[must_use]
     pub fn zero(&self) -> bool {
         self.zero
     }
 
     /// The minimum width.
+    #[must_use]
     pub fn width(&self) -> Option<usize> {
         self.width
     }
 
     /// Whether `,` asks for grouping.
+    #[must_use]
     pub fn comma(&self) -> bool {
         self.comma
     }
 
     /// The precision.
+    #[must_use]
     pub fn precision(&self) -> Option<usize> {
         self.precision
     }
 
     /// Whether `~` asks for insignificant zeros to be trimmed.
+    #[must_use]
     pub fn trim(&self) -> bool {
         self.trim
     }
 
     /// The type, if one is given.
+    #[must_use]
     pub fn kind(&self) -> Option<Kind> {
         self.kind
     }
 
     /// d3-scale's tickFormat sets these on a parsed specifier.
+    #[must_use]
     pub fn with_precision(self, precision: usize) -> Self {
         Specifier {
             precision: Some(precision),
@@ -338,6 +350,7 @@ impl Specifier {
     }
 
     /// The specifier with `~` set or cleared.
+    #[must_use]
     pub fn with_trim(self, trim: bool) -> Self {
         Specifier { trim, ..self }
     }

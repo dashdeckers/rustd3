@@ -100,11 +100,13 @@ impl fmt::Display for Format {
 
 impl Format {
     /// The formatter `specifier` describes under `locale`.
+    #[must_use]
     pub fn new(locale: &Locale, specifier: Specifier) -> Format {
         Format::with_scale(locale, specifier, None)
     }
 
     /// d3's formatPrefix: fixed-point, scaled to `value`'s SI prefix.
+    #[must_use]
     pub fn prefixed(locale: &Locale, specifier: Specifier, value: f64) -> Format {
         // d3's exponent of 0, NaN or ±∞ is NaN, which propagates: every
         // value then formats as NaN, with no SI symbol.
@@ -120,6 +122,7 @@ impl Format {
     }
 
     /// The locale this format writes in.
+    #[must_use]
     pub fn locale(&self) -> &Locale {
         &self.locale
     }
@@ -132,6 +135,7 @@ impl Format {
 
     /// `value` formatted. With `,`, it is grouped when its integer digits
     /// as printed reach the locale's threshold (`NEUTRAL`: 5).
+    #[must_use]
     pub fn format(&self, value: f64) -> String {
         let parts = self.parts(value);
         let grouped = self.groups(&parts);
@@ -152,6 +156,7 @@ impl Format {
     /// assert_eq!(f.format_all(&[8000.0, 10000.0]), ["8\u{202f}000", "10\u{202f}000"]);
     /// # Ok::<(), format::InvalidFormat>(())
     /// ```
+    #[must_use]
     pub fn format_all(&self, values: &[f64]) -> Vec<String> {
         let parts: Vec<Parts> = values.iter().map(|&v| self.parts(v)).collect();
         let grouped = parts.iter().any(|p| self.groups(p));

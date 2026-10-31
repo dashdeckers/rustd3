@@ -95,6 +95,7 @@ impl Time {
     /// assert_eq!(x.tick_label(at("1990-02-01T08:00:00.000001Z")?, &Locale::NEUTRAL), "00.000001");
     /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
+    #[must_use]
     pub fn tick_label(&self, t: Timestamp, locale: &time::Locale) -> String {
         locale
             .format(locale.get_ladder().rung(self.rung(t)))

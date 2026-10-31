@@ -23,6 +23,7 @@ impl Pow {
     /// let s = scale::sequential([0.0, 100.0], |t| t).transform(transform::Pow::new(0.5));
     /// assert_eq!(s.apply(25.0), 0.5);
     /// ```
+    #[must_use]
     pub fn new(exponent: f64) -> Pow {
         Pow { exponent }
     }

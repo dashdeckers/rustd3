@@ -36,13 +36,13 @@ fn colours_parse_any_text_and_convert_any_value() {
         let _ = text.parse::<Cubehelix>();
         let c = rgb(rng);
         let k = rng.f64();
-        c.brighter(k).darker(k).clamp();
+        let _ = c.brighter(k).darker(k).clamp();
         c.format_hex();
-        c.format_hex8();
+        let _ = c.format_hex8();
         let _ = c.to_string();
-        c.displayable();
+        let _ = c.displayable();
         let hsl = Hsl::from(c);
-        hsl.brighter(k).clamp().format_hsl();
+        let _ = hsl.brighter(k).clamp().format_hsl();
         let _ = Rgb::from(hsl);
         let lab = Lab::from(c);
         let _ = Rgb::from(lab.brighter(k));
@@ -86,11 +86,11 @@ fn interpolators_take_any_t() {
             interpolate::number(*a, *b)
         });
         f(x);
-        scheme::viridis(x);
-        scheme::magma(x);
-        scheme::turbo(x);
-        scheme::rainbow(x);
-        scheme::sinebow(x);
+        let _ = scheme::viridis(x);
+        let _ = scheme::magma(x);
+        let _ = scheme::turbo(x);
+        let _ = scheme::rainbow(x);
+        let _ = scheme::sinebow(x);
         scheme::blues(x);
         scheme::rd_bu(x);
         let mode = *rng.pick(&[Mode::In, Mode::Out, Mode::InOut]);
@@ -116,7 +116,7 @@ fn interpolators_take_any_t() {
                 period: rng.f64(),
             },
         ] {
-            e.apply(x);
+            let _ = e.apply(x);
         }
     });
 }
@@ -138,9 +138,9 @@ fn array_statistics_and_bins_take_any_values() {
         array::quantile(it(), rng.f64());
         let mut sorted = values.clone();
         sorted.sort_by(f64::total_cmp);
-        array::quantile_sorted(&sorted, rng.f64());
-        array::bisect_left(&values, rng.f64());
-        array::bisect_right(&values, rng.f64());
+        let _ = array::quantile_sorted(&sorted, rng.f64());
+        let _ = array::bisect_left(&values, rng.f64());
+        let _ = array::bisect_right(&values, rng.f64());
         let thresholds = match rng.below(5) {
             0 => Thresholds::Sturges,
             1 => Thresholds::Scott,
@@ -167,11 +167,11 @@ fn array_statistics_and_bins_take_any_values() {
         };
         let n = ((stop - start) / step).ceil();
         if n.is_nan() || n <= 1e6 {
-            array::range(start, stop, step);
+            let _ = array::range(start, stop, step);
         }
-        array::bin::sturges(&values);
+        let _ = array::bin::sturges(&values);
         let [lo, hi] = [rng.f64(), rng.f64()];
-        array::bin::scott(&values, lo, hi);
-        array::bin::freedman_diaconis(&values, lo, hi);
+        let _ = array::bin::scott(&values, lo, hi);
+        let _ = array::bin::freedman_diaconis(&values, lo, hi);
     });
 }

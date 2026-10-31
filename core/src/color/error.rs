@@ -21,6 +21,7 @@ impl ParseColorError {
     }
 
     /// The string that did not parse, untrimmed.
+    #[must_use]
     pub fn input(&self) -> &str {
         &self.0
     }

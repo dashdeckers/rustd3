@@ -119,6 +119,7 @@ impl Locale {
     });
 
     /// The locale a definition states (d3's `timeFormatLocale`).
+    #[must_use]
     pub fn new(definition: Definition) -> Locale {
         let Definition {
             date_time,
@@ -160,6 +161,7 @@ impl Locale {
     /// assert_eq!(labels(Locale::DE_DE.ladder(Ladder::D3))[..2], ["Mo 19", "Di 20"]);
     /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
+    #[must_use]
     pub fn ladder(self, l: Ladder) -> Locale {
         Locale { ladder: l, ..self }
     }
@@ -167,6 +169,7 @@ impl Locale {
     /// d3's `locale.format(specifier)`: `spec` compiled under this locale.
     /// Formatting cannot fail: an unknown directive writes its letter, as
     /// d3 does.
+    #[must_use]
     pub fn format(&self, spec: &str) -> Format {
         Format::new(spec, self.clone())
     }

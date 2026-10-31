@@ -114,6 +114,7 @@ impl From<Lab> for Rgb {
 
 impl Lab {
     /// Lightness `l`, `a` and `b`, opaque.
+    #[must_use]
     pub const fn new(l: f64, a: f64, b: f64) -> Self {
         Lab {
             l,
@@ -124,11 +125,13 @@ impl Lab {
     }
 
     /// d3's `gray(l)`: lightness `l` with `a` and `b` 0, opaque.
+    #[must_use]
     pub const fn gray(l: f64) -> Self {
         Lab::new(l, 0.0, 0.0)
     }
 
     /// d3's `brighter(k)`: the lightness plus 18k.
+    #[must_use]
     pub fn brighter(self, k: f64) -> Self {
         Lab {
             l: self.l + K * k,
@@ -137,6 +140,7 @@ impl Lab {
     }
 
     /// d3's `darker(k)`: the lightness minus 18k.
+    #[must_use]
     pub fn darker(self, k: f64) -> Self {
         Lab {
             l: self.l - K * k,

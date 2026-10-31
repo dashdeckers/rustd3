@@ -48,6 +48,7 @@ impl Modifiers {
     };
 
     /// The modifiers held in either.
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Modifiers {
             shift: self.shift || other.shift,
@@ -58,21 +59,25 @@ impl Modifiers {
     }
 
     /// Whether shift is held.
+    #[must_use]
     pub fn shift(self) -> bool {
         self.shift
     }
 
     /// Whether ctrl is held.
+    #[must_use]
     pub fn ctrl(self) -> bool {
         self.ctrl
     }
 
     /// Whether alt is held.
+    #[must_use]
     pub fn alt(self) -> bool {
         self.alt
     }
 
     /// Whether logo is held.
+    #[must_use]
     pub fn logo(self) -> bool {
         self.logo
     }

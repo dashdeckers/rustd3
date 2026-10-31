@@ -45,16 +45,19 @@ pub fn quantize<R>(domain: [f64; 2], range: impl IntoIterator<Item = R>) -> Quan
 
 impl<R> Quantize<R> {
     /// d3's `domain([x0, x1])`.
+    #[must_use]
     pub fn domain(self, domain: [f64; 2]) -> Self {
         Quantize { domain, ..self }.rescale()
     }
 
     /// d3's `domain()`.
+    #[must_use]
     pub fn get_domain(&self) -> [f64; 2] {
         self.domain
     }
 
     /// d3's `range(values)`: one bin per value.
+    #[must_use]
     pub fn range(self, range: impl IntoIterator<Item = R>) -> Self {
         Quantize {
             range: range.into_iter().collect(),
@@ -64,6 +67,7 @@ impl<R> Quantize<R> {
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> &[R] {
         &self.range
     }
@@ -71,6 +75,7 @@ impl<R> Quantize<R> {
     /// The range value of the bin `x` falls in, the first or last past the
     /// ends; `None` for NaN or an empty range, where d3 returns its unknown
     /// value.
+    #[must_use]
     pub fn apply(&self, x: f64) -> Option<&R> {
         if x.is_nan() {
             return None;
@@ -79,18 +84,21 @@ impl<R> Quantize<R> {
     }
 
     /// d3's `thresholds()`: the n − 1 inner bin edges for n range values.
+    #[must_use]
     pub fn thresholds(&self) -> Vec<f64> {
         self.thresholds.clone()
     }
 
     /// d3's `nice(count)`: the domain extended to the ticks of a linear
     /// scale.
+    #[must_use]
     pub fn nice(self, count: usize) -> Self {
         let domain = scale::nice_linear(self.domain, count);
         self.domain(domain)
     }
 
     /// About `count` of d3's linear ticks over the domain.
+    #[must_use]
     pub fn ticks(&self, count: usize) -> Vec<f64> {
         ticks::linear(self.domain, count)
     }

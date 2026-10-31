@@ -30,6 +30,7 @@ impl Order {
     /// assert_eq!(Order::Ascending.apply(&layers), [1, 0]);
     /// assert_eq!(Order::Reverse.apply(&layers), [1, 0]);
     /// ```
+    #[must_use]
     pub fn apply(self, layers: &[Vec<[f64; 2]>]) -> Vec<usize> {
         let mut order: Vec<usize> = (0..layers.len()).collect();
         match self {

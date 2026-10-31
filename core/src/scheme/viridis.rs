@@ -16,6 +16,7 @@ use crate::color::Rgb;
 /// assert_eq!(scheme::viridis(1.0).format_hex(), "#fde725");
 /// ```
 #[doc(alias = "interpolateViridis")]
+#[must_use]
 pub fn viridis(t: f64) -> Rgb {
     super::ramp(&TABLE, t)
 }

@@ -71,6 +71,7 @@ impl<R: fmt::Debug, T: fmt::Debug> fmt::Debug for Sequential<R, T> {
 
 impl<R: Clone, T: Transform> Sequential<R, T> {
     /// d3's `domain(d)`: the values that map to 0 and 1.
+    #[must_use]
     pub fn domain(self, domain: [f64; 2]) -> Self {
         let transform = self.transform.clone();
         Sequential { domain, ..self }.transformed(transform)
@@ -82,6 +83,7 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
     }
 
     /// d3's `interpolator(f)`: what `t` in [0, 1] maps to.
+    #[must_use]
     pub fn interpolator(self, f: impl Fn(f64) -> R + Send + Sync + 'static) -> Self {
         Sequential {
             interpolator: Arc::new(f),
@@ -91,11 +93,13 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
 
     /// d3's `clamp(b)`: whether `t` is kept in [0, 1] before the
     /// interpolator.
+    #[must_use]
     pub fn clamp(self, clamp: bool) -> Self {
         Sequential { clamp, ..self }
     }
 
     /// d3's `unknown(v)`: what `apply` returns for NaN.
+    #[must_use]
     pub fn unknown(self, value: R) -> Self {
         Sequential {
             unknown: Some(value),
@@ -181,6 +185,7 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
 
     /// d3's `nice(count)`: the domain extended to round values by the
     /// transform's rule.
+    #[must_use]
     pub fn nice(self, count: usize) -> Self {
         let domain = self.transform.nice(self.domain, count);
         self.domain(domain)
@@ -239,6 +244,7 @@ impl<R: Interpolate + Send + Sync + 'static, T> Sequential<R, T> {
     /// let s = scale::sequential([0.0, 1.0], |t| t).range([0.0, 10.0]);
     /// assert_eq!((s.apply(0.5), s.get_range()), (5.0, [0.0, 10.0]));
     /// ```
+    #[must_use]
     pub fn range(self, range: [R; 2]) -> Self {
         let [a, b] = range;
         Sequential {
@@ -250,6 +256,7 @@ impl<R: Interpolate + Send + Sync + 'static, T> Sequential<R, T> {
 
 impl<R: Clone> Sequential<R, transform::Log> {
     /// d3's `base(b)`: the base of the ticks, nice and labels.
+    #[must_use]
     pub fn base(self, base: f64) -> Self {
         self.transform(transform::Log::new(base))
     }
@@ -257,6 +264,7 @@ impl<R: Clone> Sequential<R, transform::Log> {
 
 impl<R: Clone> Sequential<R, transform::Pow> {
     /// d3's `exponent(e)`: the power the domain is raised to.
+    #[must_use]
     pub fn exponent(self, exponent: f64) -> Self {
         self.transform(transform::Pow::new(exponent))
     }
@@ -265,6 +273,7 @@ impl<R: Clone> Sequential<R, transform::Pow> {
 impl<R: Clone> Sequential<R, transform::Symlog> {
     /// d3's `constant(c)`: where the symlog turns from linear to
     /// logarithmic.
+    #[must_use]
     pub fn constant(self, constant: f64) -> Self {
         self.transform(transform::Symlog::new(constant))
     }

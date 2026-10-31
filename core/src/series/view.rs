@@ -36,26 +36,31 @@ impl<'a, X: Coordinate> Series<'a, X> {
     }
 
     /// The recording the channel belongs to.
+    #[must_use]
     pub fn recording(self) -> &'a Recording<X> {
         self.recording
     }
 
     /// The channel's number in its recording.
+    #[must_use]
     pub fn channel(self) -> usize {
         self.channel
     }
 
     /// The number of samples.
+    #[must_use]
     pub fn len(self) -> usize {
         self.recording.len()
     }
 
     /// Whether the channel holds no samples.
+    #[must_use]
     pub fn is_empty(self) -> bool {
         self.recording.is_empty()
     }
 
     /// Sample `i`'s x and value, if there is one.
+    #[must_use]
     pub fn get(self, i: usize) -> Option<(X, f64)> {
         Some((self.recording.x(i)?, self.stored().get(i)?))
     }
@@ -66,6 +71,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
     }
 
     /// NaN-ignoring min and max of the whole channel, O(log n).
+    #[must_use]
     pub fn extent(self) -> Option<[f64; 2]> {
         let extremes = self.extremes(0..self.len(), |_| true)?;
         Some([extremes.min().1, extremes.max().1])

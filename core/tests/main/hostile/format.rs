@@ -60,12 +60,12 @@ static LOCALES: [Locale; 12] = [
 
 fn writes_every_value(f: &format::Format, rng: &mut Rng) {
     for v in VALUES {
-        f.format(v);
+        let _ = f.format(v);
     }
     for _ in 0..8 {
-        f.format(rng.f64());
+        let _ = f.format(rng.f64());
     }
-    f.format_all(&VALUES);
+    let _ = f.format_all(&VALUES);
 }
 
 #[test]
@@ -90,9 +90,9 @@ fn number_formats_parse_any_text_and_write_every_value() {
             writes_every_value(&f, rng);
         }
         let step = rng.f64();
-        precision_fixed(step);
-        precision_prefix(step, rng.f64());
-        precision_round(step, rng.f64());
+        let _ = precision_fixed(step);
+        let _ = precision_prefix(step, rng.f64());
+        let _ = precision_round(step, rng.f64());
     });
 }
 
@@ -125,9 +125,9 @@ fn time_formats_write_any_instant_in_every_locale_and_zone() {
         let spec = rng.string(TIME, 16);
         let t = instant(rng);
         let zone = rng.pick(&zones);
-        time::format(&spec).format(t, zone);
+        let _ = time::format(&spec).format(t, zone);
         for locale in &LOCALES {
-            locale.time().format(&spec).format(t, zone);
+            let _ = locale.time().format(&spec).format(t, zone);
         }
         // ISO strings keep milliseconds and, through d3's `%Y`, four-digit
         // years: they read back within a millisecond in years 0 to 9999.

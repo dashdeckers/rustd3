@@ -49,6 +49,7 @@ impl<D, S> Set<D, S> {
 
     /// Replaces the values, keeping step and count: d3's `tickValues`,
     /// which still formats with `tickFormat(tickArguments)`.
+    #[must_use]
     pub fn with_values(self, values: Vec<D>) -> Self {
         Set { values, ..self }
     }

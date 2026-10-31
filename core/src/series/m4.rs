@@ -24,11 +24,13 @@ impl Extremes {
     }
 
     /// The minimum's sample index and value.
+    #[must_use]
     pub fn min(&self) -> (usize, f64) {
         self.min
     }
 
     /// The maximum's sample index and value.
+    #[must_use]
     pub fn max(&self) -> (usize, f64) {
         self.max
     }
@@ -96,16 +98,19 @@ impl Lines {
     }
 
     /// The number of polylines.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.ends.len()
     }
 
     /// Whether there are no polylines.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.ends.is_empty()
     }
 
     /// The number of points across all polylines.
+    #[must_use]
     pub fn points(&self) -> usize {
         self.indices.len()
     }

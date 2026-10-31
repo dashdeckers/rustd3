@@ -65,6 +65,7 @@ impl TickFormat {
     }
 
     /// One tick's label; `""` for a tick a log scale leaves unlabelled.
+    #[must_use]
     pub fn format(&self, value: f64) -> String {
         match &self.keep {
             Some(keep) if !keep.keeps(value) => String::new(),
@@ -75,6 +76,7 @@ impl TickFormat {
     /// The labels of a whole tick set, one per value: the number format's
     /// batch rule ([`Format::format_all`]) over every value, then a log
     /// scale's blanking, so a blanked value still counts towards grouping.
+    #[must_use]
     pub fn format_all(&self, values: &[f64]) -> Vec<String> {
         let mut labels = self.format.format_all(values);
         if let Some(keep) = &self.keep {
@@ -103,6 +105,7 @@ impl TickFormat {
     /// assert_eq!(neutral.labels(&set, &Locale::NEUTRAL)[6], "12\u{202f}000");
     /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
     /// ```
+    #[must_use]
     pub fn labels(&self, set: &ticks::Set<f64, f64>, locale: &locale::Locale) -> Vec<String> {
         if self.format.locale() == locale.number() {
             return self.format_all(set.values());

@@ -158,6 +158,7 @@ impl<K, T: Interpolate> Marks<K, T> {
 
     /// Some mark has not reached its target by `now`: while this holds, the
     /// application keeps its frame clock running.
+    #[must_use]
     pub fn is_animating(&self, now: Instant) -> bool {
         self.items.iter().any(|mark| mark.value.is_animating(now))
     }

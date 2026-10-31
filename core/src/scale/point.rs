@@ -37,34 +37,40 @@ pub fn point<K: PartialEq>(keys: impl IntoIterator<Item = K>) -> Point<K> {
 impl<K: PartialEq> Point<K> {
     /// d3's `domain(keys)`: one point per key, duplicates keeping their
     /// first position.
+    #[must_use]
     pub fn domain(self, keys: impl IntoIterator<Item = K>) -> Self {
         self.with(|b| b.domain(keys))
     }
 
     /// d3's `range(r)`: the extent the points divide.
+    #[must_use]
     pub fn range(self, range: [f64; 2]) -> Self {
         self.with(|b| b.range(range))
     }
 
     /// d3's `rangeRound(r)`: `range(r)` with `round(true)`.
+    #[must_use]
     pub fn range_round(self, range: [f64; 2]) -> Self {
         self.with(|b| b.range_round(range))
     }
 
     /// d3's `round(b)`: whether the step is floored and the first point
     /// rounded.
+    #[must_use]
     pub fn round(self, round: bool) -> Self {
         self.with(|b| b.round(round))
     }
 
     /// The outer padding, in steps: d3's `pointish` maps `padding` to
     /// `paddingOuter`.
+    #[must_use]
     pub fn padding(self, p: f64) -> Self {
         self.with(|b| b.padding_outer(p))
     }
 
     /// d3's `align(a)`: where the outer space goes, 0 all after the
     /// points, 1 all before; clamped to [0, 1].
+    #[must_use]
     pub fn align(self, a: f64) -> Self {
         self.with(|b| b.align(a))
     }
@@ -76,21 +82,25 @@ impl<K: PartialEq> Point<K> {
     }
 
     /// d3's `bandwidth()`: 0, as the inner padding is 1.
+    #[must_use]
     pub fn bandwidth(&self) -> f64 {
         self.band.bandwidth()
     }
 
     /// d3's `step()`: the distance between neighbouring points.
+    #[must_use]
     pub fn step(&self) -> f64 {
         self.band.step()
     }
 
     /// d3's `domain()`: the keys, in order.
+    #[must_use]
     pub fn get_domain(&self) -> &[K] {
         self.band.get_domain()
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> [f64; 2] {
         self.band.get_range()
     }

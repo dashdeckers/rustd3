@@ -118,6 +118,7 @@ impl From<Hcl> for Rgb {
 
 impl Hcl {
     /// Hue `h`, chroma `c` and luminance `l`, opaque.
+    #[must_use]
     pub const fn new(h: f64, c: f64, l: f64) -> Self {
         Hcl {
             h,
@@ -129,11 +130,13 @@ impl Hcl {
 
     /// d3's `lch(l, c, h)`: the same color with its arguments in the
     /// opposite order.
+    #[must_use]
     pub const fn lch(l: f64, c: f64, h: f64) -> Self {
         Hcl::new(h, c, l)
     }
 
     /// d3's `brighter(k)`: the luminance plus 18k.
+    #[must_use]
     pub fn brighter(self, k: f64) -> Self {
         Hcl {
             l: self.l + K * k,
@@ -142,6 +145,7 @@ impl Hcl {
     }
 
     /// d3's `darker(k)`: the luminance minus 18k.
+    #[must_use]
     pub fn darker(self, k: f64) -> Self {
         Hcl {
             l: self.l - K * k,

@@ -71,6 +71,7 @@ const TABLE: [(Interval, i128); 18] = [
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
 #[doc(alias = "timeTickInterval")]
+#[must_use]
 pub fn tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
     let span = (stop.as_nanosecond() - start.as_nanosecond()).abs();
     let count = count as f64;
@@ -125,6 +126,7 @@ pub fn tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interva
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
 #[doc(alias = "timeTicks")]
+#[must_use]
 pub fn ticks(start: Timestamp, stop: Timestamp, count: usize, zone: &TimeZone) -> Vec<Timestamp> {
     let interval = tick_interval(start, stop, count);
     lay_out(start, stop, interval, zone, cap(count))
@@ -133,6 +135,7 @@ pub fn ticks(start: Timestamp, stop: Timestamp, count: usize, zone: &TimeZone) -
 /// d3.timeTicks with an interval: its boundaries in `zone` from `start` to
 /// `stop`, both included, in the order of `start → stop`; at most 10,000.
 #[doc(alias = "timeTicks")]
+#[must_use]
 pub fn ticks_with(
     start: Timestamp,
     stop: Timestamp,
@@ -145,6 +148,7 @@ pub fn ticks_with(
 /// d3.utcTickInterval: [`tick_interval`] with days counted from
 /// 1970-01-01 (`UnixDay`) where it would take days of the month.
 #[doc(alias = "utcTickInterval")]
+#[must_use]
 pub fn utc_tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interval {
     let interval = tick_interval(start, stop, count);
     if let Interval::Day(k) = interval {
@@ -156,6 +160,7 @@ pub fn utc_tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Int
 
 /// d3.utcTicks: [`ticks`] in UTC over [`utc_tick_interval`].
 #[doc(alias = "utcTicks")]
+#[must_use]
 pub fn utc_ticks(start: Timestamp, stop: Timestamp, count: usize) -> Vec<Timestamp> {
     let interval = utc_tick_interval(start, stop, count);
     lay_out(start, stop, interval, &TimeZone::UTC, cap(count))

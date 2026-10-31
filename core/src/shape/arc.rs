@@ -50,6 +50,7 @@ struct Corner {
 
 impl Arc {
     /// The inner radius (d3's default reads the datum; here 0).
+    #[must_use]
     pub fn inner_radius(self, inner_radius: f64) -> Self {
         Self {
             inner_radius,
@@ -58,6 +59,7 @@ impl Arc {
     }
 
     /// The outer radius (d3's default reads the datum; here 0).
+    #[must_use]
     pub fn outer_radius(self, outer_radius: f64) -> Self {
         Self {
             outer_radius,
@@ -67,6 +69,7 @@ impl Arc {
 
     /// The corners' radius (default 0), at most half the ring's width and
     /// smaller where the sector is too narrow.
+    #[must_use]
     pub fn corner_radius(self, corner_radius: f64) -> Self {
         Self {
             corner_radius,
@@ -77,12 +80,14 @@ impl Arc {
     /// The radius the pad angle is measured at, so that padding is a
     /// constant width along both edges; `None` (the default) is
     /// √(r₀² + r₁²).
+    #[must_use]
     pub fn pad_radius(self, pad_radius: Option<f64>) -> Self {
         Self { pad_radius, ..self }
     }
 
     /// The pad angle for every slice; `None` (the default) takes each
     /// slice's `pad_angle`.
+    #[must_use]
     pub fn pad_angle(self, pad_angle: Option<f64>) -> Self {
         Self { pad_angle, ..self }
     }
@@ -117,6 +122,7 @@ impl Arc {
 
     /// d3's `arc.centroid(d)`: the midpoint of the slice's centre line, at
     /// the mean radius and the mean angle.
+    #[must_use]
     pub fn centroid(&self, slice: &Slice) -> (f64, f64) {
         let r = (self.inner_radius + self.outer_radius) / 2.0;
         let a = (slice.start_angle + slice.end_angle) / 2.0 - PI / 2.0;

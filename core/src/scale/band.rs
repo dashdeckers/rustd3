@@ -87,6 +87,7 @@ pub fn band<K: PartialEq>(keys: impl IntoIterator<Item = K>) -> Band<K> {
 impl<K: PartialEq> Band<K> {
     /// d3's `domain(keys)`: one band per key, duplicates keeping their
     /// first position.
+    #[must_use]
     pub fn domain(self, keys: impl IntoIterator<Item = K>) -> Self {
         Band {
             keys: scale::unique(keys),
@@ -97,11 +98,13 @@ impl<K: PartialEq> Band<K> {
 
     /// d3's `range(r)`: the extent the bands divide; a descending range
     /// puts the first key last.
+    #[must_use]
     pub fn range(self, range: [f64; 2]) -> Self {
         Band { range, ..self }.rescaled()
     }
 
     /// d3's `rangeRound(r)`: `range(r)` with `round(true)`.
+    #[must_use]
     pub fn range_round(self, range: [f64; 2]) -> Self {
         Band {
             range,
@@ -113,12 +116,14 @@ impl<K: PartialEq> Band<K> {
 
     /// d3's `round(b)`: whether the step is floored and the start and
     /// bandwidth rounded to whole pixels.
+    #[must_use]
     pub fn round(self, round: bool) -> Self {
         Band { round, ..self }.rescaled()
     }
 
     /// d3's `padding(p)`: the outer padding `p` and the inner padding
     /// `min(1, p)`, as fractions of the step.
+    #[must_use]
     pub fn padding(self, p: f64) -> Self {
         Band {
             padding_inner: js::min(1.0, p),
@@ -130,6 +135,7 @@ impl<K: PartialEq> Band<K> {
 
     /// d3's `paddingInner(p)`: the gap between bands, `min(1, p)` of the
     /// step.
+    #[must_use]
     pub fn padding_inner(self, p: f64) -> Self {
         Band {
             padding_inner: js::min(1.0, p),
@@ -140,6 +146,7 @@ impl<K: PartialEq> Band<K> {
 
     /// d3's `paddingOuter(p)`: the space before the first and after the
     /// last band, in steps.
+    #[must_use]
     pub fn padding_outer(self, p: f64) -> Self {
         Band {
             padding_outer: p,
@@ -150,6 +157,7 @@ impl<K: PartialEq> Band<K> {
 
     /// d3's `align(a)`: where the outer space goes, 0 all after the bands,
     /// 1 all before; clamped to [0, 1].
+    #[must_use]
     pub fn align(self, a: f64) -> Self {
         Band {
             align: js::max(0.0, js::min(1.0, a)),
@@ -171,22 +179,26 @@ impl<K: PartialEq> Band<K> {
     }
 
     /// d3's `bandwidth()`: the width of each band.
+    #[must_use]
     pub fn bandwidth(&self) -> f64 {
         self.bandwidth
     }
 
     /// d3's `step()`: the distance between the starts of neighbouring
     /// bands.
+    #[must_use]
     pub fn step(&self) -> f64 {
         self.step
     }
 
     /// d3's `domain()`: the keys, in order.
+    #[must_use]
     pub fn get_domain(&self) -> &[K] {
         &self.keys
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> [f64; 2] {
         self.range
     }

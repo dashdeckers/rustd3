@@ -53,6 +53,7 @@ pub trait Transform: Clone {
     /// This transform as it applies to `domain`, the scale's end stops;
     /// the scale calls it whenever its domain changes. The default returns
     /// a clone.
+    #[must_use]
     fn for_domain(&self, _domain: [f64; 2]) -> Self {
         self.clone()
     }
