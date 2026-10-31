@@ -85,10 +85,8 @@ impl SvgPath {
 
     /// d3.pathRound(digits): numbers rounded to `digits` places; above 15, unrounded.
     #[must_use]
-    pub fn with_digits(digits: u32) -> Self {
-        let scale = usize::try_from(digits)
-            .ok()
-            .and_then(|d| POWERS.get(d).copied());
+    pub fn with_digits(digits: usize) -> Self {
+        let scale = POWERS.get(digits).copied();
         Self {
             scale,
             ..Self::default()

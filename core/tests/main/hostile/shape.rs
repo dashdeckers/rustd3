@@ -186,7 +186,7 @@ fn lines_and_areas_draw_well_formed_paths_from_any_points() {
         area.draw(spans.iter().copied(), &mut order);
         assert_eq!(order.stray, None, "area {c:?} drew before a move");
 
-        let digits = u32::try_from(rng.below(40)).unwrap_or(0);
+        let digits = rng.below(40);
         let mut fixed = path::SvgPath::with_digits(digits);
         line.draw(pts.iter().copied(), &mut fixed);
         if let Err(e) = well_formed(&fixed.to_string()) {
