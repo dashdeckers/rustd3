@@ -6,6 +6,18 @@
 /// them at once; pool renders run on the threads the widget owns
 /// (`Plot::threads`), whose results arrive as `Event::Waken` while each
 /// cell keeps its previous image on screen.
+///
+/// ```no_run
+/// # mod rustd3 { pub use rustd3_figure as figure; }
+/// use rustd3::figure::Figure;
+/// use rustd3_iced::Plot;
+/// use rustd3_iced::plot::{Caching, Render};
+///
+/// fn view(fig: Figure<'_>) -> Plot<'_, ()> {
+///     // Every render on the pool, every kept image checked: a diagnostic.
+///     Plot::new(fig).render(Render::Worker).caching(Caching::Verify)
+/// }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Render {
     /// In order (visible tiles nearest the last gesture input, the
