@@ -136,6 +136,9 @@ Names and visibility settled before the first release:
   `get_…`), and `time::Time::zone` (was `get_zone`); `get_domain`,
   `get_range`, `get_ink`, `get_background`, `get_palette` and
   `Figure::get_theme` keep `get_` beside their builders.
+- rustd3-iced: `Plot` is `rustd3_iced::Plot` and `Probe` is
+  `rustd3_iced::plot::Probe` only (`plot::Plot` and `plot::probe::Probe`
+  are gone).
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

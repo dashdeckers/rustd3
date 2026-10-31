@@ -36,4 +36,4 @@ pub mod pointer;
 
 pub use path::{IcedPath, path};
 #[cfg(feature = "figure")]
-pub use plot::Plot;
+pub use plot::widget::Plot;

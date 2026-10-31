@@ -12,6 +12,7 @@ use rustd3_figure::list::{self, Command, List, Outlines};
 use rustd3_figure::scale::Scale;
 use rustd3_figure::{Cache, Figure, Resolved, Target, Theme, hit, kurbo, raster, thin};
 
+use crate::plot::Probe;
 use crate::plot::area::{Area, Moved};
 use crate::plot::brush::{self, Brush};
 use crate::plot::budget::Budget;
@@ -25,7 +26,7 @@ use crate::plot::listener::Listener;
 use crate::plot::merge::{self, Run};
 use crate::plot::overlay::{self, Overlay};
 use crate::plot::preview::Basis;
-use crate::plot::probe::{self, Probe, Sample, Stage};
+use crate::plot::probe::{self, Sample, Stage};
 use crate::plot::region::{self, Along, Region};
 use crate::plot::slot::{self, Band, Slot};
 use crate::plot::tile::{self, Tile};
@@ -2089,11 +2090,12 @@ mod tests {
     use rustd3_figure::{Figure, Held, Target, kurbo};
 
     use super::{Pipeline, State};
+    use crate::plot::Probe;
     use crate::plot::area::Area;
     use crate::plot::budget::{Budget, Kind};
     use crate::plot::merge::Run;
     use crate::plot::overlay::{Overlay, Shown};
-    use crate::plot::probe::{self, Probe, Sample, Stage};
+    use crate::plot::probe::{self, Sample, Stage};
     use crate::plot::slot::Slot;
     use crate::plot::tile::{self, Tile};
     #[cfg(target_os = "linux")]

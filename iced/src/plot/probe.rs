@@ -1,4 +1,4 @@
-//! [`Probe`] and its [`Sample`]s: what each frame of a `Plot` cost and
+//! [`Probe`](crate::plot::Probe) and its [`Sample`]s: what each frame of a `Plot` cost and
 //! what it showed, timed by a clock the app supplies.
 //!
 //! A `Plot` with a probe sends, per `RedrawRequested`, a [`Sample::Stage`]
@@ -25,18 +25,10 @@
 //! # let _ = (probe, rx);
 //! ```
 
-use std::sync::mpsc;
-
 use iced_core::time::{Duration, Instant};
 
-/// Where a `Plot` reports its frames: stage timings, raster times and
-/// what each frame showed, timed by an app-supplied clock and sent to
-/// `sink` as [`Sample`]s. The benchmark attributes frame time with it.
-#[derive(Debug, Clone)]
-pub struct Probe {
-    clock: fn() -> Instant,
-    sink: mpsc::Sender<Sample>,
-}
+// Probe, re-exported as `plot::Probe` only.
+pub(in crate::plot) mod channel;
 
 /// One measurement of a `Plot`'s frame.
 ///
@@ -178,27 +170,4 @@ pub enum Target {
         /// The row.
         j: i32,
     },
-}
-
-impl Probe {
-    /// Samples timed by `clock`, sent to `sink`; a closed receiver drops
-    /// them.
-    pub fn new(clock: fn() -> Instant, sink: mpsc::Sender<Sample>) -> Self {
-        Probe { clock, sink }
-    }
-
-    /// The probe's clock.
-    pub(crate) fn clock(&self) -> fn() -> Instant {
-        self.clock
-    }
-
-    /// Reads the probe's clock.
-    pub(crate) fn now(&self) -> Instant {
-        (self.clock)()
-    }
-
-    /// Sends `sample`, unless the receiver is gone.
-    pub(crate) fn send(&self, sample: Sample) {
-        let _ = self.sink.send(sample);
-    }
 }
