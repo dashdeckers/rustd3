@@ -101,8 +101,8 @@ pub enum Simd {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Settings {
     /// vello_cpu's worker threads: 0 renders on the calling thread, `n`
-    /// starts vello_cpu's own pool of `n`.
-    pub threads: u16,
+    /// starts vello_cpu's own pool of `n` (at most 65,535).
+    pub threads: usize,
     /// The SIMD level.
     pub simd: Simd,
 }
@@ -116,7 +116,7 @@ impl Settings {
         let cores = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
         let threads = cores.saturating_sub(1).clamp(1, 8);
         Settings {
-            threads: u16::try_from(threads).expect("invariant: at most 8"),
+            threads,
             simd: Simd::Detect,
         }
     }
@@ -158,7 +158,8 @@ impl Renderer {
         };
         let render = vello_cpu::RenderSettings {
             level,
-            num_threads: settings.threads,
+            // vello_cpu counts threads in a u16.
+            num_threads: u16::try_from(settings.threads).unwrap_or(u16::MAX),
         };
         Renderer {
             context: vello_cpu::RenderContext::new_with(1, 1, render),

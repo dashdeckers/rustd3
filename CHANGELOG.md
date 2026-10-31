@@ -129,6 +129,8 @@ Names and visibility settled before the first release:
   literal color; `fill` and `stroke` take a palette and a key.
 - `check::size(w, h)` is gone: `kurbo::Size::new(w, h)`.
 - `helpers::axes::defaults(axis)` is gone: `axis.minor(true)`.
+- Counts are `usize`: `path::SvgPath::with_digits(digits)` and
+  `raster::Settings::threads`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 
