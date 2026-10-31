@@ -60,6 +60,7 @@ for (const name of RAMPS) {
     ...[0, 0.5, 1].map((t) => `/// ${shown(t)}`),
     "/// ```",
     `#[doc(alias = "interpolate${name}")]`,
+    "#[must_use]",
     `pub fn ${fn}(t: f64) -> Rgb {`,
     "    super::ramp(&TABLE, t)",
     "}",
