@@ -18,6 +18,12 @@ pub struct Ecdf<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     y: ScaleRef<Y>,
 }
 
+impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for Ecdf<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ecdf").finish_non_exhaustive()
+    }
+}
+
 /// The empirical cumulative distribution of the finite `values` on `x`
 /// and `y`, matplotlib's `Axes.ecdf`: a step up by 1/n at each sorted
 /// value, from 0 at the least to 1 at the greatest (each value's step
@@ -60,6 +66,7 @@ where
 impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Ecdf<X, Y> {
     /// The complementary distribution, 1 − ECDF: a step down by 1/n at
     /// each sorted value, from 1 to 0.
+    #[must_use]
     pub fn complementary(self, yes: bool) -> Self {
         Self {
             complementary: yes,
@@ -69,6 +76,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Ecdf<X, Y> {
 
     /// Strokes the steps with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Some(keyed(palette, key)),

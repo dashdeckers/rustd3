@@ -519,6 +519,7 @@ pub fn render_name(render: Render) -> &'static str {
         Render::Auto => "auto",
         Render::Inline => "inline",
         Render::Worker => "worker",
+        _ => "other",
     }
 }
 
@@ -528,6 +529,7 @@ pub fn caching_name(caching: Caching) -> &'static str {
         Caching::On => "on",
         Caching::Off => "off",
         Caching::Verify => "verify",
+        _ => "other",
     }
 }
 

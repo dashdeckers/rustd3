@@ -133,7 +133,7 @@ pub(crate) fn deps(cells: &list::Cells, list: &List, resolved: &Resolved) -> Vec
                     let part = list.parts.get(usize::try_from(index).ok()?)?;
                     let (role, panel, axis) = layer::decode(part.id);
                     match role {
-                        layer::AXIS => Some(Dep::Handle(resolved.axis(panel, axis)?.1)),
+                        layer::AXIS => Some(Dep::Handle(resolved.get_axis(panel, axis)?.1)),
                         layer::LEGEND => Some(Dep::Part(part.id)),
                         _ => None,
                     }

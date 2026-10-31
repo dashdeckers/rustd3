@@ -49,6 +49,7 @@ pub struct Table {
 
 /// Why a histogram's table could not be made.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A caller's edge that is not finite or not above the one before it.
     #[error("edge {index} is not finite or not above the one before: {value}")]
@@ -98,6 +99,11 @@ impl From<Error> for mark::Error {
 /// assert_eq!(bad, Err(hist::Error::Edge { index: 2, value: 1.0 }));
 /// # Ok::<(), hist::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// [`Error::Edge`] for caller's edges that are not finite and increasing,
+/// [`Error::Weights`] for weights of another count than the values.
 pub fn table(
     values: &[f64],
     weights: Option<&[f64]>,

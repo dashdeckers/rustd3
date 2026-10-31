@@ -51,7 +51,7 @@ fn figure() -> (
 
 /// The plot area of `fig`'s only panel.
 fn area(fig: &Figure<'_>) -> Rect {
-    resolve(fig, &Held::default()).plot_areas()[0]
+    resolve(fig, &Held::default()).get_plot_areas()[0]
 }
 
 /// The fills and strokes of `list`'s marks, with each stroke's width and
@@ -170,11 +170,11 @@ fn the_bodies_ends_fit_y_and_cut_runs_past_the_data() {
         .mark(violin([("a", X.to_vec())], x, plain))
         .mark(violin([("a", X.to_vec())], x, cut).cut(2.0).points(50));
     let r = resolve(&fig, &Held::default());
-    let [lo, hi] = r.scale(plain).unwrap().get_domain();
+    let [lo, hi] = r.get_scale(plain).unwrap().get_domain();
     assert!(near(lo, 1.2 - 0.05 * 12.8) && near(hi, 14.0 + 0.05 * 12.8));
     let h = Kde::new(X).expect("varies").bandwidth();
     let (a, b) = (1.2 - 2.0 * h, 14.0 + 2.0 * h);
-    let [lo, hi] = r.scale(cut).unwrap().get_domain();
+    let [lo, hi] = r.get_scale(cut).unwrap().get_domain();
     assert!(near(lo, a - 0.05 * (b - a)) && near(hi, b + 0.05 * (b - a)));
 }
 
@@ -183,7 +183,7 @@ fn the_bodies_ends_fit_y_and_cut_runs_past_the_data() {
 fn fig_check_is_empty_for_violins() {
     use rustd3_core::scheme::COLORBLIND;
     use rustd3_figure::axis;
-    use rustd3_figure::check::size;
+    use rustd3_figure::kurbo::Size;
 
     let (mut fig, x, y) = figure();
     let color = fig.scale(scale::ordinal(["left", "right"], COLORBLIND));
@@ -200,5 +200,5 @@ fn fig_check_is_empty_for_violins() {
                 .fill(color, "right")
                 .dodge(),
         );
-    assert!(fig.check(size(640.0, 480.0)).is_empty());
+    assert!(fig.check(Size::new(640.0, 480.0)).is_empty());
 }

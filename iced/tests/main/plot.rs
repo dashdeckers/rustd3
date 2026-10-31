@@ -13,14 +13,17 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_core::series::{Clock, Recording};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo;
 use rustd3_figure::list::{self, Cells, List, part};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::{Fit, ScaleRef};
-use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis};
+use rustd3_figure::{Figure, Held, Target, Theme, axis};
 use rustd3_iced::Plot;
+#[cfg(feature = "__dev")]
+use rustd3_iced::plot::cost;
 use rustd3_iced::plot::probe::{self, Sample};
-use rustd3_iced::plot::{Caching, Probe, Render, cost};
+use rustd3_iced::plot::{Caching, Probe, Render};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
@@ -259,7 +262,7 @@ fn plot_area(fig: &Figure<'_>, k: f32, i: usize) -> [u32; 4] {
         scale: f64::from(k),
     };
     let resolved = fig.resolve(size, &mut Cache::default(), &Held::default(), target);
-    let area = resolved.plot_areas()[i];
+    let area = resolved.get_plot_areas()[i];
     [area.x0, area.y0, area.x1, area.y1].map(|v| (v * f64::from(k)).round() as u32)
 }
 
@@ -472,7 +475,7 @@ fn plot_areas(fig: &Figure<'_>, size: Size, k: f32) -> Vec<kurbo::Rect> {
         scale: f64::from(k),
     };
     fig.resolve(size, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec()
 }
 
@@ -607,6 +610,7 @@ fn caching_off_renders_every_cell() {
         match caching {
             Caching::On | Caching::Verify => assert_eq!(moved, [inside], "{backend}"),
             Caching::Off => assert_eq!(moved, all, "{backend}"),
+            _ => unreachable!("the modes this test runs"),
         }
         assert!(unchanged.is_empty(), "{backend}: {unchanged:?}");
     }
@@ -645,7 +649,7 @@ fn recording(n: usize, seeds: std::ops::Range<usize>) -> Recording<f64> {
 /// Appends `n` samples to every channel of `rec`, whose channels are live
 /// channels `seeds`, continuing their waves.
 fn append(rec: &mut Recording<f64>, seeds: std::ops::Range<usize>, n: usize) {
-    let from = usize::try_from(rec.offset()).expect("a small offset") + rec.len();
+    let from = usize::try_from(rec.get_offset()).expect("a small offset") + rec.len();
     let channels: Vec<Vec<f64>> = seeds.map(|seed| wave(from, n, seed)).collect();
     rec.extend(&[], channels).expect("a valid append");
 }
@@ -767,7 +771,7 @@ fn area_cell(fig: &Figure<'_>, size: Size, k: f32, cells: &Cells, panel: usize) 
     };
     let area = fig
         .resolve(size, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()[panel];
+        .get_plot_areas()[panel];
     let at = [area.x0, area.y0].map(|v| (v * f64::from(k)).round() as i32 + 1);
     cells
         .cell_at(at)
@@ -810,9 +814,9 @@ fn live_append_re_renders_only_touched_cells() {
     );
     let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
     let parked = harness.park();
-    let revision = top.revision();
+    let revision = top.get_revision();
     append(&mut top, TOP, APPEND);
-    assert_eq!(top.revision(), revision + 1);
+    assert_eq!(top.get_revision(), revision + 1);
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let mut harness = parked.resume(plot);
     let shot = harness.frame(t + Duration::from_millis(100));
@@ -884,8 +888,8 @@ fn fit_window_follows_in_whole_device_columns() {
             };
             let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
             let resolved = fig.resolve(size, &mut Cache::default(), &Held::default(), target);
-            let domain = resolved.scale(x).unwrap().get_domain();
-            let columns = (resolved.plot_areas()[0].width() * f64::from(k)).round();
+            let domain = resolved.get_scale(x).unwrap().get_domain();
+            let columns = (resolved.get_plot_areas()[0].width() * f64::from(k)).round();
             let col = 10.0 / columns;
             let (list, cells) = partition(&fig, LIVE, k);
             let diff = against(&shot, &fig, LIVE, k);
@@ -942,6 +946,7 @@ fn fit_window_follows_in_whole_device_columns() {
     }
 }
 
+#[cfg(feature = "__dev")]
 #[test]
 fn ten_hz_appends_stay_sharp() {
     // 800 × 500 at 2: plot areas about 1,400 × 760 device px.
@@ -1022,9 +1027,9 @@ fn drop_front_re_renders_the_cell() {
     let _ = rx.try_iter().count();
     let (before, _) = partition(&trace(&top, &bottom, follow).0, LIVE, k);
     let parked = harness.park();
-    let revision = top.revision();
+    let revision = top.get_revision();
     assert_eq!(top.drop_front(65_536), 65_536);
-    assert_eq!(top.revision(), revision + 1);
+    assert_eq!(top.get_revision(), revision + 1);
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let mut harness = parked.resume(plot);
     let shot = harness.frame(t + Duration::from_millis(100));
@@ -1066,7 +1071,7 @@ fn a_gesture_holds_a_windowed_handle() {
         let size = kurbo::Size::new(f64::from(LIVE.width), f64::from(LIVE.height));
         let target = Target::Screen { scale: 1.0 };
         fig.resolve(size, &mut Cache::default(), &Held::default(), target)
-            .plot_areas()[0]
+            .get_plot_areas()[0]
     };
     let plot = live(&top, &bottom, follow, k, Render::Inline, Some(&probe));
     let Some(mut harness) = Harness::new(plot, LIVE, k) else {

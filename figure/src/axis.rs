@@ -99,6 +99,12 @@ pub struct Axis<'a, S: Kind> {
     palette: Option<ScaleRef<()>>,
 }
 
+impl<'a, S: Kind> std::fmt::Debug for Axis<'a, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Axis").finish_non_exhaustive()
+    }
+}
+
 impl<S: Kind> Clone for Axis<'_, S> {
     fn clone(&self) -> Self {
         Axis {
@@ -127,6 +133,7 @@ impl<'a, S: Kind> From<&Axis<'a, S>> for Axis<'a, S> {
 }
 
 /// An axis below the panel: ticks down, labels centred under them.
+#[must_use]
 pub fn bottom<'a, S>(h: ScaleRef<S>) -> Axis<'a, S>
 where
     S: Position + Ticks<Domain = <S as Kind>::Domain>,
@@ -135,6 +142,7 @@ where
 }
 
 /// An axis left of the panel: ticks left, labels right-aligned to them.
+#[must_use]
 pub fn left<'a, S>(h: ScaleRef<S>) -> Axis<'a, S>
 where
     S: Position + Ticks<Domain = <S as Kind>::Domain>,
@@ -143,6 +151,7 @@ where
 }
 
 /// An axis right of the panel: ticks right, labels left-aligned to them.
+#[must_use]
 pub fn right<'a, S>(h: ScaleRef<S>) -> Axis<'a, S>
 where
     S: Position + Ticks<Domain = <S as Kind>::Domain>,
@@ -151,6 +160,7 @@ where
 }
 
 /// An axis above the panel: ticks up, labels centred over them.
+#[must_use]
 pub fn top<'a, S>(h: ScaleRef<S>) -> Axis<'a, S>
 where
     S: Position + Ticks<Domain = <S as Kind>::Domain>,
@@ -161,6 +171,7 @@ where
 impl<'a, S: Kind> Axis<'a, S> {
     /// d3's `axis.tickValues(…)`: these values instead of the scale's
     /// ticks; default labels still follow the tick count.
+    #[must_use]
     pub fn values(self, values: impl IntoIterator<Item = S::Domain>) -> Self {
         Axis {
             values: Some(values.into_iter().collect()),
@@ -169,6 +180,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     }
 
     /// d3's `axis.tickFormat(…)`: each label is `f(value)`.
+    #[must_use]
     pub fn format(self, f: impl Fn(&S::Domain) -> String + 'a) -> Self {
         let format: Format<'a, S::Domain> = Rc::new(f);
         Axis {
@@ -180,6 +192,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     /// d3's `axis.ticks(count)`: about `count` ticks. Without it the count
     /// follows the axis's length: one tick per 80 px across, per 35 px up,
     /// at least 2.
+    #[must_use]
     pub fn ticks(self, count: usize) -> Self {
         Axis {
             count: Some(count),
@@ -188,6 +201,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     }
 
     /// A title along the axis, outside its tick labels.
+    #[must_use]
     pub fn label(self, label: impl Into<Text>) -> Self {
         Axis {
             label: Some(label.into()),
@@ -199,6 +213,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     /// spines. Without it the axis sits on the plot area, or, after an axis
     /// on the same side, 8 px past that axis's decorations. A `px` that is
     /// not finite leaves the offset as it was.
+    #[must_use]
     pub fn outward(self, px: f64) -> Self {
         Axis {
             outward: if px.is_finite() {
@@ -212,9 +227,10 @@ impl<'a, S: Kind> Axis<'a, S> {
 
     /// Colors the axis line, ticks, labels and title with `key`'s color in
     /// `palette`, to tie a twin axis to its series.
+    #[must_use]
     pub fn color<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         let tint: Tint<'a> =
-            Rc::new(move |resolved: &Resolved| resolved.scale(palette)?.paint(&key));
+            Rc::new(move |resolved: &Resolved| resolved.get_scale(palette)?.paint(&key));
         Axis {
             tint: Some(tint),
             palette: Some(palette.erased()),
@@ -226,6 +242,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     /// and ticks), and drawn whatever its panel's place: without it, an
     /// axis that a panel further out on its side shows too is drawn
     /// without labels, and not at all when it is stacked or moved outward.
+    #[must_use]
     pub fn labels(self, labels: bool) -> Self {
         Axis {
             labels: Some(labels),
@@ -241,6 +258,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     /// magnitude is below 10⁻⁴ or at least 10⁶, it labels ticks in units of
     /// that power of ten ("1e−7"), as matplotlib's `ScalarFormatter`.
     /// Axes with `.format` keep their labels.
+    #[must_use]
     pub fn offset(self, on: bool) -> Self {
         Axis { offset: on, ..self }
     }
@@ -260,6 +278,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     /// let y = fig.fit(scale::log());
     /// fig.panel(0, 0).axis(axis::left(y).minor(true));
     /// ```
+    #[must_use]
     pub fn minor(self, on: bool) -> Self {
         Axis { minor: on, ..self }
     }
@@ -282,6 +301,7 @@ impl<'a, S: Kind> Axis<'a, S> {
     /// let x = fig.fit(time::utc());
     /// fig.panel(0, 0).axis(axis::bottom(x).rotate(30.0));
     /// ```
+    #[must_use]
     pub fn rotate(self, deg: f64) -> Self {
         Axis {
             rotate: if deg.is_finite() { deg } else { self.rotate },
@@ -311,7 +331,7 @@ where
     fn texts(&self, scale: &S, count: usize, locale: &Locale) -> Vec<String> {
         let set = self.set(scale, count);
         if let Some(format) = &self.format {
-            return set.values().iter().map(|v| format(v)).collect();
+            return set.get_values().iter().map(|v| format(v)).collect();
         }
         let mapped = self.notation(scale, count).zip(self.numbers(scale, count));
         let Some((notation, (values, domain))) = mapped else {
@@ -341,7 +361,7 @@ where
     /// `f64`.
     fn numbers(&self, scale: &S, count: usize) -> Option<(Vec<f64>, [f64; 2])> {
         let set = self.set(scale, count);
-        let values = set.values().iter().map(number).collect::<Option<_>>()?;
+        let values = set.get_values().iter().map(number).collect::<Option<_>>()?;
         let domain = Kind::domain(scale)?;
         let domain = (&domain as &dyn Any).downcast_ref::<[f64; 2]>()?;
         Some((values, *domain))

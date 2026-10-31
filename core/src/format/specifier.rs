@@ -10,6 +10,17 @@ use std::str::FromStr;
 pub(super) const MAX_WIDTH: usize = (1 << 29) - 24;
 
 /// A parsed `[[fill]align][sign][symbol][0][width][,][.precision][~][type]`.
+///
+/// ```
+/// use rustd3_core::format::{Align, Kind, Sign, Specifier};
+///
+/// let s: Specifier = "*^+12,.2f".parse()?;
+/// assert_eq!((s.get_fill(), s.get_align(), s.get_sign()), ('*', Align::Center, Sign::Plus));
+/// assert_eq!((s.get_width(), s.get_comma(), s.get_precision()), (Some(12), true, Some(2)));
+/// assert_eq!(s.get_kind(), Some(Kind::Fixed));
+/// assert_eq!(s.with_precision(0).to_string(), "*^+12,.0f");
+/// # Ok::<(), rustd3_core::format::InvalidFormat>(())
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Specifier {
     fill: char,
@@ -101,7 +112,7 @@ pub enum Kind {
 /// use rustd3_core::format;
 ///
 /// let error = format::format("10..f").unwrap_err();
-/// assert_eq!(error.input(), "10..f");
+/// assert_eq!(error.get_input(), "10..f");
 /// assert_eq!(error.to_string(), "invalid format: 10..f");
 /// ```
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -273,63 +284,75 @@ impl InvalidFormat {
     }
 
     /// The specifier that did not parse.
-    pub fn input(&self) -> &str {
+    #[must_use]
+    pub fn get_input(&self) -> &str {
         &self.0
     }
 }
 
 impl Specifier {
     /// The fill character (default ` `).
-    pub fn fill(&self) -> char {
+    #[must_use]
+    pub fn get_fill(&self) -> char {
         self.fill
     }
 
     /// The alignment (default [`Align::Right`]).
-    pub fn align(&self) -> Align {
+    #[must_use]
+    pub fn get_align(&self) -> Align {
         self.align
     }
 
     /// The sign option (default [`Sign::Minus`]).
-    pub fn sign(&self) -> Sign {
+    #[must_use]
+    pub fn get_sign(&self) -> Sign {
         self.sign
     }
 
     /// The `$` or `#` option.
-    pub fn symbol(&self) -> Option<Symbol> {
+    #[must_use]
+    pub fn get_symbol(&self) -> Option<Symbol> {
         self.symbol
     }
 
     /// Whether `0` asks for zero padding.
-    pub fn zero(&self) -> bool {
+    #[must_use]
+    pub fn get_zero(&self) -> bool {
         self.zero
     }
 
     /// The minimum width.
-    pub fn width(&self) -> Option<usize> {
+    #[must_use]
+    pub fn get_width(&self) -> Option<usize> {
         self.width
     }
 
     /// Whether `,` asks for grouping.
-    pub fn comma(&self) -> bool {
+    #[must_use]
+    pub fn get_comma(&self) -> bool {
         self.comma
     }
 
     /// The precision.
-    pub fn precision(&self) -> Option<usize> {
+    #[must_use]
+    pub fn get_precision(&self) -> Option<usize> {
         self.precision
     }
 
     /// Whether `~` asks for insignificant zeros to be trimmed.
-    pub fn trim(&self) -> bool {
+    #[must_use]
+    pub fn get_trim(&self) -> bool {
         self.trim
     }
 
     /// The type, if one is given.
-    pub fn kind(&self) -> Option<Kind> {
+    #[must_use]
+    pub fn get_kind(&self) -> Option<Kind> {
         self.kind
     }
 
     /// d3-scale's tickFormat sets these on a parsed specifier.
+    #[must_use]
     pub fn with_precision(self, precision: usize) -> Self {
         Specifier {
             precision: Some(precision),
@@ -338,6 +361,7 @@ impl Specifier {
     }
 
     /// The specifier with `~` set or cleared.
+    #[must_use]
     pub fn with_trim(self, trim: bool) -> Self {
         Specifier { trim, ..self }
     }

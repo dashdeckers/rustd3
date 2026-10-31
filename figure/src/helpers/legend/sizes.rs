@@ -15,6 +15,12 @@ pub struct Sizes<S> {
     values: Option<Vec<f64>>,
 }
 
+impl<S> std::fmt::Debug for Sizes<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Sizes").finish_non_exhaustive()
+    }
+}
+
 /// A legend of `handle`, a numeric handle whose output is a radius in px
 /// (a dots mark's [`size_by`](crate::mark::Dots::size_by)): one entry per
 /// tick of its resolved scale for about [`count`](Sizes::count) ticks (4
@@ -38,6 +44,7 @@ pub struct Sizes<S> {
 /// fig.panel(0, 0)
 ///     .legend(Inset::TopLeft, legend::sizes(radius).values([10.0, 100.0]));
 /// ```
+#[must_use]
 pub fn sizes<S>(handle: ScaleRef<S>) -> Sizes<S>
 where
     S: Kind<Domain = f64, Output = f64> + Ticks<Domain = f64>,
@@ -51,12 +58,14 @@ where
 
 impl<S> Sizes<S> {
     /// About `n` entries: the scale's ticks for count `n`.
+    #[must_use]
     pub fn count(self, n: usize) -> Self {
         Self { count: n, ..self }
     }
 
     /// One entry per value in `v` inside the domain, in place of the
     /// scale's ticks, labelled as its ticks are.
+    #[must_use]
     pub fn values(self, v: impl IntoIterator<Item = f64>) -> Self {
         Self {
             values: Some(v.into_iter().collect()),
@@ -85,7 +94,7 @@ where
     /// One dot per entry of the radius the scale gives it, skipped when
     /// that radius is not finite and positive.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry> {
-        let Some(scale) = resolved.scale(self.handle) else {
+        let Some(scale) = resolved.get_scale(self.handle) else {
             return Vec::new();
         };
         let values = self.values.as_deref();

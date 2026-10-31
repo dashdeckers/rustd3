@@ -83,16 +83,19 @@ impl Bounds {
 
     /// The bounds of command `command`; `None` for a group's ends, a
     /// command that draws nothing, or an index past the list.
+    #[must_use]
     pub fn get(&self, command: usize) -> Option<Rect> {
         self.0.get(command).copied().flatten()
     }
 
     /// The number of commands.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
     /// Whether the list had no commands.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

@@ -15,6 +15,15 @@ use crate::text::Error;
 /// order, with typst's standard library and font book over them, hashed
 /// once. Each face keeps one [`FontData`], so its blob id, which glyph
 /// caches and part hashes depend on, is the same in every list.
+///
+/// ```
+/// use rustd3_figure::text;
+///
+/// // An app's own font files go first; bytes that hold no face are
+/// // rejected with their position.
+/// let bad = text::Fonts::with([b"not a font".to_vec()]).unwrap_err();
+/// assert_eq!(bad, text::Error::Font { index: 0 });
+/// ```
 pub struct Fonts {
     library: LazyHash<Library>,
     book: LazyHash<FontBook>,
@@ -55,6 +64,11 @@ impl Fonts {
     /// fallback order, then the bundled fonts when the `fonts` feature is
     /// on. Bytes that hold no face are `Error::Font` with their position
     /// in `extra`.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Font`] with the position in `extra` of bytes that hold no
+    /// face.
     pub fn with(extra: impl IntoIterator<Item = Vec<u8>>) -> Result<Fonts, Error> {
         let mut faces = Vec::new();
         for (index, bytes) in extra.into_iter().enumerate() {

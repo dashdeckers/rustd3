@@ -12,7 +12,7 @@
 //!     "M0.5,6L0.5,0.5L960.5,0.5L960.5,6M0.5,0L0.5,6M480.5,0L480.5,6M960.5,0L960.5,6"
 //! );
 //! let labels = a.labels();
-//! assert_eq!((labels[1].x(), labels[1].y(), labels[1].text()), (480.5, 9.0, "50"));
+//! assert_eq!((labels[1].get_x(), labels[1].get_y(), labels[1].get_text()), (480.5, 9.0, "50"));
 //! ```
 
 mod label;
@@ -135,12 +135,14 @@ pub fn left<S: Ticks>(scale: &S) -> Axis<'_, S> {
 impl<'s, S: Ticks> Axis<'s, S> {
     /// d3's `ticks(count)`: about `count` ticks, which also sets the
     /// default labels' precision.
+    #[must_use]
     pub fn ticks(self, count: usize) -> Self {
         Axis { count, ..self }
     }
 
     /// d3's `tickValues`: these values instead of the scale's ticks; the
     /// default labels still follow the tick count.
+    #[must_use]
     pub fn values(self, values: impl IntoIterator<Item = S::Domain>) -> Self {
         Axis {
             values: Some(values.into_iter().collect()),
@@ -150,6 +152,7 @@ impl<'s, S: Ticks> Axis<'s, S> {
 
     /// d3's `tickFormat(f)`: each label is `f(value)` instead of the
     /// scale's labels under the locale.
+    #[must_use]
     pub fn format(self, f: impl Fn(&S::Domain) -> String + 's) -> Self {
         Axis {
             format: Some(Box::new(f)),
@@ -158,11 +161,13 @@ impl<'s, S: Ticks> Axis<'s, S> {
     }
 
     /// The locale of the default labels.
+    #[must_use]
     pub fn locale(self, locale: Locale) -> Self {
         Axis { locale, ..self }
     }
 
     /// d3's `tickSize`: the inner and outer tick size, in pixels.
+    #[must_use]
     pub fn tick_size(self, px: f64) -> Self {
         Axis {
             inner: px,
@@ -172,17 +177,20 @@ impl<'s, S: Ticks> Axis<'s, S> {
     }
 
     /// d3's `tickSizeInner`: the length of each tick mark.
+    #[must_use]
     pub fn tick_size_inner(self, px: f64) -> Self {
         Axis { inner: px, ..self }
     }
 
     /// d3's `tickSizeOuter`: the length of the domain path's end marks; 0
     /// draws a plain line.
+    #[must_use]
     pub fn tick_size_outer(self, px: f64) -> Self {
         Axis { outer: px, ..self }
     }
 
     /// The length of each minor tick mark.
+    #[must_use]
     pub fn tick_size_minor(self, px: f64) -> Self {
         Axis {
             minor_size: px,
@@ -191,6 +199,7 @@ impl<'s, S: Ticks> Axis<'s, S> {
     }
 
     /// d3's `tickPadding`: the gap between a tick and its label.
+    #[must_use]
     pub fn tick_padding(self, px: f64) -> Self {
         Axis {
             padding: px,
@@ -200,11 +209,13 @@ impl<'s, S: Ticks> Axis<'s, S> {
 
     /// d3's `offset`: added to every position and the range ends, 0.5 to
     /// center one-pixel lines on pixels.
+    #[must_use]
     pub fn offset(self, px: f64) -> Self {
         Axis { offset: px, ..self }
     }
 
     /// Whether minor ticks are drawn, from [`Ticks::minor`].
+    #[must_use]
     pub fn minor(self, on: bool) -> Self {
         Axis { minor: on, ..self }
     }
@@ -229,7 +240,7 @@ impl<'s, S: Ticks> Axis<'s, S> {
             }
         }
         let set = self.set();
-        self.marks(ctx, set.values(), k * self.inner);
+        self.marks(ctx, set.get_values(), k * self.inner);
         if self.minor {
             self.marks(ctx, &self.scale.minor(&set), k * self.minor_size);
         }
@@ -237,14 +248,15 @@ impl<'s, S: Ticks> Axis<'s, S> {
 
     /// Where the host draws each label, and what: one per tick whose
     /// position is finite, formatted as one batch.
+    #[must_use]
     pub fn labels(&self) -> Vec<Label> {
         let set = self.set();
         let texts = match &self.format {
-            Some(f) => set.values().iter().map(f).collect(),
+            Some(f) => set.get_values().iter().map(f).collect(),
             None => self.scale.labels(&set, &self.locale),
         };
         let across = self.orient.sign() * (self.inner.max(0.0) + self.padding);
-        set.values()
+        set.get_values()
             .iter()
             .zip(texts)
             .filter_map(|(value, text)| {

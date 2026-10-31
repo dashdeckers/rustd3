@@ -22,6 +22,12 @@ pub struct Bars<X: Position, Y: Position<Domain = f64>> {
     center: bool,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Bars<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Bars").finish_non_exhaustive()
+    }
+}
+
 /// matplotlib's `bar_label` for bars of `data` drawn on `x` and `y` from 0
 /// (as [`bar_y`](crate::mark::bar_y) draws them): each finite value,
 /// written in the figure's locale, at its bar's end, centred across the
@@ -69,6 +75,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
     /// `""` (up to 12 significant digits, trailing zeros trimmed), which
     /// writes what matplotlib's default `%g` writes for values of six
     /// significant digits or fewer.
+    #[must_use]
     pub fn format(self, spec: Specifier) -> Self {
         Self {
             format: spec,
@@ -79,6 +86,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
     /// The distance between a bar's end and its label, pt (3 by default,
     /// not scaled by the theme's context, as matplotlib's `padding`). A
     /// distance that is not finite leaves it as it was.
+    #[must_use]
     pub fn padding(self, pt: f64) -> Self {
         Self {
             padding: if pt.is_finite() { pt } else { self.padding },
@@ -88,6 +96,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
 
     /// Each label inside its bar, its line box centred halfway between the
     /// bar's base and its end (matplotlib's `label_type="center"`).
+    #[must_use]
     pub fn center(self) -> Self {
         Self {
             center: true,
@@ -97,7 +106,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
 
     /// The formatter of the labels under `locale`.
     fn formatter(&self, locale: &Locale) -> Format {
-        Format::new(locale.number(), self.format.clone())
+        Format::new(locale.get_number(), self.format.clone())
     }
 }
 
@@ -105,9 +114,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
     /// Reports the labels to be shaped; no values.
     fn fit(&self, fits: &mut Fits) {
         fits.across(self.x);
-        let format = self.formatter(fits.locale());
+        let format = self.formatter(fits.get_locale());
         for (_, v) in self.rows.iter().filter(|(_, v)| v.is_finite()) {
-            let label = key(format.format(*v), fits.theme());
+            let label = key(format.format(*v), fits.get_theme());
             fits.label(label);
         }
     }
@@ -119,8 +128,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
-        let format = self.formatter(ctx.locale());
+        let band = guard::band(ctx.get_rect().width(), ctx.get_rect().height());
+        let format = self.formatter(ctx.get_locale());
         let pad = self.padding * PX_PER_PT;
         for (k, v) in self.rows.iter().filter(|(_, v)| v.is_finite()) {
             let x = sx.position(k).map(|p| p + sx.bandwidth() / 2.0);
@@ -138,7 +147,13 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
             };
             let at = Point::new(x, y);
             if at.is_finite() && mark::within(band, at) {
-                place(&key(format.format(*v), ctx.theme()), at, edge, ctx, list);
+                place(
+                    &key(format.format(*v), ctx.get_theme()),
+                    at,
+                    edge,
+                    ctx,
+                    list,
+                );
             }
         }
     }
@@ -155,7 +170,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Bars<X, Y> {
             .count();
         if count > 0 {
             issues.push(Issue::OutsideDomain {
-                handle: self.x.index(),
+                handle: self.x.get_index(),
                 count,
             });
         }

@@ -29,7 +29,23 @@ use crate::ticks;
 /// `ticks(count)` is d3's and would shadow it; for the same reason a
 /// continuous scale's minor ticks of a set are written
 /// `Ticks::minor(&scale, &set)`.
-pub trait Ticks {
+///
+/// Sealed: implemented for core's scales only, so that it can grow; a
+/// scale of one's own is a `Continuous` over a custom [`Transform`](crate::scale::Transform).
+///
+/// ```compile_fail,E0277
+/// use rustd3_core::scale::Ticks;
+///
+/// struct Mine;
+/// impl Ticks for Mine {
+/// #   type Domain = f64;
+/// #   type Step = f64;
+/// #   fn tick_set(&self, _: usize) -> rustd3_core::ticks::Set<f64, f64> { unimplemented!() }
+/// #   fn position(&self, _: &f64) -> Option<f64> { None }
+/// #   fn tick_format(&self, _: &rustd3_core::ticks::Set<f64, f64>) -> rustd3_core::scale::TickFormat { unimplemented!() }
+/// }
+/// ```
+pub trait Ticks: crate::sealed::Ticks {
     /// The values ticks mark (`f64`, a band key, a `Timestamp`).
     type Domain: Clone;
     /// The step the scale chooses ticks with: `f64` for continuous and
@@ -125,8 +141,11 @@ pub(super) fn edges(values: Vec<f64>, count: usize) -> ticks::Set<f64, f64> {
 /// set's step (`,f` to [`precision_fixed`](crate::format::precision_fixed)
 /// of it) under `locale`, as one batch.
 pub(super) fn edge_labels(set: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
-    let largest = set.values().iter().fold(0.0, |m: f64, v| m.max(v.abs()));
-    tick_format::stepped(locale.number(), *set.step(), largest, None)
+    let largest = set
+        .get_values()
+        .iter()
+        .fold(0.0, |m: f64, v| m.max(v.abs()));
+    tick_format::stepped(locale.get_number(), *set.get_step(), largest, None)
         .expect("invariant: `,f` parses")
-        .format_all(set.values())
+        .format_all(set.get_values())
 }

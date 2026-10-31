@@ -15,6 +15,7 @@ use crate::color::{Cubehelix, Rgb};
 /// assert_eq!(scheme::sinebow(0.0).to_string(), scheme::sinebow(1.0).to_string());
 /// ```
 #[doc(alias = "interpolateSinebow")]
+#[must_use]
 pub fn sinebow(t: f64) -> Rgb {
     let u = (0.5 - t) * PI;
     let channel = |x: f64| {
@@ -39,6 +40,7 @@ pub fn sinebow(t: f64) -> Rgb {
 /// assert_eq!(scheme::rainbow(1.3), scheme::rainbow(0.30000000000000004));
 /// ```
 #[doc(alias = "interpolateRainbow")]
+#[must_use]
 pub fn rainbow(t: f64) -> Rgb {
     let t = if (0.0..=1.0).contains(&t) {
         t

@@ -64,6 +64,7 @@ impl Transform {
 
     /// d3's `transform.scale(k)`: the scale factor multiplied by `k`, the
     /// translation kept.
+    #[must_use]
     pub fn scale(self, k: f64) -> Self {
         Transform {
             k: self.k * k,
@@ -75,6 +76,7 @@ impl Transform {
     /// units, which this scale factor multiplies. A zero translation
     /// returns the transform unchanged, as in d3 (so −0 and an infinite
     /// `k` stay as they are).
+    #[must_use]
     pub fn translate(self, x: f64, y: f64) -> Self {
         if x == 0.0 && y == 0.0 {
             return self;
@@ -87,32 +89,38 @@ impl Transform {
     }
 
     /// d3's `transform.apply(point)`: the screen position of a data point.
+    #[must_use]
     pub fn apply(self, (x, y): (f64, f64)) -> (f64, f64) {
         (self.apply_x(x), self.apply_y(y))
     }
 
     /// d3's `transform.applyX(x)`.
+    #[must_use]
     pub fn apply_x(self, x: f64) -> f64 {
         x * self.k + self.x
     }
 
     /// d3's `transform.applyY(y)`.
+    #[must_use]
     pub fn apply_y(self, y: f64) -> f64 {
         y * self.k + self.y
     }
 
     /// d3's `transform.invert(location)`: the data point at a screen
     /// position.
+    #[must_use]
     pub fn invert(self, (x, y): (f64, f64)) -> (f64, f64) {
         (self.invert_x(x), self.invert_y(y))
     }
 
     /// d3's `transform.invertX(x)`.
+    #[must_use]
     pub fn invert_x(self, x: f64) -> f64 {
         (x - self.x) / self.k
     }
 
     /// d3's `transform.invertY(y)`.
+    #[must_use]
     pub fn invert_y(self, y: f64) -> f64 {
         (y - self.y) / self.k
     }

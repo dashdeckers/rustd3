@@ -11,7 +11,7 @@
 //! [`list::brush`](crate::list::brush), [`Ctx::snap`] and the [`guard`]
 //! band, and labels what it draws through the text kit: it reports each
 //! label with [`Fits::label`] while fitting and places the shaped label
-//! from [`Ctx::label`] while drawing, numbers written in [`Ctx::locale`]
+//! from [`Ctx::get_label`] while drawing, numbers written in [`Ctx::get_locale`]
 //! and baselines set from [`Ctx::line`].
 //!
 //! ```
@@ -92,7 +92,7 @@ pub trait Mark<'a>: 'a {
     fn hits(&self, _ctx: &Ctx<'_>, _sink: &mut hit::Sink) {}
 
     /// Reports what [`Figure::check`](crate::Figure::check) should know of
-    /// the mark, under [`Ctx::panel`] and [`Ctx::mark`]; nothing by
+    /// the mark, under [`Ctx::get_panel`] and [`Ctx::get_mark`]; nothing by
     /// default.
     fn issues(&self, _ctx: &Ctx<'_>, _issues: &mut Vec<Issue>) {}
 }
@@ -108,6 +108,12 @@ pub struct Ctx<'r> {
     frame: &'r RefCell<thin::Frame>,
     panel: usize,
     mark: usize,
+}
+
+impl<'r> std::fmt::Debug for Ctx<'r> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ctx").finish_non_exhaustive()
+    }
 }
 
 impl<'r> Ctx<'r> {
@@ -144,45 +150,53 @@ impl<'r> Ctx<'r> {
 impl Ctx<'_> {
     /// `h`'s resolved scale across the plot area, over [0, w]; `None` for
     /// a handle of another figure, which a mark draws nothing for.
+    #[must_use]
     pub fn x<S: Position>(&self, h: ScaleRef<S>) -> Option<S> {
         self.ranged(h, [0.0, self.rect.width()])
     }
 
     /// `h`'s resolved scale up the plot area, over [h, 0]; `None` for a
     /// handle of another figure.
+    #[must_use]
     pub fn y<S: Position>(&self, h: ScaleRef<S>) -> Option<S> {
         self.ranged(h, [self.rect.height(), 0.0])
     }
 
     /// `h`'s resolved scale as it is, before any panel's range (a palette,
     /// say); `None` for a handle of another figure.
-    pub fn raw<S: Kind>(&self, h: ScaleRef<S>) -> Option<S> {
+    #[must_use]
+    pub fn get_raw<S: Kind>(&self, h: ScaleRef<S>) -> Option<S> {
         self.scale(h).cloned()
     }
 
     /// The plot area, in list px.
-    pub fn rect(&self) -> kurbo::Rect {
+    #[must_use]
+    pub fn get_rect(&self) -> kurbo::Rect {
         self.rect
     }
 
     /// The figure's theme.
-    pub fn theme(&self) -> &Theme {
+    #[must_use]
+    pub fn get_theme(&self) -> &Theme {
         self.theme
     }
 
     /// The panel's index, in the order of first use.
-    pub fn panel(&self) -> usize {
+    #[must_use]
+    pub fn get_panel(&self) -> usize {
         self.panel
     }
 
     /// The mark's index in its panel, in insertion order.
-    pub fn mark(&self) -> usize {
+    #[must_use]
+    pub fn get_mark(&self) -> usize {
         self.mark
     }
 
     /// Device pixels per list px of the target drawn for: 1 for vector
     /// output.
-    pub fn scale_factor(&self) -> f64 {
+    #[must_use]
+    pub fn get_scale_factor(&self) -> f64 {
         self.resolved.target().scale_factor()
     }
 
@@ -192,6 +206,7 @@ impl Ctx<'_> {
     /// ([`Snap::line`]) through it to come out as crisp as the rect and
     /// rule marks on raster targets; vector output keeps everything as it
     /// is.
+    #[must_use]
     pub fn snap(&self) -> Snap {
         Snap::of(self.resolved.target())
     }
@@ -252,22 +267,24 @@ impl Ctx<'_> {
     /// `h`'s resolved scale, borrowed; `None` for a handle of another
     /// figure.
     pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
-        self.resolved.scale(h)
+        self.resolved.get_scale(h)
     }
 
     /// The shaped label of `key`, which the mark reported while fitting
     /// ([`Fits::label`]); `None` when it was not reported or typst rejected
     /// it. A custom mark places it into its list with
-    /// [`Shaped::place`], sized by [`Shaped::width`] and its line box
+    /// [`Shaped::place`], sized by [`Shaped::get_width`] and its line box
     /// ([`Ctx::line`]).
-    pub fn label(&self, key: &Key) -> Option<&Shaped> {
+    #[must_use]
+    pub fn get_label(&self, key: &Key) -> Option<&Shaped> {
         self.text.get(key)?.ok()
     }
 
     /// The figure's locale ([`Figure::locale`](crate::Figure::locale)). A
     /// custom mark that writes numbers (value labels, annotations) formats
     /// them in it, as axes write their tick labels.
-    pub fn locale(&self) -> &rustd3_core::locale::Locale {
+    #[must_use]
+    pub fn get_locale(&self) -> &rustd3_core::locale::Locale {
         self.resolved.locale()
     }
 
@@ -277,6 +294,7 @@ impl Ctx<'_> {
     /// helpers' value labels sit), not by each label's ink box, places
     /// their baselines from it: labels with and without descenders then
     /// line up.
+    #[must_use]
     pub fn line(&self, size: f64) -> [f64; 2] {
         self.text.fonts().line(size)
     }
@@ -415,14 +433,14 @@ fn thinned<X: Position, Y: Position>(
     }
     let channel = points.indexed()?;
     let indexed = sx.indexed()?;
-    let edges = ctx.edges(indexed, x.index())?;
+    let edges = ctx.edges(indexed, x.get_index())?;
     indexed.thin(&channel, &edges, &|v| admits(sy, v), &mut ctx.frame())
 }
 
 /// The issues every mark over `points` in `color` may have: collected data
 /// over 100,000 points, and a key its palette lacks.
 fn issues<X, Y>(points: &Points<'_, X, Y>, color: &Color, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-    let (panel, mark) = (ctx.panel(), ctx.mark());
+    let (panel, mark) = (ctx.get_panel(), ctx.get_mark());
     if points.is_collected() && points.len() > check::LARGE {
         issues.push(Issue::LargeOwned {
             panel,
@@ -437,8 +455,8 @@ fn issues<X, Y>(points: &Points<'_, X, Y>, color: &Color, ctx: &Ctx<'_>, issues:
 fn unknown(color: &Color, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
     if !color.known(ctx) {
         issues.push(Issue::UnknownKey {
-            panel: ctx.panel(),
-            mark: ctx.mark(),
+            panel: ctx.get_panel(),
+            mark: ctx.get_mark(),
         });
     }
 }
@@ -471,8 +489,8 @@ fn outside<X: Position, Y: Position>(
         across += usize::from(sx.position(&a).is_none());
         up += usize::from(sy.position(&b).is_none());
     }
-    outside_count(x.index(), across, issues);
-    outside_count(y.index(), up, issues);
+    outside_count(x.get_index(), across, issues);
+    outside_count(y.get_index(), up, issues);
 }
 
 /// Whether `p` lies in `bounds`, edges included.
@@ -582,8 +600,8 @@ pub(crate) fn dashes(pattern: impl IntoIterator<Item = f64>) -> Option<Vec<f64>>
 /// coordinates, its lines anchored to the figure.
 fn hatch(hatch: Option<&Hatch>, clip: Clip, bounds: kurbo::Rect, ctx: &Ctx<'_>, list: &mut List) {
     if let Some(hatch) = hatch {
-        let origin = ctx.rect().origin().to_vec2();
-        hatch.draw(clip, bounds, origin, ctx.theme(), list);
+        let origin = ctx.get_rect().origin().to_vec2();
+        hatch.draw(clip, bounds, origin, ctx.get_theme(), list);
     }
 }
 

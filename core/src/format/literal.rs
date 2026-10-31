@@ -19,6 +19,7 @@ use crate::format::specifier::MAX_WIDTH;
 /// assert!(!is_valid("10..f"));
 /// assert!(!is_valid("536870889"));
 /// ```
+#[must_use]
 pub const fn is_valid(spec: &str) -> bool {
     let b = spec.as_bytes();
     let mut i = after_align(b);

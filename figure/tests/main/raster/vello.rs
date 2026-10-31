@@ -11,10 +11,7 @@ use crate::sink;
 
 /// Single-threaded at the baseline SIMD level: the same pixels anywhere.
 pub fn renderer() -> Renderer {
-    Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    })
+    Renderer::new(Settings::default().simd(Simd::Baseline))
 }
 
 /// `area` of `list` at `scale`, bounds computed here.

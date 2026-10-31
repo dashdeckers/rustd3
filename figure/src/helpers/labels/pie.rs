@@ -25,6 +25,12 @@ pub struct Pie<K> {
     keys: PhantomData<fn(&K)>,
 }
 
+impl<K> std::fmt::Debug for Pie<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Pie").finish_non_exhaustive()
+    }
+}
+
 /// One label per slice of a pie of `slices` between radii `inner` and
 /// `outer` (px; `inner` 0 for a pie, above it for a donut), centred on the
 /// pie's slice's arc centroid (d3's `arc.centroid`: the middle of its
@@ -59,6 +65,7 @@ pub fn pie<K: Display>(slices: &[(K, f64)], inner: f64, outer: f64) -> Pie<K> {
 impl<K> Pie<K> {
     /// Each label as its slice's share of the total of the positive values,
     /// written `.0%` in the figure's locale ("50%"), in place of its key.
+    #[must_use]
     pub fn percent(self, on: bool) -> Self {
         Self {
             percent: on,
@@ -70,6 +77,7 @@ impl<K> Pie<K> {
     /// middle angle, in place of halfway between the radii. A radius that is
     /// not between 0 and the outer radius leaves the ring as it was: labels
     /// outside the pie are not in v0.1.
+    #[must_use]
     pub fn radius(self, r: f64) -> Self {
         let inside = (0.0..=self.outer).contains(&r);
         Self {
@@ -83,7 +91,7 @@ impl<K> Pie<K> {
     fn texts(&self, locale: &Locale) -> Vec<Option<String>> {
         let total: f64 = self.positive().sum();
         let share = Format::new(
-            locale.number(),
+            locale.get_number(),
             ".0%"
                 .parse()
                 .expect("invariant: `.0%` is a valid specifier"),
@@ -111,26 +119,26 @@ impl<K> Pie<K> {
 impl<'a, K: 'a> Mark<'a> for Pie<K> {
     /// Reports the labels to be shaped; no values.
     fn fit(&self, fits: &mut Fits) {
-        for text in self.texts(fits.locale()).into_iter().flatten() {
-            let label = key(text, fits.theme());
+        for text in self.texts(fits.get_locale()).into_iter().flatten() {
+            let label = key(text, fits.get_theme());
             fits.label(label);
         }
     }
 
     /// Each positive slice's label centred on its centroid.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let rect = ctx.rect();
+        let rect = ctx.get_rect();
         let centre = Point::new(rect.width() / 2.0, rect.height() / 2.0);
         let (inner, outer) = self.ring.map_or((self.inner, self.outer), |r| (r, r));
         let arc = shape::arc().inner_radius(inner).outer_radius(outer);
         let slices = shape::pie().layout(self.slices.iter().map(|(_, v)| *v));
-        let texts = self.texts(ctx.locale());
+        let texts = self.texts(ctx.get_locale());
         for (slice, text) in slices.iter().zip(texts) {
             let Some(text) = text else { continue };
             let (dx, dy) = arc.centroid(slice);
             let at = centre + Vec2::new(dx, dy);
             if at.is_finite() {
-                place(&key(text, ctx.theme()), at, Edge::Middle, ctx, list);
+                place(&key(text, ctx.get_theme()), at, Edge::Middle, ctx, list);
             }
         }
     }

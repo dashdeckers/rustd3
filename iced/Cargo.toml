@@ -12,6 +12,9 @@ autotests = false
 default = ["fonts"]
 fonts = ["rustd3-figure?/fonts"]
 figure = ["dep:rustd3-figure", "rustd3-figure/raster"]
+# Not for apps: makes `plot::cost`, the cost model's seed constants,
+# public (hidden from the docs) for the benchmark and the tests.
+__dev = ["figure"]
 
 [dependencies]
 rustd3-core.workspace = true

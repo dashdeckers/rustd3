@@ -80,7 +80,7 @@ pub(crate) fn ends(last: f64, span: f64, columns: u32) -> Option<[f64; 2]> {
 
 /// The column count each windowed handle was last laid out in, keyed by
 /// its index in the scale table and its scale's type, which survive a
-/// figure's rebuild: kept in [`figure::Cache`](crate::Cache), so a resolve
+/// figure's rebuild: kept in [`figure::Cache`](crate::cache::Cache), so a resolve
 /// whose layout did not move fits each window once.
 #[derive(Debug, Default)]
 pub(crate) struct Memory {

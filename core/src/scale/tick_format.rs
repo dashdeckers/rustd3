@@ -65,6 +65,7 @@ impl TickFormat {
     }
 
     /// One tick's label; `""` for a tick a log scale leaves unlabelled.
+    #[must_use]
     pub fn format(&self, value: f64) -> String {
         match &self.keep {
             Some(keep) if !keep.keeps(value) => String::new(),
@@ -75,6 +76,7 @@ impl TickFormat {
     /// The labels of a whole tick set, one per value: the number format's
     /// batch rule ([`Format::format_all`]) over every value, then a log
     /// scale's blanking, so a blanked value still counts towards grouping.
+    #[must_use]
     pub fn format_all(&self, values: &[f64]) -> Vec<String> {
         let mut labels = self.format.format_all(values);
         if let Some(keep) = &self.keep {
@@ -103,15 +105,16 @@ impl TickFormat {
     /// assert_eq!(neutral.labels(&set, &Locale::NEUTRAL)[6], "12\u{202f}000");
     /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
     /// ```
+    #[must_use]
     pub fn labels(&self, set: &ticks::Set<f64, f64>, locale: &locale::Locale) -> Vec<String> {
-        if self.format.locale() == locale.number() {
-            return self.format_all(set.values());
+        if self.format.get_locale() == locale.get_number() {
+            return self.format_all(set.get_values());
         }
         TickFormat {
-            format: self.format.with_locale(locale.number()),
+            format: self.format.with_locale(locale.get_number()),
             keep: self.keep,
         }
-        .format_all(set.values())
+        .format_all(set.get_values())
     }
 }
 
@@ -133,6 +136,11 @@ impl Keep {
 /// tick step: significant digits for no type, `e`, `g`, `p` and `r`,
 /// decimal places for `f` and `%`, and for `s` decimal places under the SI
 /// prefix of the larger end.
+///
+/// # Errors
+///
+/// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier` does
+/// not parse.
 #[doc(alias = "tickFormat")]
 pub fn tick_format(
     locale: &Locale,
@@ -157,12 +165,12 @@ pub(crate) fn stepped(
     let specifier: Specifier = specifier.unwrap_or(",f").parse()?;
     // A precision the specifier sets wins; d3's NaN precision is None.
     let precise = |precision: Option<usize>, less: usize| match precision {
-        Some(p) if specifier.precision().is_none() => {
+        Some(p) if specifier.get_precision().is_none() => {
             specifier.clone().with_precision(p.saturating_sub(less))
         }
         Some(_) | None => specifier.clone(),
     };
-    Ok(match specifier.kind() {
+    Ok(match specifier.get_kind() {
         Some(Kind::Si) => Format::prefixed(
             locale,
             precise(format::precision_prefix(step, largest), 0),

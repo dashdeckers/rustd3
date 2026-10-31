@@ -41,6 +41,7 @@ pub struct Options {
 
 /// Why a list cannot be written as PDF.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A list whose size is not positive and finite.
     #[error("page size {width} × {height} px is not positive and finite")]
@@ -75,6 +76,7 @@ pub enum Error {
 
 impl Options {
     /// Glyphs as filled outlines instead of text (no fonts embedded).
+    #[must_use]
     pub fn outlined(self, yes: bool) -> Self {
         Options {
             outlined: yes,
@@ -83,6 +85,7 @@ impl Options {
     }
 
     /// The document's title, written to its metadata.
+    #[must_use]
     pub fn title(self, t: impl Into<String>) -> Self {
         Options {
             title: Some(t.into()),
@@ -125,6 +128,14 @@ impl Options {
 /// assert!(bytes.windows(22).any(|w| w == b"/MediaBox[0 0 720 570]"));
 /// # Ok::<(), pdf::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// [`Error::Size`] for a list whose size is not positive and finite,
+/// [`Error::Unsupported`] for what PDF does not draw, [`Error::Font`] for a
+/// font krilla cannot embed, [`Error::List`] for a list that fails
+/// [`list::check`], [`Error::Krilla`] for what krilla
+/// reports.
 pub fn write(list: &List, options: &Options) -> Result<Vec<u8>, Error> {
     list::check(list)?;
     let (width, height) = (list.size.width, list.size.height);

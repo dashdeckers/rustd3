@@ -27,6 +27,7 @@ impl From<String> for Span {
 
 impl Span {
     /// The same text in `color`.
+    #[must_use]
     pub fn fill(self, color: Rgb) -> Self {
         Span {
             fill: Some(color),
@@ -35,6 +36,7 @@ impl Span {
     }
 
     /// The same text in bold.
+    #[must_use]
     pub fn bold(self) -> Self {
         Span { bold: true, ..self }
     }

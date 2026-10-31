@@ -28,12 +28,21 @@ pub const CAPS: Caps = Caps {
 /// How [`write()`] writes a list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
-    /// How glyph runs are written.
-    pub text: Text,
+    text: Text,
+}
+
+impl Options {
+    /// How glyph runs are written: outlines defined once and reused (the
+    /// default), or `<text>` elements.
+    #[must_use]
+    pub fn text(self, text: Text) -> Self {
+        Options { text }
+    }
 }
 
 /// How glyph runs are written.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Text {
     /// Every glyph used is one `<path>` in `<defs>` at 1000 units per em,
     /// which runs `<use>`: the file needs no fonts and draws exactly the
@@ -74,6 +83,12 @@ pub enum Text {
 /// assert!(svg.contains("<path d='M0,0L10,0L10,10L0,10Z' fill='#4c72b0'/>"));
 /// # Ok::<(), rustd3_figure::list::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// The [`list::Error`] of [`list::check`] for a list
+/// that fails it, and [`list::Error::Unsupported`] for a sweep gradient
+/// (which lowering for [`CAPS`] turns into an image) or an image brush.
 pub fn write(list: &List, options: &Options) -> Result<String, list::Error> {
     list::check(list)?;
     let faces = match options.text {

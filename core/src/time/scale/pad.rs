@@ -61,6 +61,8 @@ impl Pad for Time {
     }
 }
 
+impl crate::sealed::Pad for Time {}
+
 /// matplotlib's `handle_single_axis` for dates, ascending, in nanoseconds
 /// from the epoch.
 fn fit(extent: Option<[Timestamp; 2]>, margin: f64, sticky: &[Timestamp]) -> [i128; 2] {

@@ -50,6 +50,12 @@ pub struct Fits {
     foreign: Vec<(usize, usize)>,
 }
 
+impl std::fmt::Debug for Fits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Fits").finish_non_exhaustive()
+    }
+}
+
 /// What the marks reported: per table entry its slot, filled when it is
 /// fitted and not held, and the panels that place it across; the labels
 /// marks draw; and the palette keys they draw in.
@@ -217,7 +223,7 @@ impl Fits {
         y: ScaleRef<Y>,
     ) -> Option<X> {
         let Some(index) = x.of(self.figure) else {
-            self.note(x.index());
+            self.note(x.get_index());
             return None;
         };
         let pending = self.pending.as_ref()?;
@@ -258,26 +264,28 @@ impl Fits {
         self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
     }
 
-    /// The figure's theme, as [`Ctx::theme`](crate::mark::Ctx::theme) gives
+    /// The figure's theme, as [`Ctx::get_theme`](crate::mark::Ctx::get_theme) gives
     /// it while drawing. A custom mark that reports labels builds their
     /// [`Key`]s here from the theme's colors and sizes, so that the keys it
     /// looks up while drawing are the ones it reported.
-    pub fn theme(&self) -> &Theme {
+    #[must_use]
+    pub fn get_theme(&self) -> &Theme {
         &self.theme
     }
 
     /// The figure's locale ([`Figure::locale`](crate::Figure::locale)), as
-    /// [`Ctx::locale`](crate::mark::Ctx::locale) gives it while drawing. A
+    /// [`Ctx::get_locale`](crate::mark::Ctx::get_locale) gives it while drawing. A
     /// custom mark that labels numbers writes them in it here, so that the
     /// labels it reports are the ones it draws.
-    pub fn locale(&self) -> &Locale {
+    #[must_use]
+    pub fn get_locale(&self) -> &Locale {
         &self.locale
     }
 
     /// A label a mark draws, shaped with the figure's other labels in the
     /// figure's one batch of typst text. A custom mark that draws text
     /// reports each label's [`Key`] here while fitting and reads its shape
-    /// back with [`Ctx::label`](crate::mark::Ctx::label) while drawing, as
+    /// back with [`Ctx::get_label`](crate::mark::Ctx::get_label) while drawing, as
     /// the rule marks' labels and the helpers' value labels do; a label not
     /// reported is not shaped.
     ///
@@ -298,9 +306,9 @@ impl Fits {
     ///     }
     ///
     ///     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-    ///         let Some(shaped) = ctx.label(&self.0) else { return };
+    ///         let Some(shaped) = ctx.get_label(&self.0) else { return };
     ///         let [ascender, descender] = ctx.line(16.0);
-    ///         let r = ctx.rect();
+    ///         let r = ctx.get_rect();
     ///         // The line box's middle at the plot area's.
     ///         let baseline = r.height() / 2.0 + (ascender - descender) / 2.0;
     ///         let at = Point::new(r.width() / 2.0, baseline);
@@ -339,7 +347,7 @@ impl Fits {
         hatch: Option<&Hatch>,
     ) {
         let Some(palette) = palette.of(self.figure) else {
-            self.note(palette.index());
+            self.note(palette.get_index());
             return;
         };
         self.keys.push(Reported {
@@ -360,7 +368,7 @@ impl Fits {
     /// in.
     pub(crate) fn across<S: Kind>(&mut self, h: ScaleRef<S>) {
         let Some(index) = h.of(self.figure) else {
-            self.note(h.index());
+            self.note(h.get_index());
             return;
         };
         if let Some(panels) = self.across.get_mut(index)
@@ -384,7 +392,7 @@ impl Fits {
     /// `h`'s slot, if it is fitted and not held.
     fn slot<S: Kind>(&mut self, h: ScaleRef<S>) -> Option<&mut Slot<S>> {
         let Some(index) = h.of(self.figure) else {
-            self.note(h.index());
+            self.note(h.get_index());
             return None;
         };
         self.slots.get_mut(index)?.as_mut()?.downcast_mut()

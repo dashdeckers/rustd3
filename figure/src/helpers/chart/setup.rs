@@ -5,7 +5,6 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Ordinal, Ticks};
 
 use crate::axis::{self, Axis};
-use crate::helpers::axes;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::Text;
 use crate::{Figure, Panel, Theme};
@@ -85,13 +84,9 @@ impl Setup {
         }
     }
 
-    /// `axis` through [`axes::defaults`] when minor ticks are on.
+    /// `axis` with its minor ticks on when the preset's are.
     fn minors<'a, S: Kind>(&self, axis: Axis<'a, S>) -> Axis<'a, S> {
-        if self.minor {
-            axes::defaults(axis)
-        } else {
-            axis
-        }
+        axis.minor(self.minor)
     }
 }
 

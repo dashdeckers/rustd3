@@ -100,6 +100,7 @@ impl Locale {
     });
 
     /// The locale a definition states.
+    #[must_use]
     pub fn new(definition: Definition) -> Locale {
         let Definition {
             decimal,
@@ -126,12 +127,20 @@ impl Locale {
     }
 
     /// d3's `locale.format(specifier)`.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`] when `specifier` does not parse.
     pub fn format(&self, specifier: &str) -> Result<Format, InvalidFormat> {
         Ok(Format::new(self, specifier.parse()?))
     }
 
     /// d3's `locale.formatPrefix(specifier, value)`: fixed-point, scaled to
     /// `value`'s SI prefix.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`] when `specifier` does not parse.
     pub fn format_prefix(&self, specifier: &str, value: f64) -> Result<Format, InvalidFormat> {
         Ok(Format::prefixed(self, specifier.parse()?, value))
     }

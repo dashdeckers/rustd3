@@ -4,6 +4,14 @@ use crate::axis::Anchor;
 
 /// Which side of the axis line ticks and labels go: d3's `axisTop`,
 /// `axisRight`, `axisBottom` and `axisLeft`.
+///
+/// ```
+/// use rustd3_core::{axis, path, scale};
+///
+/// let x = scale::linear().domain([0.0, 1.0]).range([0.0, 100.0]);
+/// let top = axis::new(axis::Orient::Top, &x).ticks(1);
+/// assert_eq!(path::svg(|p| top.draw(p)), path::svg(|p| axis::top(&x).ticks(1).draw(p)));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Orient {
     /// A horizontal axis with ticks and labels above it.

@@ -208,7 +208,7 @@ fn the_neutral_default_writes_si_prefixes_and_percent() {
 
 #[test]
 fn an_invalid_specifier_is_an_error_carrying_it() {
-    let error = format::format("10..f").map_err(|e| e.input().to_owned());
+    let error = format::format("10..f").map_err(|e| e.get_input().to_owned());
     assert_eq!(error, Err("10..f".to_owned()));
     assert!(".f".parse::<Specifier>().is_err());
     assert!("foo".parse::<Specifier>().is_err());
@@ -218,7 +218,7 @@ fn an_invalid_specifier_is_an_error_carrying_it() {
 fn a_width_past_v8s_longest_string_is_an_error() {
     assert!("536870888".parse::<Specifier>().is_ok());
     for text in ["536870889", "1000000000000", "99999999999999999999"] {
-        let error = format::format(text).map_err(|e| e.input().to_owned());
+        let error = format::format(text).map_err(|e| e.get_input().to_owned());
         assert_eq!(
             error,
             Err(text.to_owned()),
@@ -499,7 +499,7 @@ fn fmt_docs_say_the_neutral_locale_has_no_currency_and_show_one_that_does() {
 fn fmt_takes_the_empty_specifier_and_the_neutral_default() {
     assert_eq!(rustd3_core::fmt!("").format(0.1 + 0.2), "0.3");
     assert_eq!(rustd3_core::fmt!(",d").format(12000.0), "12\u{202f}000");
-    assert_eq!(rustd3_core::fmt!(",d").locale(), &Locale::NEUTRAL);
+    assert_eq!(rustd3_core::fmt!(",d").get_locale(), &Locale::NEUTRAL);
     assert_eq!(
         rustd3_core::fmt!("$,.2f").format(-1234.5),
         format::format("$,.2f").unwrap().format(-1234.5)

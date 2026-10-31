@@ -8,11 +8,11 @@
 ///
 /// let x = scale::linear().domain([0.0, 100.0]);
 /// let set = x.tick_set(5);
-/// assert_eq!(set.values(), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
-/// assert_eq!((*set.step(), set.count()), (20.0, 5));
+/// assert_eq!(set.get_values(), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
+/// assert_eq!((*set.get_step(), set.get_count()), (20.0, 5));
 ///
 /// let chosen = set.with_values(vec![0.0, 50.0, 100.0]);
-/// assert_eq!((*chosen.step(), chosen.count()), (20.0, 5));
+/// assert_eq!((*chosen.get_step(), chosen.get_count()), (20.0, 5));
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Set<D, S> {
@@ -32,23 +32,24 @@ impl<D, S> Set<D, S> {
     }
 
     /// The tick values, in the order of the scale's domain.
-    pub fn values(&self) -> &[D] {
+    pub fn get_values(&self) -> &[D] {
         &self.values
     }
 
     /// The step the values were chosen with: d3's tickFormat step for
     /// numbers.
-    pub fn step(&self) -> &S {
+    pub fn get_step(&self) -> &S {
         &self.step
     }
 
     /// The requested count: d3's `tickArguments[0]`, used by log labels.
-    pub fn count(&self) -> usize {
+    pub fn get_count(&self) -> usize {
         self.count
     }
 
     /// Replaces the values, keeping step and count: d3's `tickValues`,
     /// which still formats with `tickFormat(tickArguments)`.
+    #[must_use]
     pub fn with_values(self, values: Vec<D>) -> Self {
         Set { values, ..self }
     }

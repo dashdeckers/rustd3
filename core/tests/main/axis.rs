@@ -103,10 +103,13 @@ fn a_bottom_axis_draws_its_domain_ticks_and_labels_below() {
     let labels = a.labels();
     assert_eq!(labels.len(), 11);
     assert_eq!(
-        (labels[1].x(), labels[1].y(), labels[1].text()),
+        (labels[1].get_x(), labels[1].get_y(), labels[1].get_text()),
         (96.5, 9.0, "10")
     );
-    assert_eq!((labels[1].anchor(), labels[1].dy()), (Anchor::Middle, 0.71));
+    assert_eq!(
+        (labels[1].get_anchor(), labels[1].get_dy()),
+        (Anchor::Middle, 0.71)
+    );
 }
 
 #[test]
@@ -131,7 +134,7 @@ fn a_left_axis_of_the_default_scale_matches_d3s_snapshot() {
         assert_eq!((x0, x1), (0.0, -6.0));
     }
     let labels = a.labels();
-    let texts: Vec<&str> = labels.iter().map(Label::text).collect();
+    let texts: Vec<&str> = labels.iter().map(Label::get_text).collect();
     assert_eq!(
         texts,
         [
@@ -140,7 +143,7 @@ fn a_left_axis_of_the_default_scale_matches_d3s_snapshot() {
     );
     for label in &labels {
         assert_eq!(
-            (label.x(), label.anchor(), label.dy()),
+            (label.get_x(), label.get_anchor(), label.get_dy()),
             (-9.0, Anchor::End, 0.32)
         );
     }
@@ -193,7 +196,7 @@ fn a_top_axis_draws_ticks_and_labels_upwards() {
     );
     for label in a.labels() {
         assert_eq!(
-            (label.y(), label.dy(), label.anchor()),
+            (label.get_y(), label.get_dy(), label.get_anchor()),
             (-9.0, 0.0, Anchor::Middle)
         );
     }
@@ -217,11 +220,11 @@ fn a_right_axis_draws_ticks_and_labels_rightwards() {
     let label = &a.labels()[2];
     assert_eq!(
         (
-            label.x(),
-            label.y(),
-            label.text(),
-            label.anchor(),
-            label.dy()
+            label.get_x(),
+            label.get_y(),
+            label.get_text(),
+            label.get_anchor(),
+            label.get_dy()
         ),
         (9.0, 0.5, "1.0", Anchor::Start, 0.32)
     );
@@ -234,10 +237,10 @@ fn a_negative_inner_size_points_ticks_inwards_and_keeps_the_label_gap() {
     let calls = drawn(&a);
     assert_eq!(domain(&calls)[0], Call::Move(0.5, 6.0));
     assert_eq!(marks(&calls)[0], ((0.5, 0.0), (0.5, -4.0)));
-    assert_eq!(a.labels()[0].y(), 3.0);
+    assert_eq!(a.labels()[0].get_y(), 3.0);
     let b = axis::left(&x).tick_size(-4.0).tick_padding(5.0).ticks(2);
     assert_eq!(domain(&drawn(&b))[0], Call::Move(4.0, 0.5));
-    assert_eq!(b.labels()[0].x(), -5.0);
+    assert_eq!(b.labels()[0].get_x(), -5.0);
 }
 
 #[test]
@@ -255,7 +258,7 @@ fn an_offset_of_zero_puts_lines_on_the_range() {
         ]
     );
     assert_eq!(marks(&calls)[1], ((480.0, 0.0), (480.0, 6.0)));
-    assert_eq!(a.labels()[2].x(), 960.0);
+    assert_eq!(a.labels()[2].get_x(), 960.0);
 }
 
 #[test]
@@ -281,7 +284,7 @@ fn chosen_values_and_a_borrowing_format_replace_the_defaults() {
         marks(&drawn(&a)),
         [((240.5, 0.0), (240.5, 6.0)), ((720.5, 0.0), (720.5, 6.0))]
     );
-    let texts: Vec<String> = a.labels().iter().map(|l| l.text().to_owned()).collect();
+    let texts: Vec<String> = a.labels().iter().map(|l| l.get_text().to_owned()).collect();
     assert_eq!(texts, ["25 %", "75 %"]);
 }
 
@@ -289,7 +292,7 @@ fn chosen_values_and_a_borrowing_format_replace_the_defaults() {
 fn chosen_values_keep_the_precision_of_the_tick_count() {
     let y = scale::linear();
     let a = axis::left(&y).values([0.25, 0.5]);
-    let texts: Vec<String> = a.labels().iter().map(|l| l.text().to_owned()).collect();
+    let texts: Vec<String> = a.labels().iter().map(|l| l.get_text().to_owned()).collect();
     assert_eq!(texts, ["0.3", "0.5"]);
 }
 
@@ -300,11 +303,11 @@ fn labels_follow_the_axis_locale() {
         .ticks(5)
         .labels()
         .iter()
-        .map(|l| l.text().to_owned())
+        .map(|l| l.get_text().to_owned())
         .collect();
     assert_eq!(neutral[6], "12\u{202f}000");
     let en = axis::bottom(&x).ticks(5).locale(Locale::EN_US).labels();
-    assert_eq!(en[6].text(), "12,000");
+    assert_eq!(en[6].get_text(), "12,000");
 }
 
 #[test]
@@ -314,7 +317,7 @@ fn ticks_off_the_scale_are_left_out_of_marks_and_labels() {
     assert_eq!(marks(&drawn(&a)), [((100.5, 0.0), (100.5, 6.0))]);
     let labels = a.labels();
     assert_eq!(labels.len(), 1);
-    assert_eq!(labels[0].text(), "10");
+    assert_eq!(labels[0].get_text(), "10");
 }
 
 #[test]
@@ -330,7 +333,7 @@ fn an_identity_scale_draws_as_its_stops() {
             Call::Line(300.5, 6.0)
         ]
     );
-    let texts: Vec<String> = a.labels().iter().map(|l| l.text().to_owned()).collect();
+    let texts: Vec<String> = a.labels().iter().map(|l| l.get_text().to_owned()).collect();
     assert_eq!(texts, ["0", "100", "200", "300"]);
 }
 
@@ -484,12 +487,12 @@ fn axis_snapshots_of_d3_are_reproduced() {
                 "{name}: tick {mark:?} against {tick:?}"
             );
             assert!(
-                same((label.x(), label.y()), tick.text_at),
+                same((label.get_x(), label.get_y()), tick.text_at),
                 "{name}: {label:?}"
             );
-            assert_eq!(label.text(), tick.text, "{name}");
-            assert_eq!(format!("{}em", label.dy()), tick.dy, "{name}");
-            assert_eq!(label.anchor(), Anchor::End, "{name}");
+            assert_eq!(label.get_text(), tick.text, "{name}");
+            assert_eq!(format!("{}em", label.get_dy()), tick.dy, "{name}");
+            assert_eq!(label.get_anchor(), Anchor::End, "{name}");
         }
     }
 }

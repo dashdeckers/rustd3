@@ -14,13 +14,16 @@ use iced::{Color, Event, Size};
 use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::legend::{self, Slot};
 use rustd3_figure::list;
 use rustd3_figure::mark::dots;
-use rustd3_figure::{Cache, Figure, Held, Target, Theme, axis, kurbo};
+use rustd3_figure::{Figure, Held, Target, Theme, axis, kurbo};
 use rustd3_iced::Plot;
+#[cfg(feature = "__dev")]
+use rustd3_iced::plot::cost;
 use rustd3_iced::plot::probe::{self, Sample};
-use rustd3_iced::plot::{Probe, Render, cost};
+use rustd3_iced::plot::{Probe, Render};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
@@ -207,6 +210,7 @@ fn last_frame(samples: &[Sample]) -> (u64, u32, u32, u32) {
 /// The cost model's time for the cells the raster samples among
 /// `samples` rendered, ms; with `ring`, the tiles of the overscan ring
 /// (see [`in_view`]) too.
+#[cfg(feature = "__dev")]
 fn modelled(samples: &[Sample], view: Option<&[[i64; 4]]>) -> f64 {
     samples
         .iter()
@@ -570,6 +574,7 @@ fn previous_image_stays_until_the_new_one_arrives() {
     }
 }
 
+#[cfg(feature = "__dev")]
 #[test]
 fn cheap_refresh_renders_inline() {
     let k = 2.0;
@@ -606,6 +611,7 @@ fn cheap_refresh_renders_inline() {
     assert_eq!(harness.wakes(), 0, "{backend}: no worker, no wake");
 }
 
+#[cfg(feature = "__dev")]
 #[test]
 fn expensive_refresh_uses_the_worker() {
     let _workers = workers();

@@ -23,6 +23,12 @@ pub struct Note<X: Position, Y: Position> {
     fill: Option<Rgb>,
 }
 
+impl<X: Position, Y: Position> std::fmt::Debug for Note<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Note").finish_non_exhaustive()
+    }
+}
+
 /// `text` at the point `at` on `x` and `y` (the middle of a band on band
 /// scales), its first line's start at the point by default (matplotlib's
 /// `text`, `ha="left"`, `va="baseline"`), at the axis-label size (12 pt)
@@ -64,6 +70,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
     /// Which point of the text's box sits at the note's point; its first
     /// line's start by default. Its lines align by the anchor's horizontal
     /// half.
+    #[must_use]
     pub fn anchor(self, a: Anchor) -> Self {
         Self { anchor: a, ..self }
     }
@@ -71,6 +78,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
     /// Moves the text `dx` px right and `dy` px down from its point, as
     /// Observable Plot's `dx` and `dy`. An offset that is not finite leaves
     /// it as it was.
+    #[must_use]
     pub fn offset(self, dx: f64, dy: f64) -> Self {
         let offset = Vec2::new(dx, dy);
         Self {
@@ -85,7 +93,8 @@ impl<X: Position, Y: Position> Note<X, Y> {
 
     /// The text's color, for spans without their own; the theme's ink by
     /// default.
-    pub fn fill(self, c: Rgb) -> Self {
+    #[must_use]
+    pub fn color(self, c: Rgb) -> Self {
         Self {
             fill: Some(c),
             ..self
@@ -104,7 +113,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         fits.across(self.x);
         fits.add(self.x, &self.at.0);
         fits.add(self.y, &self.at.1);
-        let key = self.key(fits.theme());
+        let key = self.key(fits.get_theme());
         fits.label(key);
     }
 
@@ -123,7 +132,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         if !within(band, p) {
             return;
         }
-        if let Some(shaped) = ctx.label(&self.key(ctx.theme())) {
+        if let Some(shaped) = ctx.get_label(&self.key(ctx.get_theme())) {
             shaped.place(list, p, self.anchor, 0.0);
         }
     }
@@ -136,7 +145,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         let up = ctx
             .scale(self.y)
             .is_some_and(|s| s.position(&self.at.1).is_none());
-        outside_count(self.x.index(), usize::from(across), issues);
-        outside_count(self.y.index(), usize::from(up), issues);
+        outside_count(self.x.get_index(), usize::from(across), issues);
+        outside_count(self.y.get_index(), usize::from(up), issues);
     }
 }

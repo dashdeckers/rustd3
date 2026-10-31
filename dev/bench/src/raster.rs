@@ -16,10 +16,11 @@ use std::fs;
 use std::time::Instant;
 
 use iced::Size;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::list::{Bounds, Outlines};
 use rustd3_figure::raster::{Image, Renderer, Settings, Simd};
-use rustd3_figure::{Cache, Held, Target};
+use rustd3_figure::{Held, Target};
 
 use crate::cli::widget::Options;
 use crate::scenario::Scenario;
@@ -147,13 +148,10 @@ fn measure(
     let list = fig.draw_with(&mut cache, size, target, &Held::default());
     let areas: Vec<Rect> = fig
         .resolve(size, &mut cache, &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec();
     let bounds = Bounds::of(&list, &mut Outlines::default());
-    let mut renderer = Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Detect,
-    });
+    let mut renderer = Renderer::new(Settings::default().simd(Simd::Detect));
     let (mut fills, mut splats) = (Sum::default(), Sum::default());
     let mut stamps = splat::Stamps::default();
     let mut cold: Vec<f64> = Vec::new();

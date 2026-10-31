@@ -5,10 +5,11 @@
 
 use rustd3_core::scale::{self, Continuous, Linear, Log};
 use rustd3_core::series::{Clock, Recording};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::mark;
 use rustd3_figure::scale::{Fit, Kind, ScaleRef};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, axis};
+use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 
 use crate::figure::{Values, cache, line, resolve};
 
@@ -36,7 +37,7 @@ fn fitted(values: &[f64], bars: bool, fit: Fit<f64>) -> [f64; 2] {
         base: bars.then_some(0.0),
     });
     resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .expect("a handle of this figure")
         .get_domain()
 }
@@ -47,7 +48,7 @@ fn fitted_log(values: &[f64]) -> [f64; 2] {
     let y: ScaleRef<Log> = fig.fit(scale::log());
     fig.panel(0, 0).mark(line(y, values.iter().copied()));
     resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .expect("a handle of this figure")
         .get_domain()
 }
@@ -129,12 +130,12 @@ fn a_held_handle_skips_fitting_until_released() {
     let mut held = Held::default();
     held.hold(y, scale::linear().domain([2.0, 4.0]));
     assert_eq!(
-        resolve(&fig, &held).scale(y).unwrap().get_domain(),
+        resolve(&fig, &held).get_scale(y).unwrap().get_domain(),
         [2.0, 4.0]
     );
     held.release(y);
     assert_domain(
-        resolve(&fig, &held).scale(y).unwrap().get_domain(),
+        resolve(&fig, &held).get_scale(y).unwrap().get_domain(),
         [-0.5, 10.5],
     );
 }
@@ -152,10 +153,10 @@ fn one_handle_spans_the_marks_of_every_panel() {
     fig.panel(0, 0).mark(line(y, [0.0, 1.0]));
     fig.panel(0, 1).mark(line(y, [9.0, 10.0]));
     let r = resolve(&fig, &Held::default());
-    assert_domain(r.scale(y).unwrap().get_domain(), [-0.5, 10.5]);
+    assert_domain(r.get_scale(y).unwrap().get_domain(), [-0.5, 10.5]);
     assert_eq!(
-        Kind::domain(r.scale(y).unwrap()),
-        Some(r.scale(y).unwrap().get_domain())
+        Kind::domain(r.get_scale(y).unwrap()),
+        Some(r.get_scale(y).unwrap().get_domain())
     );
 }
 
@@ -165,7 +166,7 @@ fn fit_with_window_on_a_band_handle_fits_all() {
     let band = fig.fit_with(scale::band(["a", "b"]), Fit::Window(()));
     assert_eq!(
         resolve(&fig, &Held::default())
-            .scale(band)
+            .get_scale(band)
             .unwrap()
             .get_domain(),
         ["a", "b"]
@@ -179,14 +180,14 @@ fn a_foreign_handle_lands_no_data_on_this_figures_scale() {
     let mut fig = Figure::new();
     let y = fig.fit(scale::linear());
     let bare = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     // Same index and type: the handle still finds no scale here.
     fig.panel(0, 0).mark(line(foreign, [0.0, 10.0]));
     assert_eq!(
         resolve(&fig, &Held::default())
-            .scale(y)
+            .get_scale(y)
             .unwrap()
             .get_domain(),
         bare
@@ -237,7 +238,7 @@ fn windowed(rec: &Recording<f64>) -> (Figure<'_>, ScaleRef<Linear>) {
 /// plot area is 1000 px wide.
 fn bare(fig: &Figure<'_>, cache: &mut Cache) -> Resolved {
     let r = fig.resolve(BARE, cache, &Held::default(), SCREEN);
-    assert_eq!(r.plot_areas()[0].width(), 1000.0);
+    assert_eq!(r.get_plot_areas()[0].width(), 1000.0);
     r
 }
 
@@ -247,14 +248,14 @@ fn fit_window_moves_in_whole_columns() {
     let mut cache = cache();
     let first = {
         let (fig, t) = windowed(&rec);
-        bare(&fig, &mut cache).scale(t).unwrap().get_domain()
+        bare(&fig, &mut cache).get_scale(t).unwrap().get_domain()
     };
     // col = 10 / 1000 = 0.01; right = ceil(12,345.6) · 0.01.
     assert_domain(first, [113.46, 123.46]);
     append(&mut rec, 1000);
     let second = {
         let (fig, t) = windowed(&rec);
-        bare(&fig, &mut cache).scale(t).unwrap().get_domain()
+        bare(&fig, &mut cache).get_scale(t).unwrap().get_domain()
     };
     assert_domain(second, [113.56, 123.56]);
     let moved = (second[1] - first[1]) / 0.01;
@@ -263,13 +264,13 @@ fn fit_window_moves_in_whole_columns() {
     rec.extend(&[123.5561], [[0.5]]).expect("a valid append");
     let (fig, t) = windowed(&rec);
     assert_eq!(
-        bare(&fig, &mut cache).scale(t).unwrap().get_domain(),
+        bare(&fig, &mut cache).get_scale(t).unwrap().get_domain(),
         second
     );
     // A fresh cache fits the same window.
     assert_eq!(
         bare(&fig, &mut crate::figure::cache())
-            .scale(t)
+            .get_scale(t)
             .unwrap()
             .get_domain(),
         second
@@ -281,7 +282,7 @@ fn fit_window_with_no_data_is_all() {
     let rec = Recording::new(Clock::Explicit(Vec::new()), [Vec::<f64>::new()]).expect("empty");
     let (fig, t) = windowed(&rec);
     assert_eq!(
-        bare(&fig, &mut cache()).scale(t).unwrap().get_domain(),
+        bare(&fig, &mut cache()).get_scale(t).unwrap().get_domain(),
         [0.0, 1.0]
     );
 }
@@ -294,7 +295,7 @@ fn fit_window_column_edges_shift_by_whole_columns() {
     let mut edges = |rec: &Recording<f64>| -> Vec<f64> {
         let (fig, t) = windowed(rec);
         let r = bare(&fig, &mut cache);
-        let x: Linear = r.scale(t).unwrap().clone().range([0.0, 1000.0]);
+        let x: Linear = r.get_scale(t).unwrap().clone().range([0.0, 1000.0]);
         (0..=1000)
             .map(|i| Continuous::invert(&x, f64::from(i)))
             .collect()
@@ -326,9 +327,9 @@ fn fit_window_on_a_y_handle_fits_as_all() {
         .mark(mark::line(rec.series(0).expect("a channel"), t, v));
     let r = bare(&fig, &mut cache());
     // The tone spans [−1, 1] within its 0.1 s: padded 5%.
-    let [low, high] = r.scale(v).unwrap().get_domain();
+    let [low, high] = r.get_scale(v).unwrap().get_domain();
     assert!(low < -1.0 && high > 1.0, "{low}, {high}");
-    assert_domain(r.scale(t).unwrap().get_domain(), [4.895105, 5.004995]);
+    assert_domain(r.get_scale(t).unwrap().get_domain(), [4.895105, 5.004995]);
 }
 
 #[test]
@@ -342,9 +343,9 @@ fn a_window_follows_the_widest_panel_that_places_it() {
     fig.panel(0, 1).mark(mark::line(series, t, v));
     fig.layout(rustd3_figure::layout::Grid::new().cols([3.0, 1.0]));
     let r = fig.resolve(BARE, &mut cache(), &Held::default(), SCREEN);
-    let widest = r.plot_areas()[0].width();
-    assert!(widest > r.plot_areas()[1].width());
-    let [left, right] = r.scale(t).unwrap().get_domain();
+    let widest = r.get_plot_areas()[0].width();
+    assert!(widest > r.get_plot_areas()[1].width());
+    let [left, right] = r.get_scale(t).unwrap().get_domain();
     let col = 10.0 / widest;
     assert!(
         ((right / col) - (right / col).round()).abs() < 1e-6,
@@ -371,7 +372,7 @@ fn a_windowed_axis_holds_the_layout_while_ticks_slide() {
                 .axis(axis::bottom(t));
             let size = Size::new(640.0, 300.0);
             let r = fig.resolve(size, &mut cache, &Held::default(), SCREEN);
-            areas.push(r.plot_areas()[0]);
+            areas.push(r.get_plot_areas()[0]);
         }
         append(&mut rec, 1000);
     }

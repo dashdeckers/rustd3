@@ -1059,28 +1059,28 @@ fn t133() {   // formatSpecifier-test.js: formatSpecifier(specifier) returns an 
 
 fn t134() {   // formatSpecifier-test.js: formatSpecifier("") has the expected defaults
     let mut s = "".parse::<format::Specifier>().expect("d3 test");
-    check("d3-format/test/formatSpecifier-test.js:17:3", Kind::Strict, &s.fill().to_string(), &" ");
-    check("d3-format/test/formatSpecifier-test.js:18:3", Kind::Strict, &s.align().to_string(), &">");
-    check("d3-format/test/formatSpecifier-test.js:19:3", Kind::Strict, &s.sign().to_string(), &"-");
-    check("d3-format/test/formatSpecifier-test.js:20:3", Kind::Strict, &s.symbol().map(|s| s.to_string()).unwrap_or_default(), &"");
-    check("d3-format/test/formatSpecifier-test.js:21:3", Kind::Strict, &s.zero(), &false);
-    check("d3-format/test/formatSpecifier-test.js:22:3", Kind::Strict, &s.width(), &Option::<f64>::None);
-    check("d3-format/test/formatSpecifier-test.js:23:3", Kind::Strict, &s.comma(), &false);
-    check("d3-format/test/formatSpecifier-test.js:24:3", Kind::Strict, &s.precision(), &Option::<f64>::None);
-    check("d3-format/test/formatSpecifier-test.js:25:3", Kind::Strict, &s.trim(), &false);
-    check("d3-format/test/formatSpecifier-test.js:26:3", Kind::Strict, &s.kind().map(|k| k.to_string()).unwrap_or_default(), &"");
+    check("d3-format/test/formatSpecifier-test.js:17:3", Kind::Strict, &s.get_fill().to_string(), &" ");
+    check("d3-format/test/formatSpecifier-test.js:18:3", Kind::Strict, &s.get_align().to_string(), &">");
+    check("d3-format/test/formatSpecifier-test.js:19:3", Kind::Strict, &s.get_sign().to_string(), &"-");
+    check("d3-format/test/formatSpecifier-test.js:20:3", Kind::Strict, &s.get_symbol().map(|s| s.to_string()).unwrap_or_default(), &"");
+    check("d3-format/test/formatSpecifier-test.js:21:3", Kind::Strict, &s.get_zero(), &false);
+    check("d3-format/test/formatSpecifier-test.js:22:3", Kind::Strict, &s.get_width(), &Option::<f64>::None);
+    check("d3-format/test/formatSpecifier-test.js:23:3", Kind::Strict, &s.get_comma(), &false);
+    check("d3-format/test/formatSpecifier-test.js:24:3", Kind::Strict, &s.get_precision(), &Option::<f64>::None);
+    check("d3-format/test/formatSpecifier-test.js:25:3", Kind::Strict, &s.get_trim(), &false);
+    check("d3-format/test/formatSpecifier-test.js:26:3", Kind::Strict, &s.get_kind().map(|k| k.to_string()).unwrap_or_default(), &"");
 }
 
 fn t135() {   // formatSpecifier-test.js: formatSpecifier(specifier) preserves unknown types
     let mut s = "q".parse::<format::Specifier>().expect("d3 test");
-    check("d3-format/test/formatSpecifier-test.js:31:3", Kind::Strict, &s.trim(), &false);
-    check("d3-format/test/formatSpecifier-test.js:32:3", Kind::Strict, &s.kind().map(|k| k.to_string()).unwrap_or_default(), &"q");
+    check("d3-format/test/formatSpecifier-test.js:31:3", Kind::Strict, &s.get_trim(), &false);
+    check("d3-format/test/formatSpecifier-test.js:32:3", Kind::Strict, &s.get_kind().map(|k| k.to_string()).unwrap_or_default(), &"q");
 }
 
 fn t136() {   // formatSpecifier-test.js: formatSpecifier(specifier) preserves shorthand
     let mut s = "".parse::<format::Specifier>().expect("d3 test");
-    check("d3-format/test/formatSpecifier-test.js:37:3", Kind::Strict, &s.trim(), &false);
-    check("d3-format/test/formatSpecifier-test.js:38:3", Kind::Strict, &s.kind().map(|k| k.to_string()).unwrap_or_default(), &"");
+    check("d3-format/test/formatSpecifier-test.js:37:3", Kind::Strict, &s.get_trim(), &false);
+    check("d3-format/test/formatSpecifier-test.js:38:3", Kind::Strict, &s.get_kind().map(|k| k.to_string()).unwrap_or_default(), &"");
 }
 
 fn t137() {   // formatSpecifier-test.js: formatSpecifier(specifier).toString() reflects current field values
@@ -1110,16 +1110,16 @@ fn t139() {   // formatSpecifier-test.js: formatSpecifier(specifier).toString() 
 
 fn t140() {   // formatSpecifier-test.js: new FormatSpecifier({}) has the expected defaults
     let mut s = format::Specifier::default();
-    check("d3-format/test/formatSpecifier-test.js:68:3", Kind::Strict, &s.fill().to_string(), &" ");
-    check("d3-format/test/formatSpecifier-test.js:69:3", Kind::Strict, &s.align().to_string(), &">");
-    check("d3-format/test/formatSpecifier-test.js:70:3", Kind::Strict, &s.sign().to_string(), &"-");
-    check("d3-format/test/formatSpecifier-test.js:71:3", Kind::Strict, &s.symbol().map(|s| s.to_string()).unwrap_or_default(), &"");
-    check("d3-format/test/formatSpecifier-test.js:72:3", Kind::Strict, &s.zero(), &false);
-    check("d3-format/test/formatSpecifier-test.js:73:3", Kind::Strict, &s.width(), &Option::<f64>::None);
-    check("d3-format/test/formatSpecifier-test.js:74:3", Kind::Strict, &s.comma(), &false);
-    check("d3-format/test/formatSpecifier-test.js:75:3", Kind::Strict, &s.precision(), &Option::<f64>::None);
-    check("d3-format/test/formatSpecifier-test.js:76:3", Kind::Strict, &s.trim(), &false);
-    check("d3-format/test/formatSpecifier-test.js:77:3", Kind::Strict, &s.kind().map(|k| k.to_string()).unwrap_or_default(), &"");
+    check("d3-format/test/formatSpecifier-test.js:68:3", Kind::Strict, &s.get_fill().to_string(), &" ");
+    check("d3-format/test/formatSpecifier-test.js:69:3", Kind::Strict, &s.get_align().to_string(), &">");
+    check("d3-format/test/formatSpecifier-test.js:70:3", Kind::Strict, &s.get_sign().to_string(), &"-");
+    check("d3-format/test/formatSpecifier-test.js:71:3", Kind::Strict, &s.get_symbol().map(|s| s.to_string()).unwrap_or_default(), &"");
+    check("d3-format/test/formatSpecifier-test.js:72:3", Kind::Strict, &s.get_zero(), &false);
+    check("d3-format/test/formatSpecifier-test.js:73:3", Kind::Strict, &s.get_width(), &Option::<f64>::None);
+    check("d3-format/test/formatSpecifier-test.js:74:3", Kind::Strict, &s.get_comma(), &false);
+    check("d3-format/test/formatSpecifier-test.js:75:3", Kind::Strict, &s.get_precision(), &Option::<f64>::None);
+    check("d3-format/test/formatSpecifier-test.js:76:3", Kind::Strict, &s.get_trim(), &false);
+    check("d3-format/test/formatSpecifier-test.js:77:3", Kind::Strict, &s.get_kind().map(|k| k.to_string()).unwrap_or_default(), &"");
 }
 
 fn t141() {   // formatSpecifier-test.js: new FormatSpecifier({…}) coerces all inputs to the expected types

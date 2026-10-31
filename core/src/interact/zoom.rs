@@ -93,6 +93,7 @@ impl Default for Zoom {
 
 impl Zoom {
     /// d3's `zoom.scaleExtent([k0, k1])`: the allowed scale factors.
+    #[must_use]
     pub fn scale_extent(self, extent: [f64; 2]) -> Self {
         Zoom {
             scale_extent: extent,
@@ -102,6 +103,7 @@ impl Zoom {
 
     /// d3's `zoom.translateExtent([[x0, y0], [x1, y1]])`: the world, in
     /// data units, the viewport must stay within.
+    #[must_use]
     pub fn translate_extent(self, extent: [[f64; 2]; 2]) -> Self {
         Zoom {
             translate_extent: extent,
@@ -111,6 +113,7 @@ impl Zoom {
 
     /// d3's `zoom.extent([[x0, y0], [x1, y1]])`: the viewport, in screen
     /// units.
+    #[must_use]
     pub fn extent(self, extent: [[f64; 2]; 2]) -> Self {
         Zoom { extent, ..self }
     }
@@ -144,7 +147,7 @@ impl Zoom {
                 button,
                 modifiers,
             } => {
-                if button == Button::Left && !modifiers.ctrl() {
+                if button == Button::Left && !modifiers.get_ctrl() {
                     self.gesture.grab = Some(t.invert((x, y)));
                 }
                 None
@@ -161,10 +164,10 @@ impl Zoom {
             }
             Pointer::DoubleClicked { x, y } => {
                 let held = self.gesture.modifiers;
-                if held.ctrl() {
+                if held.get_ctrl() {
                     return None;
                 }
-                let factor = if held.shift() { 0.5 } else { 2.0 };
+                let factor = if held.get_shift() { 0.5 } else { 2.0 };
                 let p = (x, y);
                 let next = translate(self.scale(t, t.k * factor), p, t.invert(p));
                 changed(self.constrain(next), t)
@@ -179,12 +182,14 @@ impl Zoom {
 
     /// A drag is in progress (a focus-and-context view syncs the brush
     /// only between gestures).
+    #[must_use]
     pub fn is_active(&self) -> bool {
         self.gesture.grab.is_some()
     }
 
     /// d3's `zoom.scaleBy(selection, k, p)`: [`scale_to`](Zoom::scale_to)
     /// `t.k · k`.
+    #[must_use]
     pub fn scale_by(
         &self,
         t: interact::Transform,
@@ -197,6 +202,7 @@ impl Zoom {
     /// d3's `zoom.scaleTo(selection, k, p)`: scale factor `k`, within the
     /// scale extent, keeping the data point under `at` (the centroid of
     /// the extent for `None`) in place; constrained.
+    #[must_use]
     pub fn scale_to(
         &self,
         t: interact::Transform,
@@ -209,6 +215,7 @@ impl Zoom {
 
     /// d3's `zoom.translateBy(selection, x, y)`: translated by (`x`, `y`)
     /// in data units; constrained.
+    #[must_use]
     pub fn translate_by(&self, t: interact::Transform, x: f64, y: f64) -> interact::Transform {
         self.constrain(t.translate(x, y))
     }
@@ -216,6 +223,7 @@ impl Zoom {
     /// d3's `zoom.translateTo(selection, x, y, p)`: the data point (`x`,
     /// `y`) shown at `at` (the centroid of the extent for `None`), the
     /// scale factor kept; constrained.
+    #[must_use]
     pub fn translate_to(
         &self,
         t: interact::Transform,
@@ -235,6 +243,7 @@ impl Zoom {
     /// transform translated so the viewport stays within the translate
     /// extent, centred where the viewport is the larger. With the default
     /// unbounded translate extent it returns `t`.
+    #[must_use]
     pub fn constrain(&self, t: interact::Transform) -> interact::Transform {
         let [[ex0, ey0], [ex1, ey1]] = self.extent;
         let [[tx0, ty0], [tx1, ty1]] = self.translate_extent;
@@ -258,7 +267,7 @@ impl Zoom {
             Delta::Lines { x, y } => (x * LINE_PX, -y * PER_LINE),
             Delta::Pixels { x, y } => (x, -y * PER_PIXEL),
         };
-        let w = if modifiers.ctrl() { w * 10.0 } else { w };
+        let w = if modifiers.get_ctrl() { w * 10.0 } else { w };
         let k = self.clamped(t.k * 2f64.powf(w));
         let mut anchor = match burst {
             Some(anchor) if anchor.point == p => anchor,

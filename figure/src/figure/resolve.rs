@@ -5,8 +5,9 @@
 use std::any::Any;
 use std::rc::Rc;
 
+use crate::cache::Cache;
 use crate::figure::fits::{Fits, Reported, Reports};
-use crate::figure::{Cache, Entry, Figure, Held, Resolved};
+use crate::figure::{Entry, Figure, Held, Resolved};
 use crate::layout::{self, Layout};
 use crate::scale::{Scale, visible};
 use crate::target::Target;
@@ -73,12 +74,12 @@ impl Figure<'_> {
     }
 
     /// As [`resolve`](Figure::resolve), keeping the plot areas `areas`
-    /// that a gesture took at its start ([`Resolved::areas`]), so the plot
+    /// that a gesture took at its start ([`Resolved::get_areas`]), so the plot
     /// does not shift under the pointer: tick counts come from their
     /// lengths in one pass, labels and collisions are recomputed, and
     /// labels may reach past the old reaches. Areas made for another size
     /// or panel count are ignored: the layout is fresh, and
-    /// [`Resolved::held`] is false.
+    /// [`Resolved::get_held`] is false.
     ///
     /// ```
     /// use rustd3_core::scale;
@@ -89,16 +90,16 @@ impl Figure<'_> {
     /// let y = fig.scale(scale::linear().domain([0.0, 3.0]));
     /// fig.panel(0, 0).axis(axis::left(y));
     /// # #[cfg(feature = "fonts")] {
-    /// let mut cache = rustd3_figure::Cache::default();
+    /// let mut cache = rustd3_figure::cache::Cache::default();
     /// let size = Size::new(640.0, 480.0);
     /// let target = Target::Screen { scale: 1.0 };
     /// let start = fig.resolve(size, &mut cache, &Held::default(), target);
     /// let mut held = Held::default();
     /// held.hold(y, scale::linear().domain([0.0, 30_000.0]));
-    /// let areas = start.areas();
+    /// let areas = start.get_areas();
     /// let during = fig.resolve_held(size, &mut cache, &held, target, &areas);
-    /// assert!(during.held());
-    /// assert_eq!(during.plot_areas(), start.plot_areas());
+    /// assert!(during.get_held());
+    /// assert_eq!(during.get_plot_areas(), start.get_plot_areas());
     /// # }
     /// ```
     pub fn resolve_held(
@@ -362,7 +363,7 @@ impl Figure<'_> {
     /// others.
     fn columns(&self, fitted: &Fitted, windowed: &[bool], resolved: &Resolved) -> Vec<Option<u32>> {
         let per_px = resolved.target().columns();
-        let areas = resolved.plot_areas();
+        let areas = resolved.get_plot_areas();
         fitted
             .across
             .iter()

@@ -42,6 +42,7 @@ pub fn threshold<R>(
 
 impl<R> Threshold<R> {
     /// d3's `domain(values)`: the ascending thresholds.
+    #[must_use]
     pub fn domain(self, domain: impl IntoIterator<Item = f64>) -> Self {
         Threshold {
             domain: domain.into_iter().collect(),
@@ -50,11 +51,13 @@ impl<R> Threshold<R> {
     }
 
     /// d3's `domain()`.
+    #[must_use]
     pub fn get_domain(&self) -> &[f64] {
         &self.domain
     }
 
     /// d3's `range(values)`: the value of each bin, in order.
+    #[must_use]
     pub fn range(self, range: impl IntoIterator<Item = R>) -> Self {
         Threshold {
             range: range.into_iter().collect(),
@@ -63,6 +66,7 @@ impl<R> Threshold<R> {
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> &[R] {
         &self.range
     }
@@ -70,6 +74,7 @@ impl<R> Threshold<R> {
     /// The range value of the bin `x` falls in, by bisection over the
     /// thresholds that have a bin after them in the range; `None` for NaN
     /// or a bin without a value.
+    #[must_use]
     pub fn apply(&self, x: f64) -> Option<&R> {
         if x.is_nan() {
             return None;
@@ -123,3 +128,5 @@ impl<R> Ticks for Threshold<R> {
         [0.0, 1.0]
     }
 }
+
+impl<R> crate::sealed::Ticks for Threshold<R> {}

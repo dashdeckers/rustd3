@@ -10,7 +10,9 @@ use std::time::Duration;
 use kurbo::{Point, Rect, Size};
 
 #[cfg(feature = "fonts")]
-use crate::figure::{Cache, Figure, Held};
+use crate::cache::Cache;
+#[cfg(feature = "fonts")]
+use crate::figure::{Figure, Held};
 #[cfg(feature = "fonts")]
 use crate::list::{Bounds, Outlines};
 use crate::raster;
@@ -67,8 +69,16 @@ pub struct Writer<W: std::io::Write> {
     renderer: raster::Renderer,
 }
 
+#[cfg(feature = "fonts")]
+impl<W: std::io::Write> std::fmt::Debug for Writer<W> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Writer").finish_non_exhaustive()
+    }
+}
+
 /// Why a GIF cannot be written.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A size whose device px exceed a GIF's `u16` sides.
     #[error("{width} × {height} device px exceeds GIF's 65,535 limit")]
@@ -98,6 +108,12 @@ pub enum Error {
 impl<W: std::io::Write> Writer<W> {
     /// A GIF of `size` logical px at `scale` device px each, its header and
     /// loop count written to `out` now, before any frame.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Size`] when `size × scale` exceeds GIF's 65,535 px a side,
+    /// [`Error::Io`] or [`Error::Encoding`] when the header cannot be
+    /// written.
     pub fn new(out: W, size: Size, scale: f64, repeat: Repeat) -> Result<Self, Error> {
         let (width, height) = ((size.width * scale).round(), (size.height * scale).round());
         if !(width <= MAX_SIDE && height <= MAX_SIDE) {
@@ -131,6 +147,12 @@ impl<W: std::io::Write> Writer<W> {
     /// The frame shows for `delay` rounded to centiseconds, at least 2
     /// (browsers show shorter delays as 10). A figure whose theme background
     /// is translucent is [`Error::Translucent`]: GIF's alpha is one bit.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Translucent`] for a translucent theme background,
+    /// [`Error::Raster`] for a frame that cannot be rendered, [`Error::Io`]
+    /// or [`Error::Encoding`] when it cannot be written.
     pub fn frame(&mut self, fig: &Figure<'_>, delay: Duration) -> Result<(), Error> {
         if text::channels(fig.get_theme().get_background())[3] < u8::MAX {
             return Err(Error::Translucent);
@@ -153,6 +175,11 @@ impl<W: std::io::Write> Writer<W> {
     }
 
     /// Writes the trailer and returns the output.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Io`] or [`Error::Encoding`] when the trailer cannot be
+    /// written.
     pub fn finish(self) -> Result<W, Error> {
         self.encoder.into_inner().map_err(encoding)
     }

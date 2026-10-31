@@ -16,6 +16,7 @@ use crate::color::Rgb;
 /// assert_eq!(scheme::magma(1.0).format_hex(), "#fcfdbf");
 /// ```
 #[doc(alias = "interpolateMagma")]
+#[must_use]
 pub fn magma(t: f64) -> Rgb {
     super::ramp(&TABLE, t)
 }

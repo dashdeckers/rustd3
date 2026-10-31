@@ -24,6 +24,12 @@ pub struct Rule<S: Position> {
     label: Option<Text>,
 }
 
+impl<S: Position> std::fmt::Debug for Rule<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Rule").finish_non_exhaustive()
+    }
+}
+
 /// The direction a rule's value is measured in.
 #[derive(Clone, Copy)]
 enum Along {
@@ -77,6 +83,7 @@ impl<S: Position> Rule<S> {
 
     /// The line's and the label's color; by default the theme palette's
     /// first.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Some(c),
@@ -86,6 +93,7 @@ impl<S: Position> Rule<S> {
 
     /// The line's width in px; by default the theme's line width. A width
     /// that is not finite and positive leaves it as it was.
+    #[must_use]
     pub fn width(self, px: f64) -> Self {
         Self {
             width: positive(px).or(self.width),
@@ -96,6 +104,7 @@ impl<S: Position> Rule<S> {
     /// Dashes: on and off lengths in px, from the line's start. A pattern
     /// with a negative or non-finite length, or none longer than 0, leaves
     /// the line as it was.
+    #[must_use]
     pub fn dash(self, pattern: impl IntoIterator<Item = f64>) -> Self {
         let dash = dashes(pattern).unwrap_or(self.dash);
         Self { dash, ..self }
@@ -103,6 +112,7 @@ impl<S: Position> Rule<S> {
 
     /// Text at the line's top end (`rule_x`, beside the line) or right end
     /// (`rule_y`, above it), at tick-label size in the line's color.
+    #[must_use]
     pub fn label(self, text: impl Into<Text>) -> Self {
         Self {
             label: Some(text.into()),
@@ -129,7 +139,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
             Along::X => fits.across(self.scale),
             Along::Y => {}
         }
-        if let Some(key) = self.key(fits.theme()) {
+        if let Some(key) = self.key(fits.get_theme()) {
             fits.label(key);
         }
     }
@@ -138,8 +148,8 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
     /// is placed within half the line's width of the plot area; nothing
     /// otherwise. On raster targets the line covers whole device pixels.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let theme = ctx.theme();
-        let (w, h) = (ctx.rect().width(), ctx.rect().height());
+        let theme = ctx.get_theme();
+        let (w, h) = (ctx.get_rect().width(), ctx.get_rect().height());
         let width = self.width.unwrap_or(theme.get_line_width());
         let (pos, length) = match self.along {
             Along::X => (ctx.x(self.scale).and_then(|s| at(&s, &self.value)), w),
@@ -169,7 +179,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
             paint: list::brush(color),
         });
         if let Some(key) = self.key(theme)
-            && let Some(shaped) = ctx.label(&key)
+            && let Some(shaped) = ctx.get_label(&key)
         {
             let (h, v) = corner;
             shaped.place(list, label, Anchor { h, v }, 0.0);
@@ -183,7 +193,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
             .is_some_and(|s| s.position(&self.value).is_none())
         {
             issues.push(Issue::OutsideDomain {
-                handle: self.scale.index(),
+                handle: self.scale.get_index(),
                 count: 1,
             });
         }

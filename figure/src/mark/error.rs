@@ -7,6 +7,7 @@ use rustd3_core::series;
 /// ([`Issue::Mark`](crate::check::Issue::Mark)); or why a mark's input
 /// could not be built ([`GridLength`](Error::GridLength)).
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A ribbon over channels of two recordings, which no joint query
     /// thins.

@@ -13,11 +13,11 @@
 //! let y = fig.scale(scale::linear().domain([0.0, 10.0]));
 //! fig.panel(0, 0).mark(dots([(2.0, 3.0), (7.0, 5.0)], x, y));
 //! # #[cfg(feature = "fonts")] {
-//! let mut cache = rustd3_figure::Cache::default();
+//! let mut cache = rustd3_figure::cache::Cache::default();
 //! let size = Size::new(640.0, 480.0);
 //! let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
 //! let index = fig.hits(&r, &mut cache);
-//! let area = r.plot_areas()[0];
+//! let area = r.get_plot_areas()[0];
 //! let near = Point::new(area.x0 + 0.7 * area.width(), area.y0 + 0.5 * area.height());
 //! let hit = index.nearest(near, 8.0).expect("the second dot");
 //! assert_eq!((hit.panel, hit.mark, hit.index), (0, 0, 1));
@@ -31,7 +31,8 @@ use std::cell::RefCell;
 
 use kurbo::Point;
 
-use crate::figure::{Cache, Figure, Resolved};
+use crate::cache::Cache;
+use crate::figure::{Figure, Resolved};
 use crate::mark::Ctx;
 
 pub(crate) use grid::Grid;
@@ -39,6 +40,7 @@ pub use sink::Sink;
 
 /// A point a mark drew, found near a position. Plain data.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub struct Hit {
     /// The panel's index, in the order of first use.
     pub panel: usize,
@@ -55,6 +57,26 @@ pub struct Hit {
 
 /// The points a figure's marks draw, per panel in a uniform grid of 32 px
 /// buckets.
+///
+/// ```
+/// # #[cfg(feature = "fonts")] {
+/// use rustd3_core::scale;
+/// use rustd3_figure::kurbo::Size;
+/// use rustd3_figure::mark::dots;
+/// use rustd3_figure::{Figure, Held, Target};
+/// use rustd3_figure::cache::Cache;
+///
+/// let mut fig = Figure::new();
+/// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+/// fig.panel(0, 0).mark(dots([(0.0, 0.0), (1.0, 1.0)], x, y));
+/// let mut cache = Cache::default();
+/// let resolved = fig.resolve(Size::new(320.0, 240.0), &mut cache, &Held::default(), Target::Vector);
+/// let index = fig.hits(&resolved, &mut cache);
+/// assert_eq!(index.len(), 2);
+/// let far = index.nearest((-100.0, -100.0).into(), 12.0);
+/// assert!(far.is_none());
+/// # }
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct Index {
     panels: Vec<Grid>,
@@ -76,7 +98,7 @@ impl Figure<'_> {
         let panels = self
             .panels()
             .iter()
-            .zip(resolved.plot_areas())
+            .zip(resolved.get_plot_areas())
             .enumerate()
             .map(|(i, (panel, area))| {
                 let ctx = Ctx::new(resolved, self.get_theme(), *area, text, &frame);
@@ -99,6 +121,7 @@ impl Index {
     /// included: searched in the buckets the radius overlaps; of equally
     /// near points, the one reported first (panel, then mark, then point
     /// order).
+    #[must_use]
     pub fn nearest(&self, at: Point, radius: f64) -> Option<Hit> {
         let mut best: Option<Hit> = None;
         for (panel, grid) in self.panels.iter().enumerate() {
@@ -123,6 +146,7 @@ impl Index {
     }
 
     /// Whether no point is indexed.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }

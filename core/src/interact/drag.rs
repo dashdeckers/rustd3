@@ -26,6 +26,7 @@ pub(super) struct Gesture {
 impl Drag {
     /// d3's `drag.clickDistance(px)`: how far the pointer may travel from
     /// the press before the end reports `moved`; 0 by default.
+    #[must_use]
     pub fn click_distance(self, px: f64) -> Self {
         Drag {
             click_distance: px,
@@ -54,7 +55,7 @@ impl Drag {
                 button,
                 modifiers,
             } => {
-                if button != Button::Left || modifiers.ctrl() {
+                if button != Button::Left || modifiers.get_ctrl() {
                     return None;
                 }
                 let (sx, sy) = subject(x, y)?;
@@ -105,6 +106,7 @@ impl Drag {
     }
 
     /// A drag is in progress.
+    #[must_use]
     pub fn is_active(&self) -> bool {
         self.gesture.is_some()
     }

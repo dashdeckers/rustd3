@@ -37,7 +37,7 @@ const EMPTY: [[f64; 2]; 3] = [[0.0, 1.0], [1.0, 10.0], [1e-7, 1.0 - 1e-7]];
 /// let inverted = scale::linear().domain([10.0, 0.0]);
 /// assert_eq!(inverted.pad(Some([0.0, 10.0]), 0.05, &[]), [10.5, -0.5]);
 /// ```
-pub trait Pad {
+pub trait Pad: crate::sealed::Pad {
     /// The type of the domain's values.
     type Domain;
 
@@ -65,6 +65,8 @@ impl<T: scale::Transform, R, const N: usize> Pad for Continuous<T, R, N> {
     }
 }
 
+impl<T: scale::Transform, R, const N: usize> crate::sealed::Pad for Continuous<T, R, N> {}
+
 /// Fitted as a linear scale over its one array.
 impl Pad for scale::Identity {
     type Domain = f64;
@@ -75,6 +77,8 @@ impl Pad for scale::Identity {
         oriented(fitted, first > last)
     }
 }
+
+impl crate::sealed::Pad for scale::Identity {}
 
 /// [`Pad::pad`] of a domain whose end stops are `ends`, under `transform`
 /// set for them: what the color scales with a transform pad by.

@@ -37,6 +37,7 @@ impl Key {
     /// `text` set in `style`: `#align(…, box(text(size: …pt, weight: …,
     /// fill: rgb(r, g, b, a))[…]))`, the size in px to four places. The
     /// box keeps typst's baseline of the label's first line in the frame.
+    #[must_use]
     pub fn new(text: &Text, style: &Style) -> Key {
         let align = match style.align {
             anchor::Horizontal::Start => "start",
@@ -58,6 +59,7 @@ impl Key {
     }
 
     /// The typst snippet.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.snippet
     }

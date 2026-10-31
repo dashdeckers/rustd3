@@ -95,7 +95,7 @@ fn bars(hatched: bool) -> (Figure<'static>, Rect) {
         .mark(bars)
         .axis(axis::left(y))
         .axis(axis::bottom(x));
-    let area = crate::figure::resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = crate::figure::resolve(&fig, &Held::default()).get_plot_areas()[0];
     (fig, area)
 }
 

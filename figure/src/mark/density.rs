@@ -31,6 +31,12 @@ pub struct DensityY<Y: Position<Domain = f64>, W: Position<Domain = f64>> {
     w: ScaleRef<W>,
 }
 
+impl<Y: Position<Domain = f64>, W: Position<Domain = f64>> std::fmt::Debug for DensityY<Y, W> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DensityY").finish_non_exhaustive()
+    }
+}
+
 /// A kernel density estimate along x: the curve over the data's values on
 /// `x`, its height on `h` peak-normalized to 1, filled from `h = 0` at 0.35
 /// opacity and outlined 0.75 pt wide.
@@ -38,6 +44,12 @@ pub struct DensityX<X: Position<Domain = f64>, H: Position<Domain = f64>> {
     density: Density,
     x: ScaleRef<X>,
     h: ScaleRef<H>,
+}
+
+impl<X: Position<Domain = f64>, H: Position<Domain = f64>> std::fmt::Debug for DensityX<X, H> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DensityX").finish_non_exhaustive()
+    }
 }
 
 /// What both orientations hold: the values, their estimate and its curve.
@@ -196,7 +208,7 @@ impl Density {
         }
         list.commands.push(Command::Stroke {
             path,
-            style: stroke(ctx.theme().get_density_width(), &[]),
+            style: stroke(ctx.get_theme().get_density_width(), &[]),
             paint: list::brush(color),
         });
     }
@@ -206,8 +218,8 @@ impl Density {
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if self.curve.is_empty() {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: Error::Density {
                     values: self.values.len(),
                 },
@@ -225,6 +237,7 @@ macro_rules! builders {
             /// Fills the region with `palette`'s color for `key` (at 0.35
             /// opacity, the outline opaque), looked up when the figure
             /// draws; a key the palette lacks draws the theme's gray.
+            #[must_use]
             pub fn fill<C: Paint>(mut self, palette: ScaleRef<C>, key: C::Domain) -> Self {
                 self.density.color = Color::keyed(palette, key);
                 self
@@ -232,6 +245,7 @@ macro_rules! builders {
 
             /// Hatches the region with `h`, between its fill and its
             /// outline; legend swatches of the fill key repeat it.
+            #[must_use]
             pub fn hatch(mut self, h: Hatch) -> Self {
                 self.density.hatch = Some(h);
                 self
@@ -241,6 +255,7 @@ macro_rules! builders {
             /// the values' units, instead of Scott's; [`adjust`](Self::adjust)
             /// still multiplies it. A bandwidth that is not finite and
             /// positive leaves it as it was.
+            #[must_use]
             pub fn bandwidth(mut self, h: f64) -> Self {
                 self.density.bandwidth = positive(h).or(self.density.bandwidth);
                 self.density = self.density.traced();
@@ -250,6 +265,7 @@ macro_rules! builders {
             /// Multiplies the bandwidth by `f`, seaborn's `bw_adjust`: above 1
             /// smoother, below 1 more detailed. A factor that is not finite and
             /// positive leaves it as it was.
+            #[must_use]
             pub fn adjust(mut self, f: f64) -> Self {
                 self.density.adjust = positive(f).unwrap_or(self.density.adjust);
                 self.density = self.density.traced();

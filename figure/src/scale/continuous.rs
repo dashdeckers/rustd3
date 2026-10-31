@@ -8,9 +8,7 @@ use rustd3_core::interact::Rescale;
 use rustd3_core::scale::{self, Continuous, Pad};
 use rustd3_core::series::{Points, m4};
 
-use crate::scale::{
-    Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stops, stuck, through,
-};
+use crate::scale::{Indexed, Invert, Kind, Position, Scale, indexed, stops, stuck, through};
 use crate::thin;
 
 /// A piecewise scale's inner stops keep their share of the way between its
@@ -43,6 +41,8 @@ impl<T: scale::Transform + 'static, const N: usize> Scale for Continuous<T, f64,
         through(&ranged(from, range), &ranged(self, range), at)
     }
 }
+
+impl<T: scale::Transform + 'static, const N: usize> crate::sealed::Scale for Continuous<T, f64, N> {}
 
 impl<T: scale::Transform + 'static, const N: usize> Kind for Continuous<T, f64, N> {
     type Domain = f64;
@@ -106,7 +106,7 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
         points: &Points<'_, f64, f64>,
         x: Option<[f64; 2]>,
         valid: &dyn Fn(f64) -> bool,
-    ) -> Option<SeriesExtent<f64>> {
+    ) -> Option<indexed::Extent<f64>> {
         let x = x.map(|[a, b]| {
             let (low, high) = if b < a { (b, a) } else { (a, b) };
             (low, Some(high.next_up()))
@@ -134,6 +134,11 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
     ) -> Option<m4::Lines> {
         indexed::thin(lower, Some(upper), edges, |e| [e.to_bits()], valid, frame)
     }
+}
+
+impl<T: scale::Transform + 'static, const N: usize> crate::sealed::Indexed<f64>
+    for Continuous<T, f64, N>
+{
 }
 
 /// A copy of `scale` whose range runs from `range[0]` to `range[1]`,
@@ -182,7 +187,7 @@ mod tests {
         recording: &Recording<f64>,
         [a, b]: [f64; 2],
         valid: impl Fn(f64) -> bool,
-    ) -> SeriesExtent<f64> {
+    ) -> indexed::Extent<f64> {
         let series = recording.series(0).expect("channel 0");
         let inside: Vec<(f64, f64)> = series.iter().filter(|(x, _)| (a..=b).contains(x)).collect();
         let ys = inside
@@ -193,7 +198,7 @@ mod tests {
             None => Some([y, y]),
             Some([lo, hi]) => Some([lo.min(y), hi.max(y)]),
         });
-        SeriesExtent {
+        indexed::Extent {
             x: [inside[0].0, inside[inside.len() - 1].0],
             y,
         }

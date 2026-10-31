@@ -65,6 +65,12 @@ pub struct Histogram<X: Binned, Y: Position<Domain = f64>> {
     dodge: bool,
 }
 
+impl<X: Binned, Y: Position<Domain = f64>> std::fmt::Debug for Histogram<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Histogram").finish_non_exhaustive()
+    }
+}
+
 /// A histogram of `values` on `x` with its counts on `y`, in the theme
 /// palette's first color: one bar per key on band and point scales, per
 /// bin of the finite values ([`Bins::Nice`] with Sturges' count by
@@ -138,6 +144,7 @@ where
 impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// How numbers are binned; band and point scales count keys and ignore
     /// it.
+    #[must_use]
     pub fn bins(self, b: Bins) -> Self {
         Self {
             bars: X::bars(&self.values, Some(b)),
@@ -147,6 +154,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
 
     /// Fills the bars with `palette`'s color for `key`, looked up when the
     /// figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -156,6 +164,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
 
     /// Hatches every bar with `h`, after its fill; legend swatches of the
     /// fill key repeat it.
+    #[must_use]
     pub fn hatch(self, h: Hatch) -> Self {
         Self {
             hatch: Some(h),
@@ -166,6 +175,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// Places the bars in their fill key's slot of each band or bin, split
     /// into one part per palette key in the palette's order, so that the
     /// bars of several histograms stand side by side.
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,
@@ -205,7 +215,7 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
     /// Per bar, the centre of its top when it lies in the plot area, with
     /// the bar's index (in the order of [`Binned::bars`]).
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        let area = ctx.rect().with_origin(kurbo::Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(kurbo::Point::ORIGIN);
         for (i, [x0, x1], [_, top]) in self.placed(ctx) {
             let p = kurbo::Point::new((x0 + x1) / 2.0, top);
             if within(area, p) {
@@ -226,7 +236,7 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
             .filter(|([k, _], _)| sx.position(k).is_none())
             .map(|(_, count)| count)
             .sum();
-        super::outside_count(self.x.index(), outside as usize, issues);
+        super::outside_count(self.x.get_index(), outside as usize, issues);
     }
 }
 
@@ -239,7 +249,7 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return Vec::new();
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let band = ctx.band();
         let Some(base) = reach(&sy, 0.0, [band.y0, band.y1]) else {
             return Vec::new();

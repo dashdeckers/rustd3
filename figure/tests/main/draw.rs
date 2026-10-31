@@ -49,7 +49,7 @@ fn list_dump_of_scatter() {
     let list =
         scatter::scatter(300).draw_with(&mut cache(), SIZE, Target::Vector, &Held::default());
     list::check(&list).expect("a valid list");
-    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(true));
     let store = rustd3_testkit::snapshot::Store::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/snapshots"
@@ -62,7 +62,7 @@ fn list_dump_of_scatter() {
 fn draw_is_a_vector_draw_with_a_fresh_cache() {
     let fig = scatter::scatter(30);
     let fresh = fig.draw_with(
-        &mut rustd3_figure::Cache::default(),
+        &mut rustd3_figure::cache::Cache::default(),
         SIZE,
         Target::Vector,
         &Held::default(),
@@ -80,10 +80,10 @@ fn the_trace_figure_redraws_with_no_m4_query_and_no_typst_compile() {
     };
     let size = trace::SIZE;
     let first = fig.draw_with(&mut cache, size, target, &Held::default());
-    let before = cache.stats();
+    let before = cache.get_stats();
     assert_eq!(before.m4_queries, 3);
     let second = fig.draw_with(&mut cache, size, target, &Held::default());
-    let after = cache.stats();
+    let after = cache.get_stats();
     assert_eq!(
         (after.m4_queries, after.text.compiles),
         (before.m4_queries, before.text.compiles)

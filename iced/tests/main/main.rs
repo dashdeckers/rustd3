@@ -21,5 +21,6 @@ mod plot;
 mod pointer;
 #[cfg(all(feature = "figure", feature = "fonts"))]
 mod reference;
+mod threads;
 #[cfg(all(feature = "figure", feature = "fonts"))]
 mod tiles;

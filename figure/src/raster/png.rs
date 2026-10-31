@@ -3,6 +3,11 @@
 use crate::raster::{Error, Image};
 
 /// `image` as an 8-bit RGBA PNG with default compression.
+///
+/// # Errors
+///
+/// [`Error::Length`] for pixels that are not
+/// `width × height × 4` bytes.
 pub fn encode(image: &Image) -> Result<Vec<u8>, Error> {
     let expected = u64::from(image.width) * u64::from(image.height) * 4;
     if u64::try_from(image.rgba.len()).ok() != Some(expected) {

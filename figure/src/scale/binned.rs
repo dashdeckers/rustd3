@@ -53,6 +53,8 @@ impl Scale for Quantize<Rgb> {
     }
 }
 
+impl crate::sealed::Scale for Quantize<Rgb> {}
+
 /// Fitted to the data's extent through core's `Pad` with no margin (the
 /// theme's is ignored), the bins following; no data keeps the domain as
 /// built.
@@ -115,6 +117,8 @@ impl Scale for Quantile<Rgb> {
     }
 }
 
+impl crate::sealed::Scale for Quantile<Rgb> {}
+
 /// Its sample is its domain: not fitted (no `Fittable`), so `fitted`
 /// keeps it.
 impl Kind for Quantile<Rgb> {
@@ -168,6 +172,8 @@ impl Scale for Threshold<Rgb> {
         None
     }
 }
+
+impl crate::sealed::Scale for Threshold<Rgb> {}
 
 /// Its thresholds are its domain: fitting keeps them.
 impl Kind for Threshold<Rgb> {

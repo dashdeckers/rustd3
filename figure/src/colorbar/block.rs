@@ -156,7 +156,7 @@ impl<'g, 'a> Content<'g, 'a> {
             }
             let title = placed.labels.title().and_then(|key| text.get(key)?.ok());
             if let Some(title) = title {
-                let half = title.width() / 2.0;
+                let half = title.get_width() / 2.0;
                 let middle = interior / 2.0;
                 if vertical {
                     bounds.y0 = bounds.y0.min(middle - half);

@@ -4,7 +4,8 @@ use std::cell::RefCell;
 
 use kurbo::Rect;
 
-use crate::figure::{Cache, Figure, Held, Resolved};
+use crate::cache::Cache;
+use crate::figure::{Figure, Held, Resolved};
 use crate::layout;
 use crate::list::{self, Bounds, List, Outlines};
 use crate::target::Target;
@@ -15,6 +16,7 @@ impl Figure<'_> {
     /// and nothing held: what `save_svg` writes. Repeated outputs of one
     /// figure keep a cache and call [`draw_with`](Figure::draw_with).
     #[cfg(feature = "fonts")]
+    #[must_use]
     pub fn draw(&self, size: kurbo::Size) -> List {
         self.draw_with(
             &mut Cache::default(),
@@ -81,7 +83,7 @@ impl Figure<'_> {
     /// let y = fig.scale(scale::linear().domain([0.0, 3.0]));
     /// fig.panel(0, 0).axis(axis::left(y));
     /// # #[cfg(feature = "fonts")] {
-    /// let mut cache = rustd3_figure::Cache::default();
+    /// let mut cache = rustd3_figure::cache::Cache::default();
     /// let (size, target, held) = (Size::new(640.0, 480.0), Target::Vector, Held::default());
     /// cache.begin();
     /// let resolved = fig.resolve(size, &mut cache, &held, target);

@@ -122,14 +122,14 @@ fn continuous_scales_never_panic_and_keep_their_rules() {
         );
         let locale = rng.pick(&LOCALES);
         let labels = s.labels(&set, locale);
-        assert_eq!(labels.len(), set.values().len(), "{name} {d:?}");
-        for v in set.values() {
+        assert_eq!(labels.len(), set.get_values().len(), "{name} {d:?}");
+        for v in set.get_values() {
             s.position(v, 0.5);
         }
         let spec = rng.chance(0.5).then(|| rng.string(SPECIFIER, 8));
-        if let Ok(f) = s.tick_format_in(locale.number(), count, spec.as_deref()) {
-            f.format_all(&ticks);
-            f.format(rng.f64());
+        if let Ok(f) = s.tick_format_in(locale.get_number(), count, spec.as_deref()) {
+            let _ = f.format_all(&ticks);
+            let _ = f.format(rng.f64());
         }
         s.admits(x);
     });
@@ -157,11 +157,11 @@ fn band_and_point_scales_never_panic() {
         for k in keys.iter().chain([&99]) {
             b.apply(k);
         }
-        b.bandwidth();
-        b.step();
+        let _ = b.bandwidth();
+        let _ = b.step();
         let set = b.tick_set(rng.count());
         b.labels(&set, &Locale::NEUTRAL);
-        for v in set.values() {
+        for v in set.get_values() {
             b.position(v, rng.f64());
         }
         let p = scale::point(keys.clone())
@@ -171,7 +171,7 @@ fn band_and_point_scales_never_panic() {
         for k in keys.iter().chain([&99]) {
             p.apply(k);
         }
-        p.bandwidth();
+        let _ = p.bandwidth();
         let set = p.tick_set(rng.count());
         p.labels(&set, &Locale::NEUTRAL);
     });
@@ -194,7 +194,7 @@ fn ordinal_scales_never_panic() {
         o.apply_or_insert(u8::try_from(rng.below(256)).unwrap_or(0));
         let set = o.tick_set(rng.count());
         o.labels(&set, &Locale::NEUTRAL);
-        for v in set.values() {
+        for v in set.get_values() {
             o.position(v, 0.0);
         }
         o.extent();
@@ -215,8 +215,8 @@ fn quantize_quantile_and_threshold_scales_never_panic() {
         if rng.chance(0.3) {
             q = q.nice(rng.count());
         }
-        q.apply(x);
-        q.thresholds();
+        let _ = q.apply(x);
+        let _ = q.thresholds();
         for r in &range {
             q.invert_extent(r);
         }
@@ -225,15 +225,15 @@ fn quantize_quantile_and_threshold_scales_never_panic() {
             panic!("quantize {:?} ticks({count}): {v}", q.get_domain());
         }
         if let Ok(f) = q.tick_format(count, Some(&rng.string(SPECIFIER, 6))) {
-            f.format_all(&ticks);
+            let _ = f.format_all(&ticks);
         }
         let set = q.tick_set(count);
         q.labels(&set, &Locale::NEUTRAL);
 
         let sample = rng.values(30);
         let qq = scale::quantile(sample, range.clone());
-        qq.apply(x);
-        qq.quantiles();
+        let _ = qq.apply(x);
+        let _ = qq.quantiles();
         for r in &range {
             qq.invert_extent(r);
         }
@@ -242,13 +242,13 @@ fn quantize_quantile_and_threshold_scales_never_panic() {
 
         let thresholds = rng.values(8);
         let t = scale::threshold(thresholds, range.clone());
-        t.apply(x);
+        let _ = t.apply(x);
         for r in &range {
             t.invert_extent(r);
         }
         let set = t.tick_set(count);
         t.labels(&set, &Locale::NEUTRAL);
-        for v in set.values() {
+        for v in set.get_values() {
             t.position(v, 0.0);
         }
     });
@@ -280,7 +280,7 @@ fn sequential_and_diverging_scales_never_panic() {
         s.labels(&set, &Locale::NEUTRAL);
         Ticks::minor(&s, &set);
         if let Ok(f) = s.tick_format(count, None) {
-            f.format_all(&s.ticks(count));
+            let _ = f.format_all(&s.ticks(count));
         }
         let log = s.clone().transform(transform::Log::new(10.0)).base(p);
         checks(
@@ -324,7 +324,7 @@ fn sequential_and_diverging_scales_never_panic() {
         dv.labels(&set, &Locale::NEUTRAL);
         Ticks::minor(&dv, &set);
         if let Ok(f) = dv.tick_format(count, None) {
-            f.format_all(&ticks);
+            let _ = f.format_all(&ticks);
         }
         let log = dv.transform(transform::Log::new(10.0)).base(p);
         log.apply(x);
@@ -339,14 +339,14 @@ fn identity_scales_never_panic() {
         let count = rng.count();
         let s = scale::identity().domain(d);
         let s = if rng.chance(0.3) { s.nice(count) } else { s };
-        s.apply(rng.f64());
-        s.invert(rng.f64());
+        let _ = s.apply(rng.f64());
+        let _ = s.invert(rng.f64());
         let ticks = s.ticks(count);
         if let Some(v) = tick_violation(&ticks, s.get_domain()) {
             panic!("identity {:?} ticks({count}): {v}", s.get_domain());
         }
         if let Ok(f) = s.tick_format(count, Some(&rng.string(SPECIFIER, 6))) {
-            f.format_all(&ticks);
+            let _ = f.format_all(&ticks);
         }
     });
 }
@@ -399,8 +399,8 @@ fn time_scales_never_panic_and_keep_their_rules() {
         let count = rng.count();
         let s = if rng.chance(0.3) { s.nice(count) } else { s };
         let [a, b] = s.get_domain();
-        s.apply(instant(rng));
-        s.invert(rng.f64());
+        let _ = s.apply(instant(rng));
+        let _ = s.invert(rng.f64());
         let ticks = s.ticks(count);
         let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
         let ordered = ticks
@@ -414,11 +414,11 @@ fn time_scales_never_panic_and_keep_their_rules() {
         let set = s.tick_set(count);
         let locale = rng.pick(&LOCALES);
         let labels = s.labels(&set, locale);
-        assert_eq!(labels.len(), set.values().len());
-        for t in set.values().iter().take(50) {
-            s.tick_label(*t, locale.time());
+        assert_eq!(labels.len(), set.get_values().len());
+        for t in set.get_values().iter().take(50) {
+            let _ = s.tick_label(*t, locale.get_time());
             s.position(t, 0.5);
         }
-        s.tick_interval(count);
+        let _ = s.tick_interval(count);
     });
 }

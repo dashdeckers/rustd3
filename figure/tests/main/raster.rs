@@ -1,7 +1,8 @@
 //! Raster outputs: the snapping helpers here, vello_cpu's renders in
 //! `vello`, marker splatting in `splat`.
 
-#[cfg(feature = "raster")]
+// Splatting is measured on drawn figures, which need fonts.
+#[cfg(all(feature = "raster", feature = "fonts"))]
 mod splat;
 #[cfg(feature = "raster")]
 pub mod vello;

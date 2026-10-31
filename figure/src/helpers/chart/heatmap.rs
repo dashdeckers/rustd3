@@ -20,6 +20,12 @@ pub struct Heatmap {
     setup: Setup,
 }
 
+impl std::fmt::Debug for Heatmap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Heatmap").finish_non_exhaustive()
+    }
+}
+
 /// A heatmap of `grid`: an [`image`] of its cells through a sequential
 /// color scale fitted to its values (viridis unless
 /// [`colors`](Heatmap::colors) says otherwise), filling the plot area, and
@@ -37,6 +43,7 @@ pub struct Heatmap {
 /// let fig = chart::heatmap(grid).x_label("x [m]").y_label("y [m]").figure();
 /// # Ok::<(), rustd3_figure::mark::Error>(())
 /// ```
+#[must_use]
 pub fn heatmap(grid: Grid) -> Heatmap {
     Heatmap {
         grid,
@@ -60,6 +67,7 @@ impl Heatmap {
     /// let fig = chart::heatmap(grid).colors(scheme::magma).figure();
     /// # Ok::<(), rustd3_figure::mark::Error>(())
     /// ```
+    #[must_use]
     pub fn colors(self, scheme: fn(f64) -> Rgb) -> Self {
         Heatmap { scheme, ..self }
     }
@@ -82,6 +90,7 @@ impl Heatmap {
     ///     .figure();
     /// # Ok::<(), rustd3_figure::mark::Error>(())
     /// ```
+    #[must_use]
     pub fn keys(self, rows: Vec<String>, cols: Vec<String>) -> Self {
         Heatmap {
             keys: Some((rows, cols)),
@@ -91,6 +100,7 @@ impl Heatmap {
 
     /// The figure: one panel with the image, its axes and title, and the
     /// colorbar.
+    #[must_use]
     pub fn figure<'a>(self) -> Figure<'a> {
         let Heatmap {
             grid,

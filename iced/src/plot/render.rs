@@ -6,7 +6,20 @@
 /// them at once; pool renders run on the threads the widget owns
 /// (`Plot::threads`), whose results arrive as `Event::Waken` while each
 /// cell keeps its previous image on screen.
+///
+/// ```no_run
+/// # mod rustd3 { pub use rustd3_figure as figure; }
+/// use rustd3::figure::Figure;
+/// use rustd3_iced::Plot;
+/// use rustd3_iced::plot::{Caching, Render};
+///
+/// fn view(fig: Figure<'_>) -> Plot<'_, ()> {
+///     // Every render on the pool, every kept image checked: a diagnostic.
+///     Plot::new(fig).render(Render::Worker).caching(Caching::Verify)
+/// }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Render {
     /// In order (visible tiles nearest the last gesture input, the
     /// gutters, the ring, which waits for a gesture to end; during a
@@ -24,8 +37,8 @@ pub enum Render {
     /// instants, clamped to 1 ms ..= 16.7 ms (16.7 ms until two exist);
     /// the prediction is a fixed overhead plus a time per pixel and per
     /// work item that each widget fits to its timed renders, the tiles'
-    /// apart from the gutters' and overlays', seeded by
-    /// [`cost::model_ms`](crate::plot::cost::model_ms)'s constants.
+    /// apart from the gutters' and overlays', seeded by two constants
+    /// fitted to a 1920 × 1520 device px figure of 5,600 dots.
     #[default]
     Auto,
     /// Always on the UI thread, inside `RedrawRequested`, gestures

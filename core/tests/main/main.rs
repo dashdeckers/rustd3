@@ -30,5 +30,6 @@ mod scale;
 mod scheme;
 mod series;
 mod shape;
+mod threads;
 mod ticks;
 mod time;

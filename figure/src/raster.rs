@@ -45,6 +45,7 @@ pub struct Image {
 
 /// Why a list cannot be rendered.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// A render with a side above 65,408 device px, or an image in the
     /// list with a side above 65,535 px.
@@ -86,6 +87,7 @@ pub enum Error {
 /// How a [`Renderer`] runs vello_cpu.
 #[cfg(feature = "raster")]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Simd {
     /// The best SIMD level the CPU offers.
     #[default]
@@ -99,15 +101,25 @@ pub enum Simd {
 #[cfg(feature = "raster")]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Settings {
-    /// vello_cpu's worker threads: 0 renders on the calling thread, `n`
-    /// starts vello_cpu's own pool of `n`.
-    pub threads: u16,
-    /// The SIMD level.
-    pub simd: Simd,
+    threads: usize,
+    simd: Simd,
 }
 
 #[cfg(feature = "raster")]
 impl Settings {
+    /// vello_cpu's worker threads: 0 renders on the calling thread, `n`
+    /// starts vello_cpu's own pool of `n` (at most 65,535).
+    #[must_use]
+    pub fn threads(self, n: usize) -> Self {
+        Settings { threads: n, ..self }
+    }
+
+    /// The SIMD level.
+    #[must_use]
+    pub fn simd(self, simd: Simd) -> Self {
+        Settings { simd, ..self }
+    }
+
     /// vello_cpu's own pool: the available parallelism − 1, clamped to
     /// 1..=8; what file outputs use. The `Plot` widget renders
     /// single-threaded, inline and on its own pool alike.
@@ -115,7 +127,7 @@ impl Settings {
         let cores = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
         let threads = cores.saturating_sub(1).clamp(1, 8);
         Settings {
-            threads: u16::try_from(threads).expect("invariant: at most 8"),
+            threads,
             simd: Simd::Detect,
         }
     }
@@ -123,6 +135,20 @@ impl Settings {
 
 /// Renders lists with vello_cpu, keeping one render context, its
 /// resources and the images of the last render between calls.
+///
+/// ```
+/// use rustd3_figure::kurbo::{Rect, Size};
+/// use rustd3_figure::list::{Bounds, List, Outlines};
+/// use rustd3_figure::raster::{Renderer, Settings, Simd};
+///
+/// let list = List { size: Size::new(40.0, 20.0), ..List::default() };
+/// let bounds = Bounds::of(&list, &mut Outlines::default());
+/// let mut renderer = Renderer::new(Settings::default().simd(Simd::Baseline));
+/// // The left half at 2 device px per list px.
+/// let image = renderer.render(&list, &bounds, Rect::new(0.0, 0.0, 20.0, 20.0), 2.0)?;
+/// assert_eq!((image.width, image.height), (40, 40));
+/// # Ok::<(), rustd3_figure::raster::Error>(())
+/// ```
 #[cfg(feature = "raster")]
 #[derive(Debug)]
 pub struct Renderer {
@@ -149,6 +175,7 @@ const _: () = {
 #[cfg(feature = "raster")]
 impl Renderer {
     /// A renderer with `settings`; a pool, if any, starts now.
+    #[must_use]
     pub fn new(settings: Settings) -> Self {
         let level = match settings.simd {
             Simd::Detect => vello_cpu::Level::try_detect().unwrap_or(vello_cpu::Level::baseline()),
@@ -156,7 +183,8 @@ impl Renderer {
         };
         let render = vello_cpu::RenderSettings {
             level,
-            num_threads: settings.threads,
+            // vello_cpu counts threads in a u16.
+            num_threads: u16::try_from(settings.threads).unwrap_or(u16::MAX),
         };
         Renderer {
             context: vello_cpu::RenderContext::new_with(1, 1, render),
@@ -201,6 +229,12 @@ impl Renderer {
     ///
     /// `bounds` must be [`Bounds::of`] this list; bounds of another
     /// number of commands are [`Error::Bounds`].
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Bounds`] for bounds of another list, [`Error::Empty`] for
+    /// an area of no device pixel, [`Error::TooLarge`] past 65,408 device
+    /// px a side, [`Error::List`] for a list that fails [`list::check`].
     pub fn render(
         &mut self,
         list: &List,
@@ -240,6 +274,12 @@ impl Renderer {
 
 /// The whole of `list` at `scale` with [`Settings::default`], its
 /// [`Bounds`] computed here.
+///
+/// # Errors
+///
+/// [`Error::Empty`] for a list of no device pixel at `scale`,
+/// [`Error::TooLarge`] past 65,408 device px a side, [`Error::List`] for a
+/// list that fails [`list::check`].
 #[cfg(feature = "raster")]
 pub fn render(list: &List, scale: f64) -> Result<Image, Error> {
     let bounds = Bounds::of(list, &mut Outlines::default());

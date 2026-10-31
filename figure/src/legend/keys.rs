@@ -167,7 +167,7 @@ impl Content {
         let em = theme.em();
         let side = self.entries.iter().map(|e| e.width(em)).fold(0.0, f64::max);
         let entry = text.fonts().line(theme.tick_text());
-        let width = |key: &Key| get(text, key).map_or(0.0, Shaped::width);
+        let width = |key: &Key| get(text, key).map_or(0.0, Shaped::get_width);
         let labels = self
             .entries
             .iter()
@@ -243,7 +243,7 @@ impl Rows {
         self.top = self.top.min(top);
         self.bottom = self.bottom.max(bottom);
         self.labels.push((key.clone(), at, h));
-        shaped.width()
+        shaped.get_width()
     }
 
     /// The block of `size` holding what was added, moved by `by`.
@@ -349,8 +349,8 @@ fn swatch(x: f64, width: f64, em: f64, size: Option<f64>) -> Rect {
 /// descender below the last) united with its ink.
 fn extent(shaped: &Shaped, [ascender, descender]: [f64; 2]) -> [f64; 2] {
     [
-        (-ascender).min(-shaped.ascent()),
-        (shaped.last() + descender).max(shaped.descent()),
+        (-ascender).min(-shaped.get_ascent()),
+        (shaped.get_last() + descender).max(shaped.get_descent()),
     ]
 }
 

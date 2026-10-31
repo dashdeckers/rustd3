@@ -15,6 +15,16 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 
 /// Identifies a recording for caches: a fresh `AtomicU64` value per
 /// recording, including clones.
+///
+/// ```
+/// use rustd3_core::series::{Clock, Recording};
+///
+/// let a = Recording::new(Clock::Regular { start: 0.0, period: 1.0 }, [[1.0, 2.0]])?;
+/// let b = a.clone();
+/// assert_ne!(a.get_id(), b.get_id());
+/// assert_eq!(a.get_revision(), b.get_revision());
+/// # Ok::<(), rustd3_core::series::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id(u64);
 
@@ -81,6 +91,14 @@ impl<X: Coordinate> Recording<X> {
     /// Nothing is stored unless everything is valid: the period and start
     /// of a regular clock, the lengths, explicit x valid and non-decreasing,
     /// and at most `u32::MAX` samples.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Period`] for a regular clock's period that is not finite
+    /// and positive, [`Error::Regular`] for x values on a regular clock,
+    /// [`Error::Length`] for channels of unequal length, [`Error::Invalid`]
+    /// and [`Error::Unordered`] for an explicit x that may not be stored or
+    /// is out of order, and [`Error::Capacity`] past `u32::MAX` samples.
     pub fn new<C: AsRef<[f64]>>(
         clock: Clock<X>,
         channels: impl IntoIterator<Item = C>,
@@ -114,6 +132,12 @@ impl<X: Coordinate> Recording<X> {
     /// Appends to every channel at once, or to none. A regular clock takes
     /// `x = &[]`; an explicit one takes one x per new sample, valid and not
     /// below the last stored x. On an error the recording is unchanged.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Channels`] for another number of channels than the
+    /// recording has, and the errors of [`Recording::new`] for the appended
+    /// samples; the recording is then unchanged.
     pub fn extend<C: AsRef<[f64]>>(
         &mut self,
         x: &[X],
@@ -166,17 +190,17 @@ impl<X: Coordinate> Recording<X> {
     }
 
     /// The recording's identity for caches.
-    pub fn id(&self) -> Id {
+    pub fn get_id(&self) -> Id {
         self.id
     }
 
     /// Bumped by every successful `extend` and every `drop_front` that dropped.
-    pub fn revision(&self) -> u64 {
+    pub fn get_revision(&self) -> u64 {
         self.revision
     }
 
     /// Absolute number of the current first sample (samples ever dropped).
-    pub fn offset(&self) -> u64 {
+    pub fn get_offset(&self) -> u64 {
         self.offset
     }
 
@@ -212,6 +236,11 @@ impl<X: Coordinate> Recording<X> {
     /// Column boundaries in samples for data-space `edges` (≥ 2,
     /// non-decreasing): each edge maps to `locate(edge)`, so an edge below
     /// `x(0)` gives 0 and one above the last x gives `len`.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Edges`] for fewer than two edges, [`Error::Edge`] for an
+    /// edge that is not valid or below the one before it.
     pub fn columns(&self, edges: &[X]) -> Result<Columns, Error<X>> {
         if edges.len() < 2 {
             return Err(Error::Edges(edges.len()));
@@ -416,7 +445,7 @@ mod tests {
                     .m4(&grid, |y| y > -20.0)
                     .unwrap();
                 out.push((
-                    grid.edges().to_vec(),
+                    grid.get_edges().to_vec(),
                     lines.iter().map(<[usize]>::to_vec).collect(),
                 ));
             }
@@ -528,7 +557,7 @@ mod tests {
             err.to_string(),
             "a recording holds at most 4294967295 samples, got 4294967296"
         );
-        assert_eq!(rec.revision(), 0);
+        assert_eq!(rec.get_revision(), 0);
     }
 
     #[test]

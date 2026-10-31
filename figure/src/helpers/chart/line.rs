@@ -18,6 +18,12 @@ pub struct Line<'a> {
     setup: Setup,
 }
 
+impl<'a> std::fmt::Debug for Line<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Line").finish_non_exhaustive()
+    }
+}
+
 /// A line chart of `data` (pairs, two slices or a recording channel, as
 /// [`mark::line`] takes them; a channel thins to M4's points per column),
 /// more series added with [`series`](Line::series): each a
@@ -75,6 +81,7 @@ impl<'a> Line<'a> {
     ///     .x_label("t [s]")
     ///     .figure();
     /// ```
+    #[must_use]
     pub fn series(mut self, data: impl Data<'a, f64, f64>, key: impl Into<String>) -> Self {
         self.series.push((data.into_points(), key.into()));
         self
@@ -83,6 +90,7 @@ impl<'a> Line<'a> {
     /// The x scale, fitted to the series' x: linear by default; log,
     /// symlog, asinh, logit and the others through
     /// [`AnyContinuous`]'s conversions.
+    #[must_use]
     pub fn x_scale(self, s: impl Into<AnyContinuous>) -> Self {
         Line {
             x: s.into(),
@@ -100,6 +108,7 @@ impl<'a> Line<'a> {
     ///     .y_scale(scale::log())
     ///     .figure();
     /// ```
+    #[must_use]
     pub fn y_scale(self, s: impl Into<AnyContinuous>) -> Self {
         Line {
             y: s.into(),
@@ -109,6 +118,7 @@ impl<'a> Line<'a> {
 
     /// The figure: one panel with the lines, its axes and title, and the
     /// legend when there is more than one series.
+    #[must_use]
     pub fn figure(self) -> Figure<'a> {
         let Line {
             series,

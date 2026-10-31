@@ -24,6 +24,7 @@ impl Vertex for Option<(f64, f64)> {
 
 impl Line {
     /// Joins the points with `curve`: d3's `line.curve`.
+    #[must_use]
     pub fn curve(self, curve: Curve) -> Self {
         Self { curve }
     }

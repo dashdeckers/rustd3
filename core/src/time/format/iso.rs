@@ -19,6 +19,7 @@ const ISO: &str = "%Y-%m-%dT%H:%M:%S.%LZ";
 /// assert_eq!(time::iso_format(t), "2026-03-08T07:59:30.123Z");
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
+#[must_use]
 pub fn iso_format(t: Timestamp) -> String {
     Locale::NEUTRAL.format(ISO).format(t, &TimeZone::UTC)
 }
@@ -34,6 +35,11 @@ pub fn iso_format(t: Timestamp) -> String {
 /// assert!(time::iso_parse("1990-01-01T00:00:00.000X").is_err());
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// jiff's error for a string that is not an RFC 3339 instant with an
+/// offset.
 pub fn iso_parse(s: &str) -> Result<Timestamp, jiff::Error> {
     s.parse()
 }

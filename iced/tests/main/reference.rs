@@ -13,10 +13,11 @@
 //! plot-area layers (which the overscan grows over it); everything else is
 //! the PNG's.
 
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::list::{Bounds, Command, List, Outlines, part};
 use rustd3_figure::raster::{self, Settings, Simd};
-use rustd3_figure::{Cache, Figure, Held, Target, layout, thin};
+use rustd3_figure::{Figure, Held, Target, layout, thin};
 
 /// The widget's overscan: two tiles and a margin, device px.
 const OVERSCAN: f64 = 520.0;
@@ -37,7 +38,7 @@ pub fn png_of(
         let resolved = fig.resolve(size, &mut cache, held, Target::Screen { scale });
         (
             fig.draw_resolved(&mut cache, &resolved),
-            resolved.plot_areas().to_vec(),
+            resolved.get_plot_areas().to_vec(),
         )
     };
     let (list, areas) = draw(&Held::default());
@@ -74,7 +75,7 @@ pub fn png_held_on(
         let resolved = fig.resolve_held(size, &mut cache, held, target, areas);
         (
             fig.draw_resolved(&mut cache, &resolved),
-            resolved.plot_areas().to_vec(),
+            resolved.get_plot_areas().to_vec(),
         )
     };
     let (list, rects) = draw(&Held::default());
@@ -144,17 +145,14 @@ fn only(list: &List, panel: usize, panels: usize) -> List {
 
 /// `list` as the PNG output renders it.
 fn render(list: &List, size: kurbo::Size, scale: f64) -> raster::Image {
-    raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    })
-    .render(
-        list,
-        &Bounds::of(list, &mut Outlines::default()),
-        Rect::from_origin_size((0.0, 0.0), size),
-        scale,
-    )
-    .expect("the figure renders")
+    raster::Renderer::new(Settings::default().simd(Simd::Baseline))
+        .render(
+            list,
+            &Bounds::of(list, &mut Outlines::default()),
+            Rect::from_origin_size((0.0, 0.0), size),
+            scale,
+        )
+        .expect("the figure renders")
 }
 
 /// Composites `image` source-over onto `background`.

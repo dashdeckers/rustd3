@@ -5,15 +5,16 @@
 //!
 //! ```
 //! use rustd3_core::scale;
-//! use rustd3_figure::check::{self, size};
+//! use rustd3_figure::check;
+//! use rustd3_figure::kurbo::Size;
 //! use rustd3_figure::{Figure, axis};
 //!
 //! let mut fig = Figure::new();
 //! let y = fig.scale(scale::linear().domain([0.0, 3.0]));
 //! fig.panel(0, 0).axis(axis::left(y).label("vibration RMS [m/s²]"));
 //! # #[cfg(feature = "fonts")] {
-//! assert!(fig.check(size(640.0, 480.0)).is_empty());
-//! let issues = fig.check(size(640.0, 120.0));
+//! assert!(fig.check(Size::new(640.0, 480.0)).is_empty());
+//! let issues = fig.check(Size::new(640.0, 120.0));
 //! assert!(matches!(
 //!     issues[..],
 //!     [check::Issue::Overflow { what: check::Element::AxisTitle, .. }]
@@ -131,7 +132,7 @@ pub enum Issue {
         /// The panel it was given to; `None` for a figure slot's guide.
         panel: Option<usize>,
         /// The handle's position in its own figure's table
-        /// ([`ScaleRef::index`](crate::scale::ScaleRef::index)).
+        /// ([`ScaleRef::get_index`](crate::scale::ScaleRef::get_index)).
         handle: usize,
     },
     /// A handle fitted with `Fit::Window` on a categorical scale, which
@@ -144,7 +145,7 @@ pub enum Issue {
     /// nothing: one issue per handle, over every mark that uses it.
     OutsideDomain {
         /// The handle's position in the figure's scale table
-        /// ([`ScaleRef::index`](crate::scale::ScaleRef::index)).
+        /// ([`ScaleRef::get_index`](crate::scale::ScaleRef::get_index)).
         handle: usize,
         /// How many data values lie outside the domain.
         count: usize,
@@ -153,6 +154,7 @@ pub enum Issue {
 
 /// What text overflows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Element {
     /// An axis title, longer than its axis.
     AxisTitle,
@@ -172,9 +174,4 @@ pub enum Direction {
     Horizontal,
     /// Down the rows.
     Vertical,
-}
-
-/// A figure size in px: `size(1600.0, 1200.0)`.
-pub fn size(width: f64, height: f64) -> kurbo::Size {
-    kurbo::Size::new(width, height)
 }

@@ -2,7 +2,6 @@
 //! cells that refer to scales only through handles, a layout, a title and
 //! a theme; resolving it fits domains and lays the grid out.
 
-pub(crate) mod cache;
 mod decorate;
 mod draw;
 mod fits;
@@ -24,7 +23,6 @@ use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef, window};
 use crate::text::Text;
 use crate::theme::Theme;
 
-pub use cache::Cache;
 pub use fits::Fits;
 pub use held::Held;
 pub use resolved::Resolved;
@@ -53,12 +51,12 @@ pub(crate) struct Id(u64);
 /// let y = fig.fit(scale::linear());
 /// fig.panel(0, 0);
 /// # #[cfg(feature = "fonts")] {
-/// let mut cache = rustd3_figure::Cache::default();
+/// let mut cache = rustd3_figure::cache::Cache::default();
 /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), Target::Vector);
-/// assert_eq!(r.scale(x).map(|s| s.get_domain()), Some([0.0, 10.0]));
+/// assert_eq!(r.get_scale(x).map(|s| s.get_domain()), Some([0.0, 10.0]));
 /// // No mark gives y data: core's empty domain.
-/// assert_eq!(r.scale(y).map(|s| s.get_domain()), Some([0.0, 1.0]));
-/// assert_eq!(r.plot_areas().len(), 1);
+/// assert_eq!(r.get_scale(y).map(|s| s.get_domain()), Some([0.0, 1.0]));
+/// assert_eq!(r.get_plot_areas().len(), 1);
 /// # }
 /// ```
 pub struct Figure<'a> {
@@ -79,6 +77,12 @@ pub struct Figure<'a> {
     theme: Theme,
     locale: Locale,
     legends: Vec<(Slot, legend::Stored<'a>)>,
+}
+
+impl<'a> std::fmt::Debug for Figure<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Figure").finish_non_exhaustive()
+    }
 }
 
 /// One scale of the table, how to fit it when it is fitted, whether to
@@ -140,7 +144,7 @@ impl<'a> Figure<'a> {
     /// area (see [`Fit::Window`]): resolving lays the figure out with the
     /// window, measures the plot areas, and fits and lays out again until
     /// the column count it fitted with is the one it laid out (the last
-    /// count is remembered in the [`Cache`], so a layout that did not move
+    /// count is remembered in the [`Cache`](crate::cache::Cache), so a layout that did not move
     /// takes one pass). `Fit::Window(())` on a categorical scale (span
     /// `()`) means nothing: the handle fits as `Fit::All`, and
     /// [`check`](Figure::check) reports it.
@@ -161,10 +165,10 @@ impl<'a> Figure<'a> {
     /// let v = fig.fit(scale::linear());
     /// fig.panel(0, 0).mark(line(rec.series(0).expect("channel 0"), t, v));
     /// # #[cfg(feature = "fonts")] {
-    /// let mut cache = rustd3_figure::Cache::default();
+    /// let mut cache = rustd3_figure::cache::Cache::default();
     /// let target = Target::Screen { scale: 1.0 };
     /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), target);
-    /// let [left, right] = r.scale(t).expect("a handle of this figure").get_domain();
+    /// let [left, right] = r.get_scale(t).expect("a handle of this figure").get_domain();
     /// assert!(right >= 19.99 && (right - left - 5.0).abs() < 1e-9);
     /// # }
     /// # Ok::<(), rustd3_core::series::Error>(())
@@ -174,7 +178,7 @@ impl<'a> Figure<'a> {
     /// resolved domain of its marks' x handles (read from a recording's
     /// index in O(log n)), merged across panels; its domain grows at once
     /// to contain the padded extent and shrinks only by whole eighths of
-    /// its last span, remembered in the [`Cache`] by handle index and
+    /// its last span, remembered in the [`Cache`](crate::cache::Cache) by handle index and
     /// scale type, so panning does not make it flicker. Used as x, or over
     /// an x that is itself `Fit::Visible`, it fits all its data.
     pub fn fit_with<S: Fittable>(&mut self, s: S, fit: Fit<S::Span>) -> ScaleRef<S> {
@@ -192,7 +196,7 @@ impl<'a> Figure<'a> {
             window,
         });
         if categorical {
-            self.categorical.push(h.index());
+            self.categorical.push(h.get_index());
         }
         h
     }
@@ -276,8 +280,8 @@ impl<'a> Figure<'a> {
         let [h] = stored.handles();
         if h.of(self.id).is_some() {
             self.legends.push((slot, stored));
-        } else if !self.foreign.contains(&h.index()) {
-            self.foreign.push(h.index());
+        } else if !self.foreign.contains(&h.get_index()) {
+            self.foreign.push(h.get_index());
         }
         self
     }
@@ -304,6 +308,7 @@ impl<'a> Figure<'a> {
 
     /// Whether handle `h` is of this figure: a handle of another figure
     /// finds no scale here, and what uses it draws nothing.
+    #[must_use]
     pub fn owns<S>(&self, h: ScaleRef<S>) -> bool {
         h.of(self.id).is_some()
     }
@@ -344,6 +349,7 @@ impl<'a> Figure<'a> {
     /// fig.theme(Theme::default().ink(Rgb::hex(0xff0000)));
     /// assert_eq!(fig.get_theme().get_ink(), Rgb::hex(0xff0000));
     /// ```
+    #[must_use]
     pub fn get_theme(&self) -> &Theme {
         &self.theme
     }

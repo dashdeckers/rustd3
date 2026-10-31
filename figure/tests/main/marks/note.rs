@@ -28,7 +28,7 @@ fn drawn(fig: &Figure<'_>) -> (List, Rect) {
     let size = Size::new(640.0, 480.0);
     let list = fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
     list::check(&list).expect("a valid list");
-    (list, resolve(fig, &Held::default()).plot_areas()[0])
+    (list, resolve(fig, &Held::default()).get_plot_areas()[0])
 }
 
 /// The glyph runs of a list's marks and the union of their ink, list px.
@@ -82,7 +82,7 @@ fn a_note_places_its_anchor_at_its_point_moved_by_its_offset() {
             .anchor(above)
             .offset(3.0, -6.0)
             .offset(f64::NAN, 0.0)
-            .fill(red),
+            .color(red),
     );
     let (list, area) = drawn(&fig);
     let (runs, ink) = runs(&list);
@@ -107,8 +107,8 @@ fn a_notes_point_enters_fitting_and_the_text_does_not() {
         ));
     let r = resolve(&fig, &Held::default());
     let close = |a: [f64; 2], b: [f64; 2]| (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9;
-    assert!(close(r.scale(x).unwrap().get_domain(), [-0.15, 3.15]));
-    assert!(close(r.scale(y).unwrap().get_domain(), [-0.1, 2.1]));
+    assert!(close(r.get_scale(x).unwrap().get_domain(), [-0.15, 3.15]));
+    assert!(close(r.get_scale(y).unwrap().get_domain(), [-0.1, 2.1]));
 }
 
 #[test]
@@ -126,11 +126,12 @@ fn a_note_beyond_the_guard_band_or_outside_its_band_draws_nothing() {
     assert!(runs.is_empty(), "{runs:?}");
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
         assert_eq!(
-            fig.check(size(640.0, 480.0)),
+            fig.check(Size::new(640.0, 480.0)),
             [Issue::OutsideDomain {
-                handle: x.index(),
+                handle: x.get_index(),
                 count: 1
             }]
         );

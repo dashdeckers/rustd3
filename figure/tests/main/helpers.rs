@@ -7,6 +7,8 @@ mod boxplot;
 mod ecdf;
 mod errorbar;
 mod hist;
+// Random figures are checked, which lays out text with the bundled fonts.
+#[cfg(feature = "fonts")]
 mod hostile;
 mod labels;
 mod presets;

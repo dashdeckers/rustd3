@@ -53,6 +53,7 @@ pub trait Transform: Clone {
     /// This transform as it applies to `domain`, the scale's end stops;
     /// the scale calls it whenever its domain changes. The default returns
     /// a clone.
+    #[must_use]
     fn for_domain(&self, _domain: [f64; 2]) -> Self {
         self.clone()
     }
@@ -69,6 +70,11 @@ pub trait Transform: Clone {
     /// With no specifier the result must be `Ok`: an override's default
     /// specifier must parse, since [`scale::Ticks::labels`] labels axes
     /// through it and panics otherwise.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse; never for `None`.
     fn tick_format(
         &self,
         locale: &Locale,

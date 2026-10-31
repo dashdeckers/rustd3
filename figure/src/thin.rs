@@ -1,7 +1,7 @@
 //! Thinning long recordings at draw time: M4 per device-pixel column, its
 //! column boundaries shared per draw by every line on one clock
 //! ([`Frame`]), and its output memoized across draws in the figure's
-//! [`Cache`](crate::Cache).
+//! [`Cache`](crate::cache::Cache).
 //!
 //! A line whose x scale has the bridge to core's index
 //! ([`Position::indexed`](crate::scale::Position::indexed)) and whose data
@@ -41,6 +41,7 @@ use crate::scale::Indexed;
 
 /// Whether a line thins its data.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Thin {
     /// M4 per column when the x scale has an index bridge and the data is
     /// a `Series` view; as given otherwise.

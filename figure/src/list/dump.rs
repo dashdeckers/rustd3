@@ -13,9 +13,17 @@ use crate::svg::number;
 /// What a dump shows.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Options {
-    /// Glyph ids, run transforms and fills; without them a run prints its
-    /// font, size and text only (for lists made before typst shapes text).
-    pub glyphs: bool,
+    glyphs: bool,
+}
+
+impl Options {
+    /// With glyph ids, run transforms and fills; without them (the
+    /// default) a run prints its font, size and text only (for lists made
+    /// before typst shapes text).
+    #[must_use]
+    pub fn glyphs(self, on: bool) -> Self {
+        Options { glyphs: on }
+    }
 }
 
 /// The dump of `list`; see [`list::dump`](crate::list::dump).

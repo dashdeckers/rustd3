@@ -84,6 +84,7 @@ impl Default for Theme {
 impl Theme {
     /// seaborn's `style` at `context`, with the colorblind palette, 5%
     /// margins, the ink `#262626` and a white figure.
+    #[must_use]
     pub fn seaborn(style: Style, context: Context) -> Self {
         Theme {
             style,
@@ -109,6 +110,7 @@ impl Theme {
     /// let _ = Theme::default().palette(palette::DEEP).palette(&mine);
     /// assert_eq!(Theme::default().palette(Vec::<Rgb>::new()), Theme::default());
     /// ```
+    #[must_use]
     pub fn palette(self, colors: impl AsRef<[Rgb]>) -> Self {
         let colors = colors.as_ref();
         if colors.is_empty() || !colors.iter().copied().all(finite) {
@@ -124,6 +126,7 @@ impl Theme {
     /// and notes, and with them the `em` lengths of gaps; line widths,
     /// tick sizes and pads stay. A `k` that is not finite and positive
     /// leaves the theme as it was.
+    #[must_use]
     pub fn font_scale(self, k: f64) -> Self {
         if k.is_finite() && k > 0.0 {
             Theme {
@@ -138,6 +141,7 @@ impl Theme {
     /// How fitted continuous and time domains end: margins or nice
     /// values. `Domains::Margin(m)` with `m` outside [0, 0.5) leaves the
     /// theme as it was.
+    #[must_use]
     pub fn domains(self, d: Domains) -> Self {
         match d {
             Domains::Margin(m) if !(0.0..0.5).contains(&m) => self,
@@ -158,6 +162,7 @@ impl Theme {
     /// assert_eq!(Theme::default().ink(red).get_ink(), red);
     /// assert_eq!(Theme::default().ink(Rgb::new(f64::NAN, 0.0, 0.0)), Theme::default());
     /// ```
+    #[must_use]
     pub fn ink(self, c: Rgb) -> Self {
         if finite(c) {
             Theme { ink: c, ..self }
@@ -171,6 +176,7 @@ impl Theme {
     /// app's own background under the iced widget. White by default. A
     /// color with a channel or an opacity that is not finite leaves the
     /// theme as it was.
+    #[must_use]
     pub fn background(self, c: Rgb) -> Self {
         if finite(c) {
             Theme {
@@ -183,11 +189,13 @@ impl Theme {
     }
 
     /// Text, tick labels, tick marks and the white styles' axis lines.
+    #[must_use]
     pub fn get_ink(&self) -> Rgb {
         self.ink
     }
 
     /// Behind the whole figure.
+    #[must_use]
     pub fn get_background(&self) -> Rgb {
         self.background
     }
@@ -287,6 +295,7 @@ impl Theme {
     /// The width lines and rules are stroked at, px: 1.5 pt at this
     /// context. A custom mark that draws lines, whiskers or error bars
     /// strokes them at this width to match the line and rule marks.
+    #[must_use]
     pub fn get_line_width(&self) -> f64 {
         self.pt(1.5)
     }
@@ -295,6 +304,7 @@ impl Theme {
     /// context, seaborn's `patch.linewidth`. A custom mark that outlines
     /// boxes or bars strokes their edges at this width, as the rect mark
     /// does.
+    #[must_use]
     pub fn get_patch_width(&self) -> f64 {
         self.pt(1.0)
     }
@@ -302,6 +312,7 @@ impl Theme {
     /// The width a density's outline is stroked at, px: 0.75 pt at this
     /// context. A custom mark that outlines a filled curve (a violin, a
     /// ridge) strokes it at this width to match the density marks.
+    #[must_use]
     pub fn get_density_width(&self) -> f64 {
         self.pt(0.75)
     }
@@ -309,12 +320,14 @@ impl Theme {
     /// A marker's diameter, px: 6 pt at this context. A custom mark that
     /// draws points (fliers, means) sizes them by it, as dots without a
     /// radius are.
+    #[must_use]
     pub fn get_marker(&self) -> f64 {
         self.pt(6.0)
     }
 
     /// The palette's first color. A custom mark without a key draws in it,
     /// as every built-in mark does.
+    #[must_use]
     pub fn get_color(&self) -> Rgb {
         *self
             .palette
@@ -325,6 +338,7 @@ impl Theme {
     /// The palette, in order. A custom chart that colors series by key
     /// builds its ordinal scale over them from it, as the helpers' presets
     /// do (`scale::ordinal(keys, theme.get_palette().to_vec())`).
+    #[must_use]
     pub fn get_palette(&self) -> &[Rgb] {
         &self.palette
     }
@@ -332,6 +346,7 @@ impl Theme {
     /// seaborn's gray, `#949494`. A custom mark whose key its palette lacks
     /// draws in it, as the built-in marks do (and
     /// [`Figure::check`](crate::Figure::check) reports the key).
+    #[must_use]
     pub fn get_gray(&self) -> Rgb {
         GRAY
     }
@@ -397,7 +412,7 @@ impl Theme {
 
     /// `v` pt at this context, in px.
     pub(crate) fn pt(&self, v: f64) -> f64 {
-        v * PX_PER_PT * self.context.scale()
+        v * PX_PER_PT * self.context.get_scale()
     }
 
     /// `v` pt of text at this context and font scale, in px.
@@ -471,7 +486,7 @@ mod tests {
             Context::Poster,
         ] {
             let theme = Theme::seaborn(Style::Ticks, context);
-            let k = context.scale();
+            let k = context.get_scale();
             for (got, want) in sizes(&theme).into_iter().zip(notebook) {
                 assert!(
                     close(got, want * k),

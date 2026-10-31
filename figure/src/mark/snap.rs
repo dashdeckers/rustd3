@@ -21,7 +21,7 @@ use crate::target::Target;
 /// /// targets: its fill on device pixel boundaries, its edge on whole
 /// /// device pixels.
 /// fn boxed(ctx: &Ctx<'_>, r: Rect, list: &mut List) {
-///     let (snap, theme) = (ctx.snap(), ctx.theme());
+///     let (snap, theme) = (ctx.snap(), ctx.get_theme());
 ///     let w = theme.get_patch_width();
 ///     list.commands.push(Command::Fill {
 ///         path: snap.rect(r).to_path(0.1),
@@ -60,6 +60,7 @@ impl Snap {
 
     /// `r` with its edges on device pixel boundaries: a plot area, or a
     /// filled box a mark draws without antialiased edges.
+    #[must_use]
     pub fn rect(self, r: Rect) -> Rect {
         let Some(s) = self.scale else { return r };
         Rect::new(
@@ -72,6 +73,7 @@ impl Snap {
 
     /// The width a hairline `w` px wide is stroked at: whole device pixels,
     /// at least one.
+    #[must_use]
     pub fn width(self, w: f64) -> f64 {
         self.scale.map_or(w, |s| snap::width(w, s))
     }
@@ -79,6 +81,7 @@ impl Snap {
     /// The centre `x` of a hairline `w` px wide (its unsnapped width), such
     /// that it covers whole device pixels: the x of a vertical line or the
     /// y of a horizontal one.
+    #[must_use]
     pub fn line(self, x: f64, w: f64) -> f64 {
         self.scale.map_or(x, |s| snap::line(x, w, s))
     }

@@ -24,6 +24,7 @@ pub enum Thresholds {
 /// d3.thresholdSturges: ⌈log₂ n⌉ + 1 bins for the n values that are not
 /// NaN, at least one.
 #[doc(alias = "thresholdSturges")]
+#[must_use]
 pub fn sturges(values: &[f64]) -> usize {
     let n = count(values.iter().copied()) as f64;
     // d3 divides by LN2 rather than calling log2, which can differ in the
@@ -35,6 +36,7 @@ pub fn sturges(values: &[f64]) -> usize {
 /// deviation of the n values that are not NaN; one when there are none or
 /// they do not vary.
 #[doc(alias = "thresholdScott")]
+#[must_use]
 pub fn scott(values: &[f64], min: f64, max: f64) -> usize {
     let c = count(values.iter().copied()) as f64;
     let d = deviation(values.iter().copied()).unwrap_or(f64::NAN);
@@ -49,6 +51,7 @@ pub fn scott(values: &[f64], min: f64, max: f64) -> usize {
 /// IQR the interquartile range of the n values that are not NaN; one when
 /// there are none or the range is zero.
 #[doc(alias = "thresholdFreedmanDiaconis")]
+#[must_use]
 pub fn freedman_diaconis(values: &[f64], min: f64, max: f64) -> usize {
     let c = count(values.iter().copied()) as f64;
     let quartile = |p| quantile(values.iter().copied(), p).unwrap_or(f64::NAN);

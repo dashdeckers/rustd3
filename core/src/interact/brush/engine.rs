@@ -93,7 +93,7 @@ impl Engine {
                 modifiers,
             } => {
                 // d3's defaultFilter (108–110).
-                if button != Button::Left || modifiers.ctrl() {
+                if button != Button::Left || modifiers.get_ctrl() {
                     return None;
                 }
                 self.started([x, y])

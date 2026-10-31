@@ -19,7 +19,8 @@
 use kurbo::{Point, Rect};
 
 /// The guard band of a plot area `w × h` px in panel coordinates
-/// (`ctx.rect()`'s width and height for a mark): `[−w, 2w] × [−h, 2h]`.
+/// (`ctx.get_rect()`'s width and height for a mark): `[−w, 2w] × [−h, 2h]`.
+#[must_use]
 pub fn band(w: f64, h: f64) -> Rect {
     Rect::new(-w, -h, 2.0 * w, 2.0 * h)
 }
@@ -80,6 +81,7 @@ pub(crate) fn clip(
 /// (Sutherland–Hodgman), such as a [`band`]: the vertices of its part
 /// inside, in order, with edges along `rect` where it was cut; empty when
 /// no part is inside. Points inside `rect` are kept bit for bit.
+#[must_use]
 pub fn polygon(points: &[Point], rect: Rect) -> Vec<Point> {
     let mut out = points.to_vec();
     for side in [Side::Left, Side::Right, Side::Top, Side::Bottom] {

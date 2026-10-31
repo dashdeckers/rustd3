@@ -23,11 +23,17 @@ pub struct Held {
     overscan: f64,
 }
 
+impl std::fmt::Debug for Held {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Held").finish_non_exhaustive()
+    }
+}
+
 impl Held {
     /// Holds `scale` for handle `h`.
     pub fn hold<S: Kind>(&mut self, h: ScaleRef<S>, scale: S) {
         self.scales
-            .insert(h.index(), (TypeId::of::<S>(), Box::new(scale)));
+            .insert(h.get_index(), (TypeId::of::<S>(), Box::new(scale)));
     }
 
     /// Holds `scale` for the handle at table position `index`, keyed by
@@ -42,14 +48,15 @@ impl Held {
     /// Lets go of what `h` holds; fitting applies again.
     pub fn release<S: Kind>(&mut self, h: ScaleRef<S>) {
         if self.get(h).is_some() {
-            self.scales.remove(&h.index());
+            self.scales.remove(&h.get_index());
         }
     }
 
     /// The scale `h` holds; `None` when it holds none or one of another
     /// type.
+    #[must_use]
     pub fn get<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
-        let (kind, scale) = self.scales.get(&h.index())?;
+        let (kind, scale) = self.scales.get(&h.get_index())?;
         if *kind == TypeId::of::<S>() {
             scale.as_any().downcast_ref()
         } else {
@@ -82,7 +89,8 @@ impl Held {
 
     /// The column grid of the handle at table position `handle`, if one is
     /// set.
-    pub fn grids_for(&self, handle: usize) -> Option<thin::Grid> {
+    #[must_use]
+    pub fn get_grid(&self, handle: usize) -> Option<thin::Grid> {
         self.grids.get(&handle).copied()
     }
 

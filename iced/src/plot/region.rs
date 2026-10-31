@@ -88,14 +88,19 @@ impl Map {
     /// axes, and the handles its panels zoom (those whose scale it lacks
     /// are left out).
     pub(crate) fn of(resolved: &Resolved) -> Map {
-        let key = |index: usize| resolved.scale_at(index).map(|scale| Key::new(index, scale));
-        let areas = resolved.plot_areas().to_vec();
+        let key = |index: usize| {
+            resolved
+                .get_scale_at(index)
+                .map(|scale| Key::new(index, scale))
+        };
+        let areas = resolved.get_plot_areas().to_vec();
         let mut axes = Vec::new();
         for (panel, area) in areas.iter().enumerate() {
             for axis in 0.. {
-                let (Some(plan), Some((orient, index))) =
-                    (resolved.plan(panel, axis), resolved.axis(panel, axis))
-                else {
+                let (Some(plan), Some((orient, index))) = (
+                    resolved.get_plan(panel, axis),
+                    resolved.get_axis(panel, axis),
+                ) else {
                     break;
                 };
                 if let (true, Some(key)) = (plan.shown, key(index)) {
@@ -107,7 +112,7 @@ impl Map {
         }
         let zooms = (0..areas.len())
             .map(|panel| {
-                let (x, y) = resolved.zooms(panel);
+                let (x, y) = resolved.get_zooms(panel);
                 [x, y].map(|indices| indices.iter().filter_map(|&i| key(i)).collect())
             })
             .collect();
@@ -245,10 +250,10 @@ mod tests {
         let size = Size::new(480.0, 320.0);
         let resolved = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
         let map = Map::of(&resolved);
-        let area = resolved.plot_areas()[0];
+        let area = resolved.get_plot_areas()[0];
         let (kx, ky) = (
-            Key::of::<scale::Linear>(x.index()),
-            Key::of::<scale::Log>(y.index()),
+            Key::of::<scale::Linear>(x.get_index()),
+            Key::of::<scale::Log>(y.get_index()),
         );
         assert_eq!(map.at(area.center()), Region::Area { panel: 0 });
         let left = Point::new(area.x0 - 5.0, area.center().y);

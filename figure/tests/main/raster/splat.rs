@@ -2,11 +2,12 @@
 //! coverage stamps against the markers filled point by point.
 
 use rustd3_core::{scale, scheme};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::list::{Bounds, Command, List, Outlines};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::raster::{Image, Renderer, Settings, Simd};
-use rustd3_figure::{Cache, Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Target, axis};
 
 use super::vello::diff;
 
@@ -53,17 +54,14 @@ fn drawn(fig: &Figure<'_>, k: f64) -> (List, Rect) {
     let target = Target::Screen { scale: k };
     let mut cache = Cache::default();
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     (fig.draw_resolved(&mut cache, &resolved), area)
 }
 
 /// `area` of `list` at `k`, splatted or filled.
 fn render(list: &List, area: Rect, k: f64, splat: bool) -> Image {
     let bounds = Bounds::of(list, &mut Outlines::default());
-    let mut renderer = Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    });
+    let mut renderer = Renderer::new(Settings::default().simd(Simd::Baseline));
     renderer
         .splat(splat)
         .render(list, &bounds, area, k)
@@ -146,7 +144,7 @@ fn splatted_dots_on_eighth_pixels_match_within_the_compositing() {
     let target = Target::Screen { scale: 1.0 };
     let mut cache = Cache::default();
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     assert_eq!(area.width(), 76.0, "one data unit per device px");
     let list = fig.draw_resolved(&mut cache, &resolved);
     let d = diff(

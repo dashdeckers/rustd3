@@ -25,12 +25,14 @@ pub struct Bin {
 }
 
 /// d3.bin(): the values' extent, niced, cut by Sturges' rule.
+#[must_use]
 pub fn bin() -> Bin {
     Bin::default()
 }
 
 impl Bin {
     /// A fixed domain, which is not niced: values outside it are dropped.
+    #[must_use]
     pub fn domain(self, domain: [f64; 2]) -> Self {
         Bin {
             domain: Some(domain),
@@ -39,6 +41,7 @@ impl Bin {
     }
 
     /// The threshold rule.
+    #[must_use]
     pub fn thresholds(self, thresholds: Thresholds) -> Self {
         Bin { thresholds, ..self }
     }
@@ -51,6 +54,7 @@ impl Bin {
     /// first tick starts the domain, by bisection otherwise. Thresholds
     /// outside the domain are dropped. No value that is not NaN gives one
     /// empty bucket with NaN edges.
+    #[must_use]
     pub fn layout(&self, values: &[f64]) -> Vec<Bucket> {
         let [mut x0, mut x1] = self
             .domain

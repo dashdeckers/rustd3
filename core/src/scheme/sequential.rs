@@ -94,6 +94,7 @@ const CUBEHELIX: [Cubehelix; 2] = [
 /// assert_eq!(scheme::turbo(0.5).to_string(), "rgb(149, 251, 81)");
 /// ```
 #[doc(alias = "interpolateTurbo")]
+#[must_use]
 pub fn turbo(t: f64) -> Rgb {
     let t = unit(t);
     Rgb::new(
@@ -117,6 +118,7 @@ pub fn turbo(t: f64) -> Rgb {
 /// assert_eq!(scheme::cividis(0.5).to_string(), "rgb(127, 124, 117)");
 /// ```
 #[doc(alias = "interpolateCividis")]
+#[must_use]
 pub fn cividis(t: f64) -> Rgb {
     let t = unit(t);
     Rgb::new(
@@ -135,6 +137,7 @@ pub fn cividis(t: f64) -> Rgb {
 /// assert_eq!(scheme::warm(0.5).to_string(), "rgb(255, 94, 99)");
 /// ```
 #[doc(alias = "interpolateWarm")]
+#[must_use]
 pub fn warm(t: f64) -> Rgb {
     interpolate::cubehelix_long(1.0, WARM[0], WARM[1])(t)
 }
@@ -142,6 +145,7 @@ pub fn warm(t: f64) -> Rgb {
 /// d3's `interpolateCool`: [`interpolate::cubehelix_long`] from
 /// cubehelix(260, 0.75, 0.35) to (80, 1.5, 0.8).
 #[doc(alias = "interpolateCool")]
+#[must_use]
 pub fn cool(t: f64) -> Rgb {
     interpolate::cubehelix_long(1.0, COOL[0], COOL[1])(t)
 }
@@ -156,6 +160,7 @@ pub fn cool(t: f64) -> Rgb {
 /// assert_eq!(scheme::cubehelix_default(0.5).to_string(), "rgb(160, 121, 73)");
 /// ```
 #[doc(alias = "interpolateCubehelixDefault")]
+#[must_use]
 pub fn cubehelix_default(t: f64) -> Rgb {
     interpolate::cubehelix_long(1.0, CUBEHELIX[0], CUBEHELIX[1])(t)
 }

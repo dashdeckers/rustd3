@@ -180,7 +180,7 @@ fn malformed_colors_are_rejected_with_the_input() {
         "",
     ] {
         let error = bad.parse::<Rgb>().expect_err(bad);
-        assert_eq!(error.input(), bad);
+        assert_eq!(error.get_input(), bad);
         assert!(bad.parse::<Hsl>().is_err(), "{bad}");
     }
     let error: Result<Rgb, ParseColorError> = "#zzz".parse();
@@ -460,7 +460,9 @@ fn lab_parses_through_rgb_and_prints_as_rgb() {
         Ok("rgba(102, 102, 0, 0.4)".to_owned())
     );
     assert_eq!(
-        "invalid".parse::<Lab>().map_err(|e| e.input().to_owned()),
+        "invalid"
+            .parse::<Lab>()
+            .map_err(|e| e.get_input().to_owned()),
         Err("invalid".to_owned())
     );
     let undefined = Lab {

@@ -34,6 +34,12 @@ pub struct Area<'a, X: Position, Y: Position<Domain = f64>> {
     hatch: Option<Hatch>,
 }
 
+impl<'a, X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Area<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Area").finish_non_exhaustive()
+    }
+}
+
 /// The region between two lines with one x per row, a ribbon's lower and
 /// upper edge: one `Fill` command, broken where a row cannot be placed.
 pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
@@ -47,6 +53,12 @@ pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
     hatch: Option<Hatch>,
     thin: Thin,
     error: Option<Error>,
+}
+
+impl<'a, X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Ribbon<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ribbon").finish_non_exhaustive()
+    }
 }
 
 /// The region between `data` (pairs, a recording channel or two slices)
@@ -141,6 +153,7 @@ where
 /// fig.panel(0, 0).mark(ribbon_series(lower, upper, t, v));
 /// # Ok::<(), rustd3_core::series::Error>(())
 /// ```
+#[must_use]
 pub fn ribbon_series<'a, C, X, Y>(
     lower: Series<'a, C>,
     upper: Series<'a, C>,
@@ -152,7 +165,10 @@ where
     X: Position<Domain = C>,
     Y: Position<Domain = f64>,
 {
-    let (left, right) = (lower.recording().id(), upper.recording().id());
+    let (left, right) = (
+        lower.get_recording().get_id(),
+        upper.get_recording().get_id(),
+    );
     let error = (left != right).then_some(Error::Recordings { left, right });
     Ribbon::new(lower.into_points(), upper.into_points(), x, y, error)
 }
@@ -161,6 +177,7 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
     /// The base the region reaches down (or up) to; 0 by default. It is
     /// held: the y margin stops there. A base that is not finite leaves it
     /// as it was.
+    #[must_use]
     pub fn base(self, y0: f64) -> Self {
         Self {
             base: if y0.is_finite() { y0 } else { self.base },
@@ -170,6 +187,7 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
 
     /// Fills the region with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -178,6 +196,7 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
     }
 
     /// Fills the region with `c`.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Color::Fixed(c),
@@ -187,6 +206,7 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
 
     /// The fill's opacity, clamped to [0, 1], times its color's own; 1 by
     /// default. NaN leaves it as it was.
+    #[must_use]
     pub fn opacity(self, a: f64) -> Self {
         Self {
             opacity: clamped(a, self.opacity),
@@ -196,6 +216,7 @@ impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
 
     /// Hatches the region with `h`, after its fill; legend swatches of the
     /// fill key repeat it.
+    #[must_use]
     pub fn hatch(self, h: Hatch) -> Self {
         Self {
             hatch: Some(h),
@@ -278,6 +299,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
 
     /// Fills the ribbon with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -286,6 +308,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
     }
 
     /// Fills the ribbon with `c`.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Color::Fixed(c),
@@ -297,6 +320,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
     /// place of a band's (an opaque color at 0.25, a translucent one at its
     /// own); 1 for an opaque ribbon, as stacked areas are. NaN leaves it as
     /// it was.
+    #[must_use]
     pub fn opacity(self, a: f64) -> Self {
         Self {
             opacity: if a.is_nan() {
@@ -310,6 +334,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
 
     /// Hatches the ribbon with `h`, after its fill; legend swatches of the
     /// fill key repeat it.
+    #[must_use]
     pub fn hatch(self, h: Hatch) -> Self {
         Self {
             hatch: Some(h),
@@ -320,6 +345,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
     /// Whether a ribbon over two channels of a recording thins them
     /// together: [`Thin::Auto`] by default, [`Thin::Off`] to draw every
     /// sample. Rows given as values are never thinned.
+    #[must_use]
     pub fn thin(self, t: Thin) -> Self {
         Self { thin: t, ..self }
     }
@@ -332,7 +358,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
             return None;
         }
         let indexed = sx.indexed()?;
-        let edges = ctx.edges(indexed, self.x.index())?;
+        let edges = ctx.edges(indexed, self.x.get_index())?;
         let valid = |v| admits(sy, v);
         indexed.thin_joint(&self.lower, &self.upper, &edges, &valid, &mut ctx.frame())
     }
@@ -400,8 +426,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if let Some(error) = &self.error {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: error.clone(),
             });
         }

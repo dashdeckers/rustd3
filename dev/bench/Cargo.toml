@@ -19,7 +19,7 @@ widget = ["dep:rustd3-iced", "dep:iced", "dep:iced_runtime", "rustd3-examples/wi
 rustd3-core.workspace = true
 rustd3-figure = { workspace = true, features = ["fonts", "png", "pdf", "gif"] }
 rustd3-examples = { path = "../examples", default-features = false }
-rustd3-iced = { workspace = true, features = ["figure"], optional = true }
+rustd3-iced = { workspace = true, features = ["figure", "__dev"], optional = true }
 iced = { workspace = true, features = ["advanced", "canvas"], optional = true }
 iced_runtime = { workspace = true, optional = true }
 serde = { version = "1", features = ["derive"] }

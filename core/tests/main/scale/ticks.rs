@@ -113,11 +113,11 @@ fn a_tick_set_holds_values_step_and_count() {
     let x = scale::linear().domain([0.0, 100.0]).range([0.0, 960.0]);
     let set = x.tick_set(8);
     let tens: Vec<f64> = (0..=10).map(|k| f64::from(k) * 10.0).collect();
-    assert_eq!(set.values(), tens);
-    assert_eq!(*set.step(), 10.0);
-    assert_eq!(set.count(), 8);
+    assert_eq!(set.get_values(), tens);
+    assert_eq!(*set.get_step(), 10.0);
+    assert_eq!(set.get_count(), 8);
     let positions: Vec<f64> = set
-        .values()
+        .get_values()
         .iter()
         .map(|v| {
             x.position(v, 0.5)
@@ -133,7 +133,7 @@ fn a_tick_set_holds_values_step_and_count() {
 fn log_labels_keep_one_and_two_per_decade_at_count_ten() {
     let x = scale::log().domain([1.0, 1e4]);
     let set = x.tick_set(10);
-    assert_eq!(set.values().len(), 37);
+    assert_eq!(set.get_values().len(), 37);
     let all = x.labels(&set, &Locale::EN_US);
     assert_eq!(
         shown(&all),
@@ -146,7 +146,7 @@ fn log_labels_keep_one_and_two_per_decade_at_count_ten() {
 fn log_labels_keep_the_powers_at_count_five() {
     let x = scale::log().domain([1.0, 1e4]);
     let set = x.tick_set(5);
-    assert_eq!(set.values(), x.tick_set(10).values());
+    assert_eq!(set.get_values(), x.tick_set(10).get_values());
     assert_eq!(
         shown(&x.labels(&set, &Locale::EN_US)),
         ["1", "10", "100", "1k", "10k"]
@@ -169,7 +169,7 @@ fn log_labels_over_two_decades_blank_six_to_nine() {
 fn linear_minor_ticks_subdivide_each_step_by_five() {
     let x = scale::linear().domain([0.0, 10.0]);
     let set = x.tick_set(5);
-    assert_eq!(set.values(), [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]);
+    assert_eq!(set.get_values(), [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]);
     let minor = Ticks::minor(&x, &set);
     let expected: Vec<f64> = (0..50)
         .filter(|k| k % 10 != 0 && k % 2 == 0)
@@ -184,7 +184,7 @@ fn linear_minor_ticks_subdivide_each_step_by_five() {
 fn linear_minor_ticks_reach_past_the_outer_majors_to_the_domain_ends() {
     let x = scale::linear().domain([0.5, 9.5]);
     let set = x.tick_set(5);
-    assert_eq!(set.values(), [2.0, 4.0, 6.0, 8.0]);
+    assert_eq!(set.get_values(), [2.0, 4.0, 6.0, 8.0]);
     let minor = Ticks::minor(&x, &set);
     assert!(close(&minor[..3], &[0.8, 1.2, 1.6]), "{minor:?}");
     assert!(
@@ -198,7 +198,7 @@ fn linear_minor_ticks_reach_past_the_outer_majors_to_the_domain_ends() {
 fn log_minor_ticks_fill_every_decade_inside_the_domain() {
     let x = scale::log().domain([3.0, 3e5]);
     let set = x.tick_set(4);
-    assert_eq!(set.values(), [10.0, 100.0, 1e3, 1e4, 1e5]);
+    assert_eq!(set.get_values(), [10.0, 100.0, 1e3, 1e4, 1e5]);
     let minor = Ticks::minor(&x, &set);
     let mut expected: Vec<f64> = (3..10).map(f64::from).collect();
     for k in 1..5 {
@@ -218,7 +218,7 @@ fn log_minor_ticks_are_none_when_every_multiple_is_a_major() {
 fn symlog_minor_ticks_keep_their_decades_up_to_the_domain_end() {
     let x = scale::symlog().domain([0.0, 5000.0]);
     let set = x.tick_set(10);
-    assert_eq!(set.values(), [0.0, 1.0, 10.0, 100.0, 1000.0]);
+    assert_eq!(set.get_values(), [0.0, 1.0, 10.0, 100.0, 1000.0]);
     let mut expected = Vec::new();
     for k in 0..3 {
         expected.extend((2..10).map(|m| f64::from(m) * 10f64.powi(k)));
@@ -238,8 +238,11 @@ fn fewer_than_two_majors_have_no_minor_ticks() {
 fn symlog_ticks_and_labels_follow_its_decade_rule() {
     let x = scale::symlog().domain([0.0, 1e6]);
     let set = x.tick_set(10);
-    assert_eq!(set.values(), [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]);
-    assert_eq!(*set.step(), 1e5);
+    assert_eq!(
+        set.get_values(),
+        [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]
+    );
+    assert_eq!(*set.get_step(), 1e5);
     assert_eq!(
         x.labels(&set, &Locale::EN_US),
         [
@@ -271,8 +274,8 @@ fn a_custom_tick_rule_sets_the_values_and_their_spacing_sets_the_format() {
                 .collect()
         }));
     let set = x.tick_set(5);
-    assert!(close(set.values(), &[0.0, 0.3, 0.6, 0.9, 1.2]));
-    assert_eq!(*set.step(), 0.2);
+    assert!(close(set.get_values(), &[0.0, 0.3, 0.6, 0.9, 1.2]));
+    assert_eq!(*set.get_step(), 0.2);
     assert_eq!(
         x.labels(&set, &Locale::EN_US),
         ["0.0", "0.3", "0.6", "0.9", "1.2"]
@@ -283,8 +286,8 @@ fn a_custom_tick_rule_sets_the_values_and_their_spacing_sets_the_format() {
 fn chosen_values_keep_the_step_and_count_of_the_set() {
     let x = scale::linear();
     let set = x.tick_set(10).with_values(vec![0.25, 0.5]);
-    assert_eq!(*set.step(), 0.1);
-    assert_eq!(set.count(), 10);
+    assert_eq!(*set.get_step(), 0.1);
+    assert_eq!(set.get_count(), 10);
     assert_eq!(x.labels(&set, &Locale::EN_US), ["0.3", "0.5"]);
 }
 
@@ -292,8 +295,8 @@ fn chosen_values_keep_the_step_and_count_of_the_set() {
 fn piecewise_scales_tick_on_their_end_stops() {
     let x = scale::piecewise([0.0, 50.0, 100.0], [0.0, 400.0, 500.0]);
     let set = x.tick_set(5);
-    assert_eq!(set.values(), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
-    assert_eq!(*set.step(), 20.0);
+    assert_eq!(set.get_values(), [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]);
+    assert_eq!(*set.get_step(), 20.0);
     assert_eq!(x.position(&20.0, 0.5), Some(160.0));
     assert_eq!(x.position(&60.0, 0.5), Some(420.0));
     assert_eq!(x.extent(), [0.0, 500.0]);
@@ -370,7 +373,7 @@ fn rebinding_labels_keeps_the_specifier_and_the_si_prefix() -> Result<(), Invali
 fn symlog_decades_label_every_tick_in_full() {
     let x = scale::symlog().constant(0.05).domain([0.0, 500.0]);
     let set = x.tick_set(10);
-    assert_eq!(set.values(), [0.0, 0.05, 0.5, 5.0, 50.0, 500.0]);
+    assert_eq!(set.get_values(), [0.0, 0.05, 0.5, 5.0, 50.0, 500.0]);
     assert_eq!(
         x.labels(&set, &Locale::NEUTRAL),
         ["0", "0.05", "0.5", "5", "50", "500"]
@@ -489,7 +492,7 @@ fn log_minor_ticks_leave_thinned_decades_empty() {
     let wide = scale::log().domain([1.0, 1e12]);
     let set = wide.tick_set(5);
     assert_eq!(
-        set.values(),
+        set.get_values(),
         [1.0, 100.0, 1e4, 1e6, 1e8, 1e10, 1e12],
         "every other decade"
     );
@@ -497,7 +500,7 @@ fn log_minor_ticks_leave_thinned_decades_empty() {
     assert!(wide.minor(5).is_empty());
     let around_one = scale::log().domain([1e-4, 1e4]);
     let set = around_one.tick_set(5);
-    assert_eq!(set.values(), [1e-4, 1e-2, 1.0, 100.0, 1e4]);
+    assert_eq!(set.get_values(), [1e-4, 1e-2, 1.0, 100.0, 1e4]);
     assert!(Ticks::minor(&around_one, &set).is_empty());
     assert!(around_one.minor(5).is_empty());
 }
@@ -506,7 +509,7 @@ fn log_minor_ticks_leave_thinned_decades_empty() {
 fn symlog_minor_ticks_leave_thinned_decades_empty() {
     let x = scale::symlog().domain([0.0, 1e9]);
     let set = x.tick_set(5);
-    assert_eq!(set.values(), [0.0, 1.0, 100.0, 1e4, 1e6, 1e8]);
+    assert_eq!(set.get_values(), [0.0, 1.0, 100.0, 1e4, 1e6, 1e8]);
     assert!(Ticks::minor(&x, &set).is_empty());
     assert!(x.minor(5).is_empty());
 }
@@ -518,12 +521,12 @@ fn symlog_minor_ticks_leave_thinned_decades_empty() {
 fn log_minor_ticks_are_none_once_ten_decade_ticks_are_in_view() {
     let wide = scale::log().domain([1.0, 1e12]);
     let set = wide.tick_set(10);
-    assert_eq!(set.values().len(), 13, "a decade apart");
+    assert_eq!(set.get_values().len(), 13, "a decade apart");
     assert!(Ticks::minor(&wide, &set).is_empty());
     assert!(wide.minor(10).is_empty());
     let ten = scale::log().domain([1.0, 1e9]);
     let set = ten.tick_set(9);
-    assert_eq!(set.values().len(), 10, "a decade apart");
+    assert_eq!(set.get_values().len(), 10, "a decade apart");
     assert!(Ticks::minor(&ten, &set).is_empty());
     assert!(ten.minor(9).is_empty());
 }
@@ -536,7 +539,7 @@ fn log_minor_ticks_fill_every_decade_with_nine_decade_ticks_in_view() {
     let nine = scale::log().domain([1.0, 1e8]);
     let set = nine.tick_set(8);
     let powers: Vec<f64> = (0..9).map(|k| 10f64.powi(k)).collect();
-    assert_eq!(set.values(), powers);
+    assert_eq!(set.get_values(), powers);
     let expected: Vec<f64> = (0..8)
         .flat_map(|k| (2..10).map(move |m| f64::from(m) * 10f64.powi(k)))
         .collect();
@@ -560,7 +563,7 @@ fn log_minor_ticks_are_none_for_a_base_below_three() {
 fn symlog_minor_ticks_are_none_once_ten_decades_are_in_view() {
     let nine = scale::symlog().domain([0.0, 1e8]);
     let set = nine.tick_set(10);
-    assert_eq!(set.values().len(), 10, "0 and nine decades");
+    assert_eq!(set.get_values().len(), 10, "0 and nine decades");
     let expected: Vec<f64> = (0..8)
         .flat_map(|k| (2..10).map(move |m| f64::from(m) * 10f64.powi(k)))
         .collect();
@@ -568,7 +571,7 @@ fn symlog_minor_ticks_are_none_once_ten_decades_are_in_view() {
     assert_eq!(nine.minor(10), expected);
     let ten = scale::symlog().domain([0.0, 1e9]);
     let set = ten.tick_set(10);
-    assert_eq!(set.values().len(), 11, "0 and ten decades");
+    assert_eq!(set.get_values().len(), 11, "0 and ten decades");
     assert!(Ticks::minor(&ten, &set).is_empty());
     assert!(ten.minor(10).is_empty());
     let both = scale::symlog().domain([-1e4, 1e4]);

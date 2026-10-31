@@ -96,24 +96,28 @@ pub fn continuous<T: Transform>(transform: T) -> Continuous<T> {
 
 /// d3.scaleLinear(): domain [0, 1], range [0, 1].
 #[doc(alias = "scaleLinear")]
+#[must_use]
 pub fn linear() -> Linear {
     continuous(transform::Identity)
 }
 
 /// d3.scalePow(): exponent 1, domain [0, 1], range [0, 1].
 #[doc(alias = "scalePow")]
+#[must_use]
 pub fn pow() -> Pow {
     continuous(transform::Pow::new(1.0))
 }
 
 /// d3.scaleSqrt(): `pow()` with exponent 0.5.
 #[doc(alias = "scaleSqrt")]
+#[must_use]
 pub fn sqrt() -> Pow {
     continuous(transform::Pow::new(0.5))
 }
 
 /// d3.scaleLog(): base 10, domain [1, 10], range [0, 1].
 #[doc(alias = "scaleLog")]
+#[must_use]
 pub fn log() -> Log {
     continuous(transform::Log::new(10.0)).domain([1.0, 10.0])
 }
@@ -128,6 +132,7 @@ pub fn log() -> Log {
 /// assert_eq!(v.ticks(10), [0.0, 1.0, 10.0, 100.0, 1e3, 1e4, 1e5, 1e6]);
 /// ```
 #[doc(alias = "scaleSymlog")]
+#[must_use]
 pub fn symlog() -> Symlog {
     continuous(transform::Symlog::new(1.0))
 }
@@ -142,6 +147,7 @@ pub fn symlog() -> Symlog {
 /// let p = scale::logit().domain([0.001, 0.999]);
 /// assert_eq!(p.ticks(10), [0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999]);
 /// ```
+#[must_use]
 pub fn logit() -> Logit {
     continuous(transform::Logit)
 }
@@ -159,6 +165,7 @@ pub fn logit() -> Logit {
 ///     [-1000.0, -100.0, -10.0, -1.0, 0.0, 1.0, 10.0, 100.0, 1000.0]
 /// );
 /// ```
+#[must_use]
 pub fn asinh() -> Asinh {
     continuous(transform::Asinh::new(1.0))
 }

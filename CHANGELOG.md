@@ -100,19 +100,79 @@ rule is:
   `check::Issue::OutsideGrid`.
 - `raster::Renderer::render` with bounds of another list is
   `raster::Error::Bounds`.
-- `Resolved::panel_cell` returns `None` for a panel the figure lacks.
-- A scale handle of another figure finds no scale: `Resolved::scale` and
-  `mark::Ctx::x`, `y` and `raw` return `Option`, the marks, axes, guides,
+- `Resolved::get_panel_cell` returns `None` for a panel the figure lacks.
+- A scale handle of another figure finds no scale: `Resolved::get_scale` and
+  `mark::Ctx::x`, `y` and `get_raw` return `Option`, the marks, axes, guides,
   zooms, brushes and widget listeners given one draw or do nothing, and
   `fig.check` reports `check::Issue::ForeignHandle`; `Figure::owns` tells
   whether a handle is the figure's. `draw_resolved` resolves afresh for a
   `Resolved` of another figure. `Fit::Window` on a categorical scale fits
   as `Fit::All` and is reported (`check::Issue::CategoricalWindow`).
-  `helpers::Subplots::x`, `y` and `panel` return `Option` outside the
+  `helpers::Subplots::get_x`, `get_y` and `panel` return `Option` outside the
   grid.
 - The `Plot` widget takes a scale factor above 8 as 8, and renders a
   widget wider or taller than 65,408 device px at the factor that fits
   it.
+
+### API review
+
+Names and visibility settled before the first release:
+
+- rustd3-iced: `plot::BAND_BYTES` and `plot::NUDGE` are crate-private;
+  `plot::cost` is public only behind `__dev`, the benchmark's and the
+  tests' feature, and hidden from the docs.
+- rustd3-core: `format::literal`, `fmt!`'s compile-time check, is hidden
+  from the docs; `format::format(spec).is_ok()` is the run-time check.
+- `helpers::stats::errorbar::Err` is `errorbar::Reach`: it no longer
+  shadows the prelude's `Err`.
+- `mark::Note::fill(color)` is `Note::color(color)`, as every mark names a
+  literal color; `fill` and `stroke` take a palette and a key.
+- `check::size(w, h)` is gone: `kurbo::Size::new(w, h)`.
+- `helpers::axes::defaults(axis)` is gone: `axis.minor(true)`.
+- Counts are `usize`: `path::SvgPath::with_digits(digits)` and
+  `raster::Settings::threads`.
+- A method that reads a stored or configured value is `get_` and its
+  name, as the scales' `get_domain` and `get_range` are; predicates
+  (`is_`, `has_`, `wants_`), std's names (`len`, `iter`, `as_*`) and
+  computed quantities (`bandwidth`, `step`, `ticks`) keep theirs. Renamed
+  in rustd3-core: `format::Specifier`'s `fill`, `align`, `sign`,
+  `symbol`, `zero`, `width`, `comma`, `precision`, `trim`, `kind`;
+  `format::InvalidFormat::input`, `color::ParseColorError::input`,
+  `format::Format::locale`, `locale::Locale::{number, time}`,
+  `ticks::Set::{values, step, count}`, `axis::Label::{x, y, text,
+  anchor, dy}`, `series::Recording::{id, revision, offset}`,
+  `series::Series::{recording, channel}`, `series::Columns::edges`,
+  `series::m4::Extremes::{min, max}`, `anim::Animated::target`,
+  `interact::BrushX::selection` and `BrushY::selection`,
+  `interact::Modifiers::{shift, ctrl, alt, logo}`. In rustd3-figure:
+  `mark::Ctx::{rect, theme, panel, mark, scale_factor, locale, raw,
+  label}`, `Fits::{theme, locale}`, `Resolved::{scale, scale_at,
+  plot_areas, zooms, axis, panel_cell, brush, plan, passes, areas,
+  held}`, `text::Shaped::{width, ascent, descent, last, missing}`,
+  `text::Cache::stats`, `cache::Cache::stats`, `scale::ScaleRef::index`,
+  `theme::Context::scale`, `brush::Placed::{dim, over, target}`,
+  `helpers::Subplots::{x, y}`. Each is `get_…`, and `Held::grids_for` is
+  `Held::get_grid`. `time::Time::get_zone` and the theme's `get_color`,
+  `get_gray`, `get_line_width`, `get_patch_width`, `get_density_width`
+  and `get_marker` keep their names.
+- rustd3-iced: `Plot` is `rustd3_iced::Plot` and `Probe` is
+  `rustd3_iced::plot::Probe` only (`plot::Plot` and `plot::probe::Probe`
+  are gone).
+- rustd3-figure: `cache` is the module of `Cache` and its `Stats`:
+  `rustd3_figure::Cache` is `cache::Cache`.
+- Output options are built, not written as literals: `svg::Options`,
+  `list::dump::Options` and `raster::Settings` take builders
+  (`Options::default().text(svg::Text::Elements)`, `.glyphs(true)`,
+  `Settings::default().threads(n).simd(s)`), as `pdf::Options` does.
+- The settings enums `plot::Render`, `plot::Caching`, `raster::Simd`,
+  `svg::Text`, `thin::Thin` and `Target` are `#[non_exhaustive]`.
+- Sealed traits: core's `series::Data`, `series::Coordinate`,
+  `scale::Ticks`, `scale::Pad` and `interact::Rescale`, and figure's
+  `scale::Scale` (with it `Kind`, `Position`, `Invert`, `Paint`,
+  `Fittable`, `mark::Binned`, and through `Ticks` `colorbar::Ramp`) and
+  `scale::Indexed`. `PathContext`, `scale::Transform`, `Interpolate`,
+  `mark::Mark`, `shape::Vertex` and `shape::Span` stay open.
+- `scale::SeriesExtent` is `scale::indexed::Extent`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

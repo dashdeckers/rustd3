@@ -44,12 +44,12 @@ fn a_dodged_line_runs_through_the_centres_of_its_keys_sub_bands() {
     let probe = Size::new(640.0, 480.0);
     let area = fig
         .resolve(probe, &mut cache, &Held::default(), Target::Vector)
-        .plot_areas()[0];
+        .get_plot_areas()[0];
     let size = Size::new(300.0 + probe.width - area.width(), 480.0);
     let list = fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
     let area = fig
         .resolve(size, &mut cache, &Held::default(), Target::Vector)
-        .plot_areas()[0];
+        .get_plot_areas()[0];
     assert!((area.width() - 300.0).abs() < 1e-9, "{area:?}");
     let Command::Stroke { path, .. } = marked(&list)[0] else {
         panic!("a stroke");
@@ -92,7 +92,7 @@ fn dodged_dots_take_their_slot_and_jitter_spreads_them_across_it() {
                 .jitter(2.0)
                 .jitter(f64::NAN),
         );
-    let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     let drawn = points(&fig);
     let slot = (0.75 * w, w);
     let (lo, hi) = (slot.0 + 0.1 * (w / 4.0), slot.0 + 0.9 * (w / 4.0));
@@ -127,7 +127,7 @@ fn dots_on_a_band_y_dodge_and_jitter_along_y() {
             .fill(color, "p")
             .dodge(),
     );
-    let h = resolve(&fig, &Held::default()).plot_areas()[0].height();
+    let h = resolve(&fig, &Held::default()).get_plot_areas()[0].height();
     let drawn = points(&fig);
     assert!(
         drawn[0]
@@ -144,7 +144,7 @@ fn dodge_without_a_palette_key_keeps_the_whole_band() {
     let x = fig.scale(scale::band(["a", "b"]));
     let y = fig.scale(scale::linear().domain([0.0, 10.0]));
     fig.panel(0, 0).mark(dots([("a", 5.0)], x, y).dodge());
-    let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     assert!((points(&fig)[0][0].x - 0.25 * w).abs() < 1e-9);
 }
 
@@ -160,7 +160,7 @@ fn hover_finds_dodged_dots_where_they_are_drawn() {
     let mut cache = cache();
     let size = Size::new(640.0, 480.0);
     let resolved = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let at = Point::new(area.x0 + area.width() / 8.0, area.y0 + area.height() / 2.0);
     let hit = fig
         .hits(&resolved, &mut cache)

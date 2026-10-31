@@ -31,6 +31,8 @@ impl<K: PartialEq + Clone + 'static> Scale for Ordinal<K, Rgb> {
     }
 }
 
+impl<K: PartialEq + Clone + 'static> crate::sealed::Scale for Ordinal<K, Rgb> {}
+
 /// Fitting keeps the keys the palette was built with.
 impl<K: PartialEq + Clone + 'static> Kind for Ordinal<K, Rgb> {
     type Domain = K;

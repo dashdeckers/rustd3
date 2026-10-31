@@ -85,6 +85,7 @@ impl Default for Ease {
 
 impl Ease {
     /// The eased value at `t`, by d3's formulas.
+    #[must_use]
     pub fn apply(&self, t: f64) -> f64 {
         match *self {
             Ease::Linear => t,
@@ -105,6 +106,7 @@ impl Ease {
     }
 
     /// `Poly` with d3's default exponent, 3.
+    #[must_use]
     pub const fn poly(mode: Mode) -> Ease {
         Ease::Poly {
             mode,
@@ -113,6 +115,7 @@ impl Ease {
     }
 
     /// `Back` with d3's default overshoot, 1.70158.
+    #[must_use]
     pub const fn back(mode: Mode) -> Ease {
         Ease::Back {
             mode,
@@ -121,6 +124,7 @@ impl Ease {
     }
 
     /// `Elastic` with d3's default amplitude 1 and period 0.3.
+    #[must_use]
     pub const fn elastic(mode: Mode) -> Ease {
         Ease::Elastic {
             mode,

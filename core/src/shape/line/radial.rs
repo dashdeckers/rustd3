@@ -22,6 +22,7 @@ pub struct Radial {
 }
 
 /// d3.lineRadial(): straight segments, `None` items breaking the line.
+#[must_use]
 pub fn radial() -> Radial {
     Radial::default()
 }
@@ -29,6 +30,7 @@ pub fn radial() -> Radial {
 impl Radial {
     /// Joins the points with `curve`, applied after the points are placed
     /// (d3's `curveRadial(curve)`).
+    #[must_use]
     pub fn curve(self, curve: Curve) -> Self {
         Self { curve }
     }

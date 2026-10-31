@@ -10,7 +10,7 @@ use rustd3_core::scale::Pad;
 use rustd3_core::series::{Points, m4};
 use rustd3_core::time::Time;
 
-use crate::scale::{Indexed, Invert, Kind, Position, Scale, SeriesExtent, indexed, stuck, through};
+use crate::scale::{Indexed, Invert, Kind, Position, Scale, indexed, stuck, through};
 use crate::thin;
 
 /// Time scales pan and zoom in nanoseconds from the domain's start.
@@ -43,6 +43,8 @@ impl Scale for Time {
         through(&from.clone().range(range), &self.clone().range(range), at)
     }
 }
+
+impl crate::sealed::Scale for Time {}
 
 /// Instants fit as numbers do, through core's `Pad for Time`: no data
 /// gives 1970-01-01 to 1970-01-02 UTC, one instant widens by an hour per
@@ -110,7 +112,7 @@ impl Indexed<Timestamp> for Time {
         points: &Points<'_, Timestamp, f64>,
         x: Option<[Timestamp; 2]>,
         valid: &dyn Fn(f64) -> bool,
-    ) -> Option<SeriesExtent<Timestamp>> {
+    ) -> Option<indexed::Extent<Timestamp>> {
         let x = x.map(|[a, b]| {
             let (low, high) = if b < a { (b, a) } else { (a, b) };
             (low, high.checked_add(SignedDuration::from_nanos(1)).ok())
@@ -139,6 +141,8 @@ impl Indexed<Timestamp> for Time {
         indexed::thin(lower, Some(upper), edges, bits, valid, frame)
     }
 }
+
+impl crate::sealed::Indexed<Timestamp> for Time {}
 
 /// An instant's i128 nanoseconds as two words, low first: a column grid's
 /// key.

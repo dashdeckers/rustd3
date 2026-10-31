@@ -16,6 +16,12 @@ pub struct Subplots<'a> {
     y: Vec<ScaleRef<Linear>>,
 }
 
+impl<'a> std::fmt::Debug for Subplots<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Subplots").finish_non_exhaustive()
+    }
+}
+
 /// One panel per cell of a `rows × cols` grid; x fitted and shared per
 /// column, y per row, with bottom and left axes on every panel. Layout
 /// labels only the outer ones (the bottom row's x, the left column's y),
@@ -28,7 +34,7 @@ pub struct Subplots<'a> {
 /// let mut grid = subplots(2, 3);
 /// for row in 0..2 {
 ///     for col in 0..3 {
-///         let (Some(x), Some(y)) = (grid.x(col), grid.y(row)) else {
+///         let (Some(x), Some(y)) = (grid.get_x(col), grid.get_y(row)) else {
 ///             continue;
 ///         };
 ///         let k = (row * 3 + col) as f64;
@@ -40,6 +46,7 @@ pub struct Subplots<'a> {
 /// grid.figure().title("Six panels, three x and two y scales");
 /// let fig = grid.into_figure();
 /// ```
+#[must_use]
 pub fn subplots<'a>(rows: usize, cols: usize) -> Subplots<'a> {
     let mut fig = Figure::new();
     let x: Vec<_> = (0..cols).map(|_| fig.fit(scale::linear())).collect();
@@ -56,12 +63,14 @@ pub fn subplots<'a>(rows: usize, cols: usize) -> Subplots<'a> {
 
 impl<'a> Subplots<'a> {
     /// Column `col`'s x handle; `None` past the last column.
-    pub fn x(&self, col: usize) -> Option<ScaleRef<Linear>> {
+    #[must_use]
+    pub fn get_x(&self, col: usize) -> Option<ScaleRef<Linear>> {
         self.x.get(col).copied()
     }
 
     /// Row `row`'s y handle; `None` past the last row.
-    pub fn y(&self, row: usize) -> Option<ScaleRef<Linear>> {
+    #[must_use]
+    pub fn get_y(&self, row: usize) -> Option<ScaleRef<Linear>> {
         self.y.get(row).copied()
     }
 
@@ -76,6 +85,7 @@ impl<'a> Subplots<'a> {
     }
 
     /// The figure, done.
+    #[must_use]
     pub fn into_figure(self) -> Figure<'a> {
         self.fig
     }

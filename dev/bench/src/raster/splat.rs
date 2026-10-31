@@ -551,11 +551,12 @@ fn fnv(bytes: impl IntoIterator<Item = u8>) -> u64 {
 #[cfg(test)]
 mod tests {
     use rustd3_core::scale;
+    use rustd3_figure::cache::Cache;
     use rustd3_figure::kurbo::{Rect, Size};
     use rustd3_figure::list::{Bounds, Outlines};
     use rustd3_figure::mark::dots;
     use rustd3_figure::raster::{Renderer, Settings};
-    use rustd3_figure::{Cache, Figure, Held, Target};
+    use rustd3_figure::{Figure, Held, Target};
 
     use super::{Plan, Stamps, blend, cover};
 
@@ -604,7 +605,7 @@ mod tests {
         let list = fig.draw_with(&mut cache, size, target, &Held::default());
         let area: Rect = fig
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()[0];
+            .get_plot_areas()[0];
         assert_eq!(area.width(), 76.0);
         let bounds = Bounds::of(&list, &mut Outlines::default());
         let mut renderer = Renderer::new(Settings::default());

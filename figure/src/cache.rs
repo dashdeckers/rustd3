@@ -22,6 +22,7 @@ pub struct Cache {
 
 /// What a figure cache holds and has done. Plain data.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Stats {
     /// The text cache's.
     pub text: text::Stats,
@@ -58,9 +59,10 @@ impl Cache {
     }
 
     /// What the cache holds and has done.
-    pub fn stats(&self) -> Stats {
+    #[must_use]
+    pub fn get_stats(&self) -> Stats {
         Stats {
-            text: self.text.stats(),
+            text: self.text.get_stats(),
             m4_queries: self.memo.queries(),
         }
     }

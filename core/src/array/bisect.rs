@@ -4,12 +4,14 @@
 /// sorted, before any equal values. NaN elements, which compare as neither
 /// less nor more, stay to the right; a NaN `x` gives `sorted.len()`.
 #[doc(alias = "bisectLeft")]
+#[must_use]
 pub fn bisect_left(sorted: &[f64], x: f64) -> usize {
     bisect(sorted, x, |v| v < x)
 }
 
 /// d3.bisectRight (d3.bisect): as [`bisect_left`], after any equal values.
 #[doc(alias = "bisectRight")]
+#[must_use]
 pub fn bisect_right(sorted: &[f64], x: f64) -> usize {
     bisect(sorted, x, |v| v <= x)
 }

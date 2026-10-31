@@ -205,13 +205,7 @@ fn a_run_whose_glyphs_are_not_its_characters_has_one_x() {
         commands: vec![Command::Glyphs(run)],
         ..List::default()
     };
-    let svg = svg::write(
-        &list,
-        &svg::Options {
-            text: svg::Text::Elements,
-        },
-    )
-    .unwrap();
+    let svg = svg::write(&list, &svg::Options::default().text(svg::Text::Elements)).unwrap();
     assert!(
         svg.contains("<text transform='matrix(1 0 0 1 0 0)' x='0' y='0' font-family='DejaVu Sans' font-size='10' fill='#000000' xml:space='preserve'>ffi</text>"),
         "{svg}"
@@ -231,12 +225,6 @@ fn text_elements_escape_markup_characters() {
         ))],
         ..List::default()
     };
-    let svg = svg::write(
-        &list,
-        &svg::Options {
-            text: svg::Text::Elements,
-        },
-    )
-    .unwrap();
+    let svg = svg::write(&list, &svg::Options::default().text(svg::Text::Elements)).unwrap();
     assert!(svg.contains(">a&lt;&amp;&gt;&apos;b</text>"), "{svg}");
 }

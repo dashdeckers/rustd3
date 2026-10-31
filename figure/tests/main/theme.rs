@@ -58,7 +58,7 @@ fn the_default_theme_is_ticks_at_notebook_with_colorblind_and_five_percent_margi
             Context::Talk,
             Context::Poster
         ]
-        .map(Context::scale)
+        .map(Context::get_scale)
     );
 }
 
@@ -87,7 +87,7 @@ fn drawn(theme: Theme) -> (List, Rect) {
     let size = Size::new(640.0, 480.0);
     let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
     let resolved = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-    (list, resolved.plot_areas()[0])
+    (list, resolved.get_plot_areas()[0])
 }
 
 /// The commands of `list`'s parts of role `role`.
@@ -288,18 +288,18 @@ fn nice_domains_round_a_linear_handle_to_its_axis_ticks() {
     let size = Size::new(640.0, 480.0);
     let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
     // d3's nice(5) over [0.3, 9.7]: step 2.
-    assert_eq!(r.scale(x).unwrap().get_domain(), [0.0, 10.0]);
+    assert_eq!(r.get_scale(x).unwrap().get_domain(), [0.0, 10.0]);
     // The left axis's count, from its length in the first placement,
     // rounds alike.
-    assert_eq!(r.scale(y).unwrap().get_domain(), [0.0, 10.0]);
+    assert_eq!(r.get_scale(y).unwrap().get_domain(), [0.0, 10.0]);
     // No axis: d3's default 10.
-    assert_eq!(r.scale(free).unwrap().get_domain(), [0.0, 10.0]);
+    assert_eq!(r.get_scale(free).unwrap().get_domain(), [0.0, 10.0]);
     // Bars stick at 0: [0, 7.35] rounds up only.
-    assert_eq!(r.scale(bars).unwrap().get_domain(), [0.0, 8.0]);
+    assert_eq!(r.get_scale(bars).unwrap().get_domain(), [0.0, 8.0]);
     // Under margins the same data pads by 5%.
     fig.theme(Theme::default());
     let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-    let [low, high] = r.scale(x).unwrap().get_domain();
+    let [low, high] = r.get_scale(x).unwrap().get_domain();
     assert!((low + 0.17).abs() < 1e-12 && (high - 10.17).abs() < 1e-12);
 }
 
@@ -323,5 +323,5 @@ fn nice_domains_floor_and_ceil_a_time_handle_to_its_tick_interval() {
     // d3's tick interval for 5 ticks over 7 h 24 min is the hour
     // (d3-scale 4.0.2's `scaleUtc().nice(5)` in Node).
     let expected = [at("2026-10-28T09:00:00Z"), at("2026-10-28T17:00:00Z")];
-    assert_eq!(r.scale(t).unwrap().get_domain(), expected);
+    assert_eq!(r.get_scale(t).unwrap().get_domain(), expected);
 }

@@ -31,6 +31,12 @@ pub struct Line<'a, X: Position, Y: Position> {
     dodge: bool,
 }
 
+impl<'a, X: Position, Y: Position> std::fmt::Debug for Line<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Line").finish_non_exhaustive()
+    }
+}
+
 /// A line through `data` (pairs, a recording channel or two slices) on `x`
 /// and `y`, straight from point to point, solid, in the theme palette's
 /// first color and the theme's line width, thinned when `data` is a
@@ -71,6 +77,7 @@ pub fn line<'a, X: Position, Y: Position>(
 impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// Strokes the line with `palette`'s color for `key`, looked up when
     /// the figure draws; a key the palette lacks draws the theme's gray.
+    #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -79,6 +86,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     }
 
     /// Strokes the line with `c`.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Color::Fixed(c),
@@ -88,6 +96,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
 
     /// The line's width in px; by default the theme's, 1.5 pt (2 px). A
     /// width that is not finite and positive leaves it as it was.
+    #[must_use]
     pub fn width(self, px: f64) -> Self {
         Self {
             width: positive(px).or(self.width),
@@ -101,6 +110,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// first sample of the column containing the grid's origin instead. A
     /// pattern with a negative or non-finite length, or none longer than 0,
     /// leaves the line as it was.
+    #[must_use]
     pub fn dash(self, pattern: impl IntoIterator<Item = f64>) -> Self {
         let dash = dashes(pattern).unwrap_or(self.dash);
         Self { dash, ..self }
@@ -108,12 +118,14 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
 
     /// How the line joins its points: d3's curves, straight by default.
     /// Thinned lines join their points straight.
+    #[must_use]
     pub fn curve(self, c: Curve) -> Self {
         Self { curve: c, ..self }
     }
 
     /// Whether the line thins a recording channel: [`Thin::Auto`] by
     /// default, [`Thin::Off`] to draw every sample.
+    #[must_use]
     pub fn thin(self, t: Thin) -> Self {
         Self { thin: t, ..self }
     }
@@ -121,6 +133,7 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     /// Vertices at the centre of the stroke key's sub-band (band x only):
     /// the band split into one sub-band per palette key, in the palette's
     /// order, so that a line runs through the dodged dots of its key.
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,
@@ -174,9 +187,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
         if path.elements().is_empty() {
             return;
         }
-        let width = self.width.unwrap_or(ctx.theme().get_line_width());
+        let width = self.width.unwrap_or(ctx.get_theme().get_line_width());
         let mut style = stroke(width, &self.dash);
-        if let Some(grid) = ctx.grid(self.x.index()).filter(|_| anchored) {
+        if let Some(grid) = ctx.grid(self.x.get_index()).filter(|_| anchored) {
             style.dash_offset = phase(&items, grid, &self.dash);
         }
         list.commands.push(Command::Stroke {
@@ -196,7 +209,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
         };
         let slot = self.slot(ctx);
         let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
-        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
         let mut push = |i: usize, p: Option<Point>| {
             if let Some(p) = p.filter(|p| within(area, *p)) {
                 sink.push(i, p);

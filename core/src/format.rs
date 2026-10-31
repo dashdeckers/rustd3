@@ -23,6 +23,9 @@
 //! ```
 
 mod decimal;
+// `fmt!`'s compile-time check, which the macro's expansion names from the
+// caller's crate: public for that alone.
+#[doc(hidden)]
 pub mod literal;
 mod locale;
 #[rustfmt::skip]
@@ -100,11 +103,13 @@ impl fmt::Display for Format {
 
 impl Format {
     /// The formatter `specifier` describes under `locale`.
+    #[must_use]
     pub fn new(locale: &Locale, specifier: Specifier) -> Format {
         Format::with_scale(locale, specifier, None)
     }
 
     /// d3's formatPrefix: fixed-point, scaled to `value`'s SI prefix.
+    #[must_use]
     pub fn prefixed(locale: &Locale, specifier: Specifier, value: f64) -> Format {
         // d3's exponent of 0, NaN or ±∞ is NaN, which propagates: every
         // value then formats as NaN, with no SI symbol.
@@ -120,7 +125,8 @@ impl Format {
     }
 
     /// The locale this format writes in.
-    pub fn locale(&self) -> &Locale {
+    #[must_use]
+    pub fn get_locale(&self) -> &Locale {
         &self.locale
     }
 
@@ -132,6 +138,7 @@ impl Format {
 
     /// `value` formatted. With `,`, it is grouped when its integer digits
     /// as printed reach the locale's threshold (`NEUTRAL`: 5).
+    #[must_use]
     pub fn format(&self, value: f64) -> String {
         let parts = self.parts(value);
         let grouped = self.groups(&parts);
@@ -152,6 +159,7 @@ impl Format {
     /// assert_eq!(f.format_all(&[8000.0, 10000.0]), ["8\u{202f}000", "10\u{202f}000"]);
     /// # Ok::<(), format::InvalidFormat>(())
     /// ```
+    #[must_use]
     pub fn format_all(&self, values: &[f64]) -> Vec<String> {
         let parts: Vec<Parts> = values.iter().map(|&v| self.parts(v)).collect();
         let grouped = parts.iter().any(|p| self.groups(p));
@@ -204,7 +212,7 @@ impl Format {
         if grouped && !self.zero {
             digits = self.locale.group(&digits, usize::MAX);
         }
-        let width = self.specifier.width().unwrap_or(0);
+        let width = self.specifier.get_width().unwrap_or(0);
         let length = prefix.chars().count() + digits.chars().count() + suffix.chars().count();
         let mut padding = width.saturating_sub(length);
         if grouped && self.zero {
@@ -241,9 +249,12 @@ impl Format {
         specifier: Specifier,
         si: Option<(f64, &'static str)>,
     ) -> Format {
-        let (mut comma, mut trim, mut precision) =
-            (specifier.comma(), specifier.trim(), specifier.precision());
-        let kind = match specifier.kind() {
+        let (mut comma, mut trim, mut precision) = (
+            specifier.get_comma(),
+            specifier.get_trim(),
+            specifier.get_precision(),
+        );
+        let kind = match specifier.get_kind() {
             Some(Kind::Exponent) => Type::Exponent,
             Some(Kind::Fixed) => Type::Fixed,
             Some(Kind::General) => Type::General,
@@ -267,19 +278,19 @@ impl Format {
                 Type::General
             }
         };
-        let (zero, fill, align) = if specifier.zero()
-            || (specifier.fill() == '0' && specifier.align() == Align::AfterSign)
+        let (zero, fill, align) = if specifier.get_zero()
+            || (specifier.get_fill() == '0' && specifier.get_align() == Align::AfterSign)
         {
             (true, '0', Align::AfterSign)
         } else {
-            (false, specifier.fill(), specifier.align())
+            (false, specifier.get_fill(), specifier.get_align())
         };
-        let prefix = match specifier.symbol() {
+        let prefix = match specifier.get_symbol() {
             Some(Symbol::Currency) => locale.currency[0].to_string(),
             Some(Symbol::Base) => kind.base().to_owned(),
             None => String::new(),
         };
-        let mut suffix = match specifier.symbol() {
+        let mut suffix = match specifier.get_symbol() {
             Some(Symbol::Currency) => locale.currency[1].to_string(),
             Some(Symbol::Base) | None if kind.percent() => locale.percent.to_string(),
             Some(Symbol::Base) | None => String::new(),
@@ -308,7 +319,7 @@ impl Format {
 
     /// A number's sign, digits and suffix, before grouping and padding.
     fn number(&self, value: f64) -> Parts {
-        let sign = self.specifier.sign();
+        let sign = self.specifier.get_sign();
         let negative = value < 0.0 || 1.0 / value < 0.0;
         let (mut text, si) = if value.is_nan() {
             (self.locale.nan.to_string(), None)
@@ -443,12 +454,20 @@ impl Type {
 }
 
 /// `specifier` under the neutral default locale.
+///
+/// # Errors
+///
+/// [`InvalidFormat`] when `specifier` does not parse.
 pub fn format(specifier: &str) -> Result<Format, InvalidFormat> {
     Locale::NEUTRAL.format(specifier)
 }
 
 /// d3's formatPrefix under the neutral default locale: fixed-point, scaled
 /// to `value`'s SI prefix.
+///
+/// # Errors
+///
+/// [`InvalidFormat`] when `specifier` does not parse.
 pub fn format_prefix(specifier: &str, value: f64) -> Result<Format, InvalidFormat> {
     Locale::NEUTRAL.format_prefix(specifier, value)
 }

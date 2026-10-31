@@ -89,6 +89,7 @@ impl<'a, X, Y> Points<'a, X, Y> {
     }
 
     /// The number of pairs; for slices, the shorter length.
+    #[must_use]
     pub fn len(&self) -> usize {
         match &self.repr {
             Repr::Owned(pairs) => pairs.len(),
@@ -98,6 +99,7 @@ impl<'a, X, Y> Points<'a, X, Y> {
     }
 
     /// Whether there are no pairs.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -113,6 +115,7 @@ impl<'a, X, Y> Points<'a, X, Y> {
     /// assert!([(0.0, 2.0)].into_points().is_collected());
     /// assert!(!series::slices(&x, &y).into_points().is_collected());
     /// ```
+    #[must_use]
     pub fn is_collected(&self) -> bool {
         match &self.repr {
             Repr::Owned(_) => true,
@@ -124,7 +127,11 @@ impl<'a, X, Y> Points<'a, X, Y> {
 impl<'a, X: Coordinate> Points<'a, X, f64> {
     /// One channel of a recording, borrowed with its index.
     pub(crate) fn from_series(series: Series<'a, X>) -> Self {
-        let repr = Repr::Series(series.recording(), series.channel(), std::convert::identity);
+        let repr = Repr::Series(
+            series.get_recording(),
+            series.get_channel(),
+            std::convert::identity,
+        );
         Self { repr }
     }
 }
@@ -161,6 +168,7 @@ impl<'a, X, Y> Points<'a, X, Y> {
 impl<X: Clone, Y: Clone> Points<'_, X, Y> {
     /// Pair `i`, if there is one: cloned from collected pairs and slices,
     /// read from a recording.
+    #[must_use]
     pub fn get(&self, i: usize) -> Option<(X, Y)> {
         match &self.repr {
             Repr::Owned(pairs) => pairs.get(i).cloned(),
@@ -178,6 +186,7 @@ impl<X: Clone, Y: Clone> Points<'_, X, Y> {
 impl<'a, X: Coordinate, Y> Points<'a, X, Y> {
     /// The indexed view, for thinning and fitting to what is visible;
     /// `None` for collected pairs and slices.
+    #[must_use]
     pub fn series(&self) -> Option<Series<'a, X>> {
         match &self.repr {
             Repr::Series(source, channel, _) => {

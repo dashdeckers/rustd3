@@ -38,7 +38,7 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
     /// specifier, which [`Transform::tick_format`] rules out.
     fn labels(&self, ticks: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
         super::labels(
-            self.tick_format_in(locale.number(), ticks.count(), None),
+            self.tick_format_in(locale.get_number(), ticks.get_count(), None),
             ticks,
             locale,
         )
@@ -49,7 +49,7 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
     /// majors; none for fewer than two majors.
     fn minor(&self, ticks: &ticks::Set<f64, f64>) -> Vec<f64> {
         let d = self.get_domain();
-        super::minor(self.transform(), [d[0], d[N - 1]], ticks.values())
+        super::minor(self.transform(), [d[0], d[N - 1]], ticks.get_values())
     }
 
     fn extent(&self) -> [f64; 2] {
@@ -57,6 +57,8 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
         [r[0], r[N - 1]]
     }
 }
+
+impl<T: Transform, const N: usize> crate::sealed::Ticks for Continuous<T, f64, N> {}
 
 /// A color range positions ticks in [0, 1] for a colorbar: ticks, step,
 /// labels and minor ticks as for an `f64` range, the position the end
@@ -91,7 +93,7 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, Rgb, N> {
     /// set's count under `locale`.
     fn labels(&self, ticks: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
         super::labels(
-            self.tick_format_in(locale.number(), ticks.count(), None),
+            self.tick_format_in(locale.get_number(), ticks.get_count(), None),
             ticks,
             locale,
         )
@@ -100,7 +102,7 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, Rgb, N> {
     /// As for an `f64` range.
     fn minor(&self, ticks: &ticks::Set<f64, f64>) -> Vec<f64> {
         let d = self.get_domain();
-        super::minor(self.transform(), [d[0], d[N - 1]], ticks.values())
+        super::minor(self.transform(), [d[0], d[N - 1]], ticks.get_values())
     }
 
     /// `[0, 1]`: a colorbar maps it to pixels.
@@ -108,3 +110,5 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, Rgb, N> {
         [0.0, 1.0]
     }
 }
+
+impl<T: Transform, const N: usize> crate::sealed::Ticks for Continuous<T, Rgb, N> {}

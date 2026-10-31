@@ -39,6 +39,13 @@ pub use slice::Slice;
 pub use symbol::Symbol;
 
 /// An item a line draws: a point, or `None` for a gap.
+///
+/// ```
+/// use rustd3_core::{path, shape};
+///
+/// let points = [Some((0.0, 0.0)), None, Some((10.0, 0.0)), Some((20.0, 5.0))];
+/// assert_eq!(path::svg(|p| shape::line().draw(points, p)), "M0,0ZM10,0L20,5");
+/// ```
 pub trait Vertex {
     /// The point, or `None` to break the line (d3's `defined`).
     fn vertex(self) -> Option<(f64, f64)>;
@@ -109,6 +116,7 @@ pub struct Stack {
 }
 
 /// d3.line(): straight segments, `None` items breaking the line.
+#[must_use]
 pub fn line() -> Line {
     Line::default()
 }
@@ -116,22 +124,26 @@ pub fn line() -> Line {
 /// d3.line() with accessors over a slice of data, a wrapper of
 /// [`line()`] for data that is not geometry yet: x and y 0, every
 /// datum defined, until set.
+#[must_use]
 pub fn line_of<'a, D>() -> LineOf<'a, D> {
     LineOf::default()
 }
 
 /// d3.area(): straight segments over a baseline at 0, `None` items
 /// breaking the area.
+#[must_use]
 pub fn area() -> Area {
     Area::default()
 }
 
 /// d3.pie(): descending, from 0 to τ, unpadded.
+#[must_use]
 pub fn pie() -> Pie {
     Pie::default()
 }
 
 /// d3.arc(): radii 0, no corners, padded as each slice says.
+#[must_use]
 pub fn arc() -> Arc {
     Arc::default()
 }
@@ -148,6 +160,7 @@ pub fn arc() -> Arc {
 /// let layers = shape::stack(&[&apples, &bananas]);
 /// assert_eq!(layers[1], [[3.0, 4.0], [2.0, 3.0], [1.0, 5.0]]);
 /// ```
+#[must_use]
 pub fn stack(columns: &[&[f64]]) -> Vec<Vec<[f64; 2]>> {
     Stack::default().layout(columns)
 }

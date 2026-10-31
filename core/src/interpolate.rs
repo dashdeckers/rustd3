@@ -42,6 +42,7 @@ use gamma::Channel;
 /// A value that blends with another of its type (d3's interpolate, typed).
 pub trait Interpolate: Clone {
     /// The value a fraction `t` of the way from `self` to `to`.
+    #[must_use]
     fn lerp(&self, to: &Self, t: f64) -> Self;
 }
 

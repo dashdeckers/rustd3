@@ -51,7 +51,7 @@ fn two_by_two() -> (Figure<'static>, Vec<[u8; 4]>) {
     let r = resolve(&fig, &Held::default());
     let rgba = |v: f64| {
         let c = r
-            .scale(heat)
+            .get_scale(heat)
             .expect("a handle of this figure")
             .paint(&v)
             .expect("a color");
@@ -73,7 +73,7 @@ fn a_2_by_2_grid_becomes_a_2_by_2_rgba_image_at_the_device_rect() {
     let (rect, size, rgba, smooth) = drawn(&list);
     assert_eq!(size, [2, 2]);
     assert!(!smooth, "nearest sampling");
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let want = Rect::new(w / 4.0, h / 4.0, 3.0 * w / 4.0, 3.0 * h / 4.0);
     let d = [
@@ -117,7 +117,7 @@ fn reversed_axes_flip_the_image_and_cells_without_color_are_transparent() {
     fig.panel(0, 0).mark(image(grid, x, y, heat));
     let r = resolve(&fig, &Held::default());
     let rgba = |v: f64| {
-        let c = r.scale(heat).unwrap().paint(&v).expect("a color");
+        let c = r.get_scale(heat).unwrap().paint(&v).expect("a color");
         [c.r as u8, c.g as u8, c.b as u8, 255]
     };
     let (rect, size, data, _) = drawn(&super::draw(&fig));
@@ -125,7 +125,7 @@ fn reversed_axes_flip_the_image_and_cells_without_color_are_transparent() {
     // x runs right to left: column 2 (3.0) is leftmost.
     let expected: Vec<u8> = [rgba(3.0), [0; 4], rgba(0.0)].concat();
     assert_eq!(data, expected);
-    let area = r.plot_areas()[0];
+    let area = r.get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     assert!(
         (rect.x0 - w / 4.0).abs() < 1e-9 && (rect.x1 - w).abs() < 1e-9,
@@ -151,12 +151,12 @@ fn an_image_holds_its_extent_and_fits_its_values_to_a_fitted_color_handle() {
     fig.panel(0, 0).mark(image(grid, x, y, heat));
     let r = resolve(&fig, &Held::default());
     assert_eq!(
-        r.scale(x).unwrap().get_domain(),
+        r.get_scale(x).unwrap().get_domain(),
         [10.0, 20.0],
         "no margin: held"
     );
-    assert_eq!(r.scale(y).unwrap().get_domain(), [-1.0, 1.0]);
-    assert_eq!(r.scale(heat).unwrap().get_domain(), [-2.0, 5.0]);
+    assert_eq!(r.get_scale(y).unwrap().get_domain(), [-1.0, 1.0]);
+    assert_eq!(r.get_scale(heat).unwrap().get_domain(), [-2.0, 5.0]);
 }
 
 #[test]
@@ -172,7 +172,7 @@ fn only_the_cells_within_the_guard_band_are_drawn() {
         .extent([-100.5, 899.5], [0.0, 1.0]);
     fig.panel(0, 0).mark(image(grid, x, y, heat));
     let (rect, size, ..) = drawn(&super::draw(&fig));
-    let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     // The guard band spans [-w, 2w]: columns 99..103 reach into it.
     assert_eq!(size, [4, 1]);
     let (x0, x1) = (rect.x0 / w, rect.x1 / w);

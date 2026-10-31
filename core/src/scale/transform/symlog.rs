@@ -35,6 +35,7 @@ impl Symlog {
     /// let s = scale::sequential([0.0, 100.0], |t| t).transform(transform::Symlog::new(1.0));
     /// assert_eq!(s.apply(10.0), 0.5195737064824407);
     /// ```
+    #[must_use]
     pub fn new(constant: f64) -> Symlog {
         Symlog {
             constant,

@@ -24,27 +24,32 @@ pub struct Label {
 
 impl Label {
     /// The x of the anchor point, in axis coordinates.
-    pub fn x(&self) -> f64 {
+    #[must_use]
+    pub fn get_x(&self) -> f64 {
         self.x
     }
 
     /// The y of the anchor point, in axis coordinates, before `dy`.
-    pub fn y(&self) -> f64 {
+    #[must_use]
+    pub fn get_y(&self) -> f64 {
         self.y
     }
 
     /// The text.
-    pub fn text(&self) -> &str {
+    #[must_use]
+    pub fn get_text(&self) -> &str {
         &self.text
     }
 
     /// Which point of the text (x, y) names.
-    pub fn anchor(&self) -> Anchor {
+    #[must_use]
+    pub fn get_anchor(&self) -> Anchor {
         self.anchor
     }
 
     /// d3's vertical shift of the text, in em of its font size.
-    pub fn dy(&self) -> f64 {
+    #[must_use]
+    pub fn get_dy(&self) -> f64 {
         self.dy
     }
 }

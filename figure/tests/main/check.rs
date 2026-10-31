@@ -3,7 +3,7 @@
 
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_figure::check::{Direction, Element, Issue, size};
+use rustd3_figure::check::{Direction, Element, Issue};
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::legend::{Inset, Slot, legend};
 use rustd3_figure::mark::{dots, line};
@@ -28,7 +28,7 @@ fn at_height(fig: &Figure<'_>, height: f64) -> Size {
     let mut size = Size::new(640.0, height + 60.0);
     for _ in 0..20 {
         let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-        let h = r.plot_areas()[0].height();
+        let h = r.get_plot_areas()[0].height();
         if (h - height).abs() < 1e-9 {
             return size;
         }
@@ -40,9 +40,9 @@ fn at_height(fig: &Figure<'_>, height: f64) -> Size {
 #[test]
 fn the_examples_fit_at_960_by_760() {
     let rec = trace::recording(trace::SAMPLES);
-    assert_eq!(trace::trace(&rec).check(size(960.0, 760.0)), []);
+    assert_eq!(trace::trace(&rec).check(Size::new(960.0, 760.0)), []);
     let scatter = scatter::scatter(scatter::POINTS);
-    assert_eq!(scatter.check(size(960.0, 760.0)), []);
+    assert_eq!(scatter.check(Size::new(960.0, 760.0)), []);
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn panel_and_figure_titles_and_legends_wider_than_their_room_overflow() {
         .panel(0, 0)
         .title("A panel title too long for its panel")
         .legend(Inset::TopLeft, legend(color));
-    let issues = fig.check(size(240.0, 400.0));
+    let issues = fig.check(Size::new(240.0, 400.0));
     let found: Vec<(Element, Option<usize>)> = issues
         .iter()
         .filter_map(|i| {
@@ -109,7 +109,7 @@ fn a_canvas_too_small_for_its_decorations_has_no_room() {
     fig.panel(0, 0)
         .axis(axis::left(y).label("vibration RMS [m/s²]"))
         .axis(axis::bottom(x).label("speed [km/h]"));
-    let issues = fig.check(size(60.0, 40.0));
+    let issues = fig.check(Size::new(60.0, 40.0));
     let axes: Vec<Direction> = issues
         .iter()
         .filter_map(|i| {
@@ -134,14 +134,14 @@ fn an_axis_left_with_one_tick_label_is_reported() {
     fig.panel(0, 0)
         .axis(axis::left(y))
         .axis(axis::bottom(x).format(|v| format!("{v} metres per second")));
-    let issues = fig.check(size(240.0, 240.0));
+    let issues = fig.check(Size::new(240.0, 240.0));
     let one = Issue::FewLabels {
         panel: 0,
         axis: 1,
         kept: 1,
     };
     assert_eq!(issues, [one]);
-    assert_eq!(fig.check(size(1600.0, 240.0)), []);
+    assert_eq!(fig.check(Size::new(1600.0, 240.0)), []);
 }
 
 #[test]
@@ -155,8 +155,8 @@ fn inset_legends_drawn_over_each_other_are_reported() {
         .legend(Inset::BottomLeft, key);
     // Two stacked in the top corner and one in the bottom corner hold
     // apart in a tall plot area and overlap in a short one.
-    assert_eq!(fig.check(size(640.0, 480.0)), []);
-    let issues = fig.check(size(640.0, 220.0));
+    assert_eq!(fig.check(Size::new(640.0, 480.0)), []);
+    let issues = fig.check(Size::new(640.0, 220.0));
     let overlaps: Vec<Issue> = issues
         .into_iter()
         .filter(|i| matches!(i, Issue::LegendsOverlap { .. }))
@@ -174,7 +174,7 @@ fn owned_data_over_100000_points_belongs_in_a_recording() {
     let many: Vec<(f64, f64)> = (0..150_000).map(|i| (f64::from(i) * 1e-4, 1.0)).collect();
     let few: Vec<(f64, f64)> = many[..100_000].to_vec();
     fig.panel(0, 0).mark(dots(few, x, y)).mark(line(many, x, y));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     assert_eq!(
         issues,
         [Issue::LargeOwned {
@@ -189,7 +189,7 @@ fn owned_data_over_100000_points_belongs_in_a_recording() {
 fn glyphs_the_fonts_lack_and_rejected_markup_are_reported() {
     let (mut fig, ..) = panel();
     fig.title("漢字").panel(0, 0).title(text::typst("$ x^ $"));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     // By label: `#"漢字"` sorts before `$ x^ $`.
     let [
         Issue::MissingGlyphs {
@@ -213,6 +213,6 @@ fn a_palette_key_outside_the_palette_is_reported() {
     fig.panel(0, 0)
         .mark(dots([(1.0, 1.0)], x, y).fill(color, "a"))
         .mark(line([(1.0, 1.0), (2.0, 2.0)], x, y).stroke(color, "z"));
-    let issues = fig.check(size(640.0, 480.0));
+    let issues = fig.check(Size::new(640.0, 480.0));
     assert_eq!(issues, [Issue::UnknownKey { panel: 0, mark: 1 }]);
 }

@@ -63,7 +63,7 @@ fn rustd3_axis_bottom_is_the_core_axis_of_a_scale() {
         .ticks(5)
         .labels()
         .iter()
-        .map(|l| l.text().to_owned())
+        .map(|l| l.get_text().to_owned())
         .collect();
     assert_eq!(labels, ["0", "20", "40", "60", "80", "100"]);
 }

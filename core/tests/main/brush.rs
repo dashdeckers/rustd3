@@ -258,7 +258,7 @@ fn a_selection_cleared_mid_gesture_leaves_the_last_one_to_compare_against() {
     assert_eq!(brush.handle(to(x(51.0))), brushed(10.0, 50.0));
     brush.set_selection(None);
     assert_eq!(brush.handle(to(x(41.0))), None);
-    assert_eq!(brush.selection(), None);
+    assert_eq!(brush.get_selection(), None);
     assert_eq!(brush.handle(RELEASE), Some(BrushEvent::End(None)));
 
     brush.set_selection(Some([10.0, 20.0]));
@@ -307,7 +307,7 @@ fn a_press_off_the_extent_and_the_selection_starts_nothing() {
     assert_eq!(brush.handle(press(x(-1.0))), None);
     assert_eq!(brush.handle(press((50.0, 60.0))), None);
     assert!(!brush.is_active());
-    assert_eq!(brush.selection(), Some([10.0, 20.0]));
+    assert_eq!(brush.get_selection(), Some([10.0, 20.0]));
 }
 
 #[test]

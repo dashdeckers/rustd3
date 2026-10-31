@@ -36,6 +36,7 @@ impl Log {
     /// let s = scale::sequential([1.0, 1000.0], scheme::viridis).transform(transform::Log::new(10.0));
     /// assert_eq!(s.apply(10.0).format_hex(), "#31688e");
     /// ```
+    #[must_use]
     pub fn new(base: f64) -> Log {
         Log {
             base,
@@ -226,7 +227,7 @@ impl Transform for Log {
     ) -> Result<TickFormat, InvalidFormat> {
         let default = if self.base == 10.0 { "s" } else { "," };
         let specifier: Specifier = specifier.unwrap_or(default).parse()?;
-        let specifier = if self.integer() && specifier.precision().is_none() {
+        let specifier = if self.integer() && specifier.get_precision().is_none() {
             specifier.with_trim(true)
         } else {
             specifier

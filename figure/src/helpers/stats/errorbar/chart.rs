@@ -16,11 +16,17 @@ const PX_PER_PT: f64 = 4.0 / 3.0;
 /// Error bars: per row, a vertical bar at its key from `value − below` to
 /// `value + above` (see [`errorbar`]).
 pub struct ErrorBar<X: Position, Y: Position<Domain = f64>> {
-    rows: Vec<(<X as Kind>::Domain, f64, super::Err)>,
+    rows: Vec<(<X as Kind>::Domain, f64, super::Reach)>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     /// How far the caps reach to each side, pt.
     caps: Option<f64>,
+}
+
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for ErrorBar<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ErrorBar").finish_non_exhaustive()
+    }
 }
 
 /// One error bar per row `(key, value, error)` on `x` and `y`: a vertical
@@ -44,7 +50,7 @@ pub struct ErrorBar<X: Position, Y: Position<Domain = f64>> {
 ///     .mark(bar_y([("a", 3.0), ("b", 4.5)], x, y))
 ///     .mark(
 ///         errorbar(
-///             [("a", 3.0, errorbar::Err::Sym(0.4)), ("b", 4.5, errorbar::Err::Asym(0.2, 0.8))],
+///             [("a", 3.0, errorbar::Reach::Sym(0.4)), ("b", 4.5, errorbar::Reach::Asym(0.2, 0.8))],
 ///             x,
 ///             y,
 ///         )
@@ -52,7 +58,7 @@ pub struct ErrorBar<X: Position, Y: Position<Domain = f64>> {
 ///     );
 /// ```
 pub fn errorbar<X, Y>(
-    rows: impl IntoIterator<Item = (<X as Kind>::Domain, f64, super::Err)>,
+    rows: impl IntoIterator<Item = (<X as Kind>::Domain, f64, super::Reach)>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
 ) -> ErrorBar<X, Y>
@@ -72,6 +78,7 @@ impl<X: Position, Y: Position<Domain = f64>> ErrorBar<X, Y> {
     /// Caps reaching `pt` points to each side of each bar, matplotlib's
     /// `capsize`. A size that is not finite and positive leaves them as
     /// they were.
+    #[must_use]
     pub fn caps(self, pt: f64) -> Self {
         let caps = if pt.is_finite() && pt > 0.0 {
             Some(pt)
@@ -98,8 +105,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let band = guard::band(ctx.rect().width(), ctx.rect().height());
-        let (snap, width) = (ctx.snap(), ctx.theme().get_line_width());
+        let band = guard::band(ctx.get_rect().width(), ctx.get_rect().height());
+        let (snap, width) = (ctx.snap(), ctx.get_theme().get_line_width());
         let at = |v: f64| sy.position(&v).filter(|p| p.is_finite());
         let mut path = BezPath::new();
         for (key, value, error) in &self.rows {
@@ -130,14 +137,14 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
             list.commands.push(Command::Stroke {
                 path,
                 style: list::stroke(snap.width(width)),
-                paint: list::brush(ctx.theme().get_ink()),
+                paint: list::brush(ctx.get_theme().get_ink()),
             });
         }
     }
 
     /// Keys outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-        let Some(sx) = ctx.raw(self.x) else {
+        let Some(sx) = ctx.get_raw(self.x) else {
             return;
         };
         let outside = self
@@ -147,7 +154,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
             .count();
         if outside > 0 {
             issues.push(Issue::OutsideDomain {
-                handle: self.x.index(),
+                handle: self.x.get_index(),
                 count: outside,
             });
         }

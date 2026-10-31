@@ -142,6 +142,7 @@ impl Locale {
     /// assert_eq!(t.labels(&t.tick_set(4), &locale)[..2], ["maart", "mrt 08"]);
     /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
+    #[must_use]
     pub const fn new(number: format::Locale, time: time::Locale) -> Locale {
         Locale { number, time }
     }
@@ -161,17 +162,20 @@ impl Locale {
     /// assert_eq!(t.labels(&t.tick_set(5), &de), ["Do 29", "Fr 30", "Sa 31", "November", "Mo 02", "Di 03"]);
     /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
+    #[must_use]
     pub fn with_time(self, time: time::Locale) -> Locale {
         Locale { time, ..self }
     }
 
     /// The number half, d3's `formatLocale`.
-    pub fn number(&self) -> &format::Locale {
+    #[must_use]
+    pub fn get_number(&self) -> &format::Locale {
         &self.number
     }
 
     /// The time half, d3's `timeFormatLocale` with the tick-label ladder.
-    pub fn time(&self) -> &time::Locale {
+    #[must_use]
+    pub fn get_time(&self) -> &time::Locale {
         &self.time
     }
 }

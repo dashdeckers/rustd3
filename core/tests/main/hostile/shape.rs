@@ -186,7 +186,7 @@ fn lines_and_areas_draw_well_formed_paths_from_any_points() {
         area.draw(spans.iter().copied(), &mut order);
         assert_eq!(order.stray, None, "area {c:?} drew before a move");
 
-        let digits = u32::try_from(rng.below(40)).unwrap_or(0);
+        let digits = rng.below(40);
         let mut fixed = path::SvgPath::with_digits(digits);
         line.draw(pts.iter().copied(), &mut fixed);
         if let Err(e) = well_formed(&fixed.to_string()) {
@@ -215,7 +215,7 @@ fn arcs_pies_stacks_and_symbols_never_panic() {
             if let Err(e) = well_formed(&d) {
                 panic!("arc of {slice:?}: {e}");
             }
-            arc.centroid(slice);
+            let _ = arc.centroid(slice);
         }
         let mut svg = path::SvgPath::new();
         let _ = svg.try_arc(
@@ -234,7 +234,7 @@ fn arcs_pies_stacks_and_symbols_never_panic() {
 
         let columns: Vec<Vec<f64>> = (0..rng.small(4)).map(|_| rng.values(6)).collect();
         let refs: Vec<&[f64]> = columns.iter().map(Vec::as_slice).collect();
-        shape::stack(&refs);
+        let _ = shape::stack(&refs);
         let order = *rng.pick(&[
             Order::None,
             Order::Ascending,
@@ -251,8 +251,8 @@ fn arcs_pies_stacks_and_symbols_never_panic() {
             Offset::Wiggle,
         ]);
         let stack = shape::Stack::default().order(order).offset(offset);
-        stack.layout(&refs);
-        stack.stacking_order(&refs);
+        let _ = stack.layout(&refs);
+        let _ = stack.stacking_order(&refs);
         let symbol = *rng.pick(&[
             Symbol::Circle,
             Symbol::Cross,

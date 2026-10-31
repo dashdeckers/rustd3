@@ -357,13 +357,13 @@ fn the_kitchen_sink_passes_check() {
 
 #[test]
 fn list_dump_of_the_kitchen_sink() {
-    let dump = list::dump(&sink::list(), list::dump::Options { glyphs: true });
+    let dump = list::dump(&sink::list(), list::dump::Options::default().glyphs(true));
     snapshots().check("list_dump_of_the_kitchen_sink.txt", &dump);
 }
 
 #[test]
 fn a_dump_without_glyphs_prints_font_size_and_text() {
-    let dump = list::dump(&sink::list(), list::dump::Options { glyphs: false });
+    let dump = list::dump(&sink::list(), list::dump::Options::default().glyphs(false));
     let line = dump
         .lines()
         .find(|l| l.contains("glyphs"))

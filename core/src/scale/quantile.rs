@@ -47,6 +47,7 @@ impl<R> Quantile<R> {
     /// d3's `domain(values)`: the sample, NaN dropped (as d3 drops null,
     /// undefined and NaN), sorted ascending with equal values in their
     /// given order.
+    #[must_use]
     pub fn domain(self, domain: impl IntoIterator<Item = f64>) -> Self {
         let mut sorted: Vec<f64> = domain.into_iter().filter(|d| !d.is_nan()).collect();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
@@ -54,11 +55,13 @@ impl<R> Quantile<R> {
     }
 
     /// d3's `domain()`: the sorted sample.
+    #[must_use]
     pub fn get_domain(&self) -> &[f64] {
         &self.sorted
     }
 
     /// d3's `range(values)`: one bin per value.
+    #[must_use]
     pub fn range(self, range: impl IntoIterator<Item = R>) -> Self {
         Quantile {
             range: range.into_iter().collect(),
@@ -68,12 +71,14 @@ impl<R> Quantile<R> {
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> &[R] {
         &self.range
     }
 
     /// The range value of the bin `x` falls in; `None` for NaN or an empty
     /// range, where d3 returns its unknown value.
+    #[must_use]
     pub fn apply(&self, x: f64) -> Option<&R> {
         if x.is_nan() {
             return None;
@@ -83,6 +88,7 @@ impl<R> Quantile<R> {
 
     /// d3's `quantiles()`: the n − 1 inner bin edges for n range values,
     /// NaN for an empty sample.
+    #[must_use]
     pub fn quantiles(&self) -> &[f64] {
         &self.thresholds
     }
@@ -155,3 +161,5 @@ impl<R> Ticks for Quantile<R> {
         [0.0, 1.0]
     }
 }
+
+impl<R> crate::sealed::Ticks for Quantile<R> {}

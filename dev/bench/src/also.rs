@@ -19,12 +19,13 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_core::series::{Clock, Recording};
 use rustd3_examples::trace as example;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Affine, Point, Rect, Size};
 use rustd3_figure::list::{self, Bounds, Command, List, Outlines};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::raster::{self, Image, Settings, Simd};
 use rustd3_figure::thin::Thin;
-use rustd3_figure::{Cache, Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Target, axis};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::{Sample, Target as Slot};
 use rustd3_iced::plot::{Probe, Render, cost};
@@ -126,10 +127,7 @@ fn origin_dashes() -> Row {
     let k = example::SCALE;
     let (list, cells) = cut(&fig, example::SIZE, k);
     let bounds = Bounds::of(&list, &mut Outlines::default());
-    let mut renderer = raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    });
+    let mut renderer = raster::Renderer::new(Settings::default().simd(Simd::Baseline));
     let whole = Rect::from_origin_size(Point::ORIGIN, list.size);
     let Ok(whole) = renderer.render(&list, &bounds, whole, k) else {
         return failed("trace cells stitched", "the whole canvas did not render");
@@ -187,15 +185,12 @@ fn thin_line() -> Row {
         let list = fig.draw_with(&mut cache, size, target, &Held::default());
         let area = *fig
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()
+            .get_plot_areas()
             .first()?;
         let bounds = Bounds::of(&list, &mut Outlines::default());
-        raster::Renderer::new(Settings {
-            threads: 0,
-            simd: Simd::Baseline,
-        })
-        .render(&list, &bounds, area, k)
-        .ok()
+        raster::Renderer::new(Settings::default().simd(Simd::Baseline))
+            .render(&list, &bounds, area, k)
+            .ok()
     };
     let thinned = render(Thin::Auto, Target::Screen { scale: k });
     let every = render(Thin::Off, Target::Vector);
@@ -242,7 +237,7 @@ fn windowed_resolve() -> Row {
     let size = Size::new(1600.0, 1000.0);
     let mut data = Workload::Trace.data(1.0);
     let lookups = |cache: &Cache| {
-        let stats = cache.stats().text;
+        let stats = cache.get_stats().text;
         stats.hits + stats.misses
     };
     let mut fresh = Vec::new();
@@ -254,7 +249,7 @@ fn windowed_resolve() -> Row {
         let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
         fresh.push(begin.elapsed().as_secs_f64() * 1e3);
         fresh_lookups = lookups(&cache);
-        fresh_passes = resolved.passes();
+        fresh_passes = resolved.get_passes();
     }
     let mut cache = Cache::default();
     let _ = data
@@ -271,7 +266,7 @@ fn windowed_resolve() -> Row {
         let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
         steady.push(begin.elapsed().as_secs_f64() * 1e3);
         steady_lookups = lookups(&cache) - before;
-        steady_passes = resolved.passes();
+        steady_passes = resolved.get_passes();
     }
     let median = |values: &[f64]| percentile(values, 50.0).unwrap_or(0.0);
     Row {
@@ -303,7 +298,7 @@ fn scatter_lists() -> Row {
         let fig = data.figure(false);
         let mut cache = Cache::default();
         let fresh = fig.resolve(size, &mut cache, &Held::default(), target);
-        let Some(&area) = fresh.plot_areas().first() else {
+        let Some(&area) = fresh.get_plot_areas().first() else {
             return failed("a pan's UI-thread work", "no plot area");
         };
         let ranges = [(0, [0.0, area.width()]), (1, [area.height(), 0.0])];
@@ -316,7 +311,8 @@ fn scatter_lists() -> Row {
                 } else {
                     0.0
                 };
-                let Some(scale) = fresh.scale_at(index).and_then(|s| s.pan_px(range, dx)) else {
+                let Some(scale) = fresh.get_scale_at(index).and_then(|s| s.pan_px(range, dx))
+                else {
                     return failed("a pan's UI-thread work", "a handle that does not pan");
                 };
                 held.hold_erased(index, scale);
@@ -416,7 +412,7 @@ fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
     let mut area = Rect::ZERO;
     for _ in 0..8 {
         let resolved = figure().resolve(size, &mut Cache::default(), &Held::default(), target);
-        area = *resolved.plot_areas().first()?;
+        area = *resolved.get_plot_areas().first()?;
         let (dw, dh) = (1600.0 - area.width(), 1000.0 - area.height());
         if dw.abs() < 0.5 && dh.abs() < 0.5 {
             break;
@@ -735,7 +731,7 @@ fn gutter_costs() -> Row {
         let size = Size::new(f64::from(WINDOW.width), f64::from(WINDOW.height));
         let mut cache = Cache::default();
         let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
-        let Some(&area) = resolved.plot_areas().get(1) else {
+        let Some(&area) = resolved.get_plot_areas().get(1) else {
             return failed("an axis gutter render", "no bottom plot area");
         };
         let list = fig.draw_resolved(&mut cache, &resolved);
@@ -797,10 +793,7 @@ fn splat_speed() -> Row {
             return failed("scatter100k filled and splatted", "no plot area");
         };
         let bounds = Bounds::of(&list, &mut Outlines::default());
-        let mut renderer = raster::Renderer::new(Settings {
-            threads: 0,
-            simd: Simd::Detect,
-        });
+        let mut renderer = raster::Renderer::new(Settings::default().simd(Simd::Detect));
         let mut time = |splat: bool| {
             renderer.splat(splat);
             let mut last = None;

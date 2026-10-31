@@ -47,7 +47,7 @@ fn bars_from_a_base_are_held_at_zero_and_dots_are_not() {
     let (mut fig, x, y) = banded();
     fig.panel(0, 0).mark(bar_y([("a", 3.0)], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.0, 3.15]), "{domain:?}");
@@ -56,7 +56,7 @@ fn bars_from_a_base_are_held_at_zero_and_dots_are_not() {
         .mark(dots([("a", 3.0)], x, y))
         .mark(dots([("b", -1.0)], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [-1.2, 3.2]), "{domain:?}");
@@ -68,7 +68,7 @@ fn span_bars_away_from_zero_hold_neither_end_and_ignore_a_base() {
     fig.panel(0, 0)
         .mark(bar_y_spans([("a", [1.0, 3.0])], x, y).base(-5.0));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.9, 3.1]), "{domain:?}");
@@ -76,7 +76,7 @@ fn span_bars_away_from_zero_hold_neither_end_and_ignore_a_base() {
     fig.panel(0, 0)
         .mark(bar_y([("a", 3.0)], x, y).base(1.0).base(f64::INFINITY));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [1.0, 3.1]), "{domain:?}");
@@ -90,7 +90,7 @@ fn span_bars_hold_an_end_at_zero_so_stacks_stand_on_the_axis() {
         .mark(bar_y_spans([("a", [0.0, 3.0]), ("b", [0.0, 1.0])], x, y))
         .mark(bar_y_spans([("a", [3.0, 4.0]), ("b", [1.0, 2.0])], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.0, 4.2]), "{domain:?}");
@@ -99,7 +99,7 @@ fn span_bars_hold_an_end_at_zero_so_stacks_stand_on_the_axis() {
     fig.panel(0, 0)
         .mark(bar_y_spans([("a", [0.0, 3.0]), ("b", [-2.0, 0.0])], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(y)
+        .get_scale(y)
         .unwrap()
         .get_domain();
     assert!(close(domain, [-2.25, 3.25]), "{domain:?}");
@@ -109,7 +109,7 @@ fn span_bars_hold_an_end_at_zero_so_stacks_stand_on_the_axis() {
     let y = fig.scale(scale::band(["a"]));
     fig.panel(0, 0).mark(bar_x_spans([([0.0, 2.0], "a")], x, y));
     let domain = resolve(&fig, &Held::default())
-        .scale(x)
+        .get_scale(x)
         .unwrap()
         .get_domain();
     assert!(close(domain, [0.0, 2.1]), "{domain:?}");
@@ -125,17 +125,20 @@ fn a_rect_fits_all_four_edges_and_fills_one_command_per_row_in_one_part() {
     ));
     let resolved = resolve(&fig, &Held::default());
     assert!(close(
-        resolved.scale(x).unwrap().get_domain(),
+        resolved.get_scale(x).unwrap().get_domain(),
         [-0.15, 3.15]
     ));
-    assert!(close(resolved.scale(y).unwrap().get_domain(), [-0.2, 4.2]));
+    assert!(close(
+        resolved.get_scale(y).unwrap().get_domain(),
+        [-0.2, 4.2]
+    ));
     let list = draw(&fig);
     let parts: Vec<_> = list.parts.iter().filter(|p| role(p.id) == 6).collect();
     assert_eq!(parts.len(), 1);
     let commands = &list.commands[parts[0].commands.clone()];
     assert_eq!(commands.len(), 2);
     assert!(commands.iter().all(|c| matches!(c, Command::Fill { .. })));
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let px = |a: f64, b: f64| Point::new((a + 0.15) / 3.3 * w, (4.2 - b) / 4.4 * h);
     let first = Rect::from_points(px(0.0, 0.0), px(1.0, 2.0));
@@ -190,7 +193,7 @@ fn bars_fill_their_band_and_dodged_bars_their_key_slot() {
         .mark(bar_y([(1, 5.0)], x, y))
         .mark(bar_y([(1, 5.0)], x, y).fill(color, "r").dodge());
     let list = draw(&fig);
-    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let step = w / (4.0 - 0.1 + 0.2);
     let (start, bandwidth) = (step * 0.1 + step, step * 0.9);
@@ -221,7 +224,7 @@ fn bars_on_a_continuous_axis_take_0_8_of_the_smallest_gap_unless_given_a_width()
         .mark(bar_y([(6.0, 2.0)], x, y).width(12.0).width(-1.0))
         .mark(bar_y([(8.0, 2.0)], x, y));
     let list = draw(&fig);
-    let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+    let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
     let widths: Vec<f64> = filled(&list).iter().map(|r| r.width()).collect();
     let gap = 0.8 * w / 10.0;
     let expected = [gap, gap, gap, 12.0, 0.8 * w];
@@ -245,8 +248,11 @@ fn horizontal_bars_mirror_vertical_ones() {
         .mark(bar_x([(4.0, "a"), (2.0, "b")], x, y))
         .mark(bar_x_spans([([1.0, 3.0], "b")], x, y));
     let resolved = resolve(&fig, &Held::default());
-    assert!(close(resolved.scale(x).unwrap().get_domain(), [0.0, 4.2]));
-    let area = resolved.plot_areas()[0];
+    assert!(close(
+        resolved.get_scale(x).unwrap().get_domain(),
+        [0.0, 4.2]
+    ));
+    let area = resolved.get_plot_areas()[0];
     let (w, h) = (area.width(), area.height());
     let px = |v: f64| v / 4.2 * w;
     let rects = filled(&draw(&fig));
@@ -295,12 +301,13 @@ fn bars_with_no_area_and_keys_outside_the_band_draw_nothing() {
     assert!(filled(&draw(&fig)).is_empty());
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
-        let issues = fig.check(size(640.0, 480.0));
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
+        let issues = fig.check(Size::new(640.0, 480.0));
         assert_eq!(
             issues,
             [Issue::OutsideDomain {
-                handle: x.index(),
+                handle: x.get_index(),
                 count: 1
             }]
         );

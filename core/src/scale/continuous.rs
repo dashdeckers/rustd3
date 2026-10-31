@@ -135,6 +135,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     }
 
     /// d3's `domain(d)`: the stops, mapped onto the range's in order.
+    #[must_use]
     pub fn domain(self, domain: [f64; N]) -> Self {
         let transform = self.transform.clone();
         Continuous { domain, ..self }.transformed(transform)
@@ -168,12 +169,14 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// assert_eq!(wide.apply(0.555), 56.0);
     /// assert_eq!(wide.apply(f64::NAN), -1.0);
     /// ```
+    #[must_use]
     pub fn with_range(self, range: [R; N]) -> Self {
         Continuous { range, ..self }
     }
 
     /// d3's `interpolate(f)`: blend neighbouring range values `a` and `b`
     /// at `t` with `f(a, b, t)` instead of `lerp`.
+    #[must_use]
     pub fn interpolate(self, f: impl Fn(&R, &R, f64) -> R + Send + Sync + 'static) -> Self {
         Continuous {
             interpolate: Interpolator::Custom(Arc::new(f)),
@@ -182,11 +185,13 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     }
 
     /// d3's `clamp(b)`: whether `apply` and `invert` keep to the domain.
+    #[must_use]
     pub fn clamp(self, clamp: bool) -> Self {
         Continuous { clamp, ..self }
     }
 
     /// d3's `unknown(v)`: what `apply` returns for NaN.
+    #[must_use]
     pub fn unknown(self, value: R) -> Self {
         Continuous {
             unknown: Some(value),
@@ -196,6 +201,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
 
     /// d3's `nice(count)`: the end stops extended to round values by the
     /// transform's rule.
+    #[must_use]
     pub fn nice(self, count: usize) -> Self {
         let [start, stop] = self.transform.nice(self.ends(), count);
         let mut domain = self.domain;
@@ -253,6 +259,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     ///     }));
     /// assert_eq!(s.ticks(5), [0.0, 3.0, 6.0, 9.0, 12.0]);
     /// ```
+    #[must_use]
     pub fn tick_rule(self, rule: TickRule) -> Self {
         Continuous {
             tick_rule: Some(rule),
@@ -276,6 +283,11 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
 
     /// d3's `tickFormat(count, specifier)` under the neutral locale; see
     /// [`tick_format_in`](Continuous::tick_format_in).
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format(
         &self,
         count: usize,
@@ -298,6 +310,11 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// assert_eq!(f.format_all(&s.ticks(5)), ["0.00", "0.04", "0.16", "0.36", "0.64", "1.00"]);
     /// # Ok::<(), rustd3_core::format::InvalidFormat>(())
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format_in(
         &self,
         locale: &Locale,
@@ -364,6 +381,7 @@ impl<T: Transform, const N: usize> Continuous<T, f64, N> {
     /// d3's `rangeRound(r)`: [`with_range(r)`](Continuous::with_range)
     /// with values rounded by [`interpolate::round`]; clamp and the unknown
     /// value are kept, as in d3.
+    #[must_use]
     pub fn range_round(self, range: [f64; N]) -> Self {
         self.with_range(range)
             .interpolate(|a: &f64, b: &f64, t| interpolate::round(*a, *b)(t))
@@ -373,6 +391,7 @@ impl<T: Transform, const N: usize> Continuous<T, f64, N> {
 impl<R: Interpolate, const N: usize> Continuous<transform::Pow, R, N> {
     /// d3's `exponent(e)`: the power the domain is raised to; the domain
     /// and range stay as they are.
+    #[must_use]
     pub fn exponent(self, exponent: f64) -> Self {
         self.transformed(transform::Pow::new(exponent))
     }
@@ -394,6 +413,7 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Log, R, N> {
     /// let x = scale::log().base(2.0).domain([1.0, 1024.0]);
     /// assert_eq!(x.ticks(10)[..4], [1.0, 2.0, 4.0, 8.0]);
     /// ```
+    #[must_use]
     pub fn base(self, base: f64) -> Self {
         self.transformed(transform::Log::new(base))
     }
@@ -403,6 +423,7 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Symlog, R, N> {
     /// d3's `constant(c)`: where the symlog turns from linear to
     /// logarithmic; the domain and range stay as they are. It exists only
     /// for symlog scales.
+    #[must_use]
     pub fn constant(self, constant: f64) -> Self {
         self.transformed(transform::Symlog::new(constant))
     }
@@ -412,6 +433,7 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Asinh, R, N> {
     /// The width around 0 within which the asinh scale is nearly linear;
     /// the domain and range stay as they are. It exists only for asinh
     /// scales.
+    #[must_use]
     pub fn linear_width(self, linear_width: f64) -> Self {
         self.transformed(transform::Asinh::new(linear_width))
     }

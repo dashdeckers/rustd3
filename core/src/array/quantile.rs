@@ -31,6 +31,7 @@ pub fn quantile(values: impl IntoIterator<Item = f64>, p: f64) -> Option<f64> {
 /// d3.quantileSorted: the `p`-quantile of `sorted` by the R-7 method, read
 /// from the order it is given in (ascending for a meaningful result);
 /// `None` for an empty slice or a NaN `p`.
+#[must_use]
 pub fn quantile_sorted(sorted: &[f64], p: f64) -> Option<f64> {
     let n = sorted.len();
     if n == 0 || p.is_nan() {

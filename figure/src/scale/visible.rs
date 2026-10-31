@@ -11,7 +11,7 @@ const STEPS: f64 = 8.0;
 
 /// The last domain of each `Fit::Visible` handle, keyed by its index in
 /// the scale table and its scale's type, which survive a figure's rebuild:
-/// kept in [`figure::Cache`](crate::Cache), so the widget's cache carries
+/// kept in [`figure::Cache`](crate::cache::Cache), so the widget's cache carries
 /// it from frame to frame.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Memory {

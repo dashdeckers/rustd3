@@ -23,7 +23,7 @@ struct Total(f64);
 impl Total {
     /// The label's key under `locale` and `theme`.
     fn key(&self, locale: &Locale, theme: &Theme) -> Key {
-        let format = locale.number().format(",.1f").expect("a specifier");
+        let format = locale.get_number().format(",.1f").expect("a specifier");
         let style = Style {
             size: 12.0,
             bold: false,
@@ -36,11 +36,11 @@ impl Total {
 
 impl<'a> Mark<'a> for Total {
     fn fit(&self, fits: &mut Fits) {
-        fits.label(self.key(fits.locale(), fits.theme()));
+        fits.label(self.key(fits.get_locale(), fits.get_theme()));
     }
 
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        if let Some(shaped) = ctx.label(&self.key(ctx.locale(), ctx.theme())) {
+        if let Some(shaped) = ctx.get_label(&self.key(ctx.get_locale(), ctx.get_theme())) {
             let anchor = Anchor {
                 h: anchor::Horizontal::Middle,
                 v: anchor::Vertical::Baseline,
@@ -201,13 +201,19 @@ fn a_custom_mark_labels_in_the_figure_locale_and_palette_while_fitting() {
 #[test]
 fn de_de_writes_numbers_and_dates_as_d3() {
     let number = |spec: &str, v: f64| {
-        let f = Locale::DE_DE.number().format(spec).expect("a specifier");
+        let f = Locale::DE_DE
+            .get_number()
+            .format(spec)
+            .expect("a specifier");
         f.format(v)
     };
     assert_eq!(number(",.1f", 1_234_567.5), "1.234.567,5");
     assert_eq!(number("$,.2f", 1234.5), "1.234,50\u{a0}\u{20ac}");
     assert_eq!(number(",.1f", -0.5), "\u{2212}0,5");
     let t: Timestamp = "2026-10-25T09:05:00Z".parse().expect("an instant");
-    let c = Locale::DE_DE.time().format("%c").format(t, &TimeZone::UTC);
+    let c = Locale::DE_DE
+        .get_time()
+        .format("%c")
+        .format(t, &TimeZone::UTC);
     assert_eq!(c, "Sonntag, der 25. Oktober 2026, 09:05:00");
 }

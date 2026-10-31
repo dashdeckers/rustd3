@@ -55,6 +55,12 @@ pub struct Brush<A, B> {
     target: Option<ScaleRef<B>>,
 }
 
+impl<A, B> std::fmt::Debug for Brush<A, B> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Brush").finish_non_exhaustive()
+    }
+}
+
 impl<A, B> Clone for Brush<A, B> {
     fn clone(&self) -> Self {
         *self
@@ -74,6 +80,7 @@ impl<A, B> Copy for Brush<A, B> {}
 /// let x = fig.scale(scale::linear().domain([0.0, 10.0]));
 /// fig.panel(0, 0).brush(brush::x(x));
 /// ```
+#[must_use]
 pub fn x<A: Invert>(over: ScaleRef<A>) -> Brush<A, A> {
     Brush {
         dim: Dim::X,
@@ -84,6 +91,7 @@ pub fn x<A: Invert>(over: ScaleRef<A>) -> Brush<A, A> {
 
 /// A brush up the plot area over `over`: its selection is an interval of
 /// `over`'s domain along y, and spans the plot area's width.
+#[must_use]
 pub fn y<A: Invert>(over: ScaleRef<A>) -> Brush<A, A> {
     Brush {
         dim: Dim::Y,
@@ -96,6 +104,7 @@ impl<A: Invert> Brush<A, A> {
     /// The selection becomes the domain of `target` (d3's focus and
     /// context): a handle whose domain takes the same values as `over`'s.
     /// An empty selection gives it `over`'s whole domain.
+    #[must_use]
     pub fn sets<B>(self, target: ScaleRef<B>) -> Brush<A, B>
     where
         B: Position<Domain = <A as Kind>::Domain>,

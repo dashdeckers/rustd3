@@ -69,11 +69,13 @@ impl Kde {
     }
 
     /// The bandwidth h, the kernel's standard deviation.
+    #[must_use]
     pub fn bandwidth(&self) -> f64 {
         self.h
     }
 
     /// The density at `x`.
+    #[must_use]
     pub fn eval(&self, x: f64) -> f64 {
         let sum: f64 = self
             .values
@@ -89,6 +91,7 @@ impl Kde {
     /// [`exact`](Kde::exact) for at most [`Kde::BINNED`] values,
     /// [`binned`](Kde::binned) above. Empty for 2³¹ points or more, as
     /// every grid of this type is: such a grid is not allocated.
+    #[must_use]
     pub fn grid(&self, points: usize, cut: f64) -> Vec<(f64, f64)> {
         if self.values.len() > Kde::BINNED {
             self.binned(points, cut)
@@ -99,6 +102,7 @@ impl Kde {
 
     /// [`grid`](Kde::grid)'s positions with the density at each summed over
     /// every value: `points` × n kernels.
+    #[must_use]
     pub fn exact(&self, points: usize, cut: f64) -> Vec<(f64, f64)> {
         self.support(points, cut)
             .into_iter()
@@ -116,6 +120,7 @@ impl Kde {
     /// relative 1e-3 of it. With fewer than two points, a negative `cut`
     /// or values spread over more than about 32,000 bandwidths, it is
     /// `exact`.
+    #[must_use]
     pub fn binned(&self, points: usize, cut: f64) -> Vec<(f64, f64)> {
         let support = self.support(points, cut);
         let (Some(&start), Some(&stop)) = (support.first(), support.last()) else {

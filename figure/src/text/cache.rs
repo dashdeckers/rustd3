@@ -38,6 +38,7 @@ struct Entry {
 
 /// What a cache holds and has done.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Stats {
     /// Labels cached, shaped or failed.
     pub entries: usize,
@@ -119,6 +120,7 @@ impl Cache {
     }
 
     /// The label of `key`, if it is cached: shaped, or typst's error.
+    #[must_use]
     pub fn get(&self, key: &Key) -> Option<Result<&Shaped, &Error>> {
         self.entries
             .get(key)
@@ -139,7 +141,8 @@ impl Cache {
     }
 
     /// What the cache holds and has done.
-    pub fn stats(&self) -> Stats {
+    #[must_use]
+    pub fn get_stats(&self) -> Stats {
         Stats {
             entries: self.entries.len(),
             compiles: self.compiles,

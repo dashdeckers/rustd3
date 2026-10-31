@@ -4,7 +4,9 @@
 //! PNG, GIF and PDF behind their features.
 //!
 //! The list's geometry is kurbo's and its paint is peniko's; both crates
-//! are re-exported so that callers name the same versions.
+//! are re-exported ([`kurbo`], [`peniko`]) so that callers name the same
+//! versions, and a major version of either is a major version of this
+//! crate.
 //!
 //! Applications usually reach this crate as `rustd3::figure`, through the
 //! `rustd3` facade's `figure` feature. The examples here use the component
@@ -52,11 +54,16 @@
 //! - `helpers`: one-call charts, statistical charts and subplots
 //!   (`helpers`).
 
+// Builders and pure functions say so: a result dropped is a bug.
+#![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
+#![warn(missing_debug_implementations)]
+
 pub use kurbo;
 pub use peniko;
 
 pub mod axis;
 pub mod brush;
+pub mod cache;
 pub mod check;
 pub mod colorbar;
 mod figure;
@@ -78,6 +85,7 @@ pub mod pdf;
 mod pixels;
 pub mod raster;
 pub mod scale;
+mod sealed;
 pub mod stats;
 pub mod svg;
 mod target;
@@ -85,12 +93,7 @@ pub mod text;
 pub mod theme;
 pub mod thin;
 
-pub use figure::{Cache, Error, Figure, Fits, Held, Resolved};
+pub use figure::{Error, Figure, Fits, Held, Resolved};
 pub use panel::Panel;
 pub use target::Target;
 pub use theme::settings::Theme;
-
-/// What a figure's [`Cache`] reports.
-pub mod cache {
-    pub use crate::figure::cache::Stats;
-}

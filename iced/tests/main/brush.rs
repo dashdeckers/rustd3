@@ -12,11 +12,12 @@ use iced::{Event, Point, Size, keyboard, mouse};
 use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::time::{self, Time};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::layout::Grid;
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::ScaleRef;
-use rustd3_figure::{Cache, Figure, Held, Target, axis, brush};
+use rustd3_figure::{Figure, Held, Target, axis, brush};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::Sample;
 use rustd3_iced::plot::{Probe, Render};
@@ -138,7 +139,7 @@ impl FocusContext {
         self.figure()
             .0
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()
+            .get_plot_areas()
             .to_vec()
     }
 }
@@ -527,7 +528,7 @@ fn a_drag_brushes_where_the_wheel_zooms() {
             &Held::default(),
             Target::Screen { scale: 1.0 },
         )
-        .plot_areas()[0];
+        .get_plot_areas()[0];
     let plot = Plot::new(fig)
         .render(Render::Inline)
         .scale_factor(1.0)
@@ -601,7 +602,7 @@ fn quad_areas(k: f32) -> Vec<Rect> {
     quad()
         .0
         .resolve(size, &mut cache, &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec()
 }
 

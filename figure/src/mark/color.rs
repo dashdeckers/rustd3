@@ -93,9 +93,11 @@ impl Color {
     /// another figure, draws the theme's gray.
     pub(crate) fn resolve(&self, ctx: &Ctx<'_>) -> Rgb {
         match self {
-            Color::Theme => ctx.theme().get_color(),
+            Color::Theme => ctx.get_theme().get_color(),
             Color::Fixed(color) => *color,
-            Color::Keyed(lookup) => lookup.paint(ctx).unwrap_or_else(|| ctx.theme().get_gray()),
+            Color::Keyed(lookup) => lookup
+                .paint(ctx)
+                .unwrap_or_else(|| ctx.get_theme().get_gray()),
         }
     }
 }

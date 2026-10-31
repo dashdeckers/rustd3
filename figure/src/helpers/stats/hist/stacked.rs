@@ -27,6 +27,17 @@ where
     density: bool,
 }
 
+impl<K, X, Y, C> std::fmt::Debug for Stacked<K, X, Y, C>
+where
+    C: Paint<Domain = K>,
+    X: Position<Domain = f64>,
+    Y: Position<Domain = f64>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Stacked").finish_non_exhaustive()
+    }
+}
+
 /// Groups `(key, values)` stacked over one set of edges, matplotlib's
 /// `hist(…, stacked=True)`: the edges come from the union of every group's
 /// finite values (d3's nice bins with Sturges' count by default), each
@@ -78,6 +89,7 @@ where
     Y: Position<Domain = f64>,
 {
     /// How the union of the values is binned.
+    #[must_use]
     pub fn bins(self, b: Bins) -> Self {
         Self {
             bins: Some(b),
@@ -88,6 +100,7 @@ where
     /// Heights as densities over all groups (matplotlib's `stacked=True,
     /// density=True`): counts divided by the total count of every group and
     /// the bin's width, so the stack's area sums to 1.
+    #[must_use]
     pub fn density(self, yes: bool) -> Self {
         Self {
             density: yes,

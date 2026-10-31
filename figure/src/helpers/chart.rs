@@ -7,8 +7,8 @@
 //! Every preset takes the same finishing builders: `.title(t)` (the panel's
 //! title), `.x_label(t)` and `.y_label(t)` (the axes' labels), `.size(w, h)`
 //! (640 × 480 px by default, matplotlib's 6.4 × 4.8 in at 100 dpi),
-//! `.theme(theme)` and `.minor(on)` (minor ticks, on by default: the axes
-//! go through [`axes::defaults`](crate::helpers::axes::defaults)), and ends
+//! `.theme(theme)` and `.minor(on)` (minor ticks,
+//! [`Axis::minor`](crate::axis::Axis::minor), on by default), and ends
 //! in `.figure()`, a [`Figure`](crate::Figure) to change further, or in a
 //! file at its size, `.save_svg(path)` or `.save_png(path, scale)`.
 //!
@@ -40,18 +40,21 @@ macro_rules! finish {
     (impl[$($g:tt)*] $preset:ty) => {
         impl<$($g)*> $preset {
             /// The plot area's title (the panel's), centred over it.
+            #[must_use]
             pub fn title(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.title = Some(t.into());
                 self
             }
 
             /// The label of the axis along x, under its tick labels.
+            #[must_use]
             pub fn x_label(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.x_label = Some(t.into());
                 self
             }
 
             /// The label of the axis along y, beside its tick labels.
+            #[must_use]
             pub fn y_label(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.y_label = Some(t.into());
                 self
@@ -60,6 +63,7 @@ macro_rules! finish {
             /// The size the files are written at, logical px: 640 × 480 by
             /// default, matplotlib's 6.4 × 4.8 in at 100 dpi. A side that is
             /// not finite and positive leaves the size as it was.
+            #[must_use]
             pub fn size(mut self, w: f64, h: f64) -> Self {
                 self.setup.size(w, h);
                 self
@@ -70,14 +74,15 @@ macro_rules! finish {
             /// set.
             ///
             /// [`Theme::default`]: crate::Theme::default
+            #[must_use]
             pub fn theme(mut self, t: crate::Theme) -> Self {
                 self.setup.theme = t;
                 self
             }
 
-            /// Minor ticks on the axes that have them, as
-            /// [`axes::defaults`](crate::helpers::axes::defaults) turns them
-            /// on; on by default.
+            /// Minor ticks ([`Axis::minor`](crate::axis::Axis::minor)) on
+            /// the axes that have them; on by default.
+            #[must_use]
             pub fn minor(mut self, on: bool) -> Self {
                 self.setup.minor = on;
                 self
@@ -86,6 +91,10 @@ macro_rules! finish {
             /// Writes the figure as SVG to `path` at its size
             /// ([`Figure::save_svg`](crate::Figure::save_svg)); a preset
             /// draws nothing that lowering changes.
+            ///
+            /// # Errors
+            ///
+            /// As [`Figure::save_svg`](crate::Figure::save_svg).
             #[cfg(feature = "fonts")]
             pub fn save_svg(self, path: impl AsRef<std::path::Path>) -> Result<(), crate::Error> {
                 let size = self.setup.size;
@@ -94,6 +103,10 @@ macro_rules! finish {
 
             /// Writes the figure as a PNG of its size × `scale` device px to
             /// `path` ([`Figure::save_png`](crate::Figure::save_png)).
+            ///
+            /// # Errors
+            ///
+            /// As [`Figure::save_png`](crate::Figure::save_png).
             #[cfg(all(feature = "png", feature = "fonts"))]
             pub fn save_png(
                 self,

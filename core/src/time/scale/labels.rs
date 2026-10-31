@@ -37,7 +37,7 @@ use crate::time::{self, Interval, Time};
 ///     st.labels(&set, &Locale::EN_US),
 ///     ["Oct 25", "03 AM", "06 AM", "09 AM", "12 PM", "03 PM", "06 PM", "09 PM", "Mon 26"]
 /// );
-/// let x = st.position(&set.values()[1], 0.0).expect("a position");
+/// let x = st.position(&set.get_values()[1], 0.0).expect("a position");
 /// assert!((x - 800.0 * 4.0 / 25.0).abs() < 1e-9);
 /// # Ok::<(), rustd3_core::jiff::Error>(())
 /// ```
@@ -59,9 +59,9 @@ impl Ticks for Time {
     /// `locale`'s time half; the set's step is not consulted.
     fn labels(&self, ticks: &ticks::Set<Timestamp, Interval>, locale: &Locale) -> Vec<String> {
         ticks
-            .values()
+            .get_values()
             .iter()
-            .map(|&t| self.tick_label(t, locale.time()))
+            .map(|&t| self.tick_label(t, locale.get_time()))
             .collect()
     }
 
@@ -69,6 +69,8 @@ impl Ticks for Time {
         self.get_range()
     }
 }
+
+impl crate::sealed::Ticks for Time {}
 
 impl Time {
     /// d3's multi-scale tick format through `locale`'s ladder, in the
@@ -95,6 +97,7 @@ impl Time {
     /// assert_eq!(x.tick_label(at("1990-02-01T08:00:00.000001Z")?, &Locale::NEUTRAL), "00.000001");
     /// # Ok::<(), rustd3_core::jiff::Error>(())
     /// ```
+    #[must_use]
     pub fn tick_label(&self, t: Timestamp, locale: &time::Locale) -> String {
         locale
             .format(locale.get_ladder().rung(self.rung(t)))

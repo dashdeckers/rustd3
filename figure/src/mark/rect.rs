@@ -27,6 +27,12 @@ pub struct Rect<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     stroke: Option<Color>,
 }
 
+impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for Rect<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Rect").finish_non_exhaustive()
+    }
+}
+
 /// One filled rectangle per row `([x0, x1], [y0, y1])` on `x` and `y`:
 /// all four edges enter fitting, none is held. Rows over shared bin edges
 /// stack histograms.
@@ -62,6 +68,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Rect<X, Y> {
     /// Fills the rectangles with `palette`'s color for `key`, looked up
     /// when the figure draws; a key the palette lacks draws the theme's
     /// gray.
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             fill: Some(Color::keyed(palette, key)),
@@ -72,6 +79,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Rect<X, Y> {
     /// Outlines the rectangles in `palette`'s color for `key`, 1 pt wide
     /// (seaborn's patch edges). As in Observable Plot, a stroked rectangle
     /// without [`fill`](Rect::fill) is not filled.
+    #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             stroke: Some(Color::keyed(palette, key)),
@@ -163,7 +171,7 @@ pub(super) fn fill(
 fn outline(list: &mut List, ctx: &Ctx<'_>, r: kurbo::Rect, paint: &Brush) {
     let band = ctx.band();
     let r = r.abs().intersect(band);
-    let (snap, width) = (ctx.snap(), ctx.theme().get_patch_width());
+    let (snap, width) = (ctx.snap(), ctx.get_theme().get_patch_width());
     let at = |v: f64| snap.line(v, width);
     let r = kurbo::Rect::new(at(r.x0), at(r.y0), at(r.x1), at(r.y1));
     list.commands.push(Command::Stroke {

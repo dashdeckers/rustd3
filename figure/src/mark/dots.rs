@@ -36,6 +36,12 @@ pub struct Dots<'a, X: Position, Y: Position> {
     size_by: Option<Result<Channel<f64>, Error>>,
 }
 
+impl<'a, X: Position, Y: Position> std::fmt::Debug for Dots<'a, X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Dots").finish_non_exhaustive()
+    }
+}
+
 /// One dot as drawn: its datum's index, where it is centred in the
 /// panel's coordinates, its color from `fill_by` and its radius in px.
 struct Placed {
@@ -160,6 +166,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// let color = fig.scale(scale::ordinal([Source::Hub, Source::Bearing], scheme::COLORBLIND));
     /// fig.panel(0, 0).mark(dots([(0.0, 1.0)], x, y).fill(color, Source::Bearing));
     /// ```
+    #[must_use]
     pub fn fill<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             color: Color::keyed(palette, key),
@@ -168,6 +175,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     }
 
     /// Fills the dots with `c`.
+    #[must_use]
     pub fn color(self, c: Rgb) -> Self {
         Self {
             color: Color::Fixed(c),
@@ -179,6 +187,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// A radius that is not finite and positive leaves it as it was. Radii,
     /// these and `size_by`'s, are drawn at most three times the plot
     /// area's larger side, the guard band's reach.
+    #[must_use]
     pub fn r(self, px: f64) -> Self {
         Self {
             r: positive(px).or(self.r),
@@ -206,6 +215,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     ///     .mark(dots([("mon", 1.0), ("mon", 2.0)], day, y).fill(color, "a").dodge().jitter(0.8))
     ///     .mark(dots([("tue", 1.5)], day, y).fill(color, "b").dodge());
     /// ```
+    #[must_use]
     pub fn dodge(self) -> Self {
         Self {
             dodge: true,
@@ -219,6 +229,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// same data jitters the same way in every render and on every
     /// platform. Clamped to [0, 1]; 0 by default (the band's middle). NaN
     /// leaves it as it was.
+    #[must_use]
     pub fn jitter(self, share: f64) -> Self {
         Self {
             jitter: if share.is_nan() {
@@ -232,6 +243,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
 
     /// The dots' opacity, clamped to [0, 1]; 1 by default. NaN leaves it as
     /// it was.
+    #[must_use]
     pub fn opacity(self, a: f64) -> Self {
         Self {
             opacity: if a.is_nan() {
@@ -269,6 +281,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     ///         .size_by(radius, [10.0, 50.0, 100.0]),
     /// );
     /// ```
+    #[must_use]
     pub fn fill_by<C>(self, palette: ScaleRef<C>, values: impl IntoIterator<Item = f64>) -> Self
     where
         C: Paint<Domain = f64>,
@@ -289,6 +302,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// truncated: the mark draws nothing and
     /// [`Figure::check`](crate::Figure::check) reports
     /// [`Error::ChannelLength`].
+    #[must_use]
     pub fn size_by<S>(self, radius: ScaleRef<S>, values: impl IntoIterator<Item = f64>) -> Self
     where
         S: Position<Domain = f64>,
@@ -368,7 +382,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     /// Every point drawn in the plot area (not past it into an overscan),
     /// with its index in the data.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
-        for dot in self.placed(ctx, ctx.rect().with_origin(Point::ORIGIN)) {
+        for dot in self.placed(ctx, ctx.get_rect().with_origin(Point::ORIGIN)) {
             sink.push(dot.index, dot.at);
         }
     }
@@ -379,8 +393,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if let Some(error) = self.error() {
             issues.push(Issue::Mark {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
                 error: error.clone(),
             });
         }
@@ -393,7 +407,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// Each dot's radius in px without `size_by`.
     fn radius(&self, ctx: &Ctx<'_>) -> f64 {
         cap(
-            self.r.unwrap_or(ctx.theme().get_marker() / 2.0),
+            self.r.unwrap_or(ctx.get_theme().get_marker() / 2.0),
             largest(ctx),
         )
     }
@@ -477,7 +491,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
 /// The guard band's reach, three times the plot area's larger side: a
 /// dot that wide covers the band from anywhere it is drawn.
 fn largest(ctx: &Ctx<'_>) -> f64 {
-    let rect = ctx.rect();
+    let rect = ctx.get_rect();
     3.0 * rect.width().abs().max(rect.height().abs())
 }
 

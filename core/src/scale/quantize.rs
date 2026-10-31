@@ -20,7 +20,7 @@ use crate::ticks;
 /// assert_eq!((q.apply(0.2), q.apply(0.5), q.apply(0.9)), (Some(&"a"), Some(&"b"), Some(&"c")));
 /// assert_eq!(q.thresholds(), [0.3333333333333333, 0.6666666666666666]);
 /// assert_eq!(q.invert_extent(&"b"), Some([0.3333333333333333, 0.6666666666666666]));
-/// assert_eq!(q.tick_set(5).values(), [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]);
+/// assert_eq!(q.tick_set(5).get_values(), [0.0, 0.3333333333333333, 0.6666666666666666, 1.0]);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Quantize<R> {
@@ -45,16 +45,19 @@ pub fn quantize<R>(domain: [f64; 2], range: impl IntoIterator<Item = R>) -> Quan
 
 impl<R> Quantize<R> {
     /// d3's `domain([x0, x1])`.
+    #[must_use]
     pub fn domain(self, domain: [f64; 2]) -> Self {
         Quantize { domain, ..self }.rescale()
     }
 
     /// d3's `domain()`.
+    #[must_use]
     pub fn get_domain(&self) -> [f64; 2] {
         self.domain
     }
 
     /// d3's `range(values)`: one bin per value.
+    #[must_use]
     pub fn range(self, range: impl IntoIterator<Item = R>) -> Self {
         Quantize {
             range: range.into_iter().collect(),
@@ -64,6 +67,7 @@ impl<R> Quantize<R> {
     }
 
     /// d3's `range()`.
+    #[must_use]
     pub fn get_range(&self) -> &[R] {
         &self.range
     }
@@ -71,6 +75,7 @@ impl<R> Quantize<R> {
     /// The range value of the bin `x` falls in, the first or last past the
     /// ends; `None` for NaN or an empty range, where d3 returns its unknown
     /// value.
+    #[must_use]
     pub fn apply(&self, x: f64) -> Option<&R> {
         if x.is_nan() {
             return None;
@@ -79,24 +84,32 @@ impl<R> Quantize<R> {
     }
 
     /// d3's `thresholds()`: the n − 1 inner bin edges for n range values.
+    #[must_use]
     pub fn thresholds(&self) -> Vec<f64> {
         self.thresholds.clone()
     }
 
     /// d3's `nice(count)`: the domain extended to the ticks of a linear
     /// scale.
+    #[must_use]
     pub fn nice(self, count: usize) -> Self {
         let domain = scale::nice_linear(self.domain, count);
         self.domain(domain)
     }
 
     /// About `count` of d3's linear ticks over the domain.
+    #[must_use]
     pub fn ticks(&self, count: usize) -> Vec<f64> {
         ticks::linear(self.domain, count)
     }
 
     /// d3's `tickFormat(count, specifier)` over the domain under the
     /// neutral locale.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidFormat`](crate::format::InvalidFormat) when `specifier`
+    /// does not parse.
     pub fn tick_format(
         &self,
         count: usize,
@@ -148,6 +161,8 @@ impl<R> Pad for Quantize<R> {
     }
 }
 
+impl<R> crate::sealed::Pad for Quantize<R> {}
+
 /// The ticks of a colorbar or an axis are the bin edges, positioned in [0,
 /// 1] along the domain.
 impl<R> Ticks for Quantize<R> {
@@ -182,3 +197,5 @@ impl<R> Ticks for Quantize<R> {
         [0.0, 1.0]
     }
 }
+
+impl<R> crate::sealed::Ticks for Quantize<R> {}

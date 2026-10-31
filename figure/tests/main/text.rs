@@ -185,8 +185,8 @@ fn bytes_without_a_face_are_rejected_with_their_position() {
 #[test]
 fn digits_are_0_636_em_wide_and_one_run() {
     shaped("0123456789", |s| {
-        assert_eq!(places(s.width()), "69.985");
-        assert_eq!(places(s.ascent() + s.descent()), "8.320");
+        assert_eq!(places(s.get_width()), "69.985");
+        assert_eq!(places(s.get_ascent() + s.get_descent()), "8.320");
         assert_eq!(runs(s).len(), 1);
     });
 }
@@ -194,14 +194,14 @@ fn digits_are_0_636_em_wide_and_one_run() {
 #[test]
 fn the_box_is_the_ink_from_the_first_baseline() {
     shaped("x", |s| {
-        assert_eq!(places(s.width()), "6.510");
-        assert_eq!(places(s.ascent()), "6.016");
-        assert_eq!(places(s.descent()), "0.000");
+        assert_eq!(places(s.get_width()), "6.510");
+        assert_eq!(places(s.get_ascent()), "6.016");
+        assert_eq!(places(s.get_descent()), "0.000");
     });
     shaped("g", |s| {
-        assert_eq!(places(s.width()), "6.982");
-        assert_eq!(places(s.ascent()), "6.161");
-        assert_eq!(places(s.descent()), "2.288");
+        assert_eq!(places(s.get_width()), "6.982");
+        assert_eq!(places(s.get_ascent()), "6.161");
+        assert_eq!(places(s.get_descent()), "2.288");
     });
 }
 
@@ -219,9 +219,9 @@ fn a_newline_breaks_the_label_into_centred_lines() {
             (places(second.x), places(second.y)),
             ("0.215".into(), "24.021".into())
         );
-        assert_eq!(places(s.width()), "43.817");
-        assert_eq!(places(s.ascent() + s.descent()), "24.176");
-        assert_eq!(places(s.last()), places(second.y - first.y));
+        assert_eq!(places(s.get_width()), "43.817");
+        assert_eq!(places(s.get_ascent() + s.get_descent()), "24.176");
+        assert_eq!(places(s.get_last()), places(second.y - first.y));
     });
 }
 
@@ -248,13 +248,13 @@ fn markup_characters_in_a_label_are_drawn_as_text() {
         let runs = runs(s);
         assert_eq!(runs.len(), 1);
         assert_eq!(&*runs[0].text, "a $ # _ b");
-        assert_eq!(places(s.width()), "49.425");
+        assert_eq!(places(s.get_width()), "49.425");
     });
 }
 
 #[test]
 fn measured_widths_differ_from_a_per_character_estimate() {
-    let width = |label: &str| shaped(label, Shaped::width);
+    let width = |label: &str| shaped(label, Shaped::get_width);
     assert_eq!(places(width("vibration RMS [m/s²]")), "113.137");
     assert_eq!(places(width("WWW")), "32.629");
     assert_eq!(places(width("iii")), "9.168");
@@ -276,8 +276,8 @@ fn math_sets_in_the_math_face_with_a_smaller_superscript() {
         assert_eq!(faces, [0, 1, 0]);
         let sizes: Vec<String> = runs.iter().map(|r| format!("{:.2}", r.size)).collect();
         assert_eq!(sizes, ["11.00", "11.00", "11.00", "11.00", "7.70", "11.00"]);
-        assert_eq!(places(s.width()), "61.510");
-        assert_eq!(s.last(), 0.0, "one line: the superscript is no line");
+        assert_eq!(places(s.get_width()), "61.510");
+        assert_eq!(s.get_last(), 0.0, "one line: the superscript is no line");
     });
 }
 
@@ -285,11 +285,11 @@ fn math_sets_in_the_math_face_with_a_smaller_superscript() {
 fn stacked_math_keeps_the_baseline_of_its_line() {
     shaped(text::typst("$a/b$"), |s| {
         assert_eq!(
-            places(s.ascent()),
+            places(s.get_ascent()),
             "7.730",
             "the math axis, not the numerator's 3.396"
         );
-        assert_eq!(places(s.ascent() + s.descent()), "11.602");
+        assert_eq!(places(s.get_ascent() + s.get_descent()), "11.602");
         let list = placed(s, TOP_LEFT);
         let rules: Vec<Rect> = list
             .commands
@@ -314,7 +314,7 @@ fn stacked_math_keeps_the_baseline_of_its_line() {
         assert_eq!(&*runs[1].text, "𝑥");
         assert_eq!(
             runs[1].transform.translation().y,
-            s.ascent(),
+            s.get_ascent(),
             "x sits on the baseline"
         );
     });
@@ -327,7 +327,7 @@ fn glyphs_no_font_has_are_counted_missing() {
         assert_eq!(runs.len(), 1);
         let ids: Vec<u32> = runs[0].glyphs.iter().map(|g| g.id).collect();
         assert_eq!(ids, [0, 0]);
-        assert_eq!(s.missing(), 2);
+        assert_eq!(s.get_missing(), 2);
     });
 }
 
@@ -349,12 +349,12 @@ fn a_rejected_label_does_not_stop_its_batch() {
         assert!(matches!(cache.get(key), Some(Ok(_))));
     }
     assert_eq!(
-        cache.stats().compiles,
+        cache.get_stats().compiles,
         4,
         "the batch, then each label alone"
     );
     cache.prepare(&keys);
-    assert_eq!(cache.stats().compiles, 4, "the error is cached");
+    assert_eq!(cache.get_stats().compiles, 4, "the error is cached");
 }
 
 #[test]
@@ -405,7 +405,7 @@ fn the_ink_box_sits_around_its_anchor() {
         };
         assert_eq!(
             s.bounds(end_bottom),
-            Rect::new(-s.width(), -s.ascent() - s.descent(), 0.0, 0.0)
+            Rect::new(-s.get_width(), -s.get_ascent() - s.get_descent(), 0.0, 0.0)
         );
         let middle = Anchor {
             h: anchor::Horizontal::Start,
@@ -413,7 +413,7 @@ fn the_ink_box_sits_around_its_anchor() {
         };
         let m = s.bounds(middle);
         assert!((m.y0 + m.y1).abs() < 1e-12, "centred on the anchor: {m:?}");
-        assert_eq!(s.bounds(Anchor::default()).y1, s.descent());
+        assert_eq!(s.bounds(Anchor::default()).y1, s.get_descent());
     });
 }
 
@@ -440,10 +440,10 @@ fn a_second_prepare_of_the_same_labels_compiles_nothing() {
     let keys = keys(&spot_labels());
     let mut cache = Cache::new(fonts());
     cache.prepare(&keys);
-    let first = cache.stats();
+    let first = cache.get_stats();
     assert_eq!((first.entries, first.compiles, first.misses), (12, 1, 12));
     cache.prepare(&keys);
-    let second = cache.stats();
+    let second = cache.get_stats();
     assert_eq!(second.compiles, first.compiles);
     assert_eq!((second.hits, second.misses), (12, 12));
 }
@@ -453,7 +453,7 @@ fn a_key_twice_in_one_prepare_is_shaped_once() {
     let key = Key::new(&"twice".into(), &style());
     let mut cache = Cache::new(fonts());
     cache.prepare([&key, &key]);
-    let stats = cache.stats();
+    let stats = cache.get_stats();
     assert_eq!((stats.entries, stats.misses, stats.hits), (1, 1, 1));
 }
 
@@ -470,10 +470,10 @@ fn labels_unused_for_32_generations_are_dropped() {
     cache.begin();
     assert!(cache.get(&dropped).is_none(), "33 begins evict it");
     assert!(cache.get(&kept).is_some());
-    assert_eq!(cache.stats().entries, 1);
-    let compiles = cache.stats().compiles;
+    assert_eq!(cache.get_stats().entries, 1);
+    let compiles = cache.get_stats().compiles;
     cache.prepare([&dropped]);
-    assert_eq!(cache.stats().compiles, compiles + 1, "shaped again");
+    assert_eq!(cache.get_stats().compiles, compiles + 1, "shaped again");
 }
 
 #[test]
@@ -513,8 +513,8 @@ fn one_document_per_batch_costs_less_than_one_per_label() {
         single.prepare([key]);
     }
     let each = start.elapsed();
-    assert_eq!(batched.stats().compiles, 1);
-    assert_eq!(single.stats().compiles, 40);
+    assert_eq!(batched.get_stats().compiles, 1);
+    assert_eq!(single.get_stats().compiles, 40);
     let twelve: Vec<Text> = (0..12).map(|i| format!("memo {i}").into()).collect();
     let twelve = keys(&twelve);
     let start = Instant::now();
@@ -658,7 +658,7 @@ pub fn labels(placements: &[Placed]) -> (List, Vec<Rect>) {
     let mut cache = Cache::new(fonts());
     cache.begin();
     cache.prepare(&keys);
-    assert_eq!(cache.stats().compiles, 1, "one document");
+    assert_eq!(cache.get_stats().compiles, 1, "one document");
     let mut list = List {
         size: Size::new(480.0, 320.0),
         ..List::default()
@@ -676,7 +676,7 @@ pub fn labels(placements: &[Placed]) -> (List, Vec<Rect>) {
 #[test]
 fn list_dump_of_labels() {
     let (list, _) = labels(&placements());
-    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(true));
     let store = rustd3_testkit::snapshot::Store::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/snapshots"
@@ -757,7 +757,7 @@ fn a_vello_render_draws_each_label_in_its_box_at_its_anchor() {
 
 /// `list` as SVG with runs written as `text`.
 fn svg(list: &List, text: svg::Text) -> String {
-    svg::write(list, &svg::Options { text }).expect("the labels need no lowering")
+    svg::write(list, &svg::Options::default().text(text)).expect("the labels need no lowering")
 }
 
 #[test]

@@ -37,12 +37,14 @@ impl Span for Option<(f64, f64)> {
 
 impl Area {
     /// Joins the points of both edges with `curve`: d3's `area.curve`.
+    #[must_use]
     pub fn curve(self, curve: Curve) -> Self {
         Self { curve, ..self }
     }
 
     /// A constant baseline for `(x, y1)` items: d3's `area().y0(300)`.
     /// 3-tuple items carry their own `y0`.
+    #[must_use]
     pub fn y0(self, baseline: f64) -> Self {
         Self { baseline, ..self }
     }

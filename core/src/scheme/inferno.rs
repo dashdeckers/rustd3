@@ -16,6 +16,7 @@ use crate::color::Rgb;
 /// assert_eq!(scheme::inferno(1.0).format_hex(), "#fcffa4");
 /// ```
 #[doc(alias = "interpolateInferno")]
+#[must_use]
 pub fn inferno(t: f64) -> Rgb {
     super::ramp(&TABLE, t)
 }

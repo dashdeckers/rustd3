@@ -53,6 +53,7 @@ impl Format {
     }
 
     /// `t` written in `zone`.
+    #[must_use]
     pub fn format(&self, t: Timestamp, zone: &TimeZone) -> String {
         let at = t.to_zoned(zone.clone());
         let mut out = String::new();
@@ -65,6 +66,7 @@ impl Format {
 
 /// `spec` compiled under [`Locale::NEUTRAL`]: English names, ISO
 /// composites, a 24-hour clock.
+#[must_use]
 pub fn format(spec: &str) -> Format {
     Locale::NEUTRAL.format(spec)
 }

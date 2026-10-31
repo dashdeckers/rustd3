@@ -25,12 +25,24 @@ pub struct BarY<X: Position, Y: Position<Domain = f64>> {
     y: ScaleRef<Y>,
 }
 
+impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for BarY<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BarY").finish_non_exhaustive()
+    }
+}
+
 /// Horizontal bars: one filled rectangle per row, across its y key's band
 /// and from its base (or its span's first end) to its value along x.
 pub struct BarX<X: Position<Domain = f64>, Y: Position> {
     bars: Bars<<Y as Kind>::Domain>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
+}
+
+impl<X: Position<Domain = f64>, Y: Position> std::fmt::Debug for BarX<X, Y> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BarX").finish_non_exhaustive()
+    }
 }
 
 /// What both orientations hold: rows of a key and a value or a span, and
@@ -312,6 +324,7 @@ macro_rules! builders {
             /// Fills the bars with `palette`'s color for `key`, looked up
             /// when the figure draws; a key the palette lacks draws the
             /// theme's gray.
+            #[must_use]
             pub fn fill<C: Paint>(mut self, palette: ScaleRef<C>, key: C::Domain) -> Self {
                 self.bars.color = Color::keyed(palette, key);
                 self
@@ -319,6 +332,7 @@ macro_rules! builders {
 
             /// Hatches every bar with `h`, after its fill; legend swatches
             /// of the fill key repeat it.
+            #[must_use]
             pub fn hatch(mut self, h: Hatch) -> Self {
                 self.bars.hatch = Some(h);
                 self
@@ -327,6 +341,7 @@ macro_rules! builders {
             /// Places the bars in their fill key's slot of the band, the
             /// band split into one sub-band per palette key in the palette's
             /// order, so that bars of several marks stand side by side.
+            #[must_use]
             pub fn dodge(mut self) -> Self {
                 self.bars.dodge = true;
                 self
@@ -337,6 +352,7 @@ macro_rules! builders {
             /// the keys' positions. Band scales give their bandwidth and
             /// ignore it. A width that is not finite and positive leaves it
             /// as it was.
+            #[must_use]
             pub fn width(mut self, px: f64) -> Self {
                 self.bars.width = positive(px).or(self.bars.width);
                 self
@@ -346,6 +362,7 @@ macro_rules! builders {
             /// 0 by default. It applies to rows of values only: span rows
             /// carry both ends and ignore it. A base that is not finite
             /// leaves it as it was.
+            #[must_use]
             pub fn base(mut self, v: f64) -> Self {
                 if let Rows::Values { base, .. } = &mut self.bars.rows
                     && v.is_finite()
@@ -373,7 +390,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]);
         let rects = placed
@@ -389,9 +406,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let w = ctx.rect().width();
+        let w = ctx.get_rect().width();
         let band = ctx.band();
-        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
         for (i, [x0, x1], [_, y]) in self.bars.placed(ctx, (&sx, &sy), w, [band.y0, band.y1]) {
             let p = Point::new((x0 + x1) / 2.0, y);
             if within(area, p) {
@@ -405,7 +422,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         super::unknown(&self.bars.color, ctx, issues);
         if let Some(sx) = ctx.scale(self.x) {
             let count = self.bars.outside(sx);
-            super::outside_count(self.x.index(), count, issues);
+            super::outside_count(self.x.get_index(), count, issues);
         }
     }
 }
@@ -422,7 +439,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let h = ctx.rect().height();
+        let h = ctx.get_rect().height();
         let band = ctx.band();
         let placed = self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]);
         let rects = placed
@@ -438,9 +455,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
         };
-        let h = ctx.rect().height();
+        let h = ctx.get_rect().height();
         let band = ctx.band();
-        let area = ctx.rect().with_origin(Point::ORIGIN);
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
         for (i, [y0, y1], [_, x]) in self.bars.placed(ctx, (&sy, &sx), h, [band.x0, band.x1]) {
             let p = Point::new(x, (y0 + y1) / 2.0);
             if within(area, p) {
@@ -454,7 +471,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         super::unknown(&self.bars.color, ctx, issues);
         if let Some(sy) = ctx.scale(self.y) {
             let count = self.bars.outside(sy);
-            super::outside_count(self.y.index(), count, issues);
+            super::outside_count(self.y.get_index(), count, issues);
         }
     }
 }

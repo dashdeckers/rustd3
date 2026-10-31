@@ -25,6 +25,13 @@ const CAPS: Caps = Caps {
 /// brushes are [`list::Error::Unsupported`]; a degenerate gradient (one
 /// tiny-skia cannot build, such as a linear gradient whose ends coincide)
 /// draws nothing.
+///
+/// # Errors
+///
+/// [`Error::Empty`] for a list of no device
+/// pixel, [`Error::TooLarge`] for one
+/// tiny-skia cannot allocate, and [`list::Error`] for a list that fails
+/// [`list::check`] or holds an image brush.
 pub fn render(list: &List, scale: f64) -> Result<Image, Error> {
     list::check(list)?;
     let area = Rect::from_origin_size(Point::ORIGIN, list.size);

@@ -25,6 +25,17 @@ where
     color: ScaleRef<C>,
 }
 
+impl<X, Y, C> std::fmt::Debug for Image<X, Y, C>
+where
+    X: Position<Domain = f64>,
+    Y: Position<Domain = f64>,
+    C: Paint<Domain = f64>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Image").finish_non_exhaustive()
+    }
+}
+
 /// Values in `cols × rows` cells, row-major with row 0 at the extent's
 /// first y, and the data rectangle the cells cover, `[0, cols] × [0,
 /// rows]` unless given.
@@ -74,6 +85,7 @@ struct Span {
 /// fig.panel(0, 0).mark(image(grid, x, y, heat));
 /// # Ok::<(), rustd3_figure::mark::Error>(())
 /// ```
+#[must_use]
 pub fn image<X, Y, C>(
     grid: Grid,
     x: ScaleRef<X>,
@@ -102,6 +114,11 @@ impl Grid {
     ///     Err(Error::GridLength { cols: 2, rows: 3, len: 4 })
     /// );
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`Error::GridLength`](crate::mark::Error::GridLength) when `values`
+    /// does not hold `cols × rows` values.
     pub fn new(cols: usize, rows: usize, values: Vec<f64>) -> Result<Self, Error> {
         if cols.checked_mul(rows) != Some(values.len()) {
             return Err(Error::GridLength {
@@ -122,6 +139,7 @@ impl Grid {
     /// The data rectangle the cells cover: column 0 at `x[0]`, row 0 at
     /// `y[0]`; `[0, cols] × [0, rows]` by default. An end that is not
     /// finite leaves the extent as it was.
+    #[must_use]
     pub fn extent(self, x: [f64; 2], y: [f64; 2]) -> Self {
         if x.iter().chain(&y).all(|v| v.is_finite()) {
             Grid { x, y, ..self }

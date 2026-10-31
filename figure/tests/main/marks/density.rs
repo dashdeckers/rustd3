@@ -153,12 +153,12 @@ fn a_vertical_density_fills_from_zero_width_out_to_its_peak() {
     fig.panel(0, 0)
         .mark(density_y(X, y, width).fill(color, "b"));
     let resolved = resolve(&fig, &Held::default());
-    let dy = resolved.scale(y).unwrap().get_domain();
+    let dy = resolved.get_scale(y).unwrap().get_domain();
     assert!(
         (dy[0] - 0.56).abs() < 1e-12 && (dy[1] - 14.64).abs() < 1e-12,
         "{dy:?}"
     );
-    let area = resolved.plot_areas()[0];
+    let area = resolved.get_plot_areas()[0];
     let list = draw(&fig);
     let drawn = shapes(&list);
     assert_eq!(drawn.len(), 2);
@@ -192,7 +192,7 @@ fn bandwidth_and_adjust_reshape_the_curve() {
             mark = mark.adjust(f).adjust(0.0);
         }
         fig.panel(0, 0).mark(mark);
-        let w = resolve(&fig, &Held::default()).plot_areas()[0].width();
+        let w = resolve(&fig, &Held::default()).get_plot_areas()[0].width();
         let list = draw(&fig);
         let b = shapes(&list)[0].0.bounding_box();
         [b.x0 / w * 60.0 - 20.0, b.x1 / w * 60.0 - 20.0]
@@ -217,13 +217,17 @@ fn a_density_of_one_value_draws_nothing() {
     assert!(shapes(&draw(&fig)).is_empty());
     #[cfg(feature = "fonts")]
     {
-        use rustd3_figure::check::{Issue, size};
+        use rustd3_figure::check::Issue;
+        use rustd3_figure::kurbo::Size;
         use rustd3_figure::mark::Error;
         let issue = |mark, values| Issue::Mark {
             panel: 0,
             mark,
             error: Error::Density { values },
         };
-        assert_eq!(fig.check(size(640.0, 480.0)), [issue(0, 1), issue(1, 2)]);
+        assert_eq!(
+            fig.check(Size::new(640.0, 480.0)),
+            [issue(0, 1), issue(1, 2)]
+        );
     }
 }

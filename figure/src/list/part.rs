@@ -7,6 +7,7 @@ pub struct Id(u64);
 
 impl Id {
     /// The identity `value`.
+    #[must_use]
     pub const fn new(value: u64) -> Id {
         Id(value)
     }

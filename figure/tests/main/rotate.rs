@@ -33,9 +33,9 @@ fn ink(label: &str) -> (f64, f64, f64) {
     cache.prepare([&key]);
     let shaped = cache.get(&key).expect("prepared").expect("shaped");
     (
-        shaped.width(),
-        shaped.ascent() + shaped.descent(),
-        shaped.ascent(),
+        shaped.get_width(),
+        shaped.get_ascent() + shaped.get_descent(),
+        shaped.get_ascent(),
     )
 }
 
@@ -130,8 +130,8 @@ fn rotated_labels_reach_by_their_turned_ink_boxes() {
                 .fold(0.0, f64::max)
         };
         let (r, _) = laid(&rotated(deg), Size::new(640.0, 480.0));
-        let bottom = r.plan(0, 0).expect("the bottom axis").thickness;
-        let left = r.plan(0, 1).expect("the left axis").thickness;
+        let bottom = r.get_plan(0, 0).expect("the bottom axis").thickness;
+        let left = r.get_plan(0, 1).expect("the left axis").thickness;
         let (want_bottom, want_left) = (GAP + reach(&xs, true), GAP + reach(&ys, false));
         assert!(
             (bottom - want_bottom).abs() < 1e-9,
@@ -147,7 +147,7 @@ fn rotated_labels_reach_by_their_turned_ink_boxes() {
 #[test]
 fn positive_angles_end_bottom_labels_at_their_ticks_rising_left_to_right() {
     let (r, list) = laid(&rotated(30.0), Size::new(640.0, 480.0));
-    let area = r.plot_areas()[0];
+    let area = r.get_plot_areas()[0];
     let boxes = r.label_boxes();
     let bottom = &boxes[..6];
     for (i, b) in bottom.iter().enumerate() {
@@ -171,7 +171,7 @@ fn positive_angles_end_bottom_labels_at_their_ticks_rising_left_to_right() {
 #[test]
 fn negative_angles_start_bottom_labels_and_top_axes_mirror() {
     let (r, _) = laid(&rotated(-30.0), Size::new(640.0, 480.0));
-    let area = r.plot_areas()[0];
+    let area = r.get_plot_areas()[0];
     for (i, b) in r.label_boxes()[..6].iter().enumerate() {
         let tick = area.x0 + area.width() * i as f64 / 5.0;
         assert!((b.x0 - tick).abs() < 1e-9, "label {i}: {b:?}, tick {tick}");
@@ -181,7 +181,7 @@ fn negative_angles_start_bottom_labels_and_top_axes_mirror() {
         let x = fig.scale(scale::linear().domain([0.0, 100.0]));
         fig.panel(0, 0).axis(axis::top(x).ticks(5).rotate(deg));
         let (r, _) = laid(&fig, Size::new(640.0, 480.0));
-        let area = r.plot_areas()[0];
+        let area = r.get_plot_areas()[0];
         for (i, b) in r.label_boxes().iter().enumerate() {
             let tick = area.x0 + area.width() * i as f64 / 5.0;
             let edge = if start { b.x0 } else { b.x1 };
@@ -196,7 +196,7 @@ fn at_width(fig: &Figure<'_>, width: f64) -> Size {
     let mut size = Size::new(width + 60.0, 300.0);
     for _ in 0..20 {
         let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
-        let w = r.plot_areas()[0].width();
+        let w = r.get_plot_areas()[0].width();
         if (w - width).abs() < 1e-9 {
             return size;
         }

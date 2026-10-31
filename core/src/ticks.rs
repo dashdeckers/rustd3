@@ -102,6 +102,7 @@ impl Spec {
 /// d3.ticks: about `count` nicely rounded values in [start, stop], in the
 /// order of start → stop. `count` is f64 as in d3 (NaN, 0.5 and negative
 /// counts are meaningful there and tested).
+#[must_use]
 pub fn ticks(start: f64, stop: f64, count: f64) -> Vec<f64> {
     if count.is_nan() || count <= 0.0 {
         return Vec::new();
@@ -146,12 +147,14 @@ pub fn ticks(start: f64, stop: f64, count: f64) -> Vec<f64> {
 /// d3.tickIncrement: the tick step for [start, stop] (start ≤ stop), or for
 /// steps below 1 its negated inverse.
 #[doc(alias = "tickIncrement")]
+#[must_use]
 pub fn tick_increment(start: f64, stop: f64, count: f64) -> f64 {
     Spec::new(start, stop, count).increment
 }
 
 /// d3.tickStep: the signed difference between adjacent ticks of [start, stop].
 #[doc(alias = "tickStep")]
+#[must_use]
 pub fn tick_step(start: f64, stop: f64, count: f64) -> f64 {
     let reverse = stop < start;
     let increment = if reverse {
@@ -168,6 +171,7 @@ pub fn tick_step(start: f64, stop: f64, count: f64) -> f64 {
 }
 
 /// d3.nice: [start, stop] extended to tick boundaries.
+#[must_use]
 pub fn nice(mut start: f64, mut stop: f64, count: f64) -> [f64; 2] {
     let mut previous = None;
     for _ in 0..NICE_ITERATIONS {

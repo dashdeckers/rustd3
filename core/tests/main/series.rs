@@ -41,7 +41,7 @@ fn thinned_by_index<X: Coordinate>(
     let series = rec.series(0).expect("channel 0");
     let lines = series.m4(&columns, valid).expect("fresh columns");
     let lines = lines.iter().map(<[usize]>::to_vec).collect();
-    (columns.edges().to_vec(), lines)
+    (columns.get_edges().to_vec(), lines)
 }
 
 /// The raw-scan reference: column edges by `partition_point` over `x`, NaN
@@ -266,7 +266,7 @@ fn appends_name_every_channel_and_regular_clocks_take_no_x() {
             found: 1
         })
     );
-    assert_eq!((rec.len(), rec.revision()), (1, 0));
+    assert_eq!((rec.len(), rec.get_revision()), (1, 0));
 }
 
 #[test]
@@ -312,12 +312,12 @@ fn a_failed_append_leaves_the_recording_as_it_was() {
         })
     );
     assert_eq!(
-        (rec.len(), rec.revision(), xs(&rec)),
+        (rec.len(), rec.get_revision(), xs(&rec)),
         (2, 0, vec![0.0, 1.0])
     );
     rec.extend(&[1.0, 3.0], [[7.0, 8.0]]).unwrap();
     assert_eq!(
-        (rec.len(), rec.revision(), xs(&rec)),
+        (rec.len(), rec.get_revision(), xs(&rec)),
         (4, 1, vec![0.0, 1.0, 1.0, 3.0])
     );
 }
@@ -327,11 +327,11 @@ fn clones_get_fresh_ids() {
     let rec = regular(0.0, 1.0, &[&[1.0, 2.0]]);
     let clone = rec.clone();
     let other = regular(0.0, 1.0, &[&[1.0, 2.0]]);
-    assert_ne!(rec.id(), clone.id());
-    assert_ne!(rec.id(), other.id());
-    assert_ne!(clone.id(), other.id());
+    assert_ne!(rec.get_id(), clone.get_id());
+    assert_ne!(rec.get_id(), other.get_id());
+    assert_ne!(clone.get_id(), other.get_id());
     assert_eq!(
-        (clone.len(), clone.revision(), xs(&clone)),
+        (clone.len(), clone.get_revision(), xs(&clone)),
         (2, 0, xs(&rec))
     );
 }
@@ -339,29 +339,29 @@ fn clones_get_fresh_ids() {
 #[test]
 fn the_revision_counts_appends_and_drops_that_dropped() {
     let mut rec = regular(0.0, 1.0, &[&[0.0; 100]]);
-    assert_eq!(rec.revision(), 0);
+    assert_eq!(rec.get_revision(), 0);
     rec.extend(&[], [vec![1.0; 200_000]]).unwrap();
     rec.extend(&[], [[0.0; 0]]).unwrap();
-    assert_eq!(rec.revision(), 2);
+    assert_eq!(rec.get_revision(), 2);
     assert_eq!(rec.drop_front(65_535), 0);
-    assert_eq!(rec.revision(), 2);
+    assert_eq!(rec.get_revision(), 2);
     assert_eq!(rec.drop_front(65_536), 65_536);
-    assert_eq!(rec.revision(), 3);
+    assert_eq!(rec.get_revision(), 3);
 }
 
 #[test]
 fn drop_front_drops_whole_chunks_and_keeps_the_regular_numbering() {
     let mut rec = regular(0.0, 0.1, &[&vec![0.0; 200_000], &vec![1.0; 200_000]]);
-    let revision = rec.revision();
+    let revision = rec.get_revision();
     assert_eq!(rec.drop_front(150_000), 131_072);
     assert_eq!(
-        (rec.len(), rec.offset(), rec.revision()),
+        (rec.len(), rec.get_offset(), rec.get_revision()),
         (68_928, 131_072, revision + 1)
     );
     assert_eq!(rec.x(0), Some(13107.2));
     assert_eq!(rec.x(68_928), None);
     assert_eq!(rec.drop_front(usize::MAX), 65_536);
-    assert_eq!((rec.len(), rec.offset()), (3_392, 196_608));
+    assert_eq!((rec.len(), rec.get_offset()), (3_392, 196_608));
     assert_eq!(rec.drop_front(usize::MAX), 0);
 }
 
@@ -510,11 +510,11 @@ fn extent_and_extremes_ignore_nan() {
     let s = rec.series(0).expect("channel 0");
     assert_eq!(s.extent(), Some([-1.0, 8.0]));
     let found = s.extremes(0..10, |_| true).expect("values");
-    assert_eq!((found.min(), found.max()), ((2, -1.0), (7, 8.0)));
+    assert_eq!((found.get_min(), found.get_max()), ((2, -1.0), (7, 8.0)));
     assert_eq!(s.extremes(4..6, |_| true), None);
     assert_eq!(s.extremes(3..5, |v| v < 0.0), None);
     let found = s.extremes(8..100, |_| true).expect("clamped");
-    assert_eq!((found.min(), found.max()), ((8, 1.0), (9, 4.0)));
+    assert_eq!((found.get_min(), found.get_max()), ((8, 1.0), (9, 4.0)));
     assert_eq!(s.extremes(20..30, |_| true), None);
     let nan = regular(0.0, 1.0, &[&[f64::NAN; 300]]);
     assert_eq!(nan.series(0).expect("channel 0").extent(), None);
@@ -533,7 +533,7 @@ fn ties_pick_the_earliest_sample_in_raw_scans_and_nodes() {
     let s = rec.series(0).expect("channel 0");
     let picks = |samples| {
         let found = s.extremes(samples, |_| true).expect("values");
-        (found.min(), found.max())
+        (found.get_min(), found.get_max())
     };
     assert_eq!(picks(0..1000), ((70, -1.0), (64, 9.0)));
     assert_eq!(picks(71..1000), ((130, -1.0), (500, 9.0)));
@@ -542,7 +542,7 @@ fn ties_pick_the_earliest_sample_in_raw_scans_and_nodes() {
     assert_eq!(picks(1..64), ((1, 5.0), (1, 5.0)));
     let zeros = regular(0.0, 1.0, &[&[0.0, -0.0, 0.0]]);
     let found = zeros.series(0).expect("channel 0").extremes(0..3, |_| true);
-    assert_eq!(found.map(|f| (f.min().0, f.max().0)), Some((0, 0)));
+    assert_eq!(found.map(|f| (f.get_min().0, f.get_max().0)), Some((0, 0)));
 }
 
 #[test]
@@ -575,8 +575,8 @@ fn a_series_reads_its_channel_on_the_recordings_clock() {
     .expect("valid recording");
     let s = rec.series(1).expect("channel 1");
     assert!(rec.series(2).is_none());
-    assert_eq!((s.channel(), s.len(), s.is_empty()), (1, 3, false));
-    assert_eq!(s.recording().id(), rec.id());
+    assert_eq!((s.get_channel(), s.len(), s.is_empty()), (1, 3, false));
+    assert_eq!(s.get_recording().get_id(), rec.get_id());
     assert_eq!((s.get(2), s.get(3)), (Some((4.0, 6.0)), None));
     assert_eq!(
         s.iter().collect::<Vec<_>>(),
@@ -619,7 +619,7 @@ fn columns_from_another_revision_or_recording_are_stale() {
     assert_eq!(
         err,
         Err(Error::Stale {
-            recording: rec.id(),
+            recording: rec.get_id(),
             built: 0,
             current: 0
         })
@@ -629,7 +629,7 @@ fn columns_from_another_revision_or_recording_are_stale() {
     assert_eq!(
         err,
         Err(Error::Stale {
-            recording: rec.id(),
+            recording: rec.get_id(),
             built: 0,
             current: 1
         })
@@ -695,7 +695,11 @@ fn joint_m4_agrees_with_a_raw_scan_of_both_channels() {
             let lines = a.m4_joint(b, &columns, valid).expect("one recording");
             let lines: Vec<Vec<usize>> = lines.iter().map(<[usize]>::to_vec).collect();
             let expected = scan(&x, &[&lower, &upper], &edges, valid);
-            assert_eq!((columns.edges().to_vec(), lines), expected, "case {case}");
+            assert_eq!(
+                (columns.get_edges().to_vec(), lines),
+                expected,
+                "case {case}"
+            );
         }
     }
 }
@@ -709,8 +713,8 @@ fn joint_m4_over_two_recordings_is_an_error() {
     assert_eq!(
         a.m4_joint(b, &columns, |_| true),
         Err(Error::Recordings {
-            left: rec.id(),
-            right: other.id()
+            left: rec.get_id(),
+            right: other.get_id()
         })
     );
     let stale = other.columns(&[0.0, 10.0]).expect("valid edges");
@@ -719,8 +723,8 @@ fn joint_m4_over_two_recordings_is_an_error() {
         Err(Error::Stale { .. })
     ));
     let message = Error::<f64>::Recordings {
-        left: rec.id(),
-        right: other.id(),
+        left: rec.get_id(),
+        right: other.get_id(),
     }
     .to_string();
     assert!(
@@ -756,7 +760,10 @@ fn marks_take_collected_pairs_a_series_or_slices() {
     assert_eq!((indexed.len(), indexed.is_empty()), (3, false));
     assert_eq!((indexed.get(2), indexed.get(3)), (Some((4.0, 6.0)), None));
     let view = indexed.series().expect("the indexed view");
-    assert_eq!((view.recording().id(), view.channel()), (rec.id(), 1));
+    assert_eq!(
+        (view.get_recording().get_id(), view.get_channel()),
+        (rec.get_id(), 1)
+    );
     assert_eq!(view.extent(), Some([4.0, 6.0]));
 
     let (x, y) = ([0.0, 1.0, 2.0], [5.0, 7.0]);
@@ -807,7 +814,10 @@ fn the_indexed_view_needs_no_bound_and_keeps_the_channel() {
     let view = indexed(&points).expect("a series view");
     assert_eq!(view.get(2), Some((4.0, 6.0)));
     let series = view.series().expect("still indexed");
-    assert_eq!((series.recording().id(), series.channel()), (rec.id(), 1));
+    assert_eq!(
+        (series.get_recording().get_id(), series.get_channel()),
+        (rec.get_id(), 1)
+    );
     assert!(indexed(&mark(vec![(Bin(1), 1.0)])).is_none());
     let (x, y) = ([0.0], [1.0]);
     assert!(indexed(&mark(series::slices(&x, &y))).is_none());
@@ -835,7 +845,10 @@ fn points_clone_and_print_their_kind_and_length() {
         Recording::new(Clock::Explicit(vec![0.5, 1.5]), [[1.0, 2.0]]).expect("a valid recording");
     let indexed = mark(rec.series(0).expect("channel 0"));
     let view = indexed.clone().series().expect("the indexed view");
-    assert_eq!((view.recording().id(), view.channel()), (rec.id(), 0));
+    assert_eq!(
+        (view.get_recording().get_id(), view.get_channel()),
+        (rec.get_id(), 0)
+    );
     assert_eq!(
         format!("{indexed:?}"),
         r#"Points { kind: "series", len: 2 }"#

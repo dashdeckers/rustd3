@@ -59,6 +59,12 @@ pub struct Resolved {
     foreign: Vec<(usize, usize)>,
 }
 
+impl std::fmt::Debug for Resolved {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Resolved").finish_non_exhaustive()
+    }
+}
+
 impl Resolved {
     /// The resolved scales of figure `figure` for `target` and `size`,
     /// labelled in `locale`, before layout.
@@ -96,7 +102,8 @@ impl Resolved {
 
     /// The resolved scale behind a handle, before any panel's range;
     /// `None` for a handle of another figure.
-    pub fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
+    #[must_use]
+    pub fn get_scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
         self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
     }
 
@@ -105,26 +112,29 @@ impl Resolved {
     /// placement drops those on handles of other figures, and a `Resolved`
     /// is drawn only for its own figure.
     pub(crate) fn own<S: Kind>(&self, h: ScaleRef<S>) -> &S {
-        self.scale(h)
+        self.get_scale(h)
             .expect("invariant: placed axes, guides and brushes are on their figure's handles")
     }
 
     /// The resolved scale at position `index` of the table, its type
     /// erased (a widget keeps gesture state by position and `TypeId`);
     /// `None` past the table's end.
-    pub fn scale_at(&self, index: usize) -> Option<&dyn Scale> {
+    #[must_use]
+    pub fn get_scale_at(&self, index: usize) -> Option<&dyn Scale> {
         self.scales.get(index).map(|scale| &**scale)
     }
 
     /// Plot-area rects in list px, one per panel in panel order.
-    pub fn plot_areas(&self) -> &[kurbo::Rect] {
+    #[must_use]
+    pub fn get_plot_areas(&self) -> &[kurbo::Rect] {
         &self.areas
     }
 
     /// The table positions of the handles panel `panel` zooms along x and
     /// along y ([`Panel::zoom_x`], [`Panel::zoom_y`]); empty for a panel
     /// that zooms none and for one that does not exist.
-    pub fn zooms(&self, panel: usize) -> (&[usize], &[usize]) {
+    #[must_use]
+    pub fn get_zooms(&self, panel: usize) -> (&[usize], &[usize]) {
         self.zooms
             .get(panel)
             .map_or((&[], &[]), |[x, y]| (x.as_slice(), y.as_slice()))
@@ -132,9 +142,10 @@ impl Resolved {
 
     /// The side of axis `axis` (in insertion order) of panel `panel`, and
     /// its handle's table position; `None` when there is no such axis.
-    /// With [`plan`](Resolved::plan)'s offset and thickness it bounds the
+    /// With [`get_plan`](Resolved::get_plan)'s offset and thickness it bounds the
     /// strip the axis draws in.
-    pub fn axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
+    #[must_use]
+    pub fn get_axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
         self.axes.get(panel)?.get(axis).copied()
     }
 
@@ -142,19 +153,22 @@ impl Resolved {
     /// the first row and column of the panel's grid cell (panels are
     /// numbered in the order of their first use, not row by row); `None`
     /// for a panel the figure does not have.
-    pub fn panel_cell(&self, panel: usize) -> Option<(usize, usize)> {
+    #[must_use]
+    pub fn get_panel_cell(&self, panel: usize) -> Option<(usize, usize)> {
         self.cells.get(panel).copied()
     }
 
     /// The brush placed on panel `panel` ([`Panel::brush`]); `None` for a
     /// panel without one and for one that does not exist.
-    pub fn brush(&self, panel: usize) -> Option<&brush::Placed> {
+    #[must_use]
+    pub fn get_brush(&self, panel: usize) -> Option<&brush::Placed> {
         self.brushes.get(panel)?.as_ref()
     }
 
     /// How layout placed axis `axis` (in insertion order) of panel `panel`
     /// (in the order of first use); `None` when there is no such axis.
-    pub fn plan(&self, panel: usize, axis: usize) -> Option<Plan> {
+    #[must_use]
+    pub fn get_plan(&self, panel: usize, axis: usize) -> Option<Plan> {
         Some(self.panels.get(panel)?.axes.get(axis)?.plan)
     }
 
@@ -162,6 +176,7 @@ impl Resolved {
     /// and tick order: the label's advance width by its line box (its ink
     /// box, turned, for a rotated label, whose box this is the bounding
     /// rectangle of). No two labels overlap: rotated ones as turned boxes.
+    #[must_use]
     pub fn label_boxes(&self) -> Vec<kurbo::Rect> {
         self.panels
             .iter()
@@ -174,6 +189,7 @@ impl Resolved {
     /// Every plot-area edge plus 0 and the size, per axis (x, then y), in
     /// list px, increasing and each once: where
     /// [`list::cells`](crate::list::cells) cuts the canvas.
+    #[must_use]
     pub fn edges(&self) -> (Vec<f64>, Vec<f64>) {
         let edges = |ends: [f64; 2], of: fn(&kurbo::Rect) -> [f64; 2]| {
             let mut edges: Vec<f64> = ends
@@ -191,18 +207,21 @@ impl Resolved {
     }
 
     /// Layout passes until tick counts settled (1..=4).
-    pub fn passes(&self) -> usize {
+    #[must_use]
+    pub fn get_passes(&self) -> usize {
         self.passes
     }
 
     /// The plot areas with the size they were laid out for, for a gesture
     /// to hold ([`Figure::resolve_held`](crate::Figure::resolve_held)).
-    pub fn areas(&self) -> layout::Areas {
+    #[must_use]
+    pub fn get_areas(&self) -> layout::Areas {
         layout::Areas::new(self.areas.clone(), self.size)
     }
 
     /// True when this resolve used held areas.
-    pub fn held(&self) -> bool {
+    #[must_use]
+    pub fn get_held(&self) -> bool {
         self.held
     }
 

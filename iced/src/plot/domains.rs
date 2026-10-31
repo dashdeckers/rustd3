@@ -72,7 +72,7 @@ impl Key {
     /// Whether `resolved` has a scale of this key's type at its position.
     fn names(self, resolved: &Resolved) -> bool {
         resolved
-            .scale_at(self.index)
+            .get_scale_at(self.index)
             .is_some_and(|scale| scale.as_any().type_id() == self.scale)
     }
 }
@@ -96,7 +96,7 @@ impl Domains {
             Some(scale) => Some(scale.boxed()),
             None => key
                 .names(resolved)
-                .then(|| resolved.scale_at(key.index))
+                .then(|| resolved.get_scale_at(key.index))
                 .flatten()
                 .map(Scale::boxed),
         }

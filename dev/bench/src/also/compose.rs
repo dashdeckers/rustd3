@@ -28,8 +28,9 @@ use iced::advanced::widget::{Meta, Tree, Widget};
 use iced::advanced::{Layout, Renderer as _, shell};
 use iced::{Event, Length, Rectangle, mouse, window};
 use iced_runtime::user_interface::{self, UserInterface};
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::Size;
-use rustd3_figure::{Cache, Held, Target};
+use rustd3_figure::{Held, Target};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::Render;
 
@@ -368,7 +369,7 @@ fn keep(workload: Workload, gesture: Gesture, k: f32) -> Option<Kept> {
     let areas: Vec<[i32; 4]> = data
         .figure(false)
         .resolve(size, &mut Cache::default(), &Held::default(), target)
-        .plot_areas()
+        .get_plot_areas()
         .iter()
         .map(|a| [a.x0, a.y0, a.x1, a.y1].map(|e| (e * f64::from(k)).round() as i32))
         .collect();

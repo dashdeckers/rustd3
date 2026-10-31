@@ -7,7 +7,7 @@
 /// use rustd3_core::interact::Modifiers;
 ///
 /// let held = Modifiers::SHIFT.union(Modifiers::CTRL);
-/// assert!(held.shift() && held.ctrl() && !held.alt());
+/// assert!(held.get_shift() && held.get_ctrl() && !held.get_alt());
 /// assert_eq!(Modifiers::default(), Modifiers::NONE);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -48,6 +48,7 @@ impl Modifiers {
     };
 
     /// The modifiers held in either.
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Modifiers {
             shift: self.shift || other.shift,
@@ -58,22 +59,26 @@ impl Modifiers {
     }
 
     /// Whether shift is held.
-    pub fn shift(self) -> bool {
+    #[must_use]
+    pub fn get_shift(self) -> bool {
         self.shift
     }
 
     /// Whether ctrl is held.
-    pub fn ctrl(self) -> bool {
+    #[must_use]
+    pub fn get_ctrl(self) -> bool {
         self.ctrl
     }
 
     /// Whether alt is held.
-    pub fn alt(self) -> bool {
+    #[must_use]
+    pub fn get_alt(self) -> bool {
         self.alt
     }
 
     /// Whether logo is held.
-    pub fn logo(self) -> bool {
+    #[must_use]
+    pub fn get_logo(self) -> bool {
         self.logo
     }
 }

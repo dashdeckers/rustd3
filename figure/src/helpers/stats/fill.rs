@@ -29,11 +29,11 @@ struct Keyed<C: Paint> {
 
 impl<C: Paint> Lookup for Keyed<C> {
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb> {
-        ctx.raw(self.palette)?.paint(&self.key)
+        ctx.get_raw(self.palette)?.paint(&self.key)
     }
 
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
-        ctx.raw(self.palette)?.slot(&self.key)
+        ctx.get_raw(self.palette)?.slot(&self.key)
     }
 }
 
@@ -52,8 +52,10 @@ impl Fill {
     /// palette lacks, the theme palette's first color without a key.
     pub(super) fn resolve(&self, ctx: &Ctx<'_>) -> Rgb {
         match &self.0 {
-            None => ctx.theme().get_color(),
-            Some(lookup) => lookup.paint(ctx).unwrap_or_else(|| ctx.theme().get_gray()),
+            None => ctx.get_theme().get_color(),
+            Some(lookup) => lookup
+                .paint(ctx)
+                .unwrap_or_else(|| ctx.get_theme().get_gray()),
         }
     }
 
@@ -67,8 +69,8 @@ impl Fill {
     pub(super) fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         if self.0.as_ref().is_some_and(|l| l.paint(ctx).is_none()) {
             issues.push(Issue::UnknownKey {
-                panel: ctx.panel(),
-                mark: ctx.mark(),
+                panel: ctx.get_panel(),
+                mark: ctx.get_mark(),
             });
         }
     }

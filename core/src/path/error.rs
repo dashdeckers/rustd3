@@ -2,6 +2,7 @@
 
 /// A path operation d3 rejects by throwing.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// An arc with a radius below zero.
     #[error("negative radius: {0}")]

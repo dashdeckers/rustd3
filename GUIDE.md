@@ -49,6 +49,16 @@ quantile and threshold scales live beside them in `rustd3::scale`.
 (`.domain([a, b])`, `.range([a, b])`, read back with `get_domain` and
 `get_range`). For band and ordinal scales the domain is a list of keys.
 
+**Builders and readers.** A builder takes a setting's name and returns
+the value it was called on with the setting changed (`.domain(d)`, and
+`with_precision(p)` on the types d3 reads as fields); a method that
+returns a stored or configured value is `get_` and the name
+(`get_domain()`, `Theme::get_line_width()`,
+`Specifier::get_precision()`), with or without a builder beside it.
+Predicates are `is_`, `has_` or `wants_`, std's names (`len`, `iter`,
+`into_*`) mean what they mean in std, and a method that computes keeps
+the name of what it gives (`bandwidth`, `ticks`, `invert`).
+
 **Tick.** A nicely rounded domain value a scale offers for labelling:
 `scale.ticks(count)`. The free functions in `rustd3::ticks` are d3-array's
 (`ticks`, `tick_step`, `nice`); `rustd3::ticks::Set` carries a scale's
@@ -160,7 +170,7 @@ axes, legends, brushes and the widget's listeners all name scales by
 handle; two panels share a scale by sharing a handle. A handle's type
 decides what it can do: an axis needs `scale::Position`, a brush
 `scale::Invert`, a colorbar `colorbar::Ramp`. A handle carries its
-figure: given to another figure it finds no scale (`Resolved::scale` is
+figure: given to another figure it finds no scale (`Resolved::get_scale` is
 `None`), what uses it draws nothing, and `fig.check` reports
 `check::Issue::ForeignHandle`.
 
@@ -184,7 +194,7 @@ affine map per axis, soft until the new tiles land.
 
 **Cost model.** The `Plot` widget's prediction of a render's time: a
 fixed overhead per render plus a time per pixel and per drawing item,
-seeded by `rustd3_iced::plot::cost`'s constants and fitted to the
+seeded by two constants measured on a reference figure and fitted to the
 widget's own renders on the machine it runs on, tiles apart from axis
 strips. It decides which renders run inline on the UI thread.
 
@@ -257,7 +267,7 @@ let x = scale::linear().domain([0.0, 100.0]).range([0.0, 960.0]);
 let bottom = axis::bottom(&x).ticks(2);
 let d = path::svg(|p| bottom.draw(p)); // domain line and tick marks
 for label in bottom.labels() {
-    // label.x(), label.y(), label.text(), label.anchor(): your text
+    // label.get_x(), label.get_y(), label.get_text(), label.get_anchor(): your text
 }
 ```
 
@@ -311,7 +321,7 @@ let unit = Text::from("RMS [").push(text::typst("$m slash s^2$")).push("]");
 
 A `&str` or `String` converts into a literal `Text`. typst shapes each
 batch of new labels in one document; shaped labels live in the figure's
-`Cache` (`rustd3::figure::Cache`), keyed by text and style, so a redraw
+`Cache` (`rustd3::figure::cache::Cache`), keyed by text and style, so a redraw
 shapes only labels it has not seen. Without the `fonts` feature the app
 supplies fonts through `text::Fonts::with`. Tick labels are written
 through the figure's locale; axes drop labels that would collide, keeping
@@ -439,7 +449,7 @@ frame.stroke(&wave, Stroke::default().with_width(2.0));
 let bottom = axis::bottom(&x);
 let ticks = rustd3_iced::path(|p| bottom.draw(p));
 for label in bottom.labels() {
-    // frame.fill_text(Text { content: label.text().to_owned(), … })
+    // frame.fill_text(Text { content: label.get_text().to_owned(), … })
 }
 ```
 

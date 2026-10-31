@@ -4,6 +4,7 @@
 /// read. A label's error is cached like its shape, so it is not retried
 /// every frame.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// typst rejects the label's markup.
     #[error("typst rejects {markup:?}: {message}")]

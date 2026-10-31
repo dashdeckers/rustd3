@@ -42,8 +42,9 @@ const DOUBLE_CLICK_PX: f64 = 6.0;
 /// time; a second press before the redraw takes its place.
 ///
 /// ```
+/// # mod rustd3 { pub use rustd3_core::interact; }
 /// use iced_core::{mouse, Event, Point, Rectangle, Size};
-/// use rustd3_core::interact::{Delta, Pointer};
+/// use rustd3::interact::{Delta, Pointer};
 /// use rustd3_iced::pointer::Tracker;
 ///
 /// let mut tracker = Tracker::new();
@@ -99,6 +100,7 @@ impl Default for Tracker {
 
 impl Tracker {
     /// A tracker with no button held, no modifiers and a scale factor of 1.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -106,6 +108,7 @@ impl Tracker {
     /// Divides `ScrollDelta::Pixels`, which iced passes in physical
     /// pixels, by `factor`; a factor that is not finite and positive is
     /// ignored.
+    #[must_use]
     pub fn scale_factor(self, factor: f32) -> Self {
         if factor.is_finite() && factor > 0.0 {
             Tracker {
@@ -144,6 +147,7 @@ impl Tracker {
     /// A press waits for the next `RedrawRequested` to be timed: while this
     /// is true, a program that publishes nothing returns
     /// `Action::request_redraw()`.
+    #[must_use]
     pub fn wants_redraw(&self) -> bool {
         self.waiting.is_some()
     }

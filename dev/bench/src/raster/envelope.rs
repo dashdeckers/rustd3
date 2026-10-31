@@ -224,10 +224,11 @@ fn level(chain: &mut Vec<Point>, p: f64, q: f64, y: f64) {
 mod tests {
     use rustd3_core::scale;
     use rustd3_core::series::{Clock, Recording};
+    use rustd3_figure::cache::Cache;
     use rustd3_figure::kurbo::{Affine, BezPath, Point, Shape, Size};
     use rustd3_figure::list::Command;
     use rustd3_figure::mark::line;
-    use rustd3_figure::{Cache, Figure, Held, Target};
+    use rustd3_figure::{Figure, Held, Target};
 
     use super::{Band, envelope, outlines};
 
@@ -308,7 +309,7 @@ mod tests {
         let list = fig.draw_with(&mut cache, size, target, &Held::default());
         let area = fig
             .resolve(size, &mut cache, &Held::default(), target)
-            .plot_areas()[0];
+            .get_plot_areas()[0];
         let found = outlines(&list, area, k);
         assert_eq!(found.len(), 1, "one thinned line");
         let band = &found[0].path;
@@ -323,10 +324,10 @@ mod tests {
         let samples = rec.columns(&edges).expect("columns");
         let grow = width / 2.0 * k;
         for c in 0..columns {
-            let range = samples.edges()[c]..samples.edges()[c + 1];
+            let range = samples.get_edges()[c]..samples.get_edges()[c + 1];
             let extremes = series.extremes(range, |_| true).expect("samples");
-            let top = sy.apply(extremes.max().1) * k;
-            let bottom = sy.apply(extremes.min().1) * k;
+            let top = sy.apply(extremes.get_max().1) * k;
+            let bottom = sy.apply(extremes.get_min().1) * k;
             let at = c as f64 + 0.5;
             assert!(
                 band.contains(Point::new(at, top - grow + 0.01)),

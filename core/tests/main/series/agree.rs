@@ -101,7 +101,7 @@ impl Model {
     fn check(&self, random: &mut Lcg) {
         let len = self.x.len();
         assert_eq!(
-            (self.rec.len(), self.rec.offset()),
+            (self.rec.len(), self.rec.get_offset()),
             (len, self.offset as u64)
         );
         if len == 0 {
@@ -117,12 +117,14 @@ impl Model {
                 let lines = rec.m4(&columns, valid).expect("fresh columns");
                 let lines: Vec<Vec<usize>> = lines.iter().map(<[usize]>::to_vec).collect();
                 assert_eq!(
-                    (columns.edges().to_vec(), lines),
+                    (columns.get_edges().to_vec(), lines),
                     m4_scan(&self.x, y, &edges, valid)
                 );
                 let a = random.below(len);
                 let b = a + random.len(len - a + 10);
-                let found = rec.extremes(a..b, valid).map(|e| (e.min(), e.max()));
+                let found = rec
+                    .extremes(a..b, valid)
+                    .map(|e| (e.get_min(), e.get_max()));
                 assert_eq!(
                     found.map(bits),
                     scan(&y[a..b.min(len)], a, valid).map(bits),

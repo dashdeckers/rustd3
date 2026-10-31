@@ -12,6 +12,20 @@ use crate::figure;
 /// with another figure it finds no scale, what uses it draws nothing, and
 /// [`Figure::check`](crate::Figure::check) reports it
 /// ([`Issue::ForeignHandle`](crate::check::Issue::ForeignHandle)).
+///
+/// ```
+/// use rustd3_core::scale;
+/// use rustd3_figure::Figure;
+/// use rustd3_figure::mark::{dots, line};
+///
+/// let mut fig = Figure::new();
+/// let x = fig.fit(scale::linear());
+/// let y = fig.scale(scale::log().domain([1.0, 100.0]));
+/// // Two panels share x by sharing the handle; a copy is the same handle.
+/// fig.panel(0, 0).mark(line([(0.0, 1.0), (1.0, 10.0)], x, y));
+/// fig.panel(1, 0).mark(dots([(0.5, 50.0)], x, y));
+/// assert!(fig.owns(x) && !Figure::new().owns(x));
+/// ```
 pub struct ScaleRef<S> {
     figure: figure::Id,
     index: u32,
@@ -62,14 +76,15 @@ impl<S> ScaleRef<S> {
 
     /// Position in the scale table (the widget keys state by it and the
     /// scale's `TypeId`).
-    pub fn index(self) -> usize {
+    #[must_use]
+    pub fn get_index(self) -> usize {
         self.index as usize
     }
 
     /// The position in figure `figure`'s table: every use of a handle goes
     /// through here. `None` for a handle of another figure.
     pub(crate) fn of(self, figure: figure::Id) -> Option<usize> {
-        (self.figure == figure).then(|| self.index())
+        (self.figure == figure).then(|| self.get_index())
     }
 
     /// The same handle without its scale type, for lists of handles of

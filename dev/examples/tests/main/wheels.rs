@@ -4,13 +4,13 @@
 //! snapshots of its list and SVG, and its PDF through poppler.
 
 use rustd3_examples::wheels;
-use rustd3_figure::check::size;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Shape, Size, Vec2};
 use rustd3_figure::list::{self, Clip, Command, List, part};
 use rustd3_figure::lower::{self, Caps};
 use rustd3_figure::raster::{self, Image, Settings, Simd};
 use rustd3_figure::theme::{Context, Style};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, Theme, pdf, svg};
+use rustd3_figure::{Figure, Held, Resolved, Target, Theme, pdf, svg};
 use rustd3_testkit::fixture::Fixture;
 use rustd3_testkit::obs::{Obs, ToObs, Tolerance};
 use rustd3_testkit::pixels::{self, Diff};
@@ -119,7 +119,9 @@ fn the_hatched_wheel_figure_hatches_its_232_bars_and_legend_squares() {
             assert_eq!(*r, rect);
             hatched += 1;
         } else {
-            let origin = resolved.plot_areas()[*panel as usize].origin().to_vec2();
+            let origin = resolved.get_plot_areas()[*panel as usize]
+                .origin()
+                .to_vec2();
             let corners = [(rect.x0, rect.y0), (rect.x1, rect.y1)]
                 .map(|(x, y)| (Vec2::new(x, y) + origin).dot(n) / 8.0);
             assert!(corners[0].ceil() > corners[1].floor(), "{rect:?}");
@@ -198,7 +200,7 @@ fn the_fitted_domains_match_the_fixture() {
         let (resolved, _) = drawn(&fig);
         // vib, temp and count are the second to fourth handles.
         for (index, name) in [(1, "vib"), (2, "temp"), (3, "count")] {
-            let scale = resolved.scale_at(index).expect("a handle");
+            let scale = resolved.get_scale_at(index).expect("a handle");
             let linear = scale
                 .as_any()
                 .downcast_ref::<rustd3_core::scale::Linear>()
@@ -218,14 +220,18 @@ fn the_wheel_figure_checks_clean_in_at_most_four_layout_passes() {
     for inset in [false, true] {
         let fig = wheel_figure(inset);
         for (w, h) in [(960.0, 760.0), (1600.0, 1200.0)] {
-            assert_eq!(fig.check(size(w, h)), [], "{w} × {h}, inset {inset}");
+            assert_eq!(fig.check(Size::new(w, h)), [], "{w} × {h}, inset {inset}");
             let resolved = fig.resolve(
                 Size::new(w, h),
                 &mut Cache::default(),
                 &Held::default(),
                 Target::Vector,
             );
-            assert!(resolved.passes() <= 4, "{} passes", resolved.passes());
+            assert!(
+                resolved.get_passes() <= 4,
+                "{} passes",
+                resolved.get_passes()
+            );
         }
     }
 }
@@ -247,7 +253,7 @@ fn every_style_checks_clean_at_paper_and_notebook_on_960_by_760() {
             for context in [Context::Paper, Context::Notebook] {
                 let mut fig = wheels::figure(&samples, inset);
                 fig.theme(Theme::seaborn(style, context));
-                let issues = fig.check(size(960.0, 760.0));
+                let issues = fig.check(Size::new(960.0, 760.0));
                 assert!(issues.is_empty(), "{style:?} {context:?}: {issues:#?}");
             }
         }
@@ -260,7 +266,7 @@ fn wheels_fit_at_talk() {
     let samples = wheels::simulate();
     let mut fig = wheels::figure(&samples, false);
     fig.theme(Theme::seaborn(Style::Ticks, Context::Talk));
-    let issues = fig.check(size(1600.0, 1200.0));
+    let issues = fig.check(Size::new(1600.0, 1200.0));
     assert!(issues.is_empty(), "{issues:#?}");
 }
 
@@ -323,7 +329,7 @@ fn the_wheel_figures_four_titles_share_two_baselines_one_per_row() {
     // Each row's baseline sits the title pad (8 px) and DejaVu Sans's
     // descender at 16 px above its scatters, which have no top axes.
     let descender = 492.0 / 2048.0 * 16.0;
-    let areas = resolved.plot_areas();
+    let areas = resolved.get_plot_areas();
     for (row, panel) in [(rows[0], 0), (rows[2], 6)] {
         let expected = areas[panel].y0 - 8.0 - descender;
         assert!((row - expected).abs() < 1e-9, "{row} against {expected}");
@@ -349,7 +355,7 @@ fn lowering_the_markers_grows_the_list_by_5588_commands() {
 fn the_wheel_list_and_svg_match_their_snapshots() {
     let store = Store::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots"));
     let (_, list) = drawn(&wheel_figure(false));
-    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(true));
     store.check("wheels.txt", &dump);
     let lowered = lower::lower(&list, svg::CAPS).expect("a valid list");
     let svg = svg::write(&lowered.list, &svg::Options::default()).expect("a valid list");
@@ -361,12 +367,9 @@ fn the_wheel_list_and_svg_match_their_snapshots() {
 fn pinned(list: &List) -> Image {
     let bounds = list::Bounds::of(list, &mut list::Outlines::default());
     let area = rustd3_figure::kurbo::Rect::from_origin_size((0.0, 0.0), list.size);
-    raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    })
-    .render(list, &bounds, area, 2.0)
-    .expect("the list renders")
+    raster::Renderer::new(Settings::default().simd(Simd::Baseline))
+        .render(list, &bounds, area, 2.0)
+        .expect("the list renders")
 }
 
 /// `pdf` rendered by `pdftoppm -r 192` against `reference`.

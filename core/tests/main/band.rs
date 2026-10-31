@@ -116,9 +116,9 @@ fn a_bottom_axis_puts_ticks_at_the_band_centers() {
         .range([0.0, 300.0])
         .padding(0.1);
     let labels = axis::bottom(&s).labels();
-    let xs: Vec<f64> = labels.iter().map(|l| l.x()).collect();
+    let xs: Vec<f64> = labels.iter().map(|l| l.get_x()).collect();
     assert_eq!(xs, [53.22580645161291, 150.0, 246.77419354838707]);
-    let texts: Vec<&str> = labels.iter().map(|l| l.text()).collect();
+    let texts: Vec<&str> = labels.iter().map(|l| l.get_text()).collect();
     assert_eq!(texts, ["a", "b", "c"]);
 }
 
@@ -126,8 +126,8 @@ fn a_bottom_axis_puts_ticks_at_the_band_centers() {
 fn band_ticks_are_every_key_whatever_the_count() {
     let s = scale::band(["a", "b", "c"]).range([10.0, 20.0]);
     let set = s.tick_set(1);
-    assert_eq!(set.values(), ["a", "b", "c"]);
-    assert_eq!((set.step(), set.count()), (&(), 1));
+    assert_eq!(set.get_values(), ["a", "b", "c"]);
+    assert_eq!((set.get_step(), set.get_count()), (&(), 1));
     assert_eq!(s.labels(&set, &Locale::EN_US), ["a", "b", "c"]);
     assert_eq!(s.extent(), [10.0, 20.0]);
     assert!(Ticks::minor(&s, &set).is_empty());

@@ -81,6 +81,12 @@ pub struct Legend<K> {
     glyph: Option<Swatch>,
 }
 
+impl<K> std::fmt::Debug for Legend<K> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Legend").finish_non_exhaustive()
+    }
+}
+
 impl<K> Clone for Legend<K> {
     fn clone(&self) -> Self {
         Legend {
@@ -92,6 +98,7 @@ impl<K> Clone for Legend<K> {
 }
 
 /// A legend of `palette`'s keys.
+#[must_use]
 pub fn legend<K>(palette: ScaleRef<Ordinal<K, Rgb>>) -> Legend<K>
 where
     K: PartialEq + Clone + Display + 'static,
@@ -105,6 +112,7 @@ where
 
 impl<K> Legend<K> {
     /// A title before the entries: left of a row, above a column.
+    #[must_use]
     pub fn title(self, t: impl Into<Text>) -> Self {
         Legend {
             title: Some(t.into()),
@@ -114,6 +122,7 @@ impl<K> Legend<K> {
 
     /// What every entry shows in its key's color, a square, a dot or a
     /// line, in place of the swatch of the key's marks.
+    #[must_use]
     pub fn glyph(self, g: Swatch) -> Self {
         Legend {
             glyph: Some(g),
@@ -154,14 +163,14 @@ where
     }
 
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
-        let Some(palette) = resolved.scale(self.palette) else {
+        let Some(palette) = resolved.get_scale(self.palette) else {
             return Vec::new();
         };
         palette
             .get_domain()
             .iter()
             .map(|key| {
-                let index = self.palette.index();
+                let index = self.palette.get_index();
                 let is = |k: &dyn Any| k.downcast_ref::<K>() == Some(key);
                 let glyph = self.glyph.or_else(|| resolved.glyph(index, is));
                 Entry {

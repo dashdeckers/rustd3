@@ -23,6 +23,7 @@ pub use range::Range;
 
 impl Interval {
     /// The latest boundary at or before `t` (d3's `interval.floor`).
+    #[must_use]
     pub fn floor(self, t: Timestamp, tz: &TimeZone) -> Option<Timestamp> {
         let mut floor = self.unit_floor(t, tz)?;
         while !self.keeps(floor, tz) {
@@ -33,6 +34,7 @@ impl Interval {
 
     /// The earliest boundary at or after `t` (d3's `interval.ceil`):
     /// `floor(offset(floor(t − 1 ns), 1))`.
+    #[must_use]
     pub fn ceil(self, t: Timestamp, tz: &TimeZone) -> Option<Timestamp> {
         let floor = self.floor(before(t)?, tz)?;
         self.floor(self.offset(floor, 1, tz)?, tz)
@@ -40,6 +42,7 @@ impl Interval {
 
     /// The nearer of the floor and the ceil of `t`, the ceil on a tie (d3's
     /// `interval.round`).
+    #[must_use]
     pub fn round(self, t: Timestamp, tz: &TimeZone) -> Option<Timestamp> {
         let (floor, ceil) = (self.floor(t, tz)?, self.ceil(t, tz)?);
         let ns = t.as_nanosecond();
@@ -54,6 +57,7 @@ impl Interval {
     /// `interval.offset`): a fixed unit moves by `steps` multiples of its
     /// step; a filtered one moves unit by unit until it has passed `|steps|`
     /// kept boundaries, about `|steps|·k` unit moves, as d3 does.
+    #[must_use]
     pub fn offset(self, t: Timestamp, steps: i64, tz: &TimeZone) -> Option<Timestamp> {
         if !self.filters() {
             return self.unit_offset(t, steps, tz);
@@ -92,6 +96,7 @@ impl Interval {
 
     /// The same unit with step `k`, or `None` for 0 (d3's `every`, which
     /// returns null there).
+    #[must_use]
     pub fn every(self, k: u32) -> Option<Interval> {
         (k > 0).then_some(match self {
             Interval::Nanosecond(_) => Interval::Nanosecond(k),
@@ -110,12 +115,14 @@ impl Interval {
 
     /// The boundaries in `[ceil(start), stop)`, lazily (d3's
     /// `interval.range`); empty unless `ceil(start) < stop`.
+    #[must_use]
     pub fn range(self, start: Timestamp, stop: Timestamp, tz: &TimeZone) -> Range {
         Range::new(self, start, stop, 1, tz)
     }
 
     /// Every `step`-th boundary from `ceil(start)` before `stop` (d3's
     /// `interval.range(start, stop, step)`); empty for a step of 0.
+    #[must_use]
     pub fn range_step(self, start: Timestamp, stop: Timestamp, step: u32, tz: &TimeZone) -> Range {
         Range::new(self, start, stop, step, tz)
     }

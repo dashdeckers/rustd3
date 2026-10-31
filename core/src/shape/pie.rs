@@ -32,12 +32,14 @@ impl Default for Pie {
 
 impl Pie {
     /// The drawing order: d3's `sortValues` and `sort(null)`.
+    #[must_use]
     pub fn sort(self, sort: Sort) -> Self {
         Self { sort, ..self }
     }
 
     /// Where the first wedge starts, in radians clockwise from 12 o'clock
     /// (d3's default 0).
+    #[must_use]
     pub fn start_angle(self, start_angle: f64) -> Self {
         Self {
             start_angle,
@@ -47,12 +49,14 @@ impl Pie {
 
     /// Where the last wedge ends (d3's default τ); the span is clamped to
     /// ±τ.
+    #[must_use]
     pub fn end_angle(self, end_angle: f64) -> Self {
         Self { end_angle, ..self }
     }
 
     /// The padding between neighbouring wedges (d3's default 0), at most
     /// the span over the number of values.
+    #[must_use]
     pub fn pad_angle(self, pad_angle: f64) -> Self {
         Self { pad_angle, ..self }
     }

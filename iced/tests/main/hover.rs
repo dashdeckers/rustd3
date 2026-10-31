@@ -8,9 +8,10 @@ use std::time::Duration;
 use iced::time::Instant;
 use iced::{Event, Point, Size, mouse};
 use rustd3_core::scale;
+use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::mark::{bar_y, dots, line};
-use rustd3_figure::{Cache, Figure, Held, Resolved, Target, axis};
+use rustd3_figure::{Figure, Held, Resolved, Target, axis};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::Sample;
 use rustd3_iced::plot::{Hover, Probe, Render};
@@ -125,7 +126,7 @@ fn hovering_a_dot_reports_its_index() {
             return;
         };
         let backend = harness.backend();
-        let areas = resolved.plot_areas();
+        let areas = resolved.get_plot_areas();
         let dot = at(areas[DOTS_PANEL], DOTS[1]);
         move_to(&mut harness, dot);
         let _ = harness.frame(t0 + FRAME);
@@ -139,7 +140,11 @@ fn hovering_a_dot_reports_its_index() {
             (DOTS_PANEL, 0, 1),
             "{backend}"
         );
-        assert_eq!(resolved.panel_cell(hover.panel), Some((1, 0)), "{backend}");
+        assert_eq!(
+            resolved.get_panel_cell(hover.panel),
+            Some((1, 0)),
+            "{backend}"
+        );
         assert_eq!(hover.at, dot, "{backend}: widget coordinates");
         // The line's samples and the bars' value ends are hovered too.
         let sample = at(areas[0], (2.5, 5.0 + 3.0 * 2.0f64.sin()));
@@ -189,7 +194,7 @@ fn moving_within_one_dot_sends_nothing() {
         return;
     };
     let backend = harness.backend();
-    let dot = at(resolved.plot_areas()[DOTS_PANEL], DOTS[0]);
+    let dot = at(resolved.get_plot_areas()[DOTS_PANEL], DOTS[0]);
     move_to(&mut harness, dot);
     let _ = harness.frame(t0 + FRAME);
     let messages = harness.messages();
@@ -221,7 +226,7 @@ fn leaving_the_widget_reports_none_once() {
         return;
     };
     let backend = harness.backend();
-    let areas = resolved.plot_areas();
+    let areas = resolved.get_plot_areas();
     move_to(&mut harness, at(areas[DOTS_PANEL], DOTS[2]));
     let _ = harness.frame(t0 + FRAME);
     assert_eq!(harness.messages().len(), 1, "{backend}");
@@ -267,7 +272,7 @@ fn hover_does_not_rebuild_the_hit_index() {
     };
     assert_eq!(stages(&first), 2, "{backend}: the first frame resolves");
     // Ten moves between two redraws, across every dot of the panel.
-    let area = resolved.plot_areas()[DOTS_PANEL];
+    let area = resolved.get_plot_areas()[DOTS_PANEL];
     for i in 0..10_u8 {
         let share = f64::from(i) / 9.0;
         move_to(

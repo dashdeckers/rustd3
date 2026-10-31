@@ -180,7 +180,7 @@ impl Layout {
             let slack = zero
                 .as_ref()
                 .and_then(|key| get(text, key))
-                .map_or(0.0, |s| 2.0 * s.width());
+                .map_or(0.0, |s| 2.0 * s.get_width());
             axes = panels
                 .iter()
                 .zip(labels)
@@ -218,7 +218,7 @@ impl Layout {
                     let mut reach = *reach;
                     if let Some(s) = title.as_ref().and_then(|key| get(text, key)) {
                         let above = reach.top + theme.title_pad() + ink(s);
-                        reach.top = above.max(heading + s.last() + s.ascent());
+                        reach.top = above.max(heading + s.get_last() + s.get_ascent());
                     }
                     reach
                 })
@@ -566,7 +566,7 @@ fn get<'c>(text: &'c text::Cache, key: &Key) -> Option<&'c Shaped> {
 
 /// The ink height of a shaped label.
 fn ink(shaped: &Shaped) -> f64 {
-    shaped.ascent() + shaped.descent()
+    shaped.get_ascent() + shaped.get_descent()
 }
 
 /// The length of `area` along an axis on side `orient`.

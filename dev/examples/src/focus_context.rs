@@ -356,12 +356,12 @@ fn draw_axis<S: Ticks>(frame: &mut Frame, axis: &axis::Axis<'_, S>, origin: Poin
         f.stroke(&lines, Stroke::default().with_color(AXIS_INK));
         for label in axis.labels() {
             // d3 sets the baseline `dy` em below y; centre the text there.
-            let middle = label.y() + (label.dy() - MIDDLE_EM) * LABEL_PX;
+            let middle = label.get_y() + (label.get_dy() - MIDDLE_EM) * LABEL_PX;
             f.fill_text(Text {
-                content: label.text().to_owned(),
-                position: Point::new(label.x() as f32, middle as f32),
+                content: label.get_text().to_owned(),
+                position: Point::new(label.get_x() as f32, middle as f32),
                 size: Pixels(LABEL_PX as f32),
-                align_x: match label.anchor() {
+                align_x: match label.get_anchor() {
                     Anchor::Start => Alignment::Left,
                     Anchor::Middle => Alignment::Center,
                     Anchor::End => Alignment::Right,

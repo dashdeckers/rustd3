@@ -60,6 +60,8 @@ impl Rescale for Time {
     }
 }
 
+impl crate::sealed::Rescale for Time {}
+
 impl Time {
     /// The scale with its domain at `ends`, offsets from the old start, if
     /// both are instants jiff holds and they span at least 1 ns in the old

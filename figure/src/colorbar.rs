@@ -89,6 +89,12 @@ pub struct Colorbar<'a, S> {
     format: Option<Format<'a>>,
 }
 
+impl<'a, S> std::fmt::Debug for Colorbar<'a, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Colorbar").finish_non_exhaustive()
+    }
+}
+
 impl<S> Clone for Colorbar<'_, S> {
     fn clone(&self) -> Self {
         Colorbar {
@@ -102,6 +108,7 @@ impl<S> Clone for Colorbar<'_, S> {
 }
 
 /// A colorbar of the color scale behind `handle`.
+#[must_use]
 pub fn colorbar<'a, S>(handle: ScaleRef<S>) -> Colorbar<'a, S>
 where
     S: Paint<Domain = f64> + Ramp,
@@ -117,6 +124,7 @@ where
 
 impl<'a, S> Colorbar<'a, S> {
     /// A title along the bar, past its tick labels, as an axis's.
+    #[must_use]
     pub fn title(self, t: impl Into<Text>) -> Self {
         Colorbar {
             title: Some(t.into()),
@@ -125,6 +133,7 @@ impl<'a, S> Colorbar<'a, S> {
     }
 
     /// End triangles for the values the scale clamps; none by default.
+    #[must_use]
     pub fn extend(self, e: Extend) -> Self {
         Colorbar { extend: e, ..self }
     }
@@ -133,6 +142,7 @@ impl<'a, S> Colorbar<'a, S> {
     /// the bar's length as an axis's does: one tick per 80 px across, per
     /// 35 px up, at least 2. Binned scales tick at their edges whatever the
     /// count.
+    #[must_use]
     pub fn ticks(self, count: usize) -> Self {
         Colorbar {
             count: Some(count),
@@ -142,6 +152,7 @@ impl<'a, S> Colorbar<'a, S> {
 
     /// Each label is `f(value)`, borrowing for `'a` as an axis's format
     /// does.
+    #[must_use]
     pub fn format(self, f: impl Fn(f64) -> String + 'a) -> Self {
         let format: Format<'a> = Rc::new(f);
         Colorbar {
@@ -192,7 +203,7 @@ where
     S: Paint<Domain = f64> + Ramp,
 {
     fn handle(&self) -> usize {
-        self.handle.index()
+        self.handle.get_index()
     }
 
     fn scale(&self) -> ScaleRef<()> {
@@ -223,8 +234,8 @@ where
         let scale = resolved.own(self.handle);
         let set = scale.tick_set(count);
         match &self.format {
-            Some(format) => set.values().iter().map(|v| format(*v)).collect(),
-            None if binned => edges::labels(set.values(), resolved.locale()),
+            Some(format) => set.get_values().iter().map(|v| format(*v)).collect(),
+            None if binned => edges::labels(set.get_values(), resolved.locale()),
             None => scale.labels(&set, resolved.locale()),
         }
     }
@@ -233,7 +244,7 @@ where
         let scale = resolved.own(self.handle);
         scale
             .tick_set(count)
-            .values()
+            .get_values()
             .iter()
             .map(|v| Ticks::position(scale, v, 0.0).filter(|p| p.is_finite()))
             .collect()

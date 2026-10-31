@@ -33,7 +33,7 @@ use crate::interpolate::Interpolate;
 /// assert_eq!(width.value(ms(100)), 25.0);
 /// assert!(width.is_animating(ms(100)));
 /// assert!(!width.is_animating(ms(150)));
-/// assert_eq!(*width.target(), 0.0);
+/// assert_eq!(*width.get_target(), 0.0);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Animated<T> {
@@ -83,7 +83,7 @@ impl<T: Interpolate> Animated<T> {
     }
 
     /// Where it is going.
-    pub fn target(&self) -> &T {
+    pub fn get_target(&self) -> &T {
         &self.to
     }
 

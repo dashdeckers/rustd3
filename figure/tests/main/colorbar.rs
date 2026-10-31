@@ -54,7 +54,9 @@ fn panel<S: Paint<Domain = f64> + Ramp>(color: S) -> (Figure<'static>, ScaleRef<
 /// `fig` drawn at `size` for `target`, and its first panel's plot area.
 fn drawn(fig: &Figure<'_>, size: Size, target: Target) -> (List, Rect) {
     let held = Held::default();
-    let area = fig.resolve(size, &mut cache(), &held, target).plot_areas()[0];
+    let area = fig
+        .resolve(size, &mut cache(), &held, target)
+        .get_plot_areas()[0];
     (fig.draw_with(&mut cache(), size, target, &held), area)
 }
 
@@ -239,11 +241,11 @@ fn ticks_sit_at_the_scales_positions_and_point_out_of_the_bar() {
     // As an axis as long: one tick per 35 px up.
     let count = (bar.height() / 35.0).round() as usize;
     let set = s.tick_set(count);
-    assert_eq!(set.values().len(), 17);
+    assert_eq!(set.get_values().len(), 17);
     assert_eq!(texts(cb), s.labels(&set, &Locale::NEUTRAL));
     let marks = ticks(cb);
-    assert_eq!(marks.len(), set.values().len());
-    for ([(x0, y0), (x1, y1)], v) in marks.iter().zip(set.values()) {
+    assert_eq!(marks.len(), set.get_values().len());
+    for ([(x0, y0), (x1, y1)], v) in marks.iter().zip(set.get_values()) {
         let y = bar.y1 - v / 80.0 * bar.height();
         assert!(close(*y0, y) && close(*y1, y), "{v}");
         assert!(close(*x0, bar.x1) && close(x1 - x0, TICK));
@@ -283,7 +285,7 @@ fn a_side_colorbar_spans_every_row_beside_it() {
     let held = Held::default();
     let areas = fig
         .resolve(size, &mut cache(), &held, Target::Vector)
-        .plot_areas()
+        .get_plot_areas()
         .to_vec();
     let list = fig.draw_with(&mut cache(), size, Target::Vector, &held);
     let cb = slotted(&list, 0);
@@ -529,7 +531,7 @@ fn sized(fig: &Figure<'_>, slot: Slot, length: f64) -> (Size, Rect) {
     for _ in 0..4 {
         let area = fig
             .resolve(size, &mut cache(), &Held::default(), target)
-            .plot_areas()[0];
+            .get_plot_areas()[0];
         let along = if vertical {
             area.height()
         } else {
