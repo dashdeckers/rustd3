@@ -324,6 +324,12 @@ pub struct Plot<'a, Message> {
     on_hover: Option<Report<'a, Message>>,
 }
 
+impl<'a, Message> std::fmt::Debug for Plot<'a, Message> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Plot").finish_non_exhaustive()
+    }
+}
+
 impl<'a, Message> Plot<'a, Message> {
     /// Shows `figure`; the widget keeps it for relayouts.
     #[must_use]

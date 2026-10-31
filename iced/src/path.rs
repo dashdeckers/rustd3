@@ -37,6 +37,12 @@ pub struct IcedPath<'a> {
     start: Option<(f64, f64)>,
 }
 
+impl<'a> std::fmt::Debug for IcedPath<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IcedPath").finish_non_exhaustive()
+    }
+}
+
 impl PathContext for IcedPath<'_> {
     fn move_to(&mut self, x: f64, y: f64) {
         self.builder.move_to(point(x, y));

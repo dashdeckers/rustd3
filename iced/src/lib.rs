@@ -16,6 +16,7 @@
 
 // Builders and pure functions say so: a result dropped is a bug.
 #![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
+#![warn(missing_debug_implementations)]
 
 mod path;
 #[cfg(feature = "figure")]
