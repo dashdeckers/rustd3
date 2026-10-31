@@ -147,6 +147,12 @@ Names and visibility settled before the first release:
   `Settings::default().threads(n).simd(s)`), as `pdf::Options` does.
 - The settings enums `plot::Render`, `plot::Caching`, `raster::Simd`,
   `svg::Text`, `thin::Thin` and `Target` are `#[non_exhaustive]`.
+- Sealed traits: core's `series::Data`, `series::Coordinate`,
+  `scale::Ticks`, `scale::Pad` and `interact::Rescale`, and figure's
+  `scale::Scale` (with it `Kind`, `Position`, `Invert`, `Paint`,
+  `Fittable`, `mark::Binned`, and through `Ticks` `colorbar::Ramp`) and
+  `scale::Indexed`. `PathContext`, `scale::Transform`, `Interpolate`,
+  `mark::Mark`, `shape::Vertex` and `shape::Span` stay open.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

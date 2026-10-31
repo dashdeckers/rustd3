@@ -44,6 +44,8 @@ impl Scale for Time {
     }
 }
 
+impl crate::sealed::Scale for Time {}
+
 /// Instants fit as numbers do, through core's `Pad for Time`: no data
 /// gives 1970-01-01 to 1970-01-02 UTC, one instant widens by an hour per
 /// side, and margins are whole nanoseconds.
@@ -139,6 +141,8 @@ impl Indexed<Timestamp> for Time {
         indexed::thin(lower, Some(upper), edges, bits, valid, frame)
     }
 }
+
+impl crate::sealed::Indexed<Timestamp> for Time {}
 
 /// An instant's i128 nanoseconds as two words, low first: a column grid's
 /// key.

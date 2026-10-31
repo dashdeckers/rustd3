@@ -128,3 +128,5 @@ impl<R> Ticks for Threshold<R> {
         [0.0, 1.0]
     }
 }
+
+impl<R> crate::sealed::Ticks for Threshold<R> {}

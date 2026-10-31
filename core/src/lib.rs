@@ -59,6 +59,7 @@ pub mod ticks;
 pub mod time;
 
 mod js;
+mod sealed;
 
 /// jiff, which time is built on: figure, iced and applications name its
 /// types (`Timestamp`, `tz::TimeZone`, `civil::Weekday`) through this path.

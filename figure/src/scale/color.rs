@@ -36,6 +36,8 @@ impl<T: scale::Transform + 'static> Scale for Sequential<Rgb, T> {
     }
 }
 
+impl<T: scale::Transform + 'static> crate::sealed::Scale for Sequential<Rgb, T> {}
+
 /// Fitted to the data's extent through core's `Pad` with no margin (the
 /// theme's is ignored): a flat extent widens by `nonsingular`; no data
 /// keeps the domain as built.
@@ -98,6 +100,8 @@ impl<T: scale::Transform + 'static> Scale for Diverging<Rgb, T> {
         None
     }
 }
+
+impl<T: scale::Transform + 'static> crate::sealed::Scale for Diverging<Rgb, T> {}
 
 /// The end stops fitted to the data's extent through core's `Pad` with no
 /// margin, the middle stop kept and never crossed: data entirely on one
@@ -174,6 +178,8 @@ impl<T: scale::Transform + 'static, const N: usize> Scale for Continuous<T, Rgb,
         None
     }
 }
+
+impl<T: scale::Transform + 'static, const N: usize> crate::sealed::Scale for Continuous<T, Rgb, N> {}
 
 /// Fitted to the data's extent through core's `Pad` with no margin, inner
 /// stops keeping their share of the way between the end stops; no data

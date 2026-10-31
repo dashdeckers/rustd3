@@ -11,7 +11,7 @@ use crate::thin;
 /// exist only for x types that are a `series::Coordinate`; generic mark
 /// code cannot name that bound, so the x scale supplies the bridge through
 /// [`Position::indexed`](crate::scale::Position::indexed). Object-safe.
-pub trait Indexed<D> {
+pub trait Indexed<D>: crate::sealed::Indexed<D> {
     /// The domain value at output position `px` (the scale's inverse).
     fn invert(&self, px: f64) -> D;
 

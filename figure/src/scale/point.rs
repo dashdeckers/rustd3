@@ -37,6 +37,8 @@ impl<K: PartialEq + Clone + 'static> Scale for Point<K> {
     }
 }
 
+impl<K: PartialEq + Clone + 'static> crate::sealed::Scale for Point<K> {}
+
 /// Fitting keeps the keys the scale was built with.
 impl<K: PartialEq + Clone + 'static> Kind for Point<K> {
     type Domain = K;

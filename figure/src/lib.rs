@@ -85,6 +85,7 @@ pub mod pdf;
 mod pixels;
 pub mod raster;
 pub mod scale;
+mod sealed;
 pub mod stats;
 pub mod svg;
 mod target;

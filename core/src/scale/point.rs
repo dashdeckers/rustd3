@@ -136,3 +136,5 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Point<K> {
         self.band.extent()
     }
 }
+
+impl<K: Clone + PartialEq + fmt::Display> crate::sealed::Ticks for Point<K> {}

@@ -58,6 +58,8 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
     }
 }
 
+impl<T: Transform, const N: usize> crate::sealed::Ticks for Continuous<T, f64, N> {}
+
 /// A color range positions ticks in [0, 1] for a colorbar: ticks, step,
 /// labels and minor ticks as for an `f64` range, the position the end
 /// stops' transformed fraction.
@@ -108,3 +110,5 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, Rgb, N> {
         [0.0, 1.0]
     }
 }
+
+impl<T: Transform, const N: usize> crate::sealed::Ticks for Continuous<T, Rgb, N> {}

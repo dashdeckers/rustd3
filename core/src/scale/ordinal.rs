@@ -149,3 +149,5 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Ordinal<K, f64> {
         }
     }
 }
+
+impl<K: Clone + PartialEq + fmt::Display> crate::sealed::Ticks for Ordinal<K, f64> {}

@@ -161,6 +161,8 @@ impl<R> Pad for Quantize<R> {
     }
 }
 
+impl<R> crate::sealed::Pad for Quantize<R> {}
+
 /// The ticks of a colorbar or an axis are the bin edges, positioned in [0,
 /// 1] along the domain.
 impl<R> Ticks for Quantize<R> {
@@ -195,3 +197,5 @@ impl<R> Ticks for Quantize<R> {
         [0.0, 1.0]
     }
 }
+
+impl<R> crate::sealed::Ticks for Quantize<R> {}

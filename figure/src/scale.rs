@@ -50,7 +50,26 @@ pub use position::Position;
 /// The object-safe face of a scale, so one table holds every kind; its
 /// pixel gestures delegate to core's `Rescale` on a copy set to a panel's
 /// range, so each scale keeps its own precision.
-pub trait Scale: Any {
+///
+/// Sealed: implemented for core's scales only, and with it every
+/// capability trait built on it ([`Kind`], [`Position`], [`Invert`],
+/// [`Paint`], [`Fittable`]), so the figure's protocol can grow.
+///
+/// ```compile_fail,E0277
+/// use std::any::Any;
+///
+/// use rustd3_figure::scale::Scale;
+///
+/// struct Mine;
+/// impl Scale for Mine {
+/// #   fn as_any(&self) -> &dyn Any { self }
+/// #   fn boxed(&self) -> Box<dyn Scale> { unimplemented!() }
+/// #   fn with_range(&self, _: [f64; 2]) -> Box<dyn Scale> { unimplemented!() }
+/// #   fn pan_px(&self, _: [f64; 2], _: f64) -> Option<Box<dyn Scale>> { None }
+/// #   fn zoom_px(&self, _: [f64; 2], _: f64, _: f64) -> Option<Box<dyn Scale>> { None }
+/// }
+/// ```
+pub trait Scale: Any + crate::sealed::Scale {
     /// The scale as `Any`, to recover its type.
     fn as_any(&self) -> &dyn Any;
 

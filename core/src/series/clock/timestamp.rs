@@ -54,3 +54,5 @@ impl Coordinate for Timestamp {
         period.is_positive()
     }
 }
+
+impl crate::sealed::Coordinate for Timestamp {}

@@ -35,7 +35,7 @@ const MIN_SPAN: f64 = 1.0 / (1u64 << 40) as f64;
 /// assert_eq!(x.pan_px(96.0).map(|x| x.get_domain()), Some([-10.0, 90.0]));
 /// assert!(scale::linear().range([0.0, 960.0]).zoom_px(480.0, 1e13).is_none());
 /// ```
-pub trait Rescale: Sized {
+pub trait Rescale: Sized + crate::sealed::Rescale {
     /// d3's `transform.rescaleX(scale)`: domain =
     /// range.map(invertX).map(scale.invert).
     #[must_use]
@@ -75,6 +75,8 @@ impl<T: scale::Transform, const N: usize> Rescale for Continuous<T, f64, N> {
     }
 }
 
+impl<T: scale::Transform, const N: usize> crate::sealed::Rescale for Continuous<T, f64, N> {}
+
 /// d3's scaleIdentity: setting the domain sets the range, so a rescaled
 /// identity scale shows the new values at the new positions.
 impl Rescale for scale::Identity {
@@ -99,6 +101,8 @@ impl Rescale for scale::Identity {
         accepted(self.get_domain(), stops).map(|domain| self.clone().domain(domain))
     }
 }
+
+impl crate::sealed::Rescale for scale::Identity {}
 
 /// `scale` with each stop moved to the value its range position `to(r)`
 /// shows, unclamped; `None` if degenerate.

@@ -310,6 +310,8 @@ impl<R, T: Transform> Pad for Sequential<R, T> {
     }
 }
 
+impl<R, T: Transform> crate::sealed::Pad for Sequential<R, T> {}
+
 /// Ticks over the domain, positioned in [0, 1] for a colorbar.
 impl<R: Clone, T: Transform> Ticks for Sequential<R, T> {
     type Domain = f64;
@@ -351,3 +353,5 @@ impl<R: Clone, T: Transform> Ticks for Sequential<R, T> {
         [0.0, 1.0]
     }
 }
+
+impl<R: Clone, T: Transform> crate::sealed::Ticks for Sequential<R, T> {}

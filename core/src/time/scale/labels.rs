@@ -70,6 +70,8 @@ impl Ticks for Time {
     }
 }
 
+impl crate::sealed::Ticks for Time {}
+
 impl Time {
     /// d3's multi-scale tick format through `locale`'s ladder, in the
     /// scale's zone: `t` labelled at the finest unit it is not aligned to.

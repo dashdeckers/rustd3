@@ -313,6 +313,8 @@ impl<R, T: Transform> Pad for Diverging<R, T> {
     }
 }
 
+impl<R, T: Transform> crate::sealed::Pad for Diverging<R, T> {}
+
 /// Ticks between the end stops, positioned in [0, 1] for a colorbar.
 impl<R: Clone, T: Transform> Ticks for Diverging<R, T> {
     type Domain = f64;
@@ -355,3 +357,5 @@ impl<R: Clone, T: Transform> Ticks for Diverging<R, T> {
         [0.0, 1.0]
     }
 }
+
+impl<R: Clone, T: Transform> crate::sealed::Ticks for Diverging<R, T> {}

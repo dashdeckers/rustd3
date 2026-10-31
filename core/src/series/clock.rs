@@ -7,7 +7,7 @@ use std::fmt;
 use crate::js;
 
 /// An x type a recording can hold: `f64`, or jiff's `Timestamp`.
-pub trait Coordinate: Copy + PartialOrd + fmt::Debug + 'static {
+pub trait Coordinate: Copy + PartialOrd + fmt::Debug + 'static + crate::sealed::Coordinate {
     /// A regular clock's step: `f64` for `f64`, `SignedDuration` for `Timestamp`.
     type Period: Copy + PartialEq + fmt::Debug;
 
@@ -64,6 +64,8 @@ impl Coordinate for f64 {
         period.is_finite() && period > 0.0
     }
 }
+
+impl crate::sealed::Coordinate for f64 {}
 
 #[cfg(test)]
 mod tests {

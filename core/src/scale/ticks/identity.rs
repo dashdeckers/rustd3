@@ -39,3 +39,5 @@ impl Ticks for scale::Identity {
         self.get_range()
     }
 }
+
+impl crate::sealed::Ticks for scale::Identity {}

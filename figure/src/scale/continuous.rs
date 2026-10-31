@@ -44,6 +44,8 @@ impl<T: scale::Transform + 'static, const N: usize> Scale for Continuous<T, f64,
     }
 }
 
+impl<T: scale::Transform + 'static, const N: usize> crate::sealed::Scale for Continuous<T, f64, N> {}
+
 impl<T: scale::Transform + 'static, const N: usize> Kind for Continuous<T, f64, N> {
     type Domain = f64;
     type Output = f64;
@@ -134,6 +136,11 @@ impl<T: scale::Transform + 'static, const N: usize> Indexed<f64> for Continuous<
     ) -> Option<m4::Lines> {
         indexed::thin(lower, Some(upper), edges, |e| [e.to_bits()], valid, frame)
     }
+}
+
+impl<T: scale::Transform + 'static, const N: usize> crate::sealed::Indexed<f64>
+    for Continuous<T, f64, N>
+{
 }
 
 /// A copy of `scale` whose range runs from `range[0]` to `range[1]`,

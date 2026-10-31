@@ -37,6 +37,8 @@ impl<K: PartialEq + Clone + 'static> Scale for Band<K> {
     }
 }
 
+impl<K: PartialEq + Clone + 'static> crate::sealed::Scale for Band<K> {}
+
 /// Fitting keeps the keys the scale was built with.
 impl<K: PartialEq + Clone + 'static> Kind for Band<K> {
     type Domain = K;

@@ -259,3 +259,5 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Band<K> {
         self.range
     }
 }
+
+impl<K: Clone + PartialEq + fmt::Display> crate::sealed::Ticks for Band<K> {}

@@ -37,7 +37,7 @@ use crate::series::{Coordinate, Points, Series, Slices};
 /// A generic function that calls `into_points` without naming `Points<'a,
 /// X, Y>` (or a type that holds it) in its signature needs `X: 'a, Y: 'a`
 /// spelled out: borrowed slices are part of what `Points` can hold.
-pub trait Data<'a, X, Y> {
+pub trait Data<'a, X, Y>: crate::sealed::Data<'a, X, Y> {
     /// The data as a mark holds it.
     fn into_points(self) -> Points<'a, X, Y>;
 }
@@ -49,6 +49,8 @@ impl<'a, X, Y, I: IntoIterator<Item = (X, Y)>> Data<'a, X, Y> for I {
     }
 }
 
+impl<'a, X, Y, I: IntoIterator<Item = (X, Y)>> crate::sealed::Data<'a, X, Y> for I {}
+
 /// Indexed: one channel, the view by value, nothing copied.
 impl<'a, X: Coordinate> Data<'a, X, f64> for Series<'a, X> {
     fn into_points(self) -> Points<'a, X, f64> {
@@ -56,12 +58,16 @@ impl<'a, X: Coordinate> Data<'a, X, f64> for Series<'a, X> {
     }
 }
 
+impl<'a, X: Coordinate> crate::sealed::Data<'a, X, f64> for Series<'a, X> {}
+
 /// Borrowed columns without an index.
 impl<'a, X, Y> Data<'a, X, Y> for Slices<'a, X, Y> {
     fn into_points(self) -> Points<'a, X, Y> {
         Points::borrowed(self)
     }
 }
+
+impl<'a, X, Y> crate::sealed::Data<'a, X, Y> for Slices<'a, X, Y> {}
 
 /// As they are: data a builder took as `impl Data` and kept passes on to
 /// a mark unchanged, still collected, borrowed or indexed.
@@ -80,3 +86,5 @@ impl<'a, X, Y> Data<'a, X, Y> for Points<'a, X, Y> {
         self
     }
 }
+
+impl<'a, X, Y> crate::sealed::Data<'a, X, Y> for Points<'a, X, Y> {}
