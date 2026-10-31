@@ -124,6 +124,22 @@ fn an_area_of_no_device_pixel_is_empty() {
 }
 
 #[test]
+fn bounds_of_another_list_are_an_error() {
+    let list = sized(10.0, 10.0);
+    let mut longer = sized(10.0, 10.0);
+    longer.commands.extend(list.commands.clone());
+    let bounds = Bounds::of(&longer, &mut Outlines::default());
+    let area = Rect::new(0.0, 0.0, 10.0, 10.0);
+    assert_eq!(
+        renderer().render(&list, &bounds, area, 1.0),
+        Err(Error::Bounds {
+            found: 2,
+            commands: 1
+        })
+    );
+}
+
+#[test]
 fn a_list_that_fails_check_is_not_rendered() {
     let mut list = sized(10.0, 10.0);
     list.commands.push(Command::Pop);

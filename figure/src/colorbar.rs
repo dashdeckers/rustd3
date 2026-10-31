@@ -157,6 +157,9 @@ pub(crate) trait Draw<'a>: 'a {
     /// Its handle's position in the figure's scale table.
     fn handle(&self) -> usize;
 
+    /// Its handle, its scale type erased.
+    fn scale(&self) -> ScaleRef<()>;
+
     /// The strip of its resolved scale.
     fn strip(&self, resolved: &Resolved) -> Strip;
 
@@ -192,8 +195,12 @@ where
         self.handle.index()
     }
 
+    fn scale(&self) -> ScaleRef<()> {
+        self.handle.erased()
+    }
+
     fn strip(&self, resolved: &Resolved) -> Strip {
-        Strip::of(resolved.scale(self.handle))
+        Strip::of(resolved.own(self.handle))
     }
 
     fn count(&self) -> Option<usize> {
@@ -213,7 +220,7 @@ where
     }
 
     fn texts(&self, resolved: &Resolved, count: usize, binned: bool) -> Vec<String> {
-        let scale = resolved.scale(self.handle);
+        let scale = resolved.own(self.handle);
         let set = scale.tick_set(count);
         match &self.format {
             Some(format) => set.values().iter().map(|v| format(*v)).collect(),
@@ -223,7 +230,7 @@ where
     }
 
     fn shares(&self, resolved: &Resolved, count: usize) -> Vec<Option<f64>> {
-        let scale = resolved.scale(self.handle);
+        let scale = resolved.own(self.handle);
         scale
             .tick_set(count)
             .values()

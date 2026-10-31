@@ -75,32 +75,33 @@ fn unfitted_scales_keep_the_domain_they_were_built_with() {
     let x = fig.scale(scale::linear().domain([3.0, 7.0]));
     fig.panel(0, 0).mark(line(x, [0.0, 100.0]));
     assert_eq!(
-        resolve(&fig, &Held::default()).scale(x).get_domain(),
+        resolve(&fig, &Held::default())
+            .scale(x)
+            .unwrap()
+            .get_domain(),
         [3.0, 7.0]
     );
 }
 
-#[cfg(debug_assertions)]
 #[test]
-#[should_panic(expected = "handle from another figure")]
-fn a_handle_from_another_figure_panics_when_a_mark_reports_on_it() {
+fn a_handle_from_another_figure_fits_nothing_when_a_mark_reports_on_it() {
     let mut first = Figure::new();
     let foreign = first.fit(scale::linear());
     let mut fig = Figure::new();
     fig.fit(scale::linear());
+    fig.panel(0, 0);
+    let bare = resolve(&fig, &Held::default()).plot_areas().to_vec();
     fig.panel(0, 0).mark(line(foreign, [1.0]));
-    resolve(&fig, &Held::default());
+    assert_eq!(resolve(&fig, &Held::default()).plot_areas(), bare);
 }
 
-#[cfg(debug_assertions)]
 #[test]
-#[should_panic(expected = "handle from another figure")]
-fn a_handle_from_another_figure_panics_when_its_scale_is_read() {
+fn a_handle_from_another_figure_has_no_scale() {
     let mut first = Figure::new();
     let foreign = first.fit(scale::linear());
     let mut fig = Figure::new();
     fig.fit(scale::linear());
-    resolve(&fig, &Held::default()).scale(foreign);
+    assert!(resolve(&fig, &Held::default()).scale(foreign).is_none());
 }
 
 #[test]
@@ -147,7 +148,10 @@ fn a_held_scale_of_another_type_is_ignored() {
     let log = other.fit(scale::log());
     let mut held = Held::default();
     held.hold(log, scale::log().domain([1.0, 100.0]));
-    assert_eq!(resolve(&fig, &held).scale(x).get_domain(), [-0.5, 10.5]);
+    assert_eq!(
+        resolve(&fig, &held).scale(x).unwrap().get_domain(),
+        [-0.5, 10.5]
+    );
 }
 
 #[test]
@@ -158,12 +162,18 @@ fn an_erased_hold_holds_like_a_typed_one() {
     let mut held = Held::default();
     held.hold_erased(x.index(), Box::new(scale::linear().domain([2.0, 4.0])));
     assert_eq!(held.get(x).map(|s| s.get_domain()), Some([2.0, 4.0]));
-    assert_eq!(resolve(&fig, &held).scale(x).get_domain(), [2.0, 4.0]);
+    assert_eq!(
+        resolve(&fig, &held).scale(x).unwrap().get_domain(),
+        [2.0, 4.0]
+    );
     // Keyed by the boxed scale's own type: a log scale at x's position
     // is ignored.
     held.hold_erased(x.index(), Box::new(scale::log().domain([1.0, 100.0])));
     assert!(held.get(x).is_none());
-    assert_eq!(resolve(&fig, &held).scale(x).get_domain(), [-0.5, 10.5]);
+    assert_eq!(
+        resolve(&fig, &held).scale(x).unwrap().get_domain(),
+        [-0.5, 10.5]
+    );
 }
 
 #[test]
@@ -180,7 +190,7 @@ fn the_resolved_scale_at_a_position_is_the_handles_without_its_type() {
         .as_any()
         .downcast_ref::<Linear>()
         .expect("a linear scale");
-    assert_eq!(linear.get_domain(), r.scale(x).get_domain());
+    assert_eq!(linear.get_domain(), r.scale(x).unwrap().get_domain());
     let log = r.scale_at(y.index()).expect("position 1");
     assert_eq!(log.as_any().type_id(), std::any::TypeId::of::<scale::Log>());
     assert!(r.scale_at(2).is_none());
@@ -207,16 +217,14 @@ fn panels_list_the_handles_they_zoom_once_each() {
     assert_eq!(r.zooms(3), (none, none), "no such panel");
 }
 
-#[cfg(debug_assertions)]
 #[test]
-#[should_panic(expected = "handle from another figure")]
-fn a_zoomed_handle_from_another_figure_panics_when_resolved() {
+fn a_zoomed_handle_from_another_figure_is_not_zoomed() {
     let mut first = Figure::new();
     let foreign = first.fit(scale::linear());
     let mut fig = Figure::new();
     fig.fit(scale::linear());
     fig.panel(0, 0).zoom_x(foreign);
-    resolve(&fig, &Held::default());
+    assert_eq!(resolve(&fig, &Held::default()).zooms(0), (&[][..], &[][..]));
 }
 
 #[test]
@@ -228,8 +236,16 @@ fn flat_panel_indices_map_back_to_their_cells() {
     }
     fig.panel_at(layout::Cell::new(2, 0).span(1, 2));
     let r = resolve(&fig, &Held::default());
-    let cells: Vec<_> = (0..5).map(|panel| r.panel_cell(panel)).collect();
-    assert_eq!(cells, [(1, 1), (0, 0), (1, 0), (0, 1), (2, 0)]);
+    let cells: Vec<_> = (0..6).map(|panel| r.panel_cell(panel)).collect();
+    let expected = [(1, 1), (0, 0), (1, 0), (0, 1), (2, 0)];
+    assert_eq!(
+        cells,
+        expected
+            .map(Some)
+            .into_iter()
+            .chain([None])
+            .collect::<Vec<_>>()
+    );
 }
 
 #[test]
@@ -247,16 +263,14 @@ fn panels_report_their_brush() {
     assert!(r.brush(2).is_none(), "no such panel");
 }
 
-#[cfg(debug_assertions)]
 #[test]
-#[should_panic(expected = "handle from another figure")]
-fn a_brushed_handle_from_another_figure_panics_when_resolved() {
+fn a_brush_on_a_handle_from_another_figure_is_not_placed() {
     let mut first = Figure::new();
     let foreign = first.fit(scale::linear());
     let mut fig = Figure::new();
     fig.fit(scale::linear());
     fig.panel(0, 0).brush(brush::x(foreign));
-    resolve(&fig, &Held::default());
+    assert!(resolve(&fig, &Held::default()).brush(0).is_none());
 }
 
 #[test]
@@ -278,8 +292,8 @@ fn categorical_handles_keep_their_keys() {
     let b = fig.fit(scale::band(["a", "b"]));
     fig.panel(0, 0).mark(line(b, ["c"]));
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(b).get_domain(), ["a", "b"]);
-    assert_eq!(Kind::domain(r.scale(b)), None);
+    assert_eq!(r.scale(b).unwrap().get_domain(), ["a", "b"]);
+    assert_eq!(Kind::domain(r.scale(b).unwrap()), None);
 }
 
 #[test]
@@ -376,7 +390,11 @@ fn figure_axis_ticks_follow_core_axis_positions() {
         .axis(axis::bottom(x));
     let resolved = resolve(&fig, &Held::default());
     let area = resolved.plot_areas()[0];
-    let ranged = resolved.scale(x).clone().with_range([0.0, area.width()]);
+    let ranged = resolved
+        .scale(x)
+        .unwrap()
+        .clone()
+        .with_range([0.0, area.width()]);
     // One tick per 80 px: 8 over about 610 px.
     let count = (area.width() / 80.0).round() as usize;
     assert_eq!(count, 8, "{area:?}");

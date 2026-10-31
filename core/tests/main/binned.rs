@@ -120,3 +120,21 @@ fn a_threshold_without_a_range_maps_nothing() {
     let t = scale::threshold([0.0, 1.0], Vec::<&str>::new());
     assert_eq!(t.apply(0.5), None);
 }
+
+/// d3-scale's `quantize-test.js` "quantize.invertExtent(y) is exactly
+/// consistent with quantize(x)", which the translator skips (a callback of
+/// several statements): each bin's ends map to its value and the next.
+#[test]
+fn quantize_invert_extent_is_exactly_consistent_with_apply() {
+    let range: Vec<u32> = (0..10).collect();
+    let s = scale::quantize([4.2, 6.2], range.clone());
+    for y in range {
+        let [e0, e1] = s.invert_extent(&y).expect("a value of the range");
+        assert_eq!(s.apply(e0), Some(&y), "{y}: {e0}");
+        assert_eq!(
+            s.apply(e1),
+            Some(&if y < 9 { y + 1 } else { y }),
+            "{y}: {e1}"
+        );
+    }
+}

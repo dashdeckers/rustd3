@@ -7,6 +7,8 @@ mod colorbar;
 mod draw;
 mod figure;
 mod fit;
+#[cfg(feature = "fonts")]
+mod foreign;
 #[cfg(all(feature = "gif", feature = "fonts"))]
 mod gif;
 mod handles;
@@ -14,6 +16,8 @@ mod hatch;
 #[cfg(feature = "helpers")]
 mod helpers;
 mod hit;
+#[cfg(feature = "fonts")]
+mod hostile;
 mod layout;
 mod legend;
 mod list;

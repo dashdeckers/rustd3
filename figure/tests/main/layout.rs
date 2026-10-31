@@ -136,6 +136,131 @@ fn a_missing_gap_is_one_em() {
 }
 
 #[test]
+fn weights_and_gaps_that_are_not_finite_lengths_take_the_defaults() {
+    let areas = |grid: Grid| {
+        let mut fig = Figure::new();
+        fig.layout(grid);
+        fig.panel(0, 0);
+        fig.panel(1, 1);
+        resolve(&fig, &Held::default()).plot_areas().to_vec()
+    };
+    let plain = areas(Grid::new());
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -1.0] {
+        let weighed = areas(Grid::new().rows([bad, 1.0]).cols([1.0, bad]));
+        assert_eq!(weighed, plain, "weight {bad}");
+    }
+    // Equal weights split equally, however small or large.
+    for equal in [5e-324, f64::MAX] {
+        let weighed = areas(Grid::new().rows([equal, equal]).cols([equal, equal]));
+        assert_eq!(weighed, plain, "weights {equal}");
+    }
+    for bad in [f64::NAN, f64::INFINITY] {
+        let gapped = areas(Grid::new().row_gaps([em(bad)]).col_gaps([px(bad)]));
+        assert_eq!(gapped, plain, "gap {bad}");
+    }
+    // Finite in em, infinite in px.
+    assert_eq!(areas(Grid::new().row_gaps([em(1e308)])), plain);
+}
+
+#[cfg(feature = "fonts")]
+#[test]
+fn a_size_that_is_not_finite_and_positive_leaves_no_room() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    fig.panel(0, 0)
+        .mark(rustd3_figure::mark::histogram([1.0, 2.0, 2.0], x, y))
+        .axis(axis::bottom(x));
+    for size in [
+        Size::new(-640.0, 480.0),
+        Size::new(640.0, f64::NAN),
+        Size::new(f64::INFINITY, 480.0),
+    ] {
+        let resolved = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
+        let area = resolved.plot_areas()[0];
+        assert!(
+            [area.x0, area.y0, area.x1, area.y1]
+                .iter()
+                .all(|v| v.is_finite())
+                && area.width() >= 0.0
+                && area.height() >= 0.0,
+            "{size:?}: {area:?}"
+        );
+        let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
+        assert!(
+            list.size.width >= 0.0 && list.size.height >= 0.0,
+            "{size:?}"
+        );
+        let issues = fig.check(size);
+        assert!(
+            issues
+                .iter()
+                .any(|i| matches!(i, rustd3_figure::check::Issue::NoRoom { .. })),
+            "{size:?}: {issues:?}"
+        );
+    }
+}
+
+#[test]
+fn a_span_that_negative_gaps_pull_back_is_empty_not_inverted() {
+    // Reaches that leave no room, and a negative gap that pulls the second
+    // column back past the start of the first.
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.layout(Grid::new().col_gaps([px(-400.0)]));
+    fig.panel(0, 0).axis(axis::left(y).outward(600.0));
+    fig.panel_at(Cell::new(1, 0).span(1, 2));
+    let areas = resolve(&fig, &Held::default()).plot_areas().to_vec();
+    assert!(areas.iter().all(|a| a.width() >= 0.0), "{areas:?}");
+}
+
+#[test]
+fn an_outward_offset_that_is_not_finite_is_ignored() {
+    let areas = |outward: Option<f64>| {
+        let mut fig = Figure::new();
+        let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+        let bottom = axis::bottom(x);
+        fig.panel(0, 0).axis(match outward {
+            Some(px) => bottom.outward(px),
+            None => bottom,
+        });
+        resolve(&fig, &Held::default()).plot_areas().to_vec()
+    };
+    for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert_eq!(areas(Some(bad)), areas(None), "{bad}");
+    }
+}
+
+#[cfg(feature = "fonts")]
+#[test]
+fn a_cell_past_the_grids_tracks_is_reported_and_not_drawn() {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    fig.panel(0, 0).axis(axis::bottom(x));
+    fig.panel(usize::MAX, 0).axis(axis::bottom(x));
+    fig.panel_at(Cell::new(1, 1).span(usize::MAX, 1));
+    fig.panel(4096, 0);
+    fig.panel(4096, 0);
+    let resolved = resolve(&fig, &Held::default());
+    assert_eq!(resolved.plot_areas().len(), 1);
+    let outside: Vec<_> = fig
+        .check(Size::new(640.0, 480.0))
+        .into_iter()
+        .filter_map(|issue| {
+            if let rustd3_figure::check::Issue::OutsideGrid { row, col } = issue {
+                Some((row, col))
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(outside, [(usize::MAX, 0), (1, 1), (4096, 0)]);
+    let mut last = Figure::new();
+    last.panel(4095, 4095);
+    assert_eq!(resolve(&last, &Held::default()).plot_areas().len(), 1);
+}
+
+#[test]
 fn weights_without_panels_still_take_their_share() {
     let mut fig = Figure::new();
     fig.layout(Grid::new().cols([1.0, 1.0]).col_gaps([em(0.0)]));
@@ -191,20 +316,20 @@ fn one_panel_reaches_by_its_axes_ticks_pads_and_widest_or_tallest_labels() {
         p.axis(axis::left(y)).axis(axis::bottom(x));
     });
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(x).get_domain(), [-0.5, 10.5]);
+    assert_eq!(r.scale(x).unwrap().get_domain(), [-0.5, 10.5]);
     assert_eq!(
-        labels(r.scale(x)),
+        labels(r.scale(x).unwrap()),
         (0..=10).map(|i| i.to_string()).collect::<Vec<_>>()
     );
     assert_eq!(
-        r.scale(y).get_domain().map(|v| format!("{v:.2}")),
+        r.scale(y).unwrap().get_domain().map(|v| format!("{v:.2}")),
         ["-0.15", "3.15"]
     );
     assert_eq!(
-        r.scale(y).tick_set(10).values(),
+        r.scale(y).unwrap().tick_set(10).values(),
         [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     );
-    assert_eq!(labels(r.scale(y))[0], "0.0");
+    assert_eq!(labels(r.scale(y).unwrap())[0], "0.0");
     let area = r.plot_areas()[0];
     // left: 8 + 4.667 + 23.325 ("0.0"); bottom: 8 + 4.667 + 14.667 (the
     // line box, which holds the digits' ink).

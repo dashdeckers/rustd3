@@ -51,7 +51,9 @@ fn entries<S>(
 where
     S: Kind<Domain = f64> + Ticks<Domain = f64>,
 {
-    let scale = resolved.scale(handle);
+    let Some(scale) = resolved.scale(handle) else {
+        return Vec::new();
+    };
     let set = Ticks::tick_set(scale, count);
     let chosen = values.map_or_else(|| set.values().to_vec(), <[f64]>::to_vec);
     let inside: Vec<f64> = match Kind::domain(scale) {

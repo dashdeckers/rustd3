@@ -44,6 +44,9 @@ const NODES_PER_BANDWIDTH: f64 = 128.0;
 /// kernel, exp(−u²/2), is below 1e-297 and adds nothing an `f64` keeps.
 const REACH: f64 = 37.0;
 
+/// The most points a grid has: 2³¹ or more are not allocated.
+const MOST_POINTS: usize = i32::MAX as usize;
+
 /// The most nodes a binned grid takes (32 MiB of counts); values spread
 /// over more bandwidths than that allows are estimated exactly.
 const MOST_NODES: usize = 1 << 22;
@@ -84,7 +87,8 @@ impl Kde {
     /// (numpy's `linspace`, both ends included) and the density at each:
     /// seaborn's grid, which `density_y` takes at 200 points and `cut = 3`.
     /// [`exact`](Kde::exact) for at most [`Kde::BINNED`] values,
-    /// [`binned`](Kde::binned) above.
+    /// [`binned`](Kde::binned) above. Empty for 2³¹ points or more, as
+    /// every grid of this type is: such a grid is not allocated.
     pub fn grid(&self, points: usize, cut: f64) -> Vec<(f64, f64)> {
         if self.values.len() > Kde::BINNED {
             self.binned(points, cut)
@@ -163,6 +167,9 @@ impl Kde {
     /// `points` positions evenly spaced over `[min − cut·h, max + cut·h]`,
     /// both ends included.
     fn support(&self, points: usize, cut: f64) -> Vec<f64> {
+        if points > MOST_POINTS {
+            return Vec::new();
+        }
         let [min, max] = self.extent;
         let (start, stop) = (min - cut * self.h, max + cut * self.h);
         let step = (stop - start) / points.saturating_sub(1).max(1) as f64;
@@ -259,6 +266,16 @@ mod tests {
         for kde in [&at, &above] {
             let worst = worst(kde);
             assert!(worst <= 1e-3, "{worst}");
+        }
+    }
+
+    #[test]
+    fn a_grid_of_an_enormous_count_is_empty() {
+        let kde = Kde::new([1.0, 2.0, 4.0]).expect("values that vary");
+        for points in [1 << 31, usize::MAX] {
+            assert!(kde.grid(points, 3.0).is_empty());
+            assert!(kde.exact(points, 3.0).is_empty());
+            assert!(kde.binned(points, 3.0).is_empty());
         }
     }
 

@@ -153,7 +153,7 @@ fn a_vertical_density_fills_from_zero_width_out_to_its_peak() {
     fig.panel(0, 0)
         .mark(density_y(X, y, width).fill(color, "b"));
     let resolved = resolve(&fig, &Held::default());
-    let dy = resolved.scale(y).get_domain();
+    let dy = resolved.scale(y).unwrap().get_domain();
     assert!(
         (dy[0] - 0.56).abs() < 1e-12 && (dy[1] - 14.64).abs() < 1e-12,
         "{dy:?}"

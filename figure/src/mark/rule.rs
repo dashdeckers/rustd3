@@ -142,8 +142,8 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
         let width = self.width.unwrap_or(theme.get_line_width());
         let (pos, length) = match self.along {
-            Along::X => (at(&ctx.x(self.scale), &self.value), w),
-            Along::Y => (at(&ctx.y(self.scale), &self.value), h),
+            Along::X => (ctx.x(self.scale).and_then(|s| at(&s, &self.value)), w),
+            Along::Y => (ctx.y(self.scale).and_then(|s| at(&s, &self.value)), h),
         };
         let Some(pos) = pos.filter(|p| (-width / 2.0..=length + width / 2.0).contains(p)) else {
             return;
@@ -178,7 +178,10 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
 
     /// A value outside a band or point domain, which draws nothing.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-        if ctx.scale(self.scale).position(&self.value).is_none() {
+        if ctx
+            .scale(self.scale)
+            .is_some_and(|s| s.position(&self.value).is_none())
+        {
             issues.push(Issue::OutsideDomain {
                 handle: self.scale.index(),
                 count: 1,

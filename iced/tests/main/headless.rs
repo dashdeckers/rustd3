@@ -139,6 +139,31 @@ impl<'a, Message: 'a> Harness<'a, Message> {
         ));
     }
 
+    /// Rebuilds the interface from `root` at logical size `size`, as the
+    /// runtime does after a window resize: widget state carries over.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
+    pub fn resize(&mut self, root: impl iced::Widget<Message> + 'a, size: Size) {
+        self.size = size;
+        self.rebuild(root);
+    }
+
+    /// Draws the interface as it is, without a screenshot.
+    #[cfg(all(feature = "figure", feature = "fonts"))]
+    pub fn draw(&mut self) {
+        let ui = self
+            .ui
+            .as_mut()
+            .expect("invariant: the interface is only taken during a rebuild");
+        ui.draw(
+            &mut self.renderer,
+            &iced::Theme::Light,
+            &renderer::Style {
+                text_color: Color::BLACK,
+            },
+            self.cursor,
+        );
+    }
+
     /// Turns the interface into iced's cache, ending its borrow of the
     /// view, until [`Parked::resume`].
     #[cfg(all(feature = "figure", feature = "fonts"))]

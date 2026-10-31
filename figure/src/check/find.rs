@@ -54,6 +54,16 @@ impl Figure<'_> {
         }
         cache.end(frame.into_inner());
         issues.extend(per_handle(marks));
+        issues.extend(self.outside().iter().map(|cell| Issue::OutsideGrid {
+            row: cell.rows().start,
+            col: cell.cols().start,
+        }));
+        issues.extend(foreign(self, &resolved));
+        issues.extend(
+            self.categorical()
+                .iter()
+                .map(|&handle| Issue::CategoricalWindow { handle }),
+        );
         issues
     }
 }
@@ -95,6 +105,33 @@ fn room(resolved: &Resolved) -> Vec<Issue> {
             needed,
             available,
         })
+        .collect()
+}
+
+/// The handles of other figures given to the figure: per panel, those its
+/// axes, insets, zooms and brush were given and those its marks reported,
+/// in panel order; then those of figure slots. Each once per panel.
+fn foreign(figure: &Figure<'_>, resolved: &Resolved) -> Vec<Issue> {
+    let mut found: Vec<(Option<usize>, usize)> = Vec::new();
+    let mut add = |at: (Option<usize>, usize)| {
+        if !found.contains(&at) {
+            found.push(at);
+        }
+    };
+    for (panel, p) in figure.panels().iter().enumerate() {
+        for &handle in p.foreign() {
+            add((Some(panel), handle));
+        }
+        for &(_, handle) in resolved.foreign_marks().iter().filter(|(q, _)| *q == panel) {
+            add((Some(panel), handle));
+        }
+    }
+    for &handle in figure.foreign() {
+        add((None, handle));
+    }
+    found
+        .into_iter()
+        .map(|(panel, handle)| Issue::ForeignHandle { panel, handle })
         .collect()
 }
 

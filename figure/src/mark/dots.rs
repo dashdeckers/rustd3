@@ -176,7 +176,9 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     }
 
     /// Each dot's radius in px; by default half the theme's marker size.
-    /// A radius that is not finite and positive leaves it as it was.
+    /// A radius that is not finite and positive leaves it as it was. Radii,
+    /// these and `size_by`'s, are drawn at most three times the plot
+    /// area's larger side, the guard band's reach.
     pub fn r(self, px: f64) -> Self {
         Self {
             r: positive(px).or(self.r),
@@ -390,7 +392,10 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
 impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// Each dot's radius in px without `size_by`.
     fn radius(&self, ctx: &Ctx<'_>) -> f64 {
-        self.r.unwrap_or(ctx.theme().get_marker() / 2.0)
+        cap(
+            self.r.unwrap_or(ctx.theme().get_marker() / 2.0),
+            largest(ctx),
+        )
     }
 
     /// The error a channel keeps, `fill_by`'s first.
@@ -408,12 +413,15 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// a color and a finite radius when its channels give them, and at
     /// most its radius outside `area` (the panel's coordinates: the plot
     /// area, or the view a widget grows it to); none when a channel keeps
-    /// an error.
+    /// an error or a handle is of another figure.
     fn placed<'c>(&'c self, ctx: &Ctx<'_>, area: kurbo::Rect) -> impl Iterator<Item = Placed> + 'c {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let scales = ctx.x(self.x).zip(ctx.y(self.y));
         let r = self.radius(ctx);
+        let most = largest(ctx);
         let slot = self.color.slot(ctx).filter(|_| self.dodge);
-        let along_y = sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0;
+        let along_y = scales
+            .as_ref()
+            .is_some_and(|(sx, sy)| sx.bandwidth() == 0.0 && sy.bandwidth() > 0.0);
         // Unjittered dots skip the hash: 0.5 + 0 × (u − 0.5) is 0.5.
         let share = move |i: usize| {
             if self.jitter == 0.0 {
@@ -422,7 +430,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
                 0.5 + self.jitter * (jitter(i) - 0.5)
             }
         };
-        let count = if self.error().is_some() {
+        let count = if self.error().is_some() || scales.is_none() {
             0
         } else {
             self.points.len()
@@ -442,18 +450,19 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
             .enumerate()
             .take(count)
             .filter_map(move |(i, (a, b))| {
+                let (sx, sy) = scales.as_ref()?;
                 let fill = match &fills {
                     Some(fills) => Some(fills.get(i).copied().flatten()?),
                     None => None,
                 };
                 let r = match &sizes {
-                    Some(sizes) => sizes.get(i).copied().flatten()?,
+                    Some(sizes) => cap(sizes.get(i).copied().flatten()?, most),
                     None => r,
                 };
                 let at = if along_y {
-                    Point::new(at(&sx, &a)?, across(&sy, &b, slot, share(i))?)
+                    Point::new(at(sx, &a)?, across(sy, &b, slot, share(i))?)
                 } else {
-                    Point::new(across(&sx, &a, slot, share(i))?, at(&sy, &b)?)
+                    Point::new(across(sx, &a, slot, share(i))?, at(sy, &b)?)
                 };
                 within(area.inflate(r.abs(), r.abs()), at).then_some(Placed {
                     index: i,
@@ -463,6 +472,19 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
                 })
             })
     }
+}
+
+/// The guard band's reach, three times the plot area's larger side: a
+/// dot that wide covers the band from anywhere it is drawn.
+fn largest(ctx: &Ctx<'_>) -> f64 {
+    let rect = ctx.rect();
+    3.0 * rect.width().abs().max(rect.height().abs())
+}
+
+/// `r` at most `most` in magnitude, keeping its sign, so that its circle
+/// is followed by a path of bounded length.
+fn cap(r: f64, most: f64) -> f64 {
+    if r.abs() > most { most.copysign(r) } else { r }
 }
 
 /// The paint table of `colors`, one per dot: their distinct 8-bit colors

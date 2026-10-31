@@ -98,9 +98,11 @@ impl Log {
                 a / self.pows(e)
             };
             let start = (below.floor() - 1.0).max(2.0);
-            for m in (0_u32..)
+            // Past 2^53 a step of one no longer moves m: such a base has no
+            // further distinct multiples to offer.
+            for m in (0_u32..u32::MAX)
                 .map(|i| start + f64::from(i))
-                .take_while(|&m| m < self.base)
+                .take_while(|&m| m < self.base && m + 1.0 > m)
             {
                 let t = decade(m);
                 if t <= a {

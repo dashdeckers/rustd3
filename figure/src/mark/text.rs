@@ -112,7 +112,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
     /// is placed on both scales and lies within the guard band around the
     /// plot area; nothing otherwise, or when typst rejected the text.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = ctx.band();
         let Some(p) = at(&sx, &self.at.0).zip(at(&sy, &self.at.1)) else {
             return;
@@ -128,8 +130,12 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
 
     /// A point outside a band or point domain, which draws nothing.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
-        let across = ctx.scale(self.x).position(&self.at.0).is_none();
-        let up = ctx.scale(self.y).position(&self.at.1).is_none();
+        let across = ctx
+            .scale(self.x)
+            .is_some_and(|s| s.position(&self.at.0).is_none());
+        let up = ctx
+            .scale(self.y)
+            .is_some_and(|s| s.position(&self.at.1).is_none());
         outside_count(self.x.index(), usize::from(across), issues);
         outside_count(self.y.index(), usize::from(up), issues);
     }

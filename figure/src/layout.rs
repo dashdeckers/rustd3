@@ -74,9 +74,10 @@ impl Length {
 
 /// The figure's grid: relative weights of rows and columns, and the gaps
 /// between neighbouring tracks, measured as the whitespace between their
-/// decorated boxes. A track without a weight weighs 1; a missing gap is
-/// `em(1.0)`. The grid has as many tracks as it has weights or as its
-/// panels need, whichever is more.
+/// decorated boxes. A track without a weight weighs 1, as does one whose
+/// weight is not a finite number of zero or more; a missing gap, or one
+/// that is not a finite length in px, is `em(1.0)`. The grid has as many
+/// tracks as it has weights or as its panels need, whichever is more.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Grid {
     rows: Vec<f64>,
@@ -94,7 +95,7 @@ impl Grid {
     /// The rows' relative heights, top to bottom.
     pub fn rows(self, weights: impl IntoIterator<Item = f64>) -> Self {
         Grid {
-            rows: weights.into_iter().collect(),
+            rows: weights.into_iter().map(weight).collect(),
             ..self
         }
     }
@@ -102,7 +103,7 @@ impl Grid {
     /// The columns' relative widths, left to right.
     pub fn cols(self, weights: impl IntoIterator<Item = f64>) -> Self {
         Grid {
-            cols: weights.into_iter().collect(),
+            cols: weights.into_iter().map(weight).collect(),
             ..self
         }
     }
@@ -144,9 +145,22 @@ impl Grid {
     }
 }
 
-/// The `tracks − 1` gaps of `gaps` in px, missing ones `em(1.0)`.
+/// A track's weight: `w`, or 1 when it is not a finite number of zero or
+/// more.
+fn weight(w: f64) -> f64 {
+    if w.is_finite() && w >= 0.0 { w } else { 1.0 }
+}
+
+/// The `tracks − 1` gaps of `gaps` in px; missing ones, and ones that are
+/// not finite in px, `em(1.0)`.
 fn gaps_px(gaps: &[Length], tracks: usize, em: f64) -> Vec<f64> {
+    let default = Length::Em(1.0).to_px(em);
     (0..tracks.saturating_sub(1))
-        .map(|i| gaps.get(i).copied().unwrap_or(Length::Em(1.0)).to_px(em))
+        .map(|i| {
+            gaps.get(i)
+                .map(|gap| gap.to_px(em))
+                .filter(|px| px.is_finite())
+                .unwrap_or(default)
+        })
         .collect()
 }

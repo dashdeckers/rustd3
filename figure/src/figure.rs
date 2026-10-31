@@ -55,9 +55,9 @@ pub(crate) struct Id(u64);
 /// # #[cfg(feature = "fonts")] {
 /// let mut cache = rustd3_figure::Cache::default();
 /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), Target::Vector);
-/// assert_eq!(r.scale(x).get_domain(), [0.0, 10.0]);
+/// assert_eq!(r.scale(x).map(|s| s.get_domain()), Some([0.0, 10.0]));
 /// // No mark gives y data: core's empty domain.
-/// assert_eq!(r.scale(y).get_domain(), [0.0, 1.0]);
+/// assert_eq!(r.scale(y).map(|s| s.get_domain()), Some([0.0, 1.0]));
 /// assert_eq!(r.plot_areas().len(), 1);
 /// # }
 /// ```
@@ -65,6 +65,15 @@ pub struct Figure<'a> {
     id: Id,
     scales: Vec<Entry>,
     panels: Vec<Panel<'a>>,
+    /// The cells asked for past the grid's tracks, and the panel that
+    /// stands in for them, never laid out or drawn.
+    outside: Vec<Cell>,
+    detached: Option<Box<Panel<'a>>>,
+    /// The positions of the handles of other figures given to figure
+    /// slots, and of handles fitted with `Fit::Window` on a categorical
+    /// scale.
+    foreign: Vec<usize>,
+    categorical: Vec<usize>,
     grid: Grid,
     title: Option<Text>,
     theme: Theme,
@@ -96,6 +105,10 @@ impl<'a> Figure<'a> {
             id: Id(NEXT.fetch_add(1, Ordering::Relaxed)),
             scales: Vec::new(),
             panels: Vec::new(),
+            outside: Vec::new(),
+            detached: None,
+            foreign: Vec::new(),
+            categorical: Vec::new(),
             grid: Grid::default(),
             title: None,
             theme: Theme::default(),
@@ -129,7 +142,8 @@ impl<'a> Figure<'a> {
     /// the column count it fitted with is the one it laid out (the last
     /// count is remembered in the [`Cache`], so a layout that did not move
     /// takes one pass). `Fit::Window(())` on a categorical scale (span
-    /// `()`) means nothing, and debug builds panic on it.
+    /// `()`) means nothing: the handle fits as `Fit::All`, and
+    /// [`check`](Figure::check) reports it.
     ///
     /// ```
     /// use rustd3_core::scale;
@@ -150,7 +164,7 @@ impl<'a> Figure<'a> {
     /// let mut cache = rustd3_figure::Cache::default();
     /// let target = Target::Screen { scale: 1.0 };
     /// let r = fig.resolve(Size::new(640.0, 480.0), &mut cache, &Held::default(), target);
-    /// let [left, right] = r.scale(t).get_domain();
+    /// let [left, right] = r.scale(t).expect("a handle of this figure").get_domain();
     /// assert!(right >= 19.99 && (right - left - 5.0).abs() < 1e-9);
     /// # }
     /// # Ok::<(), rustd3_core::series::Error>(())
@@ -164,21 +178,23 @@ impl<'a> Figure<'a> {
     /// scale type, so panning does not make it flicker. Used as x, or over
     /// an x that is itself `Fit::Visible`, it fits all its data.
     pub fn fit_with<S: Fittable>(&mut self, s: S, fit: Fit<S::Span>) -> ScaleRef<S> {
-        debug_assert!(
-            !(matches!(fit, Fit::Window(_)) && TypeId::of::<S::Span>() == TypeId::of::<()>()),
-            "Fit::Window on a categorical scale"
-        );
+        let categorical =
+            matches!(fit, Fit::Window(_)) && TypeId::of::<S::Span>() == TypeId::of::<()>();
         let visible = matches!(fit, Fit::Visible);
         let window = match fit {
-            Fit::Window(span) => window::span(span),
-            Fit::All | Fit::Visible => None,
+            Fit::Window(span) if !categorical => window::span(span),
+            Fit::Window(_) | Fit::All | Fit::Visible => None,
         };
-        self.add(Entry {
+        let h = self.add(Entry {
             scale: Box::new(s),
             fitter: Some(fits::Fitter::of::<S>()),
             visible,
             window,
-        })
+        });
+        if categorical {
+            self.categorical.push(h.index());
+        }
+        h
     }
 
     /// The panel in grid cell `(row, col)`, made on first use; panels keep
@@ -190,12 +206,22 @@ impl<'a> Figure<'a> {
 
     /// The panel spanning `at`, made on first use: the same cell and span
     /// give the same panel. Panels whose cells overlap are laid out over
-    /// each other.
+    /// each other. A cell reaching past the grid's 4,096 tracks a side
+    /// gives a panel that is never laid out or drawn, which
+    /// [`check`](Figure::check) reports.
     pub fn panel_at(&mut self, at: Cell) -> &mut Panel<'a> {
+        if !at.within() {
+            if !self.outside.contains(&at) {
+                self.outside.push(at.clone());
+            }
+            return self
+                .detached
+                .get_or_insert_with(|| Box::new(Panel::new(self.id, at)));
+        }
         let i = match self.panels.iter().position(|p| *p.cell() == at) {
             Some(i) => i,
             None => {
-                self.panels.push(Panel::new(at));
+                self.panels.push(Panel::new(self.id, at));
                 self.panels.len() - 1
             }
         };
@@ -243,10 +269,43 @@ impl<'a> Figure<'a> {
     /// as a row centred on the plot areas above or below it, a column
     /// beside it; a colorbar along the side, as long as the plot areas
     /// beside it. Guides in one slot stack outward in the order they are
-    /// added.
+    /// added. A guide of a handle of another figure is not placed, and
+    /// [`check`](Figure::check) reports the handle.
     pub fn legend(&mut self, slot: Slot, g: impl legend::Guide<'a>) -> &mut Self {
-        self.legends.push((slot, g.erase().0));
+        let stored = g.erase().0;
+        let [h] = stored.handles();
+        if h.of(self.id).is_some() {
+            self.legends.push((slot, stored));
+        } else if !self.foreign.contains(&h.index()) {
+            self.foreign.push(h.index());
+        }
         self
+    }
+
+    /// The positions of the handles of other figures given to figure
+    /// slots, each once.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(dead_code, reason = "fig.check reads it, and needs fonts")
+    )]
+    pub(crate) fn foreign(&self) -> &[usize] {
+        &self.foreign
+    }
+
+    /// The handles fitted with `Fit::Window` on a categorical scale, as
+    /// `Fit::All`.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(dead_code, reason = "fig.check reads it, and needs fonts")
+    )]
+    pub(crate) fn categorical(&self) -> &[usize] {
+        &self.categorical
+    }
+
+    /// Whether handle `h` is of this figure: a handle of another figure
+    /// finds no scale here, and what uses it draws nothing.
+    pub fn owns<S>(&self, h: ScaleRef<S>) -> bool {
+        h.of(self.id).is_some()
     }
 
     /// The guides in figure slots, in the order they were added.
@@ -257,6 +316,16 @@ impl<'a> Figure<'a> {
     /// The panels, in the order of their first use.
     pub(crate) fn panels(&self) -> &[Panel<'a>] {
         &self.panels
+    }
+
+    /// The cells asked for past the grid's tracks, in the order first
+    /// asked.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(dead_code, reason = "fig.check reads it, and needs fonts")
+    )]
+    pub(crate) fn outside(&self) -> &[Cell] {
+        &self.outside
     }
 
     /// The grid.

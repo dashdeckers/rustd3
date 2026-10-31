@@ -46,7 +46,7 @@ fn fill_by_colors_each_dot_into_one_markers_command_with_a_paint_table() {
     assert_eq!(sizes, None);
     let r = resolve(&fig, &Held::default());
     let color = |v: f64| {
-        let c = r.scale(heat).paint(&v).expect("a color");
+        let c = r.scale(heat).unwrap().paint(&v).expect("a color");
         solid(c.with_opacity(0.5))
     };
     assert_eq!(
@@ -69,7 +69,10 @@ fn fill_by_fits_a_fitted_color_handle_to_its_values() {
     let heat = fig.fit(scale::sequential([0.0, 1.0], scheme::viridis));
     fig.panel(0, 0)
         .mark(dots([(0.0, 0.0), (1.0, 1.0)], x, y).fill_by(heat, [2.0, 8.0]));
-    let domain = resolve(&fig, &Held::default()).scale(heat).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(heat)
+        .unwrap()
+        .get_domain();
     assert_eq!(domain, [2.0, 8.0]);
 }
 
@@ -101,6 +104,27 @@ fn size_by_stamps_a_unit_circle_at_per_point_radii_and_skips_sizes_that_are_not_
     );
     assert_eq!(paints, None);
     assert_eq!(paint, solid(COLORBLIND[0]));
+}
+
+#[test]
+fn radii_are_drawn_at_most_three_times_the_plot_areas_larger_side() {
+    let (mut fig, x, y) = fitted();
+    let radius = fig.scale(scale::linear().domain([0.0, 1.0]).range([0.0, 1e300]));
+    fig.panel(0, 0)
+        .mark(dots([(0.0, 0.0), (1.0, 1.0)], x, y).size_by(radius, [1.0, -1.0]))
+        .mark(dots([(0.0, 0.0)], x, y).r(f64::MAX));
+    let list = draw(&fig);
+    let area = resolve(&fig, &Held::default()).plot_areas()[0];
+    let most = 3.0 * area.width().max(area.height());
+    let markers: Vec<_> = marked(&list);
+    let Command::Markers { sizes, .. } = &markers[0] else {
+        panic!("markers");
+    };
+    assert_eq!(sizes.as_deref(), Some(&[most, -most][..]));
+    let Command::Markers { shape, .. } = &markers[1] else {
+        panic!("markers");
+    };
+    assert!((shape.bounding_box().width() - 2.0 * most).abs() < 1e-6 * most);
 }
 
 #[test]
@@ -143,7 +167,10 @@ fn a_channel_of_another_length_draws_and_fits_nothing_until_replaced() {
         })
         .collect();
     assert_eq!(counts, [2, 2], "the mismatched mark draws nothing");
-    let domain = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let domain = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert_eq!(domain, [-0.05, 1.05], "nor does it fit");
     #[cfg(feature = "fonts")]
     {

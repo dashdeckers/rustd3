@@ -68,8 +68,9 @@ impl Figure<'_> {
     /// returned for `cache` after a [`Cache::begin`]: what
     /// [`draw_with`](Figure::draw_with) emits after it resolves, for a
     /// caller that also reads the resolved figure (plot areas, cell edges,
-    /// hits) and so resolves once. Debug builds panic for a `Resolved` of
-    /// another figure.
+    /// hits) and so resolves once. A `Resolved` of another figure is not
+    /// drawn from: this figure is resolved afresh at its size and target,
+    /// with nothing held.
     ///
     /// ```
     /// use rustd3_core::scale;
@@ -89,7 +90,10 @@ impl Figure<'_> {
     /// # }
     /// ```
     pub fn draw_resolved(&self, cache: &mut Cache, resolved: &Resolved) -> List {
-        debug_assert!(resolved.figure() == self.id, "a Resolved of another figure");
+        if resolved.figure() != self.id {
+            let own = self.resolve(resolved.size(), cache, &Held::default(), resolved.target());
+            return self.draw_resolved(cache, &own);
+        }
         let size = resolved.size();
         let mut list = List {
             size,

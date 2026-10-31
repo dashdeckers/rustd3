@@ -170,6 +170,13 @@ fn quantize_samples_both_ends() {
 }
 
 #[test]
+fn quantize_allocates_no_enormous_length() {
+    assert!(interpolate::quantize(|t| t, usize::MAX).is_empty());
+    assert!(interpolate::quantize(|t| t, 1 << 31).is_empty());
+    assert_eq!(interpolate::quantize(|t| t, 1).len(), 1);
+}
+
+#[test]
 fn round_halfway_between_20_and_10_is_15() {
     assert_eq!(interpolate::round(20.0, 10.0)(0.5), 15.0);
 }

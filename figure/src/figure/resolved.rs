@@ -54,6 +54,9 @@ pub struct Resolved {
     grids: HashMap<usize, thin::Grid>,
     /// How far plot areas reach past the view, list px, as held.
     overscan: f64,
+    /// The (panel, handle position) of the handles of other figures marks
+    /// reported.
+    foreign: Vec<(usize, usize)>,
 }
 
 impl Resolved {
@@ -87,15 +90,23 @@ impl Resolved {
             keys: Rc::from([]),
             grids: HashMap::new(),
             overscan: 0.0,
+            foreign: Vec::new(),
         }
     }
 
-    /// The resolved scale behind a handle, before any panel's range.
-    pub fn scale<S: Kind>(&self, h: ScaleRef<S>) -> &S {
-        self.scales[h.of(self.figure)]
-            .as_any()
-            .downcast_ref()
-            .expect("invariant: a handle's scale has the handle's type")
+    /// The resolved scale behind a handle, before any panel's range;
+    /// `None` for a handle of another figure.
+    pub fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
+        self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
+    }
+
+    /// The resolved scale behind a handle of an axis, guide or brush the
+    /// figure placed: [`Panel`]'s and [`Figure`](crate::Figure)'s
+    /// placement drops those on handles of other figures, and a `Resolved`
+    /// is drawn only for its own figure.
+    pub(crate) fn own<S: Kind>(&self, h: ScaleRef<S>) -> &S {
+        self.scale(h)
+            .expect("invariant: placed axes, guides and brushes are on their figure's handles")
     }
 
     /// The resolved scale at position `index` of the table, its type
@@ -129,13 +140,10 @@ impl Resolved {
 
     /// (row, col) of a flat panel index, as `hit::Hit::panel` reports it:
     /// the first row and column of the panel's grid cell (panels are
-    /// numbered in the order of their first use, not row by row).
-    ///
-    /// # Panics
-    ///
-    /// For a panel index the figure does not have.
-    pub fn panel_cell(&self, panel: usize) -> (usize, usize) {
-        self.cells[panel]
+    /// numbered in the order of their first use, not row by row); `None`
+    /// for a panel the figure does not have.
+    pub fn panel_cell(&self, panel: usize) -> Option<(usize, usize)> {
+        self.cells.get(panel).copied()
     }
 
     /// The brush placed on panel `panel` ([`Panel::brush`]); `None` for a
@@ -263,11 +271,8 @@ impl Resolved {
             .iter()
             .map(|p| (p.cell().rows().start, p.cell().cols().start))
             .collect();
-        self.brushes = panels
-            .iter()
-            .map(|p| p.brushing().map(|b| b.of(self.figure)))
-            .collect();
-        self.zooms = panels.iter().map(|p| p.zooms(self.figure)).collect();
+        self.brushes = panels.iter().map(|p| p.brushing().copied()).collect();
+        self.zooms = panels.iter().map(Panel::zooms).collect();
         self.axes = panels
             .iter()
             .map(|p| p.axes().iter().map(|a| (a.orient(), a.handle())).collect())
@@ -294,6 +299,22 @@ impl Resolved {
     /// Sets the palette keys marks reported drawing in.
     pub(super) fn keyed(&mut self, keys: Rc<[Reported]>) {
         self.keys = keys;
+    }
+
+    /// Sets the (panel, handle position) of the handles of other figures
+    /// the figure's marks reported.
+    pub(super) fn foreign(&mut self, foreign: Vec<(usize, usize)>) {
+        self.foreign = foreign;
+    }
+
+    /// The (panel, handle position) of the handles of other figures the
+    /// figure's marks reported, each once.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(dead_code, reason = "fig.check reads it, and needs fonts")
+    )]
+    pub(crate) fn foreign_marks(&self) -> &[(usize, usize)] {
+        &self.foreign
     }
 
     /// The hatch of the first mark that reported one for palette `palette`

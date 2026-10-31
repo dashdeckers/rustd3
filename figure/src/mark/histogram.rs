@@ -217,7 +217,9 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
     /// A fill key the palette lacks; values outside a band or point domain.
     fn issues(&self, ctx: &Ctx<'_>, issues: &mut Vec<Issue>) {
         super::unknown(&self.color, ctx, issues);
-        let sx = ctx.scale(self.x);
+        let Some(sx) = ctx.scale(self.x) else {
+            return;
+        };
         let outside: f64 = self
             .bars
             .iter()
@@ -234,7 +236,9 @@ impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// from 0 up to its count along y, clamped to the guard band; bars
     /// that cannot be placed are skipped, all of them when 0 cannot be.
     fn placed(&self, ctx: &Ctx<'_>) -> Vec<(usize, [f64; 2], [f64; 2])> {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return Vec::new();
+        };
         let w = ctx.rect().width();
         let band = ctx.band();
         let Some(base) = reach(&sy, 0.0, [band.y0, band.y1]) else {

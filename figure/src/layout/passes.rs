@@ -536,9 +536,11 @@ fn place(figure: &Figure<'_>, inner: Rect, reaches: &[Reach], snap: Snap) -> Pla
         [fixed(&col_reach, &col_gaps), inner.width()],
         [fixed(&row_reach, &row_gaps), inner.height()],
     ];
+    // A span whose tracks negative gaps or reaches pull back over each
+    // other is empty, never inverted.
     let span = |tracks: &[[f64; 2]], range: std::ops::Range<usize>| {
         let ([start, _], [last, length]) = (tracks[range.start], tracks[range.end - 1]);
-        [start, last + length]
+        [start, (last + length).max(start)]
     };
     let areas = panels
         .iter()

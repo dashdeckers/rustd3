@@ -8,9 +8,10 @@ use crate::figure;
 
 /// A typed handle to a scale in a figure's table: `Copy`, so one handle is
 /// placed on every mark and axis that should agree. Its type recovers the
-/// concrete scale at draw time. A handle carries its figure's id; using it
-/// with another figure panics in debug builds ("handle from another
-/// figure").
+/// concrete scale at draw time. A handle carries its figure's id: used
+/// with another figure it finds no scale, what uses it draws nothing, and
+/// [`Figure::check`](crate::Figure::check) reports it
+/// ([`Issue::ForeignHandle`](crate::check::Issue::ForeignHandle)).
 pub struct ScaleRef<S> {
     figure: figure::Id,
     index: u32,
@@ -66,11 +67,9 @@ impl<S> ScaleRef<S> {
     }
 
     /// The position in figure `figure`'s table: every use of a handle goes
-    /// through here. Debug builds panic for a handle of another figure;
-    /// release builds skip the check.
-    pub(crate) fn of(self, figure: figure::Id) -> usize {
-        debug_assert!(self.figure == figure, "handle from another figure");
-        self.index()
+    /// through here. `None` for a handle of another figure.
+    pub(crate) fn of(self, figure: figure::Id) -> Option<usize> {
+        (self.figure == figure).then(|| self.index())
     }
 
     /// The same handle without its scale type, for lists of handles of

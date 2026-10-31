@@ -73,6 +73,47 @@ The first release.
   that pans move by whole device pixels, a render pool and a cost model
   fitted on the machine it runs on.
 
+### Robustness
+
+Property tests feed every scale, format, generator, interpolator,
+figure and the widget NaN, infinities, −0.0, subnormals, 1e±300, empty
+and single values, reversed and zero-width domains and counts up to
+`usize::MAX`, and none of it panics. Where an input has no meaning, the
+rule is:
+
+- An asinh scale ticks a zero-width domain once; log minor ticks of a
+  base beyond 2⁵³ end where its multiples stop moving.
+- `interpolate::quantize` and `stats::Kde`'s grids give nothing for
+  2³¹ samples or more, as `array::range` does.
+- A grid weight that is not a finite number of zero or more weighs 1,
+  and a gap that is not a finite length is `em(1.0)`, as missing ones
+  are; weights split the room by their ratios however small or large.
+- A figure size side that is not a finite number of zero or more is 0:
+  the figure has no room, and `fig.check` reports `NoRoom`.
+- A spanning panel's plot area is empty, never inverted, when negative
+  gaps pull its tracks back over each other.
+- `axis.outward(px)` ignores a `px` that is not finite.
+- Dot radii are drawn at most three times the plot area's larger side,
+  the guard band's reach.
+- The grid has at most 4,096 tracks a side: a panel in a cell past them
+  is not laid out or drawn, and `fig.check` reports
+  `check::Issue::OutsideGrid`.
+- `raster::Renderer::render` with bounds of another list is
+  `raster::Error::Bounds`.
+- `Resolved::panel_cell` returns `None` for a panel the figure lacks.
+- A scale handle of another figure finds no scale: `Resolved::scale` and
+  `mark::Ctx::x`, `y` and `raw` return `Option`, the marks, axes, guides,
+  zooms, brushes and widget listeners given one draw or do nothing, and
+  `fig.check` reports `check::Issue::ForeignHandle`; `Figure::owns` tells
+  whether a handle is the figure's. `draw_resolved` resolves afresh for a
+  `Resolved` of another figure. `Fit::Window` on a categorical scale fits
+  as `Fit::All` and is reported (`check::Issue::CategoricalWindow`).
+  `helpers::Subplots::x`, `y` and `panel` return `Option` outside the
+  grid.
+- The `Plot` widget takes a scale factor above 8 as 8, and renders a
+  widget wider or taller than 65,408 device px at the factor that fits
+  it.
+
 ### Benchmark (`rustd3-bench`, in the repository)
 
 - rustd3's benchmark, the plotting library and its widget: one entry

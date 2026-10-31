@@ -1208,3 +1208,33 @@ pub fn against_png(shot: &Shot, fig: &Figure<'_>, k: f32) -> rustd3_testkit::pix
     rustd3_testkit::pixels::Diff::between(&shot.image(), &png, 16)
         .expect("invariant: the shot has the PNG's size")
 }
+
+#[test]
+fn a_listener_on_a_handle_of_another_figure_is_not_added() {
+    let t0 = headless::epoch();
+    let k = 1.0;
+    let (fig, _, hy) = figure([0.0, 100.0], [0.0, 10.0]);
+    // The same table position and type in another figure.
+    let (other, ox, _) = figure([0.0, 1.0], [0.0, 1.0]);
+    assert!(!fig.owns(ox));
+    drop(other);
+    let area = areas(&fig, k)[0];
+    let plot = Plot::new(fig)
+        .scale_factor(k)
+        .render(Render::Inline)
+        .on_change(ox, Message::X)
+        .on_change(hy, Message::Y);
+    let Some(mut harness) = Harness::new(plot, SIZE, k) else {
+        return;
+    };
+    let _ = harness.frame(t0);
+    harness.point_at(Point::new(
+        (area.x0 + 0.5 * area.width()) as f32,
+        (area.y0 + 0.5 * area.height()) as f32,
+    ));
+    let _ = harness.events(&[lines(3.0)]);
+    let _ = harness.frame(t0 + FRAME);
+    let messages = harness.messages();
+    assert_eq!(domains(&messages).0, None, "{messages:?}");
+    assert!(domains(&messages).1.is_some(), "{messages:?}");
+}

@@ -243,7 +243,7 @@ fn a_hist_holds_its_base_and_draws_bars_or_its_outline() {
         .mark(hist(X, x, y).bins(Bins::Count(5)))
         .mark(hist(X, x, y).bins(Bins::Count(5)).step(true));
     let r = resolve(&fig, &Held::default());
-    let [lo, hi] = r.scale(y).get_domain();
+    let [lo, hi] = r.scale(y).unwrap().get_domain();
     assert_eq!(lo, 0.0, "held at 0");
     assert!(near(hi, 7.0 * 1.05));
     let list = draw(&fig);

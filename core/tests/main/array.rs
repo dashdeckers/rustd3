@@ -163,3 +163,34 @@ fn infinite_or_missing_values_bin_as_d3_without_hanging() {
         assert!(x0.is_nan() && x1.is_nan() && n == 0);
     }
 }
+
+/// d3-array's `bin-test.js` "bin(data) assigns floating point values to
+/// the correct bins", which the translator skips (a `for…of` loop): n
+/// bins over `ticks(1, 2, n)` hold one value each. From n = 10,000 the
+/// 10,000-tick ceiling applies: `ticks` gives no values, and over the
+/// same 10,001 values (k / n for k from n to 2n, as d3 computes them) the
+/// thresholds are capped too, so one bucket holds them all where d3 has
+/// one per value.
+#[test]
+fn floating_point_ticks_land_one_per_bin() {
+    for n in [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000] {
+        let values = rustd3_core::ticks::ticks(1.0, 2.0, f64::from(n));
+        let buckets = array::bin()
+            .thresholds(array::bin::Thresholds::Count(usize::try_from(n).unwrap()))
+            .layout(&values);
+        assert!(
+            buckets.iter().all(|b| b.indices.len() == 1),
+            "{n} bins: {:?}",
+            buckets.iter().map(|b| b.indices.len()).collect::<Vec<_>>()
+        );
+    }
+    for n in [10_000, 20_000, 50_000] {
+        assert!(rustd3_core::ticks::ticks(1.0, 2.0, f64::from(n)).is_empty());
+        let values: Vec<f64> = (n..=2 * n).map(|k| f64::from(k) / f64::from(n)).collect();
+        let buckets = array::bin()
+            .thresholds(array::bin::Thresholds::Count(usize::try_from(n).unwrap()))
+            .layout(&values);
+        assert_eq!(buckets.len(), 1, "{n}");
+        assert_eq!(buckets[0].indices.len(), values.len(), "{n}");
+    }
+}

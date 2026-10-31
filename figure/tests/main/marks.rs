@@ -102,6 +102,7 @@ fn a_dot_at_nan_is_dropped_and_y_fits_the_others() {
     assert_eq!(
         crate::figure::resolve(&fig, &Held::default())
             .scale(y)
+            .unwrap()
             .get_domain(),
         [-0.05, 1.05]
     );
@@ -123,6 +124,7 @@ fn a_rule_widens_a_fitted_count_domain() {
         .mark(rule_y(20.0, count));
     let domain = crate::figure::resolve(&fig, &Held::default())
         .scale(count)
+        .unwrap()
         .get_domain();
     assert_eq!(domain, [0.0, 21.0]);
 }

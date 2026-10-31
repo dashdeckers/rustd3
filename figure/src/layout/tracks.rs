@@ -14,7 +14,15 @@ pub(crate) fn tracks(
     [start, total]: [f64; 2],
 ) -> Vec<[f64; 2]> {
     let n = reaches.len();
-    let weight = |i: usize| weights.get(i).copied().unwrap_or(1.0);
+    // Weights relative to the largest, so that subnormal or huge ones split
+    // the room as their ratios say instead of overflowing.
+    let largest = (0..n)
+        .map(|i| weights.get(i).copied().unwrap_or(1.0))
+        .fold(0.0, f64::max);
+    let weight = |i: usize| {
+        let w = weights.get(i).copied().unwrap_or(1.0);
+        if largest > 0.0 { w / largest } else { w }
+    };
     let gap = |i: usize| gaps.get(i).copied().unwrap_or(0.0);
     let fixed = reaches.iter().map(|[low, high]| low + high).sum::<f64>()
         + (0..n.saturating_sub(1)).map(gap).sum::<f64>();

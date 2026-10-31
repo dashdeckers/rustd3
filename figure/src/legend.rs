@@ -133,6 +133,9 @@ where
 
 /// A legend with its key type erased: what layout and drawing ask of it.
 pub(crate) trait Draw {
+    /// The handle it is drawn from.
+    fn scale(&self) -> ScaleRef<()>;
+
     /// The entries over the resolved scales, in `theme`'s colors: for a
     /// legend of an ordinal palette, each key's color, text, swatch and the
     /// hatch of the marks filled with it, in domain order.
@@ -146,8 +149,14 @@ impl<K> Draw for Legend<K>
 where
     K: PartialEq + Clone + Display + 'static,
 {
+    fn scale(&self) -> ScaleRef<()> {
+        self.palette.erased()
+    }
+
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
-        let palette = resolved.scale(self.palette);
+        let Some(palette) = resolved.scale(self.palette) else {
+            return Vec::new();
+        };
         palette
             .get_domain()
             .iter()

@@ -9,6 +9,8 @@ mod classify;
 mod gestures;
 mod headless;
 #[cfg(all(feature = "figure", feature = "fonts"))]
+mod hostile;
+#[cfg(all(feature = "figure", feature = "fonts"))]
 mod hover;
 mod path;
 #[cfg(all(feature = "figure", feature = "fonts"))]

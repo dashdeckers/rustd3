@@ -12,7 +12,7 @@ use rustd3_core::time::{Interval, Time};
 use crate::axis::{Axis, across};
 use crate::figure::Resolved;
 use crate::layout::collide;
-use crate::scale::{Kind, Position};
+use crate::scale::{Kind, Position, ScaleRef};
 use crate::text;
 
 /// An axis with its scale type erased: what layout and drawing ask of it.
@@ -22,6 +22,10 @@ pub(crate) trait Draw<'a>: 'a {
 
     /// Its handle's position in the figure's scale table.
     fn handle(&self) -> usize;
+    /// Its handle, its scale type erased.
+    fn scale(&self) -> ScaleRef<()>;
+    /// The palette its tint reads, if tinted.
+    fn tint_handle(&self) -> Option<ScaleRef<()>>;
 
     /// Its palette color, when tinted and the palette has one for its key.
     fn tint(&self, resolved: &Resolved) -> Option<Rgb>;
@@ -97,6 +101,14 @@ where
         self.scale.index()
     }
 
+    fn scale(&self) -> ScaleRef<()> {
+        self.scale.erased()
+    }
+
+    fn tint_handle(&self) -> Option<ScaleRef<()>> {
+        self.palette
+    }
+
     fn tint(&self, resolved: &Resolved) -> Option<Rgb> {
         self.tint.as_ref().and_then(|tint| tint(resolved))
     }
@@ -118,7 +130,7 @@ where
     }
 
     fn texts(&self, resolved: &Resolved, count: usize) -> Vec<String> {
-        Axis::texts(self, resolved.scale(self.scale), count, resolved.locale())
+        Axis::texts(self, resolved.own(self.scale), count, resolved.locale())
     }
 
     fn formats(&self) -> bool {
@@ -147,7 +159,7 @@ where
     }
 
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64> {
-        let scale = resolved.scale(self.scale);
+        let scale = resolved.own(self.scale);
         if let Some((time, instants)) = self.instants(resolved, count)
             && let Some(indices) = intervals(time, &instants, count)
         {
@@ -214,7 +226,7 @@ where
 
     fn notation(&self, resolved: &Resolved, count: usize) -> Option<String> {
         let locale = resolved.locale().number();
-        Axis::notation(self, resolved.scale(self.scale), count).map(|n| n.label(locale))
+        Axis::notation(self, resolved.own(self.scale), count).map(|n| n.label(locale))
     }
 
     fn title(&self) -> Option<&text::Text> {
@@ -233,7 +245,7 @@ where
         resolved: &'r Resolved,
         count: usize,
     ) -> Option<(&'r Time, Vec<Timestamp>)> {
-        let scale = resolved.scale(self.scale);
+        let scale = resolved.own(self.scale);
         let time = scale.as_any().downcast_ref::<Time>()?;
         let set = self.set(scale, count);
         let instants = set.values().iter().map(|v| (v as &dyn Any).downcast_ref());
@@ -250,7 +262,7 @@ where
             [length, 0.0]
         };
         resolved
-            .scale(self.scale)
+            .own(self.scale)
             .with_range(range)
             .as_any()
             .downcast_ref::<S>()

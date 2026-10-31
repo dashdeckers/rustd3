@@ -181,7 +181,7 @@ fn columns_on_a_log_x_scale_invert_device_pixel_edges() {
     let list = fig.draw_with(&mut cache, size, target, &Held::default());
     let resolved = fig.resolve(size, &mut cache, &Held::default(), target);
     let w = resolved.plot_areas()[0].width();
-    let want = expected::<Log>(&rec, 0, resolved.scale(t), w, 2.0, |_| true);
+    let want = expected::<Log>(&rec, 0, resolved.scale(t).unwrap(), w, 2.0, |_| true);
     assert_eq!(vertices(paths(&list)[0]), want);
     assert!(want < 4 * (2.0 * w).round() as usize + 2, "{want}");
 }
@@ -242,7 +242,7 @@ fn vibration_view(thin: Thin, width: f64) -> (Figure<'static>, Size, [ScaleRef<L
 
 /// `h`'s resolved scale over `range`, as a mark sees it.
 fn ranged(resolved: &Resolved, h: ScaleRef<Linear>, range: [f64; 2]) -> Linear {
-    let scale = Scale::with_range(resolved.scale(h), range);
+    let scale = Scale::with_range(resolved.scale(h).expect("a handle of this figure"), range);
     scale
         .as_any()
         .downcast_ref::<Linear>()

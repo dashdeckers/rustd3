@@ -502,6 +502,23 @@ fn log_minor_ticks_follow_the_order_of_a_negative_domain() {
 }
 
 #[test]
+fn log_minor_ticks_of_a_base_beyond_two_to_the_53_end() {
+    // Multiples past 2^53 do not move by one; the minor ticks stop there
+    // instead of counting forever.
+    let base = 9.999_999_999_997_266e299;
+    let x = scale::log()
+        .base(base)
+        .domain([-base, -1.0])
+        .tick_rule(scale::TickRule::Transformed);
+    assert_eq!(x.ticks(3).len(), 4);
+    let minor = scale::Ticks::minor(&x, &scale::Ticks::tick_set(&x, 3));
+    assert!(
+        minor.iter().all(|m| m.is_finite() && *m < -1.0),
+        "{minor:?}"
+    );
+}
+
+#[test]
 fn log_minor_ticks_of_a_non_integer_base_of_three_or_more_subdivide() {
     let x = scale::log().base(std::f64::consts::PI).domain([1.0, 100.0]);
     assert_eq!(x.minor(10).len(), 16);

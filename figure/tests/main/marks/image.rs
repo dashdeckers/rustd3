@@ -50,7 +50,11 @@ fn two_by_two() -> (Figure<'static>, Vec<[u8; 4]>) {
     fig.panel(0, 0).mark(image(grid, x, y, heat));
     let r = resolve(&fig, &Held::default());
     let rgba = |v: f64| {
-        let c = r.scale(heat).paint(&v).expect("a color");
+        let c = r
+            .scale(heat)
+            .expect("a handle of this figure")
+            .paint(&v)
+            .expect("a color");
         [c.r as u8, c.g as u8, c.b as u8, 255]
     };
     let colors = [0.0, 1.0, 2.0, 3.0].map(rgba).to_vec();
@@ -113,7 +117,7 @@ fn reversed_axes_flip_the_image_and_cells_without_color_are_transparent() {
     fig.panel(0, 0).mark(image(grid, x, y, heat));
     let r = resolve(&fig, &Held::default());
     let rgba = |v: f64| {
-        let c = r.scale(heat).paint(&v).expect("a color");
+        let c = r.scale(heat).unwrap().paint(&v).expect("a color");
         [c.r as u8, c.g as u8, c.b as u8, 255]
     };
     let (rect, size, data, _) = drawn(&super::draw(&fig));
@@ -146,9 +150,13 @@ fn an_image_holds_its_extent_and_fits_its_values_to_a_fitted_color_handle() {
         .extent([10.0, 20.0], [-1.0, 1.0]);
     fig.panel(0, 0).mark(image(grid, x, y, heat));
     let r = resolve(&fig, &Held::default());
-    assert_eq!(r.scale(x).get_domain(), [10.0, 20.0], "no margin: held");
-    assert_eq!(r.scale(y).get_domain(), [-1.0, 1.0]);
-    assert_eq!(r.scale(heat).get_domain(), [-2.0, 5.0]);
+    assert_eq!(
+        r.scale(x).unwrap().get_domain(),
+        [10.0, 20.0],
+        "no margin: held"
+    );
+    assert_eq!(r.scale(y).unwrap().get_domain(), [-1.0, 1.0]);
+    assert_eq!(r.scale(heat).unwrap().get_domain(), [-2.0, 5.0]);
 }
 
 #[test]

@@ -394,6 +394,12 @@ fn asinh_ticks_follow_the_linear_width() {
 }
 
 #[test]
+fn asinh_ticks_a_zero_width_domain_once() {
+    assert_eq!(asinh_ticks([-971_056.5, -971_056.5]), [-971_056.5]);
+    assert_eq!(scale::asinh().domain([3.0, 3.0]).ticks(1000), [3.0]);
+}
+
+#[test]
 fn asinh_ticks_follow_a_descending_domain() {
     assert_eq!(asinh_ticks([1e4, 1.0]), [1e4, 1000.0, 100.0, 10.0, 1.0]);
 }

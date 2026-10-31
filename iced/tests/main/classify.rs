@@ -382,12 +382,13 @@ fn visible_y_refit_during_a_pan_re_renders() {
         let (first, hy) = rising(x);
         cache.begin();
         let resolved = first.resolve(logical, &mut cache, &Held::default(), target);
-        let (held, y0) = (resolved.areas(), resolved.scale(hy).get_domain());
+        let (held, y0) = (resolved.areas(), resolved.scale(hy).unwrap().get_domain());
         let (moved, hy) = rising(panned);
         cache.begin();
         let y1 = moved
             .resolve(logical, &mut cache, &Held::default(), target)
             .scale(hy)
+            .unwrap()
             .get_domain();
         let reference = reference::png_held(
             &risen(panned, y1),

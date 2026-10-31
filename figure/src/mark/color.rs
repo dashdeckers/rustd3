@@ -33,7 +33,7 @@ pub(crate) trait Lookup {
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)>;
 
     /// The palette's position in the scale table and the key, boxed.
-    fn key(&self) -> (usize, Box<dyn Any>);
+    fn key(&self) -> (ScaleRef<()>, Box<dyn Any>);
 }
 
 /// A palette handle and a key of its domain.
@@ -44,15 +44,15 @@ struct Keyed<C: Paint> {
 
 impl<C: Paint> Lookup for Keyed<C> {
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb> {
-        ctx.scale(self.palette).paint(&self.key)
+        ctx.scale(self.palette)?.paint(&self.key)
     }
 
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
-        ctx.scale(self.palette).slot(&self.key)
+        ctx.scale(self.palette)?.slot(&self.key)
     }
 
-    fn key(&self) -> (usize, Box<dyn Any>) {
-        (self.palette.index(), Box::new(self.key.clone()))
+    fn key(&self) -> (ScaleRef<()>, Box<dyn Any>) {
+        (self.palette.erased(), Box::new(self.key.clone()))
     }
 }
 
@@ -89,8 +89,8 @@ impl Color {
         }
     }
 
-    /// The color to draw in: a key the palette lacks draws the theme's
-    /// gray.
+    /// The color to draw in: a key the palette lacks, or a palette of
+    /// another figure, draws the theme's gray.
     pub(crate) fn resolve(&self, ctx: &Ctx<'_>) -> Rgb {
         match self {
             Color::Theme => ctx.theme().get_color(),

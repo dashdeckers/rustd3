@@ -38,7 +38,9 @@ impl<C: Paint<Domain = f64>> Through<Rgb> for Fill<C> {
     }
 
     fn resolve(&self, values: &[f64], ctx: &Ctx<'_>) -> Vec<Option<Rgb>> {
-        let scale = ctx.scale(self.0);
+        let Some(scale) = ctx.scale(self.0) else {
+            return vec![None; values.len()];
+        };
         values.iter().map(|v| scale.paint(v)).collect()
     }
 }
@@ -51,7 +53,9 @@ impl<S: Position<Domain = f64>> Through<f64> for Size<S> {
     }
 
     fn resolve(&self, values: &[f64], ctx: &Ctx<'_>) -> Vec<Option<f64>> {
-        let scale = ctx.scale(self.0);
+        let Some(scale) = ctx.scale(self.0) else {
+            return vec![None; values.len()];
+        };
         values
             .iter()
             .map(|v| scale.position(v).filter(|r| r.is_finite()))

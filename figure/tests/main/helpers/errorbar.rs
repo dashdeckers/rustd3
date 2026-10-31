@@ -115,7 +115,10 @@ fn bar_ends_fit_y_and_bad_errors_draw_nothing() {
         x,
         y,
     ));
-    let [lo, hi] = resolve(&fig, &Held::default()).scale(y).get_domain();
+    let [lo, hi] = resolve(&fig, &Held::default())
+        .scale(y)
+        .unwrap()
+        .get_domain();
     assert!(near(lo, 3.0 - 0.2) && near(hi, 7.0 + 0.2), "{lo} {hi}");
     let (segments, _, _) = segments(&fig);
     assert_eq!(segments.len(), 2);

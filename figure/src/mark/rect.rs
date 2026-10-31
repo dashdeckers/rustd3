@@ -100,7 +100,9 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
     /// when outlined) of the rectangle clipped to the guard band, its edges
     /// on device pixels on raster targets; nothing for a row with no area.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
-        let (sx, sy) = (ctx.x(self.x), ctx.y(self.y));
+        let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
+            return;
+        };
         let band = ctx.band();
         let fill = match (&self.fill, &self.stroke) {
             (Some(color), _) => Some(color),
