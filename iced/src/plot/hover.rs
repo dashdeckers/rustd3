@@ -19,6 +19,7 @@ pub(crate) const RADIUS: f64 = 12.0;
 /// The drawn point nearest the pointer, within 12 logical px, in the panel
 /// whose plot area the pointer is over. Plain data, like `Pointer`.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub struct Hover {
     /// Flat panel index (`hit::Hit::panel`); `Resolved::panel_cell` maps it back.
     pub panel: usize,
