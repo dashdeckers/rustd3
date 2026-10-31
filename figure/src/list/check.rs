@@ -10,6 +10,10 @@ use crate::list::{Clip, Command, Error, List, Paints};
 /// with paint indices inside the table; image data of width × height × 4
 /// bytes; parts ordered, non-overlapping, balanced and inside the commands
 /// (any `hash` is accepted); every coordinate finite.
+///
+/// # Errors
+///
+/// The first [`Error`] found, in command order, then part order.
 pub fn check(list: &List) -> Result<(), Error> {
     let mut open = 0_usize;
     for (command, c) in list.commands.iter().enumerate() {

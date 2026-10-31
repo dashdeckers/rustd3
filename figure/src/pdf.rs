@@ -128,6 +128,14 @@ impl Options {
 /// assert!(bytes.windows(22).any(|w| w == b"/MediaBox[0 0 720 570]"));
 /// # Ok::<(), pdf::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// [`Error::Size`] for a list whose size is not positive and finite,
+/// [`Error::Unsupported`] for what PDF does not draw, [`Error::Font`] for a
+/// font krilla cannot embed, [`Error::List`] for a list that fails
+/// [`list::check`], [`Error::Krilla`] for what krilla
+/// reports.
 pub fn write(list: &List, options: &Options) -> Result<Vec<u8>, Error> {
     list::check(list)?;
     let (width, height) = (list.size.width, list.size.height);

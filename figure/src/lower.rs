@@ -74,6 +74,11 @@ pub struct Lowered {
 ///   sweep reports both.
 ///
 /// Parts are remapped to the new command ranges.
+///
+/// # Errors
+///
+/// The [`list::Error`] of [`list::check`] for a list
+/// that fails it.
 pub fn lower(list: &List, caps: Caps) -> Result<Lowered, list::Error> {
     list::check(list)?;
     let mut outlines = Outlines::default();

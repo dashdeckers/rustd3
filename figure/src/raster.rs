@@ -204,6 +204,12 @@ impl Renderer {
     ///
     /// `bounds` must be [`Bounds::of`] this list; bounds of another
     /// number of commands are [`Error::Bounds`].
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Bounds`] for bounds of another list, [`Error::Empty`] for
+    /// an area of no device pixel, [`Error::TooLarge`] past 65,408 device
+    /// px a side, [`Error::List`] for a list that fails [`list::check`].
     pub fn render(
         &mut self,
         list: &List,
@@ -243,6 +249,12 @@ impl Renderer {
 
 /// The whole of `list` at `scale` with [`Settings::default`], its
 /// [`Bounds`] computed here.
+///
+/// # Errors
+///
+/// [`Error::Empty`] for a list of no device pixel at `scale`,
+/// [`Error::TooLarge`] past 65,408 device px a side, [`Error::List`] for a
+/// list that fails [`list::check`].
 #[cfg(feature = "raster")]
 pub fn render(list: &List, scale: f64) -> Result<Image, Error> {
     let bounds = Bounds::of(list, &mut Outlines::default());

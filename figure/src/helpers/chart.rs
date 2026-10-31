@@ -91,6 +91,10 @@ macro_rules! finish {
             /// Writes the figure as SVG to `path` at its size
             /// ([`Figure::save_svg`](crate::Figure::save_svg)); a preset
             /// draws nothing that lowering changes.
+            ///
+            /// # Errors
+            ///
+            /// As [`Figure::save_svg`](crate::Figure::save_svg).
             #[cfg(feature = "fonts")]
             pub fn save_svg(self, path: impl AsRef<std::path::Path>) -> Result<(), crate::Error> {
                 let size = self.setup.size;
@@ -99,6 +103,10 @@ macro_rules! finish {
 
             /// Writes the figure as a PNG of its size × `scale` device px to
             /// `path` ([`Figure::save_png`](crate::Figure::save_png)).
+            ///
+            /// # Errors
+            ///
+            /// As [`Figure::save_png`](crate::Figure::save_png).
             #[cfg(all(feature = "png", feature = "fonts"))]
             pub fn save_png(
                 self,

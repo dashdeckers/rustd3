@@ -99,6 +99,11 @@ impl From<Error> for mark::Error {
 /// assert_eq!(bad, Err(hist::Error::Edge { index: 2, value: 1.0 }));
 /// # Ok::<(), hist::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// [`Error::Edge`] for caller's edges that are not finite and increasing,
+/// [`Error::Weights`] for weights of another count than the values.
 pub fn table(
     values: &[f64],
     weights: Option<&[f64]>,

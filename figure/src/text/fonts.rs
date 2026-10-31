@@ -55,6 +55,11 @@ impl Fonts {
     /// fallback order, then the bundled fonts when the `fonts` feature is
     /// on. Bytes that hold no face are `Error::Font` with their position
     /// in `extra`.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Font`] with the position in `extra` of bytes that hold no
+    /// face.
     pub fn with(extra: impl IntoIterator<Item = Vec<u8>>) -> Result<Fonts, Error> {
         let mut faces = Vec::new();
         for (index, bytes) in extra.into_iter().enumerate() {

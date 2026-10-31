@@ -114,6 +114,11 @@ impl Grid {
     ///     Err(Error::GridLength { cols: 2, rows: 3, len: 4 })
     /// );
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`Error::GridLength`](crate::mark::Error::GridLength) when `values`
+    /// does not hold `cols × rows` values.
     pub fn new(cols: usize, rows: usize, values: Vec<f64>) -> Result<Self, Error> {
         if cols.checked_mul(rows) != Some(values.len()) {
             return Err(Error::GridLength {

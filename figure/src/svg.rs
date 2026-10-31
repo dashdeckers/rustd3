@@ -74,6 +74,12 @@ pub enum Text {
 /// assert!(svg.contains("<path d='M0,0L10,0L10,10L0,10Z' fill='#4c72b0'/>"));
 /// # Ok::<(), rustd3_figure::list::Error>(())
 /// ```
+///
+/// # Errors
+///
+/// The [`list::Error`] of [`list::check`] for a list
+/// that fails it, and [`list::Error::Unsupported`] for a sweep gradient
+/// (which lowering for [`CAPS`] turns into an image) or an image brush.
 pub fn write(list: &List, options: &Options) -> Result<String, list::Error> {
     list::check(list)?;
     let faces = match options.text {

@@ -53,6 +53,11 @@ impl Figure<'_> {
     /// for SVG ([`svg::CAPS`]: sweep gradients become images) and written
     /// with text as glyph outlines. Returns what lowering could not draw
     /// faithfully.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::List`] for a list the SVG writer rejects, [`Error::Io`]
+    /// when the file cannot be written.
     pub fn save_svg(
         &self,
         path: impl AsRef<Path>,
@@ -69,6 +74,11 @@ impl Figure<'_> {
     /// fresh cache, so long lines thin to four columns per device pixel,
     /// and rendered by vello_cpu on its own pool
     /// ([`raster::Settings::parallel`]).
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Raster`] for a size of no device pixel or beyond 65,408
+    /// device px a side, [`Error::Io`] when the file cannot be written.
     #[cfg(feature = "png")]
     pub fn save_png(
         &self,
@@ -89,6 +99,11 @@ impl Figure<'_> {
     /// `path`: drawn for vector output at `size` logical px with a fresh
     /// cache ([`Figure::draw`]) and written by [`pdf::write`] with text as
     /// selectable text in subset fonts.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Pdf`] for a size that is not positive and finite or what
+    /// PDF does not draw, [`Error::Io`] when the file cannot be written.
     #[cfg(feature = "pdf")]
     pub fn save_pdf(&self, path: impl AsRef<Path>, size: kurbo::Size) -> Result<(), Error> {
         let pdf = pdf::write(&self.draw(size), &pdf::Options::default())?;
