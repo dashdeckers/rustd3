@@ -67,6 +67,7 @@ pub struct Writer<W: std::io::Write> {
     renderer: raster::Renderer,
 }
 
+#[cfg(feature = "fonts")]
 impl<W: std::io::Write> std::fmt::Debug for Writer<W> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Writer").finish_non_exhaustive()
