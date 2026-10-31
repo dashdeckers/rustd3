@@ -88,7 +88,7 @@ impl Content {
             .entries(resolved, theme)
             .into_iter()
             .map(|entry| Keyed {
-                color: entry.color.unwrap_or(theme.get_gray()),
+                color: entry.color.unwrap_or(theme.gray()),
                 key: Key::new(&Text::from(entry.label), &style),
                 glyph: entry.glyph,
                 hatch: entry.hatch,

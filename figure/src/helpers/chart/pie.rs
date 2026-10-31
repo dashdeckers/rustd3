@@ -143,7 +143,7 @@ impl<'a, K: PartialEq + Clone + Display + 'static> Mark<'a> for Wedges<K> {
                 continue;
             }
             let key = &self.slices[slice.datum].0;
-            let color = palette.paint(key).unwrap_or_else(|| ctx.theme().get_gray());
+            let color = palette.paint(key).unwrap_or_else(|| ctx.theme().gray());
             list.commands.push(Command::Fill {
                 path: centre * path::bez(|p| arc.draw(&slice, p)),
                 paint: list::brush(color),

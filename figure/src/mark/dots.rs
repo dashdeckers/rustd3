@@ -406,10 +406,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
 impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// Each dot's radius in px without `size_by`.
     fn radius(&self, ctx: &Ctx<'_>) -> f64 {
-        cap(
-            self.r.unwrap_or(ctx.theme().get_marker() / 2.0),
-            largest(ctx),
-        )
+        cap(self.r.unwrap_or(ctx.theme().marker() / 2.0), largest(ctx))
     }
 
     /// The error a channel keeps, `fill_by`'s first.

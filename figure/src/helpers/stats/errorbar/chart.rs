@@ -106,7 +106,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for ErrorBar<X, Y> {
             return;
         };
         let band = guard::band(ctx.rect().width(), ctx.rect().height());
-        let (snap, width) = (ctx.snap(), ctx.theme().get_line_width());
+        let (snap, width) = (ctx.snap(), ctx.theme().line_width());
         let at = |v: f64| sy.position(&v).filter(|p| p.is_finite());
         let mut path = BezPath::new();
         for (key, value, error) in &self.rows {

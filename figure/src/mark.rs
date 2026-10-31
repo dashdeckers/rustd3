@@ -6,8 +6,8 @@
 //! [`note()`], [`rule_x`] and [`rule_y`].
 //!
 //! A mark of your own draws as these do with the theme's readers
-//! ([`Theme::get_color`](crate::Theme::get_color),
-//! [`Theme::get_line_width`](crate::Theme::get_line_width), …),
+//! ([`Theme::color`](crate::Theme::color),
+//! [`Theme::line_width`](crate::Theme::line_width), …),
 //! [`list::brush`](crate::list::brush), [`Ctx::snap`] and the [`guard`]
 //! band, and labels what it draws through the text kit: it reports each
 //! label with [`Fits::label`] while fitting and places the shaped label

@@ -33,13 +33,13 @@ fn the_default_domains_are_the_first_day_of_2000() {
         [at("2000-01-01T08:00:00Z"), at("2000-01-02T08:00:00Z")]
     );
     assert_eq!(x.get_range(), [0.0, 1.0]);
-    assert_eq!(x.get_zone(), &la);
+    assert_eq!(x.zone(), &la);
     let u = time::utc();
     assert_eq!(
         u.get_domain(),
         [at("2000-01-01T00:00:00Z"), at("2000-01-02T00:00:00Z")]
     );
-    assert_eq!(u.get_zone(), &TimeZone::UTC);
+    assert_eq!(u.zone(), &TimeZone::UTC);
     assert_ne!(u, time::time(TimeZone::UTC));
 }
 

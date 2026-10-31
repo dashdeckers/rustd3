@@ -187,7 +187,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
         if path.elements().is_empty() {
             return;
         }
-        let width = self.width.unwrap_or(ctx.theme().get_line_width());
+        let width = self.width.unwrap_or(ctx.theme().line_width());
         let mut style = stroke(width, &self.dash);
         if let Some(grid) = ctx.grid(self.x.index()).filter(|_| anchored) {
             style.dash_offset = phase(&items, grid, &self.dash);

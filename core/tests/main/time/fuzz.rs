@@ -128,7 +128,7 @@ fn violation(x: &Time, ticks: &[Timestamp], bound: usize, interval: Interval) ->
     if !ordered {
         return Some("ticks out of domain order".to_owned());
     }
-    let zone = x.get_zone();
+    let zone = x.zone();
     let off = ticks.iter().find(|&&t| interval.floor(t, zone) != Some(t));
     off.map(|t| format!("{t} is no boundary of {interval:?}"))
 }

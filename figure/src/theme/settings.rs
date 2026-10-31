@@ -296,7 +296,7 @@ impl Theme {
     /// context. A custom mark that draws lines, whiskers or error bars
     /// strokes them at this width to match the line and rule marks.
     #[must_use]
-    pub fn get_line_width(&self) -> f64 {
+    pub fn line_width(&self) -> f64 {
         self.pt(1.5)
     }
 
@@ -305,7 +305,7 @@ impl Theme {
     /// boxes or bars strokes their edges at this width, as the rect mark
     /// does.
     #[must_use]
-    pub fn get_patch_width(&self) -> f64 {
+    pub fn patch_width(&self) -> f64 {
         self.pt(1.0)
     }
 
@@ -313,7 +313,7 @@ impl Theme {
     /// context. A custom mark that outlines a filled curve (a violin, a
     /// ridge) strokes it at this width to match the density marks.
     #[must_use]
-    pub fn get_density_width(&self) -> f64 {
+    pub fn density_width(&self) -> f64 {
         self.pt(0.75)
     }
 
@@ -321,14 +321,14 @@ impl Theme {
     /// draws points (fliers, means) sizes them by it, as dots without a
     /// radius are.
     #[must_use]
-    pub fn get_marker(&self) -> f64 {
+    pub fn marker(&self) -> f64 {
         self.pt(6.0)
     }
 
     /// The palette's first color. A custom mark without a key draws in it,
     /// as every built-in mark does.
     #[must_use]
-    pub fn get_color(&self) -> Rgb {
+    pub fn color(&self) -> Rgb {
         *self
             .palette
             .first()
@@ -347,7 +347,7 @@ impl Theme {
     /// draws in it, as the built-in marks do (and
     /// [`Figure::check`](crate::Figure::check) reports the key).
     #[must_use]
-    pub fn get_gray(&self) -> Rgb {
+    pub fn gray(&self) -> Rgb {
         GRAY
     }
 
@@ -463,13 +463,13 @@ mod tests {
             theme.figure_title_text(),
             theme.axis_width(),
             theme.grid_width(),
-            theme.get_line_width(),
-            theme.get_patch_width(),
+            theme.line_width(),
+            theme.patch_width(),
             theme.tick_width(),
             theme.minor_width(),
             theme.tick(),
             theme.minor_tick(),
-            theme.get_marker(),
+            theme.marker(),
         ]
         .map(pt)
     }
@@ -505,7 +505,7 @@ mod tests {
         let talk = Theme::seaborn(Style::Ticks, Context::Talk);
         assert!(close(talk.tick_text(), 22.0), "{}", talk.tick_text());
         let paper = Theme::seaborn(Style::Ticks, Context::Paper);
-        assert!(close(pt(paper.get_line_width()), 1.2) && close(pt(paper.tick()), 4.8));
+        assert!(close(pt(paper.line_width()), 1.2) && close(pt(paper.tick()), 4.8));
         let poster = Theme::seaborn(Style::Ticks, Context::Poster);
         assert!(close(pt(poster.label_text()), 24.0) && close(pt(poster.axis_width()), 2.5));
     }
@@ -586,10 +586,10 @@ mod tests {
         assert_eq!(format!("{:.3}", theme.axis_width()), "1.667");
         assert_eq!(theme.edge(), Some(theme.get_ink()));
         assert_eq!(theme.get_domains(), Domains::Margin(0.05));
-        assert!(close(theme.get_line_width(), 2.0));
-        assert!(close(theme.get_marker(), 8.0));
-        assert_eq!(theme.get_color(), Rgb::hex(0x0173b2));
-        assert_eq!(theme.get_gray(), scheme::COLORBLIND[7]);
+        assert!(close(theme.line_width(), 2.0));
+        assert!(close(theme.marker(), 8.0));
+        assert_eq!(theme.color(), Rgb::hex(0x0173b2));
+        assert_eq!(theme.gray(), scheme::COLORBLIND[7]);
         assert_eq!(theme.palette, scheme::COLORBLIND);
         assert_eq!(
             (theme.style, theme.context, theme.font_scale),
@@ -642,6 +642,6 @@ mod tests {
         assert_eq!(kept.get_domains(), Domains::Margin(0.0));
         assert!(close(kept.font_scale, 0.5));
         let deep = theme.palette(scheme::DEEP);
-        assert_eq!(deep.get_color(), scheme::DEEP[0]);
+        assert_eq!(deep.color(), scheme::DEEP[0]);
     }
 }

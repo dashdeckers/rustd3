@@ -126,7 +126,7 @@ impl<S: Position> Rule<S> {
             Along::X => anchor::Horizontal::Start,
             Along::Y => anchor::Horizontal::End,
         };
-        let color = self.color.unwrap_or_else(|| theme.get_color());
+        let color = self.color.unwrap_or_else(|| theme.color());
         let text = self.label.as_ref()?;
         Some(Key::new(text, &theme.mark_label(align, color)))
     }
@@ -150,7 +150,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let theme = ctx.theme();
         let (w, h) = (ctx.rect().width(), ctx.rect().height());
-        let width = self.width.unwrap_or(theme.get_line_width());
+        let width = self.width.unwrap_or(theme.line_width());
         let (pos, length) = match self.along {
             Along::X => (ctx.x(self.scale).and_then(|s| at(&s, &self.value)), w),
             Along::Y => (ctx.y(self.scale).and_then(|s| at(&s, &self.value)), h),
@@ -172,7 +172,7 @@ impl<'a, S: Position> Mark<'a> for Rule<S> {
                 (anchor::Horizontal::End, anchor::Vertical::Bottom),
             ),
         };
-        let color = self.color.unwrap_or_else(|| theme.get_color());
+        let color = self.color.unwrap_or_else(|| theme.color());
         list.commands.push(Command::Stroke {
             path: line.to_path(0.1),
             style: stroke(width, &self.dash),

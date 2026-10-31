@@ -131,6 +131,11 @@ Names and visibility settled before the first release:
 - `helpers::axes::defaults(axis)` is gone: `axis.minor(true)`.
 - Counts are `usize`: `path::SvgPath::with_digits(digits)` and
   `raster::Settings::threads`.
+- Readers are nouns unless a builder takes the name: `Theme::color`,
+  `gray`, `line_width`, `patch_width`, `density_width` and `marker` (were
+  `get_…`), and `time::Time::zone` (was `get_zone`); `get_domain`,
+  `get_range`, `get_ink`, `get_background`, `get_palette` and
+  `Figure::get_theme` keep `get_` beside their builders.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

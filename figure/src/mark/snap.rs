@@ -22,10 +22,10 @@ use crate::target::Target;
 /// /// device pixels.
 /// fn boxed(ctx: &Ctx<'_>, r: Rect, list: &mut List) {
 ///     let (snap, theme) = (ctx.snap(), ctx.theme());
-///     let w = theme.get_patch_width();
+///     let w = theme.patch_width();
 ///     list.commands.push(Command::Fill {
 ///         path: snap.rect(r).to_path(0.1),
-///         paint: list::brush(theme.get_color()),
+///         paint: list::brush(theme.color()),
 ///     });
 ///     let at = |v: f64| snap.line(v, w);
 ///     let edge = Rect::new(at(r.x0), at(r.y0), at(r.x1), at(r.y1));

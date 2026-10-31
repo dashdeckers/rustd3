@@ -136,7 +136,7 @@ pub enum Interval {
 /// let x = time::time(berlin).domain(day).range([0.0, 800.0]);
 /// assert_eq!(x.tick_interval(8), Interval::Hour(3));
 /// let ticks = x.ticks(8);
-/// let hours: Vec<i8> = ticks.iter().map(|&t| x.get_zone().to_datetime(t).hour()).collect();
+/// let hours: Vec<i8> = ticks.iter().map(|&t| x.zone().to_datetime(t).hour()).collect();
 /// assert_eq!(hours, [0, 3, 6, 9, 12, 15, 18, 21, 0]);
 /// assert_eq!(ticks[1], "2026-10-25T02:00:00Z".parse()?);
 /// # Ok::<(), rustd3_core::jiff::Error>(())
@@ -159,7 +159,7 @@ pub fn time(zone: TimeZone) -> Time {
 ///
 /// let week: [Timestamp; 2] = ["2011-01-01T00:00:00Z".parse()?, "2011-01-09T00:00:00Z".parse()?];
 /// let day_of_month = |x: &time::Time| -> Vec<i8> {
-///     x.ticks(4).iter().map(|&t| x.get_zone().to_datetime(t).day()).collect()
+///     x.ticks(4).iter().map(|&t| x.zone().to_datetime(t).day()).collect()
 /// };
 /// let unix = time::utc().domain(week);
 /// assert_eq!(unix.tick_interval(4), Interval::UnixDay(2));

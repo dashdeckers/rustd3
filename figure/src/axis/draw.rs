@@ -204,7 +204,7 @@ where
             return Vec::new();
         };
         let interval = time.tick_interval(count);
-        let zone = time.get_zone();
+        let zone = time.zone();
         let step = i64::from(step(interval));
         let starts = |t: Timestamp| parent(interval).is_some_and(|p| p.floor(t, zone) == Some(t));
         let follows = |pair: &[Timestamp]| {
@@ -317,7 +317,7 @@ fn parent(interval: Interval) -> Option<Interval> {
 /// when a boundary or count leaves jiff's range or `i64`.
 fn intervals(time: &Time, instants: &[Timestamp], count: usize) -> Option<Vec<i64>> {
     let interval = time.tick_interval(count);
-    let zone = time.get_zone();
+    let zone = time.zone();
     let epoch = interval.floor(Timestamp::UNIX_EPOCH, zone)?;
     instants
         .iter()
