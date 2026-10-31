@@ -11,11 +11,11 @@ const TABLES = new URL("../../d3/d3-format/locale/", import.meta.url);
 const BUNDLED = new URL("../../../../core/src/format/locales/", import.meta.url);
 const TEXT = ["decimal", "thousands", "percent", "minus", "nan"];
 const READ = {
-  fill: [".fill().to_string()", "str"], align: [".align().to_string()", "str"], sign: [".sign().to_string()", "str"],
-  symbol: [".symbol().map(|s| s.to_string()).unwrap_or_default()", "str"],
-  type: [".kind().map(|k| k.to_string()).unwrap_or_default()", "str"],
-  zero: [".zero()", "bool"], comma: [".comma()", "bool"], trim: [".trim()", "bool"],
-  width: [".width()", "opt"], precision: [".precision()", "opt"],
+  fill: [".get_fill().to_string()", "str"], align: [".get_align().to_string()", "str"], sign: [".get_sign().to_string()", "str"],
+  symbol: [".get_symbol().map(|s| s.to_string()).unwrap_or_default()", "str"],
+  type: [".get_kind().map(|k| k.to_string()).unwrap_or_default()", "str"],
+  zero: [".get_zero()", "bool"], comma: [".get_comma()", "bool"], trim: [".get_trim()", "bool"],
+  width: [".get_width()", "opt"], precision: [".get_precision()", "opt"],
 };
 
 const spec = (e) => (e?.t === "str" ? e.c : skip(`types: a ${e?.t} specifier (format takes a string)`));
