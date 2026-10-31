@@ -16,7 +16,7 @@ pub fn figures_equal(a: &Figure<'_>, b: &Figure<'_>, size: Size) -> Result<(), S
     let draw =
         |fig: &Figure<'_>| fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
     let (a, b) = (draw(a), draw(b));
-    let options = list::dump::Options { glyphs: true };
+    let options = list::dump::Options::default().glyphs(true);
     let (dump_a, dump_b) = (list::dump(&a, options), list::dump(&b, options));
     if let Some((x, y)) = dump_a.lines().zip(dump_b.lines()).find(|(x, y)| x != y) {
         return Err(format!("dumps differ:\n{x}\n{y}"));

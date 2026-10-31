@@ -28,12 +28,21 @@ pub const CAPS: Caps = Caps {
 /// How [`write()`] writes a list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
-    /// How glyph runs are written.
-    pub text: Text,
+    text: Text,
+}
+
+impl Options {
+    /// How glyph runs are written: outlines defined once and reused (the
+    /// default), or `<text>` elements.
+    #[must_use]
+    pub fn text(self, text: Text) -> Self {
+        Options { text }
+    }
 }
 
 /// How glyph runs are written.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Text {
     /// Every glyph used is one `<path>` in `<defs>` at 1000 units per em,
     /// which runs `<use>`: the file needs no fonts and draws exactly the

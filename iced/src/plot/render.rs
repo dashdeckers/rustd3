@@ -19,6 +19,7 @@
 /// }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Render {
     /// In order (visible tiles nearest the last gesture input, the
     /// gutters, the ring, which waits for a gesture to end; during a

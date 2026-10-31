@@ -35,6 +35,7 @@ fn cells(fig: &Figure<'_>, target: Target) -> (List, Cells) {
     let scale = match target {
         Target::Vector => 1.0,
         Target::File { scale } | Target::Screen { scale } => scale,
+        _ => unreachable!("the targets this test draws for"),
     };
     let cells = list::cells(&list, &xs, &ys, scale);
     (list, cells)

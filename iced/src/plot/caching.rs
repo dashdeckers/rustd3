@@ -12,6 +12,7 @@
 /// overtook shows its result as a preview until the newest one lands:
 /// neither is a kept image, so `Verify` checks neither.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Caching {
     /// Re-render a cell only when its hash changed.
     #[default]

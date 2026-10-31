@@ -1362,8 +1362,10 @@ fn list_dump_of_a_grid_of_scales() {
     }
     let list = fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());
     rustd3_figure::list::check(&list).expect("a valid list");
-    let dump =
-        rustd3_figure::list::dump(&list, rustd3_figure::list::dump::Options { glyphs: false });
+    let dump = rustd3_figure::list::dump(
+        &list,
+        rustd3_figure::list::dump::Options::default().glyphs(false),
+    );
     let store = rustd3_testkit::snapshot::Store::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/snapshots"

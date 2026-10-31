@@ -87,6 +87,7 @@ pub enum Error {
 /// How a [`Renderer`] runs vello_cpu.
 #[cfg(feature = "raster")]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Simd {
     /// The best SIMD level the CPU offers.
     #[default]
@@ -100,15 +101,25 @@ pub enum Simd {
 #[cfg(feature = "raster")]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Settings {
-    /// vello_cpu's worker threads: 0 renders on the calling thread, `n`
-    /// starts vello_cpu's own pool of `n` (at most 65,535).
-    pub threads: usize,
-    /// The SIMD level.
-    pub simd: Simd,
+    threads: usize,
+    simd: Simd,
 }
 
 #[cfg(feature = "raster")]
 impl Settings {
+    /// vello_cpu's worker threads: 0 renders on the calling thread, `n`
+    /// starts vello_cpu's own pool of `n` (at most 65,535).
+    #[must_use]
+    pub fn threads(self, n: usize) -> Self {
+        Settings { threads: n, ..self }
+    }
+
+    /// The SIMD level.
+    #[must_use]
+    pub fn simd(self, simd: Simd) -> Self {
+        Settings { simd, ..self }
+    }
+
     /// vello_cpu's own pool: the available parallelism − 1, clamped to
     /// 1..=8; what file outputs use. The `Plot` widget renders
     /// single-threaded, inline and on its own pool alike.
@@ -132,7 +143,7 @@ impl Settings {
 ///
 /// let list = List { size: Size::new(40.0, 20.0), ..List::default() };
 /// let bounds = Bounds::of(&list, &mut Outlines::default());
-/// let mut renderer = Renderer::new(Settings { threads: 0, simd: Simd::Baseline });
+/// let mut renderer = Renderer::new(Settings::default().simd(Simd::Baseline));
 /// // The left half at 2 device px per list px.
 /// let image = renderer.render(&list, &bounds, Rect::new(0.0, 0.0, 20.0, 20.0), 2.0)?;
 /// assert_eq!((image.width, image.height), (40, 40));

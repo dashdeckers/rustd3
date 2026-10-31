@@ -374,7 +374,7 @@ fn decorations_of_one_panel() {
     let (fig, ..) = one_panel();
     let list = draw(&fig);
     list::check(&list).expect("a valid list");
-    let dump = list::dump(&list, list::dump::Options { glyphs: false });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(false));
     let store = rustd3_testkit::snapshot::Store::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/snapshots"

@@ -49,7 +49,7 @@ fn list_dump_of_scatter() {
     let list =
         scatter::scatter(300).draw_with(&mut cache(), SIZE, Target::Vector, &Held::default());
     list::check(&list).expect("a valid list");
-    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(true));
     let store = rustd3_testkit::snapshot::Store::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/snapshots"

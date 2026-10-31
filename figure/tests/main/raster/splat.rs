@@ -61,10 +61,7 @@ fn drawn(fig: &Figure<'_>, k: f64) -> (List, Rect) {
 /// `area` of `list` at `k`, splatted or filled.
 fn render(list: &List, area: Rect, k: f64, splat: bool) -> Image {
     let bounds = Bounds::of(list, &mut Outlines::default());
-    let mut renderer = Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    });
+    let mut renderer = Renderer::new(Settings::default().simd(Simd::Baseline));
     renderer
         .splat(splat)
         .render(list, &bounds, area, k)

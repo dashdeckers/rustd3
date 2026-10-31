@@ -676,7 +676,7 @@ pub fn labels(placements: &[Placed]) -> (List, Vec<Rect>) {
 #[test]
 fn list_dump_of_labels() {
     let (list, _) = labels(&placements());
-    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(true));
     let store = rustd3_testkit::snapshot::Store::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/snapshots"
@@ -757,7 +757,7 @@ fn a_vello_render_draws_each_label_in_its_box_at_its_anchor() {
 
 /// `list` as SVG with runs written as `text`.
 fn svg(list: &List, text: svg::Text) -> String {
-    svg::write(list, &svg::Options { text }).expect("the labels need no lowering")
+    svg::write(list, &svg::Options::default().text(text)).expect("the labels need no lowering")
 }
 
 #[test]

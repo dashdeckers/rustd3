@@ -127,10 +127,7 @@ fn size_for(cores: usize) -> usize {
 /// renderer, sends each result and wakes the UI unless a wake is already
 /// pending, until the queue closes.
 fn run(queue: &Queue, sender: &mpsc::Sender<Done>, woken: &AtomicBool, waker: &Waker) {
-    let mut renderer = raster::Renderer::new(raster::Settings {
-        threads: 0,
-        ..raster::Settings::default()
-    });
+    let mut renderer = raster::Renderer::new(raster::Settings::default());
     while let Some(job) = queue.take() {
         if sender.send(job.run(&mut renderer)).is_err() {
             return;

@@ -41,6 +41,7 @@ use crate::scale::Indexed;
 
 /// Whether a line thins its data.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Thin {
     /// M4 per column when the x scale has an index bridge and the data is
     /// a `Series` view; as given otherwise.

@@ -141,6 +141,12 @@ Names and visibility settled before the first release:
   are gone).
 - rustd3-figure: `cache` is the module of `Cache` and its `Stats`:
   `rustd3_figure::Cache` is `cache::Cache`.
+- Output options are built, not written as literals: `svg::Options`,
+  `list::dump::Options` and `raster::Settings` take builders
+  (`Options::default().text(svg::Text::Elements)`, `.glyphs(true)`,
+  `Settings::default().threads(n).simd(s)`), as `pdf::Options` does.
+- The settings enums `plot::Render`, `plot::Caching`, `raster::Simd`,
+  `svg::Text`, `thin::Thin` and `Target` are `#[non_exhaustive]`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

@@ -151,10 +151,7 @@ fn measure(
         .plot_areas()
         .to_vec();
     let bounds = Bounds::of(&list, &mut Outlines::default());
-    let mut renderer = Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Detect,
-    });
+    let mut renderer = Renderer::new(Settings::default().simd(Simd::Detect));
     let (mut fills, mut splats) = (Sum::default(), Sum::default());
     let mut stamps = splat::Stamps::default();
     let mut cold: Vec<f64> = Vec::new();

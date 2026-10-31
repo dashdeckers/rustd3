@@ -610,6 +610,7 @@ fn caching_off_renders_every_cell() {
         match caching {
             Caching::On | Caching::Verify => assert_eq!(moved, [inside], "{backend}"),
             Caching::Off => assert_eq!(moved, all, "{backend}"),
+            _ => unreachable!("the modes this test runs"),
         }
         assert!(unchanged.is_empty(), "{backend}: {unchanged:?}");
     }

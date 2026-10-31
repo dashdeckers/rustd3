@@ -127,10 +127,7 @@ fn origin_dashes() -> Row {
     let k = example::SCALE;
     let (list, cells) = cut(&fig, example::SIZE, k);
     let bounds = Bounds::of(&list, &mut Outlines::default());
-    let mut renderer = raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    });
+    let mut renderer = raster::Renderer::new(Settings::default().simd(Simd::Baseline));
     let whole = Rect::from_origin_size(Point::ORIGIN, list.size);
     let Ok(whole) = renderer.render(&list, &bounds, whole, k) else {
         return failed("trace cells stitched", "the whole canvas did not render");
@@ -191,12 +188,9 @@ fn thin_line() -> Row {
             .plot_areas()
             .first()?;
         let bounds = Bounds::of(&list, &mut Outlines::default());
-        raster::Renderer::new(Settings {
-            threads: 0,
-            simd: Simd::Baseline,
-        })
-        .render(&list, &bounds, area, k)
-        .ok()
+        raster::Renderer::new(Settings::default().simd(Simd::Baseline))
+            .render(&list, &bounds, area, k)
+            .ok()
     };
     let thinned = render(Thin::Auto, Target::Screen { scale: k });
     let every = render(Thin::Off, Target::Vector);
@@ -798,10 +792,7 @@ fn splat_speed() -> Row {
             return failed("scatter100k filled and splatted", "no plot area");
         };
         let bounds = Bounds::of(&list, &mut Outlines::default());
-        let mut renderer = raster::Renderer::new(Settings {
-            threads: 0,
-            simd: Simd::Detect,
-        });
+        let mut renderer = raster::Renderer::new(Settings::default().simd(Simd::Detect));
         let mut time = |splat: bool| {
             renderer.splat(splat);
             let mut last = None;

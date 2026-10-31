@@ -137,10 +137,7 @@ pub fn first_area(fig: &Figure<'_>, k: f64) -> Option<(List, Rect)> {
 /// markers splatted when `splat`, after one to warm the renderer, ms.
 pub fn median_render_ms(list: &List, rect: Rect, k: f64, splat: bool, n: usize) -> f64 {
     let bounds = Bounds::of(list, &mut Outlines::default());
-    let mut renderer = raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Detect,
-    });
+    let mut renderer = raster::Renderer::new(Settings::default().simd(Simd::Detect));
     renderer.splat(splat);
     let _ = renderer.render(list, &bounds, rect, k);
     let times: Vec<f64> = (0..n)

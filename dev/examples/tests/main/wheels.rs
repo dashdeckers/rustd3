@@ -349,7 +349,7 @@ fn lowering_the_markers_grows_the_list_by_5588_commands() {
 fn the_wheel_list_and_svg_match_their_snapshots() {
     let store = Store::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots"));
     let (_, list) = drawn(&wheel_figure(false));
-    let dump = list::dump(&list, list::dump::Options { glyphs: true });
+    let dump = list::dump(&list, list::dump::Options::default().glyphs(true));
     store.check("wheels.txt", &dump);
     let lowered = lower::lower(&list, svg::CAPS).expect("a valid list");
     let svg = svg::write(&lowered.list, &svg::Options::default()).expect("a valid list");
@@ -361,12 +361,9 @@ fn the_wheel_list_and_svg_match_their_snapshots() {
 fn pinned(list: &List) -> Image {
     let bounds = list::Bounds::of(list, &mut list::Outlines::default());
     let area = rustd3_figure::kurbo::Rect::from_origin_size((0.0, 0.0), list.size);
-    raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    })
-    .render(list, &bounds, area, 2.0)
-    .expect("the list renders")
+    raster::Renderer::new(Settings::default().simd(Simd::Baseline))
+        .render(list, &bounds, area, 2.0)
+        .expect("the list renders")
 }
 
 /// `pdf` rendered by `pdftoppm -r 192` against `reference`.

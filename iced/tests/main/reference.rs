@@ -145,17 +145,14 @@ fn only(list: &List, panel: usize, panels: usize) -> List {
 
 /// `list` as the PNG output renders it.
 fn render(list: &List, size: kurbo::Size, scale: f64) -> raster::Image {
-    raster::Renderer::new(Settings {
-        threads: 0,
-        simd: Simd::Baseline,
-    })
-    .render(
-        list,
-        &Bounds::of(list, &mut Outlines::default()),
-        Rect::from_origin_size((0.0, 0.0), size),
-        scale,
-    )
-    .expect("the figure renders")
+    raster::Renderer::new(Settings::default().simd(Simd::Baseline))
+        .render(
+            list,
+            &Bounds::of(list, &mut Outlines::default()),
+            Rect::from_origin_size((0.0, 0.0), size),
+            scale,
+        )
+        .expect("the figure renders")
 }
 
 /// Composites `image` source-over onto `background`.

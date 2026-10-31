@@ -2,6 +2,7 @@
 
 /// What a figure is resolved and drawn for.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub enum Target {
     /// SVG, PDF: list px, 4 thinning columns per px, no snapping.
     Vector,
