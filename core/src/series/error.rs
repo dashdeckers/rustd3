@@ -4,6 +4,7 @@ use crate::series::{Coordinate, Id};
 
 /// Why a recording, an append or a column grid was rejected.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error<X: Coordinate = f64> {
     /// A channel's length differs from the clock's (or the first channel's).
     #[error("channel {channel} has {found} samples, expected {expected}")]
