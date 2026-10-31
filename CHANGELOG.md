@@ -114,6 +114,14 @@ rule is:
   widget wider or taller than 65,408 device px at the factor that fits
   it.
 
+### API review
+
+Names and visibility settled before the first release:
+
+- rustd3-iced: `plot::BAND_BYTES` and `plot::NUDGE` are crate-private;
+  `plot::cost` is public only behind `__dev`, the benchmark's and the
+  tests' feature, and hidden from the docs.
+
 ### Benchmark (`rustd3-bench`, in the repository)
 
 - rustd3's benchmark, the plotting library and its widget: one entry

@@ -71,7 +71,7 @@
 //! images placed on whole device pixels. Adjacent gutter cells of a row
 //! whose content depends on the same handles (an axis strip and the
 //! corners its labels reach into) merge into one image.
-//! A cell whose RGBA would reach [`BAND_BYTES`] is rendered and drawn as
+//! A cell whose RGBA would reach 2 MiB is rendered and drawn as
 //! horizontal bands below that size, so the GPU renderer uploads every
 //! image inside the frame that first draws it; a tile always stays under
 //! it. Hovering renders no cell:
@@ -238,7 +238,13 @@ mod area;
 mod brush;
 mod budget;
 mod caching;
+// The cost model's seed constants, which the benchmark records: public to
+// the dev crates through the `__dev` feature only.
+#[cfg(feature = "__dev")]
+#[doc(hidden)]
 pub mod cost;
+#[cfg(not(feature = "__dev"))]
+mod cost;
 mod domains;
 #[cfg(test)]
 mod fixture;
@@ -284,7 +290,7 @@ use state::{Pipeline, State};
 /// RGBA bytes at which a cell is split into bands: wgpu uploads images
 /// under 2 MiB inside the frame (`wgpu/src/image/cache.rs:223-246`)
 /// and larger ones through a worker drained only by `Renderer::tick`.
-pub const BAND_BYTES: usize = 2 * 1024 * 1024;
+pub(crate) const BAND_BYTES: usize = 2 * 1024 * 1024;
 
 /// The app's message for what the pointer hovers.
 type Report<'a, Message> = Box<dyn Fn(Option<Hover>) -> Message + 'a>;
@@ -300,7 +306,7 @@ type Report<'a, Message> = Box<dyn Fn(Option<Hover>) -> Message + 'a>;
 /// image and its clip on the same device pixels: a quarter, doubled to
 /// half a pixel, moved wgpu's images and tiny-skia's clips a pixel later
 /// and left a one-pixel seam where cells meet.
-pub const NUDGE: f32 = 0.0625;
+pub(crate) const NUDGE: f32 = 0.0625;
 
 /// A figure shown as images rendered from its drawing list.
 ///

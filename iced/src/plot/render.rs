@@ -24,8 +24,8 @@ pub enum Render {
     /// instants, clamped to 1 ms ..= 16.7 ms (16.7 ms until two exist);
     /// the prediction is a fixed overhead plus a time per pixel and per
     /// work item that each widget fits to its timed renders, the tiles'
-    /// apart from the gutters' and overlays', seeded by
-    /// [`cost::model_ms`](crate::plot::cost::model_ms)'s constants.
+    /// apart from the gutters' and overlays', seeded by two constants
+    /// fitted to a 1920 × 1520 device px figure of 5,600 dots.
     #[default]
     Auto,
     /// Always on the UI thread, inside `RedrawRequested`, gestures

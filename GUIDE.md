@@ -184,7 +184,7 @@ affine map per axis, soft until the new tiles land.
 
 **Cost model.** The `Plot` widget's prediction of a render's time: a
 fixed overhead per render plus a time per pixel and per drawing item,
-seeded by `rustd3_iced::plot::cost`'s constants and fitted to the
+seeded by two constants measured on a reference figure and fitted to the
 widget's own renders on the machine it runs on, tiles apart from axis
 strips. It decides which renders run inline on the UI thread.
 

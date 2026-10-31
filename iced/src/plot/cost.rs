@@ -7,8 +7,8 @@
 //! millisecond, rounded down to 5e5. Checked back, the model gives 21.7 ms
 //! for the whole figure and 7.7 ms without the dots. They seed each
 //! widget's own fit, which adds a fixed overhead per render and follows
-//! the machine from its timed renders; public so the benchmark can
-//! record them.
+//! the machine from its timed renders; public to the dev crates (the
+//! `__dev` feature) so that the benchmark can record them.
 
 /// Device pixels rasterized per millisecond.
 pub const PIXELS_PER_MS: f64 = 5.0e5;
@@ -20,6 +20,10 @@ pub const ITEMS_PER_MS: f64 = 400.0;
 /// Modelled single-threaded time of one cell, in milliseconds: `pixels /
 /// PIXELS_PER_MS + work / ITEMS_PER_MS`.
 #[must_use]
+#[cfg_attr(
+    all(not(feature = "__dev"), not(test)),
+    expect(dead_code, reason = "the tests and the benchmark read the model")
+)]
 pub fn model_ms(pixels: u64, work: u64) -> f64 {
     pixels as f64 / PIXELS_PER_MS + work as f64 / ITEMS_PER_MS
 }
