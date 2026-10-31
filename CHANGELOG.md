@@ -153,6 +153,7 @@ Names and visibility settled before the first release:
   `Fittable`, `mark::Binned`, and through `Ticks` `colorbar::Ramp`) and
   `scale::Indexed`. `PathContext`, `scale::Transform`, `Interpolate`,
   `mark::Mark`, `shape::Vertex` and `shape::Span` stay open.
+- `scale::SeriesExtent` is `scale::indexed::Extent`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 
