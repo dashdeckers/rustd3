@@ -31,6 +31,10 @@
 //!
 //! The `derive` feature adds `#[derive(Interpolate)]`, re-exported beside
 //! the trait as [`interpolate::Interpolate`].
+//!
+//! jiff's types (`Timestamp`, `tz::TimeZone`, `SignedDuration`) are part
+//! of this crate's API and re-exported as [`jiff`]: a major version of
+//! jiff is a major version of this crate.
 
 // Builders and pure functions say so: a result dropped is a bug.
 #![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]

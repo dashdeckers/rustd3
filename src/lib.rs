@@ -10,6 +10,13 @@
 //! `rustd3::figure::x`. `rustd3_iced` is not re-exported: an iced app
 //! depends on `rustd3-iced` and uses it directly.
 //!
+//! Three dependencies' types are part of the API, and each is re-exported
+//! at the version rustd3 is built with: `rustd3::jiff` (instants, zones
+//! and durations of the time API), and with `figure`,
+//! `rustd3::figure::kurbo` (the drawing list's geometry) and
+//! `rustd3::figure::peniko` (its paints). Name them through these paths;
+//! a major version of any of them is a major version of rustd3.
+//!
 //! # The core level
 //!
 //! Scales and generators are plain values; generators draw into any
