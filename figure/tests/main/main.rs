@@ -41,6 +41,7 @@ mod svg;
 mod text;
 mod theme;
 mod thin;
+mod threads;
 mod visible;
 
 // The example figures of rustd3-examples, compiled into these tests so
