@@ -9,7 +9,7 @@ documentation = "https://docs.rs/rustd3"
 readme = "README.md"
 keywords = ["d3", "plot", "chart", "visualization", "dataviz"]
 categories = ["visualization", "graphics", "rendering"]
-include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE-MIT", "/LICENSE-APACHE"]
+include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/LICENSE-d3"]
 autotests = false
 
 [package.metadata.docs.rs]
