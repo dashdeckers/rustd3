@@ -8,6 +8,9 @@ mod band;
 mod binned;
 mod brush;
 mod color;
+// d3's own test suites, under `tests/d3/`.
+#[path = "../d3/d3.rs"]
+mod d3;
 #[cfg(feature = "derive")]
 mod derive;
 mod drag;
