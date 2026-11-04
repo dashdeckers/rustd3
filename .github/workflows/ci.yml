@@ -48,7 +48,7 @@ jobs:
       - run: scripts/ci-run.sh cargo clippy --workspace --all-targets --all-features -- -D warnings
       # The benchmark without its widget, as bench_figure
       # builds it: no iced, winit or wgpu.
-      - run: scripts/ci-run.sh cargo clippy -p benchkit -p rustd3-examples --all-targets --no-default-features -- -D warnings
+      - run: scripts/ci-run.sh cargo clippy -p benchkit -p rustd3-figure --all-targets --no-default-features -- -D warnings
 
   test:
     name: test (${{ matrix.os }})
@@ -89,15 +89,15 @@ jobs:
       # The iced tests again on each backend explicitly; with
       # ICED_TEST_BACKEND set iced does not fall back.
       - name: iced tests on tiny-skia
-        run: scripts/ci-run.sh cargo test -p rustd3-iced -p rustd3-examples -p benchkit --all-features
+        run: scripts/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: tiny-skia
       - name: iced tests on wgpu
-        run: scripts/ci-run.sh cargo test -p rustd3-iced -p rustd3-examples -p benchkit --all-features
+        run: scripts/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: wgpu
       - run: scripts/ci-run.sh cargo run -p rustd3 --example core_level
-      - run: scripts/ci-run.sh cargo test -p benchkit -p rustd3-examples --no-default-features
+      - run: scripts/ci-run.sh cargo test -p benchkit -p rustd3-figure --no-default-features
 
   msrv:
     name: MSRV (1.97)

@@ -12,7 +12,7 @@
 
 use std::path::PathBuf;
 
-use rustd3_examples::wheels;
+use benchkit::gallery::wheels;
 use rustd3_figure::Theme;
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::theme::{Context, Style};
@@ -36,9 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             dir = Some(PathBuf::from(arg));
         }
     }
-    let dir = dir.unwrap_or_else(|| {
-        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/wheels"))
-    });
+    let dir = dir
+        .unwrap_or_else(|| PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../target/wheels")));
     std::fs::create_dir_all(&dir)?;
     let samples = wheels::simulate();
     for (inset, name) in [(false, "wheels"), (true, "wheels_inset")] {

@@ -1,7 +1,7 @@
 //! poppler's tools on a PDF in memory: `pdftoppm` renders it back,
 //! `pdftotext` extracts its text, `pdffonts` lists its fonts. Each reads
 //! the PDF from a temporary file; a tool that cannot run fails the test with a message
-//! naming poppler-utils. Shared with rustd3-examples' tests.
+//! naming poppler-utils.
 
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};

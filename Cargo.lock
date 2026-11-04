@@ -3802,20 +3802,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustd3-examples"
-version = "0.1.0"
-dependencies = [
- "benchkit",
- "iced",
- "iced_test",
- "png",
- "rustd3-core",
- "rustd3-figure",
- "rustd3-iced",
- "rustd3-testkit",
-]
-
-[[package]]
 name = "rustd3-figure"
 version = "0.1.0"
 dependencies = [

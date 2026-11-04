@@ -5,9 +5,14 @@ use std::time::Duration;
 
 use iced::Theme;
 use rustd3_core::anim::{Instant, Phase};
-use rustd3_examples::update_pattern::{App, Bar, Message};
 
+use self::app::{App, Bar, Message};
 use crate::simulator;
+
+// The example's app, compiled into these tests.
+#[path = "../../examples/update_pattern/app.rs"]
+#[allow(dead_code, reason = "the example reads what the tests do not")]
+mod app;
 
 /// The chart's window.
 const SIZE: (f32, f32) = (600.0, 260.0);
@@ -33,6 +38,7 @@ const SECOND: [(&str, f64); 5] = [
 ];
 
 /// Any base instant: values depend only on the offsets from it.
+#[expect(clippy::disallowed_methods, reason = "test clock")]
 fn base() -> (Instant, impl Fn(u64) -> Instant) {
     let t0 = Instant::now();
     (t0, move |n| t0 + Duration::from_millis(n))

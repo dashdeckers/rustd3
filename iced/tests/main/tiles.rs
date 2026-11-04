@@ -732,7 +732,7 @@ fn drag_settles_on_the_exact_domain() {
 /// Samples per second of [`trace`].
 const RATE: f64 = 10_000.0;
 
-/// A trace like the benchmark's (`dev/bench/src/workload/trace.rs`):
+/// A trace like the benchmark's (`benchkit/src/workload/trace.rs`):
 /// three channels of `n` samples at 10 kHz, each a slow sine, a 7 Hz tone
 /// and uniform noise (a 64-bit LCG seeded per channel), with a 120 Hz
 /// burst for 0.2 s every 10 s. Thinned for the screen, its strokes
@@ -896,7 +896,7 @@ type Replayed = (u32, u32, usize);
 
 /// A pan-x replay over [`traced`] (without its bottom axes, so that a pan
 /// changes nothing outside the plot areas) at `k` as the benchmark's
-/// `pan-x` (`dev/bench/src/scenario.rs`) drives it: the pointer right of
+/// `pan-x` (`benchkit/src/scenario.rs`) drives it: the pointer right of
 /// centre on the top panel, a press, then every 8 ms a move of 2–8
 /// logical px, left for 600 px (at most 60% of the width), then back;
 /// `frames` frames 16 ms apart under `Render::Worker`, each followed by

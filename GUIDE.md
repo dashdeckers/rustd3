@@ -437,7 +437,7 @@ with a cache you keep between frames.
 
 `rustd3_iced::path` turns d3 drawing into an iced `canvas::Path`; the
 app writes the axis labels with iced's own text. The `canvas` example
-of `dev/examples` is a whole app; its draw function, in part:
+of rustd3-iced is a whole app; its draw function, in part:
 
 ```rust
 let x = scale::linear().domain([0.0, 10.0]).range([40.0, width - 40.0]);

@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PACKAGES=(rustd3 rustd3-core rustd3-derive rustd3-figure rustd3-fonts rustd3-iced
-          rustd3-testkit rustd3-examples benchkit)
+          rustd3-testkit benchkit)
 touched() {  # packages with uncommitted changes or changed in HEAD
   { git diff --name-only HEAD; git ls-files --others --exclude-standard;
     git diff --name-only HEAD~1 HEAD 2>/dev/null || true; } | while read -r f; do
@@ -12,10 +12,9 @@ touched() {  # packages with uncommitted changes or changed in HEAD
       core/*) echo rustd3-core ;;        derive/*) echo rustd3-derive ;;
       figure/*) echo rustd3-figure ;;    fonts/*) echo rustd3-fonts ;;
       iced/*) echo rustd3-iced ;;        testkit/*) echo rustd3-testkit ;;
-      dev/examples/*) echo rustd3-examples ;;
       benchkit/*) echo benchkit ;;  src/*|tests/*) echo rustd3 ;;
-      README.md) echo rustd3; echo rustd3-examples ;;
-      Cargo.toml|Cargo.lock|clippy.toml|dev/clippy.toml) printf '%s\n' "${PACKAGES[@]}" ;;
+      README.md) echo rustd3; echo rustd3-iced ;;
+      Cargo.toml|Cargo.lock|clippy.toml) printf '%s\n' "${PACKAGES[@]}" ;;
     esac
   done | sort -u
 }
@@ -28,7 +27,7 @@ no_widget() {
       | grep -E '^(iced|winit|wgpu)'; then
     echo "benchkit without the widget builds the crates above" >&2; return 1
   fi
-  cargo clippy -p benchkit -p rustd3-examples --all-targets --no-default-features -- -D warnings
+  cargo clippy -p benchkit -p rustd3-figure --all-targets --no-default-features -- -D warnings
   TZ=Asia/Kathmandu cargo test -q -p benchkit --no-default-features
 }
 
@@ -38,7 +37,7 @@ quick() {
   local pkgs=("$@")
   if [ ${#pkgs[@]} -eq 0 ]; then mapfile -t pkgs < <(touched); fi
   for p in "${pkgs[@]}"; do TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features; done
-  if printf '%s\n' "${pkgs[@]}" | grep -qxE 'benchkit|rustd3-examples'; then no_widget; fi
+  if printf '%s\n' "${pkgs[@]}" | grep -qxE 'benchkit|rustd3-figure'; then no_widget; fi
   # The README's core-level example asserts what it prints.
   if printf '%s\n' "${pkgs[@]}" | grep -qx rustd3; then cargo run -q -p rustd3 --example core_level > /dev/null; fi
   if [ "${RUSTD3_FUZZ:-0}" = 1 ]; then TZ=Asia/Kathmandu cargo test -q -p rustd3-core --release --test main fuzz; fi
@@ -64,7 +63,7 @@ full() {
     if [ "$backend" = wgpu ] && [ "${RUSTD3_ALLOW_NO_GPU:-0}" = 1 ]; then
       echo "RUSTD3_ALLOW_NO_GPU=1: iced tests skip wgpu when it finds no device"
     fi
-    for p in rustd3-iced rustd3-examples benchkit; do
+    for p in rustd3-iced benchkit; do
       ICED_TEST_BACKEND=$backend TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features -- --nocapture
     done
   done

@@ -6,9 +6,14 @@ use iced::mouse::{self, ScrollDelta};
 use iced::{Event, Point};
 use iced_test::Simulator;
 use rustd3_core::jiff::Timestamp;
-use rustd3_examples::focus_context::{App, Message};
 
+use self::app::{App, Message};
 use crate::simulator;
+
+// The example's app, compiled into these tests.
+#[path = "../../examples/focus_context/app.rs"]
+#[allow(dead_code, reason = "the example reads what the tests do not")]
+mod app;
 
 /// The window: the focus above, the overview from y = 340; plots 860 px
 /// wide between the 40 px and 24 px margins.

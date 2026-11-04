@@ -1,4 +1,0 @@
-# The dev crates may read clocks and the system zone; the nearest
-# clippy.toml wins, so this replaces the root file below dev/.
-allow-unwrap-in-tests = true
-disallowed-methods = []

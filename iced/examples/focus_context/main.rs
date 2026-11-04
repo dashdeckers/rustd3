@@ -1,7 +1,11 @@
 //! Focus and context: zoom the detail view with the wheel,
-//! pan it by dragging, brush a window in the overview below.
+//! pan it by dragging, brush a window in the overview below. The app is
+//! in `app.rs`, which rustd3-iced's tests drive too.
 
-use rustd3_examples::focus_context::App;
+#[allow(dead_code, reason = "the tests read what the example does not")]
+mod app;
+
+use crate::app::App;
 
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)

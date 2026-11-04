@@ -7,14 +7,14 @@
 
 use std::path::{Path, PathBuf};
 
-use rustd3_examples::presets;
+use benchkit::gallery::presets;
 
 /// Device px per logical px of the PNGs.
 const SCALE: f64 = 2.0;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dir = std::env::args_os().nth(1).map_or_else(
-        || PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/presets")),
+        || PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../target/presets")),
         PathBuf::from,
     );
     std::fs::create_dir_all(&dir)?;

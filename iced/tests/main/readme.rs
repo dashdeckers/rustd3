@@ -4,7 +4,7 @@
 //! `tests/main/readme.rs` holds the other blocks to its own examples.
 
 /// The README, whose `rust` blocks are compiled examples.
-const README: &str = include_str!("../../../../README.md");
+const README: &str = include_str!("../../../README.md");
 
 /// The README's code blocks fenced as `rust`, in order.
 fn rust_blocks() -> Vec<String> {

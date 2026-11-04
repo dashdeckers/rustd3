@@ -21,6 +21,8 @@ iced_core.workspace = true
 iced_widget = { workspace = true, features = ["advanced", "canvas", "image"] }
 
 [dev-dependencies]
+# The update pattern example's bars blend through `#[derive(Interpolate)]`.
+rustd3-core = { workspace = true, features = ["derive"] }
 iced = { workspace = true, features = ["advanced", "canvas"] }
 iced_test.workspace = true
 iced_runtime.workspace = true
@@ -31,6 +33,11 @@ benchkit = { workspace = true, features = ["widget"] }
 [[test]]
 name = "main"
 path = "tests/main/main.rs"
+
+# The README's `Plot` widget.
+[[example]]
+name = "readme_plot"
+required-features = ["figure"]
 
 # The benchmark (benchkit's README): the level, its windowed and offscreen
 # widget profiles, and the archives' readers.

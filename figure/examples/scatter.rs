@@ -1,10 +1,27 @@
-//! The scatter figure: Gaussian clusters in three palette keys.
+//! Writes `scatter.svg` and `scatter.png` into the directory given on the
+//! command line: 5,600 points in three palette keys, three `Markers`
+//! commands. rustd3-figure's tests draw the same figure, [`scatter`].
+
+use std::path::PathBuf;
 
 use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::mark::dots;
 use rustd3_figure::{Figure, axis};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let dir: PathBuf = std::env::args_os()
+        .nth(1)
+        .ok_or("usage: scatter <directory>")?
+        .into();
+    let fig = scatter(POINTS);
+    for warning in fig.save_svg(dir.join("scatter.svg"), SIZE)? {
+        eprintln!("scatter.svg: {warning:?}");
+    }
+    fig.save_png(dir.join("scatter.png"), SIZE, SCALE)?;
+    Ok(())
+}
 
 /// The example's points: as many as the wheel figure's dots.
 pub const POINTS: usize = 5_600;

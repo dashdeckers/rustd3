@@ -1,6 +1,10 @@
 //! The general update pattern: a top-five bar chart that
 //! re-ranks every 1.5 s, bars entering, moving and leaving in staggered
-//! transitions.
+//! transitions. The app is in `app.rs`, which rustd3-iced's tests drive
+//! too.
+
+#[allow(dead_code, reason = "the tests read what the example does not")]
+mod app;
 
 use std::thread;
 use std::time::Duration;
@@ -8,8 +12,13 @@ use std::time::Duration;
 use iced::Subscription;
 use iced::futures::channel::mpsc;
 use rustd3_core::anim::Instant;
-use rustd3_examples::update_pattern::{App, Message};
 
+use crate::app::{App, Message};
+
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the app reads the clock and passes the instants to the library"
+)]
 fn main() -> iced::Result {
     iced::application(|| App::new(Instant::now()), App::update, App::view)
         .subscription(|app: &App| {
@@ -23,6 +32,10 @@ fn main() -> iced::Result {
 
 /// The time every `period`, from a thread of its own: iced's `time::every`
 /// needs its `tokio` or `smol` feature, which the workspace leaves off.
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the app reads the clock and passes the instants to the library"
+)]
 fn every(period: Duration) -> Subscription<Instant> {
     Subscription::run_with(period, |&period| {
         let (mut sender, receiver) = mpsc::channel(1);

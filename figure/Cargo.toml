@@ -50,6 +50,23 @@ benchkit.workspace = true
 name = "main"
 path = "tests/main/main.rs"
 
+# The example figures: SVG and PNG files, the presets through `helpers`.
+[[example]]
+name = "trace"
+required-features = ["png", "fonts"]
+
+[[example]]
+name = "scatter"
+required-features = ["png", "fonts"]
+
+[[example]]
+name = "wheels"
+required-features = ["png", "fonts"]
+
+[[example]]
+name = "presets"
+required-features = ["png", "fonts", "helpers"]
+
 # The benchmark of the plotting library alone (benchkit's README).
 [[example]]
 name = "bench_figure"

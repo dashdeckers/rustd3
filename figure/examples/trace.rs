@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use rustd3_examples::trace;
+use benchkit::gallery::trace;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dir: PathBuf = std::env::args_os()

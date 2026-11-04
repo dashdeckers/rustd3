@@ -3,7 +3,7 @@
 //! autoscaling of the same artists), its checks at two sizes, its labels and lowering, text
 //! snapshots of its list and SVG, and its PDF through poppler.
 
-use rustd3_examples::wheels;
+use benchkit::gallery::wheels;
 use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{Shape, Size, Vec2};
 use rustd3_figure::list::{self, Clip, Command, List, part};
