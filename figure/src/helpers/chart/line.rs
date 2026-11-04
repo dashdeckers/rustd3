@@ -31,7 +31,10 @@ impl<'a> std::fmt::Debug for Line<'a> {
 /// every series, a bottom and a left axis with minor ticks, and a legend
 /// of lines right of the plot area when there is more than one series.
 /// The first series' key is "0", pandas' name for an unnamed column, until
-/// [`key`](Line::key) names it. Keys are the legend's labels.
+/// [`key`](Line::key) names it. Keys are the legend's labels. The figure's
+/// one panel holds one mark per series, in their order: mark *i* is series
+/// *i*, so a hover (a `hit::Hit`, or rustd3-iced's `plot::Hover`) is named
+/// from the app's own keys, `keys[hover.mark]`.
 ///
 /// A line over one channel of a recording:
 ///

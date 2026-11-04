@@ -37,7 +37,11 @@ impl<'a> std::fmt::Debug for Area<'a> {
 /// legend right of the plot area when there is more than one column.
 /// Columns are keyed by their index ("0", "1", …, pandas' names for
 /// unnamed columns) until [`keys`](Area::keys) names them; keys are the
-/// legend's labels. Rows are the shortest of `x` and the columns.
+/// legend's labels. Rows are the shortest of `x` and the columns. The
+/// figure's one panel holds one ribbon per column, in their order: mark *i*
+/// is column *i*, so a mark index the figure reports (a `check` issue's
+/// `mark`) is named from the app's own keys, `keys[mark]`. Ribbons report
+/// no hit points, so an area chart is not hovered.
 ///
 /// ```
 /// use rustd3_figure::helpers::chart;
