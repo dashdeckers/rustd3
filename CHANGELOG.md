@@ -63,6 +63,8 @@ The first release.
 - `helpers`: one-call charts (line, scatter, bar, area, pie, heatmap),
   statistical charts (histogram, KDE and violin, box plot, ECDF, error
   bars), value labels, legend helpers and `subplots`.
+- `helpers::chart::Line::key` and `Area::keys` name the series their
+  legends show; a name given twice is `check::Issue::DuplicateKey`.
 
 ### iced (`rustd3-iced`, from git)
 

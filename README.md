@@ -79,7 +79,8 @@ fn main() -> Result<(), Error> {
 `fig.fit` spans the data of every mark that uses the scale; `fig.scale`
 keeps the domain you give it. Two panels share a scale by using the same
 handle. With the `helpers` feature, `rustd3::figure::helpers::chart` has
-one-call presets (line, scatter, bar, area, pie, heatmap) and
+one-call presets (line, scatter, bar, area, pie, heatmap; `.key(name)`
+and `.keys(names)` name the series a legend shows) and
 `helpers::stats` the statistical charts (histogram, box plot, violin,
 ECDF, error bars).
 

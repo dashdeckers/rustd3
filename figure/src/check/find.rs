@@ -20,10 +20,11 @@ impl Figure<'_> {
     /// glyphs the fonts lack or markup typst rejects, and what each mark
     /// reports ([`Mark::issues`](crate::mark::Mark::issues): collected data
     /// over 100,000 points, palette keys outside their palette, band and
-    /// point keys outside their domain). Layout's issues come first, in
+    /// point keys outside their domain), and what the helper that built it
+    /// found (a series name given twice). Layout's issues come first, in
     /// panel order, then text's, by label, then the marks', in panel and
-    /// mark order; the keys outside one handle's domain are counted in one
-    /// issue, where its first mark reported them.
+    /// mark order, the helper's last; the keys outside one handle's domain
+    /// are counted in one issue, where its first mark reported them.
     ///
     /// ```
     /// use rustd3_figure::check::Issue;
@@ -71,6 +72,7 @@ impl Figure<'_> {
                 .iter()
                 .map(|&handle| Issue::CategoricalWindow { handle }),
         );
+        issues.extend(self.noted().iter().cloned());
         issues
     }
 }

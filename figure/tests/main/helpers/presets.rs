@@ -425,6 +425,60 @@ fn a_stacked_area_is_one_ribbon_per_column_on_shape_stacks_edges() {
     assert_checks(&fig);
 }
 
+#[test]
+fn named_series_label_the_legends_of_lines_and_areas() {
+    let pairs = |k: f64| (0..10).map(move |i| (f64::from(i), k * f64::from(i)));
+    let lines = chart::line(pairs(1.0))
+        .key("speed")
+        .series(pairs(2.0), "load")
+        .figure();
+    assert_eq!(
+        legend_texts(&draw(&lines)),
+        Some(vec!["speed".into(), "load".into()])
+    );
+    assert_checks(&lines);
+    let areas = chart::area(vec![vec![1.0; 3]; 3], vec![0.0, 1.0, 2.0])
+        .keys(["solar", "wind"])
+        .figure();
+    assert_eq!(
+        legend_texts(&draw(&areas)),
+        Some(vec!["solar".into(), "wind".into(), "2".into()]),
+        "a column past the names keeps its index"
+    );
+    assert_checks(&areas);
+}
+
+#[cfg(feature = "fonts")]
+#[test]
+fn a_series_name_given_twice_is_one_issue_per_name() {
+    use rustd3_figure::check::Issue;
+
+    let pairs = |k: f64| (0..10).map(move |i| (f64::from(i), k * f64::from(i)));
+    let size = Size::new(640.0, 480.0);
+    let lines = chart::line(pairs(1.0))
+        .key("a")
+        .series(pairs(2.0), "a")
+        .series(pairs(3.0), "a")
+        .series(pairs(4.0), "b")
+        .figure();
+    assert_eq!(lines.check(size), [Issue::DuplicateKey { key: "a".into() }]);
+    let areas = chart::area(vec![vec![1.0; 3]; 3], vec![0.0, 1.0, 2.0])
+        .keys(["x", "2", "x"])
+        .figure();
+    assert_eq!(
+        areas.check(size),
+        [Issue::DuplicateKey { key: "x".into() },]
+    );
+    let renamed = chart::area(vec![vec![1.0; 3]; 3], vec![0.0, 1.0, 2.0])
+        .keys(["2"])
+        .figure();
+    assert_eq!(
+        renamed.check(size),
+        [Issue::DuplicateKey { key: "2".into() }],
+        "a name equal to an unnamed column's index"
+    );
+}
+
 /// `fig` drawn for vector output at a size whose plot area is `w × h`
 /// (a figure without axes, whose padding does not depend on its size).
 fn drawn_with_area(fig: &Figure<'_>, w: f64, h: f64) -> (List, Rect) {

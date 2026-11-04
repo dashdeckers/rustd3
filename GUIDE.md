@@ -300,7 +300,8 @@ faster on a million values; below that it is exact.
 With the `helpers` feature, `rustd3::figure::helpers` composes these
 into one-call charts: `helpers::chart` (`line`, `scatter`, `bar`, `area`,
 `pie`, `heatmap`, each ending in `.figure()`, `.save_svg(path)` or
-`.save_png(path, scale)`), `helpers::stats` (box plots, violins, ECDF,
+`.save_png(path, scale)`; `line(..).key(name)` and `area(..).keys(names)`
+name the series the legend shows), `helpers::stats` (box plots, violins, ECDF,
 error bars, histogram options, with the statistics as pure functions),
 `helpers::labels` (value labels), `helpers::legend` (size and color
 legends) and `helpers::subplots`. Each helper is ordinary code over the

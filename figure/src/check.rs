@@ -150,6 +150,13 @@ pub enum Issue {
         /// How many data values lie outside the domain.
         count: usize,
     },
+    /// A series name given twice to a chart helper (`helpers::chart`'s
+    /// `Line::key` and `Line::series`, `Area::keys`): its series share one
+    /// color and one legend entry. One issue per name.
+    DuplicateKey {
+        /// The name.
+        key: String,
+    },
 }
 
 /// What text overflows.
