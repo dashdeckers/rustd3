@@ -57,7 +57,7 @@ fn the_ticks_impl_matches_a_linear_scale_over_the_same_stops() {
             assert_eq!(id.labels(&a, &locale), linear.labels(&b, &locale));
         }
         assert_eq!(Ticks::minor(&id, &a), Ticks::minor(&linear, &b));
-        assert_eq!(id.extent(), linear.extent());
+        assert_eq!(id.ends(), linear.ends());
         for v in a.get_values() {
             // The identity is exact where linear interpolation rounds.
             assert_eq!(id.position(v, 0.5), Some(*v));

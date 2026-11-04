@@ -1,10 +1,10 @@
 //! The update pattern at fixed instants: `t0` is any instant and `ms(n)` is `n`
 //! milliseconds after it; the values depend only on the offsets.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use iced::Theme;
-use rustd3_core::anim::Phase;
+use rustd3_core::anim::{Instant, Phase};
 use rustd3_examples::update_pattern::{App, Bar, Message};
 
 use crate::simulator;

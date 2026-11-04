@@ -146,8 +146,9 @@ pub(crate) trait Draw {
     fn scale(&self) -> ScaleRef<()>;
 
     /// The entries over the resolved scales, in `theme`'s colors: for a
-    /// legend of an ordinal palette, each key's color, text, swatch and the
-    /// hatch of the marks filled with it, in domain order.
+    /// legend of an ordinal palette, each key's color (a square's at the
+    /// most opaque fill of its marks), text, swatch and the hatch of the marks
+    /// filled with it, in domain order.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry>;
 
     /// The title.
@@ -172,11 +173,19 @@ where
             .map(|key| {
                 let index = self.palette.get_index();
                 let is = |k: &dyn Any| k.downcast_ref::<K>() == Some(key);
-                let glyph = self.glyph.or_else(|| resolved.glyph(index, is));
+                let glyph = self
+                    .glyph
+                    .or_else(|| resolved.glyph(index, is))
+                    .unwrap_or_default();
+                // A square repeats the most opaque fill of its marks.
+                let shown = |c: Rgb| match glyph {
+                    Swatch::Square => c.with_opacity(resolved.opacity(index, is, c.opacity)),
+                    Swatch::Dot | Swatch::Line { .. } => c,
+                };
                 Entry {
-                    color: palette.apply(key).copied(),
+                    color: palette.apply(key).copied().map(shown),
                     label: key.to_string(),
-                    glyph: glyph.unwrap_or_default(),
+                    glyph,
                     hatch: resolved.hatch(index, is).cloned(),
                     size: None,
                 }

@@ -132,8 +132,8 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Point<K> {
         self.band.labels(ticks, locale)
     }
 
-    fn extent(&self) -> [f64; 2] {
-        self.band.extent()
+    fn ends(&self) -> [f64; 2] {
+        self.band.ends()
     }
 }
 

@@ -34,7 +34,7 @@ fn quantize_ticks_are_its_bin_edges() {
         q.labels(&set, &Locale::NEUTRAL),
         ["0.0", "0.3", "0.7", "1.0"]
     );
-    assert_eq!(q.extent(), [0.0, 1.0]);
+    assert_eq!(q.ends(), [0.0, 1.0]);
 }
 
 #[test]

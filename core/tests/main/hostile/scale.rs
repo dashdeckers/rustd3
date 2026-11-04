@@ -197,7 +197,7 @@ fn ordinal_scales_never_panic() {
         for v in set.get_values() {
             o.position(v, 0.0);
         }
-        o.extent();
+        o.ends();
     });
 }
 

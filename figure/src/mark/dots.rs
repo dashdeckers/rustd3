@@ -13,7 +13,7 @@ use crate::hit;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List, Paints};
 use crate::mark::channel::Channel;
-use crate::mark::color::Color;
+use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Error, Mark, across, at, positive, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::text;
@@ -323,7 +323,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
             return;
         }
         super::fit(&self.points, self.x, self.y, fits);
-        self.color.report(Swatch::Dot, None, fits);
+        self.color.report(Swatch::Dot, None, Alpha::OPAQUE, fits);
         if let Some(Ok(channel)) = &self.fill_by {
             channel.fit(fits);
         }

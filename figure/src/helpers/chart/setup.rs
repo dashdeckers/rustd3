@@ -5,6 +5,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Ordinal, Ticks};
 
 use crate::axis::{self, Axis};
+use crate::check::Issue;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::Text;
 use crate::{Figure, Panel, Theme};
@@ -87,6 +88,21 @@ impl Setup {
     /// `axis` with its minor ticks on when the preset's are.
     fn minors<'a, S: Kind>(&self, axis: Axis<'a, S>) -> Axis<'a, S> {
         axis.minor(self.minor)
+    }
+}
+
+/// Notes on `fig` an [`Issue::DuplicateKey`] for each key that `keys`
+/// holds more than once, in the order of its second occurrence.
+pub(super) fn duplicates<'k>(fig: &mut Figure<'_>, keys: impl IntoIterator<Item = &'k String>) {
+    let mut seen: Vec<&String> = Vec::new();
+    let mut twice: Vec<&String> = Vec::new();
+    for key in keys {
+        if !seen.contains(&key) {
+            seen.push(key);
+        } else if !twice.contains(&key) {
+            twice.push(key);
+            fig.note(Issue::DuplicateKey { key: key.clone() });
+        }
     }
 }
 

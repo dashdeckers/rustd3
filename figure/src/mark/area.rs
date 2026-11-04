@@ -10,15 +10,10 @@ use crate::figure::Fits;
 use crate::hatch::Hatch;
 use crate::legend::Swatch;
 use crate::list::{self, Clip, Command, List};
-use crate::mark::color::Color;
+use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Error, Mark, admits, at, polygon, reach, runs};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::thin::Thin;
-
-/// An opaque ribbon color's opacity unless set: a band that lines drawn
-/// over it show through (seaborn's error bands use 0.2, matplotlib's
-/// examples 0.2–0.3).
-const BAND: f64 = 0.25;
 
 /// The region between a line through points and a horizontal base: one
 /// `Fill` command, broken where a point cannot be placed. A recording
@@ -230,7 +225,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
         super::fit(&self.points, self.x, self.y, fits);
         fits.add(self.y, &self.base);
         fits.stick(self.y, self.base);
-        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
+        let alpha = Alpha::Times(self.opacity);
+        self.color
+            .report(Swatch::Square, self.hatch.as_ref(), alpha, fits);
     }
 
     /// One `Fill` command: per run of points placed on both scales (or of
@@ -262,7 +259,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
             outline.push(Point::new(last.x, base));
             polygon(&mut path, &outline, band);
         }
-        let paint = (&self.color, Some(self.opacity), self.hatch.as_ref());
+        let paint = (&self.color, Alpha::Times(self.opacity), self.hatch.as_ref());
         fill(list, path, paint, ctx);
     }
 
@@ -350,6 +347,12 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
         Self { thin: t, ..self }
     }
 
+    /// How the fill's opacity follows its color's: a band's, or the factor
+    /// set.
+    fn alpha(&self) -> Alpha {
+        self.opacity.map_or(Alpha::Band, Alpha::Times)
+    }
+
     /// M4 over both edges per column of the plot area, when the ribbon
     /// thins: [`Thin::Auto`], an x scale with an index bridge, and two
     /// channels of one recording.
@@ -380,7 +383,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
         if reaches_zero(&self.lower, sx, sy) || reaches_zero(&self.upper, sx, sy) {
             fits.stick(self.y, 0.0);
         }
-        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
+        self.color
+            .report(Swatch::Square, self.hatch.as_ref(), self.alpha(), fits);
     }
 
     /// One `Fill` command: per run of rows whose x and both edges are
@@ -417,7 +421,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
             let outline: Vec<Point> = upper.chain(lower).collect();
             polygon(&mut path, &outline, band);
         }
-        let paint = (&self.color, self.opacity, self.hatch.as_ref());
+        let paint = (&self.color, self.alpha(), self.hatch.as_ref());
         fill(list, path, paint, ctx);
     }
 
@@ -469,28 +473,22 @@ fn clamped(a: f64, was: f64) -> f64 {
     if a.is_nan() { was } else { a.clamp(0.0, 1.0) }
 }
 
-/// What a region is filled with: its color, the opacity it multiplies the
-/// color's by (`None`: a band's), and its hatch.
-type Filling<'p> = (&'p Color, Option<f64>, Option<&'p Hatch>);
+/// What a region is filled with: its color, how its opacity follows the
+/// color's, and its hatch.
+type Filling<'p> = (&'p Color, Alpha, Option<&'p Hatch>);
 
-/// Pushes `path` filled in `paint`'s color at its opacity (a band's: an
-/// opaque color at 0.25, a translucent one at its own), then hatched
+/// Pushes `path` filled in `paint`'s color at its alpha, then hatched
 /// (clipped to the path) when set, unless it is empty.
-fn fill(list: &mut List, path: BezPath, (color, opacity, hatch): Filling<'_>, ctx: &Ctx<'_>) {
+fn fill(list: &mut List, path: BezPath, (color, alpha, hatch): Filling<'_>, ctx: &Ctx<'_>) {
     if path.elements().is_empty() {
         return;
     }
     let bounds = path.bounding_box();
     let clip = hatch.map(|_| Clip::Path(path.clone()));
     let c = color.resolve(ctx);
-    let alpha = match opacity {
-        Some(a) => c.opacity * a,
-        None if c.opacity < 1.0 => c.opacity,
-        None => BAND,
-    };
     list.commands.push(Command::Fill {
         path,
-        paint: list::brush(c.with_opacity(alpha)),
+        paint: list::brush(c.with_opacity(alpha.of(c.opacity))),
     });
     if let Some(clip) = clip {
         super::hatch(hatch, clip, bounds, ctx, list);

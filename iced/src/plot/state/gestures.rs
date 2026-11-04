@@ -685,7 +685,7 @@ fn wheel(at: Point) -> Pointer {
 /// The domain of a scale of type `S`.
 fn domain<S: Kind<Domain = f64>>(scale: Option<&dyn Scale>) -> [f64; 2] {
     let scale = scale.expect("a scale").as_any().downcast_ref::<S>();
-    Kind::domain(scale.expect("of the type")).expect("continuous")
+    Kind::ends(scale.expect("of the type")).expect("continuous")
 }
 
 #[test]

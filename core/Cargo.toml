@@ -25,6 +25,7 @@ derive = ["dep:rustd3-derive"]
 [dependencies]
 jiff.workspace = true
 thiserror.workspace = true
+web-time = "1.1.0"
 rustd3-derive = { workspace = true, optional = true }
 
 [dev-dependencies]

@@ -4,7 +4,7 @@ use rustd3_core::scale::{self, AnyContinuous};
 use rustd3_core::series::{Data, Points};
 
 use crate::Figure;
-use crate::helpers::chart::setup::Setup;
+use crate::helpers::chart::setup::{self, Setup};
 use crate::legend::{self, Slot, Swatch};
 use crate::mark;
 
@@ -30,7 +30,11 @@ impl<'a> std::fmt::Debug for Line<'a> {
 /// [`mark::line`] in its key's color on linear x and y scales fitted to
 /// every series, a bottom and a left axis with minor ticks, and a legend
 /// of lines right of the plot area when there is more than one series.
-/// The first series' key is "0", pandas' name for an unnamed column.
+/// The first series' key is "0", pandas' name for an unnamed column, until
+/// [`key`](Line::key) names it. Keys are the legend's labels. The figure's
+/// one panel holds one mark per series, in their order: mark *i* is series
+/// *i*, so a hover (a `hit::Hit`, or rustd3-iced's `plot::Hover`) is named
+/// from the app's own keys, `keys[hover.mark]`.
 ///
 /// A line over one channel of a recording:
 ///
@@ -68,9 +72,30 @@ pub fn line<'a>(data: impl Data<'a, f64, f64>) -> Line<'a> {
 }
 
 impl<'a> Line<'a> {
+    /// Names the first series `name` in place of "0".
+    ///
+    /// ```
+    /// use rustd3_figure::helpers::chart;
+    ///
+    /// let t: Vec<f64> = (0..50).map(f64::from).collect();
+    /// let fig = chart::line(t.iter().map(|&t| (t, t.sqrt())))
+    ///     .key("sqrt")
+    ///     .series(t.iter().map(|&t| (t, 0.1 * t)), "linear")
+    ///     .figure();
+    /// ```
+    #[must_use]
+    pub fn key(mut self, name: impl Into<String>) -> Self {
+        if let Some((_, key)) = self.series.first_mut() {
+            *key = name.into();
+        }
+        self
+    }
+
     /// Another series, `data`, under `key`, drawn after the earlier ones in
-    /// the palette's next color. Series with equal keys share a color and
-    /// a legend entry.
+    /// the palette's next color. A key given twice is an
+    /// [`Issue::DuplicateKey`](crate::check::Issue::DuplicateKey) that
+    /// [`Figure::check`] reports; its series share a color and a legend
+    /// entry.
     ///
     /// ```
     /// use rustd3_figure::helpers::chart;
@@ -127,6 +152,7 @@ impl<'a> Line<'a> {
             setup,
         } = self;
         let mut fig = setup.figure();
+        setup::duplicates(&mut fig, series.iter().map(|(_, key)| key));
         let (x, y) = (fig.fit(x), fig.fit(y));
         let color = fig.scale(setup.palette(series.iter().map(|(_, key)| key.clone())));
         let many = series.len() > 1;

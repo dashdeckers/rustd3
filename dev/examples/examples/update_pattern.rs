@@ -3,10 +3,11 @@
 //! transitions.
 
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use iced::Subscription;
 use iced::futures::channel::mpsc;
+use rustd3_core::anim::Instant;
 use rustd3_examples::update_pattern::{App, Message};
 
 fn main() -> iced::Result {

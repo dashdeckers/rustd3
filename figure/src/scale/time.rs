@@ -79,7 +79,7 @@ impl Kind for Time {
         self.clone().domain(ends)
     }
 
-    fn domain(&self) -> Option<[Timestamp; 2]> {
+    fn ends(&self) -> Option<[Timestamp; 2]> {
         Some(self.get_domain())
     }
 }
@@ -170,7 +170,7 @@ mod tests {
         let micro = t + SignedDuration::from_micros(1);
         let fitted = x.fitted(Some(&[t, micro]), &[], 0.05);
         let ns = SignedDuration::from_nanos(50);
-        assert_eq!(Kind::domain(&fitted), Some([t - ns, micro + ns]));
+        assert_eq!(Kind::ends(&fitted), Some([t - ns, micro + ns]));
         let empty = x.fitted(None, &[], 0.05).get_domain();
         assert_eq!(empty, [Timestamp::UNIX_EPOCH, at("1970-01-02T00:00:00Z")]);
         let mut extent = None;

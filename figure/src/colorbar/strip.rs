@@ -70,7 +70,7 @@ impl Strip {
         };
         let first = colors.first().copied().unwrap_or(NONE);
         let last = colors.last().copied().unwrap_or(NONE);
-        let ends = match Kind::domain(scale) {
+        let ends = match Kind::ends(scale) {
             Some([low, high]) => [
                 scale.paint(&low).unwrap_or(first),
                 scale.paint(&high).unwrap_or(last),

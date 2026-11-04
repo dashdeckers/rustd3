@@ -300,7 +300,8 @@ faster on a million values; below that it is exact.
 With the `helpers` feature, `rustd3::figure::helpers` composes these
 into one-call charts: `helpers::chart` (`line`, `scatter`, `bar`, `area`,
 `pie`, `heatmap`, each ending in `.figure()`, `.save_svg(path)` or
-`.save_png(path, scale)`), `helpers::stats` (box plots, violins, ECDF,
+`.save_png(path, scale)`; `line(..).key(name)` and `area(..).keys(names)`
+name the series the legend shows), `helpers::stats` (box plots, violins, ECDF,
 error bars, histogram options, with the statistics as pure functions),
 `helpers::labels` (value labels), `helpers::legend` (size and color
 legends) and `helpers::subplots`. Each helper is ordinary code over the
@@ -347,7 +348,10 @@ A figure slot (`Slot::Top`, `Bottom`, `Left`, `Right`) sits outside the
 grid, centred on the plot areas beside it; a panel inset sits in a
 corner. Guides in one slot stack outward in the order they are added. A
 colorbar of an ordinal palette, or a legend of a continuous scale, does
-not compile.
+not compile. Each key's swatch is what its marks draw: a line, a dot, or
+a square that repeats a hatch and the opacity a translucent area, ribbon
+or density fills at (an error band's square is as pale as the band; a
+key several marks fill takes the most opaque).
 
 ### Layout and sizes
 
@@ -461,8 +465,11 @@ program's state and pass it every event with the bounds and cursor:
 They return the new transform or selection; `interact::Rescale` applies a
 zoom transform to a scale (`scale.rescale_x(&transform)`). Time comes
 only from `RedrawRequested`, so a program returns
-`Action::request_redraw()` while `tracker.wants_redraw()`. The
-`focus_context` and `update_pattern` examples are complete apps.
+`Action::request_redraw()` while `tracker.wants_redraw()`.
+`anim::Animated` and `anim::Marks` are sampled at the instants the app
+passes in, `anim::Instant` (`web_time`'s: std's on native targets, iced's
+`time::Instant`, and a working clock on wasm). The `focus_context` and
+`update_pattern` examples are complete apps.
 
 ### The `Plot` widget
 

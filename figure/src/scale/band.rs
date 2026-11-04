@@ -56,7 +56,7 @@ impl<K: PartialEq + Clone + 'static> Kind for Band<K> {
         self.clone()
     }
 
-    fn domain(&self) -> Option<[K; 2]> {
+    fn ends(&self) -> Option<[K; 2]> {
         None
     }
 }

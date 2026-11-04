@@ -52,7 +52,7 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
         super::minor(self.transform(), [d[0], d[N - 1]], ticks.get_values())
     }
 
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         let r = self.get_range();
         [r[0], r[N - 1]]
     }
@@ -70,7 +70,7 @@ impl<T: Transform, const N: usize> crate::sealed::Ticks for Continuous<T, f64, N
 ///
 /// let heat = scale::linear().domain([0.0, 50.0]).range([Rgb::hex(0xffffff), Rgb::hex(0x4682b4)]);
 /// assert_eq!(heat.position(&25.0, 0.0), Some(0.5));
-/// assert_eq!(heat.extent(), [0.0, 1.0]);
+/// assert_eq!(heat.ends(), [0.0, 1.0]);
 /// ```
 impl<T: Transform, const N: usize> Ticks for Continuous<T, Rgb, N> {
     type Domain = f64;
@@ -106,7 +106,7 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, Rgb, N> {
     }
 
     /// `[0, 1]`: a colorbar maps it to pixels.
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         [0.0, 1.0]
     }
 }

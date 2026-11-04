@@ -126,7 +126,7 @@ fn a_tick_set_holds_values_step_and_count() {
         .collect();
     let pixels: Vec<f64> = (0..=10).map(|k| f64::from(k) * 96.0).collect();
     assert!(close(&positions, &pixels), "{positions:?}");
-    assert_eq!(x.extent(), [0.0, 960.0]);
+    assert_eq!(x.ends(), [0.0, 960.0]);
 }
 
 #[test]
@@ -299,7 +299,7 @@ fn piecewise_scales_tick_on_their_end_stops() {
     assert_eq!(*set.get_step(), 20.0);
     assert_eq!(x.position(&20.0, 0.5), Some(160.0));
     assert_eq!(x.position(&60.0, 0.5), Some(420.0));
-    assert_eq!(x.extent(), [0.0, 500.0]);
+    assert_eq!(x.ends(), [0.0, 500.0]);
     assert_eq!(
         labels(&x, 5, &Locale::NEUTRAL),
         ["0", "20", "40", "60", "80", "100"]
@@ -319,7 +319,7 @@ fn a_runtime_scale_ticks_and_labels_as_its_transform() {
         Ticks::minor(&any, &any.tick_set(3)),
         Ticks::minor(&log, &log.tick_set(3))
     );
-    assert_eq!(any.extent(), [0.0, 300.0]);
+    assert_eq!(any.ends(), [0.0, 300.0]);
 }
 
 #[test]
@@ -606,7 +606,7 @@ fn a_color_range_ticks_as_its_f64_twin_with_positions_in_0_to_1() {
     assert!((third - 1.0 / 3.0).abs() < 1e-15, "{third}");
     assert_eq!(heat.position(&f64::NAN, 0.0), None);
     assert_eq!(heat.position(&-1.0, 0.0), None);
-    assert_eq!(heat.extent(), [0.0, 1.0]);
+    assert_eq!(heat.ends(), [0.0, 1.0]);
     let flat = scale::linear().domain([2.0, 2.0]).range(colors);
     assert_eq!(flat.position(&5.0, 0.0), Some(0.5));
 }

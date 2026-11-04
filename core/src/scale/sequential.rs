@@ -26,7 +26,7 @@ use crate::ticks;
 /// let seq = scale::sequential([0.0, 50.0], scheme::blues);
 /// assert_eq!(seq.apply(25.0).to_string(), "rgb(109, 174, 213)");
 /// assert_eq!(seq.ticks(5), [0.0, 10.0, 20.0, 30.0, 40.0, 50.0]);
-/// assert_eq!((seq.position(&25.0, 0.0), seq.extent()), (Some(0.5), [0.0, 1.0]));
+/// assert_eq!((seq.position(&25.0, 0.0), seq.ends()), (Some(0.5), [0.0, 1.0]));
 /// ```
 #[derive(Clone)]
 pub struct Sequential<R, T = transform::Identity> {
@@ -349,7 +349,7 @@ impl<R: Clone, T: Transform> Ticks for Sequential<R, T> {
     }
 
     /// `[0, 1]`: a colorbar maps it to pixels.
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         [0.0, 1.0]
     }
 }

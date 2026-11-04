@@ -3,6 +3,7 @@
 allow-unwrap-in-tests = true
 disallowed-methods = [
   { path = "std::time::Instant::now", reason = "time is a parameter; library code reads no clock" },
+  { path = "web_time::Instant::now", reason = "time is a parameter; library code reads no clock", allow-invalid = true },
   { path = "std::time::SystemTime::now", reason = "time is a parameter; library code reads no clock" },
   { path = "jiff::Timestamp::now", reason = "time is a parameter; library code reads no clock", allow-invalid = true },
   { path = "jiff::Zoned::now", reason = "time is a parameter; library code reads no clock", allow-invalid = true },

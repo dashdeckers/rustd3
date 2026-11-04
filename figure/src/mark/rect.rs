@@ -8,7 +8,7 @@ use crate::check::Issue;
 use crate::figure::Fits;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List};
-use crate::mark::color::Color;
+use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Mark, reach};
 use crate::scale::{Paint, Position, ScaleRef};
 
@@ -100,7 +100,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
             }
         }
         for color in self.fill.iter().chain(&self.stroke) {
-            color.report(Swatch::Square, None, fits);
+            color.report(Swatch::Square, None, Alpha::OPAQUE, fits);
         }
     }
 

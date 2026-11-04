@@ -11,7 +11,7 @@ use crate::hit;
 use crate::legend::Swatch;
 use crate::list::{self, Clip, List};
 use crate::mark::bar::Across;
-use crate::mark::color::Color;
+use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Mark, dodge, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
@@ -195,7 +195,8 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
         }
         fits.add(self.y, &0.0);
         fits.stick(self.y, 0.0);
-        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
+        self.color
+            .report(Swatch::Square, self.hatch.as_ref(), Alpha::OPAQUE, fits);
     }
 
     /// One `Fill` command per bar with area, through the rectangle code of

@@ -56,7 +56,7 @@ where
     };
     let set = Ticks::tick_set(scale, count);
     let chosen = values.map_or_else(|| set.get_values().to_vec(), <[f64]>::to_vec);
-    let inside: Vec<f64> = match Kind::domain(scale) {
+    let inside: Vec<f64> = match Kind::ends(scale) {
         Some([a, b]) => {
             let (low, high) = (a.min(b), a.max(b));
             chosen

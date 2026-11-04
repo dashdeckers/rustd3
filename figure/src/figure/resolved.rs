@@ -345,6 +345,24 @@ impl Resolved {
             .find_map(|k| k.hatch.as_ref())
     }
 
+    /// The opacity a legend square of a color of opacity `opacity` repeats:
+    /// the most opaque fill among the marks that reported filling a shape
+    /// in palette `palette`'s (its table position) color for a key for
+    /// which `is` holds; `opacity` when none did.
+    pub(crate) fn opacity(
+        &self,
+        palette: usize,
+        is: impl Fn(&dyn Any) -> bool,
+        opacity: f64,
+    ) -> f64 {
+        self.keys
+            .iter()
+            .filter(|k| k.palette == palette && k.glyph == Swatch::Square && is(&*k.key))
+            .map(|k| k.alpha.of(opacity))
+            .reduce(f64::max)
+            .unwrap_or(opacity)
+    }
+
     /// The legend swatch of the marks that reported drawing in palette
     /// `palette`'s (its table position) color for a key for which `is`
     /// holds: a square when any of them fills a shape, else the first

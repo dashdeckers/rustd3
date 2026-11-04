@@ -297,7 +297,7 @@ fn categorical_handles_keep_their_keys() {
     fig.panel(0, 0).mark(line(b, ["c"]));
     let r = resolve(&fig, &Held::default());
     assert_eq!(r.get_scale(b).unwrap().get_domain(), ["a", "b"]);
-    assert_eq!(Kind::domain(r.get_scale(b).unwrap()), None);
+    assert_eq!(Kind::ends(r.get_scale(b).unwrap()), None);
 }
 
 #[test]

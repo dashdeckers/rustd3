@@ -21,7 +21,11 @@ const TOLERANCE: f64 = 1e-3;
 /// the label's baseline in a box 0.7 em tall (matplotlib's
 /// `legend.handleheight`). A legend of a palette draws each key's as its
 /// marks report it ([`Legend`](crate::legend::Legend)); a square of a key
-/// whose marks are hatched repeats their [`Hatch`](crate::hatch::Hatch).
+/// whose marks are hatched repeats their [`Hatch`](crate::hatch::Hatch),
+/// and one of a translucent area, ribbon or density is drawn at the
+/// opacity it fills at, as matplotlib's legend handles are; a key filled
+/// by several marks takes the most opaque fill, so a square of opaque
+/// bars stays opaque beside a translucent density.
 ///
 /// ```
 /// use rustd3_core::scale;

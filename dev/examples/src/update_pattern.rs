@@ -5,14 +5,14 @@
 //! a field of [`Bar`]; `anim::Marks` keeps one per name, through enter,
 //! update and exit.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use iced::advanced::text::Alignment;
 use iced::alignment::Vertical;
 use iced::widget::canvas;
 use iced::widget::canvas::{Frame, Geometry, Text};
 use iced::{Color, Fill, Pixels, Point, Rectangle, Renderer, Size, Subscription, Theme, mouse};
-use rustd3_core::anim::{Marks, Phase, Timing};
+use rustd3_core::anim::{Instant, Marks, Phase, Timing};
 use rustd3_core::color::Rgb;
 use rustd3_core::interpolate::Interpolate;
 use rustd3_core::scale::{self, Band};

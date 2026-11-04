@@ -61,7 +61,7 @@ impl<T: scale::Transform + 'static> Kind for Sequential<Rgb, T> {
         }
     }
 
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         Some(self.get_domain())
     }
 }
@@ -138,7 +138,7 @@ impl<T: scale::Transform + 'static> Kind for Diverging<Rgb, T> {
     }
 
     /// The end stops.
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         let [start, _, stop] = self.get_domain();
         Some([start, stop])
     }
@@ -205,7 +205,7 @@ impl<T: scale::Transform + 'static, const N: usize> Kind for Continuous<T, Rgb, 
         self.clone().domain(stops(&self.get_domain(), ends))
     }
 
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         let d = self.get_domain();
         Some([d[0], d[N - 1]])
     }
@@ -275,7 +275,7 @@ mod tests {
         let fitted = reversed.fitted(Some(&[2.0, 5.0]), &[], 0.05).get_domain();
         assert_eq!(fitted, [5.0, 0.0, 0.0]);
         assert_eq!(d.fitted(None, &[], 0.05).get_domain(), [-1.0, 0.0, 1.0]);
-        assert_eq!(Kind::domain(&d), Some([-1.0, 1.0]));
+        assert_eq!(Kind::ends(&d), Some([-1.0, 1.0]));
     }
 
     #[test]
@@ -291,7 +291,7 @@ mod tests {
         let flat = scale::linear()
             .range([red, blue])
             .fitted(Some(&[3.0, 3.0]), &[], 0.05);
-        assert_eq!(Kind::domain(&flat), Some([2.85, 3.15]));
+        assert_eq!(Kind::ends(&flat), Some([2.85, 3.15]));
         assert_eq!(scale::linear().range([red, blue]).paint(&f64::NAN), None);
     }
 }

@@ -3,9 +3,9 @@
 //! fixed offsets from one base instant.
 
 use std::fmt::Write;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use rustd3_core::anim::{Animated, Marks, Phase, Timing};
+use rustd3_core::anim::{Animated, Instant, Marks, Phase, Timing};
 use rustd3_core::ease::{Ease, Mode};
 use rustd3_core::interpolate::Interpolate;
 
@@ -215,6 +215,20 @@ fn a_new_value_rests_and_a_delayed_one_waits_where_it_was() {
     assert_eq!(value.value(ms(t0, 150)), 8.0);
     assert!(value.is_animating(ms(t0, 149)));
     assert!(!value.is_animating(ms(t0, 150)));
+}
+
+#[test]
+fn std_instants_are_anims_instants_on_native_targets() {
+    #[expect(clippy::disallowed_methods, reason = "test clock")]
+    let now = std::time::Instant::now();
+    let mut value = Animated::new(0.0, now);
+    let linear = Timing {
+        duration: Duration::from_millis(100),
+        ease: Ease::Linear,
+        ..Timing::default()
+    };
+    value.go(1.0, now, linear, Duration::ZERO);
+    assert_eq!(value.value(now + Duration::from_millis(50)), 0.5);
 }
 
 #[test]

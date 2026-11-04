@@ -91,7 +91,7 @@ fn ticks_position_in_0_to_1_for_a_colorbar() {
     assert_eq!(s.position(&f64::NAN, 0.0), None);
     assert_eq!(s.position(&75.0, 0.0), Some(1.5));
     assert_eq!(s.clone().clamp(true).position(&75.0, 0.0), Some(1.5));
-    assert_eq!(s.extent(), [0.0, 1.0]);
+    assert_eq!(s.ends(), [0.0, 1.0]);
     let set = s.tick_set(5);
     assert_eq!(
         (set.get_values(), *set.get_step(), set.get_count()),

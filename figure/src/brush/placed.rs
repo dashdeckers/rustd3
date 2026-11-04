@@ -115,7 +115,7 @@ where
     let ends = match selection {
         Some([a, b]) if a == b => return None,
         Some([a, b]) => [over.invert(a)?, over.invert(b)?],
-        None => Kind::domain(over)?,
+        None => Kind::ends(over)?,
     };
     let mut extent = None;
     for end in &ends {
@@ -135,7 +135,7 @@ where
 {
     let over = over.as_any().downcast_ref::<A>()?;
     let window = window.as_any().downcast_ref::<B>()?;
-    let [a, b] = Kind::domain(window)?;
+    let [a, b] = Kind::ends(window)?;
     let ends = [over.position(&a)?, over.position(&b)?];
     ends.iter().all(|end| end.is_finite()).then_some(ends)
 }
@@ -153,7 +153,7 @@ mod tests {
     /// The domain of `scale`, a linear one.
     fn linear(scale: &dyn Scale) -> [f64; 2] {
         let scale = scale.as_any().downcast_ref::<Linear>().expect("linear");
-        Kind::domain(scale).expect("continuous")
+        Kind::ends(scale).expect("continuous")
     }
 
     /// Two linear handles, [0, 100] and [10, 0], and a log one.

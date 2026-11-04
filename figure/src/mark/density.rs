@@ -8,7 +8,7 @@ use crate::figure::Fits;
 use crate::hatch::Hatch;
 use crate::legend::Swatch;
 use crate::list::{self, Clip, Command, List};
-use crate::mark::color::Color;
+use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Error, Mark, polygon, positive, reach, stroke};
 use crate::scale::{Paint, Position, ScaleRef};
 use crate::stats::Kde;
@@ -170,7 +170,9 @@ impl Density {
         fits.add(size, &0.0);
         fits.add(size, &1.0);
         fits.stick(size, 0.0);
-        self.color.report(Swatch::Square, self.hatch.as_ref(), fits);
+        let alpha = Alpha::Times(FILL);
+        self.color
+            .report(Swatch::Square, self.hatch.as_ref(), alpha, fits);
     }
 
     /// A `Fill` of the region between the curve and size 0 at 0.35 opacity,

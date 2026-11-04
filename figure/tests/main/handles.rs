@@ -90,7 +90,7 @@ fn band_handles_keep_their_keys_and_place_bands_in_the_panel() {
     let area = r.get_plot_areas()[0];
     assert!(near(area.width(), 300.0, 1e-9), "{area:?}");
     assert_eq!(r.get_scale(band).unwrap().get_domain(), ["a", "b", "c"]);
-    assert_eq!(Kind::domain(r.get_scale(band).unwrap()), None);
+    assert_eq!(Kind::ends(r.get_scale(band).unwrap()), None);
     // d3: a step of 300 / 3.1, half the outer padding's leftover first.
     let b: Band<&str> = ranged(r.get_scale(band).unwrap(), [0.0, area.width()]);
     let start = b.position(&"a").expect("a key");
@@ -201,7 +201,7 @@ fn time_handles_fit_their_data_with_five_percent_in_nanoseconds() {
     // 5% of 25 h is 75 min: matplotlib gives the same.
     let fitted = [at("2026-10-24T20:45:00Z"), at("2026-10-26T00:15:00Z")];
     assert_eq!(r.get_scale(x).unwrap().get_domain(), fitted);
-    assert_eq!(Kind::domain(r.get_scale(x).unwrap()), Some(fitted));
+    assert_eq!(Kind::ends(r.get_scale(x).unwrap()), Some(fitted));
     // No data: matplotlib's empty date axis.
     let day = [Timestamp::UNIX_EPOCH, at("1970-01-02T00:00:00Z")];
     assert_eq!(r.get_scale(empty).unwrap().get_domain(), day);
@@ -564,7 +564,7 @@ fn diverging_handles_paint_as_d3_and_keep_their_middle() {
     // Data on one side of the middle keeps it, so the ramp does
     // not reverse.
     assert_eq!(r.get_scale(fitted).unwrap().get_domain(), [0.0, 0.0, 5.0]);
-    assert_eq!(Kind::domain(r.get_scale(fitted).unwrap()), Some([0.0, 5.0]));
+    assert_eq!(Kind::ends(r.get_scale(fitted).unwrap()), Some([0.0, 5.0]));
     assert_eq!(
         scale::Ticks::tick_set(r.get_scale(rd_bu).unwrap(), 4).get_values(),
         [-1.0, -0.5, 0.0, 0.5, 1.0]

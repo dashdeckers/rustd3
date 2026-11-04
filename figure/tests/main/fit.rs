@@ -155,7 +155,7 @@ fn one_handle_spans_the_marks_of_every_panel() {
     let r = resolve(&fig, &Held::default());
     assert_domain(r.get_scale(y).unwrap().get_domain(), [-0.5, 10.5]);
     assert_eq!(
-        Kind::domain(r.get_scale(y).unwrap()),
+        Kind::ends(r.get_scale(y).unwrap()),
         Some(r.get_scale(y).unwrap().get_domain())
     );
 }

@@ -41,7 +41,9 @@ The first release.
 - `series::Recording`: channels of sampled data on one clock, with an M4
   index that grows with each append, for thinning long series.
 - Keyed joins; zoom, one-dimensional brushes and drag as state machines
-  over pointer input; animation sampled from explicit instants.
+  over pointer input; animation sampled from explicit instants,
+  `anim::Instant` (`web_time`'s: `std::time::Instant` on native targets,
+  a clock that works on wasm).
 
 ### Figure
 
@@ -63,6 +65,11 @@ The first release.
 - `helpers`: one-call charts (line, scatter, bar, area, pie, heatmap),
   statistical charts (histogram, KDE and violin, box plot, ECDF, error
   bars), value labels, legend helpers and `subplots`.
+- Legend squares repeat the opacity their key's areas, ribbons and
+  densities fill at, as matplotlib's handles do; a key several marks
+  fill takes the most opaque, so squares of opaque marks stay opaque.
+- `helpers::chart::Line::key` and `Area::keys` name the series their
+  legends show; a name given twice is `check::Issue::DuplicateKey`.
 
 ### iced (`rustd3-iced`, from git)
 
@@ -173,6 +180,11 @@ Names and visibility settled before the first release:
   `scale::Indexed`. `PathContext`, `scale::Transform`, `Interpolate`,
   `mark::Mark`, `shape::Vertex` and `shape::Span` stay open.
 - `scale::SeriesExtent` is `scale::indexed::Extent`.
+- The two ends a scale maps are `ends`: core's `scale::Ticks::extent` is
+  `Ticks::ends` (the range's first and last value) and figure's
+  `scale::Kind::domain` is `Kind::ends` (the domain's first and last
+  stop, `None` for categorical and binned scales), distinct from the
+  readers `get_range` and `get_domain`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

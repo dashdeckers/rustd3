@@ -203,7 +203,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// transform's rule.
     #[must_use]
     pub fn nice(self, count: usize) -> Self {
-        let [start, stop] = self.transform.nice(self.ends(), count);
+        let [start, stop] = self.transform.nice(self.end_stops(), count);
         let mut domain = self.domain;
         domain[0] = start;
         domain[N - 1] = stop;
@@ -271,8 +271,8 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// set and the transform's rule otherwise.
     pub fn ticks(&self, count: usize) -> Vec<f64> {
         match &self.tick_rule {
-            Some(rule) => rule.ticks(&self.transform, self.ends(), count),
-            None => self.transform.ticks(self.ends(), count),
+            Some(rule) => rule.ticks(&self.transform, self.end_stops(), count),
+            None => self.transform.ticks(self.end_stops(), count),
         }
     }
 
@@ -328,7 +328,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
             return Ok(format);
         }
         self.transform
-            .tick_format(locale, self.ends(), count, specifier)
+            .tick_format(locale, self.end_stops(), count, specifier)
     }
 
     /// d3's `range()`.
@@ -337,13 +337,13 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     }
 
     /// The first and last stop, which ticks, nice and formats act on.
-    fn ends(&self) -> [f64; 2] {
+    fn end_stops(&self) -> [f64; 2] {
         [self.domain[0], self.domain[N - 1]]
     }
 
     /// `x` kept between the end stops, as d3's clamper: NaN stays NaN.
     fn clamped(&self, x: f64) -> f64 {
-        let [a, b] = self.ends();
+        let [a, b] = self.end_stops();
         let (low, high) = if a > b { (b, a) } else { (a, b) };
         js::max(low, js::min(high, x))
     }
@@ -351,7 +351,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
     /// The scale with `transform`, set for the current domain, and the
     /// forward cache refreshed.
     fn transformed(mut self, transform: T) -> Self {
-        self.transform = transform.for_domain(self.ends());
+        self.transform = transform.for_domain(self.end_stops());
         self.forward = self.domain.map(|x| self.transform.forward(x));
         self
     }

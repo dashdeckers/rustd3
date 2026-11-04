@@ -80,7 +80,7 @@ fn an_ordinal_scale_over_numbers_places_its_keys_on_an_axis() {
     assert_eq!(s.labels(&set, &Locale::NEUTRAL), ["lo", "mid", "hi"]);
     assert_eq!(s.position(&"mid", 0.5), Some(50.0));
     assert_eq!(s.position(&"x", 0.5), None);
-    assert_eq!(s.extent(), [10.0, 90.0]);
+    assert_eq!(s.ends(), [10.0, 90.0]);
     let xs: Vec<f64> = axis::bottom(&s)
         .labels()
         .iter()
@@ -91,9 +91,9 @@ fn an_ordinal_scale_over_numbers_places_its_keys_on_an_axis() {
 
 #[test]
 fn an_empty_range_has_a_nan_extent() {
-    let [a, b] = scale::ordinal(["a"], Vec::<f64>::new()).extent();
+    let [a, b] = scale::ordinal(["a"], Vec::<f64>::new()).ends();
     assert!(a.is_nan() && b.is_nan());
-    assert_eq!(scale::ordinal(["a"], [4.0]).extent(), [4.0, 4.0]);
+    assert_eq!(scale::ordinal(["a"], [4.0]).ends(), [4.0, 4.0]);
 }
 
 #[test]

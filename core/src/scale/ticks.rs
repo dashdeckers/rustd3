@@ -69,9 +69,13 @@ pub trait Ticks: crate::sealed::Ticks {
         Vec::new()
     }
 
-    /// First and last range value, d3's `range[0]` and `range[n-1]`;
-    /// `[0, 1]` for a range that is not numeric.
-    fn extent(&self) -> [f64; 2];
+    /// The two ends of the domain as the scale maps them: the first and
+    /// last range value, d3's `range[0]` and `range[n-1]`, the span an axis
+    /// draws along; `[0, 1]` for a range that is not numeric (a color
+    /// scale's, which a colorbar maps to pixels). Unlike the scale's
+    /// `get_range`, the range as it was given (any length, any value
+    /// type), it is always two numbers.
+    fn ends(&self) -> [f64; 2];
 }
 
 /// The labels of `ticks` under `locale` by a scale's default tick format

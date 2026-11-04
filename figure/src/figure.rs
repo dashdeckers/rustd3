@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use rustd3_core::locale::Locale;
 
+use crate::check::Issue;
 use crate::layout::{Cell, Grid};
 use crate::legend::{self, Slot};
 use crate::panel::Panel;
@@ -77,6 +78,8 @@ pub struct Figure<'a> {
     theme: Theme,
     locale: Locale,
     legends: Vec<(Slot, legend::Stored<'a>)>,
+    /// What its builder found wrong, which `check` reports last.
+    noted: Vec<Issue>,
 }
 
 impl<'a> std::fmt::Debug for Figure<'a> {
@@ -118,6 +121,7 @@ impl<'a> Figure<'a> {
             theme: Theme::default(),
             locale: Locale::default(),
             legends: Vec::new(),
+            noted: Vec::new(),
         }
     }
 
@@ -331,6 +335,25 @@ impl<'a> Figure<'a> {
     )]
     pub(crate) fn outside(&self) -> &[Cell] {
         &self.outside
+    }
+
+    /// Records `issue`, found by whatever built the figure, for
+    /// [`check`](Figure::check) to report.
+    #[cfg_attr(
+        not(feature = "helpers"),
+        expect(dead_code, reason = "the chart helpers note what they find")
+    )]
+    pub(crate) fn note(&mut self, issue: Issue) {
+        self.noted.push(issue);
+    }
+
+    /// The issues noted while the figure was built, in order.
+    #[cfg_attr(
+        not(feature = "fonts"),
+        expect(dead_code, reason = "fig.check reads it, and needs fonts")
+    )]
+    pub(crate) fn noted(&self) -> &[Issue] {
+        &self.noted
     }
 
     /// The grid.

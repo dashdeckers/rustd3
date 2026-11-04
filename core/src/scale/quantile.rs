@@ -157,7 +157,7 @@ impl<R> Ticks for Quantile<R> {
     }
 
     /// `[0, 1]`: a colorbar maps it to pixels.
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         [0.0, 1.0]
     }
 }

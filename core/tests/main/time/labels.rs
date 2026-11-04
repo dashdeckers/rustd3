@@ -97,7 +97,7 @@ fn berlin_example() {
     for (x, h) in positions.iter().zip(hours) {
         assert!((x - 800.0 * h / 25.0).abs() < 1e-9, "{x} for hour {h}");
     }
-    assert_eq!(st.extent(), [0.0, 800.0]);
+    assert_eq!(st.ends(), [0.0, 800.0]);
     assert!(st.minor(&set).is_empty());
 }
 
