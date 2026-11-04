@@ -11,7 +11,7 @@ touched() {  # packages with uncommitted changes or changed in HEAD
     case "$f" in
       core/*) echo rustd3-core ;;        derive/*) echo rustd3-derive ;;
       figure/*) echo rustd3-figure ;;    fonts/*) echo rustd3-fonts ;;
-      iced/*) echo rustd3-iced ;;        dev/testkit/*) echo rustd3-testkit ;;
+      iced/*) echo rustd3-iced ;;        testkit/*) echo rustd3-testkit ;;
       dev/examples/*) echo rustd3-examples ;;
       dev/bench/*) echo rustd3-bench ;;  src/*|tests/*) echo rustd3 ;;
       README.md) echo rustd3; echo rustd3-examples ;;
