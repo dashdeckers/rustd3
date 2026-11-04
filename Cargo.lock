@@ -3845,14 +3845,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustd3-harness"
-version = "0.1.0"
-dependencies = [
- "rustd3-core",
- "rustd3-testkit",
-]
-
-[[package]]
 name = "rustd3-iced"
 version = "0.1.0"
 dependencies = [

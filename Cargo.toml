@@ -50,7 +50,7 @@ workspace = true
 [workspace]
 resolver = "3"
 members = ["core", "derive", "figure", "fonts", "iced",
-           "dev/testkit", "dev/harness", "dev/examples", "dev/bench"]
+           "dev/testkit", "dev/examples", "dev/bench"]
 exclude = [".claude"]
 
 [workspace.package]

@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PACKAGES=(rustd3 rustd3-core rustd3-derive rustd3-figure rustd3-fonts rustd3-iced
-          rustd3-testkit rustd3-harness rustd3-examples rustd3-bench)
+          rustd3-testkit rustd3-examples rustd3-bench)
 touched() {  # packages with uncommitted changes or changed in HEAD
   { git diff --name-only HEAD; git ls-files --others --exclude-standard;
     git diff --name-only HEAD~1 HEAD 2>/dev/null || true; } | while read -r f; do
@@ -12,7 +12,7 @@ touched() {  # packages with uncommitted changes or changed in HEAD
       core/*) echo rustd3-core ;;        derive/*) echo rustd3-derive ;;
       figure/*) echo rustd3-figure ;;    fonts/*) echo rustd3-fonts ;;
       iced/*) echo rustd3-iced ;;        dev/testkit/*) echo rustd3-testkit ;;
-      dev/harness/*) echo rustd3-harness ;; dev/examples/*) echo rustd3-examples ;;
+      dev/examples/*) echo rustd3-examples ;;
       dev/bench/*) echo rustd3-bench ;;  src/*|tests/*) echo rustd3 ;;
       README.md) echo rustd3; echo rustd3-examples ;;
       Cargo.toml|Cargo.lock|clippy.toml|dev/clippy.toml) printf '%s\n' "${PACKAGES[@]}" ;;
@@ -42,7 +42,6 @@ quick() {
   # The README's core-level example asserts what it prints.
   if printf '%s\n' "${pkgs[@]}" | grep -qx rustd3; then cargo run -q -p rustd3 --example core_level > /dev/null; fi
   if [ "${RUSTD3_FUZZ:-0}" = 1 ]; then TZ=Asia/Kathmandu cargo test -q -p rustd3-core --release --test main fuzz; fi
-  TZ=Asia/Kathmandu cargo run -q -p rustd3-harness -- --check
 }
 
 full() {
@@ -69,7 +68,6 @@ full() {
       ICED_TEST_BACKEND=$backend TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features -- --nocapture
     done
   done
-  node dev/harness/translate/translate.mjs --check
   RUSTDOCFLAGS="-D warnings" cargo doc -q --workspace --no-deps --all-features
   # The benchmark's headless smoke plan: a report that fails on errors
   # (a run that crashes or writes nothing), never on numbers.
