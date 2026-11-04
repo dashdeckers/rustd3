@@ -350,7 +350,8 @@ corner. Guides in one slot stack outward in the order they are added. A
 colorbar of an ordinal palette, or a legend of a continuous scale, does
 not compile. Each key's swatch is what its marks draw: a line, a dot, or
 a square that repeats a hatch and the opacity a translucent area, ribbon
-or density fills at (an error band's square is as pale as the band).
+or density fills at (an error band's square is as pale as the band; a
+key several marks fill takes the most opaque).
 
 ### Layout and sizes
 

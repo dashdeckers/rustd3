@@ -275,12 +275,14 @@ fn legend_squares_repeat_the_opacity_their_areas_and_ribbons_fill_at() {
     let mut fig = Figure::new();
     let x = fig.fit(scale::linear());
     let y = fig.fit(scale::linear());
-    let keys = ["band", "half", "area", "faint"];
+    let width = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let keys = ["band", "half", "area", "faint", "shared"];
     let palette = [
         Rgb::hex(0x0173b2),
         Rgb::hex(0xde8f05),
         Rgb::hex(0x029e73),
         Rgb::hex(0xd55e00).with_opacity(0.4),
+        Rgb::hex(0xcc78bc),
     ];
     let color = fig.scale(scale::ordinal(keys, palette));
     let rows = [(0.0, 0.5, 1.5), (2.0, 1.0, 2.0)];
@@ -293,7 +295,11 @@ fn legend_squares_repeat_the_opacity_their_areas_and_ribbons_fill_at() {
         .mark(mark::ribbon(rows, x, y).fill(color, "half").opacity(0.5))
         .mark(mark::area(points, x, y).fill(color, "area"))
         // A translucent color: a band keeps its own opacity.
-        .mark(mark::ribbon(rows, x, y).fill(color, "faint"));
+        .mark(mark::ribbon(rows, x, y).fill(color, "faint"))
+        // A key filled at 0.35 by a density and opaque by bars: the most
+        // opaque fill, whichever mark comes first.
+        .mark(mark::density_y([0.5, 1.0, 1.5], y, width).fill(color, "shared"))
+        .mark(mark::bar_y([(1.0, 1.0)], x, y).fill(color, "shared"));
     fig.legend(Slot::Bottom, legend(color));
     let list = draw(&fig);
     // Brushes hold 8-bit alpha: 0.25, 0.5, 1 and 0.4 of 255.
@@ -306,7 +312,7 @@ fn legend_squares_repeat_the_opacity_their_areas_and_ribbons_fill_at() {
             c.to_rgba8().a
         })
         .collect();
-    assert_eq!(alphas, [64, 128, 255, 102]);
+    assert_eq!(alphas, [64, 128, 255, 102, 255]);
 }
 
 #[test]

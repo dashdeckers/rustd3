@@ -36,7 +36,6 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ordinal;
 
 use crate::figure::Resolved;
-use crate::mark::Alpha;
 use crate::scale::ScaleRef;
 use crate::text::Text;
 use crate::theme::Theme;
@@ -148,7 +147,7 @@ pub(crate) trait Draw {
 
     /// The entries over the resolved scales, in `theme`'s colors: for a
     /// legend of an ordinal palette, each key's color (a square's at the
-    /// opacity its marks fill at), text, swatch and the hatch of the marks
+    /// most opaque fill of its marks), text, swatch and the hatch of the marks
     /// filled with it, in domain order.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry>;
 
@@ -178,15 +177,13 @@ where
                     .glyph
                     .or_else(|| resolved.glyph(index, is))
                     .unwrap_or_default();
-                // A square repeats the opacity its marks fill at.
-                let alpha = match glyph {
-                    Swatch::Square => resolved.alpha(index, is),
-                    Swatch::Dot | Swatch::Line { .. } => Alpha::OPAQUE,
+                // A square repeats the most opaque fill of its marks.
+                let shown = |c: Rgb| match glyph {
+                    Swatch::Square => c.with_opacity(resolved.opacity(index, is, c.opacity)),
+                    Swatch::Dot | Swatch::Line { .. } => c,
                 };
                 Entry {
-                    color: palette
-                        .apply(key)
-                        .map(|c| c.with_opacity(alpha.of(c.opacity))),
+                    color: palette.apply(key).copied().map(shown),
                     label: key.to_string(),
                     glyph,
                     hatch: resolved.hatch(index, is).cloned(),

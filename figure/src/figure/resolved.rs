@@ -14,7 +14,6 @@ use crate::figure::fits::Reported;
 use crate::hatch::Hatch;
 use crate::layout::{self, Laid, Layout, Plan};
 use crate::legend::{Block, Swatch};
-use crate::mark::Alpha;
 use crate::panel::Panel;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
@@ -346,15 +345,22 @@ impl Resolved {
             .find_map(|k| k.hatch.as_ref())
     }
 
-    /// The alpha of the first mark that reported filling a shape in palette
-    /// `palette`'s (its table position) color for a key for which `is`
-    /// holds, which a legend square repeats; opaque when none did.
-    pub(crate) fn alpha(&self, palette: usize, is: impl Fn(&dyn Any) -> bool) -> Alpha {
+    /// The opacity a legend square of a color of opacity `opacity` repeats:
+    /// the most opaque fill among the marks that reported filling a shape
+    /// in palette `palette`'s (its table position) color for a key for
+    /// which `is` holds; `opacity` when none did.
+    pub(crate) fn opacity(
+        &self,
+        palette: usize,
+        is: impl Fn(&dyn Any) -> bool,
+        opacity: f64,
+    ) -> f64 {
         self.keys
             .iter()
-            .filter(|k| k.palette == palette && is(&*k.key))
-            .find(|k| k.glyph == Swatch::Square)
-            .map_or(Alpha::OPAQUE, |k| k.alpha)
+            .filter(|k| k.palette == palette && k.glyph == Swatch::Square && is(&*k.key))
+            .map(|k| k.alpha.of(opacity))
+            .reduce(f64::max)
+            .unwrap_or(opacity)
     }
 
     /// The legend swatch of the marks that reported drawing in palette

@@ -23,8 +23,9 @@ const TOLERANCE: f64 = 1e-3;
 /// marks report it ([`Legend`](crate::legend::Legend)); a square of a key
 /// whose marks are hatched repeats their [`Hatch`](crate::hatch::Hatch),
 /// and one of a translucent area, ribbon or density is drawn at the
-/// opacity its first such mark fills at, as matplotlib's legend handles
-/// are; a square of opaque marks stays opaque.
+/// opacity it fills at, as matplotlib's legend handles are; a key filled
+/// by several marks takes the most opaque fill, so a square of opaque
+/// bars stays opaque beside a translucent density.
 ///
 /// ```
 /// use rustd3_core::scale;
