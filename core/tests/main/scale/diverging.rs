@@ -97,7 +97,7 @@ fn ticks_position_the_middle_stop_at_one_half() {
         [Some(0.5), Some(0.75), Some(0.0)]
     );
     assert_eq!(s.position(&f64::NAN, 0.0), None);
-    assert_eq!(s.extent(), [0.0, 1.0]);
+    assert_eq!(s.ends(), [0.0, 1.0]);
     assert_eq!(Ticks::minor(&s, &s.tick_set(5))[..2], [-0.8, -0.6]);
     let shown = format!("{s:?}");
     assert!(

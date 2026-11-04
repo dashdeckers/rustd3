@@ -51,7 +51,7 @@ impl<K: PartialEq + Clone + 'static> Kind for Ordinal<K, Rgb> {
         self.clone()
     }
 
-    fn domain(&self) -> Option<[K; 2]> {
+    fn ends(&self) -> Option<[K; 2]> {
         None
     }
 }

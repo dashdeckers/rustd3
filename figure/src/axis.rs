@@ -362,7 +362,7 @@ where
     fn numbers(&self, scale: &S, count: usize) -> Option<(Vec<f64>, [f64; 2])> {
         let set = self.set(scale, count);
         let values = set.get_values().iter().map(number).collect::<Option<_>>()?;
-        let domain = Kind::domain(scale)?;
+        let domain = Kind::ends(scale)?;
         let domain = (&domain as &dyn Any).downcast_ref::<[f64; 2]>()?;
         Some((values, *domain))
     }

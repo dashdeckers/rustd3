@@ -399,7 +399,7 @@ fn visible<'a, X: Position, Y: Position>(
     if let (Some(channel), Some(indexed), Some(ys)) =
         (points.indexed(), window.indexed(), fits.scale(y))
     {
-        let extent = indexed.series_extent(&channel, Kind::domain(window), &|v| admits(ys, v));
+        let extent = indexed.series_extent(&channel, Kind::ends(window), &|v| admits(ys, v));
         for v in extent.iter().flat_map(|e| e.y).flatten() {
             if let Some(v) = value(v) {
                 fits.add(y, &v);
@@ -515,7 +515,7 @@ pub(crate) fn reach<S: Position<Domain = f64>>(
     if !p.is_nan() {
         return Some(p.clamp(lo, hi));
     }
-    let [d0, d1] = Kind::domain(scale)?;
+    let [d0, d1] = Kind::ends(scale)?;
     let (low, high) = (d0.min(d1), d0.max(d1));
     let (beyond, other) = if v < low {
         (low, high)

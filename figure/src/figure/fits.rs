@@ -444,7 +444,7 @@ fn settle<S: Kind>(
             None => return Box::new(slot.scale.fitted(None, &slot.sticky, margin)),
         },
     };
-    let padded = Kind::domain(&fitted).and_then(|d| visible::Domain::of(&d));
+    let padded = Kind::ends(&fitted).and_then(|d| visible::Domain::of(&d));
     let Some(padded) = padded else {
         return Box::new(fitted);
     };

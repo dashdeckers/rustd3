@@ -177,6 +177,11 @@ Names and visibility settled before the first release:
   `scale::Indexed`. `PathContext`, `scale::Transform`, `Interpolate`,
   `mark::Mark`, `shape::Vertex` and `shape::Span` stay open.
 - `scale::SeriesExtent` is `scale::indexed::Extent`.
+- The two ends a scale maps are `ends`: core's `scale::Ticks::extent` is
+  `Ticks::ends` (the range's first and last value) and figure's
+  `scale::Kind::domain` is `Kind::ends` (the domain's first and last
+  stop, `None` for categorical and binned scales), distinct from the
+  readers `get_range` and `get_domain`.
 
 ### Benchmark (`rustd3-bench`, in the repository)
 

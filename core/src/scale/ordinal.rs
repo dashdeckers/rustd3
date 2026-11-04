@@ -141,7 +141,7 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Ordinal<K, f64> {
     }
 
     /// The first and last range value; NaN for an empty range.
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         match self.range.as_slice() {
             [first, .., last] => [*first, *last],
             [only] => [*only, *only],

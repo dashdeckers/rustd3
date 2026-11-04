@@ -172,14 +172,14 @@ impl<R: Clone, T: Transform> Diverging<R, T> {
     /// d3's `ticks(count)`: about `count` ticks between the end stops by
     /// the transform's rule.
     pub fn ticks(&self, count: usize) -> Vec<f64> {
-        self.transform.ticks(self.ends(), count)
+        self.transform.ticks(self.end_stops(), count)
     }
 
     /// d3's `nice(count)`: the end stops extended to round values by the
     /// transform's rule; the middle stop stays.
     #[must_use]
     pub fn nice(self, count: usize) -> Self {
-        let [start, stop] = self.transform.nice(self.ends(), count);
+        let [start, stop] = self.transform.nice(self.end_stops(), count);
         let [_, middle, _] = self.domain;
         self.domain([start, middle, stop])
     }
@@ -213,11 +213,11 @@ impl<R: Clone, T: Transform> Diverging<R, T> {
         specifier: Option<&str>,
     ) -> Result<TickFormat, InvalidFormat> {
         self.transform
-            .tick_format(locale, self.ends(), count, specifier)
+            .tick_format(locale, self.end_stops(), count, specifier)
     }
 
     /// The first and last stop, which ticks, nice and formats act on.
-    fn ends(&self) -> [f64; 2] {
+    fn end_stops(&self) -> [f64; 2] {
         [self.domain[0], self.domain[2]]
     }
 
@@ -236,7 +236,7 @@ impl<R: Clone, T: Transform> Diverging<R, T> {
     /// The scale with `transform`, set for the current end stops, and the
     /// forward cache refreshed.
     fn transformed(mut self, transform: T) -> Self {
-        self.transform = transform.for_domain(self.ends());
+        self.transform = transform.for_domain(self.end_stops());
         self.forward = self.domain.map(|x| self.transform.forward(x));
         self
     }
@@ -322,7 +322,7 @@ impl<R: Clone, T: Transform> Ticks for Diverging<R, T> {
 
     /// The scale's `ticks(count)`, with d3's tick step over the end stops.
     fn tick_set(&self, count: usize) -> ticks::Set<f64, f64> {
-        let [a, b] = self.ends();
+        let [a, b] = self.end_stops();
         ticks::Set::new(
             self.ticks(count),
             ticks::tick_step(a, b, count as f64),
@@ -349,11 +349,11 @@ impl<R: Clone, T: Transform> Ticks for Diverging<R, T> {
     /// The transform's minor ticks between the majors, inside the end
     /// stops.
     fn minor(&self, ticks: &ticks::Set<f64, f64>) -> Vec<f64> {
-        super::ticks::minor(&self.transform, self.ends(), ticks.get_values())
+        super::ticks::minor(&self.transform, self.end_stops(), ticks.get_values())
     }
 
     /// `[0, 1]`: a colorbar maps it to pixels.
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         [0.0, 1.0]
     }
 }

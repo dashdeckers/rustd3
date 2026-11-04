@@ -129,7 +129,7 @@ fn band_ticks_are_every_key_whatever_the_count() {
     assert_eq!(set.get_values(), ["a", "b", "c"]);
     assert_eq!((set.get_step(), set.get_count()), (&(), 1));
     assert_eq!(s.labels(&set, &Locale::EN_US), ["a", "b", "c"]);
-    assert_eq!(s.extent(), [10.0, 20.0]);
+    assert_eq!(s.ends(), [10.0, 20.0]);
     assert!(Ticks::minor(&s, &set).is_empty());
     assert_eq!(s.position(&"z", 0.5), None);
 }

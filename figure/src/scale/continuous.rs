@@ -74,7 +74,7 @@ impl<T: scale::Transform + 'static, const N: usize> Kind for Continuous<T, f64, 
         self.clone().domain(stops(&self.get_domain(), ends))
     }
 
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         let d = self.get_domain();
         Some([d[0], d[N - 1]])
     }
@@ -380,8 +380,8 @@ mod tests {
     fn fitting_pads_through_core() {
         let y = scale::linear();
         let bars = y.fitted(Some(&[0.0, 4.0]), &[0.0], 0.05);
-        assert_eq!(Kind::domain(&bars), Some([0.0, 4.2]));
-        assert_eq!(Kind::domain(&y.fitted(None, &[], 0.05)), Some([0.0, 1.0]));
+        assert_eq!(Kind::ends(&bars), Some([0.0, 4.2]));
+        assert_eq!(Kind::ends(&y.fitted(None, &[], 0.05)), Some([0.0, 1.0]));
         let mut extent = None;
         for v in [3.0, -1.0, 2.0] {
             <scale::Linear as Kind>::merge(&mut extent, &v);

@@ -50,8 +50,14 @@ pub trait Kind: Scale + Clone {
         self.fitted(extent, sticky, 0.0)
     }
 
-    /// The end stops of a continuous domain, in its own type (numbers,
-    /// instants, a color scale's end stops); `None` for band, point,
-    /// ordinal and binned scales.
-    fn domain(&self) -> Option<[Self::Domain; 2]>;
+    /// The two ends of the domain as the scale maps it, in its own type
+    /// (numbers, instants, a color scale's end stops); `None` for a
+    /// categorical scale (band, point, ordinal) and a binned one, which map
+    /// keys and bins, not a span. Unlike the scale's `get_domain`, the
+    /// domain as stored (two stops, a diverging scale's three, a piecewise
+    /// scale's N, a categorical scale's keys), it is the first and last
+    /// stop only. Call it as `Kind::ends(&scale)`: core's
+    /// [`Ticks::ends`](rustd3_core::scale::Ticks::ends), on the same scales,
+    /// is the range's ends.
+    fn ends(&self) -> Option<[Self::Domain; 2]>;
 }

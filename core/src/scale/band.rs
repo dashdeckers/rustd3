@@ -255,7 +255,7 @@ impl<K: Clone + PartialEq + fmt::Display> Ticks for Band<K> {
         ticks.get_values().iter().map(ToString::to_string).collect()
     }
 
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         self.range
     }
 }

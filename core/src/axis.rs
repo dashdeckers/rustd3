@@ -224,7 +224,7 @@ impl<'s, S: Ticks> Axis<'s, S> {
     /// whose position is `None` or not finite are left out.
     pub fn draw(&self, ctx: &mut impl PathContext) {
         let (k, o) = (self.orient.sign(), self.offset);
-        let [r0, r1] = self.scale.extent().map(|r| r + o);
+        let [r0, r1] = self.scale.ends().map(|r| r + o);
         let mut domain = vec![(r0, o), (r1, o)];
         // d3 draws the end marks when tickSizeOuter is truthy: neither 0 nor NaN.
         if self.outer != 0.0 && !self.outer.is_nan() {

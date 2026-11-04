@@ -82,7 +82,7 @@ impl Kind for Quantize<Rgb> {
     }
 
     /// `None`: a binned scale has bins, not a continuous domain.
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         None
     }
 }
@@ -138,7 +138,7 @@ impl Kind for Quantile<Rgb> {
     }
 
     /// `None`: a binned scale has bins, not a continuous domain.
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         None
     }
 }
@@ -193,7 +193,7 @@ impl Kind for Threshold<Rgb> {
     }
 
     /// `None`: a binned scale has bins, not a continuous domain.
-    fn domain(&self) -> Option<[f64; 2]> {
+    fn ends(&self) -> Option<[f64; 2]> {
         None
     }
 }
@@ -226,6 +226,6 @@ mod tests {
         assert!(t.admits(&f64::INFINITY) && !t.admits(&f64::NAN));
         let quantile = scale::quantile([1.0, 2.0, 3.0, 10.0], [red, red]);
         assert_eq!(quantile.fitted(Some(&[0.0, 1.0]), &[], 0.05), quantile);
-        assert_eq!((Kind::domain(&q), Kind::domain(&t)), (None, None));
+        assert_eq!((Kind::ends(&q), Kind::ends(&t)), (None, None));
     }
 }

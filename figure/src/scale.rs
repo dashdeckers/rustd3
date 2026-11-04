@@ -12,7 +12,7 @@
 //!
 //! let x = scale::linear().domain([0.0, 10.0]);
 //! let fitted = x.fitted(Some(&[0.0, 10.0]), &[], 0.05);
-//! assert_eq!(Kind::domain(&fitted), Some([-0.5, 10.5]));
+//! assert_eq!(Kind::ends(&fitted), Some([-0.5, 10.5]));
 //! let panned = x.pan_px([0.0, 100.0], 10.0).expect("a linear scale pans");
 //! let panned = panned.as_any().downcast_ref::<scale::Linear>().expect("its own type");
 //! assert_eq!(panned.position(&0.0), Some(10.0));

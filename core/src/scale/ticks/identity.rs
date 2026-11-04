@@ -35,7 +35,7 @@ impl Ticks for scale::Identity {
         super::minor(&transform::Identity, self.get_domain(), ticks.get_values())
     }
 
-    fn extent(&self) -> [f64; 2] {
+    fn ends(&self) -> [f64; 2] {
         self.get_range()
     }
 }

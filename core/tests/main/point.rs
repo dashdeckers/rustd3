@@ -77,6 +77,6 @@ fn a_bottom_axis_puts_ticks_at_the_points() {
     let labels = axis::bottom(&s).labels();
     let xs: Vec<f64> = labels.iter().map(|l| l.get_x()).collect();
     assert_eq!(xs, [0.5, 50.5, 100.5]);
-    assert_eq!(s.extent(), [0.0, 100.0]);
+    assert_eq!(s.ends(), [0.0, 100.0]);
     assert_eq!(s.tick_set(3).get_values(), ["a", "b", "c"]);
 }
