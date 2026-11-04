@@ -8,6 +8,7 @@ use rustd3_core::locale::Locale;
 use crate::figure;
 use crate::hatch::Hatch;
 use crate::legend::Swatch;
+use crate::mark::Alpha;
 use crate::scale::{Kind, Position, Scale, ScaleRef, visible, window};
 use crate::text::Key;
 use crate::theme::Theme;
@@ -69,13 +70,18 @@ pub(super) struct Reports {
 
 /// A mark drawn in a palette's color for a key: the palette's position in
 /// the scale table, the key (the palette's domain type, boxed), the swatch
-/// that stands for the mark in a legend, and its hatch.
+/// that stands for the mark in a legend, its hatch and its fill's alpha.
 pub(crate) struct Reported {
     pub(crate) palette: usize,
     pub(crate) key: Box<dyn Any>,
     pub(crate) glyph: Swatch,
     pub(crate) hatch: Option<Hatch>,
+    pub(crate) alpha: Alpha,
 }
+
+/// How a mark stands in a legend: its swatch, its hatch and its fill's
+/// alpha.
+pub(crate) type Look<'h> = (Swatch, Option<&'h Hatch>, Alpha);
 
 /// One fitted handle's scale as built, its extent so far and its sticky
 /// values.
@@ -337,14 +343,13 @@ impl Fits {
     }
 
     /// A mark drawn in palette `palette`'s (its table position) color for
-    /// `key` stands as `glyph` in a legend and is hatched with `hatch`,
-    /// which legend swatches of that key repeat.
+    /// `key` stands as `glyph` in a legend, is hatched with `hatch` and
+    /// filled at `alpha`, which legend swatches of that key repeat.
     pub(crate) fn key(
         &mut self,
         palette: ScaleRef<()>,
         key: Box<dyn Any>,
-        glyph: Swatch,
-        hatch: Option<&Hatch>,
+        (glyph, hatch, alpha): Look<'_>,
     ) {
         let Some(palette) = palette.of(self.figure) else {
             self.note(palette.get_index());
@@ -355,6 +360,7 @@ impl Fits {
             key,
             glyph,
             hatch: hatch.cloned(),
+            alpha,
         });
     }
 

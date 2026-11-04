@@ -14,6 +14,7 @@ use crate::figure::fits::Reported;
 use crate::hatch::Hatch;
 use crate::layout::{self, Laid, Layout, Plan};
 use crate::legend::{Block, Swatch};
+use crate::mark::Alpha;
 use crate::panel::Panel;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
@@ -343,6 +344,17 @@ impl Resolved {
             .iter()
             .filter(|k| k.palette == palette && is(&*k.key))
             .find_map(|k| k.hatch.as_ref())
+    }
+
+    /// The alpha of the first mark that reported filling a shape in palette
+    /// `palette`'s (its table position) color for a key for which `is`
+    /// holds, which a legend square repeats; opaque when none did.
+    pub(crate) fn alpha(&self, palette: usize, is: impl Fn(&dyn Any) -> bool) -> Alpha {
+        self.keys
+            .iter()
+            .filter(|k| k.palette == palette && is(&*k.key))
+            .find(|k| k.glyph == Swatch::Square)
+            .map_or(Alpha::OPAQUE, |k| k.alpha)
     }
 
     /// The legend swatch of the marks that reported drawing in palette

@@ -21,6 +21,22 @@ pub(crate) enum Color {
     Keyed(Box<dyn Lookup>),
 }
 
+/// An opaque ribbon color's opacity unless set: a band that lines drawn
+/// over it show through (seaborn's error bands use 0.2, matplotlib's
+/// examples 0.2–0.3).
+const BAND: f64 = 0.25;
+
+/// How a filled mark's opacity follows its color's: the fill draws, and
+/// a legend square of its key repeats, the color at [`Alpha::of`] its
+/// opacity.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum Alpha {
+    /// The color's opacity times a factor in [0, 1].
+    Times(f64),
+    /// A band's: an opaque color at 0.25, a translucent one at its own.
+    Band,
+}
+
 /// A palette handle and a key of its domain, with the palette's type
 /// erased.
 pub(crate) trait Lookup {
@@ -56,6 +72,20 @@ impl<C: Paint> Lookup for Keyed<C> {
     }
 }
 
+impl Alpha {
+    /// Drawn as is.
+    pub(crate) const OPAQUE: Alpha = Alpha::Times(1.0);
+
+    /// The opacity a color of opacity `opacity` is drawn at.
+    pub(crate) fn of(self, opacity: f64) -> f64 {
+        match self {
+            Alpha::Times(a) => opacity * a,
+            Alpha::Band if opacity < 1.0 => opacity,
+            Alpha::Band => BAND,
+        }
+    }
+}
+
 impl Color {
     /// `palette`'s color for `key`.
     pub(crate) fn keyed<C: Paint>(palette: ScaleRef<C>, key: C::Domain) -> Color {
@@ -79,13 +109,20 @@ impl Color {
         }
     }
 
-    /// Reports the key with the mark's legend swatch `glyph` and its
-    /// `hatch`, so legends of the key draw that swatch and repeat the
-    /// hatch; marks without a key report nothing.
-    pub(crate) fn report(&self, glyph: Swatch, hatch: Option<&Hatch>, fits: &mut Fits) {
+    /// Reports the key with the mark's legend swatch `glyph`, its `hatch`
+    /// and its fill's `alpha`, so legends of the key draw that swatch and
+    /// repeat the hatch, and a square its opacity; marks without a key
+    /// report nothing.
+    pub(crate) fn report(
+        &self,
+        glyph: Swatch,
+        hatch: Option<&Hatch>,
+        alpha: Alpha,
+        fits: &mut Fits,
+    ) {
         if let Color::Keyed(lookup) = self {
             let (palette, key) = lookup.key();
-            fits.key(palette, key, glyph, hatch);
+            fits.key(palette, key, (glyph, hatch, alpha));
         }
     }
 

@@ -271,6 +271,45 @@ fn legends_draw_the_swatch_of_each_keys_marks_unless_told_otherwise() {
 }
 
 #[test]
+fn legend_squares_repeat_the_opacity_their_areas_and_ribbons_fill_at() {
+    let mut fig = Figure::new();
+    let x = fig.fit(scale::linear());
+    let y = fig.fit(scale::linear());
+    let keys = ["band", "half", "area", "faint"];
+    let palette = [
+        Rgb::hex(0x0173b2),
+        Rgb::hex(0xde8f05),
+        Rgb::hex(0x029e73),
+        Rgb::hex(0xd55e00).with_opacity(0.4),
+    ];
+    let color = fig.scale(scale::ordinal(keys, palette));
+    let rows = [(0.0, 0.5, 1.5), (2.0, 1.0, 2.0)];
+    let points = [(0.0, 1.0), (1.0, 2.0), (2.0, 1.5)];
+    fig.panel(0, 0)
+        // A band: an opaque color at 0.25; a line of the same key after it
+        // leaves the square as the ribbon fills.
+        .mark(mark::ribbon(rows, x, y).fill(color, "band"))
+        .mark(mark::line(points, x, y).stroke(color, "band"))
+        .mark(mark::ribbon(rows, x, y).fill(color, "half").opacity(0.5))
+        .mark(mark::area(points, x, y).fill(color, "area"))
+        // A translucent color: a band keeps its own opacity.
+        .mark(mark::ribbon(rows, x, y).fill(color, "faint"));
+    fig.legend(Slot::Bottom, legend(color));
+    let list = draw(&fig);
+    // Brushes hold 8-bit alpha: 0.25, 0.5, 1 and 0.4 of 255.
+    let alphas: Vec<u8> = fills(commands(&list, slotted(0)))
+        .into_iter()
+        .map(|(_, brush)| {
+            let Brush::Solid(c) = brush else {
+                panic!("a solid square, not {brush:?}")
+            };
+            c.to_rgba8().a
+        })
+        .collect();
+    assert_eq!(alphas, [64, 128, 255, 102]);
+}
+
+#[test]
 fn inset_legends_in_one_corner_stack_inward_half_an_em_apart() {
     let (mut fig, color) = sources();
     let key = legend(color);

@@ -62,6 +62,7 @@ use crate::thin::{self, Thin};
 
 pub use area::{Area, Ribbon, area, ribbon, ribbon_series};
 pub use bar::{BarX, BarY, bar_x, bar_x_spans, bar_y, bar_y_spans};
+pub(crate) use color::Alpha;
 pub use density::{DensityX, DensityY, density_x, density_y};
 pub use dots::{Dots, dots};
 pub use error::Error;

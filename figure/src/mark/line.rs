@@ -10,7 +10,7 @@ use crate::figure::Fits;
 use crate::hit;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List};
-use crate::mark::color::Color;
+use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Mark, across, at, dashes, guard, positive, stroke, within};
 use crate::path;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
@@ -150,7 +150,8 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
             [on] => Some([on, on]),
             [on, off, ..] => Some([on, off]),
         };
-        self.color.report(Swatch::Line { dash }, None, fits);
+        self.color
+            .report(Swatch::Line { dash }, None, Alpha::OPAQUE, fits);
     }
 
     /// One `Stroke` command through every point placed on both scales, or

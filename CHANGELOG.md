@@ -65,6 +65,9 @@ The first release.
 - `helpers`: one-call charts (line, scatter, bar, area, pie, heatmap),
   statistical charts (histogram, KDE and violin, box plot, ECDF, error
   bars), value labels, legend helpers and `subplots`.
+- Legend squares repeat the opacity their key's areas, ribbons and
+  densities fill at, as matplotlib's handles do; squares of opaque marks
+  stay opaque.
 - `helpers::chart::Line::key` and `Area::keys` name the series their
   legends show; a name given twice is `check::Issue::DuplicateKey`.
 
