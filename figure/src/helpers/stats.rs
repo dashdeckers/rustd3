@@ -6,8 +6,8 @@
 //!
 //! Every chart is added with [`Panel::mark`](crate::Panel::mark) like any
 //! mark (stacked histograms add their marks with `add_to`). The statistics
-//! are graded against matplotlib, numpy and scipy
-//! (`dev/fixtures/stats.py`).
+//! are tested against matplotlib, numpy and scipy (the fixture
+//! `tests/fixtures/stats.json`).
 
 pub mod boxplot;
 mod ecdf;

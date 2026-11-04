@@ -1,5 +1,5 @@
 //! Time formats: spot rows, computed with d3-time-format
-//! 4.1.0 in Node under `TZ=America/Los_Angeles`, and the port's own rows
+//! 4.1.0 in JavaScript under `TZ=America/Los_Angeles`, and rustd3-core's own rows
 //! (`%N`, composites that refer to themselves).
 
 use std::borrow::Cow;

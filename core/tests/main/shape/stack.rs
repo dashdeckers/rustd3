@@ -1,5 +1,5 @@
 //! Stacks against d3-shape 3.2.0's `stack()`, its orders and offsets, run
-//! in Node over the same columns as rows.
+//! in JavaScript over the same columns as rows.
 
 use rustd3_core::shape::{self, Stack, stack};
 

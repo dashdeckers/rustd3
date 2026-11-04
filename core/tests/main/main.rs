@@ -1,4 +1,4 @@
-//! rustd3-core's spot checks: values d3 prints, and the port's own rules
+//! rustd3-core's spot checks: values d3 prints, and rustd3-core's own rules
 //! where it departs from d3.
 
 mod anim;
@@ -8,6 +8,9 @@ mod band;
 mod binned;
 mod brush;
 mod color;
+// d3's own test suites, under `tests/d3/`.
+#[path = "../d3/d3.rs"]
+mod d3;
 #[cfg(feature = "derive")]
 mod derive;
 mod drag;

@@ -1,6 +1,6 @@
 //! `join`: the keyed diff against d3-selection 3.0.0's keyed data join
-//! (`bindKey`, `selection/data.js:31–73`), run in Node over stand-in nodes
-//! from the vendored sources.
+//! (`bindKey`, `selection/data.js:31–73`), run in JavaScript over stand-in
+//! nodes from d3's sources.
 
 use rustd3_core::join::{self, Join};
 

@@ -1,7 +1,7 @@
 //! Number formats under the neutral locale, d3's `EN_US`, de-DE and fr-FR
 //! built with `Locale::new`, and the bundled locales against d3-format
-//! 3.1.2's tables and its own output (`dev/fixtures/format_locales.json`,
-//! written by `dev/harness/gen/format_locales.mjs`).
+//! 3.1.2's tables and its own output (`tests/fixtures/format_locales.json`,
+//! written with the tables).
 
 use std::borrow::Cow;
 
@@ -14,7 +14,7 @@ use serde_json::Value;
 /// The fixture, read at compile time so the test needs no working directory.
 const PROBES: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/format_locales.json"
+    "/tests/fixtures/format_locales.json"
 ));
 
 /// d3-format 3.1.2's JSON table `name`, read at compile time.
@@ -22,7 +22,7 @@ macro_rules! table {
     ($name:literal) => {
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../dev/harness/d3/d3-format/locale/",
+            "/tests/fixtures/d3/d3-format/locale/",
             $name,
             ".json"
         ))
@@ -130,24 +130,6 @@ fn matches_d3(probes: &Value, name: &str, locale: &Locale) {
             "{name}: {specifier} of {value}"
         );
     }
-}
-
-/// Every double-quoted string literal in `source`, decoded as JSON decodes
-/// it: d3-format's tests escape only with `\uXXXX` and `\"`.
-fn strings(source: &str) -> Vec<String> {
-    let mut found = Vec::new();
-    let mut rest = source;
-    while let Some(start) = rest.find('"') {
-        let bytes = &rest.as_bytes()[start + 1..];
-        let mut end = 0;
-        while end < bytes.len() && bytes[end] != b'"' {
-            end += if bytes[end] == b'\\' { 2 } else { 1 };
-        }
-        let literal = &rest[start..(start + end + 2).min(rest.len())];
-        found.extend(serde_json::from_str::<String>(literal).ok());
-        rest = &rest[(start + end + 2).min(rest.len())..];
-    }
-    found
 }
 
 /// A locale with d3's fallbacks but the given separators and currency.
@@ -357,15 +339,12 @@ fn literal_check_agrees_with_parser() {
         assert_eq!(literal::is_valid(text), parsed, "{text:?}");
         parsed
     };
-    let tests = concat!(
+    // Every double-quoted string literal of d3-format 3.1.2's test files.
+    let d3: Vec<String> = serde_json::from_str(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../dev/harness/d3/d3-format/test"
-    );
-    let mut d3 = Vec::new();
-    for file in std::fs::read_dir(tests).expect("d3-format's tests") {
-        let source = std::fs::read_to_string(file.expect("a test file").path());
-        d3.extend(strings(&source.expect("a test file as UTF-8")));
-    }
+        "/tests/fixtures/d3/d3-format/test-strings.json"
+    )))
+    .expect("an array of strings");
     let valid = d3.iter().filter(|text| agrees(text)).count();
     assert!(
         d3.len() > 1000 && valid > 300,
@@ -418,7 +397,7 @@ fn literal_check_agrees_with_parser() {
 
 #[test]
 fn degenerate_values_under_the_tables_match_d3() {
-    // d3-format 3.1.2's formatLocale over the same JSON tables, in Node,
+    // d3-format 3.1.2's formatLocale over the same JSON tables, in JavaScript,
     // but for one row.
     let ar = from_json(table!("ar-001"));
     let in_ = from_json(table!("en-IN"));
@@ -445,7 +424,7 @@ fn degenerate_values_under_the_tables_match_d3() {
             "−00\u{a0}000\u{a0}000\u{a0}001\u{a0}234,5",
         ),
         (&Locale::RU_RU, ".2s", 1e-30, "0,000001y"),
-        // d3's toFixed switches to "1e+21円" here; the port writes no
+        // d3's toFixed switches to "1e+21円" here; rustd3-core writes no
         // exponent notation that JavaScript's printing adds.
         (
             &Locale::JA_JP,

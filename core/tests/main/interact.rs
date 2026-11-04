@@ -1,7 +1,7 @@
 //! `interact`: pointer input, d3-zoom's transform, the zoom behavior and
 //! `Rescale` against d3-zoom 3.0.0 and d3-scale 4.0.2 (d3's `wheeled`,
-//! `mousedowned`, `dblclicked` and `rescaleX` computed in Node from the
-//! vendored sources), and the pixel-space gestures against their rule.
+//! `mousedowned`, `dblclicked` and `rescaleX` computed in JavaScript from d3's
+//! sources), and the pixel-space gestures against their rule.
 
 use rustd3_core::interact::{self, Button, Delta, Modifiers, Pointer, Rescale, Zoom};
 use rustd3_core::scale::{self, AnyContinuous, TickRule};

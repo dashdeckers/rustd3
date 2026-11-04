@@ -1,4 +1,4 @@
-//! Arcs against d3-shape 3.2.0's `arc()`, run in Node and printed by its
+//! Arcs against d3-shape 3.2.0's `arc()`, run in JavaScript and printed by its
 //! default 3-digit path.
 
 use std::f64::consts::{FRAC_PI_2, PI, TAU};

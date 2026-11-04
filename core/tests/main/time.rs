@@ -1,5 +1,5 @@
-//! Time: intervals in explicit zones, against d3-time 3.1.0 run in Node
-//! under the zone of each row, and the port's own sub-millisecond rows.
+//! Time: intervals in explicit zones, against d3-time 3.1.0 run in JavaScript
+//! under the zone of each row, and rustd3-core's own sub-millisecond rows.
 
 use rustd3_core::jiff::Timestamp;
 use rustd3_core::jiff::civil::{Weekday, date};
@@ -253,7 +253,7 @@ fn offsets_beyond_any_calendar_are_none() {
 }
 
 /// The 32 active cases of d3-time 3.1.0's `test/test-time-zones`, with the
-/// milliseconds Node prints in each zone.
+/// milliseconds JavaScript prints in each zone.
 #[test]
 fn time_zones_script_cases() {
     let hour = Interval::Hour(1);

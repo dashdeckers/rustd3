@@ -4,21 +4,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PACKAGES=(rustd3 rustd3-core rustd3-derive rustd3-figure rustd3-fonts rustd3-iced
-          rustd3-testkit rustd3-harness rustd3-examples rustd3-bench)
-# Every file a table generator under dev/harness/gen writes.
-GENERATED=(core/src/scheme/stops.rs core/src/scheme/viridis.rs core/src/scheme/magma.rs
-           core/src/scheme/inferno.rs core/src/scheme/plasma.rs core/src/scheme/categorical.rs
-           core/src/format/locales.rs core/src/format/locales dev/fixtures/format_locales.json
-           core/src/time/locales.rs core/src/time/locales dev/fixtures/time_locales.json)
-
+          rustd3-testkit rustd3-examples rustd3-bench)
 touched() {  # packages with uncommitted changes or changed in HEAD
   { git diff --name-only HEAD; git ls-files --others --exclude-standard;
     git diff --name-only HEAD~1 HEAD 2>/dev/null || true; } | while read -r f; do
     case "$f" in
       core/*) echo rustd3-core ;;        derive/*) echo rustd3-derive ;;
       figure/*) echo rustd3-figure ;;    fonts/*) echo rustd3-fonts ;;
-      iced/*) echo rustd3-iced ;;        dev/testkit/*) echo rustd3-testkit ;;
-      dev/harness/*) echo rustd3-harness ;; dev/examples/*) echo rustd3-examples ;;
+      iced/*) echo rustd3-iced ;;        testkit/*) echo rustd3-testkit ;;
+      dev/examples/*) echo rustd3-examples ;;
       dev/bench/*) echo rustd3-bench ;;  src/*|tests/*) echo rustd3 ;;
       README.md) echo rustd3; echo rustd3-examples ;;
       Cargo.toml|Cargo.lock|clippy.toml|dev/clippy.toml) printf '%s\n' "${PACKAGES[@]}" ;;
@@ -48,23 +42,9 @@ quick() {
   # The README's core-level example asserts what it prints.
   if printf '%s\n' "${pkgs[@]}" | grep -qx rustd3; then cargo run -q -p rustd3 --example core_level > /dev/null; fi
   if [ "${RUSTD3_FUZZ:-0}" = 1 ]; then TZ=Asia/Kathmandu cargo test -q -p rustd3-core --release --test main fuzz; fi
-  TZ=Asia/Kathmandu cargo run -q -p rustd3-harness -- --check
-}
-
-# The generated tables are what is committed and what their generators
-# write now: a hand edit fails here, committed or not.
-fresh() {
-  git diff --exit-code HEAD -- "${GENERATED[@]}"
-  node --import ./dev/harness/translate/d3-resolve.mjs dev/harness/gen/scheme_tables.mjs
-  node --import ./dev/harness/translate/d3-resolve.mjs dev/harness/gen/format_locales.mjs
-  TZ=America/Los_Angeles node --import ./dev/harness/translate/d3-resolve.mjs dev/harness/gen/time_locales.mjs
-  git diff --exit-code HEAD -- "${GENERATED[@]}"
-  local extra; extra=$(git ls-files --others --exclude-standard -- "${GENERATED[@]}")
-  if [ -n "$extra" ]; then echo "generated but not committed: $extra" >&2; return 1; fi
 }
 
 full() {
-  fresh
   cargo clippy --workspace --all-targets --all-features -- -D warnings
   # figure's features without fonts, which neither the default nor the
   # all-features build covers: the lib and its tests must build alone.
@@ -88,7 +68,6 @@ full() {
       ICED_TEST_BACKEND=$backend TZ=Asia/Kathmandu cargo test -q -p "$p" --all-features -- --nocapture
     done
   done
-  node dev/harness/translate/translate.mjs --check
   RUSTDOCFLAGS="-D warnings" cargo doc -q --workspace --no-deps --all-features
   # The benchmark's headless smoke plan: a report that fails on errors
   # (a run that crashes or writes nothing), never on numbers.

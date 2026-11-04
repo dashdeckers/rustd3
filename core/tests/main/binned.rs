@@ -1,5 +1,5 @@
 //! The binned scales `Quantize`, `Quantile` and `Threshold`, and their
-//! `Ticks`, against d3-scale 4.0.2 (d3 7.9.0 in Node).
+//! `Ticks`, against d3-scale 4.0.2 (d3 7.9.0 in JavaScript).
 
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Ticks};

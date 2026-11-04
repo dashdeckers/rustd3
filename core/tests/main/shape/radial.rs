@@ -1,5 +1,5 @@
 //! Radial lines and areas against d3-shape 3.2.0's `lineRadial()` and
-//! `areaRadial()`, run in Node and printed by its default 3-digit path.
+//! `areaRadial()`, run in JavaScript and printed by its default 3-digit path.
 
 use std::f64::consts::{FRAC_PI_2, PI};
 

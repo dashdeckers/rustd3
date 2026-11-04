@@ -33,7 +33,7 @@ pub mod interval;
 mod definition;
 mod format;
 mod locale;
-// Generated: dev/harness/gen/time_locales.mjs writes the layout.
+// Generated from d3-time-format's tables, laid out as written.
 #[rustfmt::skip]
 mod locales;
 mod scale;
