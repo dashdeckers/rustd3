@@ -56,7 +56,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # macOS is off while the repository is private: GitHub's hosted
+        # macOS runners are scarce, and nothing ships from here yet.
+        os: [ubuntu-latest, windows-latest] # , macos-latest]
     env:
       # The wgpu run skips the iced tests when it finds no device instead
       # of failing.
