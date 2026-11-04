@@ -53,5 +53,5 @@ mod visible;
     expect(dead_code, reason = "only the PNG agreement test reads SCALE")
 )]
 mod scatter;
-#[path = "../../../dev/examples/src/trace.rs"]
+#[path = "../../../benchkit/src/gallery/trace.rs"]
 mod trace;

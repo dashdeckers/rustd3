@@ -12,9 +12,6 @@ autotests = false
 default = ["fonts"]
 fonts = ["rustd3-figure?/fonts"]
 figure = ["dep:rustd3-figure", "rustd3-figure/raster"]
-# Not for apps: makes `plot::cost`, the cost model's seed constants,
-# public (hidden from the docs) for the benchmark and the tests.
-__dev = ["figure"]
 
 [dependencies]
 rustd3-core.workspace = true
@@ -29,10 +26,31 @@ iced_test.workspace = true
 iced_runtime.workspace = true
 rustd3-testkit.workspace = true
 png.workspace = true
+benchkit = { workspace = true, features = ["widget"] }
 
 [[test]]
 name = "main"
 path = "tests/main/main.rs"
+
+# The benchmark (benchkit's README): the level, its windowed and offscreen
+# widget profiles, and the archives' readers.
+[[example]]
+name = "bench_all"
+required-features = ["figure"]
+
+[[example]]
+name = "bench_gestures"
+required-features = ["figure"]
+
+[[example]]
+name = "bench_software"
+required-features = ["figure"]
+
+[[example]]
+name = "bench_compare"
+
+[[example]]
+name = "bench_report"
 
 [lints]
 workspace = true

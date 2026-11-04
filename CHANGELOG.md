@@ -128,8 +128,8 @@ rule is:
 Names and visibility settled before the first release:
 
 - rustd3-iced: `plot::BAND_BYTES` and `plot::NUDGE` are crate-private;
-  `plot::cost` is public only behind `__dev`, the benchmark's and the
-  tests' feature, and hidden from the docs.
+  `plot::cost`, the cost model a probe's raster samples are set against,
+  is public.
 - rustd3-core: `format::literal`, `fmt!`'s compile-time check, is hidden
   from the docs; `format::format(spec).is_ok()` is the run-time check.
 - `helpers::stats::errorbar::Err` is `errorbar::Reach`: it no longer
@@ -188,28 +188,31 @@ Names and visibility settled before the first release:
   stop, `None` for categorical and binned scales), distinct from the
   readers `get_range` and `get_domain`.
 
-### Benchmark (`rustd3-bench`, in the repository)
+### Benchmarks (examples, in the repository)
 
-- rustd3's benchmark, the plotting library and its widget: one entry
-  point, `cargo rustd3-bench [--quick | --default | --full]`, on any
-  machine: it measures the display, runs headless without one, falls back
-  to the software renderer without a GPU, skips what the machine cannot
-  run, and records failed runs without stopping.
-- The figure profile at every level: figures timed from data to SVG, PDF
-  and PNG (and GIF at `--full`) stage by stage through the library's own
-  calls (build, resolve, list, each output), each figure in a process of
-  its own with its peak memory, from six figures at `--quick` to ladders
-  of lines and scatters, the chart presets and the wheel figure.
-- `--figure-only` runs the library's part alone, and
-  `cargo rustd3-bench-figure` builds the benchmark without iced, winit or
-  wgpu (its default feature `widget` off) for users of the plotting
-  library alone, servers and CI.
+- rustd3's benchmark runs as examples, on any machine, from a checkout:
+  `cargo run --release --example bench_all -- [--quick | --default |
+  --full]` runs a level: it measures the display, runs headless without
+  one, falls back to the software renderer without a GPU, skips what the
+  machine cannot run, and records failed runs without stopping. It builds
+  and runs the other examples as child processes.
+- `cargo run --release -p rustd3-figure --example bench_figure -- --quick`
+  times the plotting library alone, without iced, winit or wgpu: figures
+  timed from data to SVG, PDF and PNG (and GIF at `--full`) stage by stage
+  through the library's own calls (build, resolve, list, each output), each
+  figure in a process of its own with its peak memory, from six figures at
+  `--quick` to ladders of lines and scatters, the chart presets and the
+  wheel figure; `bench_all --figure-only` runs the same.
+- `bench_software` (rustd3-iced) drives the `Plot` widget on the software
+  renderer offscreen, every frame timed by part; `bench_gestures` runs a
+  plan of the widget's cells in windows, on the native backend or the
+  software renderer (`--scenario hover` for hover).
 - One file to attach to an issue,
-  `bench-results/rustd3-bench-[figure-]<level>-<UTC stamp>.tar.gz`, with
+  `bench-results/bench-[figure-]<level>-<UTC stamp>.tar.gz`, with
   `report.md`, a versioned `results.json`, a CPU reference and
   `PRIVACY.md`; no host name, user name or home path goes in.
-- `rustd3-bench compare A B` and `rustd3-bench report A` read a
-  directory or an archive.
+- `bench_compare A B` and `bench_report A` read a directory or an archive.
+- Their machinery is `benchkit`, an unpublished workspace crate.
 
 ### Later (0.2)
 

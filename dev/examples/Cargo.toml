@@ -18,6 +18,7 @@ widget = ["dep:rustd3-iced", "dep:iced"]
 rustd3-core = { workspace = true, features = ["derive"] }
 rustd3-figure = { workspace = true, features = ["fonts", "png", "pdf", "gif", "helpers"] }
 rustd3-iced = { workspace = true, features = ["figure"], optional = true }
+benchkit.workspace = true
 iced = { workspace = true, features = ["advanced", "canvas"], optional = true }
 
 [dev-dependencies]

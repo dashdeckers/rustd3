@@ -249,14 +249,18 @@ has the details.
 To measure a machine, run the benchmark from a checkout:
 
 ```bash
-cargo rustd3-bench --quick
+cargo run --release --example bench_all -- --quick                       # the library and the widget
+cargo run --release -p rustd3-figure --example bench_figure -- --quick   # the library alone, headless
 ```
 
-It takes about a quarter of an hour, drives the widget and times figures
-from data to SVG, PDF and PNG, and ends by printing the path of one
-archive; if a plot is slow, open an issue and attach the archive.
-[dev/bench/README.md](dev/bench/README.md) describes its levels and what
-the archive holds.
+`bench_all` takes about a quarter of an hour, drives the widget and times
+figures from data to SVG, PDF and PNG, and ends by printing the path of
+one archive; if a plot is slow, open an issue and attach the archive.
+`bench_figure` times the figures alone, in about a minute, without iced.
+`bench_gestures` and `bench_software` run the widget's profiles one at a
+time, and `bench_compare` and `bench_report` read archives.
+[benchkit/README.md](benchkit/README.md) describes the levels, the flags
+and what the archive holds.
 
 ## Licence and credits
 

@@ -44,10 +44,15 @@ tiny-skia = { workspace = true, optional = true }
 rustd3-testkit.workspace = true
 resvg.workspace = true
 serde_json.workspace = true
+benchkit.workspace = true
 
 [[test]]
 name = "main"
 path = "tests/main/main.rs"
+
+# The benchmark of the plotting library alone (benchkit's README).
+[[example]]
+name = "bench_figure"
 
 [lints]
 workspace = true

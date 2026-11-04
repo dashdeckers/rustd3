@@ -6,9 +6,7 @@
 
 #[cfg(feature = "widget")]
 pub mod focus_context;
-pub mod presets;
+pub use benchkit::gallery::{presets, trace, wheels};
 pub mod scatter;
-pub mod trace;
 #[cfg(feature = "widget")]
 pub mod update_pattern;
-pub mod wheels;

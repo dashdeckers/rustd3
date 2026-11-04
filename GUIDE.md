@@ -546,8 +546,9 @@ domains of handles nobody listens to) in iced's widget tree.
   the UI thread, so panning a scatter of a million points is bound by
   list building.
 
-`cargo rustd3-bench --quick` measures all of this on a machine;
-`dev/bench/README.md` describes the levels and the archive.
+`cargo run --release --example bench_all -- --quick` measures all of
+this on a machine; `benchkit/README.md` describes the levels and the
+archive.
 
 ### Error handling
 

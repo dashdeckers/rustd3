@@ -320,6 +320,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
+name = "benchkit"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "iced",
+ "iced_runtime",
+ "rustd3-core",
+ "rustd3-figure",
+ "rustd3-iced",
+ "rustd3-testkit",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "biblatex"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3766,22 +3781,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustd3-bench"
-version = "0.1.0"
-dependencies = [
- "flate2",
- "iced",
- "iced_runtime",
- "rustd3-core",
- "rustd3-examples",
- "rustd3-figure",
- "rustd3-iced",
- "rustd3-testkit",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "rustd3-core"
 version = "0.1.0"
 dependencies = [
@@ -3806,6 +3805,7 @@ dependencies = [
 name = "rustd3-examples"
 version = "0.1.0"
 dependencies = [
+ "benchkit",
  "iced",
  "iced_test",
  "png",
@@ -3819,6 +3819,7 @@ dependencies = [
 name = "rustd3-figure"
 version = "0.1.0"
 dependencies = [
+ "benchkit",
  "gif",
  "krilla",
  "kurbo",
@@ -3848,6 +3849,7 @@ dependencies = [
 name = "rustd3-iced"
 version = "0.1.0"
 dependencies = [
+ "benchkit",
  "iced",
  "iced_core",
  "iced_runtime",

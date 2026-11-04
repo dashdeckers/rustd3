@@ -1,0 +1,46 @@
+[package]
+name = "benchkit"
+description = "The machinery of rustd3's benchmark examples"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = ["widget"]
+# The Plot widget's profiles: iced, rustd3-iced and the window code.
+# Without it, rustd3-figure's `bench_figure` builds the plotting library's
+# figure profile alone.
+widget = ["dep:rustd3-iced", "dep:iced", "dep:iced_runtime"]
+
+[dependencies]
+rustd3-core.workspace = true
+rustd3-figure = { workspace = true, features = ["fonts", "png", "pdf", "gif", "helpers"] }
+rustd3-iced = { workspace = true, features = ["figure"], optional = true }
+iced = { workspace = true, features = ["advanced", "canvas"], optional = true }
+iced_runtime = { workspace = true, optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+# The submission archive's gzip; 1.1.10 is already in the lock tree.
+flate2 = "1.1.10"
+
+[dev-dependencies]
+rustd3-testkit.workspace = true
+
+# The workspace's lints, but benchkit reads clocks: it times what it
+# measures, which the root clippy.toml's disallowed-methods forbids the
+# library crates.
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "warn"
+allow_attributes_without_reason = "warn"
+mod_module_files = "warn"
+wildcard_enum_match_arm = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+disallowed_methods = "allow"

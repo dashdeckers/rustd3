@@ -240,13 +240,7 @@ mod area;
 mod brush;
 mod budget;
 mod caching;
-// The cost model's seed constants, which the benchmark records: public to
-// the dev crates through the `__dev` feature only.
-#[cfg(feature = "__dev")]
-#[doc(hidden)]
 pub mod cost;
-#[cfg(not(feature = "__dev"))]
-mod cost;
 mod domains;
 #[cfg(test)]
 mod fixture;
