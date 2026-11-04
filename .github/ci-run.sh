@@ -4,7 +4,7 @@
 # GitHub error annotations, which the checks API reports, since the raw
 # logs are not always reachable from where the results are read.
 #
-#   scripts/ci-run.sh cargo test --workspace
+#   .github/ci-run.sh cargo test --workspace
 set -uo pipefail
 log=$(mktemp)
 "$@" 2>&1 | tee "$log"

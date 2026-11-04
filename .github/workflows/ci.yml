@@ -12,14 +12,14 @@ concurrency:
 
 defaults:
   run:
-    # scripts/ci-run.sh reports a failing command's error lines as
+    # .github/ci-run.sh reports a failing command's error lines as
     # annotations; bash is present on every runner.
     shell: bash
 
 env:
   CARGO_INCREMENTAL: 0
-  # Tests run in a zone with a 45-minute offset, as scripts/check.sh runs
-  # them, so a test that assumes the machine's zone fails everywhere.
+  # Tests run in a zone with a 45-minute offset, so a test that assumes
+  # the machine's zone fails everywhere.
   TZ: Asia/Kathmandu
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
-      - run: scripts/ci-run.sh cargo +nightly fmt --all --check
+      - run: .github/ci-run.sh cargo +nightly fmt --all --check
 
   clippy:
     name: clippy
@@ -42,13 +42,13 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: scripts/ci-run.sh cargo clippy --workspace --all-targets -- -D warnings
+      - run: .github/ci-run.sh cargo clippy --workspace --all-targets -- -D warnings
       # Every feature: the facade's README examples and the PNG, PDF and
       # GIF code paths.
-      - run: scripts/ci-run.sh cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: .github/ci-run.sh cargo clippy --workspace --all-targets --all-features -- -D warnings
       # The benchmark without its widget, as bench_figure
       # builds it: no iced, winit or wgpu.
-      - run: scripts/ci-run.sh cargo clippy -p benchkit -p rustd3-figure --all-targets --no-default-features -- -D warnings
+      - run: .github/ci-run.sh cargo clippy -p benchkit -p rustd3-figure --all-targets --no-default-features -- -D warnings
 
   test:
     name: test (${{ matrix.os }})
@@ -82,22 +82,22 @@ jobs:
       - name: Install poppler (Windows)
         if: runner.os == 'Windows'
         run: choco install poppler --no-progress -y
-      - run: scripts/ci-run.sh cargo build --workspace
+      - run: .github/ci-run.sh cargo build --workspace
       # iced picks the renderer: wgpu where it finds an adapter, else
       # tiny-skia.
-      - run: scripts/ci-run.sh cargo test --workspace
+      - run: .github/ci-run.sh cargo test --workspace
       # The iced tests again on each backend explicitly; with
       # ICED_TEST_BACKEND set iced does not fall back.
       - name: iced tests on tiny-skia
-        run: scripts/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
+        run: .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: tiny-skia
       - name: iced tests on wgpu
-        run: scripts/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
+        run: .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: wgpu
-      - run: scripts/ci-run.sh cargo run -p rustd3 --example core_level
-      - run: scripts/ci-run.sh cargo test -p benchkit -p rustd3-figure --no-default-features
+      - run: .github/ci-run.sh cargo run -p rustd3 --example core_level
+      - run: .github/ci-run.sh cargo test -p benchkit -p rustd3-figure --no-default-features
 
   msrv:
     name: MSRV (1.97)
@@ -107,8 +107,8 @@ jobs:
       # The workspace's `rust-version`, which every crate inherits.
       - uses: dtolnay/rust-toolchain@1.97
       - uses: Swatinem/rust-cache@v2
-      - run: scripts/ci-run.sh cargo check --workspace --all-targets
-      - run: scripts/ci-run.sh cargo check -p benchkit --all-targets --no-default-features
+      - run: .github/ci-run.sh cargo check --workspace --all-targets
+      - run: .github/ci-run.sh cargo check -p benchkit --all-targets --no-default-features
 
   docs:
     name: docs
@@ -119,5 +119,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: scripts/ci-run.sh cargo doc --workspace --no-deps
-      - run: scripts/ci-run.sh cargo doc --workspace --no-deps --all-features
+      - run: .github/ci-run.sh cargo doc --workspace --no-deps
+      - run: .github/ci-run.sh cargo doc --workspace --no-deps --all-features

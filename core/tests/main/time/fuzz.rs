@@ -1,7 +1,8 @@
 //! Time scales over hostile domains, counts and zones: ticks, nice,
 //! ticks with a stepped interval and the pixel gestures, each case under
 //! a 1 s timeout optimized, from a fixed seed. 150 cases by default and
-//! 3,000 with `RUSTD3_FUZZ=1` (run in release by `scripts/check.sh`).
+//! 3,000 with `RUSTD3_FUZZ=1`, in release
+//! (`cargo test --release -p rustd3-core --test main fuzz`).
 
 use std::sync::mpsc;
 use std::thread;

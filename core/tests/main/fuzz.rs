@@ -2,7 +2,8 @@
 //! transform with its own rule and with the `Data` and `Transformed` rules,
 //! with the axis's minor ticks and labels of each tick set, from a fixed
 //! seed, under a 60 s timeout. 2,000 cases by default and
-//! 20,000 with `RUSTD3_FUZZ=1` (run in release by `scripts/check.sh`).
+//! 20,000 with `RUSTD3_FUZZ=1`, in release
+//! (`cargo test --release -p rustd3-core --test main fuzz`).
 
 use std::sync::mpsc;
 use std::thread;
