@@ -1,4 +1,4 @@
-//! Pies against d3-shape 3.2.0's `pie()`, run in Node.
+//! Pies against d3-shape 3.2.0's `pie()`, run in JavaScript.
 
 use std::f64::consts::{PI, TAU};
 

@@ -9,8 +9,10 @@ The first release.
 - `rustd3`: the facade. It re-exports the core's modules and, behind the
   `figure` feature, `rustd3-figure` as `rustd3::figure`, so an application
   adds one dependency.
-- `rustd3-core`: the d3 port, renderer-agnostic and graded by d3 7.9.0's
-  own tests.
+- `rustd3-core`: d3's vocabulary, renderer-agnostic. It follows d3
+  7.9.0's semantics and is checked by tests derived from d3's own test
+  suites: 5,308 assertions in 1,586 tests, each naming d3's file and
+  line.
 - `rustd3-figure`: the figure layer and its outputs.
 - `rustd3-fonts`: DejaVu Sans (regular and bold) and New Computer Modern
   Math, bundled.

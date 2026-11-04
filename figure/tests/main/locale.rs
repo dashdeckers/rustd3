@@ -103,7 +103,7 @@ fn default_tick_labels_follow_the_figure_locale() {
     };
     let at = |locale| labels(&left([0.0, 12_000.0], 6, locale, None));
     // The neutral default groups with U+202F; d3's en-US and de-DE
-    // `,.0f` ticks of [0, 12000] at count 6 (d3 in Node).
+    // `,.0f` ticks of [0, 12000] at count 6 (d3 in JavaScript).
     assert_eq!(at(Locale::default()), thousands("\u{202f}"));
     assert_eq!(at(Locale::EN_US), thousands(","));
     assert_eq!(at(Locale::DE_DE), thousands("."));
@@ -197,7 +197,7 @@ fn a_custom_mark_labels_in_the_figure_locale_and_palette_while_fitting() {
 }
 
 /// The rest of the section's de-DE rows, d3-format and d3-time-format
-/// 4.1.0's output in Node: the tables the figure locale pairs.
+/// 4.1.0's output in JavaScript: the tables the figure locale pairs.
 #[test]
 fn de_de_writes_numbers_and_dates_as_d3() {
     let number = |spec: &str, v: f64| {

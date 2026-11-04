@@ -321,7 +321,7 @@ fn nice_domains_floor_and_ceil_a_time_handle_to_its_tick_interval() {
     let size = Size::new(640.0, 480.0);
     let r = fig.resolve(size, &mut cache(), &Held::default(), Target::Vector);
     // d3's tick interval for 5 ticks over 7 h 24 min is the hour
-    // (d3-scale 4.0.2's `scaleUtc().nice(5)` in Node).
+    // (d3-scale 4.0.2's `scaleUtc().nice(5)` in JavaScript).
     let expected = [at("2026-10-28T09:00:00Z"), at("2026-10-28T17:00:00Z")];
     assert_eq!(r.get_scale(t).unwrap().get_domain(), expected);
 }

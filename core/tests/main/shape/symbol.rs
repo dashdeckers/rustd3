@@ -1,4 +1,4 @@
-//! Symbols against d3-shape 3.2.0's `symbol(type, 64)()`, run in Node and
+//! Symbols against d3-shape 3.2.0's `symbol(type, 64)()`, run in JavaScript and
 //! printed by its default 3-digit path, and the commands they draw.
 
 use rustd3_core::path::{PathContext, SvgPath};

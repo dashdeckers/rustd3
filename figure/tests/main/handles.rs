@@ -517,7 +517,7 @@ fn sequential_handles_paint_as_d3_and_fit_without_margin() {
         .mark(figure::line(fitted, [3.0, 7.0]))
         .mark(dots([(0.5, 0.5)], x, x).fill(heat, 40.0));
     let r = resolve(&fig, canvas(300.0, 200.0));
-    // d3 in Node: scaleSequential([0, 80], interpolateViridis).
+    // d3 in JavaScript: scaleSequential([0, 80], interpolateViridis).
     let paints = [0.0, 20.0, 40.0, 80.0, 100.0].map(|v| hex(r.get_scale(heat).unwrap().paint(&v)));
     let d3 = ["#440154", "#3b528b", "#21918c", "#fde725", "#fde725"];
     assert_eq!(paints, d3.map(|c| Some(c.to_string())));
@@ -552,7 +552,7 @@ fn diverging_handles_paint_as_d3_and_keep_their_middle() {
     let fitted = fig.fit(scale::diverging([-1.0, 0.0, 1.0], scheme::rd_bu));
     fig.panel(0, 0).mark(figure::line(fitted, [2.0, 5.0]));
     let r = resolve(&fig, canvas(300.0, 200.0));
-    // d3 in Node: scaleDiverging([-1, 0, 1], interpolateRdBu).
+    // d3 in JavaScript: scaleDiverging([-1, 0, 1], interpolateRdBu).
     let paints =
         [-1.0, 0.0, 0.5].map(|v| r.get_scale(rd_bu).unwrap().paint(&v).map(|c| c.to_string()));
     let d3 = [
@@ -603,7 +603,7 @@ fn binned_handles_paint_their_bins_as_d3() {
         .mark(figure::line(fitted, [10.0, 60.0]))
         .mark(figure::line(t, [-5.0, 5.0]));
     let r = resolve(&fig, canvas(300.0, 200.0));
-    // d3 in Node: scaleQuantize([0, 100], schemeBlues[5]).
+    // d3 in JavaScript: scaleQuantize([0, 100], schemeBlues[5]).
     assert_eq!(
         r.get_scale(q).unwrap().thresholds(),
         [20.0, 40.0, 60.0, 80.0]

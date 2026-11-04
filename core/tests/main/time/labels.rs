@@ -1,6 +1,6 @@
 //! Time tick labels: d3's `multi` rows (d3-time-format 4.1.0's
 //! `format-test.js`), d3-scale's `tickFormat` choice under both ladders,
-//! and the port's sub-second rungs.
+//! and rustd3-core's sub-second rungs.
 
 use rustd3_core::jiff::Timestamp;
 use rustd3_core::jiff::tz::TimeZone;
@@ -81,7 +81,7 @@ fn berlin_example() {
             "10-25", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00", "10-26"
         ]
     );
-    // d3-scale 4.0.2's tickFormat in Node under TZ=Europe/Berlin.
+    // d3-scale 4.0.2's tickFormat in JavaScript under TZ=Europe/Berlin.
     assert_eq!(
         st.labels(&set, &figure::Locale::EN_US),
         [
@@ -155,7 +155,7 @@ fn sub_second_labels() {
 
 #[test]
 fn spans_tick_and_label_as_d3s_scale_time() {
-    // d3-scale 4.0.2 in Node under each zone; de-DE as d3's default locale.
+    // d3-scale 4.0.2 in JavaScript under each zone; de-DE as d3's default locale.
     let de = super::locales::from_json(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),

@@ -377,7 +377,7 @@ fn log_nice_extends_to_powers_of_the_base_on_either_side_of_zero() {
 fn log_maps_through_the_natural_logarithm() {
     let x = scale::log().domain([1.0, 10.0]).range([0.0, 1.0]);
     assert_eq!(x.apply(5.0), 0.6989700043360187);
-    // Node prints 3.16227766016838, one ulp above the nearest double: V8's
+    // JavaScript prints 3.16227766016838, one ulp above the nearest double: V8's
     // exp is not correctly rounded at ln(10)/2.
     let invert = x.invert(0.5);
     assert!(

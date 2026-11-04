@@ -397,7 +397,7 @@ fn literal_check_agrees_with_parser() {
 
 #[test]
 fn degenerate_values_under_the_tables_match_d3() {
-    // d3-format 3.1.2's formatLocale over the same JSON tables, in Node,
+    // d3-format 3.1.2's formatLocale over the same JSON tables, in JavaScript,
     // but for one row.
     let ar = from_json(table!("ar-001"));
     let in_ = from_json(table!("en-IN"));
@@ -424,7 +424,7 @@ fn degenerate_values_under_the_tables_match_d3() {
             "−00\u{a0}000\u{a0}000\u{a0}001\u{a0}234,5",
         ),
         (&Locale::RU_RU, ".2s", 1e-30, "0,000001y"),
-        // d3's toFixed switches to "1e+21円" here; the port writes no
+        // d3's toFixed switches to "1e+21円" here; rustd3-core writes no
         // exponent notation that JavaScript's printing adds.
         (
             &Locale::JA_JP,

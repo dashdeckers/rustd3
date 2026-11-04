@@ -23,7 +23,7 @@ rustd3 works at two levels.
 | Crate | Level | What |
 | --- | --- | --- |
 | `rustd3` | both | the facade: the core's modules at its root, `rustd3-figure` as `rustd3::figure` (feature `figure`) |
-| `rustd3-core` | core | the d3 port; renderer-agnostic |
+| `rustd3-core` | core | d3's scales, shapes, formats and interaction with d3's semantics; renderer-agnostic |
 | `rustd3-derive` | core | `#[derive(Interpolate)]` (feature `derive`) |
 | `rustd3-figure` | figure | the figure model, layout, typst text, the drawing list and its outputs |
 | `rustd3-fonts` | figure | DejaVu Sans (regular, bold) and New Computer Modern Math (feature `fonts`) |

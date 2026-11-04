@@ -19,9 +19,10 @@ describes a `Figure` of panels, marks, axes, legends and colorbars, and
 layout and a backend do the rest.
 
 The time zone, the locale and the clock are always parameters: nothing
-in the library reads the system's. The core is graded by d3's own test
-suites, translated to Rust, and the figure layer against matplotlib and
-seaborn reference values.
+in the library reads the system's. The core follows d3's semantics and
+is checked by tests derived from d3's own test suites (5,308 assertions,
+each naming d3's file and line), and the figure layer against matplotlib
+and seaborn reference values.
 
 [`GUIDE.md`](GUIDE.md) is the glossary and handbook: every concept, its
 type, and how the pieces fit.

@@ -1,6 +1,6 @@
 //! [`Directive`], one of d3's format directives and what it writes
 //! (`locale.js:57–91`, helpers `400–697`), on jiff's civil fields and the
-//! port's intervals.
+//! crate's intervals.
 
 use jiff::Zoned;
 use jiff::civil::Weekday;

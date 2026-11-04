@@ -1,5 +1,5 @@
 //! `array`'s statistics, quantiles, ranges, bisection and bins against
-//! d3-array 3.2.4 (d3 7.9.0 in Node).
+//! d3-array 3.2.4 (d3 7.9.0 in JavaScript).
 
 use rustd3_core::array;
 
