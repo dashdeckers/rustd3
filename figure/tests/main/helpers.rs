@@ -1,5 +1,5 @@
 //! The `helpers` feature: its statistics against matplotlib 3.11.2, numpy
-//! and scipy (`dev/fixtures/stats.json`, written by `stats.py`) through the
+//! and scipy (`tests/fixtures/stats.json`) through the
 //! tolerant `Obs` compare, and its charts and grids as figures.
 
 mod axes;
@@ -21,7 +21,7 @@ use rustd3_testkit::obs::{Obs, ToObs, Tolerance};
 /// The fixture, read at compile time so the test needs no working directory.
 const STATS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/stats.json"
+    "/tests/fixtures/stats.json"
 ));
 
 /// The section's statistical data, n = 15.

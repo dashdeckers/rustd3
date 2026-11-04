@@ -1,5 +1,5 @@
 //! `scale::Pad` against matplotlib 3.11.2's autoscaled limits: the spot
-//! checks, and every case of `dev/fixtures/pad.json` (written by `pad.py`).
+//! checks, and every case of `tests/fixtures/pad.json`.
 
 use rustd3_core::interact::Rescale;
 use rustd3_core::scale::{self, AnyContinuous, Pad, TickRule};
@@ -9,7 +9,7 @@ use serde_json::Value;
 /// The fixture, read at compile time so the test needs no working directory.
 const PAD: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/pad.json"
+    "/tests/fixtures/pad.json"
 ));
 
 /// Whether `a` and `b` agree within 1e-12 relative.

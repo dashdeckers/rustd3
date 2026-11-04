@@ -1,5 +1,5 @@
 //! The symlog, logit and asinh tick rules against matplotlib 3.11.2's
-//! locators, from `dev/fixtures/scales.json` (written by `scales.py`).
+//! locators, from `tests/fixtures/scales.json`.
 
 use std::collections::BTreeMap;
 
@@ -10,7 +10,7 @@ use serde_json::Value;
 /// The fixture, read at compile time so the test needs no working directory.
 const SCALES: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/scales.json"
+    "/tests/fixtures/scales.json"
 ));
 
 /// One case: its domain and count, and the ticks matplotlib placed inside

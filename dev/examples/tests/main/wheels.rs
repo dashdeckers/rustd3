@@ -1,6 +1,6 @@
 //! The wheel figure: its samples, marks, bars and
-//! fitted domains against `dev/fixtures/wheels.json` (written by
-//! `wheels.py`), its checks at two sizes, its labels and lowering, text
+//! fitted domains against `tests/fixtures/wheels.json` (from matplotlib's
+//! autoscaling of the same artists), its checks at two sizes, its labels and lowering, text
 //! snapshots of its list and SVG, and its PDF through poppler.
 
 use rustd3_examples::wheels;
@@ -21,7 +21,7 @@ use crate::poppler;
 /// The fixture, read at compile time so the test needs no working directory.
 const FIXTURE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../fixtures/wheels.json"
+    "/tests/fixtures/wheels.json"
 ));
 
 /// The role a figure gives its marks' parts.

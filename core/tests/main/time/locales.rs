@@ -1,6 +1,6 @@
 //! The bundled time locales against d3-time-format 4.1.0's tables and its
-//! own output (`dev/fixtures/time_locales.json`, written with the tables by
-//! `dev/harness/gen/time_locales.mjs` under `TZ=America/Los_Angeles`).
+//! own output (`tests/fixtures/time_locales.json`, written with the tables
+//! under `TZ=America/Los_Angeles`).
 
 use std::borrow::Cow;
 
@@ -13,7 +13,7 @@ use super::at;
 /// The fixture, read at compile time so the test needs no working directory.
 const PROBES: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/time_locales.json"
+    "/tests/fixtures/time_locales.json"
 ));
 
 /// d3-time-format 4.1.0's JSON table `name`, read at compile time.
@@ -21,7 +21,7 @@ macro_rules! table {
     ($name:literal) => {
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../dev/harness/d3/d3-time-format/locale/",
+            "/tests/fixtures/d3/d3-time-format/locale/",
             $name,
             ".json"
         ))

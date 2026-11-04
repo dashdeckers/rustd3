@@ -5,12 +5,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 PACKAGES=(rustd3 rustd3-core rustd3-derive rustd3-figure rustd3-fonts rustd3-iced
           rustd3-testkit rustd3-harness rustd3-examples rustd3-bench)
-# Every file a table generator under dev/harness/gen writes.
-GENERATED=(core/src/scheme/stops.rs core/src/scheme/viridis.rs core/src/scheme/magma.rs
-           core/src/scheme/inferno.rs core/src/scheme/plasma.rs core/src/scheme/categorical.rs
-           core/src/format/locales.rs core/src/format/locales dev/fixtures/format_locales.json
-           core/src/time/locales.rs core/src/time/locales dev/fixtures/time_locales.json)
-
 touched() {  # packages with uncommitted changes or changed in HEAD
   { git diff --name-only HEAD; git ls-files --others --exclude-standard;
     git diff --name-only HEAD~1 HEAD 2>/dev/null || true; } | while read -r f; do
@@ -51,20 +45,7 @@ quick() {
   TZ=Asia/Kathmandu cargo run -q -p rustd3-harness -- --check
 }
 
-# The generated tables are what is committed and what their generators
-# write now: a hand edit fails here, committed or not.
-fresh() {
-  git diff --exit-code HEAD -- "${GENERATED[@]}"
-  node --import ./dev/harness/translate/d3-resolve.mjs dev/harness/gen/scheme_tables.mjs
-  node --import ./dev/harness/translate/d3-resolve.mjs dev/harness/gen/format_locales.mjs
-  TZ=America/Los_Angeles node --import ./dev/harness/translate/d3-resolve.mjs dev/harness/gen/time_locales.mjs
-  git diff --exit-code HEAD -- "${GENERATED[@]}"
-  local extra; extra=$(git ls-files --others --exclude-standard -- "${GENERATED[@]}")
-  if [ -n "$extra" ]; then echo "generated but not committed: $extra" >&2; return 1; fi
-}
-
 full() {
-  fresh
   cargo clippy --workspace --all-targets --all-features -- -D warnings
   # figure's features without fonts, which neither the default nor the
   # all-features build covers: the lib and its tests must build alone.

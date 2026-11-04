@@ -159,7 +159,7 @@ fn spans_tick_and_label_as_d3s_scale_time() {
     let de = super::locales::from_json(
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../dev/harness/d3/d3-time-format/locale/de-DE.json"
+            "/tests/fixtures/d3/d3-time-format/locale/de-DE.json"
         )),
         rustd3_core::time::Ladder::D3,
     );

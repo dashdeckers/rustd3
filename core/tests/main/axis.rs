@@ -402,7 +402,7 @@ fn points(d: &str) -> Vec<(f64, f64)> {
 /// The snapshot `name` under d3-axis's test directory, parsed.
 fn snapshot(name: &str) -> Snapshot {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../dev/harness/d3/d3-axis/test/snapshots")
+        .join("tests/fixtures/d3/d3-axis/snapshots")
         .join(format!("{name}.html"));
     let html = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let mut snapshot = Snapshot::default();

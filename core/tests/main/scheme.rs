@@ -1,7 +1,7 @@
 //! The color schemes: the categorical ones' lengths, first and last
 //! entries against d3, seaborn 0.13.2 and Okabe and Ito; every
 //! sequential, diverging and cyclical scheme against d3-scale-chromatic
-//! 3.1.0 (`dev/fixtures/schemes.json`, written by `schemes.mjs`).
+//! 3.1.0 (`tests/fixtures/schemes.json`).
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scheme;
@@ -10,7 +10,7 @@ use serde_json::Value;
 /// The fixture, read at compile time so the test needs no working directory.
 const SCHEMES: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/schemes.json"
+    "/tests/fixtures/schemes.json"
 ));
 
 /// A scheme function.

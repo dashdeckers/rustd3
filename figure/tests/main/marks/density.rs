@@ -1,5 +1,5 @@
 //! Densities: the kernel density estimate against scipy and seaborn
-//! (`dev/fixtures/kde.json`, written by `kde.py`), and the marks that draw
+//! (`tests/fixtures/kde.json`), and the marks that draw
 //! it along y and along x.
 
 use rustd3_core::scale;
@@ -19,7 +19,7 @@ use crate::figure::resolve;
 /// The fixture, read at compile time so the test needs no working directory.
 const KDE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../dev/fixtures/kde.json"
+    "/tests/fixtures/kde.json"
 ));
 
 /// The section's statistical data, n = 15.
