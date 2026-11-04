@@ -42,13 +42,11 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: .github/ci-run.sh cargo clippy --workspace --all-targets -- -D warnings
-      # Every feature: the facade's README examples and the PNG, PDF and
-      # GIF code paths.
+      # Every feature: the facade's README examples, the PNG, PDF and GIF
+      # code paths and the benchmark's widget profiles.
       - run: .github/ci-run.sh cargo clippy --workspace --all-targets --all-features -- -D warnings
-      # The benchmark without its widget, as bench_figure
-      # builds it: no iced, winit or wgpu.
-      - run: .github/ci-run.sh cargo clippy -p benchkit -p rustd3-figure --all-targets --no-default-features -- -D warnings
+      # No default feature: no fonts, and benchkit without its widget.
+      - run: .github/ci-run.sh cargo clippy --workspace --all-targets --no-default-features -- -D warnings
 
   test:
     name: test (${{ matrix.os }})
@@ -76,28 +74,46 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y poppler-utils mesa-vulkan-drivers
-      - name: Install poppler (macOS)
-        if: runner.os == 'macOS'
-        run: brew install poppler
+      # The PDF tests fail without poppler rather than skip, so that a
+      # machine without it cannot pass them silently: Windows installs it
+      # too.
       - name: Install poppler (Windows)
         if: runner.os == 'Windows'
         run: choco install poppler --no-progress -y
-      - run: .github/ci-run.sh cargo build --workspace
       # iced picks the renderer: wgpu where it finds an adapter, else
       # tiny-skia.
-      - run: .github/ci-run.sh cargo test --workspace
+      - run: .github/ci-run.sh cargo test --workspace --all-features
+      - run: .github/ci-run.sh cargo test --workspace --no-default-features
       # The iced tests again on each backend explicitly; with
-      # ICED_TEST_BACKEND set iced does not fall back.
+      # ICED_TEST_BACKEND set iced does not fall back. Each runs a second
+      # time if the first fails: lavapipe, the runners' software Vulkan,
+      # now and then segfaults in a test that passes on a rerun.
       - name: iced tests on tiny-skia
-        run: .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
+        run: |
+          .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features \
+            || .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: tiny-skia
       - name: iced tests on wgpu
-        run: .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
+        run: |
+          .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features \
+            || .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: wgpu
+
+  examples:
+    name: examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: .github/ci-run.sh cargo build --workspace --examples --all-features
+      - run: .github/ci-run.sh cargo build --workspace --examples --no-default-features
+      # The README's examples: core_level asserts what it prints,
+      # figure_png writes the README's PNG.
       - run: .github/ci-run.sh cargo run -p rustd3 --example core_level
-      - run: .github/ci-run.sh cargo test -p benchkit -p rustd3-figure --no-default-features
+      - run: .github/ci-run.sh cargo run -p rustd3 --example figure_png --all-features
 
   msrv:
     name: MSRV (1.97)
