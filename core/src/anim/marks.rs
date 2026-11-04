@@ -3,9 +3,9 @@
 
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crate::anim::{Animated, Timing};
+use crate::anim::{Animated, Instant, Timing};
 use crate::interpolate::Interpolate;
 use crate::join;
 
@@ -31,9 +31,9 @@ pub enum Phase {
 /// one stagger step later.
 ///
 /// ```
-/// use std::time::{Duration, Instant};
+/// use std::time::Duration;
 ///
-/// use rustd3_core::anim::{Marks, Phase, Timing};
+/// use rustd3_core::anim::{Instant, Marks, Phase, Timing};
 ///
 /// // Any base instant: values depend only on the offsets from it.
 /// let t0 = Instant::now();

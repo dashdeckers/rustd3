@@ -462,8 +462,11 @@ program's state and pass it every event with the bounds and cursor:
 They return the new transform or selection; `interact::Rescale` applies a
 zoom transform to a scale (`scale.rescale_x(&transform)`). Time comes
 only from `RedrawRequested`, so a program returns
-`Action::request_redraw()` while `tracker.wants_redraw()`. The
-`focus_context` and `update_pattern` examples are complete apps.
+`Action::request_redraw()` while `tracker.wants_redraw()`.
+`anim::Animated` and `anim::Marks` are sampled at the instants the app
+passes in, `anim::Instant` (`web_time`'s: std's on native targets, iced's
+`time::Instant`, and a working clock on wasm). The `focus_context` and
+`update_pattern` examples are complete apps.
 
 ### The `Plot` widget
 

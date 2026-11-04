@@ -1,8 +1,8 @@
 //! [`Animated`]: one value in transition.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crate::anim::Timing;
+use crate::anim::{Instant, Timing};
 use crate::ease::Ease;
 use crate::interpolate::Interpolate;
 
@@ -11,9 +11,9 @@ use crate::interpolate::Interpolate;
 /// value it has then, as an interrupted d3 transition does.
 ///
 /// ```
-/// use std::time::{Duration, Instant};
+/// use std::time::Duration;
 ///
-/// use rustd3_core::anim::{Animated, Timing};
+/// use rustd3_core::anim::{Animated, Instant, Timing};
 /// use rustd3_core::ease::Ease;
 ///
 /// // Any base instant: values depend only on the offsets from it.

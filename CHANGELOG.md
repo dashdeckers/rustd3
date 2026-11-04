@@ -41,7 +41,9 @@ The first release.
 - `series::Recording`: channels of sampled data on one clock, with an M4
   index that grows with each append, for thinning long series.
 - Keyed joins; zoom, one-dimensional brushes and drag as state machines
-  over pointer input; animation sampled from explicit instants.
+  over pointer input; animation sampled from explicit instants,
+  `anim::Instant` (`web_time`'s: `std::time::Instant` on native targets,
+  a clock that works on wasm).
 
 ### Figure
 
