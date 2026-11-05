@@ -18,10 +18,10 @@
 mod label;
 mod orient;
 
+use std::fmt;
+
 pub use label::{Anchor, Label};
 pub use orient::Orient;
-
-use std::fmt;
 
 use crate::locale::Locale;
 use crate::path::PathContext;

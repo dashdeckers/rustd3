@@ -6,15 +6,14 @@ mod iso;
 mod item;
 mod pad;
 
-use jiff::Timestamp;
-use jiff::tz::TimeZone;
-
-use crate::time::Locale;
-
 pub(crate) use directive::Directive;
 pub use iso::{iso_format, iso_parse};
 pub(crate) use item::Item;
+use jiff::Timestamp;
+use jiff::tz::TimeZone;
 pub(crate) use pad::Pad;
+
+use crate::time::Locale;
 
 /// A compiled d3 time specifier with its locale (d3's `locale.format`):
 /// every directive of d3-time-format, `%L %f %Q %s %Z` included, plus `%N`

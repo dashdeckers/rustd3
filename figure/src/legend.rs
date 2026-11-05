@@ -32,22 +32,21 @@ mod swatch;
 use std::any::Any;
 use std::fmt::Display;
 
-use rustd3_core::color::Rgb;
-use rustd3_core::scale::Ordinal;
-
-use crate::figure::Resolved;
-use crate::scale::ScaleRef;
-use crate::text::Text;
-use crate::theme::Theme;
-
 pub(crate) use block::Block;
 pub(crate) use content::Content;
 pub(crate) use entry::Entry;
 pub use guide::Guide;
 pub(crate) use guide::{Erased, Stored};
 pub use inset::Inset;
+use rustd3_core::color::Rgb;
+use rustd3_core::scale::Ordinal;
 pub use slot::Slot;
 pub use swatch::Swatch;
+
+use crate::figure::Resolved;
+use crate::scale::ScaleRef;
+use crate::text::Text;
+use crate::theme::Theme;
 
 /// A legend of an ordinal palette: one entry per key of its domain, in
 /// domain order, a swatch in the key's color beside the key's `Display`

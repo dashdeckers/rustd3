@@ -3,11 +3,8 @@
 
 use std::time::Duration;
 
-use iced_core::keyboard;
-use iced_core::mouse;
 use iced_core::time::Instant;
-use iced_core::window;
-use iced_core::{Event, Point, Rectangle};
+use iced_core::{Event, Point, Rectangle, keyboard, mouse, window};
 use rustd3_core::interact::{self, Button, Delta, Modifiers, Pointer, Zoom};
 use rustd3_iced::pointer::Tracker;
 

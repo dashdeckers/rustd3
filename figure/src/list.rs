@@ -16,21 +16,20 @@ mod run;
 
 use std::ops::Range;
 
-use kurbo::{Cap, Join, Rect, Size};
-use peniko::{Brush, Color, FontData};
-use rustd3_core::color::Rgb;
-
-use crate::text;
-
 pub use bounds::Bounds;
 pub use check::check;
 pub use clip::Clip;
 pub use command::Command;
 pub use error::Error;
+use kurbo::{Cap, Join, Rect, Size};
 pub use outline::Outlines;
 pub use paints::Paints;
 pub use parts::{Cell, Cells, cells};
+use peniko::{Brush, Color, FontData};
 pub use run::{Glyph, GlyphRun};
+use rustd3_core::color::Rgb;
+
+use crate::text;
 
 /// A drawing list: what a figure draws, in logical px, for any backend.
 ///

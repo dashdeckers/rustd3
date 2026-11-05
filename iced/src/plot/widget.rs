@@ -1,11 +1,20 @@
 //! [`Plot`], the widget: its builders and its `Widget` implementation.
 
-use iced_core::image;
 use iced_core::layout::{self, Layout};
-use iced_core::mouse;
-use iced_core::renderer;
 use iced_core::widget::{Meta, Tree, tree};
-use iced_core::{Element, Event, Length, Rectangle, Shell, Size, Widget, window};
+use iced_core::{
+    Element,
+    Event,
+    Length,
+    Rectangle,
+    Shell,
+    Size,
+    Widget,
+    image,
+    mouse,
+    renderer,
+    window,
+};
 use rustd3_figure::Figure;
 use rustd3_figure::scale::{Invert, Kind, ScaleRef};
 

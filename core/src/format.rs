@@ -35,12 +35,12 @@ mod specifier;
 
 use std::fmt;
 
-use crate::js;
-
 pub use locale::{Definition, Locale};
 pub(crate) use precision::precision_fixed_between;
 pub use precision::{precision_fixed, precision_prefix, precision_round};
 pub use specifier::{Align, InvalidFormat, Kind, Sign, Specifier, Symbol};
+
+use crate::js;
 
 /// d3's SI prefixes, yocto (10⁻²⁴) to yotta (10²⁴).
 const PREFIXES: [&str; 17] = [

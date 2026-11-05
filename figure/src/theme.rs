@@ -27,6 +27,5 @@ mod style;
 
 pub use context::Context;
 pub use domains::Domains;
-pub use style::Style;
-
 pub(crate) use settings::Theme;
+pub use style::Style;

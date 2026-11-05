@@ -14,13 +14,11 @@
 //! frame, the screenshot's fixed cost; with `--frames` it writes every
 //! n-th frame as a PNG on a thread of its own.
 
-use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc;
-use std::thread;
+use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
+use std::{fs, thread};
 
 use iced::advanced::renderer::{self, Headless as _};
 use iced::advanced::{Renderer as _, shell};

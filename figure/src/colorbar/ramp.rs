@@ -3,7 +3,15 @@
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{
-    self, Continuous, Diverging, Quantile, Quantize, Sequential, Threshold, Ticks, transform,
+    self,
+    Continuous,
+    Diverging,
+    Quantile,
+    Quantize,
+    Sequential,
+    Threshold,
+    Ticks,
+    transform,
 };
 
 /// The rows of an interpolator's strip: d3's table schemes have 256

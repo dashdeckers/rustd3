@@ -3,9 +3,8 @@
 use std::f64::consts::E;
 
 use crate::format::{Format, InvalidFormat, Locale, Specifier};
-use crate::js;
 use crate::scale::{TickFormat, Transform};
-use crate::ticks;
+use crate::{js, ticks};
 
 /// The most minor ticks the log rule returns.
 const MAX_MINOR: usize = 10_000;

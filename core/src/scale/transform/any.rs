@@ -1,9 +1,8 @@
 //! [`Any`]: a built-in transform chosen at run time.
 
 use crate::format::{InvalidFormat, Locale};
-use crate::scale::TickFormat;
-use crate::scale::Transform;
 use crate::scale::transform::{Asinh, Func, Identity, Log, Logit, Pow, Symlog};
+use crate::scale::{TickFormat, Transform};
 
 /// A built-in transform chosen at run time: the transform of
 /// [`AnyContinuous`](crate::scale::AnyContinuous), which forwards every

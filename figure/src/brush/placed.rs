@@ -1,8 +1,7 @@
 //! [`Placed`]: a brush as a panel stores it, its handles' types erased.
 
-use crate::scale::{Invert, Kind, Position, Scale, ScaleRef};
-
 use super::Dim;
+use crate::scale::{Invert, Kind, Position, Scale, ScaleRef};
 
 /// A selection's ends over `over`'s range as a scale of the target's type,
 /// from a template of that type.
@@ -146,9 +145,8 @@ mod tests {
     use rustd3_core::scale::{self, Linear, Log};
     use rustd3_core::time::{self, Time};
 
-    use crate::brush;
     use crate::scale::{Kind, Scale};
-    use crate::{Figure, Panel};
+    use crate::{Figure, Panel, brush};
 
     /// The domain of `scale`, a linear one.
     fn linear(scale: &dyn Scale) -> [f64; 2] {

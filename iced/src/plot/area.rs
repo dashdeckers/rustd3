@@ -36,9 +36,8 @@
 //! the tiles but in overlays drawn over them, rendered with nothing under
 //! them.
 
-use iced_core::Color;
-use iced_core::image;
 use iced_core::renderer::Quad;
+use iced_core::{Color, image};
 use rustd3_figure::kurbo::Rect;
 use rustd3_figure::scale::Scale;
 

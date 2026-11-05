@@ -10,8 +10,7 @@ use rustd3_figure::pdf::{self, Error, Options};
 use rustd3_figure::peniko::{Blob, Brush, Color, FontData, ImageBrush};
 use rustd3_figure::raster::Image;
 
-use crate::poppler;
-use crate::sink;
+use crate::{poppler, sink};
 
 /// `list` as PDF with the default options.
 fn written(list: &List) -> Vec<u8> {

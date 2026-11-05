@@ -2,10 +2,9 @@
 //! the unknown value, opt-in growth, its `Ticks` over numbers and its use
 //! over a categorical scheme.
 
-use rustd3_core::axis;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Ticks};
-use rustd3_core::scheme;
+use rustd3_core::{axis, scheme};
 
 #[test]
 fn keys_map_to_the_range_value_at_their_index() {

@@ -59,18 +59,17 @@ mod strip;
 
 use std::rc::Rc;
 
+pub(crate) use block::{Block, Content};
+pub use extend::Extend;
+pub use ramp::{Ramp, Samples};
 use rustd3_core::scale::Ticks;
+pub(crate) use side::Side;
+pub(crate) use strip::Strip;
 
 use crate::figure::Resolved;
 use crate::legend::{Erased, Guide, Stored};
 use crate::scale::{Paint, ScaleRef};
 use crate::text::Text;
-
-pub(crate) use block::{Block, Content};
-pub use extend::Extend;
-pub use ramp::{Ramp, Samples};
-pub(crate) use side::Side;
-pub(crate) use strip::Strip;
 
 /// A label for each tick value, in place of the scale's.
 type Format<'a> = Rc<dyn Fn(f64) -> String + 'a>;

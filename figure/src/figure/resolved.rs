@@ -8,8 +8,6 @@ use kurbo::Point;
 use rustd3_core::axis::Orient;
 use rustd3_core::locale::Locale;
 
-use crate::brush;
-use crate::figure;
 use crate::figure::fits::Reported;
 use crate::hatch::Hatch;
 use crate::layout::{self, Laid, Layout, Plan};
@@ -18,7 +16,7 @@ use crate::panel::Panel;
 use crate::scale::{Kind, Scale, ScaleRef};
 use crate::target::Target;
 use crate::text::Key;
-use crate::thin;
+use crate::{brush, figure, thin};
 
 /// A figure resolved for one size and target: every scale with its domain
 /// fitted or held, every panel's plot area, and per panel its axes' tick

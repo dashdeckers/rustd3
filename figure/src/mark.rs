@@ -46,8 +46,21 @@ mod text;
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 
+pub use area::{Area, Ribbon, area, ribbon, ribbon_series};
+pub use bar::{BarX, BarY, bar_x, bar_x_spans, bar_y, bar_y_spans};
+pub(crate) use color::Alpha;
+pub use density::{DensityX, DensityY, density_x, density_y};
+pub use dots::{Dots, dots};
+pub use error::Error;
+pub use histogram::{Binned, Bins, Histogram, histogram};
+pub use image::{Grid, Image, image};
 use kurbo::{BezPath, Cap, Join, Point};
+pub use line::{Line, line};
+pub use rect::{Rect, rect};
+pub use rule::{Rule, rule_x, rule_y};
 use rustd3_core::series::{Points, m4};
+pub use snap::Snap;
+pub use text::{Note, note};
 
 use crate::check::{self, Issue};
 use crate::figure::{Fits, Resolved};
@@ -59,20 +72,6 @@ use crate::scale::{Indexed, Kind, Position, ScaleRef};
 use crate::text::{Key, Shaped};
 use crate::theme::Theme;
 use crate::thin::{self, Thin};
-
-pub use area::{Area, Ribbon, area, ribbon, ribbon_series};
-pub use bar::{BarX, BarY, bar_x, bar_x_spans, bar_y, bar_y_spans};
-pub(crate) use color::Alpha;
-pub use density::{DensityX, DensityY, density_x, density_y};
-pub use dots::{Dots, dots};
-pub use error::Error;
-pub use histogram::{Binned, Bins, Histogram, histogram};
-pub use image::{Grid, Image, image};
-pub use line::{Line, line};
-pub use rect::{Rect, rect};
-pub use rule::{Rule, rule_x, rule_y};
-pub use snap::Snap;
-pub use text::{Note, note};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data
 /// may borrow for `'a` (a recording's

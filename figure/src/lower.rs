@@ -22,10 +22,9 @@ mod sweep;
 mod warning;
 
 use kurbo::Affine;
+pub use warning::Warning;
 
 use crate::list::{self, Command, List, Outlines, Part};
-
-pub use warning::Warning;
 
 /// What a backend draws natively.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

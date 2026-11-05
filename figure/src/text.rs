@@ -25,12 +25,11 @@ mod span;
 mod style;
 mod world;
 
-use rustd3_core::color::Rgb;
-
 pub use cache::{Cache, Stats};
 pub use error::Error;
 pub use fonts::Fonts;
 pub use key::Key;
+use rustd3_core::color::Rgb;
 pub use shaped::Shaped;
 pub use span::{Span, span};
 pub use style::Style;

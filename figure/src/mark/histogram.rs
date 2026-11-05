@@ -1,7 +1,8 @@
 //! [`Histogram`]: bars counting values; [`Binned`], what a histogram
 //! counts on a scale, and [`Bins`], how it bins numbers.
 
-use rustd3_core::array::{self, bin::Thresholds};
+use rustd3_core::array::bin::Thresholds;
+use rustd3_core::array::{self};
 use rustd3_core::scale::{self, Band, Continuous, Point};
 
 use crate::check::Issue;

@@ -18,6 +18,8 @@ mod machine;
 
 use iced_core::renderer::{self, Quad};
 use iced_core::{Color, Point, Rectangle, Size};
+pub(crate) use listener::Listener;
+use machine::Machine;
 use rustd3_core::color::Rgb;
 use rustd3_core::interact::{BrushEvent, Pointer};
 use rustd3_figure::brush::{Dim, Placed};
@@ -27,9 +29,6 @@ use rustd3_figure::scale::Scale;
 
 use crate::plot::domains::Key;
 use crate::plot::overlay;
-
-pub(crate) use listener::Listener;
-use machine::Machine;
 
 /// How close to over's whole range, px, a target's window counts as all of
 /// it.

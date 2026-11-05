@@ -2,12 +2,11 @@
 
 use kurbo::{Point, Rect, Size};
 
-use crate::colorbar;
 use crate::legend::keys;
 use crate::list::List;
 use crate::mark::Snap;
-use crate::text;
 use crate::theme::Theme;
+use crate::{colorbar, text};
 
 /// A guide laid out, relative to its top-left corner: a legend's keys or a
 /// colorbar.

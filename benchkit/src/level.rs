@@ -18,14 +18,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use crate::archive;
 use crate::display::Display;
 use crate::experiment::Experiment;
-use crate::figure;
 use crate::privacy::{self, Identity};
-use crate::reference;
 use crate::results::{self, Results};
-use crate::system;
+use crate::{archive, figure, reference, system};
 
 /// How much a level runs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -370,10 +367,9 @@ mod tests {
     use std::fs;
 
     use super::save;
-    use crate::archive;
     use crate::privacy::Identity;
     use crate::results::tests::{display, results};
-    use crate::system;
+    use crate::{archive, system};
 
     #[test]
     fn an_archive_holds_no_home_and_no_host_name() {

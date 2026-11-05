@@ -6,10 +6,8 @@ use std::sync::Arc;
 
 use crate::format::{InvalidFormat, Locale};
 use crate::interpolate::Interpolate;
-use crate::js;
-use crate::locale;
 use crate::scale::{Pad, TickFormat, Ticks, Transform, transform};
-use crate::ticks;
+use crate::{js, locale, ticks};
 
 /// d3's scaleSequential: the domain's two ends mapped to 0 and 1 through a
 /// transform, then an interpolator of `t`, such as a color scheme. The

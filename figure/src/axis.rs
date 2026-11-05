@@ -46,6 +46,10 @@ mod placed;
 use std::any::Any;
 use std::rc::Rc;
 
+pub(crate) use draw::Draw;
+pub(crate) use labels::Labels;
+use offset::Notation;
+pub(crate) use placed::Placed;
 use rustd3_core::axis::Orient;
 use rustd3_core::color::Rgb;
 use rustd3_core::locale::Locale;
@@ -56,11 +60,6 @@ use crate::figure::Resolved;
 use crate::layout::collide;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::text::Text;
-
-pub(crate) use draw::Draw;
-pub(crate) use labels::Labels;
-use offset::Notation;
-pub(crate) use placed::Placed;
 
 /// A label for each tick value, in place of the scale's.
 type Format<'a, D> = Rc<dyn Fn(&D) -> String + 'a>;

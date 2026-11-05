@@ -269,15 +269,15 @@ pub(crate) mod widget;
 mod worker;
 
 // The module docs name the widget and its figure.
+pub use caching::Caching;
+pub use hover::Hover;
+pub use probe::channel::Probe;
+pub use render::Render;
 #[cfg(doc)]
 use rustd3_figure::Figure;
 
 #[cfg(doc)]
 use crate::Plot;
-pub use caching::Caching;
-pub use hover::Hover;
-pub use probe::channel::Probe;
-pub use render::Render;
 
 /// RGBA bytes at which a cell is split into bands: wgpu uploads images
 /// under 2 MiB inside the frame (`wgpu/src/image/cache.rs:223-246`)

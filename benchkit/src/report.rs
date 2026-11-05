@@ -9,12 +9,11 @@ use std::path::Path;
 
 use crate::metrics::{Half, Metrics, Part};
 use crate::plan::Plan;
-use crate::record;
-use crate::results;
 use crate::rule::{self, Budget, Check, Outcome, Profile, Reading};
 use crate::scenario::{self, Scenario};
 use crate::stats::{Interval, Verdict, percentile};
 use crate::system::{Meta, Planned};
+use crate::{record, results};
 
 /// What the smoke plan is, said before its verdicts.
 const SMOKE: &str = "one run per cell, a check of the windowed path only (windows open, the \

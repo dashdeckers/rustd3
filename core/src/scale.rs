@@ -50,11 +50,10 @@ mod tick_rule;
 mod ticks;
 pub mod transform;
 
-pub(crate) use continuous::polymap;
-
 pub use any::AnyContinuous;
 pub use band::{Band, band};
 pub use continuous::Continuous;
+pub(crate) use continuous::polymap;
 pub use diverging::{Diverging, diverging};
 pub use identity::{Identity, identity};
 pub use mapping::Transform;

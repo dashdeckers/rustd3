@@ -1,12 +1,10 @@
 //! Our SVG rendered back by resvg against vello_cpu's render of the list,
 //! and the example figures' SVG files against their PNG files.
 
-use rustd3_figure::lower;
-use rustd3_figure::raster::Image;
-use rustd3_figure::svg;
-
 #[cfg(all(feature = "png", feature = "fonts"))]
 use rustd3_figure::kurbo::Size;
+use rustd3_figure::raster::Image;
+use rustd3_figure::{lower, svg};
 
 use crate::raster::vello::{diff, whole};
 use crate::sink;

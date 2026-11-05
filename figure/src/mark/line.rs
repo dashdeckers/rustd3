@@ -7,14 +7,13 @@ use rustd3_core::shape::{self, Curve};
 
 use crate::check::Issue;
 use crate::figure::Fits;
-use crate::hit;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List};
 use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Mark, across, at, dashes, guard, positive, stroke, within};
-use crate::path;
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 use crate::thin::{self, Thin};
+use crate::{hit, path};
 
 /// A line through points in their order: one `Stroke` command, broken
 /// where a point cannot be placed. A recording channel on an x scale with

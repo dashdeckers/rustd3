@@ -41,10 +41,10 @@
 mod dim;
 mod placed;
 
-use crate::scale::{Invert, Kind, Position, ScaleRef};
-
 pub use dim::Dim;
 pub use placed::Placed;
+
+use crate::scale::{Invert, Kind, Position, ScaleRef};
 
 /// A brush over handle `over` (type `A`) whose selection sets the domain
 /// of a handle of type `B`; `B` is `A` until [`sets`](Brush::sets) names a

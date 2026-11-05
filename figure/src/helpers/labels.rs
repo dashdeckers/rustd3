@@ -30,15 +30,14 @@
 mod bars;
 mod pie;
 
+pub use bars::{Bars, bars};
 use kurbo::Point;
+pub use pie::{Pie, pie};
 
 use crate::list::List;
 use crate::mark::Ctx;
 use crate::text::{Anchor, Key, Text, anchor};
 use crate::theme::Theme;
-
-pub use bars::{Bars, bars};
-pub use pie::{Pie, pie};
 
 /// px per pt: the CSS ratio.
 const PX_PER_PT: f64 = 4.0 / 3.0;

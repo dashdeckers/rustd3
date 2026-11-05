@@ -15,12 +15,11 @@ use rustd3_figure::scale::{Kind, Scale, ScaleRef};
 use rustd3_figure::{Figure, Held, Target, axis};
 
 use super::{Pipeline, State};
-use crate::plot::Probe;
 use crate::plot::domains::Key;
 use crate::plot::fixture::Recorder;
 use crate::plot::listener::Listener;
 use crate::plot::probe::{self, Sample};
-use crate::plot::{Caching, Render};
+use crate::plot::{Caching, Probe, Render};
 
 /// Dots on y (handle 0, linear [0, 10]) and x (handle 1, linear [0, 100]
 /// or log [1, 100]), with left and bottom axes; the panel zooms both.

@@ -1,20 +1,38 @@
 //! The list's types: `check`'s errors, the stroke defaults, `Bez`,
 //! bounds, outlines and the dump.
 
-use crate::sink;
-
 use std::f64::consts::{FRAC_PI_2, TAU};
 use std::sync::Arc;
 
 use rustd3_core::path::PathContext;
 use rustd3_figure::kurbo::{Affine, BezPath, Cap, Join, PathEl, Point, Rect, Shape, Size};
 use rustd3_figure::list::{
-    self, Bounds, Clip, Command, Error, Glyph, GlyphRun, List, Outlines, Paints, Part, part,
+    self,
+    Bounds,
+    Clip,
+    Command,
+    Error,
+    Glyph,
+    GlyphRun,
+    List,
+    Outlines,
+    Paints,
+    Part,
+    part,
 };
 use rustd3_figure::path;
 use rustd3_figure::peniko::{
-    Blob, Brush, Color, FontData, Gradient, ImageAlphaType, ImageData, ImageFormat,
+    Blob,
+    Brush,
+    Color,
+    FontData,
+    Gradient,
+    ImageAlphaType,
+    ImageData,
+    ImageFormat,
 };
+
+use crate::sink;
 
 fn red() -> Brush {
     Brush::Solid(Color::from_rgb8(255, 0, 0))

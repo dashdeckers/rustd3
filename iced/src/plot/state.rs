@@ -13,7 +13,6 @@ use rustd3_figure::list::{self, Command, List, Outlines};
 use rustd3_figure::scale::Scale;
 use rustd3_figure::{Figure, Resolved, Target, Theme, hit, kurbo, raster, thin};
 
-use crate::plot::Probe;
 use crate::plot::area::{Area, Moved};
 use crate::plot::brush::{self, Brush};
 use crate::plot::budget::Budget;
@@ -32,7 +31,7 @@ use crate::plot::region::{self, Along, Region};
 use crate::plot::slot::{self, Band, Slot};
 use crate::plot::tile::{self, Tile};
 use crate::plot::worker::Pool;
-use crate::plot::{Caching, Render, handle};
+use crate::plot::{Caching, Probe, Render, handle};
 use crate::pointer::Tracker;
 
 /// The widget's tree state: the figure's cache, the rasterizer, and the
@@ -2091,7 +2090,6 @@ mod tests {
     use rustd3_figure::{Figure, Held, Target, kurbo};
 
     use super::{Pipeline, State};
-    use crate::plot::Probe;
     use crate::plot::area::Area;
     use crate::plot::budget::{Budget, Kind};
     use crate::plot::merge::Run;
@@ -2101,7 +2099,7 @@ mod tests {
     use crate::plot::tile::{self, Tile};
     #[cfg(target_os = "linux")]
     use crate::plot::worker::Pool;
-    use crate::plot::{Caching, Render, fixture};
+    use crate::plot::{Caching, Probe, Render, fixture};
 
     /// The factors layout, snapping and placement are checked at.
     const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];

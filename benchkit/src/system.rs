@@ -7,13 +7,12 @@
 //! where they exist.
 
 use std::fmt::Write as _;
-use std::fs;
 use std::io::{self, Read};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
-use std::thread;
 use std::time::{Duration, Instant};
+use std::{fs, thread};
 
 use serde::{Deserialize, Serialize};
 

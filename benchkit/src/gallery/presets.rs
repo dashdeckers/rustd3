@@ -6,14 +6,13 @@
 
 use std::f64::consts::PI;
 
-use rustd3_core::scale;
-use rustd3_core::scheme;
 use rustd3_core::series::{Clock, Recording};
-use rustd3_figure::Figure;
-use rustd3_figure::helpers::chart::{self, bar::Mode};
+use rustd3_core::{scale, scheme};
+use rustd3_figure::helpers::chart::bar::Mode;
+use rustd3_figure::helpers::chart::{self};
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::mark::Grid;
-use rustd3_figure::text;
+use rustd3_figure::{Figure, text};
 
 /// The presets' size in logical px: matplotlib's 6.4 × 4.8 in at 100 dpi.
 pub const SIZE: Size = Size::new(640.0, 480.0);

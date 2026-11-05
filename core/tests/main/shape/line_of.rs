@@ -1,8 +1,7 @@
 //! `LineOf`, the accessor line, against the iterator-first line it wraps.
 
-use rustd3_core::path;
-use rustd3_core::scale;
 use rustd3_core::shape::{self, Curve};
+use rustd3_core::{path, scale};
 
 /// Readings: a time and a value that may be missing.
 struct Reading {

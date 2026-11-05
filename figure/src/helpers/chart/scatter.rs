@@ -3,9 +3,8 @@
 use rustd3_core::scale;
 use rustd3_core::series::{Data, Points};
 
-use crate::Figure;
 use crate::helpers::chart::setup::Setup;
-use crate::mark;
+use crate::{Figure, mark};
 
 /// A scatter plot: dots on fitted linear x and y scales (see [`scatter`]).
 pub struct Scatter<'a> {

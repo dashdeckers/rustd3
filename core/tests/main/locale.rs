@@ -209,7 +209,8 @@ fn the_constants_pair_the_number_and_time_tables_of_their_language() {
 fn a_runtime_time_table_labels_time_ticks_through_the_figure_locale()
 -> Result<(), rustd3_core::jiff::Error> {
     use rustd3_core::format;
-    use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+    use rustd3_core::jiff::Timestamp;
+    use rustd3_core::jiff::tz::TimeZone;
     use rustd3_core::scale::Ticks;
     use rustd3_core::time::{self, Definition, Ladder};
 

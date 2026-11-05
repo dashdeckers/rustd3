@@ -2,9 +2,8 @@
 //! Gaussian clusters, a dots mark per cluster in its palette color, zoomed
 //! on both handles.
 
-use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_core::series;
+use rustd3_core::{scale, series};
 use rustd3_figure::mark::dots;
 use rustd3_figure::{Figure, axis};
 

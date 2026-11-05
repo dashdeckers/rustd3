@@ -2,10 +2,9 @@
 //! channels.
 
 use rustd3_core::color::Rgb;
-use rustd3_core::format;
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Band, Linear};
-use rustd3_core::scheme;
+use rustd3_core::{format, scheme};
 use rustd3_figure::helpers::{labels, legend};
 use rustd3_figure::kurbo::{Point, Rect, Shape};
 use rustd3_figure::legend::Slot;

@@ -1,11 +1,8 @@
 //! [`Tracker`]: iced events in, core's [`Pointer`] input out, for the
 //! zoom, brush and drag behaviors of `rustd3_core::interact`.
 
-use iced_core::keyboard;
-use iced_core::mouse;
 use iced_core::time::Instant;
-use iced_core::window;
-use iced_core::{Event, Point, Rectangle};
+use iced_core::{Event, Point, Rectangle, keyboard, mouse, window};
 use rustd3_core::interact::{Button, Delta, Modifiers, Pointer};
 
 /// iced's double click: the same button again within this many

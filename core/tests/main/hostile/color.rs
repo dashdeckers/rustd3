@@ -2,7 +2,8 @@
 //! outside [0, 1] and at NaN, schemes at any t, and d3-array's statistics,
 //! bins and bisection over hostile values. Nothing panics.
 
-use rustd3_core::array::{self, bin::Thresholds};
+use rustd3_core::array::bin::Thresholds;
+use rustd3_core::array::{self};
 use rustd3_core::color::{Cubehelix, Hcl, Hsl, Lab, Rgb};
 use rustd3_core::ease::{Ease, Mode};
 use rustd3_core::{interpolate, scheme};

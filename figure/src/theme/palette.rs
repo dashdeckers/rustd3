@@ -4,7 +4,6 @@
 //! `color_palette(name)`.
 
 use rustd3_core::color::Rgb;
-
 pub use rustd3_core::scheme::{CATEGORY10, COLORBLIND, DEEP, OBSERVABLE10, OKABE_ITO};
 
 /// seaborn's `"muted"` palette.

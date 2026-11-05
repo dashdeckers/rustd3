@@ -75,13 +75,25 @@
 //! `GUIDE.md` in the repository, explains the concepts and their types.
 
 pub use rustd3_core::{
-    anim, array, axis, color, ease, format, interact, interpolate, join, locale, path, scale,
-    scheme, series, shape, ticks, time,
+    anim,
+    array,
+    axis,
+    color,
+    ease,
+    fmt,
+    format,
+    interact,
+    interpolate,
+    jiff,
+    join,
+    locale,
+    path,
+    scale,
+    scheme,
+    series,
+    shape,
+    ticks,
+    time,
 };
-
-pub use rustd3_core::jiff;
-
-pub use rustd3_core::fmt;
-
 #[cfg(feature = "figure")]
 pub use rustd3_figure as figure;

@@ -1,10 +1,8 @@
 //! [`Record`]: the raw JSONL lines of one run, one record per line, every
 //! time in ms since the process's first line.
 
-use std::fmt;
-use std::fs;
-use std::io;
 use std::path::Path;
+use std::{fmt, fs, io};
 
 use serde::{Deserialize, Serialize};
 

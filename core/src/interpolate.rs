@@ -23,21 +23,28 @@ mod hue;
 mod piecewise;
 mod quantize;
 
-pub(crate) use color::basis_at;
-
 pub use basis::basis;
+pub(crate) use color::basis_at;
 pub use color::{
-    cubehelix, cubehelix_long, hcl, hcl_long, hsl, hsl_long, lab, rgb, rgb_basis, rgb_gamma,
+    cubehelix,
+    cubehelix_long,
+    hcl,
+    hcl_long,
+    hsl,
+    hsl_long,
+    lab,
+    rgb,
+    rgb_basis,
+    rgb_gamma,
 };
+use gamma::Channel;
 pub use hue::hue;
+use jiff::Timestamp;
 pub use piecewise::piecewise;
 pub use quantize::quantize;
 
-use jiff::Timestamp;
-
 use crate::color::{Cubehelix, Hcl, Hsl, Lab};
 use crate::js;
-use gamma::Channel;
 
 /// A value that blends with another of its type (d3's interpolate, typed).
 pub trait Interpolate: Clone {

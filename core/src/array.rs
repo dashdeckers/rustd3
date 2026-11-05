@@ -35,8 +35,6 @@ mod range;
 mod sum;
 mod variance;
 
-use quickselect::quickselect;
-
 pub use bisect::{bisect_left, bisect_right};
 pub use count::count;
 pub use deviation::deviation;
@@ -47,6 +45,7 @@ pub use mean::mean;
 pub use median::median;
 pub use min::min;
 pub use quantile::{quantile, quantile_sorted};
+use quickselect::quickselect;
 pub use range::range;
 pub use sum::sum;
 pub use variance::variance;

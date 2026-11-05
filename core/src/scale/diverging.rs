@@ -6,10 +6,8 @@ use std::sync::Arc;
 
 use crate::format::{InvalidFormat, Locale};
 use crate::interpolate::{self, Interpolate};
-use crate::js;
-use crate::locale;
 use crate::scale::{Pad, TickFormat, Ticks, Transform, transform};
-use crate::ticks;
+use crate::{js, locale, ticks};
 
 /// d3's scaleDiverging: [`Sequential`](crate::scale::Sequential) with a
 /// middle stop. The domain's stops map to 0, 0.5 and 1 through a

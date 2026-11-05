@@ -27,14 +27,13 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use crate::level::Level;
-use crate::results;
-use crate::stats::percentile;
-use crate::system;
-
 pub use report::{csv, find, markdown, ms, summary};
 pub use stage::Stage;
 pub use subject::Subject;
+
+use crate::level::Level;
+use crate::stats::percentile;
+use crate::{results, system};
 
 /// The profile's name: its directory, its log and its entry in
 /// `results.json`.

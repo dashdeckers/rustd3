@@ -11,13 +11,19 @@ use std::sync::Arc;
 use kurbo::{Affine, BezPath, Point, Rect, Shape};
 use peniko::{Brush, ImageBrush, ImageData, ImageFormat, ImageQuality, ImageSampler};
 use vello_cpu::{
-    ImageSource, Level, PaintType, Pixmap, RasterizerSettings, RenderContext, Resources, TargetInit,
+    ImageSource,
+    Level,
+    PaintType,
+    Pixmap,
+    RasterizerSettings,
+    RenderContext,
+    Resources,
+    TargetInit,
 };
 
 use crate::list::{self, Bounds, Clip, Command, GlyphRun, List, Paints};
-use crate::raster::cull;
 use crate::raster::splat::{Splat, Stamps};
-use crate::raster::{Error, MAX_IMAGE};
+use crate::raster::{Error, MAX_IMAGE, cull};
 
 /// An image's identity: its blob, and the layout read from it.
 type Key = (u64, u32, u32, u8);

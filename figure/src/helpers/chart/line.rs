@@ -3,10 +3,9 @@
 use rustd3_core::scale::{self, AnyContinuous};
 use rustd3_core::series::{Data, Points};
 
-use crate::Figure;
 use crate::helpers::chart::setup::{self, Setup};
 use crate::legend::{self, Slot, Swatch};
-use crate::mark;
+use crate::{Figure, mark};
 
 /// A line chart: one line per series on fitted x and y scales (see
 /// [`line()`]).

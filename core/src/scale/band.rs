@@ -3,10 +3,9 @@
 
 use std::fmt;
 
-use crate::js;
 use crate::locale::Locale;
 use crate::scale::{self, Ticks};
-use crate::ticks;
+use crate::{js, ticks};
 
 /// d3.scaleBand: each key of the domain maps to the start of its band, the
 /// bands spaced by `step` and `bandwidth` wide. Lookups are a linear search

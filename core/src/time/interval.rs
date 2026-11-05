@@ -16,10 +16,9 @@ mod range;
 
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
+pub use range::Range;
 
 use crate::time::{Interval, at};
-
-pub use range::Range;
 
 impl Interval {
     /// The latest boundary at or before `t` (d3's `interval.floor`).

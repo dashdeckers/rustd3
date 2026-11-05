@@ -5,14 +5,13 @@ mod image;
 
 use std::sync::Arc;
 
-use krilla::geom;
 use krilla::metadata::Metadata;
 use krilla::num::NormalizedF32;
 use krilla::page::PageSettings;
 use krilla::paint::{self, FillRule};
 use krilla::surface::Surface;
 use krilla::text::{Font, GlyphId, KrillaGlyph};
-use krilla::{Data, Document};
+use krilla::{Data, Document, geom};
 use kurbo::{Affine, BezPath, Cap, Join, PathEl, Point, Rect, Shape};
 use peniko::color::Srgb;
 use peniko::{Brush, Color, Extend, Gradient, GradientKind, ImageData};

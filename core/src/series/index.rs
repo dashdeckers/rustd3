@@ -1,9 +1,8 @@
 //! One channel's exact M4 index: the minimum and maximum of every complete
 //! block of [`BLOCK`] samples and of every power-of-two group of blocks.
 
-use std::fmt;
-use std::mem;
 use std::ops::Range;
+use std::{fmt, mem};
 
 use crate::series::BLOCK;
 use crate::series::chunks::Chunks;

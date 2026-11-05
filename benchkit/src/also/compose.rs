@@ -20,12 +20,10 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use iced::advanced::graphics;
 use iced::advanced::image::{self, FilterMethod, Handle};
-use iced::advanced::layout;
 use iced::advanced::renderer::{self as iced_renderer, Headless as _};
 use iced::advanced::widget::{Meta, Tree, Widget};
-use iced::advanced::{Layout, Renderer as _, shell};
+use iced::advanced::{Layout, Renderer as _, graphics, layout, shell};
 use iced::{Event, Length, Rectangle, mouse, window};
 use iced_runtime::user_interface::{self, UserInterface};
 use rustd3_figure::cache::Cache;

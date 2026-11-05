@@ -11,9 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::display::Display;
 use crate::experiment::{self, Experiment};
-use crate::figure;
 use crate::reference::Reference;
-use crate::system;
+use crate::{figure, system};
 
 /// The format `results.json` is written in.
 pub const FORMAT: u32 = 2;

@@ -17,8 +17,7 @@
 use iced_core::image::{self, FilterMethod};
 use iced_core::{Color, Rectangle};
 
-use crate::plot::slot;
-use crate::plot::tile;
+use crate::plot::{slot, tile};
 
 /// A plot area's pixels, laid image by image in drawing order.
 pub(crate) struct Mosaic {

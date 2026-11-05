@@ -10,7 +10,6 @@ use std::time::{Duration, Instant};
 
 use rustd3_iced::plot::cost;
 
-use crate::Example;
 use crate::app::{App, Config};
 use crate::cli::widget::{self, Child, Options};
 use crate::level::{self, Request};
@@ -20,7 +19,7 @@ use crate::scenario::{Anchors, Scenario};
 use crate::sibling::Siblings;
 use crate::system::{self, Meta, Planned};
 use crate::workload::Workload;
-use crate::{also, app, archive, headless, load, raster, recorder, report, repro, rule};
+use crate::{Example, also, app, archive, headless, load, raster, recorder, report, repro, rule};
 
 /// Runs a command of `example`; `args` are the process's, `epoch` its
 /// start.

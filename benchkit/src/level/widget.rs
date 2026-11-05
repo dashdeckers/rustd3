@@ -17,29 +17,23 @@
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt::Write as _;
-use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{fs, thread};
 
 use iced::advanced::renderer::{self, Headless as _};
 
-use crate::also;
 use crate::cli::widget::Backend;
 use crate::display::{self, Display};
 use crate::experiment::Experiment;
-use crate::figure;
 use crate::level::{Level, Outline, Request, Widget};
 use crate::plan::{self, Plan, Selection};
-use crate::report;
-use crate::results;
-use crate::rule;
 use crate::scenario::Scenario;
 use crate::sibling::Siblings;
-use crate::system;
 use crate::workload::Workload;
+use crate::{also, figure, report, results, rule, system};
 
 /// The widget's part of a level, which `Request::run` runs.
 #[derive(Debug)]

@@ -9,7 +9,17 @@ use rustd3_figure::list::{self, Command, GlyphRun, List};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::svg;
 use rustd3_figure::text::{
-    self, Anchor, Cache, Error, Fonts, Key, Shaped, Style, Text, anchor, span,
+    self,
+    Anchor,
+    Cache,
+    Error,
+    Fonts,
+    Key,
+    Shaped,
+    Style,
+    Text,
+    anchor,
+    span,
 };
 
 use crate::sink::DEJAVU;

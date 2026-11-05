@@ -3,9 +3,8 @@
 
 use rustd3_core::scale::{self, Linear};
 
-use crate::axis;
 use crate::scale::ScaleRef;
-use crate::{Figure, Panel};
+use crate::{Figure, Panel, axis};
 
 /// A figure with one panel per cell of a grid and its handles: one fitted
 /// linear x per column and one fitted linear y per row. Other scale kinds

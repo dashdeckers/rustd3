@@ -4,13 +4,12 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
 use crate::axis::{self, Axis};
-use crate::brush;
-use crate::figure;
 use crate::layout::Cell;
 use crate::legend::{self, Inset};
 use crate::mark::Mark;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::Text;
+use crate::{brush, figure};
 
 /// One plot area in a grid cell: its marks, axes and inset legends, which
 /// refer to the figure's scales only through handles, its title, its

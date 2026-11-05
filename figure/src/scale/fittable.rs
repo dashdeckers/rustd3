@@ -2,7 +2,15 @@
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{
-    self, Band, Continuous, Diverging, Ordinal, Point, Quantize, Sequential, Threshold,
+    self,
+    Band,
+    Continuous,
+    Diverging,
+    Ordinal,
+    Point,
+    Quantize,
+    Sequential,
+    Threshold,
 };
 use rustd3_core::time::Time;
 

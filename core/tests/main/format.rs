@@ -6,7 +6,13 @@
 use std::borrow::Cow;
 
 use rustd3_core::format::{
-    self, Definition, Locale, Specifier, literal, precision_fixed, precision_prefix,
+    self,
+    Definition,
+    Locale,
+    Specifier,
+    literal,
+    precision_fixed,
+    precision_prefix,
     precision_round,
 };
 use serde_json::Value;

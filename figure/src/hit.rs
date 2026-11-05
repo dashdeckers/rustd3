@@ -29,14 +29,13 @@ mod sink;
 
 use std::cell::RefCell;
 
+pub(crate) use grid::Grid;
 use kurbo::Point;
+pub use sink::Sink;
 
 use crate::cache::Cache;
 use crate::figure::{Figure, Resolved};
 use crate::mark::Ctx;
-
-pub(crate) use grid::Grid;
-pub use sink::Sink;
 
 /// A point a mark drew, found near a position. Plain data.
 #[derive(Debug, Clone, Copy, PartialEq)]

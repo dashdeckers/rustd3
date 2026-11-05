@@ -1,9 +1,8 @@
 //! [`Overlay`]: the crosshair and the nearest-point highlight, drawn as
 //! quads over the cells and clipped to the hovered panel's plot area.
 
-use iced_core::border;
 use iced_core::renderer::{self, Quad};
-use iced_core::{Color, Point, Rectangle, Size};
+use iced_core::{Color, Point, Rectangle, Size, border};
 use rustd3_core::color::Rgb;
 
 /// The highlight ring's radius, logical px.

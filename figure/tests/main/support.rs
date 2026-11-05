@@ -1,8 +1,7 @@
 //! What figure tests share: [`figures_equal`].
 
 use rustd3_figure::kurbo::Size;
-use rustd3_figure::list;
-use rustd3_figure::{Figure, Held, Target};
+use rustd3_figure::{Figure, Held, Target, list};
 
 use crate::figure::cache;
 #[cfg(feature = "raster")]

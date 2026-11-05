@@ -8,11 +8,28 @@ use std::sync::Arc;
 use rustd3_core::path::PathContext;
 use rustd3_figure::kurbo::{Affine, BezPath, Point, Rect, Shape, Size};
 use rustd3_figure::list::{
-    self, Bounds, Clip, Command, Glyph, GlyphRun, List, Outlines, Paints, Part, part,
+    self,
+    Bounds,
+    Clip,
+    Command,
+    Glyph,
+    GlyphRun,
+    List,
+    Outlines,
+    Paints,
+    Part,
+    part,
 };
 use rustd3_figure::path;
 use rustd3_figure::peniko::{
-    Blob, Brush, Color, FontData, Gradient, ImageAlphaType, ImageData, ImageFormat,
+    Blob,
+    Brush,
+    Color,
+    FontData,
+    Gradient,
+    ImageAlphaType,
+    ImageData,
+    ImageFormat,
 };
 
 /// DejaVu Sans, read from the fonts crate's file so that the tests need no

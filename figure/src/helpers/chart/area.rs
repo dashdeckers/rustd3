@@ -2,8 +2,7 @@
 
 use std::marker::PhantomData;
 
-use rustd3_core::scale;
-use rustd3_core::shape;
+use rustd3_core::{scale, shape};
 
 use crate::Figure;
 use crate::helpers::chart::setup::{self, Setup};

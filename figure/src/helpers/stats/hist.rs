@@ -4,12 +4,10 @@
 pub(super) mod chart;
 mod stacked;
 
-use rustd3_core::array;
-use rustd3_core::scale;
+use rustd3_core::{array, scale};
+pub use stacked::{Stacked, stacked};
 
 use crate::mark::{self, Binned};
-
-pub use stacked::{Stacked, stacked};
 
 /// The most bins `Auto` makes, as `Count` (the histogram mark's cap).
 const COUNT: usize = 10_000;

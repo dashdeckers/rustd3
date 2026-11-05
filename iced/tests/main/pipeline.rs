@@ -16,13 +16,11 @@ use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::cache::Cache;
 use rustd3_figure::legend::{self, Slot};
-use rustd3_figure::list;
 use rustd3_figure::mark::dots;
-use rustd3_figure::{Figure, Held, Target, Theme, axis, kurbo};
+use rustd3_figure::{Figure, Held, Target, Theme, axis, kurbo, list};
 use rustd3_iced::Plot;
-use rustd3_iced::plot::cost;
 use rustd3_iced::plot::probe::{self, Sample};
-use rustd3_iced::plot::{Probe, Render};
+use rustd3_iced::plot::{Probe, Render, cost};
 use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};

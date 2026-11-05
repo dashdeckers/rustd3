@@ -39,8 +39,29 @@ pub use inferno::inferno;
 pub use magma::magma;
 pub use plasma::plasma;
 pub use sequential::{
-    blues, bu_gn, bu_pu, cividis, cool, cubehelix_default, gn_bu, greens, greys, or_rd, oranges,
-    pu_bu, pu_bu_gn, pu_rd, purples, rd_pu, reds, turbo, warm, yl_gn, yl_gn_bu, yl_or_br, yl_or_rd,
+    blues,
+    bu_gn,
+    bu_pu,
+    cividis,
+    cool,
+    cubehelix_default,
+    gn_bu,
+    greens,
+    greys,
+    or_rd,
+    oranges,
+    pu_bu,
+    pu_bu_gn,
+    pu_rd,
+    purples,
+    rd_pu,
+    reds,
+    turbo,
+    warm,
+    yl_gn,
+    yl_gn_bu,
+    yl_or_br,
+    yl_or_rd,
 };
 pub use viridis::viridis;
 

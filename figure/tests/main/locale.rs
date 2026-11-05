@@ -3,7 +3,8 @@
 //! keeps its source text). Domains come from `fig.scale` and tick counts
 //! from `.ticks(n)`, so layout cannot change the tick set.
 
-use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+use rustd3_core::jiff::Timestamp;
+use rustd3_core::jiff::tz::TimeZone;
 use rustd3_core::locale::Locale;
 use rustd3_core::{scale, time};
 use rustd3_figure::kurbo::{Point, Size};

@@ -39,12 +39,10 @@ mod locales;
 mod scale;
 mod ticks;
 
-use jiff::Timestamp;
-use jiff::civil;
-use jiff::tz::TimeZone;
-
 pub use definition::Definition;
 pub use format::{Format, format, iso_format, iso_parse};
+use jiff::tz::TimeZone;
+use jiff::{Timestamp, civil};
 pub use locale::{Ladder, Locale};
 pub use scale::Time;
 pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};

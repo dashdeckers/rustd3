@@ -4,8 +4,20 @@ use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::{self, COLORBLIND};
 use rustd3_figure::kurbo::{Point, Size};
 use rustd3_figure::mark::{
-    Bins, Grid, area, bar_x, bar_y, bar_y_spans, density_y, dots, histogram, image, line, rect,
-    ribbon, rule_y,
+    Bins,
+    Grid,
+    area,
+    bar_x,
+    bar_y,
+    bar_y_spans,
+    density_y,
+    dots,
+    histogram,
+    image,
+    line,
+    rect,
+    ribbon,
+    rule_y,
 };
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Figure, Held, Target};

@@ -48,8 +48,18 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
 use syn::{
-    Attribute, Data, DeriveInput, Fields, GenericArgument, Ident, LitStr, PathArguments,
-    ReturnType, Type, WherePredicate, parse_quote,
+    Attribute,
+    Data,
+    DeriveInput,
+    Fields,
+    GenericArgument,
+    Ident,
+    LitStr,
+    PathArguments,
+    ReturnType,
+    Type,
+    WherePredicate,
+    parse_quote,
 };
 
 /// `#[derive(Interpolate)]`: each field of a struct with named fields

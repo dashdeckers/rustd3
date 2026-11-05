@@ -1,8 +1,7 @@
 //! [`BrushX`], d3's `brushX()`.
 
-use crate::interact::BrushEvent;
-use crate::interact::Pointer;
 use crate::interact::brush::engine::{Dim, Engine};
+use crate::interact::{BrushEvent, Pointer};
 
 /// d3.brushX(): selects an x interval inside `extent` = [[x0, y0], [x1,
 /// y1]]. A press on the overlay starts a selection, on the selection drags

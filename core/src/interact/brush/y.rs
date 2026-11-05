@@ -1,8 +1,7 @@
 //! [`BrushY`], d3's `brushY()`.
 
-use crate::interact::BrushEvent;
-use crate::interact::Pointer;
 use crate::interact::brush::engine::{Dim, Engine};
+use crate::interact::{BrushEvent, Pointer};
 
 /// d3.brushY(): the same as [`BrushX`](crate::interact::BrushX) over y,
 /// with handles `n` and `s`; the selection spans the extent's x.

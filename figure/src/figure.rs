@@ -14,7 +14,11 @@ mod save;
 use std::any::{Any, TypeId};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+pub use fits::Fits;
+pub use held::Held;
+pub use resolved::Resolved;
 use rustd3_core::locale::Locale;
+pub use save::Error;
 
 use crate::check::Issue;
 use crate::layout::{Cell, Grid};
@@ -23,11 +27,6 @@ use crate::panel::Panel;
 use crate::scale::{Fit, Fittable, Kind, Scale, ScaleRef, window};
 use crate::text::Text;
 use crate::theme::Theme;
-
-pub use fits::Fits;
-pub use held::Held;
-pub use resolved::Resolved;
-pub use save::Error;
 
 /// The next figure's id.
 static NEXT: AtomicU64 = AtomicU64::new(0);

@@ -6,12 +6,11 @@ use std::path::PathBuf;
 
 use rustd3_iced::plot::{Caching, Render};
 
-use crate::Example;
 use crate::cli::{Error, factor};
 use crate::plan::{Cell, Plan, Selection};
-use crate::rule;
 use crate::scenario::Scenario;
 use crate::workload::Workload;
+use crate::{Example, rule};
 
 /// A developer's command of the widget's build.
 #[derive(Debug, Clone, PartialEq)]
@@ -630,12 +629,11 @@ mod tests {
     use rustd3_iced::plot::{Caching, Render};
 
     use super::{Backend, Command, PresentMode, Readback};
-    use crate::Example;
     use crate::cli::{self, Error};
     use crate::plan::Plan;
-    use crate::rule;
     use crate::scenario::Scenario;
     use crate::workload::Workload;
+    use crate::{Example, rule};
 
     fn args(line: &str) -> Vec<String> {
         line.split_whitespace().map(str::to_owned).collect()

@@ -1,8 +1,7 @@
 //! [`Heatmap`]: a grid of values in color, with a colorbar.
 
 use rustd3_core::color::Rgb;
-use rustd3_core::scale;
-use rustd3_core::scheme;
+use rustd3_core::{scale, scheme};
 
 use crate::Figure;
 use crate::colorbar::colorbar;

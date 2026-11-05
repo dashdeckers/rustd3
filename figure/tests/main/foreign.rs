@@ -4,7 +4,6 @@
 
 use rustd3_core::scale;
 use rustd3_core::scheme::{self, COLORBLIND};
-use rustd3_figure::brush;
 use rustd3_figure::check::Issue;
 use rustd3_figure::colorbar::colorbar;
 use rustd3_figure::kurbo::Size;
@@ -12,7 +11,7 @@ use rustd3_figure::legend::{Inset, Slot, legend};
 use rustd3_figure::list::Command;
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::Fit;
-use rustd3_figure::{Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Target, axis, brush};
 
 use crate::figure::cache;
 

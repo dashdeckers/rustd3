@@ -3,10 +3,9 @@
 
 use std::cmp::Ordering;
 
-use crate::array;
 use crate::locale::Locale;
 use crate::scale::Ticks;
-use crate::ticks;
+use crate::{array, ticks};
 
 /// d3's scaleQuantile: a sample of the domain, sorted, cut at its
 /// quantiles into as many bins as the range has values, so each holds an

@@ -1,11 +1,10 @@
 //! d3's scaleQuantize (quantize.js): [`Quantize`], a continuous domain cut
 //! into equal bins, one per range value.
 
-use crate::array;
 use crate::format::{self, Format, InvalidFormat};
 use crate::locale::Locale;
 use crate::scale::{self, Pad, Ticks, transform};
-use crate::ticks;
+use crate::{array, ticks};
 
 /// d3's scaleQuantize: the domain `[x0, x1]` cut into as many equal bins as
 /// the range has values, each mapped to its value; values past the ends

@@ -9,14 +9,13 @@ use rustd3_core::series::{Data, Points};
 
 use crate::check::Issue;
 use crate::figure::Fits;
-use crate::hit;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List, Paints};
 use crate::mark::channel::Channel;
 use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Error, Mark, across, at, positive, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
-use crate::text;
+use crate::{hit, text};
 
 /// How closely a dot's circle follows the true circle, in px.
 const TOLERANCE: f64 = 1e-3;

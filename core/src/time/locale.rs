@@ -5,10 +5,10 @@ mod ladder;
 
 use std::borrow::Cow;
 
-use crate::time::{Definition, Format};
-
 pub use ladder::Ladder;
 pub(crate) use ladder::Rung;
+
+use crate::time::{Definition, Format};
 
 /// d3's timeFormatLocale plus the tick-label ladder: the patterns `%c`,
 /// `%x` and `%X` expand to, the names of periods, weekdays and months, and

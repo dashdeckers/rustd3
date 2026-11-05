@@ -29,14 +29,13 @@
 mod colors;
 mod sizes;
 
+pub use colors::{Colors, colors};
 use rustd3_core::scale::Ticks;
 use rustd3_core::ticks;
+pub use sizes::{Sizes, sizes};
 
 use crate::figure::Resolved;
 use crate::scale::{Kind, ScaleRef};
-
-pub use colors::{Colors, colors};
-pub use sizes::{Sizes, sizes};
 
 /// The values and labels of a legend's entries over `handle`'s resolved
 /// scale: its about `count` ticks, or `values` with the ticks' step, kept

@@ -1,10 +1,9 @@
 //! d3's scaleThreshold (threshold.js): [`Threshold`], arbitrary bin edges,
 //! one range value per bin.
 
-use crate::array;
 use crate::locale::Locale;
 use crate::scale::Ticks;
-use crate::ticks;
+use crate::{array, ticks};
 
 /// d3's scaleThreshold: n ascending thresholds cut the line into n + 1
 /// bins, open at both ends, mapped in order to the range's values. The

@@ -4,8 +4,7 @@
 
 use rustd3_core::color::Rgb;
 use rustd3_core::jiff::Timestamp;
-use rustd3_core::scale;
-use rustd3_core::time;
+use rustd3_core::{scale, time};
 use rustd3_figure::kurbo::{ParamCurve, Rect, Size};
 use rustd3_figure::list::{Command, List, part};
 use rustd3_figure::mark::{bar_y, line as line_mark};

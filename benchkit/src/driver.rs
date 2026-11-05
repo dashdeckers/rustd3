@@ -10,10 +10,9 @@ use std::cell::RefCell;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use iced::advanced::Shell;
 use iced::advanced::layout::{self, Layout};
-use iced::advanced::renderer;
 use iced::advanced::widget::{self, Tree, Widget, tree};
+use iced::advanced::{Shell, renderer};
 use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, keyboard, mouse, window};
 use rustd3_iced::plot::probe::{Sample, Stage, Target};
 

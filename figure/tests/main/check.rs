@@ -8,8 +8,7 @@ use rustd3_figure::kurbo::Size;
 use rustd3_figure::legend::{Inset, Slot, legend};
 use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::ScaleRef;
-use rustd3_figure::text;
-use rustd3_figure::{Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Target, axis, text};
 
 use crate::figure::cache;
 use crate::{scatter, trace};
