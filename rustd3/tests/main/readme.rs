@@ -4,7 +4,7 @@
 //! the last block, with the facade's paths), each below its `//!` header, so
 //! the README cannot drift from code that builds.
 
-const README: &str = include_str!("../../README.md");
+const README: &str = include_str!("../../../README.md");
 
 /// The README's code blocks fenced as `rust`, in order.
 fn rust_blocks() -> Vec<String> {
