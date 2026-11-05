@@ -28,7 +28,6 @@ iced_test.workspace = true
 iced_runtime.workspace = true
 rustd3-testkit.workspace = true
 png.workspace = true
-benchkit = { workspace = true, features = ["widget"] }
 
 [[test]]
 name = "main"
@@ -38,26 +37,6 @@ path = "tests/main/main.rs"
 [[example]]
 name = "readme_plot"
 required-features = ["figure"]
-
-# The benchmark (benchkit's README): the level, its windowed and offscreen
-# widget profiles, and the archives' readers.
-[[example]]
-name = "bench_all"
-required-features = ["figure"]
-
-[[example]]
-name = "bench_gestures"
-required-features = ["figure"]
-
-[[example]]
-name = "bench_software"
-required-features = ["figure"]
-
-[[example]]
-name = "bench_compare"
-
-[[example]]
-name = "bench_report"
 
 [lints]
 workspace = true

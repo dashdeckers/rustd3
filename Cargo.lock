@@ -3835,7 +3835,6 @@ dependencies = [
 name = "rustd3-iced"
 version = "0.1.0"
 dependencies = [
- "benchkit",
  "iced",
  "iced_core",
  "iced_runtime",

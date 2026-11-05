@@ -44,3 +44,26 @@ dbg_macro = "warn"
 todo = "warn"
 unimplemented = "warn"
 disallowed_methods = "allow"
+
+# The benchmark's entry points (README.md): run from the workspace root as
+# `cargo run --release --example <name> -- …`.
+[[example]]
+name = "bench_figure"
+
+[[example]]
+name = "bench_all"
+required-features = ["widget"]
+
+[[example]]
+name = "bench_gestures"
+required-features = ["widget"]
+
+[[example]]
+name = "bench_software"
+required-features = ["widget"]
+
+[[example]]
+name = "bench_compare"
+
+[[example]]
+name = "bench_report"

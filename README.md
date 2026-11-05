@@ -250,7 +250,7 @@ To measure a machine, run the benchmark from a checkout:
 
 ```bash
 cargo run --release --example bench_all -- --quick                       # the library and the widget
-cargo run --release -p rustd3-figure --example bench_figure -- --quick   # the library alone, headless
+cargo run --release --example bench_figure -- --quick   # the library alone, headless
 ```
 
 `bench_all` takes about a quarter of an hour, drives the widget and times
