@@ -5,10 +5,23 @@
 # logs are not always reachable from where the results are read.
 #
 #   .github/ci-run.sh cargo test --workspace
+#   .github/ci-run.sh --retry cargo test -p rustd3-iced
+#
+# With --retry, a command that fails runs a second time, and only the
+# second failure is annotated: the runners' software GPU adapters (lavapipe
+# on Linux, WARP on Windows) now and then crash in the first test that
+# opens a device, and the rerun passes.
 set -uo pipefail
+retry=0
+if [ "${1:-}" = --retry ]; then retry=1; shift; fi
 log=$(mktemp)
 "$@" 2>&1 | tee "$log"
 status=${PIPESTATUS[0]}
+if [ "$status" -ne 0 ] && [ "$retry" -eq 1 ]; then
+  echo "::warning::$* failed with exit status $status; running it again"
+  "$@" 2>&1 | tee "$log"
+  status=${PIPESTATUS[0]}
+fi
 if [ "$status" -ne 0 ]; then
   echo "::error::$* failed with exit status $status"
   plain=$(sed 's/\x1b\[[0-9;]*m//g' "$log")
