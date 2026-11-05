@@ -2,7 +2,7 @@
 //! figure profile, headless, no window (`--help` for the levels).
 //!
 //! ```text
-//! cargo run --release -p rustd3-figure --example bench_figure -- --quick
+//! cargo run --release --example bench_figure -- --quick
 //! ```
 
 use std::process::ExitCode;

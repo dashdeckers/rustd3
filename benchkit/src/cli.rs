@@ -149,11 +149,10 @@ sets two side by side.
 const HELP_FIGURE: &str = "\
 bench_figure: rustd3's benchmark of the plotting library alone.
 
-  cargo run --release -p rustd3-figure --example bench_figure --
+  cargo run --release --example bench_figure --
       [--quick | --default | --full] [--out DIR]
 
-From a checkout of rustd3 (rustd3-figure's example; with -p rustd3-figure
-cargo builds no iced, winit or wgpu for it). It runs on any machine and
+From a checkout of rustd3. It runs on any machine and
 platform, with no display and no GPU: it prints what it will run and an
 estimate of the time, takes three single-threaded CPU timings, then times
 figures from data to SVG, PDF and PNG through the library's own calls

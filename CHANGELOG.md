@@ -196,7 +196,7 @@ Names and visibility settled before the first release:
   one, falls back to the software renderer without a GPU, skips what the
   machine cannot run, and records failed runs without stopping. It builds
   and runs the other examples as child processes.
-- `cargo run --release -p rustd3-figure --example bench_figure -- --quick`
+- `cargo run --release --example bench_figure -- --quick`
   times the plotting library alone, without iced, winit or wgpu: figures
   timed from data to SVG, PDF and PNG (and GIF at `--full`) stage by stage
   through the library's own calls (build, resolve, list, each output), each

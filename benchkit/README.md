@@ -13,9 +13,8 @@ one file to attach to an issue, so a performance problem on your machine
 comes with the numbers that explain it: open an issue and attach the
 archive.
 
-benchkit is an unpublished workspace crate, a dev-dependency of
-`rustd3-figure` and `rustd3-iced`, whose examples are thin `main`s over
-it. It also holds the gallery (`benchkit::gallery`): the trace, the wheel
+benchkit is an unpublished workspace crate whose examples are the
+benchmark's entry points, thin `main`s over the crate. It also holds the gallery (`benchkit::gallery`): the trace, the wheel
 figure and the chart presets, which the benchmark draws and the examples
 show.
 
@@ -25,17 +24,17 @@ From a checkout of rustd3, on every platform, with no shell script:
 
 ```bash
 cargo run --release --example bench_all -- --quick                       # everything: the library and the widget
-cargo run --release -p rustd3-figure --example bench_figure -- --quick   # the library alone: no iced, no window
+cargo run --release --example bench_figure -- --quick   # the library alone: no iced, no window
 ```
 
-| Example | Crate | What it runs |
-| --- | --- | --- |
-| `bench_all` | `rustd3-iced` | a level (below): the CPU reference, the figure profile, the display measurement and the widget's profiles, each by the example that runs it, as child processes; the archive |
-| `bench_figure` | `rustd3-figure` | the CPU reference and the figure profile at a level, headless, without iced, winit or wgpu |
-| `bench_software` | `rustd3-iced` | the software profile: the widget on tiny-skia offscreen, headless |
-| `bench_gestures` | `rustd3-iced` | one plan of the widget's cells (scenario × workload × factor) in windows, on the native backend or the software renderer; hover is the scenario `--scenario hover` |
-| `bench_compare` | `rustd3-iced` | two results, directories or archives, side by side |
-| `bench_report` | `rustd3-iced` | a level's report rebuilt from its raw records |
+| Example | What it runs |
+| --- | --- |
+| `bench_all` | a level (below): the CPU reference, the figure profile, the display measurement and the widget's profiles, each by the example that runs it, as child processes; the archive |
+| `bench_figure` | the CPU reference and the figure profile at a level, headless, without iced, winit or wgpu |
+| `bench_software` | the software profile: the widget on tiny-skia offscreen, headless |
+| `bench_gestures` | one plan of the widget's cells (scenario × workload × factor) in windows, on the native backend or the software renderer; hover is the scenario `--scenario hover` |
+| `bench_compare` | two results, directories or archives, side by side |
+| `bench_report` | a level's report rebuilt from its raw records |
 
 Each example's `--help` prints its flags. Example names are unique across
 the workspace, so `cargo run --example <name>` finds the crate from the
