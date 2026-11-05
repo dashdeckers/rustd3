@@ -19,9 +19,9 @@
 //! - the **chrome**: every other part, all drawn outside any group.
 //!
 //! Parts are told apart by their ids, which rustd3-figure composes as
-//! `role << 56 | panel << 32 | index` (`figure/src/figure/part.rs`): role
-//! 0 is the figure's background, 2 a panel's background, 6 a mark and 9 a
-//! panel's grid lines.
+//! `role << 56 | panel << 32 | index`
+//! (`rustd3-figure/src/figure/part.rs`): role 0 is the figure's background,
+//! 2 a panel's background, 6 a mark and 9 a panel's grid lines.
 //!
 //! [`Held::overscan`]: rustd3_figure::Held::overscan
 

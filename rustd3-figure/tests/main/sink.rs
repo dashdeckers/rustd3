@@ -34,7 +34,7 @@ use rustd3_figure::peniko::{
 
 /// DejaVu Sans, read from the fonts crate's file so that the tests need no
 /// feature.
-pub const DEJAVU: &[u8] = include_bytes!("../../../fonts/DejaVuSans.ttf");
+pub const DEJAVU: &[u8] = include_bytes!("../../../rustd3-fonts/DejaVuSans.ttf");
 
 /// The list's font table: DejaVu Sans.
 pub fn fonts() -> Vec<FontData> {

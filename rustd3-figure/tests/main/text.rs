@@ -39,8 +39,8 @@ pub fn fonts() -> Arc<Fonts> {
                 Arc::new(
                     Fonts::with([
                         DEJAVU.to_vec(),
-                        include_bytes!("../../../fonts/DejaVuSans-Bold.ttf").to_vec(),
-                        include_bytes!("../../../fonts/NewCMMath-Regular.otf").to_vec(),
+                        include_bytes!("../../../rustd3-fonts/DejaVuSans-Bold.ttf").to_vec(),
+                        include_bytes!("../../../rustd3-fonts/NewCMMath-Regular.otf").to_vec(),
                     ])
                     .expect("the font files hold faces"),
                 )
@@ -814,8 +814,8 @@ fn resvg_render(svg: &str) -> (u32, u32, Vec<u8>) {
     let mut options = resvg::usvg::Options::default();
     for font in [
         DEJAVU,
-        include_bytes!("../../../fonts/DejaVuSans-Bold.ttf"),
-        include_bytes!("../../../fonts/NewCMMath-Regular.otf"),
+        include_bytes!("../../../rustd3-fonts/DejaVuSans-Bold.ttf"),
+        include_bytes!("../../../rustd3-fonts/NewCMMath-Regular.otf"),
     ] {
         options.fontdb_mut().load_font_data(font.to_vec());
     }

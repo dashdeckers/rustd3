@@ -1,11 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["rustd3", "core", "derive", "figure", "fonts", "iced",
-           "testkit", "benchkit"]
+members = ["rustd3", "rustd3-core", "rustd3-derive", "rustd3-figure", "rustd3-fonts",
+           "rustd3-iced", "rustd3-testkit", "benchkit"]
 # Every member, so that `cargo run --example <name>` finds any crate's
 # example from the root (example names are unique across the workspace).
-default-members = ["rustd3", "core", "derive", "figure", "fonts", "iced",
-                   "testkit", "benchkit"]
+default-members = ["rustd3", "rustd3-core", "rustd3-derive", "rustd3-figure",
+                   "rustd3-fonts", "rustd3-iced", "rustd3-testkit", "benchkit"]
 exclude = [".claude"]
 
 [workspace.package]
@@ -15,12 +15,12 @@ rust-version = "1.97"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-rustd3-core = { path = "core", version = "0.1.0" }
-rustd3-derive = { path = "derive", version = "0.1.0" }
-rustd3-figure = { path = "figure", version = "0.1.0", default-features = false }
-rustd3-fonts = { path = "fonts", version = "0.1.0" }
-rustd3-iced = { path = "iced" }
-rustd3-testkit = { path = "testkit" }
+rustd3-core = { path = "rustd3-core", version = "0.1.0" }
+rustd3-derive = { path = "rustd3-derive", version = "0.1.0" }
+rustd3-figure = { path = "rustd3-figure", version = "0.1.0", default-features = false }
+rustd3-fonts = { path = "rustd3-fonts", version = "0.1.0" }
+rustd3-iced = { path = "rustd3-iced" }
+rustd3-testkit = { path = "rustd3-testkit" }
 benchkit = { path = "benchkit", default-features = false }
 jiff = "0.2.38"
 thiserror = "2"

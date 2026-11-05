@@ -70,7 +70,7 @@ pub fn measure() -> String {
     md
 }
 
-/// The 200k-dot plot-area cell of `iced/tests/main/pipeline.rs`'s
+/// The 200k-dot plot-area cell of `rustd3-iced/tests/main/pipeline.rs`'s
 /// scatter at 1600 × 1000 logical at 2, rendered as the widget's worker
 /// renders it (vello_cpu's pool), against the cost model.
 fn dense_scatter() -> Row {
