@@ -27,7 +27,7 @@ jobs:
     name: rustfmt (nightly)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
@@ -37,7 +37,7 @@ jobs:
     name: clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -69,7 +69,7 @@ jobs:
     steps:
       # Snapshots and the README test compare text: keep LF on Windows.
       - run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       # poppler's pdftoppm, pdftotext and pdffonts read the PDF outputs
@@ -100,21 +100,15 @@ jobs:
       - run: .github/ci-run.sh cargo test --workspace --exclude rustd3-iced --all-features
       - run: .github/ci-run.sh cargo test --workspace --exclude rustd3-iced --no-default-features
       - name: iced tests without features
-        run: |
-          .github/ci-run.sh cargo test -p rustd3-iced --no-default-features \
-            || .github/ci-run.sh cargo test -p rustd3-iced --no-default-features
+        run: .github/ci-run.sh --retry cargo test -p rustd3-iced --no-default-features
       # The iced tests on each backend explicitly; with ICED_TEST_BACKEND
       # set iced does not fall back.
       - name: iced tests on tiny-skia
-        run: |
-          .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features \
-            || .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
+        run: .github/ci-run.sh --retry cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: tiny-skia
       - name: iced tests on wgpu
-        run: |
-          .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features \
-            || .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features
+        run: .github/ci-run.sh --retry cargo test -p rustd3-iced -p benchkit --all-features
         env:
           ICED_TEST_BACKEND: wgpu
 
@@ -122,7 +116,7 @@ jobs:
     name: examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: .github/ci-run.sh cargo build --workspace --examples --all-features
@@ -136,7 +130,7 @@ jobs:
     name: MSRV (1.97)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # The workspace's `rust-version`, which every crate inherits.
       - uses: dtolnay/rust-toolchain@1.97
       - uses: Swatinem/rust-cache@v2
@@ -149,7 +143,7 @@ jobs:
     env:
       RUSTDOCFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: .github/ci-run.sh cargo doc --workspace --no-deps

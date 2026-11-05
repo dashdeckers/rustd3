@@ -24,7 +24,7 @@ fn flat(doc: &str) -> String {
 #[test]
 fn the_crate_docs_map_the_component_crates_names_before_their_first_example() {
     let facade = flat(include_str!("../../src/lib.rs"));
-    let figure = flat(include_str!("../../figure/src/lib.rs"));
+    let figure = flat(include_str!("../../../figure/src/lib.rs"));
     let notes = [
         (&facade, "`rustd3_iced` is not re-exported"),
         (

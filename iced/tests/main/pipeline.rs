@@ -29,6 +29,7 @@ use crate::headless::{self, Harness, Shot};
 use crate::reference;
 
 /// The worker thread's name in rustd3-iced.
+#[cfg(target_os = "linux")]
 const WORKER: &str = "rustd3-plot";
 
 /// Tests that start a worker run one at a time, so that a thread count
@@ -724,6 +725,7 @@ fn threads_sets_the_pool_size() {
 /// `count()` once it is `expected`, or whatever it is after two seconds: a
 /// new thread takes its name once it runs (std names it from inside), so
 /// the threads of a pool just started may not all be named yet.
+#[cfg(target_os = "linux")]
 fn named(expected: usize, count: impl Fn() -> usize) -> usize {
     for _ in 0..2_000 {
         if count() == expected {
