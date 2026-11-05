@@ -1,7 +1,7 @@
 //! The figure layer: a `Figure` of panels, marks, axes, legends and
-//! colorbars, laid out from text measured with typst and lowered into one
-//! styled drawing list, which every backend renders, as SVG always and as
-//! PNG, GIF and PDF behind their features.
+//! colorbars. Its layout is computed from text measured with typst, and it
+//! is drawn into one styled drawing list that every backend renders. SVG
+//! is always available; PNG, GIF and PDF are behind their features.
 //!
 //! The list's geometry is kurbo's and its paint is peniko's; both crates
 //! are re-exported ([`kurbo`], [`peniko`]) so that callers name the same
@@ -10,9 +10,10 @@
 //!
 //! Applications usually reach this crate as `rustd3::figure`, through the
 //! `rustd3` facade's `figure` feature. The examples here use the component
-//! crates' own names: with the facade as the one dependency,
+//! crates' own names. With the facade as the only dependency,
 //! `rustd3_figure::x` is `rustd3::figure::x` and `rustd3_core::x` is
-//! `rustd3::x`; `rustd3_iced` (the `Plot` widget) is used directly.
+//! `rustd3::x`. `rustd3_iced` (the `Plot` widget) is used directly, since
+//! the facade does not re-export it.
 //!
 //! ```
 //! # #[cfg(feature = "fonts")] {
@@ -40,9 +41,9 @@
 //! # Features
 //!
 //! - `fonts` (default): DejaVu Sans and New Computer Modern Math from
-//!   rustd3-fonts, and what needs fonts without the app supplying them:
-//!   `Figure::draw`, `Figure::save_svg`, `gif::Writer`. Without it, text
-//!   is set in the fonts the app gives `text::Fonts::with`.
+//!   rustd3-fonts, and the items that use them when the app supplies no
+//!   fonts (`Figure::draw`, `Figure::save_svg`, `gif::Writer`). Without
+//!   it, text is set in the fonts the app gives `text::Fonts::with`.
 //! - `raster`: vello_cpu renders a drawing list into pixels
 //!   (`raster::Renderer`).
 //! - `png`: `raster` and the PNG encoder (`Figure::save_png`,
@@ -54,7 +55,8 @@
 //! - `helpers`: one-call charts, statistical charts and subplots
 //!   (`helpers`).
 
-// Builders and pure functions say so: a result dropped is a bug.
+// Builders and pure functions are `#[must_use]`: dropping their result is
+// a bug.
 #![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 #![warn(missing_debug_implementations)]
 

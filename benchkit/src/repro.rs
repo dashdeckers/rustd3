@@ -1,20 +1,22 @@
-//! `bench_gestures repro-software`: a reproduction for iced, plain
-//! iced with nothing of rustd3. A grid of 40 distinct 256 × 256 images
+//! `bench_gestures repro-software`: a reproduction for iced, in plain iced
+//! with nothing of rustd3. A grid of 40 distinct 256 × 256 images
 //! (`widget::image`, handles made once) covers a 1600 × 1000 window and
-//! moves 1 logical px a frame; with `--single`, one image larger than the
-//! window moves instead, so that drawing is cheap and presentation shows. `window::frames()` makes each redraw a
-//! message and iced redraws after every message, so every frame asks for
-//! the next, as a drag does. After a 2 s warm-up it counts frames for 10
-//! s, then prints and writes to `--out` the backend, the frame interval's
-//! p50, p90 and p99, the process's CPU seconds per second
-//! (`/proc/self/stat`) and the session's display variables.
+//! moves 1 logical px a frame. With `--single`, one image larger than the
+//! window moves instead, so that drawing is cheap and the cost of
+//! presentation shows. `window::frames()` makes each redraw a message, and
+//! iced redraws after every message, so every frame asks for the next, as
+//! a drag does. After a 2 s warm-up it counts frames for 10 s. It then
+//! prints, and writes to `--out`, the backend, the frame interval's p50,
+//! p90 and p99, the process's CPU seconds per second (`/proc/self/stat`)
+//! and the session's display variables.
 //!
-//! What it tests: with rustd3's widget, iced's software renderer drew
-//! about 8 frames a second during a drag in a Wayland session, where X11
-//! (XWayland) on the same machine drew hundreds, its main thread busy
-//! either way, and wgpu kept the display's rate. Does plain iced do the
-//! same? The backend is iced's `ICED_BACKEND`, which is then the backend
-//! in use: each compositor refuses the other's name.
+//! What it tests: with rustd3's widget in a Wayland session, iced's
+//! software renderer drew about 8 frames a second during a drag. X11
+//! (XWayland) on the same machine drew hundreds, with the main thread busy
+//! either way, and wgpu kept the display's rate. The question is whether
+//! plain iced does the same. The reported backend is iced's
+//! `ICED_BACKEND`, which is reliably the backend in use because each
+//! compositor refuses the other's name.
 //!
 //! ```text
 //! ICED_BACKEND=tiny-skia bench_gestures repro-software [--single]               # Wayland
@@ -36,7 +38,7 @@ const TILE: u32 = 256;
 const GRID: [usize; 2] = [8, 5];
 /// Frames before the measurement.
 const WARM_UP: Duration = Duration::from_secs(2);
-/// The measurement.
+/// The measurement's length.
 const MEASURE: Duration = Duration::from_secs(10);
 
 /// The app: its images and the frames so far.
@@ -52,9 +54,9 @@ struct Repro {
     begin: Option<(usize, Option<u64>)>,
 }
 
-/// Opens the window and runs until the measurement is written to `out`;
-/// `clk_tck` is the system's clock ticks a second; `single` draws one
-/// image larger than the window in place of the grid.
+/// Opens the window and runs until the measurement is written to `out`.
+/// `clk_tck` is the system's clock ticks per second, and `single` draws
+/// one image larger than the window in place of the grid.
 pub fn run(out: PathBuf, clk_tck: u64, single: bool) -> iced::Result {
     let boot = move || Repro::new(out.clone(), clk_tck, single);
     let settings = window::Settings {

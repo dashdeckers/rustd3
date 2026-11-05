@@ -1,4 +1,4 @@
-//! How the bars of several series share a key: [`Mode`]; the chart is
+//! [`Mode`]: how the bars of several series share a key. The chart is
 //! [`chart::bar`](super::bar()).
 
 pub(super) mod preset;

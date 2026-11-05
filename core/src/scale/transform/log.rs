@@ -10,8 +10,9 @@ use crate::{js, ticks};
 const MAX_MINOR: usize = 10_000;
 
 /// d3's log transform: `ln x`, or `−ln(−x)` over a domain that starts
-/// below zero. The base sets ticks, nice, minor ticks and labels, not the
-/// map; a value of the other sign than the domain maps to NaN, as in d3.
+/// below zero. The base sets ticks, nice, minor ticks and labels, but not
+/// the map. As in d3, a value of the opposite sign to the domain maps to
+/// NaN.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Log {
     base: f64,
@@ -24,9 +25,8 @@ pub struct Log {
 
 impl Log {
     /// The transform of base `base`, for a scale's
-    /// [`transform`](crate::scale::Sequential::transform); the scale sets it
-    /// for its domain, reflected below zero. `scale::log()` and the `base`
-    /// builders make it too.
+    /// [`transform`](crate::scale::Sequential::transform). The scale sets it
+    /// for its domain, reflecting it below zero.
     ///
     /// ```
     /// use rustd3_core::scale::{self, transform};
@@ -49,7 +49,8 @@ impl Log {
         self.base
     }
 
-    /// Whether the base is an integer, which d3's ticks and labels ask.
+    /// Whether the base is an integer, which d3's ticks and labels depend
+    /// on.
     pub(crate) fn integer(&self) -> bool {
         self.base % 1.0 == 0.0
     }
@@ -74,9 +75,9 @@ impl Log {
         }
     }
 
-    /// m · base^e for m = 2 … base − 1 strictly between the magnitudes
-    /// `a` < `b`, ascending, appended to `minor` until it holds 10,000;
-    /// nothing when the log of either is not finite.
+    /// Appends m · base^e for m = 2 … base − 1 strictly between the
+    /// magnitudes `a` < `b` to `minor`, ascending, until it holds 10,000.
+    /// Appends nothing when the log of either is not finite.
     fn multiples(&self, a: f64, b: f64, minor: &mut Vec<f64>) {
         let (from, to) = (self.logs(a).floor(), self.logs(b).ceil());
         if !from.is_finite() || !to.is_finite() {
@@ -134,12 +135,12 @@ impl Transform for Log {
     }
 
     /// For an integer base, m · base^k for m = 2 … base − 1 between the
-    /// first and last major, the majors excluded, and none between
-    /// neighbouring majors more than one decade of the base apart (d3's
-    /// thinned decades, where matplotlib draws none); otherwise the default.
-    /// None at all for a base below 3 or once ten or more integer powers of
-    /// the base lie inside the domain, as matplotlib's `LogLocator` with
-    /// `subs='auto'`.
+    /// first and last major, the majors excluded. There are none between
+    /// neighboring majors more than one decade of the base apart (d3's
+    /// thinned decades, where matplotlib draws none). A non-integer base
+    /// takes the default. As matplotlib's `LogLocator` with `subs='auto'`,
+    /// there are none at all for a base below 3, or once ten or more
+    /// integer powers of the base lie inside the domain.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         let (Some(&first), Some(&last)) = (major.first(), major.last()) else {
             return Vec::new();
@@ -195,8 +196,8 @@ impl Transform for Log {
     }
 
     /// d3's log nice (nice.js): the ordered ends floored and ceiled to
-    /// powers of the base; the domain unchanged when the log of an end is
-    /// not finite. The count is ignored.
+    /// powers of the base. The domain is unchanged when the log of an end
+    /// is not finite, and the count is ignored.
     fn nice(&self, domain: [f64; 2], _count: usize) -> [f64; 2] {
         let log = self.for_domain(domain);
         let reverse = domain[1] < domain[0];
@@ -213,10 +214,10 @@ impl Transform for Log {
         if reverse { [high, low] } else { [low, high] }
     }
 
-    /// d3's log tickFormat (log.js 105–118): the specifier defaults to `s`
-    /// for base 10 and `,` otherwise, trimmed for an integer base when it
-    /// sets no precision; a tick keeps its label when its leading digit is
-    /// at most `max(1, base · count / ticks(10).len())`.
+    /// d3's log tickFormat (log.js 105–118). The specifier defaults to `s`
+    /// for base 10 and `,` otherwise, and is trimmed for an integer base
+    /// when it sets no precision. A tick keeps its label when its leading
+    /// digit is at most `max(1, base · count / ticks(10).len())`.
     fn tick_format(
         &self,
         locale: &Locale,

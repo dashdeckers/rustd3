@@ -43,7 +43,7 @@ pub struct Ribbon<'a, X: Position, Y: Position<Domain = f64>> {
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     color: Color,
-    /// `None`: a band ([`BAND`]).
+    /// The fill's opacity factor, or `None` for a band's ([`BAND`]).
     opacity: Option<f64>,
     hatch: Option<Hatch>,
     thin: Thin,
@@ -58,7 +58,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Ribbon<'a, 
 
 /// The region between `data` (pairs, a recording channel or two slices)
 /// and the base y = 0 on `x` and `y`, in the theme palette's first color,
-/// opaque. Its base is held: the y margin stops there.
+/// opaque. Its base is held, so the y margin stops there.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -89,13 +89,13 @@ where
     }
 }
 
-/// The region between `y0` and `y1` of rows `(x, y0, y1)` on `x` and
-/// `y`, a band in the theme palette's first color: an opaque color at 0.25
-/// opacity, so a line drawn over it shows, a translucent one at its own
-/// ([`opacity`](Ribbon::opacity) sets a factor instead):
-/// `shape::stack`'s `[y0, y1]` plugs in directly. Both edges enter
-/// fitting; 0 is held when an edge reaches exactly 0 (matplotlib's sticky
-/// edge), so a stacked area stands on the axis, and nothing else is.
+/// The region between `y0` and `y1` of rows `(x, y0, y1)` on `x` and `y`,
+/// so `shape::stack`'s `[y0, y1]` plugs in directly. It is a band in the
+/// theme palette's first color. An opaque color is drawn at 0.25 opacity,
+/// so a line drawn over it shows, and a translucent one at its own
+/// ([`opacity`](Ribbon::opacity) sets a factor instead). Both edges enter
+/// fitting. 0 is held when an edge reaches exactly 0 (matplotlib's sticky
+/// edge), so a stacked area stands on the axis; nothing else is held.
 /// Never thinned.
 ///
 /// ```
@@ -124,10 +124,10 @@ where
 }
 
 /// The region between two channels of one recording, `lower` and `upper`,
-/// a band as [`ribbon`]'s, thinned together ([`Thin::Auto`]): per column,
-/// M4 over both channels
-/// at once (core's `Series::m4_joint`), so both edges keep their extremes
-/// and the lower edge stays below the upper one wherever the data does.
+/// a band as [`ribbon`]'s, thinned together ([`Thin::Auto`]). Per column,
+/// M4 runs over both channels at once (core's `Series::m4_joint`), so both
+/// edges keep their extremes and the lower edge stays below the upper one
+/// wherever the data does.
 /// 0 is held when a channel's least or greatest value is exactly 0, as
 /// [`ribbon`] holds it. Channels of two recordings draw nothing, and
 /// [`Figure::check`](crate::Figure::check) reports
@@ -170,8 +170,8 @@ where
 
 impl<X: Position, Y: Position<Domain = f64>> Area<'_, X, Y> {
     /// The base the region reaches down (or up) to; 0 by default. It is
-    /// held: the y margin stops there. A base that is not finite leaves it
-    /// as it was.
+    /// held, so the y margin stops there. A base that is not finite leaves
+    /// it as it was.
     #[must_use]
     pub fn base(self, y0: f64) -> Self {
         Self {
@@ -230,10 +230,10 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Area<'a, X, Y> {
             .report(Swatch::Square, self.hatch.as_ref(), alpha, fits);
     }
 
-    /// One `Fill` command: per run of points placed on both scales (or of
-    /// M4's samples of a thinned channel), the polygon down to the base,
-    /// clipped to the guard band, then its hatch when set; nothing when no
-    /// run has two points or the base cannot be placed.
+    /// One `Fill` command holding, per run of points placed on both scales
+    /// (or of M4's samples of a thinned channel), the polygon down to the
+    /// base, clipped to the guard band, then its hatch when set. Nothing is
+    /// drawn when no run has two points or the base cannot be placed.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
@@ -315,8 +315,8 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
 
     /// The fill's opacity, clamped to [0, 1], times its color's own, in
     /// place of a band's (an opaque color at 0.25, a translucent one at its
-    /// own); 1 for an opaque ribbon, as stacked areas are. NaN leaves it as
-    /// it was.
+    /// own). Use 1 for an opaque ribbon, as stacked areas are. NaN leaves it
+    /// as it was.
     #[must_use]
     pub fn opacity(self, a: f64) -> Self {
         Self {
@@ -387,10 +387,11 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
             .report(Swatch::Square, self.hatch.as_ref(), self.alpha(), fits);
     }
 
-    /// One `Fill` command: per run of rows whose x and both edges are
-    /// placed (M4's joint samples of thinned channels), the polygon along
-    /// the upper edge and back along the lower one, clipped to the guard
-    /// band, then its hatch when set; nothing when no run has two rows.
+    /// One `Fill` command holding, per run of rows whose x and both edges
+    /// are placed (M4's joint samples of thinned channels), the polygon
+    /// along the upper edge and back along the lower one, clipped to the
+    /// guard band, then its hatch when set. Nothing is drawn when no run
+    /// has two rows.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         if self.error.is_some() {
             return;
@@ -440,10 +441,10 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Ribbon<'a, X, Y> {
     }
 }
 
-/// Whether some value of `points` that `y` admits is exactly 0: a recording
-/// channel's least or greatest one, read from its index through `x`'s
-/// bridge (a 0 strictly inside the channel's range stops no margin), other
-/// data value by value.
+/// Whether some value of `points` that `y` admits is exactly 0. For a
+/// recording channel only its least or greatest value counts, read from
+/// its index through `x`'s bridge (a 0 strictly inside the channel's range
+/// stops no margin). Other data is checked value by value.
 fn reaches_zero<X: Position, Y: Position<Domain = f64>>(
     points: &Points<'_, <X as Kind>::Domain, f64>,
     x: &X,

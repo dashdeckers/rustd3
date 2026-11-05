@@ -1,10 +1,10 @@
 //! Gestures through the headless harness on the backend `ICED_TEST_BACKEND`
-//! names: wheel zooms around the cursor, over a plot area or an axis, one
-//! message per handle per frame, twin handles, steps the scale rejects;
-//! drags and batched updates; the cursor; scaled previews of each plot
-//! area's tiles; double clicks;
-//! the overlay when the pointer leaves; and the pixels against the PNG of
-//! the published domains.
+//! names. The tests cover wheel zooms (around the cursor, over a plot area
+//! or an axis, one message per handle per frame, twin handles, and steps
+//! the scale rejects), drags and batched updates, the cursor, scaled
+//! previews of each plot area's tiles, double clicks, the overlay when the
+//! pointer leaves, and the pixels against the PNG of the published
+//! domains.
 
 use std::sync::mpsc;
 use std::time::Duration;
@@ -49,11 +49,11 @@ pub trait App {
     fn view(&self) -> Plot<'static, Message>;
 }
 
-/// One frame as iced's runtime runs it (`winit/src/lib.rs:788-830`):
-/// `RedrawRequested(now)`; while the widget published messages, `app`
+/// Runs one frame as iced's runtime does (`winit/src/lib.rs:788-830`). It
+/// sends `RedrawRequested(now)`. While the widget publishes messages, `app`
 /// applies them, the interface is rebuilt from its view and
-/// `RedrawRequested(now)` is sent again, at most three times in all; then
-/// the screenshot. Returns it and the messages, in order.
+/// `RedrawRequested(now)` is sent again, at most three times in all.
+/// Returns the screenshot and the messages, in order.
 pub fn run_frame(
     harness: &mut Harness<'static, Message>,
     app: &mut impl App,
@@ -77,8 +77,8 @@ pub fn run_frame(
 }
 
 /// Forty dots in [0, 100] × [0, 10] on x and y (fixed domains `x` and
-/// `y`), with left and bottom axes; the panel zooms both. Also its
-/// handles.
+/// `y`), with left and bottom axes; the panel zooms both. Returns the
+/// figure and its x and y handles.
 pub fn figure(x: [f64; 2], y: [f64; 2]) -> (Figure<'static>, ScaleRef<Linear>, ScaleRef<Linear>) {
     let mut fig = Figure::new();
     let hx = fig.scale(scale::linear().domain(x));
@@ -152,8 +152,8 @@ fn domains(messages: &[Message]) -> (Option<[f64; 2]>, Option<[f64; 2]>) {
 }
 
 /// A harness on [`figure`] with x [0, 100] and y [0, 10] at factor `k`,
-/// both handles published, after its first frame at `t0`; `None` when the
-/// backend is skipped.
+/// both handles published, after its first frame at `t0`, and its plot
+/// area. `None` when the backend is skipped.
 fn published(k: f32, t0: Instant) -> Option<(Harness<'static, Message>, Rect)> {
     let (fig, x, y) = figure([0.0, 100.0], [0.0, 10.0]);
     let area = areas(&fig, k)[0];
@@ -516,7 +516,7 @@ fn sub_precision_zoom_is_ignored() {
     let backend = harness.backend();
     let _ = harness.frame(t0);
     harness.point_at(Point::new(area.center().x as f32, area.center().y as f32));
-    // The threshold: 2⁻⁴⁰ of the centre, about 9.09e-4.
+    // The threshold: 2⁻⁴⁰ of the center, about 9.09e-4.
     let threshold = 2f64.powi(-40) * 1e9;
     let mut spans = Vec::new();
     for (step, lines_up) in [1.0, 1.0, 1.0, -1.0].into_iter().enumerate() {
@@ -625,10 +625,10 @@ fn drag(from: Point, by: (f32, f32), moves: u16) -> Vec<Step> {
     steps
 }
 
-/// `steps` sent to a harness of `app`, a frame (as the runtime runs it)
-/// after every `batch` of them and one more after the last, 16 ms apart
-/// from `t0`; then a frame after the layout settled. The last frame and
-/// the backend; `None` when the backend is skipped.
+/// Sends `steps` to a harness of `app`, running a frame (as the runtime
+/// runs it) after every `batch` of them and one more after the last, 16 ms
+/// apart from `t0`, then a frame once the layout has settled. Returns the
+/// last frame and the backend. `None` when the backend is skipped.
 fn play(app: &mut Controlled, steps: &[Step], batch: usize, t0: Instant) -> Option<(Shot, String)> {
     let mut harness = Harness::new(app.view(), SIZE, app.k)?;
     let backend = harness.backend();
@@ -838,8 +838,9 @@ fn last_frame(samples: &[Sample]) -> Option<(u32, u32)> {
     })
 }
 
-/// Frames of `harness` after each wake, the `Waken` injected before each
-/// and the frames `t` + 16 ms apart, until one shows every slot current.
+/// Draws a frame of `harness` after each wake until one shows every slot
+/// current. A `Waken` is injected before each frame, and the frames are
+/// 16 ms apart from `t`. Returns that frame and its instant.
 fn settle(
     harness: &mut Harness<'static, Message>,
     probe: &mpsc::Receiver<Sample>,
@@ -980,9 +981,9 @@ fn zoom_shows_a_scaled_preview_at_once() {
     }
 }
 
-/// x fitted to forty dots in [2.5, 100] and published,
-/// y fixed at [0, 10] and the widget's; the panel zooms both. The app
-/// hears x but builds it fitted whatever it heard.
+/// An app over forty dots in [2.5, 100]. Its x is fitted and published,
+/// its y is fixed at [0, 10] and owned by the widget, and the panel zooms
+/// both. The app hears x but builds it fitted whatever it heard.
 struct Fitted {
     heard: Vec<[f64; 2]>,
     k: f32,
@@ -1028,9 +1029,10 @@ impl App for Fitted {
     }
 }
 
-/// A wheel zoom over `Fitted`'s plot area, its end, then two left clicks
-/// `apart` and `away` px apart over it; the frame after the second click
-/// and what the app heard from it, and the frame before the clicks.
+/// Zooms the wheel over [`Fitted`]'s plot area and lets the gesture end,
+/// then sends two left clicks over it, `apart` in time and `away` px apart.
+/// Returns the frame after the second click, the frame before the clicks,
+/// what the app heard from the second click, the app and the backend.
 fn clicks(apart: Duration, away: f32) -> Option<(Shot, Shot, Vec<Message>, Fitted, String)> {
     let k = 1.0;
     let mut app = Fitted {

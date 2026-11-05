@@ -1,14 +1,17 @@
-//! [`Plot`]: a [`Figure`] shown as images that vello_cpu renders from its
-//! drawing list, the pixels the figure's PNG has, with a crosshair and a
-//! nearest-point highlight drawn over them, zoomed and panned by the
+//! [`Plot`]: a widget that shows a [`Figure`], zoomed and panned by the
 //! wheel and the mouse.
 //!
-//! `view` builds the figure from the app's state and hands it to the
-//! widget by value; the widget keeps its own state (the figure's cache,
-//! the rendered cells, the domains gestures gave the handles nobody
-//! listens to) in iced's widget tree between frames. Here the app owns
-//! the x domain: a wheel or a drag over the plot area sends it the new
-//! window, and its view shows that window, while y stays the widget's:
+//! The widget shows the figure as images that vello_cpu renders from its
+//! drawing list, with the same pixels as the figure's PNG. A crosshair and
+//! a nearest-point highlight are drawn over them.
+//!
+//! The app's `view` builds the figure from the app's state and hands it to
+//! the widget by value. The widget keeps its own state in iced's widget
+//! tree between frames: the figure's cache, the rendered cells, and the
+//! domains that gestures gave to handles no listener follows. In this
+//! example the app owns the x domain. A wheel or a drag over the plot area
+//! sends it the new window, and its view shows that window. The widget
+//! keeps the y domain:
 //!
 //! ```no_run
 //! # mod rustd3 { pub use rustd3_core::scale; pub use rustd3_figure as figure; }
@@ -54,142 +57,161 @@
 //! }
 //! ```
 //!
-//! The widget resolves and draws its figure once per `RedrawRequested`,
-//! for the screen at the effective scale factor (`Plot::scale_factor`,
-//! else the renderer's hint, else the window's factor, else 1), and only
-//! when the figure was rebuilt, the widget resized, the factor changed or
-//! a gesture changed a domain. It splits the list into each plot area's
-//! layer (the figure's background, the panel's background, grid lines
-//! and marks, drawn with an overscan of two tiles beyond the area) and the
-//! chrome, and cuts the chrome into the cells of the canvas's partition
-//! by every plot-area edge; each plot area, however the partition cuts
-//! it, is one grid of tiles of 256 device px anchored at its data anchor
-//! (its corner until a drag moves it), with a ring of tiles around it,
-//! each rendered over its whole square, and shows its part of the chrome
-//! over them. It renders only the cells,
-//! tiles and overlays whose content hash changed (every one when the
-//! partition's rects change), the ring after the rest, and draws each as
-//! images placed on whole device pixels. Adjacent gutter cells of a row
-//! whose content depends on the same handles (an axis strip and the
-//! corners its labels reach into) merge into one image.
-//! A cell whose RGBA would reach 2 MiB is rendered and drawn as
-//! horizontal bands below that size, so the GPU renderer uploads every
-//! image inside the frame that first draws it; a tile always stays under
-//! it. Hovering renders no cell:
-//! the crosshair and the highlight are quads in a layer clipped to the
-//! hovered plot area, in the figure theme's ink, and [`Plot::on_hover`]
-//! reports the hovered point ([`Hover`]) from an index of the drawn points
-//! the widget keeps with each drawing list.
+//! **Rendering.** The widget resolves and draws its figure at most once per
+//! `RedrawRequested`, and only when the figure was rebuilt, the widget
+//! resized, the scale factor changed or a gesture changed a domain. It
+//! draws for the screen at the effective scale factor: `Plot::scale_factor`,
+//! else the renderer's hint, else the window's factor, else 1.
 //!
-//! [`Plot::revision`] re-renders every cell once for a change the hashes
-//! cannot see (a paint image's pixels replaced in place, a font swapped),
-//! and [`Plot::caching`] with [`Caching::Off`] re-renders every cell
-//! whenever any cell changed, a diagnostic for the benchmark; with
-//! [`Caching::Verify`] every image kept or translated renders again after
-//! the real renders, replaces what shows when they differ by more than
-//! 1/255 and is reported (`probe::Sample::Mismatch`).
+//! The drawing list splits into one layer per plot area and the chrome. A
+//! plot area's layer holds the figure's background, the panel's background,
+//! the grid lines and the marks, drawn with an overscan of two tiles beyond
+//! the area. The chrome is everything else, such as the axes. Every
+//! plot-area edge cuts the canvas into a partition, and the chrome is cut
+//! into the partition's cells. The cells outside the plot areas are the
+//! gutters.
 //!
-//! Changed tiles, cells and overlays render in order (visible tiles
-//! nearest the last gesture input first, then the gutters and overlays,
-//! then the ring, which waits while a drag, a wheel burst or a brush
-//! lasts, since each zoom step would render it all again, and renders
-//! once it ends; while a gesture lasts the gutters and overlays go ahead
-//! of the tiles, so the axes keep step with the data): inline each one
-//! whose predicted time still fits half
-//! the frame budget with those before it, by a cost model each widget fits
-//! to its own renders, tiles apart from gutters and overlays (seeded by
-//! [`cost`]), and the rest on a pool of
-//! threads the widget owns ([`Plot::threads`]), newest wins per tile;
-//! while a wheel burst or a brush lasts no tile renders inline, so the UI
-//! thread only composes and renders the gutters and overlays the model
-//! allows, while a drag's entering column renders inline when it fits.
-//! [`Plot::render`] forces either path. Plot areas of at least 10,000
-//! markers splat them on screen (`raster::Renderer::splat`). On iced's
-//! software renderer (one that reports no scale), a plot area that shows
-//! a preview layer is composed into one image on the CPU first and drawn
-//! at once: its scaled, overlapping tiles would each cost tiny-skia a
-//! frame-sized clip mask and a filtered pass, and every new tile a
-//! conversion; the previews are then sampled nearest.
-//! Until a cell's new image arrives it keeps its previous one, a preview
-//! of outdated content, and a cell that never had one shows the theme's
-//! background. When the partition's rects change (the layout settling
-//! after a gesture, a resize), the old plot areas' tiles join the new
-//! areas' preview layers, mapped onto them, and the old gutter images stay
-//! drawn under the new runs until those render: no frame shows the
-//! background where content was. Results wake the runtime through its waker and land on
-//! `Event::Waken`, newest generation first: an older result never
-//! replaces a newer image. Zoom steps coalesce: each step's renders
-//! replace those still waiting on the pool, so at most one generation
-//! waits, and a tile a worker was rendering for an older step lands in
-//! the plot area's preview layer, mapped to the current domains, until
-//! newer images cover it. Dropping the widget's state joins the threads.
+//! Each plot area, however the partition cuts it, is one grid of tiles of
+//! 256 device px, with a ring of tiles around it. The grid is anchored at
+//! the area's data anchor, which is its corner until a drag moves it. Each
+//! tile renders over its whole square, and the area shows its part of the
+//! chrome over the tiles. The widget renders only the cells, tiles and
+//! overlays whose content hash changed, and every one when the partition's
+//! rects change. The ring renders after the rest. Each is drawn as images
+//! placed on whole device pixels. Adjacent gutter cells of a row whose
+//! content depends on the same handles merge into one image, such as an
+//! axis strip and the corners its labels reach into.
+//!
+//! A cell whose RGBA would reach 2 MiB is rendered and drawn as horizontal
+//! bands below that size, so the GPU renderer uploads every image inside
+//! the frame that first draws it. A tile always stays under that size.
+//!
+//! Hovering renders no cell. The crosshair and the highlight are quads in
+//! a layer clipped to the hovered plot area, in the figure theme's ink.
+//! [`Plot::on_hover`] reports the hovered point ([`Hover`]) from an index of
+//! the drawn points that the widget keeps with each drawing list.
+//!
+//! [`Plot::revision`] re-renders every cell once, for a change the hashes
+//! cannot see, such as a paint image's pixels replaced in place or a font
+//! swapped. [`Plot::caching`] with [`Caching::Off`] re-renders every cell
+//! whenever any cell changed, as a diagnostic for the benchmark. With
+//! [`Caching::Verify`], every image kept or translated renders again after
+//! the real renders. When the two differ by more than 1/255, the new image
+//! replaces what shows and the difference is reported
+//! (`probe::Sample::Mismatch`).
+//!
+//! **Scheduling.** Changed tiles, cells and overlays render in order:
+//! visible tiles nearest the last gesture input first, then the gutters and
+//! overlays, then the ring. While a gesture lasts, the gutters and overlays
+//! go ahead of the tiles, so the axes keep step with the data. The ring
+//! waits while a drag, a wheel burst or a brush lasts, since each zoom step
+//! would render it all again, and renders once the gesture ends.
+//!
+//! A render runs inline when its predicted time, added to those before it,
+//! still fits half the frame budget. The prediction comes from a cost model
+//! that each widget fits to its own renders, with tiles fitted apart from
+//! gutters and overlays, seeded by [`cost`]. The rest run on a pool of
+//! threads the widget owns ([`Plot::threads`]), and the newest render wins
+//! per tile. While a wheel burst or a brush lasts no tile renders inline,
+//! so the UI thread only composes and renders the gutters and overlays the
+//! model allows. During a drag, the entering column renders inline when it
+//! fits. [`Plot::render`] forces either path. Plot areas of at least 10,000
+//! markers splat them on screen (`raster::Renderer::splat`).
+//!
+//! Until a cell's new image arrives, the cell keeps its previous one as a
+//! preview of outdated content. A cell that never had an image shows the
+//! theme's background. When the partition's rects change (the layout
+//! settling after a gesture, or a resize), the old plot areas' tiles join
+//! the new areas' preview layers, mapped onto them. The old gutter images
+//! stay drawn under the new merged gutter cells until those render, so no
+//! frame shows the background where content was.
+//!
+//! On iced's software renderer (one that reports no scale), a plot area
+//! that shows a preview layer is composed into one image on the CPU first
+//! and drawn at once. Its scaled, overlapping tiles would each cost
+//! tiny-skia a frame-sized clip mask and a filtered pass, and every new
+//! tile a conversion. The previews are then sampled nearest.
+//!
+//! Results wake the runtime through its waker and land on `Event::Waken`,
+//! newest generation first, so an older result never replaces a newer
+//! image. Zoom steps coalesce. Each step's renders replace those still
+//! waiting on the pool, so at most one generation waits. A tile that a
+//! worker was rendering for an older step lands in the plot area's preview
+//! layer, mapped to the current domains, until newer images cover it.
+//! Dropping the widget's state joins the threads.
+//!
 //! [`Plot::probe`] reports what each frame cost and what it showed, timed
 //! by a clock the app supplies. The only clock the library reads itself is
-//! the monotonic one around each render, for the cost model: what
-//! it renders never depends on it, only where later renders run.
+//! the monotonic one around each render, for the cost model. That clock
+//! decides only where later renders run, never what they draw.
 //!
 //! **Gestures.** A wheel over a plot area zooms every handle its panel
-//! zooms (`Panel::zoom_x`, `Panel::zoom_y`) around the cursor, a wheel
-//! over an axis zooms that axis's handle only, and a left-button drag
-//! pans; horizontal wheel deltas pan too. Each handle has its own core
-//! `Zoom`. Pointer input is queued and applied once per
-//! `RedrawRequested`, and each gesture accumulates its transform from its
-//! start, so updates that arrive late lose no distance; a step the scale
-//! rejects (non-finite, reversed, or a span below 2⁻⁴⁰ of its centre)
-//! leaves the gesture where it was. [`Plot::on_change`] turns a handle's
-//! changes into one message per frame and the app owns that domain;
-//! during a gesture the widget continues from what it last published, and
-//! when it publishes it skips drawing in that pass, since the runtime runs
-//! the app's `update` and redraws at once. Other handles' domains are the
-//! widget's, kept by handle position and scale type, and dropped when the
-//! rebuilt figure puts another scale type there. The layout holds still
-//! during a gesture (labels grow outward) and settles once when it ends:
-//! a drag at its release, a wheel gesture at the first redraw 300 ms
-//! after its last step. A drag snaps each step to whole device pixels and
-//! applies the exact offset once at its release: the grids of the plot
-//! areas it pans move by as many pixels, lines thin on columns anchored
-//! to the moved grid and dashes keep their phase, so a tile's image moves
-//! with it unchanged and only the tiles entering the ring render, a column
-//! per 256 px, while the plot area looks the same apart from where things
-//! are (its paints, strokes, markers and glyphs: a figure rebuilt in
-//! another color renders every tile) and the scales leading its axes moved
-//! by the same whole pixels at both its edges (`Scale::remap`: a
-//! `Fit::Visible` y that refits as x pans renders every tile); the gutter
-//! cells showing the panned handle render whole. Any other change of a
-//! plot area's view (a zoom) begins its grid
-//! anew: while the new tiles' sharp renders are pending, the old tiles,
+//! zooms (`Panel::zoom_x`, `Panel::zoom_y`) around the cursor. A wheel over
+//! an axis zooms only that axis's handle. A left-button drag pans, and so
+//! do horizontal wheel deltas. Each handle has its own core `Zoom`. Pointer
+//! input is queued and applied once per `RedrawRequested`. Each gesture
+//! accumulates its transform from its start, so updates that arrive late
+//! lose no distance. A step the scale rejects (non-finite, reversed, or a
+//! span below 2⁻⁴⁰ of its center) leaves the gesture where it was.
+//!
+//! [`Plot::on_change`] turns a handle's changes into one message per frame,
+//! and the app then owns that domain. During a gesture the widget continues
+//! from what it last published. In a pass where it publishes, it skips
+//! drawing, since the runtime runs the app's `update` and redraws at once.
+//! Other handles' domains belong to the widget. It keeps them by handle
+//! position and scale type, and drops one when the rebuilt figure puts
+//! another scale type there.
+//!
+//! The layout holds still during a gesture (labels grow outward) and
+//! settles once when it ends: for a drag at its release, and for a wheel
+//! gesture at the first redraw 300 ms after its last step.
+//!
+//! A drag snaps each step to whole device pixels and applies the exact
+//! offset once at its release. The grids of the plot areas it pans move by
+//! as many pixels. Lines thin on columns anchored to the moved grid, and
+//! dashes keep their phase, so a tile's image moves with the grid
+//! unchanged. Only the tiles entering the ring render, a column per 256 px.
+//! This holds while the area's paints, strokes, markers and glyphs look
+//! the same apart from their positions, and while the scales leading its
+//! axes moved by the same whole pixels at both its edges (`Scale::remap`).
+//! A figure rebuilt in another color renders every tile, and so does a
+//! `Fit::Visible` y that refits as x pans. The gutter cells showing the
+//! panned handle render whole.
+//!
+//! Any other change of a plot area's view, such as a zoom, begins its grid
+//! anew. While the new tiles' sharp renders are pending, the old tiles,
 //! ring included, are drawn scaled by one affine map per axis, soft until
-//! the new ones land; gutters keep their last image. Only the newest
-//! step's renders wait on the pool, and a tile a thread was rendering
-//! when the next step came still lands, scaled the same way over the
-//! older ones, so a burst of wheel steps shows sharp but slightly stale
-//! tiles as each finishes rather than the tiles from before the burst
-//! until it ends. A double click
-//! returns the handles the panel zooms that a gesture touched to their
-//! fitted domains (a published one receives it as a message); the cursor
-//! shows a grab hand over a zoomable plot area, a grabbing hand during a
-//! drag, a resize arrow over a zoomable axis and a crosshair over other
-//! plot areas.
+//! the new ones land. Gutters keep their last image. Only the newest step's
+//! renders wait on the pool. A tile a thread was rendering when the next
+//! step came still lands, scaled the same way over the older ones. A burst
+//! of wheel steps therefore shows sharp but slightly stale tiles as each
+//! finishes, rather than the tiles from before the burst until it ends.
+//!
+//! A double click returns the handles the panel zooms that a gesture
+//! touched to their fitted domains. A published handle receives its fitted
+//! domain as a message. The cursor shows a grab hand over a zoomable plot
+//! area, a grabbing hand during a drag, a resize arrow over a zoomable axis
+//! and a crosshair over other plot areas.
 //!
 //! **Brushes.** A drag over the plot area of a panel with a brush
-//! (`Panel::brush`) brushes instead of panning, through core's `BrushX`
-//! or `BrushY` over that plot area; [`Plot::on_brush`] publishes the
-//! selection in the handle's domain, and a brush that `.sets(target)`
-//! sets the target's domain as a zoom does. Between gestures each brush
-//! takes its selection from the domain it selects, so a zoom of the target
-//! moves the band, and during one it never does, so updates the app
-//! applies late lose nothing. Brushing changes no cell: only the overlay
-//! redraws, unless a target's domain changed. A double click clears the
-//! clicked panel's brush and resets its target with the handles it zooms.
-
-//! **Live data.** The widget keeps no recording state: the hashes are the
-//! dependency tracker. An append bumps the recording's revision, which
-//! the thinning memo keys on, so the next frame thins the view from the
-//! index again; the line's part hashes anew and its plot-area cell
-//! renders, and nothing else does while the scales stay. With an x handle
-//! fitted to `Fit::Window(span)` the domain follows the newest data in
-//! whole device columns, so the x axes' ticks and labels re-render too;
-//! a gesture holds the window until a double click lets it follow again.
+//! (`Panel::brush`) brushes instead of panning, through core's `BrushX` or
+//! `BrushY` over that plot area. [`Plot::on_brush`] publishes the selection
+//! in the handle's domain, and a brush that `.sets(target)` sets the
+//! target's domain as a zoom does. Between gestures each brush takes its
+//! selection from the domain it selects, so a zoom of the target moves the
+//! band. During a gesture it never does, so updates the app applies late
+//! lose nothing. Brushing changes no cell: only the overlay redraws, unless
+//! a target's domain changed. A double click clears the clicked panel's
+//! brush and resets its target along with the handles it zooms.
+//!
+//! **Live data.** The widget keeps no recording state, because the content
+//! hashes already track what changed. An append bumps the recording's
+//! revision, which the thinning memo keys on, so the next frame thins the
+//! view from the index again. The line's part hashes anew and its plot-area
+//! cell renders. Nothing else renders while the scales stay. With an x
+//! handle fitted to `Fit::Window(span)`, the domain follows the newest data
+//! in whole device columns, so the x axes' ticks and labels re-render too.
+//! A gesture holds the window until a double click lets it follow again.
 //! `drop_front` renders the same way:
 //!
 //! ```no_run
@@ -268,11 +290,11 @@ mod tile;
 pub(crate) mod widget;
 mod worker;
 
-// The module docs name the widget and its figure.
 pub use caching::Caching;
 pub use hover::Hover;
 pub use probe::channel::Probe;
 pub use render::Render;
+// The module docs name the widget and its figure.
 #[cfg(doc)]
 use rustd3_figure::Figure;
 
@@ -284,15 +306,16 @@ use crate::Plot;
 /// and larger ones through a worker drained only by `Renderer::tick`.
 pub(crate) const BAND_BYTES: usize = 2 * 1024 * 1024;
 
-/// Device px added to an image's origin before dividing by the factor:
-/// tiny-skia truncates an image's position in image pixels and wgpu adds
-/// 0.001 and rounds its device position, and a sixteenth of a pixel lands
-/// on the intended pixel on both where none truncates a hair early (the
-/// f32 round-off is under a hundredth of a pixel up to 40,000 px) and a
-/// half rounds a pixel late. It stays under half a device pixel when the
-/// renderer draws at up to seven times the factor the widget assumes (a
-/// capture at 2 of a widget told 1), so both renderers then place each
-/// image and its clip on the same device pixels: a quarter, doubled to
-/// half a pixel, moved wgpu's images and tiny-skia's clips a pixel later
-/// and left a one-pixel seam where cells meet.
+/// Device px added to an image's origin before dividing by the factor.
+///
+/// tiny-skia truncates an image's position in image pixels, and wgpu adds
+/// 0.001 and rounds its device position. With no nudge, tiny-skia
+/// truncates a hair early from f32 round-off, which is under a hundredth of
+/// a pixel up to 40,000 px. With half a pixel, wgpu rounds a pixel late. A
+/// sixteenth lands on the intended pixel on both. It also stays under half
+/// a device pixel when the renderer draws at up to seven times the factor
+/// the widget assumes (a capture at 2 of a widget told 1), so both
+/// renderers then place each image and its clip on the same device pixels.
+/// A quarter, doubled to half a pixel, moved wgpu's images and tiny-skia's
+/// clips a pixel later and left a one-pixel seam where cells meet.
 pub(crate) const NUDGE: f32 = 0.0625;

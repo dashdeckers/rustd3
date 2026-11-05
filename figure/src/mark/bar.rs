@@ -13,7 +13,7 @@ use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Mark, dodge, positive, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
-/// The share of the gap between neighbouring keys a bar takes on a scale
+/// The share of the gap between neighboring keys a bar takes on a scale
 /// without bands: matplotlib's default bar width of 0.8.
 const SHARE: f64 = 0.8;
 
@@ -63,8 +63,8 @@ enum Rows<K> {
     Spans(Vec<(K, [f64; 2])>),
 }
 
-/// Where bars sit across their key axis: each key's band on band scales;
-/// elsewhere a width centred on the key.
+/// Where bars sit across their key axis: in each key's band on band
+/// scales, and elsewhere in a width centered on the key.
 pub(super) struct Across {
     /// The bars' width in px.
     width: f64,
@@ -74,7 +74,7 @@ pub(super) struct Across {
 
 /// Vertical bars from the base y = 0 to each value of `data`, pairs of an
 /// x key and a value, in the theme palette's first color. The base is
-/// held: the y margin stops there.
+/// held, so the y margin stops there.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -107,7 +107,7 @@ where
 
 /// Horizontal bars from the base x = 0 to each value of `data`, pairs of
 /// a value and a y key, in the theme palette's first color. The base is
-/// held: the x margin stops there.
+/// held, so the x margin stops there.
 pub fn bar_x<X, Y>(
     data: impl IntoIterator<Item = (f64, <Y as Kind>::Domain)>,
     x: ScaleRef<X>,
@@ -125,10 +125,10 @@ where
     }
 }
 
-/// One vertical bar from y0 to y1 per row `(x, [y0, y1])`:
-/// `shape::stack`'s spans plug in directly. Both ends enter fitting; an
+/// One vertical bar from y0 to y1 per row `(x, [y0, y1])`, so
+/// `shape::stack`'s spans plug in directly. Both ends enter fitting. An
 /// end exactly 0 is held (matplotlib's sticky edge), so stacked bars stand
-/// on the axis, and no other end is.
+/// on the axis; no other end is held.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -239,7 +239,7 @@ impl<K> Bars<K> {
     /// axis of length `length` (dodged into the fill key's sub-band when
     /// asked), and its two ends along the value axis (the base or the
     /// span's first end, then the value or the span's second end), clamped
-    /// to `guard`; rows whose key or ends cannot be placed are skipped.
+    /// to `guard`. Rows whose key or ends cannot be placed are skipped.
     fn placed<S: Position<Domain = K>, V: Position<Domain = f64>>(
         &self,
         ctx: &Ctx<'_>,
@@ -269,10 +269,10 @@ impl<K> Bars<K> {
 }
 
 impl Across {
-    /// How bars over `keys` sit across `scale`, an axis `length` px long:
-    /// in each key's band on band scales; elsewhere `width` px wide, or
-    /// 0.8 of the smallest gap between the keys' distinct positions (of
-    /// `length` for keys at one position).
+    /// How bars over `keys` sit across `scale`, an axis `length` px long.
+    /// On band scales they sit in each key's band. Elsewhere they are
+    /// `width` px wide, or 0.8 of the smallest gap between the keys'
+    /// distinct positions (or of `length` for keys at one position).
     pub(super) fn new<'k, S: Position>(
         scale: &S,
         keys: impl Iterator<Item = &'k S::Domain>,
@@ -339,9 +339,10 @@ macro_rules! builders {
                 self
             }
 
-            /// Places the bars in their fill key's slot of the band, the
-            /// band split into one sub-band per palette key in the palette's
-            /// order, so that bars of several marks stand side by side.
+            /// Places the bars in their fill key's slot of the band. The
+            /// band is split into one sub-band per palette key, in the
+            /// palette's order, so that bars of several marks stand side by
+            /// side.
             #[must_use]
             pub fn dodge(mut self) -> Self {
                 self.bars.dodge = true;
@@ -359,10 +360,10 @@ macro_rules! builders {
                 self
             }
 
-            /// The base the bars reach from, held: the margin stops there;
-            /// 0 by default. It applies to rows of values only: span rows
-            /// carry both ends and ignore it. A base that is not finite
-            /// leaves it as it was.
+            /// The base the bars reach from, 0 by default. It is held, so
+            /// the margin stops there. It applies only to rows of values,
+            /// since span rows carry both ends and ignore it. A base that is
+            /// not finite leaves it as it was.
             #[must_use]
             pub fn base(mut self, v: f64) -> Self {
                 if let Rows::Values { base, .. } = &mut self.bars.rows
@@ -400,7 +401,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BarY<X, Y> {
         self.bars.fill(ctx, rects, list);
     }
 
-    /// Per bar, the centre of its value end (the top of a bar from a base
+    /// Per bar, the center of its value end (the top of a bar from a base
     /// below its value; a span's second end) when it lies in the plot
     /// area, with its row's index.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
@@ -449,7 +450,7 @@ impl<'a, X: Position<Domain = f64>, Y: Position> Mark<'a> for BarX<X, Y> {
         self.bars.fill(ctx, rects, list);
     }
 
-    /// Per bar, the centre of its value end (the right end of a bar from a
+    /// Per bar, the center of its value end (the right end of a bar from a
     /// base left of its value; a span's second end) when it lies in the
     /// plot area, with its row's index.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {

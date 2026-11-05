@@ -128,8 +128,8 @@ pub(crate) enum State {
     Natural(natural::Natural),
 }
 
-/// d3's `curveRadial` point (`curve/radial.js`): the radial forms place
-/// (angle, radius) at `(r·sin a, −r·cos a)` before their curve sees it.
+/// Places (angle, radius) at `(r·sin a, −r·cos a)`, as d3's `curveRadial`
+/// (`curve/radial.js`) does before the curve sees the point.
 pub(crate) fn radial(angle: f64, radius: f64) -> (f64, f64) {
     (radius * angle.sin(), radius * -angle.cos())
 }
@@ -253,8 +253,8 @@ impl State {
             State::CatmullRomOpen(s) => s.area_start(),
             State::Monotone(s) => s.area_start(),
             State::Natural(s) => s.area_start(),
-            // d3's closed curves ignore areaStart and areaEnd; `State::area`
-            // holds no bundle.
+            // d3's closed curves ignore areaStart and areaEnd, and
+            // `State::area` never holds a bundle.
             State::LinearClosed(_)
             | State::BasisClosed(_)
             | State::CardinalClosed(_)

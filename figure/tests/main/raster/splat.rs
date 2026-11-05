@@ -15,7 +15,7 @@ use super::vello::diff;
 const BOUND: u8 = 32;
 
 /// `n` dots of a wobbling sine with a curve drawn over them and axes,
-/// whose centres fall on any sub-pixel phase; `colors` paints them from
+/// whose centers fall on any sub-pixel phase; `colors` paints them from
 /// viridis by a channel.
 fn scatter(n: usize, colors: bool) -> Figure<'static> {
     let mut fig = Figure::new();
@@ -124,7 +124,7 @@ fn splatting_leaves_lists_without_markers_unchanged() {
 
 #[test]
 fn splatted_dots_on_eighth_pixels_match_within_the_compositing() {
-    // Centres on eighth pixels at 1×: each stamp is the dot's own coverage
+    // Centers on eighth pixels at 1×: each stamp is the dot's own coverage
     // at its phase, so only the compositing's rounding differs.
     let mut fig = Figure::new();
     let x = fig.scale(scale::linear().domain([0.0, 76.0]));

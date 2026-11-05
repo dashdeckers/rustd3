@@ -9,7 +9,8 @@ use rustd3_testkit::pixels::{self, Diff};
 
 use crate::sink;
 
-/// Single-threaded at the baseline SIMD level: the same pixels anywhere.
+/// A renderer that is single-threaded at the baseline SIMD level, so it
+/// renders the same pixels on any machine.
 pub fn renderer() -> Renderer {
     Renderer::new(Settings::default().simd(Simd::Baseline))
 }

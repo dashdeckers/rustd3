@@ -10,7 +10,7 @@ pub(crate) struct Runs {
     ranges: Vec<Range<usize>>,
 }
 
-/// A summary: the number of runs rather than every range.
+/// Prints the number of runs rather than every range.
 impl fmt::Debug for Runs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Runs")

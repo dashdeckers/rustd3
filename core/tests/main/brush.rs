@@ -145,9 +145,10 @@ fn x_traces() -> Vec<Trace> {
                 (RELEASE, None),
             ],
         },
-        // T11 overlapping handles: w's rect [7, 13] and e's [9, 15] both
-        // cover 11; e is later in the DOM (27) and wins, w0 = 10, e0 = 12;
-        // dx 19, e1 = 31 (452). Had w won: [12, 29] after the flip.
+        // T11 overlapping handles. w's rect [7, 13] and e's [9, 15] both
+        // cover 11. e is later in the DOM (27) and wins, with w0 = 10 and
+        // e0 = 12, so dx 19 gives e1 = 31 (452). Had w won, the selection
+        // would be [12, 29] after the flip.
         Trace {
             name: "T11",
             before: Some([10.0, 12.0]),

@@ -1,12 +1,12 @@
 //! Tracks: one axis of the grid, from weights, gaps and reaches.
 
-/// The start and length of each track along one axis of the grid:
+/// The start and length of each track along one axis of the grid.
 /// `reaches[i]` is how far the decorations of track `i`'s panels reach
-/// before and after its plot areas (the largest of its panels'), `gaps`
-/// the whitespace between neighbouring tracks, and the tracks fill
-/// `extent`, a start and a total length. Reaches and gaps are fixed, what
-/// remains (never below 0) is split by `weights` (1 where missing), and
-/// positions are running sums.
+/// before and after its plot areas (the largest of its panels'). `gaps` is
+/// the whitespace between neighboring tracks, and the tracks fill
+/// `[start, total]`. Reaches and gaps are fixed, what remains (never below
+/// 0) is split by `weights` (1 where missing), and positions are running
+/// sums.
 pub(crate) fn tracks(
     weights: &[f64],
     gaps: &[f64],

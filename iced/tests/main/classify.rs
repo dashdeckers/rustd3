@@ -67,9 +67,9 @@ fn colored(x: [f64; 2], color: Rgb) -> Figure<'static> {
     fig
 }
 
-/// One panel: a rising curve over x `x` (data from 0 to 100), y fitted to
-/// what x shows (`Fit::Visible`), with left and bottom axes; the panel
-/// zooms x only. Its y handle.
+/// One panel with a rising curve over x `x` (data from 0 to 100) and left
+/// and bottom axes, its y fitted to what x shows (`Fit::Visible`). The
+/// panel zooms x only. Returns the figure and its y handle.
 fn rising(x: [f64; 2]) -> (Figure<'static>, ScaleRef<Linear>) {
     let mut fig = Figure::new();
     let hx = fig.scale(scale::linear().domain(x));
@@ -141,7 +141,8 @@ fn images(samples: &[Sample]) -> u32 {
         .expect("a frame sample")
 }
 
-/// `shot` against `reference`, a render of the same size.
+/// The largest channel difference between `shot` and `reference`, a render
+/// of the same size.
 fn against(shot: &Shot, reference: &rustd3_figure::raster::Image) -> u8 {
     let png = pixels::Image::new(reference.width, reference.height, &reference.rgba)
         .expect("invariant: a render holds width × height pixels");
@@ -151,8 +152,8 @@ fn against(shot: &Shot, reference: &rustd3_figure::raster::Image) -> u8 {
 }
 
 /// How many tiles of a grid anchored at device x `x` (y at the area's top)
-/// meet the plot area `area`: those a drag's frame renders when every
-/// tile changes, the ring waiting for the drag to end.
+/// meet the plot area `area`. These are the tiles a drag's frame renders
+/// when every tile changes; the ring waits for the drag to end.
 fn shown(area: [i64; 4], x: i64) -> i64 {
     let span = |a: i64, b: i64, at: i64| {
         (b - 1 - at).div_euclid(tiles::TILE) - (a - at).div_euclid(tiles::TILE) + 1
@@ -160,8 +161,8 @@ fn shown(area: [i64; 4], x: i64) -> i64 {
     span(area[0], area[2], x) * span(area[1], area[3], area[1])
 }
 
-/// Releases the left button and draws a frame at `at`: the drag ends; the
-/// samples of that frame.
+/// Releases the left button, which ends the drag, and draws a frame at
+/// `at`. Returns the samples of that frame.
 fn release(harness: &mut Harness<'_, ()>, rx: &mpsc::Receiver<Sample>, at: Instant) -> Vec<Sample> {
     let _ = harness.events(&[Event::Mouse(mouse::Event::ButtonReleased(
         mouse::Button::Left,
@@ -170,8 +171,9 @@ fn release(harness: &mut Harness<'_, ()>, rx: &mpsc::Receiver<Sample>, at: Insta
     rx.try_iter().collect()
 }
 
-/// Presses at `from` (logical px), then moves to `to`, a frame each from
-/// `t0`; the samples of the move's frame and its screenshot.
+/// Presses at `from` (logical px), then moves to `to`, drawing a frame
+/// after each at one-frame steps from `t0`. Returns the samples of the
+/// move's frame and its screenshot.
 fn drag(
     harness: &mut Harness<'_, ()>,
     rx: &mpsc::Receiver<Sample>,
@@ -193,11 +195,11 @@ fn drag(
 
 #[test]
 fn unchanged_panels_are_kept() {
-    // A drag over the left panel pans its own x: the right panel, its
-    // tiles and the gutter cells that show only its axes, render nothing,
-    // and neither does the left area, whose entering column of the ring
-    // waits for the drag to end; the release's frame, the
-    // layout settled, is sharp.
+    // A drag over the left panel pans its own x. The right panel, its
+    // tiles and the gutter cells that show only its axes render nothing.
+    // Neither does the left area, whose entering column of the ring waits
+    // for the drag to end. The release's frame, with the layout settled, is
+    // sharp.
     let k = 1.0;
     let (tx, rx) = mpsc::channel();
     let probe = Probe::new(clock, tx);
@@ -267,10 +269,10 @@ fn unchanged_panels_are_kept() {
 
 #[test]
 fn style_change_during_a_pan_re_renders() {
-    // A drag by whole pixels translates the tiles; when the figure comes
+    // A drag by whole pixels translates the tiles. When the figure comes
     // back with another color mid-drag, its positions moved but its style
-    // hash did not stay: every tile of the area that shows renders, and
-    // the frame is the new color's at the snapped domain; the ring renders
+    // hash changed too. So every tile of the area that shows renders, and
+    // the frame is the new color's at the snapped domain. The ring renders
     // once the drag ends.
     let blue = Rgb::new(30.0, 60.0, 140.0);
     let red = Rgb::new(200.0, 30.0, 30.0);
@@ -347,9 +349,10 @@ fn style_change_during_a_pan_re_renders() {
 #[test]
 fn visible_y_refit_during_a_pan_re_renders() {
     // A drag by whole pixels moves x, and the y handle, fitted to what x
-    // shows, grows to the data entering on the right in the same refresh:
-    // the views say translation, the scales do not, so every tile of the
-    // area that shows renders at once (the ring once the drag ends) and the frame is the refitted figure.
+    // shows, grows to the data entering on the right in the same refresh.
+    // The views say translation but the scales do not, so every tile of
+    // the area that shows renders at once (the ring once the drag ends),
+    // and the frame is the refitted figure.
     let (x, drag_px) = ([0.0, 50.0], -37.0_f32);
     for k in [1.0_f32, 2.0] {
         let (tx, rx) = mpsc::channel();

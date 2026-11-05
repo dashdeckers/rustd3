@@ -1,10 +1,9 @@
 //! What the figure needs from a scale: an object-safe [`Scale`] for its
-//! table, which delegates gestures to core's `Rescale`; [`ScaleRef`], the
-//! typed handle marks and axes hold; and typed capability traits for them ([`Kind`], [`Position`],
-//! [`Paint`], [`Fittable`], [`Invert`], [`Indexed`]), implemented for
-//! core's continuous scales with an `f64` range, its time scales, its
-//! band and point scales, and its color scales: ordinal, sequential,
-//! diverging, continuous over colors, quantize, quantile and threshold.
+//! table, [`ScaleRef`], the typed handle marks and axes hold, and typed
+//! capability traits ([`Kind`], [`Position`], [`Paint`], [`Fittable`],
+//! [`Invert`], [`Indexed`]). They are implemented for core's continuous
+//! scales with an `f64` range, its time, band and point scales, and its
+//! color scales.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -47,7 +46,7 @@ pub use kind::Kind;
 pub use paint::Paint;
 pub use position::Position;
 
-/// The object-safe face of a scale, so one table holds every kind; its
+/// The object-safe face of a scale, so one table holds every kind. Its
 /// pixel gestures delegate to core's `Rescale` on a copy set to a panel's
 /// range, so each scale keeps its own precision.
 ///

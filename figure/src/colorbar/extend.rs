@@ -8,8 +8,8 @@ use kurbo::{BezPath, Point, Rect};
 const FRACTION: f64 = 0.05;
 
 /// Which ends of a colorbar get a triangle for the values beyond its
-/// scale's domain, filled with the scale's clamped end color: matplotlib's
-/// `extend`. Each triangle is 5% of the bar's interior long, and the bar
+/// scale's domain, filled with the scale's clamped end color (matplotlib's
+/// `extend`). Each triangle is 5% of the bar's interior long, and the bar
 /// with its triangles keeps the length its place gives it.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Extend {
@@ -25,9 +25,10 @@ pub enum Extend {
 }
 
 impl Extend {
-    /// A bar `length` px long with its triangles split into its interior's
-    /// length and its triangles' lengths, [low end, high end]: 5% of the
-    /// interior each, as matplotlib shrinks the interior to fit them.
+    /// Splits a bar `length` px long, triangles included, into its
+    /// interior's length and its triangles' lengths `[low end, high end]`.
+    /// Each triangle is 5% of the interior, as matplotlib shrinks the
+    /// interior to fit them.
     pub(crate) fn split(self, length: f64) -> (f64, [f64; 2]) {
         let ends = match self {
             Extend::Neither => [false, false],
@@ -46,7 +47,7 @@ impl Extend {
 
 /// The triangle of `length` px at the low (`high` false) or high end of
 /// bar `interior`, vertical (low end at the bottom) or horizontal (low end
-/// at the left): its base the bar's end, its tip on the bar's centre line.
+/// at the left): its base the bar's end, its tip on the bar's center line.
 pub(crate) fn triangle(interior: Rect, vertical: bool, high: bool, length: f64) -> BezPath {
     let c = interior.center();
     let [a, b, tip] = match (vertical, high) {

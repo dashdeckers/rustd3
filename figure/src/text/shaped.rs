@@ -38,7 +38,9 @@ pub(crate) enum Item {
 }
 
 impl Shaped {
-    /// A shaped label from its parts; see the fields.
+    /// A shaped label from its items and their fonts, its advance width,
+    /// ascent, descent and last baseline in px, and its count of missing
+    /// glyphs.
     pub(crate) fn new(
         fonts: Arc<Fonts>,
         items: Vec<Item>,
@@ -82,8 +84,8 @@ impl Shaped {
         self.last
     }
 
-    /// Glyphs typst drew as .notdef because no font has them (fig.check
-    /// reports them).
+    /// The number of glyphs typst drew as .notdef because no font has them,
+    /// which `Figure::check` reports.
     #[must_use]
     pub fn get_missing(&self) -> usize {
         self.missing

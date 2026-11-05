@@ -2,14 +2,15 @@
 
 use crate::scale::Position;
 
-/// The share of the gap between neighbouring keys a group takes on a scale
+/// The share of the gap between neighboring keys a group takes on a scale
 /// without bands, as bars take it.
 const SHARE: f64 = 0.8;
 
-/// Where a chart's groups sit across their key axis, as bars sit: each
-/// key's band on band scales, else a width centred on the key, 0.8 of the
-/// smallest gap between the keys' positions (of the axis for keys at one
-/// position); dodged into a palette key's part of it when asked.
+/// Where a chart's groups sit across their key axis, as bars sit. On a
+/// band scale each group takes its key's band. Otherwise it takes a width
+/// centered on the key, 0.8 of the smallest gap between the keys' positions
+/// (or of the axis when all keys share one position). When asked, a group
+/// is dodged into its palette key's part of that slot.
 pub(super) struct Slots {
     /// Each group's width in px.
     width: f64,

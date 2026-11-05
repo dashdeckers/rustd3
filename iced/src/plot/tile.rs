@@ -1,48 +1,49 @@
 //! Tiles: a plot area cut into squares of [`SIZE`] device px on a [`Grid`]
-//! anchored at the device position of a data point, each a [`Tile`] that
-//! shows one image, by [`Key`].
+//! anchored at the device position of a data point. Each square is a
+//! [`Tile`] that shows one image, found by its [`Key`].
 //!
-//! Plot areas, not partition cells, carry tiles: a plot area that other
+//! Plot areas, not partition cells, carry tiles, so a plot area that other
 //! panels' edges cut into several cells still has one grid. Tile `(i, j)`
 //! is the square `[origin.x + SIZE·i, origin.x + SIZE·(i + 1)) ×
-//! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))`, and an area has the keys
-//! whose squares meet its device rect grown by one tile on each side: the
-//! overscan ring. Every tile renders its whole square, so a ring
-//! tile reaches up to two tiles beyond the area, which the list's overscan
-//! covers. A tile's image is 256 × 256 × 4 = 262,144 B, far under
-//! `BAND_BYTES`, so it is one band, and wgpu's 2048² atlas layers hold 64
-//! of them (`wgpu/src/image/atlas.rs:13-14`).
+//! [origin.y + SIZE·j, origin.y + SIZE·(j + 1))`. An area has the keys
+//! whose squares meet its device rect grown by one tile on each side, and
+//! the keys outside the area are the overscan ring. Every tile renders its
+//! whole square, so a ring tile reaches up to two tiles beyond the area,
+//! which the list's overscan covers. A tile's image is 256 × 256 × 4 =
+//! 262,144 B, far under `BAND_BYTES`, so it is one band, and wgpu's 2048²
+//! atlas layers hold 64 of them (`wgpu/src/image/atlas.rs:13-14`).
 //!
-//! A whole-pixel pan moves the grid's origin by the same device px: keys
-//! stay and their squares move. A tile's image lies where it was rendered,
-//! moved by how far the origin moved since, so it covers its square until
-//! the key leaves the grown rect: a steady pan renders one new column of
-//! keys per 256 px.
+//! A whole-pixel pan moves the grid's origin by the same device px. The
+//! keys stay and their squares move. A tile's image lies where it was
+//! rendered, moved by how far the origin moved since, so it covers its
+//! square until the key leaves the grown rect. A steady pan therefore
+//! renders one new column of keys per 256 px.
 
 use crate::plot::slot::Slot;
 
-/// The side of a tile, device px.
+/// The side of a tile, in device px.
 pub(crate) const SIZE: i32 = 256;
 
-/// Device px the list reaches past the farthest ring tile, two tiles
-/// beyond the area: a line drawn to the edge of what a list holds ends one
-/// sample beyond it, so within half its width of that edge it is not the
-/// line a wider list draws; the margin keeps that edge out of the ring's
-/// tiles for lines up to 16 device px wide.
+/// Device px the list reaches past the farthest ring tile, which lies two
+/// tiles beyond the area. A line drawn to the edge of what a list holds
+/// ends one sample beyond it, so within half its width of that edge it is
+/// not the line a wider list draws. The margin keeps that edge out of the
+/// ring's tiles for lines up to 16 device px wide.
 pub(crate) const MARGIN: i32 = 8;
 
 /// Device px the plot areas' layers are drawn beyond each area: two tiles,
-/// as far as a ring tile's square reaches, and the margin.
+/// as far as a ring tile's square reaches, plus the margin.
 pub(crate) const OVERSCAN: i32 = 2 * SIZE + MARGIN;
 
-/// The tile grid of one plot area: device position of its data anchor
+/// The tile grid of one plot area: the device position of its data anchor
 /// and the scale density it was rendered at.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Grid {
     origin: [i32; 2],
-    /// Transformed-domain span per device px, per axis, as f64 bits: the
-    /// scale of the view each axis's lead handle shows (range shares per
-    /// share at its epoch's start), which a zoom changes and a pan keeps.
+    /// The transformed-domain span per device px, per axis, as f64 bits.
+    /// It is the scale of the view each axis's lead handle shows (range
+    /// shares per share at its epoch's start), which a zoom changes and a
+    /// pan keeps.
     density: [u64; 2],
 }
 
@@ -55,13 +56,13 @@ pub(crate) struct Key {
     pub(crate) j: i32,
 }
 
-/// One tile of a plot area's grid: its key, its square as the grid lies
-/// now, and the slot that holds the image it shows (the slot's rect is
-/// where the image was rendered), the generation that image was rendered
-/// for and the render it waits for.
+/// One tile of a plot area's grid: its key, its square where the grid
+/// lies, and the slot that holds the image it shows, the generation that
+/// image was rendered for and the render it waits for. The slot's rect is
+/// where the image was rendered.
 pub(crate) struct Tile {
     key: Key,
-    /// Its square, device px, on the grid as it lies now.
+    /// Its square in device px, where the grid lies.
     rect: [i32; 4],
     /// The grid's origin when the image shown was planned.
     at: [i32; 2],
@@ -83,7 +84,7 @@ impl Grid {
         self.origin
     }
 
-    /// The grid moved by `[dx, dy]` device px: a whole-pixel pan.
+    /// The grid moved by `[dx, dy]` device px, as by a whole-pixel pan.
     pub(crate) fn moved(self, [dx, dy]: [i32; 2]) -> Grid {
         Grid {
             origin: [self.origin[0] + dx, self.origin[1] + dy],
@@ -91,7 +92,7 @@ impl Grid {
         }
     }
 
-    /// The square of tile `(i, j)`, device px.
+    /// The square of tile `(i, j)`, in device px.
     pub(crate) fn square(self, i: i32, j: i32) -> [i32; 4] {
         let [x, y] = self.origin;
         [
@@ -137,12 +138,12 @@ impl Tile {
         self.key
     }
 
-    /// The tile's device rect on the grid as it lies now.
+    /// The tile's device rect, where the grid lies.
     pub(crate) fn rect(&self) -> [i32; 4] {
         self.rect
     }
 
-    /// The grid moved its square: it is `rect` now.
+    /// Records that the grid moved the tile's square to `rect`.
     pub(crate) fn place(&mut self, rect: [i32; 4]) {
         self.rect = rect;
     }
@@ -181,8 +182,8 @@ impl Tile {
         x0 + dx <= a0 && y0 + dy <= b0 && a1 <= x1 + dx && b1 <= y1 + dy
     }
 
-    /// An image rendered over `rect` of the grid at `origin` landed and is
-    /// the one shown.
+    /// Records that an image rendered over `rect` of the grid at `origin`
+    /// landed and is the one shown.
     pub(crate) fn shown_at(&mut self, rect: [i32; 4], origin: [i32; 2]) {
         self.slot.reshape(rect);
         self.at = origin;
@@ -199,7 +200,7 @@ impl Tile {
     }
 }
 
-/// The part of device rect `a` inside `b`; empty (zero area) when they do
+/// The part of device rect `a` inside `b`, empty (zero area) when they do
 /// not meet.
 pub(crate) fn intersect(a: [i32; 4], b: [i32; 4]) -> [i32; 4] {
     let [x0, y0] = [a[0].max(b[0]), a[1].max(b[1])];
@@ -226,7 +227,8 @@ mod tests {
         assert_eq!(cover[0], (0, 0, [0, 0, 256, 256]));
         assert_eq!(cover[3], (3, 0, [768, 0, 1024, 256]));
         assert_eq!(cover[11], (3, 2, [768, 512, 1024, 768]));
-        // With a ring of one tile: 6 × 5 = 30 keys, each its whole square.
+        // With a ring of one tile there are 6 × 5 = 30 keys, each with its
+        // whole square.
         let ring = grid.cover([-256, -256, 1156, 856]);
         assert_eq!(ring.len(), 30);
         assert_eq!(ring[0], (-1, -1, [-256, -256, 0, 0]));
@@ -250,7 +252,8 @@ mod tests {
         let bytes = usize::try_from(SIZE * SIZE * 4).unwrap();
         assert_eq!(bytes, 262_144);
         assert!(bytes < BAND_BYTES);
-        // 2048² atlas layers hold 64 tiles; a 3600 × 1900 area needs 120.
+        // 2048² atlas layers hold 64 tiles, and a 3600 × 1900 area needs
+        // 120.
         assert_eq!((2048 / SIZE) * (2048 / SIZE), 64);
         let tiles = Grid::new([0, 0], [1.0; 2]).cover([0, 0, 3600, 1900]).len();
         assert_eq!(tiles, 15 * 8);

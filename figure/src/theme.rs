@@ -8,7 +8,7 @@
 //! use rustd3_figure::{Figure, Theme};
 //!
 //! let mut fig = Figure::new();
-//! // seaborn's structure, our defaults
+//! // seaborn's structure, with this crate's defaults.
 //! fig.theme(Theme::default());
 //!
 //! fig.theme(

@@ -1,7 +1,7 @@
 //! poppler's tools on a PDF in memory: `pdftoppm` renders it back,
 //! `pdftotext` extracts its text, `pdffonts` lists its fonts. Each reads
-//! the PDF from a temporary file; a tool that cannot run fails the test with a message
-//! naming poppler-utils.
+//! the PDF from a temporary file. A tool that cannot run fails the test
+//! with a message naming poppler-utils.
 
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -79,9 +79,9 @@ pub fn fonts(pdf: &[u8]) -> Vec<Font> {
         .collect()
 }
 
-/// What `tool` writes to stdout with `args`, the PDF given as a file
-/// where `args` says `"-"`: a temporary file, since the tools read a PDF
-/// by seeking, which stdin on Windows does not allow.
+/// What `tool` writes to stdout with `args`. Where `args` says `"-"`, the
+/// PDF is given as a temporary file, since the tools read a PDF by
+/// seeking, which stdin on Windows does not allow.
 fn run(tool: &str, args: &[&str], pdf: &[u8]) -> Vec<u8> {
     static COUNT: AtomicUsize = AtomicUsize::new(0);
     let path = std::env::temp_dir().join(format!(

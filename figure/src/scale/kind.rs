@@ -34,11 +34,11 @@ pub trait Kind: Scale + Clone {
     ) -> Self;
 
     /// This scale fitted with its ends rounded outward to `count` nice
-    /// ticks instead of margins (the theme's `Domains::Nice`); sticky
-    /// values still stop the rounding. Default: `self.fitted(extent,
-    /// sticky, 0.0)`, which band, point, ordinal, color and binned scales
-    /// keep; continuous scales round with core's `nice(count)`, time
-    /// scales to the tick interval for `count`.
+    /// ticks instead of margins (the theme's `Domains::Nice`). Sticky
+    /// values still stop the rounding. The default is
+    /// `self.fitted(extent, sticky, 0.0)`, which band, point, ordinal,
+    /// color and binned scales keep. Continuous scales round with core's
+    /// `nice(count)`, and time scales to the tick interval for `count`.
     #[must_use]
     fn niced(
         &self,
@@ -51,13 +51,13 @@ pub trait Kind: Scale + Clone {
     }
 
     /// The two ends of the domain as the scale maps it, in its own type
-    /// (numbers, instants, a color scale's end stops); `None` for a
+    /// (numbers, instants, a color scale's end stops). `None` for a
     /// categorical scale (band, point, ordinal) and a binned one, which map
-    /// keys and bins, not a span. Unlike the scale's `get_domain`, the
-    /// domain as stored (two stops, a diverging scale's three, a piecewise
-    /// scale's N, a categorical scale's keys), it is the first and last
-    /// stop only. Call it as `Kind::ends(&scale)`: core's
-    /// [`Ticks::ends`](rustd3_core::scale::Ticks::ends), on the same scales,
-    /// is the range's ends.
+    /// keys and bins, not a span. The scale's `get_domain` gives the domain
+    /// as stored (two stops, a diverging scale's three, a piecewise scale's
+    /// N, a categorical scale's keys), while this gives only the first and
+    /// last stop. Call it as `Kind::ends(&scale)`, because core's
+    /// [`Ticks::ends`](rustd3_core::scale::Ticks::ends) on the same scales
+    /// gives the range's ends.
     fn ends(&self) -> Option<[Self::Domain; 2]>;
 }

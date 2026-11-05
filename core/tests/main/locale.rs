@@ -25,8 +25,8 @@ fn a_number_locale_makes_a_figure_locale() {
 
     use rustd3_core::format::{self, Definition};
 
-    // The number half only: the time half stays neutral, where
-    // EN_US pairs d3's.
+    // Only the number half carries over. The time half stays neutral,
+    // whereas `Locale::EN_US` pairs the number half with d3's time half.
     assert_eq!(
         Locale::from(format::Locale::EN_US).get_number(),
         Locale::EN_US.get_number()
@@ -214,7 +214,7 @@ fn a_runtime_time_table_labels_time_ticks_through_the_figure_locale()
     use rustd3_core::scale::Ticks;
     use rustd3_core::time::{self, Definition, Ladder};
 
-    // d3-time-format's sv-SE table, which no constant holds; the labels
+    // d3-time-format's sv-SE table, which no constant holds. The labels
     // are d3 7.9.0's with it as the default locale (scaleUtc, ticks 5 and 4).
     let names = |s: &str| {
         s.split(' ')

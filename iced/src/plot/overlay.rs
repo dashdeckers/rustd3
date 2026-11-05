@@ -5,24 +5,24 @@ use iced_core::renderer::{self, Quad};
 use iced_core::{Color, Point, Rectangle, Size, border};
 use rustd3_core::color::Rgb;
 
-/// The highlight ring's radius, logical px.
+/// The highlight ring's radius, in logical px.
 const RING: f32 = 4.0;
 
-/// The highlight ring's border width, logical px.
+/// The highlight ring's border width, in logical px.
 const RING_WIDTH: f32 = 1.5;
 
 /// The crosshair's share of the ink's opacity.
 const CROSSHAIR_ALPHA: f32 = 0.4;
 
 /// What the pointer over a widget shows, in device px from the widget's
-/// device origin; empty when it is over no plot area.
+/// device origin. It is empty when the pointer is over no plot area.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct Overlay {
     /// The cursor, when the crosshair shows.
     cursor: Option<Point>,
-    /// Plot area (device rect) of the hovered panel.
+    /// The plot area (device rect) of the hovered panel.
     panel: Option<[i32; 4]>,
-    /// Nearest point, device px, within 12 logical px of the cursor.
+    /// The nearest point in device px, within 12 logical px of the cursor.
     point: Option<Point>,
 }
 
@@ -37,10 +37,10 @@ pub(crate) struct Shown {
 
 impl Overlay {
     /// The overlay over the plot area `panel` (device rect) of the hovered
-    /// panel: the crosshair through `cursor` and the ring around `point`
-    /// (device px from the widget's device origin), each when `shown` asks
-    /// for it; empty over no plot area. Parts `shown` leaves out stay
-    /// empty, so they never count as a change.
+    /// panel. It holds the crosshair through `cursor` and the ring around
+    /// `point` (device px from the widget's device origin), each when
+    /// `shown` asks for it, and is empty over no plot area. Parts `shown`
+    /// leaves out stay empty, so they never count as a change.
     pub(crate) fn new(
         cursor: Point,
         panel: Option<[i32; 4]>,
@@ -57,10 +57,10 @@ impl Overlay {
         }
     }
 
-    /// Draws the crosshair, two quads one device px wide in `ink` at 40%,
-    /// and the ring, a 1.5 px border of radius 4 in `ink`, in a layer
-    /// clipped to the hovered plot area, for a widget whose device origin
-    /// is `origin`.
+    /// Draws the crosshair and the ring in a layer clipped to the hovered
+    /// plot area, for a widget whose device origin is `origin`. The
+    /// crosshair is two quads one device px wide in `ink` at 40%, and the
+    /// ring is a 1.5 px border of radius 4 in `ink`.
     pub(crate) fn draw<Renderer>(
         &self,
         renderer: &mut Renderer,

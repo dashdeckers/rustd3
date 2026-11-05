@@ -83,7 +83,7 @@ impl Engine {
         }
     }
 
-    /// Feeds one event; what d3 emits for it.
+    /// Feeds one event and returns what d3 emits for it.
     pub(super) fn handle(&mut self, input: Pointer) -> Option<BrushEvent> {
         match input {
             Pointer::Pressed {
@@ -123,13 +123,13 @@ impl Engine {
         self.selection = selection.map(|[low, high]| self.spanning(low, high));
     }
 
-    /// A gesture is in progress.
+    /// Whether a gesture is in progress.
     pub(super) fn is_active(&self) -> bool {
         self.gesture.is_some()
     }
 
-    /// d3's `started` (334–411): the hit test gives the mode and the
-    /// selection; a press on the overlay starts a new one at the point.
+    /// d3's `started` (334–411). The hit test gives the mode and the
+    /// selection, and a press on the overlay starts a new one at the point.
     fn started(&mut self, p: [f64; 2]) -> Option<BrushEvent> {
         let (mode, selection) = self.target(p)?;
         let a = self.dim.index();
@@ -189,10 +189,10 @@ impl Engine {
         Some(BrushEvent::End(self.selection()))
     }
 
-    /// The topmost element under `p` in d3's DOM order (handles above the
-    /// selection above the overlay; `e` above `w`, `s` above `n`), as the
-    /// gesture's mode and selection. During a gesture d3 sets
-    /// `pointer-events: none` on the group, which only the overlay
+    /// The topmost element under `p` in d3's DOM order, as the gesture's
+    /// mode and selection. Handles lie above the selection, which lies above
+    /// the overlay, and `e` lies above `w`, `s` above `n`. During a gesture
+    /// d3 sets `pointer-events: none` on the group, which only the overlay
     /// overrides (170, 391), so a press then hits only the overlay.
     fn target(&self, p: [f64; 2]) -> Option<(Mode, [[f64; 2]; 2])> {
         if let (None, Some(selection)) = (&self.gesture, self.selection) {

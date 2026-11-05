@@ -22,15 +22,17 @@ impl<S> std::fmt::Debug for Sizes<S> {
 }
 
 /// A legend of `handle`, a numeric handle whose output is a radius in px
-/// (a dots mark's [`size_by`](crate::mark::Dots::size_by)): one entry per
-/// tick of its resolved scale for about [`count`](Sizes::count) ticks (4
-/// by default), or per [`values`](Sizes::values) value, inside its domain,
-/// each a dot of that value's radius in the theme's ink (matplotlib's
-/// `legend_elements` draws them black, so the legend reads as size alone)
-/// beside the tick's label; a value whose radius is not positive has no
-/// entry. The ticks are d3's: sizes over 1 … 100 at
-/// count 4 give 20, 40, 60, 80, 100, where matplotlib's `legend_elements`
-/// (`MaxNLocator`) gives 25, 50, 75, 100. Rows grow to hold their dots.
+/// (a dots mark's [`size_by`](crate::mark::Dots::size_by)). It has one
+/// entry per tick of the resolved scale inside its domain, for about
+/// [`count`](Sizes::count) ticks (4 by default), or one per
+/// [`values`](Sizes::values) value. Each entry is a dot of that value's
+/// radius in the theme's ink, beside the tick's label. matplotlib's
+/// `legend_elements` draws them black too, so the legend reads as size
+/// alone. A value whose radius is not positive has no entry.
+///
+/// The ticks are d3's: sizes over 1 … 100 at count 4 give 20, 40, 60, 80,
+/// 100, where matplotlib's `legend_elements` (`MaxNLocator`) gives 25, 50,
+/// 75, 100. Rows grow to hold their dots.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -64,7 +66,7 @@ impl<S> Sizes<S> {
     }
 
     /// One entry per value in `v` inside the domain, in place of the
-    /// scale's ticks, labelled as its ticks are.
+    /// scale's ticks, labeled as its ticks are.
     #[must_use]
     pub fn values(self, v: impl IntoIterator<Item = f64>) -> Self {
         Self {

@@ -11,9 +11,9 @@ pub enum Offset {
     Expand,
     /// Positive values stacked up from zero and negative ones down from it.
     Diverging,
-    /// Each row centred on zero.
+    /// Each row centered on zero.
     Silhouette,
-    /// The baseline shifted to minimise the layers' weighted wiggle: d3's
+    /// The baseline shifted to minimize the layers' weighted wiggle: d3's
     /// streamgraph offset, usually with `Order::InsideOut`.
     Wiggle,
 }
@@ -21,7 +21,7 @@ pub enum Offset {
 impl Offset {
     /// d3's offset function: sets each row's `[y0, y1]` in place, `order`
     /// bottom first as [`Order::apply`](crate::shape::stack::Order::apply)
-    /// returns it. A NaN top stacks as 0 and keeps NaN; rows are the
+    /// returns it. A NaN top stacks as 0 and keeps NaN. Rows are the
     /// shortest layer's length, and indices in `order` past the last layer
     /// are ignored.
     ///

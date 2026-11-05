@@ -3,10 +3,10 @@
 use crate::array::{max, min, quickselect};
 
 /// d3.quantile: the `p`-quantile of `values` that are not NaN by the R-7
-/// method, interpolating between the order statistics around `(n − 1)·p`
-/// found by quickselect on a copy; the least value for `p ≤ 0` or fewer
-/// than two values, the greatest for `p ≥ 1`. `None` for no values or a
-/// NaN `p`.
+/// method. It interpolates between the order statistics around
+/// `(n − 1)·p`, found by quickselect on a copy. It is the least value for
+/// `p ≤ 0` or fewer than two values, the greatest for `p ≥ 1`, and `None`
+/// for no values or a NaN `p`.
 pub fn quantile(values: impl IntoIterator<Item = f64>, p: f64) -> Option<f64> {
     let mut values: Vec<f64> = values.into_iter().filter(|v| !v.is_nan()).collect();
     let n = values.len();

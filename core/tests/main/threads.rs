@@ -1,6 +1,6 @@
 //! Which of rustd3-core's types cross threads: compile-time assertions.
 //! Scales, formats, locales, recordings and generators are `Send` and
-//! `Sync`; an `axis::Axis` holds a plain tick-format closure and is not.
+//! `Sync`. An `axis::Axis` holds a plain tick-format closure and is not.
 
 use rustd3_core::{anim, color, format, interact, locale, path, scale, series, shape, ticks, time};
 

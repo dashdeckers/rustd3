@@ -60,13 +60,14 @@ pub struct Theme {
     context: Context,
     /// The factor text alone is multiplied by.
     font_scale: f64,
-    /// Marks without a key take its first color.
+    /// The palette, whose first color marks without a key take.
     palette: Vec<Rgb>,
     /// How fitted domains end.
     domains: Domains,
-    /// Text, tick labels, tick marks and the white styles' axis lines.
+    /// The color of text, tick labels, tick marks and the white styles'
+    /// axis lines.
     ink: Rgb,
-    /// Behind the whole figure.
+    /// The color behind the whole figure.
     background: Rgb,
 }
 
@@ -150,7 +151,7 @@ impl Theme {
     }
 
     /// Text, tick labels, tick marks and the white styles' axis lines in
-    /// `c`; seaborn's ".15", `#262626`, by default. The iced widget draws
+    /// `c`, by default seaborn's ".15", `#262626`. The iced widget draws
     /// its crosshair and highlight in it. A color with a channel or an
     /// opacity that is not finite leaves the theme as it was.
     ///
@@ -171,11 +172,11 @@ impl Theme {
         }
     }
 
-    /// Behind the whole figure, `c` at any opacity: under a translucent
-    /// background what the figure is drawn over shows through, such as an
-    /// app's own background under the iced widget. White by default. A
-    /// color with a channel or an opacity that is not finite leaves the
-    /// theme as it was.
+    /// The color behind the whole figure, `c`, at any opacity. Under a
+    /// translucent background, what the figure is drawn over shows through,
+    /// such as an app's own background under the iced widget. White by
+    /// default. A color with a channel or an opacity that is not finite
+    /// leaves the theme as it was.
     #[must_use]
     pub fn background(self, c: Rgb) -> Self {
         if finite(c) {
@@ -188,19 +189,20 @@ impl Theme {
         }
     }
 
-    /// Text, tick labels, tick marks and the white styles' axis lines.
+    /// The color of text, tick labels, tick marks and the white styles'
+    /// axis lines.
     #[must_use]
     pub fn get_ink(&self) -> Rgb {
         self.ink
     }
 
-    /// Behind the whole figure.
+    /// The color behind the whole figure.
     #[must_use]
     pub fn get_background(&self) -> Rgb {
         self.background
     }
 
-    /// Axis lines and borders: 1.25 pt.
+    /// The width of axis lines and borders: 1.25 pt.
     pub(crate) fn axis_width(&self) -> f64 {
         self.pt(1.25)
     }
@@ -231,22 +233,22 @@ impl Theme {
         self.style.ticks()
     }
 
-    /// Behind each plot area.
+    /// The color behind each plot area.
     pub(crate) fn panel(&self) -> Rgb {
         self.style.panel()
     }
 
-    /// Tick labels: 11 pt.
+    /// The size of tick labels: 11 pt.
     pub(crate) fn tick_text(&self) -> f64 {
         self.text(11.0)
     }
 
-    /// Axis labels, panel titles and notes: 12 pt.
+    /// The size of axis labels, panel titles and notes: 12 pt.
     pub(crate) fn label_text(&self) -> f64 {
         self.text(12.0)
     }
 
-    /// The figure title: matplotlib's `large`, 1.2 × 12 pt.
+    /// The size of the figure title: matplotlib's `large`, 1.2 × 12 pt.
     pub(crate) fn figure_title_text(&self) -> f64 {
         self.text(14.4)
     }
@@ -256,13 +258,14 @@ impl Theme {
         self.tick_text()
     }
 
-    /// Tick marks: 6 pt; the room they take whether drawn or not.
+    /// The length of tick marks: 6 pt, the room they take whether drawn or
+    /// not.
     pub(crate) fn tick(&self) -> f64 {
         self.pt(6.0)
     }
 
-    /// Minor ticks, and ticks whose label the scale's format leaves empty:
-    /// 4 pt.
+    /// The length of minor ticks, and of ticks whose label the scale's
+    /// format leaves empty: 4 pt.
     pub(crate) fn minor_tick(&self) -> f64 {
         self.pt(4.0)
     }
@@ -272,17 +275,17 @@ impl Theme {
         self.pt(1.0)
     }
 
-    /// Between a tick and its label: 3.5 pt.
+    /// The gap between a tick and its label: 3.5 pt.
     pub(crate) fn tick_pad(&self) -> f64 {
         self.pt(3.5)
     }
 
-    /// Between tick labels and the axis label: 4 pt.
+    /// The gap between tick labels and the axis label: 4 pt.
     pub(crate) fn label_pad(&self) -> f64 {
         self.pt(4.0)
     }
 
-    /// Below a title: 6 pt.
+    /// The gap below a title: 6 pt.
     pub(crate) fn title_pad(&self) -> f64 {
         self.pt(6.0)
     }
@@ -356,12 +359,12 @@ impl Theme {
         style(self.tick_text(), align, fill)
     }
 
-    /// An axis label's style: centred lines in `fill`.
+    /// An axis label's style: centered lines in `fill`.
     pub(crate) fn axis_label(&self, fill: Rgb) -> text::Style {
         style(self.label_text(), anchor::Horizontal::Middle, fill)
     }
 
-    /// A panel title's style: centred lines in ink.
+    /// A panel title's style: centered lines in ink.
     pub(crate) fn title(&self) -> text::Style {
         style(self.label_text(), anchor::Horizontal::Middle, self.ink)
     }
@@ -384,24 +387,25 @@ impl Theme {
         style(self.tick_text(), anchor::Horizontal::Start, self.ink)
     }
 
-    /// A legend's title: 12 pt (`legend.title_fontsize`), centred lines in
+    /// A legend's title: 12 pt (`legend.title_fontsize`), centered lines in
     /// ink.
     pub(crate) fn legend_title(&self) -> text::Style {
         style(self.label_text(), anchor::Horizontal::Middle, self.ink)
     }
 
-    /// Behind an inset legend: the panel's color at matplotlib's
+    /// The color behind an inset legend: the panel's color at matplotlib's
     /// `legend.framealpha`, 0.8.
     pub(crate) fn legend_face(&self) -> Rgb {
         self.panel().with_opacity(0.8)
     }
 
-    /// An inset legend's edge: matplotlib's `legend.edgecolor`, gray 0.8.
+    /// The color of an inset legend's edge: matplotlib's
+    /// `legend.edgecolor`, gray 0.8.
     pub(crate) fn legend_edge(&self) -> Rgb {
         Rgb::hex(0xcccccc)
     }
 
-    /// The figure title's style: centred lines in ink.
+    /// The figure title's style: centered lines in ink.
     pub(crate) fn figure_title(&self) -> text::Style {
         style(
             self.figure_title_text(),

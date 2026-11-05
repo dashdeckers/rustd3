@@ -1,10 +1,11 @@
-//! [`Notation`]: offset and multiplier notation, matplotlib 3.11.2's
-//! `ScalarFormatter` offset text and order of magnitude for a continuous
-//! axis whose domain sits far from zero, or is tiny or huge.
+//! [`Notation`]: offset and multiplier notation for a continuous axis
+//! whose domain sits far from zero, or is tiny or huge. It follows the
+//! offset text and order of magnitude of matplotlib 3.11.2's
+//! `ScalarFormatter`.
 
 use rustd3_core::format;
 
-/// Domains whose centre is more than this many spans from zero get an
+/// Domains whose center is more than this many spans from zero get an
 /// offset.
 const FAR: f64 = 1e4;
 
@@ -29,11 +30,12 @@ pub(crate) enum Notation {
 impl Notation {
     /// The notation of a continuous domain `[a, b]`, or `None`.
     ///
-    /// An offset when `|a + b| / 2 / |b − a| > 10⁴`: with `p` the smallest
-    /// integer for which `10^p ≥ |b − a|`, the multiple of `10^p` in
-    /// `[min(a, b) − 10^p, max(a, b)]` with the most trailing zeros (ties:
-    /// nearest the centre). Otherwise a multiplier `10^m`, `m =
-    /// floor(log10(max(|a|, |b|)))`, when `m ≤ −5` or `m ≥ 6`.
+    /// It is an offset when `|a + b| / 2 / |b − a| > 10⁴`. With `p` the
+    /// smallest integer for which `10^p ≥ |b − a|`, the offset is the
+    /// multiple of `10^p` in `[min(a, b) − 10^p, max(a, b)]` with the most
+    /// trailing zeros (ties: nearest the center). Otherwise it is a
+    /// multiplier `10^m`, `m = floor(log10(max(|a|, |b|)))`, when `m ≤ −5`
+    /// or `m ≥ 6`.
     pub(crate) fn of([a, b]: [f64; 2]) -> Option<Notation> {
         let span = (b - a).abs();
         let centre = (a + b) / 2.0;
@@ -60,9 +62,9 @@ impl Notation {
     }
 
     /// The label at the axis's end, written in `locale` as tick labels are
-    /// (its decimal mark, minus sign and numerals): `+` or the minus and the
-    /// offset's shortest mantissa and exponent (`+1e9`, `+1.2345e4`,
-    /// `−1e9`), or the multiplier (`1e−7`, `1e7`).
+    /// (its decimal mark, minus sign and numerals). An offset reads as its
+    /// sign and its shortest mantissa and exponent (`+1e9`, `+1.2345e4`,
+    /// `−1e9`); a multiplier reads as its power (`1e−7`, `1e7`).
     pub(crate) fn label(self, locale: &format::Locale) -> String {
         let (mantissa, digits, exponent, sign) = match self {
             Notation::Offset(o) => {

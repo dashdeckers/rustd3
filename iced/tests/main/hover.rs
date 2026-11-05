@@ -95,9 +95,9 @@ fn move_to(harness: &mut Harness<'static, Message>, to: Point) {
     let _ = harness.events(&[Event::Mouse(mouse::Event::CursorMoved { position: to })]);
 }
 
-/// A harness on [`grid`] at factor `k` reporting hovers, after its first
-/// frame at `t0`, and the figure resolved as it shows it; `None` when the
-/// backend is skipped.
+/// A harness on [`grid`] at factor `k` that reports hovers, after its first
+/// frame at `t0`, with the figure resolved as the harness shows it. `None`
+/// when the backend is skipped.
 fn hovering(
     k: f32,
     t0: Instant,

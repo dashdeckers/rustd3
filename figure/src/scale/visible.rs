@@ -10,9 +10,9 @@ use rustd3_core::jiff::Timestamp;
 const STEPS: f64 = 8.0;
 
 /// The last domain of each `Fit::Visible` handle, keyed by its index in
-/// the scale table and its scale's type, which survive a figure's rebuild:
-/// kept in [`figure::Cache`](crate::cache::Cache), so the widget's cache carries
-/// it from frame to frame.
+/// the scale table and its scale's type, which survive a figure's rebuild.
+/// It is kept in the [`Cache`](crate::cache::Cache), which carries it from
+/// frame to frame.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Memory {
     domains: HashMap<(usize, TypeId), Domain>,
@@ -54,10 +54,11 @@ impl Domain {
 
 impl Memory {
     /// The domain of handle `key` now that its data pads to `padded`,
-    /// remembered for the next resolve: `padded` the first time; then each
-    /// end grows at once to `padded`'s, or moves inward by whole steps of
-    /// one eighth of the last domain's span while `padded` still fits
-    /// (whole nanoseconds for instants). Domains keep their orientation.
+    /// remembered for the next resolve. It is `padded` the first time.
+    /// After that, each end grows at once to `padded`'s, or moves inward by
+    /// whole steps of one eighth of the last domain's span while `padded`
+    /// still fits (whole nanoseconds for instants). Domains keep their
+    /// orientation.
     pub(crate) fn settle(&mut self, key: (usize, TypeId), padded: Domain) -> Domain {
         let settled = match (self.domains.get(&key), padded) {
             (Some(&Domain::Number(last)), Domain::Number(padded)) => {
@@ -114,11 +115,11 @@ fn step_ns(last: [i128; 2], padded: [i128; 2]) -> [i128; 2] {
     order([lo, hi])
 }
 
-/// The domain after `last` toward `padded` (both in increasing or both in
-/// decreasing order): each end grows at once past `padded`'s, or moves
-/// inward by the most whole steps of `last`'s span / 8 that keep `padded`
-/// inside; `padded` when the two disagree in order or a span is not
-/// finite and positive.
+/// The domain after `last` toward `padded`, both in increasing or both in
+/// decreasing order. Each end grows at once to `padded`'s, or moves inward
+/// by the most whole steps of `last`'s span / 8 that keep `padded` inside.
+/// `padded` when the two disagree in order or a span is not finite and
+/// positive.
 fn step(last: [f64; 2], padded: [f64; 2]) -> [f64; 2] {
     let reversed = padded[0] > padded[1];
     if reversed != (last[0] > last[1]) {

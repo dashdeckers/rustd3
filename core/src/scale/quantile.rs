@@ -105,9 +105,9 @@ impl<R> Quantile<R> {
 
 impl<R: PartialEq> Quantile<R> {
     /// d3's `invertExtent(y)`: the bin of the first range value equal to
-    /// `y`, from its lower to its upper edge (the sample's least and
-    /// greatest values at either end, NaN for an empty sample); `None` when
-    /// no value is equal, where d3 returns `[NaN, NaN]`.
+    /// `y`, from its lower to its upper edge. The outer bins end at the
+    /// sample's least and greatest values, or NaN for an empty sample.
+    /// `None` when no value is equal, where d3 returns `[NaN, NaN]`.
     pub fn invert_extent(&self, y: &R) -> Option<[f64; 2]> {
         let i = self.range.iter().position(|r| r == y)?;
         let end = |value: Option<&f64>| value.copied().unwrap_or(f64::NAN);

@@ -7,7 +7,7 @@ use crate::raster::{Error, Image};
 /// # Errors
 ///
 /// [`Error::Length`] for pixels that are not
-/// `width × height × 4` bytes.
+/// `width × height × 4` bytes, [`Error::Empty`] for an image of no pixel.
 pub fn encode(image: &Image) -> Result<Vec<u8>, Error> {
     let expected = u64::from(image.width) * u64::from(image.height) * 4;
     if u64::try_from(image.rgba.len()).ok() != Some(expected) {

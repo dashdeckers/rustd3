@@ -25,8 +25,8 @@ const BARS_X: f32 = 60.0;
 /// The labels' size in px.
 const LABEL_PX: f32 = 12.0;
 
-/// Everything about one bar that animates: d3 tweens DOM attributes; here
-/// they are fields, blended by the derive.
+/// Everything about one bar that animates. Where d3 tweens DOM attributes,
+/// these are fields that the `Interpolate` derive blends.
 #[derive(Debug, Clone, Copy, PartialEq, Interpolate)]
 pub struct Bar {
     /// The top of its row, in px.
@@ -43,7 +43,8 @@ pub struct Bar {
 pub struct App {
     seed: u32,
     marks: Marks<&'static str, Bar>,
-    /// `view` reads no clock: the latest instant a message brought.
+    /// The latest instant a message brought, which `view` draws at instead
+    /// of reading a clock.
     now: Instant,
 }
 
@@ -73,7 +74,7 @@ impl App {
         app
     }
 
-    /// New data re-ranks the bars: entering ones grow from zero width in
+    /// Re-ranks the bars on new data. Entering bars grow from zero width in
     /// their row, the others move to their new row and length, and those
     /// out of the top five shrink and fade where they are. A frame stores
     /// its instant and drops the exits that have finished.
@@ -120,8 +121,8 @@ impl App {
         }
     }
 
-    /// Frames only while something moves; at rest the app takes none, so
-    /// it does not redraw at the display's rate.
+    /// Subscribes to frames only while something moves, so the app at rest
+    /// does not redraw at the display's rate.
     pub fn subscription(&self) -> Subscription<Message> {
         if self.is_animating() {
             iced::window::frames().map(Message::Frame)
@@ -135,7 +136,7 @@ impl App {
         canvas(Chart { app: self }).width(Fill).height(Fill)
     }
 
-    /// Every bar's name, value and phase at the latest instant, in the
+    /// Every bar's name, state and phase at the latest instant, in the
     /// order the names first entered.
     pub fn bars(&self) -> Vec<(&'static str, Bar, Phase)> {
         self.marks
@@ -144,7 +145,7 @@ impl App {
             .collect()
     }
 
-    /// Some bar has not reached its target at the latest instant.
+    /// Whether some bar has not reached its target at the latest instant.
     pub fn is_animating(&self) -> bool {
         self.marks.is_animating(self.now)
     }

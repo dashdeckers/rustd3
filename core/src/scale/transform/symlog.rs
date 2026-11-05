@@ -12,10 +12,10 @@ const LINEAR_SPAN: f64 = 100.0;
 
 /// d3's symlog transform, `sign(x)·ln(1 + |x/c|)`: linear near 0 and
 /// logarithmic beyond the constant c. Ticks are d3's linear ticks while the
-/// domain stays within two decades past the constant and thinned decades
-/// (`ticks::decades`) beyond; minor ticks are 2–9 per decade between decade
-/// majors. Labels follow the ticks: d3's linear tick format for linear
-/// ticks, `",.12~g"` for decades.
+/// domain stays within two decades past the constant, and thinned decades
+/// (`ticks::decades`) beyond. Minor ticks are 2–9 per decade between decade
+/// majors. Labels follow the ticks, with d3's linear tick format for linear
+/// ticks and `",.12~g"` for decades.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Symlog {
     constant: f64,
@@ -26,8 +26,7 @@ pub struct Symlog {
 
 impl Symlog {
     /// The transform with constant `constant`, for a scale's
-    /// [`transform`](crate::scale::Sequential::transform); `scale::symlog()`
-    /// and the `constant` builders make it too.
+    /// [`transform`](crate::scale::Sequential::transform).
     ///
     /// ```
     /// use rustd3_core::scale::{self, transform};
@@ -45,7 +44,7 @@ impl Symlog {
 
     /// The decades branch of the tick rule: `ticks::decades` once the
     /// larger end is 100 constants or more from 0 and at least two decades
-    /// fall inside the domain; `None` where the rule ticks linearly.
+    /// fall inside the domain. `None` where the rule ticks linearly.
     fn decades(&self, domain: [f64; 2], count: usize) -> Option<Vec<f64>> {
         let largest = domain[0].abs().max(domain[1].abs());
         if largest / self.constant < LINEAR_SPAN {
@@ -101,15 +100,16 @@ impl Transform for Symlog {
             .unwrap_or_else(|| ticks::linear(domain, count))
     }
 
-    /// When every nonzero major is ±c·10ᵏ, or every one but the first and
-    /// last is and at least two of those share a sign (an axis's majors
-    /// extended by one step past each end), m·c·10ᵏ for m = 2 … 9 strictly
-    /// between neighbouring majors of one sign at most a decade apart (none
-    /// next to 0, none across thinned decades, as matplotlib's log minors),
-    /// at most 10,000, and none at all once ten or more decades ±c·10ᵏ lie
-    /// inside the domain (matplotlib's `n_avail >= 10`). Otherwise five
-    /// equal steps in data space between majors: evenly spaced majors never
-    /// hold two decades of one sign.
+    /// Decade minors when every nonzero major is ±c·10ᵏ, or when every one
+    /// but the first and last is and at least two of those share a sign (an
+    /// axis's majors extended by one step past each end). These are
+    /// m·c·10ᵏ for m = 2 … 9 strictly between neighboring majors of one
+    /// sign at most a decade apart, as matplotlib's log minors, so there are
+    /// none next to 0 and none across thinned decades. They are capped at
+    /// 10,000, and there are none at all once ten or more decades ±c·10ᵏ
+    /// lie inside the domain (matplotlib's `n_avail >= 10`). Otherwise the
+    /// minors are five equal steps in data space between majors, since
+    /// evenly spaced majors never hold two decades of one sign.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         let tied = |v: &f64| *v == 0.0 || self.decade(*v);
         let inner = major
@@ -158,9 +158,9 @@ impl Transform for Symlog {
         }
     }
 
-    /// The format of the branch `ticks` takes: for decades every tick
-    /// labelled, the specifier defaulting to `",.12~g"` (asinh's labels);
-    /// for linear ticks d3's linear tick format.
+    /// The format of the branch `ticks` takes. Decades label every tick,
+    /// the specifier defaulting to `",.12~g"` as asinh's labels do. Linear
+    /// ticks take d3's linear tick format.
     fn tick_format(
         &self,
         locale: &Locale,

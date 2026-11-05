@@ -21,8 +21,8 @@ use crate::system::{self, Meta, Planned};
 use crate::workload::Workload;
 use crate::{Example, also, app, archive, headless, load, raster, recorder, report, repro, rule};
 
-/// Runs a command of `example`; `args` are the process's, `epoch` its
-/// start.
+/// Runs a command of `example`. `args` are the process's arguments, and
+/// `epoch` is its start.
 pub fn execute(
     command: widget::Command,
     example: Example,
@@ -44,8 +44,8 @@ pub fn execute(
     }
 }
 
-/// Runs `request`'s level with the widget's part, unless `--figure-only`,
-/// each profile by the sibling example that runs it.
+/// Runs `request`'s level, with the widget's part unless `--figure-only`.
+/// Each profile runs in the sibling example that runs it.
 pub fn level(request: &Request) -> Result<(), Box<dyn Error>> {
     let siblings = Siblings::here()?;
     let mut part = level::widget::Part::new(request, &siblings);
@@ -53,9 +53,9 @@ pub fn level(request: &Request) -> Result<(), Box<dyn Error>> {
     request.run(&siblings.figure, (!request.figure_only).then_some(widget))
 }
 
-/// How long a run may take beyond its scenario before it is killed, s:
-/// start, data, the driver's 2 s settle and its 30 s wait for sharp
-/// frames, and a margin.
+/// How long a run may take beyond its scenario before it is killed, in s.
+/// It covers start-up, data generation, the driver's 2 s settle and its
+/// 30 s wait for sharp frames, plus a margin.
 const RUN_MARGIN_S: f64 = 120.0;
 
 /// Prints scenarios, workloads, plans and the cells `options` select.
@@ -110,11 +110,11 @@ fn list(options: &Options) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// `report PATH`: one run's directory (`meta.json` at its top) rebuilt
-/// in place; a level's directory rebuilt in place, or its archive in a
-/// temporary directory, each profile's report from its raw records and
-/// then `results.json` and `report.md`; a directory from before the
-/// levels read as it is. Prints the report.
+/// `report PATH`: rebuilds a report and prints it. One run's directory
+/// (`meta.json` at its top) is rebuilt in place. A level's directory is
+/// rebuilt in place, or its archive in a temporary directory: first each
+/// profile's report from its raw records, then `results.json` and
+/// `report.md`. A directory from before the levels is read as it is.
 pub fn report(path: &Path) -> Result<(), Box<dyn Error>> {
     if path.join("meta.json").is_file() {
         println!("{}", report::build(path)?.summary);
@@ -160,7 +160,7 @@ pub fn report(path: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 /// Writes every scenario's generated input at full duration for the
-/// standard figures, `4k` at factor 2, into `out`.
+/// standard figures, with `4k` at factor 2, into `out`.
 fn write_replays(out: &Path) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(out)?;
     for scenario in Scenario::ALL {
@@ -173,8 +173,9 @@ fn write_replays(out: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// `repro-software` (with one window-sized image if `single`) into `out`,
-/// else `bench-results/repro-<UTC stamp>.txt`.
+/// Runs `repro-software` (with one image larger than the window if
+/// `single`) and writes to `out`, or else to
+/// `bench-results/repro-<UTC stamp>.txt`.
 fn repro_software(out: Option<PathBuf>, single: bool) -> Result<(), Box<dyn Error>> {
     let out = out.unwrap_or_else(|| {
         PathBuf::from("bench-results").join(format!("repro-{}.txt", system::stamp()))
@@ -282,10 +283,10 @@ fn run(options: &Options, example: Example, args: &[String]) -> Result<(), Box<d
     }
 }
 
-/// Writes each cell's input, for its window on a display of factor
-/// `native` and its workload's anchors, into `dir/replays` (the user's
-/// `--replay` file for every cell, when given) and returns the file per
-/// cell key.
+/// Writes each cell's input into `dir/replays` and returns the file per
+/// cell key. Each input is generated for the cell's window on a display of
+/// factor `native` and for its workload's anchors. When the user gives a
+/// `--replay` file, it serves every cell.
 fn replays(
     options: &Options,
     (plan, native): (plan::Plan, f32),

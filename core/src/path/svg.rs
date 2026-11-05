@@ -83,7 +83,8 @@ impl SvgPath {
         Self::default()
     }
 
-    /// d3.pathRound(digits): numbers rounded to `digits` places; above 15, unrounded.
+    /// d3.pathRound(digits): a path that rounds numbers to `digits` places,
+    /// or leaves them unrounded when `digits` is above 15.
     #[must_use]
     pub fn with_digits(digits: usize) -> Self {
         let scale = POWERS.get(digits).copied();
@@ -93,12 +94,13 @@ impl SvgPath {
         }
     }
 
-    /// `arc` that reports a negative radius (d3 throws) instead of drawing nothing.
+    /// Adds an arc as [`PathContext::arc`] does, but reports a negative
+    /// radius (where d3 throws) instead of drawing nothing.
     ///
     /// # Errors
     ///
-    /// [`Error::NegativeRadius`](crate::path::Error::NegativeRadius) for `r
-    /// < 0`, the path unchanged.
+    /// [`Error::NegativeRadius`](crate::path::Error::NegativeRadius) for
+    /// `r < 0`, with the path unchanged.
     pub fn try_arc(
         &mut self,
         x: f64,
@@ -152,8 +154,8 @@ impl SvgPath {
     ///
     /// # Errors
     ///
-    /// [`Error::NegativeRadius`](crate::path::Error::NegativeRadius) for `r
-    /// < 0`, the path unchanged.
+    /// [`Error::NegativeRadius`](crate::path::Error::NegativeRadius) for
+    /// `r < 0`, with the path unchanged.
     pub fn arc_to(&mut self, x1: f64, y1: f64, x2: f64, y2: f64, r: f64) -> Result<(), Error> {
         if r < 0.0 {
             return Err(Error::NegativeRadius(r));

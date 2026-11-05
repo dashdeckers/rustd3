@@ -4,7 +4,7 @@ use crate::interact::brush::engine::{Dim, Engine};
 use crate::interact::{BrushEvent, Pointer};
 
 /// d3.brushY(): the same as [`BrushX`](crate::interact::BrushX) over y,
-/// with handles `n` and `s`; the selection spans the extent's x.
+/// with handles `n` and `s`. The selection spans the extent's x.
 ///
 /// A new selection, clamped to the extent, then a flip (d3's trace T1
 /// along y):
@@ -45,8 +45,8 @@ impl BrushY {
         }
     }
 
-    /// Feeds one event; what d3 emits for it. A move emits only when it
-    /// changes the selection.
+    /// Feeds one event and returns what d3 emits for it. A move emits only
+    /// when it changes the selection.
     pub fn handle(&mut self, input: Pointer) -> Option<BrushEvent> {
         self.engine.handle(input)
     }
@@ -64,8 +64,8 @@ impl BrushY {
         self.engine.set_selection(selection);
     }
 
-    /// A gesture is in progress: an app syncs the brush from its own state
-    /// only between gestures.
+    /// Whether a gesture is in progress. An app syncs the brush from its own
+    /// state only between gestures.
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.engine.is_active()

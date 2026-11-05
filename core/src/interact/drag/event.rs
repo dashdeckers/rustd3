@@ -23,15 +23,15 @@ pub enum Event {
         /// The pointer's vertical movement since the previous event.
         dy: f64,
     },
-    /// The left button was released; the position is the last move's,
+    /// The left button was released. The position is the last move's,
     /// since a release carries none.
     End {
         /// The subject's horizontal position.
         x: f64,
         /// The subject's vertical position.
         y: f64,
-        /// `moved`: the pointer travelled beyond the click distance (d3
-        /// then suppresses the click).
+        /// Whether the pointer traveled beyond the click distance, in
+        /// which case d3 suppresses the click.
         moved: bool,
     },
 }

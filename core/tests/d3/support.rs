@@ -1,6 +1,5 @@
-//! What d3's converted tests call beyond rustd3-core: the comparisons
-//! d3's assertions make where `assert_eq!` does not express them, and
-//! d3's test helpers.
+//! What d3's ported tests need beyond rustd3-core: d3's assertions that
+//! `assert_eq!` cannot express, and ports of d3's test helpers.
 
 use rustd3_core::color::{Hcl, Hsl, Lab, Rgb};
 use rustd3_core::ease::Ease;
@@ -12,11 +11,12 @@ use rustd3_core::shape;
 use rustd3_testkit::obs::{Obs, ToObs, Token, Tolerance, tokenize};
 pub use rustd3_testkit::zone;
 
-/// d3's `assert.strictEqual` and `deepStrictEqual` where the two sides have
-/// different Rust types (an `Option` against a value, a tuple against an
-/// array, `()` against `undefined`) or compare otherwise than by `==`:
-/// both as [`Obs`] values, equal under `Object.is` (NaN equals NaN) or
-/// within the tolerant comparison of numbers and printed numbers.
+/// d3's `assert.strictEqual` and `deepStrictEqual`, for sides of different
+/// Rust types (an `Option` against a value, a tuple against an array, `()`
+/// against `undefined`) or that `==` does not compare as d3 does. Both
+/// sides become [`Obs`] values, which pass when equal under `Object.is`
+/// (NaN equals NaN) or within the tolerant comparison of numbers and
+/// printed numbers.
 #[track_caller]
 pub fn assert_d3_eq<A: ToObs + ?Sized, B: ToObs + ?Sized>(actual: &A, expected: &B) {
     let (actual, expected) = (actual.to_obs(), expected.to_obs());
@@ -249,11 +249,12 @@ pub fn in_out(ease: Ease) -> impl Fn(f64) -> f64 {
 }
 
 /// d3-time's test helper `local(year, month, day, hours, minutes, seconds,
-/// milliseconds)` in `zone`: ECMAScript's MakeDay, MakeTime and MakeDate
-/// over 1 to 7 fields (the month from 0; a missing day is 1, other missing
-/// fields 0; any field may carry into the next, negative ones back; years
-/// 0–99 literal), resolved as `Date` resolves a local time, by jiff's
-/// compatible disambiguation.
+/// milliseconds)` in `zone`. It follows ECMAScript's MakeDay, MakeTime and
+/// MakeDate over 1 to 7 fields. The month counts from 0, a missing day is
+/// 1 and other missing fields are 0, any field may carry into the next one
+/// or borrow from it when negative, and years 0–99 are taken literally. The
+/// result resolves as `Date` resolves a local time, by jiff's compatible
+/// disambiguation.
 pub fn local(zone: &TimeZone, fields: &[f64]) -> Timestamp {
     zone.to_timestamp(make_date(fields))
         .expect("d3 test: a date in jiff's range")

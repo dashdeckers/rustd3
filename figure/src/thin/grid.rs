@@ -1,14 +1,14 @@
 //! [`Grid`]: a thinning column grid anchored in output space.
 
-/// A thinning column grid anchored in output space (plain data): column
-/// `c` spans `[origin + c / density, origin + (c + 1) / density)` list px
-/// along a plot area, from its left edge (the x scale's output in a
+/// A thinning column grid anchored in output space. Column `c` spans
+/// `[origin + c / density, origin + (c + 1) / density)` list px along a
+/// plot area, measured from its left edge (the x scale's output in a
 /// panel), for every integer `c`.
 ///
 /// A widget that pans by whole device pixels moves `origin` by the same
-/// amount, so the data boundaries of the columns that stay in view repeat
-/// and their M4 samples with them; outside gestures a line thins on the
-/// grid anchored at its plot area's left edge at the target's density.
+/// amount. The columns that stay in view then keep their data boundaries,
+/// and so their M4 samples. Outside gestures, a line thins on the grid
+/// anchored at its plot area's left edge, at the target's density.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Grid {
     /// Output px of the data anchor.
@@ -18,9 +18,9 @@ pub struct Grid {
 }
 
 impl Grid {
-    /// The columns that intersect the view `[lo, hi]` (output px), first
-    /// and last; `None` when the grid is not finite and positive or no
-    /// column does. Products within 1e-9 of a whole column count as on it,
+    /// The first and last columns that intersect the view `[lo, hi]`
+    /// (output px), or `None` when the grid is not finite and positive or
+    /// no column does. Products within 1e-9 of a whole column count as on it,
     /// so a view whose ends lie on column edges takes no extra column.
     pub(crate) fn span(self, [lo, hi]: [f64; 2]) -> Option<(i64, i64)> {
         const SLACK: f64 = 1e-9;

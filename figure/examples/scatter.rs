@@ -32,13 +32,14 @@ pub const SIZE: Size = Size::new(640.0, 480.0);
 /// Device px per logical px of the example's PNG.
 pub const SCALE: f64 = 2.0;
 
-/// The clusters' keys and centres.
+/// The clusters' keys and centers.
 const CLUSTERS: [(&str, [f64; 2]); 3] = [("a", [0.0, 0.0]), ("b", [2.5, 1.0]), ("c", [1.0, 2.5])];
 
-/// `n` points in three Gaussian clusters, point `i` in cluster `i % 3`, as
-/// one dots mark per cluster filled with its palette color: three
-/// `Markers` commands however many points there are. The normal deviates
-/// come from the wheel figure's LCG (seed 11) through Box–Muller.
+/// A figure of `n` points in three Gaussian clusters, point `i` in cluster
+/// `i % 3`. Each cluster is one dots mark filled with its palette color,
+/// so the figure draws three `Markers` commands however many points there
+/// are. The normal deviates come from the wheel figure's LCG (seed 11)
+/// through Box–Muller.
 pub fn scatter(n: usize) -> Figure<'static> {
     let mut seed = 11_u32;
     let mut u = move || {

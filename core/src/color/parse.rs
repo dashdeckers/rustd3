@@ -11,10 +11,11 @@ pub(super) enum Parsed {
     Hsl(Hsl),
 }
 
-/// The color `input` names: JavaScript's whitespace trimmed, ASCII
-/// lowercased, then `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb(…)`
-/// with integers or with percentages, `rgba(…)` in both forms, `hsl(…)`,
-/// `hsla(…)`, the 148 names and `transparent`; `None` for anything else.
+/// The color `input` names, or `None`. The input is trimmed of
+/// JavaScript's whitespace and ASCII-lowercased, then read as `#rgb`,
+/// `#rgba`, `#rrggbb`, `#rrggbbaa`, `rgb(…)` with integers or with
+/// percentages, `rgba(…)` in both forms, `hsl(…)`, `hsla(…)`, one of the
+/// 148 names, or `transparent`.
 pub(super) fn parse(input: &str) -> Option<Parsed> {
     let s = input.trim_matches(is_space).to_ascii_lowercase();
     if let Some(digits) = s.strip_prefix('#') {
@@ -102,9 +103,9 @@ fn rgba([r, g, b]: [f64; 3], opacity: f64) -> Rgb {
     }
 }
 
-/// d3's `hsla(h, s, l, a)`: nothing when the alpha is at most 0, no hue
-/// or saturation for black and white and beyond, no hue without
-/// saturation.
+/// d3's `hsla(h, s, l, a)`: every component NaN when the alpha is at most
+/// 0, no hue or saturation when the lightness is at most 0 or at least 1,
+/// and no hue when the saturation is at most 0.
 fn hsla([h, s, l]: [f64; 3], opacity: f64) -> Hsl {
     let (h, s, l) = if opacity <= 0.0 {
         (f64::NAN, f64::NAN, f64::NAN)

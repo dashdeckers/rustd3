@@ -1,7 +1,7 @@
-//! The `Plot` widget driven by replayed gestures in windows: one plan of
-//! scenarios (hover, pans, zooms, resizes) by workload by scale factor, a
-//! cold process per run, on the native backend or the software renderer
-//! (`--help` for the plans and flags).
+//! The `Plot` widget driven by replayed gestures in windows. A plan crosses
+//! scenarios (hover, pans, zooms, resizes) with workloads and scale
+//! factors, and each run is a cold process on the native backend or the
+//! software renderer (`--help` for the plans and flags).
 //!
 //! ```text
 //! cargo run --release --example bench_gestures -- --plan quick --refresh-hz 60 --native-factor 1

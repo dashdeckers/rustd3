@@ -11,8 +11,9 @@ use crate::helpers::chart::setup::Setup;
 use crate::legend::{self, Slot};
 use crate::mark::{bar_y, bar_y_spans};
 
-/// The share of a key's step left between neighbouring bands: seaborn's
-/// bar width of 0.8, half the gap outside the first and last band.
+/// The share of a key's step left between neighboring bands, which gives
+/// seaborn's bar width of 0.8. Half as much is left outside the first and
+/// last band.
 const GAP: f64 = 0.2;
 
 /// A bar chart: per key, one bar per series, grouped, stacked or diverging
@@ -32,12 +33,13 @@ impl<K> std::fmt::Debug for Bar<K> {
 }
 
 /// A bar chart of `rows`, each a key and its values in the order of
-/// `series`, the series' names: the keys on a band scale whose bars take
-/// 0.8 of each step (seaborn's), a fitted linear y, each series in its
-/// name's color, the bars [`Grouped`](Mode::Grouped) by default, a bottom
-/// and a left axis (minor ticks on y), and a legend right of the plot area
-/// when there is more than one series. A row with fewer values than series
-/// has no bar (NaN) for the rest.
+/// `series`, the series' names. The keys sit on a band scale whose bars
+/// take 0.8 of each step (as seaborn's do), against a fitted linear y.
+/// Each series is drawn in its name's color, and the bars are
+/// [`Grouped`](Mode::Grouped) by default. The chart has a bottom and a
+/// left axis (minor ticks on y), and a legend right of the plot area when
+/// there is more than one series. A row with fewer values than series has
+/// no bar (NaN) for the rest.
 ///
 /// ```
 /// use rustd3_figure::helpers::chart;
@@ -76,10 +78,10 @@ impl<K> Bar<K> {
 }
 
 impl<K: PartialEq + Clone + Display + 'static> Bar<K> {
-    /// The figure: one panel with the bars (a dodged
-    /// [`bar_y`] per series when grouped; a [`bar_y_spans`] per series of
-    /// `shape::stack`'s spans when stacked or diverging), its axes and
-    /// title, and the legend when there is more than one series.
+    /// The figure: one panel with the bars, its axes and title, and the
+    /// legend when there is more than one series. Grouped bars are a dodged
+    /// [`bar_y`] per series. Stacked or diverging bars are a
+    /// [`bar_y_spans`] per series of `shape::stack`'s spans.
     pub fn figure<'a>(self) -> Figure<'a> {
         let Bar {
             rows,
@@ -129,7 +131,8 @@ impl<K: PartialEq + Clone + Display + 'static> Bar<K> {
 
 finish!(impl[K: PartialEq + Clone + Display + 'static] Bar<K>);
 
-/// Series `i`'s value in `row`; NaN, which draws no bar, past its end.
+/// Series `i`'s value in `row`, or NaN (which draws no bar) past the row's
+/// end.
 fn value(row: &[f64], i: usize) -> f64 {
     row.get(i).copied().unwrap_or(f64::NAN)
 }

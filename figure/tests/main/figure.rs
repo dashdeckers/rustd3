@@ -432,9 +432,9 @@ fn figure_axis_ticks_follow_core_axis_positions() {
     assert_eq!(labels, digits);
 }
 
-/// The strokes of the axis part of panel 0, axis `axis`, in `list` (its
-/// ticks; the line is a part of its own): each path's tick lengths (its
-/// segments') and its width.
+/// The strokes of the axis part of panel 0, axis `axis`, in `list`, which
+/// are its ticks (the line is a part of its own). Returns each path's tick
+/// lengths (its segments') and its width.
 fn tick_strokes(list: &List, axis: u64) -> Vec<(Vec<f64>, f64)> {
     let part = list
         .parts

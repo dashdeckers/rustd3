@@ -7,12 +7,14 @@ use crate::js;
 use crate::path::PathContext;
 use crate::shape::Slice;
 
-/// d3-shape's tolerance (`math.js`): smaller radii and angles are none.
+/// d3-shape's tolerance (`math.js`): smaller radii and angles count as
+/// zero.
 const EPSILON: f64 = 1e-12;
 
-/// d3.arc() over [`Slice`]s, built by consuming builders: radii here, angles
-/// and the default pad angle from the slice. Angles run clockwise from 12
-/// o'clock; an inner radius above the outer one is swapped.
+/// d3.arc() over [`Slice`]s, built by consuming builders. The radii are set
+/// here, and the angles and default pad angle come from the slice. Angles
+/// run clockwise from 12 o'clock, and an inner radius above the outer one
+/// is swapped.
 ///
 /// ```
 /// use rustd3_core::path::SvgPath;
@@ -31,9 +33,9 @@ pub struct Arc {
     inner_radius: f64,
     outer_radius: f64,
     corner_radius: f64,
-    /// `None`: √(r₀² + r₁²).
+    /// The radius the pad angle is measured at, or `None` for √(r₀² + r₁²).
     pad_radius: Option<f64>,
-    /// `None`: the slice's own.
+    /// The pad angle for every slice, or `None` for each slice's own.
     pad_angle: Option<f64>,
 }
 
@@ -120,7 +122,7 @@ impl Arc {
         ctx.close_path();
     }
 
-    /// d3's `arc.centroid(d)`: the midpoint of the slice's centre line, at
+    /// d3's `arc.centroid(d)`: the midpoint of the slice's center line, at
     /// the mean radius and the mean angle.
     #[must_use]
     pub fn centroid(&self, slice: &Slice) -> (f64, f64) {

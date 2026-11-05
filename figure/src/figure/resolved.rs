@@ -65,7 +65,7 @@ impl std::fmt::Debug for Resolved {
 
 impl Resolved {
     /// The resolved scales of figure `figure` for `target` and `size`,
-    /// labelled in `locale`, before layout.
+    /// labeled in `locale`, before layout.
     pub(super) fn new(
         figure: figure::Id,
         scales: Vec<Box<dyn Scale>>,
@@ -106,9 +106,9 @@ impl Resolved {
     }
 
     /// The resolved scale behind a handle of an axis, guide or brush the
-    /// figure placed: [`Panel`]'s and [`Figure`](crate::Figure)'s
-    /// placement drops those on handles of other figures, and a `Resolved`
-    /// is drawn only for its own figure.
+    /// figure placed. It is never missing, because [`Panel`] and
+    /// [`Figure`](crate::Figure) drop placements on handles of other
+    /// figures, and a `Resolved` is drawn only for its own figure.
     pub(crate) fn own<S: Kind>(&self, h: ScaleRef<S>) -> &S {
         self.get_scale(h)
             .expect("invariant: placed axes, guides and brushes are on their figure's handles")
@@ -140,8 +140,8 @@ impl Resolved {
 
     /// The side of axis `axis` (in insertion order) of panel `panel`, and
     /// its handle's table position; `None` when there is no such axis.
-    /// With [`get_plan`](Resolved::get_plan)'s offset and thickness it bounds the
-    /// strip the axis draws in.
+    /// With [`get_plan`](Resolved::get_plan)'s offset and thickness it
+    /// bounds the strip the axis draws in.
     #[must_use]
     pub fn get_axis(&self, panel: usize, axis: usize) -> Option<(Orient, usize)> {
         self.axes.get(panel)?.get(axis).copied()
@@ -171,9 +171,10 @@ impl Resolved {
     }
 
     /// The box of every tick label layout kept, in list px, in panel, axis
-    /// and tick order: the label's advance width by its line box (its ink
-    /// box, turned, for a rotated label, whose box this is the bounding
-    /// rectangle of). No two labels overlap: rotated ones as turned boxes.
+    /// and tick order. A label's box is its advance width by its line box,
+    /// and for a rotated label it is the bounding rectangle of its turned
+    /// ink box. No two labels overlap, with rotated ones compared as turned
+    /// boxes.
     #[must_use]
     pub fn label_boxes(&self) -> Vec<kurbo::Rect> {
         self.panels
@@ -217,15 +218,16 @@ impl Resolved {
         layout::Areas::new(self.areas.clone(), self.size)
     }
 
-    /// True when this resolve used held areas.
+    /// Whether this resolve used held areas.
     #[must_use]
     pub fn get_held(&self) -> bool {
         self.held
     }
 
-    /// What the last placement of the tracks needed and had, px: reaches
-    /// and gaps, and the length the tracks fill, across the columns, then
-    /// down the rows. Held layouts place nothing: 0 and 0.
+    /// What the last placement of the tracks needed and had, in px, across
+    /// the columns and then down the rows. The need is the reaches and
+    /// gaps, and the room had is the length the tracks fill. Held layouts
+    /// place nothing, so both are 0.
     #[cfg_attr(
         not(feature = "fonts"),
         expect(
@@ -343,10 +345,10 @@ impl Resolved {
             .find_map(|k| k.hatch.as_ref())
     }
 
-    /// The opacity a legend square of a color of opacity `opacity` repeats:
-    /// the most opaque fill among the marks that reported filling a shape
-    /// in palette `palette`'s (its table position) color for a key for
-    /// which `is` holds; `opacity` when none did.
+    /// The opacity a legend square repeats for a color of opacity
+    /// `opacity`. It is the most opaque fill among the marks that reported
+    /// filling a shape in palette `palette`'s (its table position) color
+    /// for a key for which `is` holds, or `opacity` when none did.
     pub(crate) fn opacity(
         &self,
         palette: usize,
@@ -363,8 +365,8 @@ impl Resolved {
 
     /// The legend swatch of the marks that reported drawing in palette
     /// `palette`'s (its table position) color for a key for which `is`
-    /// holds: a square when any of them fills a shape, else the first
-    /// line's, else a dot; `None` when none did.
+    /// holds. It is a square when any of them fills a shape, else the first
+    /// line's swatch, else a dot. `None` when none did.
     pub(crate) fn glyph(&self, palette: usize, is: impl Fn(&dyn Any) -> bool) -> Option<Swatch> {
         let glyphs = || {
             self.keys

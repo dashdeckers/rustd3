@@ -19,15 +19,12 @@ const UP: f64 = 35.0;
 /// px between a stacked axis and the decorations of the axis before it.
 const GAP: f64 = 8.0;
 
-/// How layout places one axis of a panel: whether it is drawn, whether
-/// with its tick labels and title, how far outside the plot area it sits,
-/// how far past that it reaches, and how many ticks it asks its scale for.
-/// Plain data.
+/// How layout places one axis of a panel. Plain data.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Plan {
-    /// Drawn at all.
+    /// Whether the axis is drawn at all.
     pub shown: bool,
-    /// Drawn with its tick labels and title.
+    /// Whether it is drawn with its tick labels and title.
     pub labeled: bool,
     /// px between the plot area and the axis line.
     pub offset: f64,
@@ -41,18 +38,18 @@ pub struct Plan {
 /// panel's place in the grid and the axes before it decide.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Role {
-    /// Drawn at all.
+    /// Whether the axis is drawn at all.
     pub(crate) shown: bool,
-    /// With its tick labels and title.
+    /// Whether it is drawn with its tick labels and title.
     pub(crate) labeled: bool,
 }
 
 /// Each panel's axes' roles, in insertion order. An axis is inner when a
-/// panel further out on its side (left of it for a left axis, in a row it
-/// spans; below it for a bottom axis, in a column it spans) shows the same
-/// handle on the same side; it is stacked when an axis drawn before it is
-/// on its side. Inner axes lose their labels, and inner axes that are
-/// stacked or moved outward are not drawn; `.labels(b)` sets the labels
+/// panel further out on its side shows the same handle on the same side:
+/// left of it in a row it spans for a left axis, or below it in a column
+/// it spans for a bottom axis. It is stacked when an axis drawn before it
+/// is on its side. Inner axes lose their labels, and inner axes that are
+/// stacked or moved outward are not drawn. `.labels(b)` sets the labels
 /// and draws the axis whatever its place.
 pub(crate) fn roles(panels: &[Panel<'_>]) -> Vec<Vec<Role>> {
     panels

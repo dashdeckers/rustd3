@@ -1,12 +1,12 @@
-//! Long strokes cut to what a render can show. A segment of a stroked
-//! path whose reach (half the stroke's width, as far as its joins and caps
-//! go, plus the render's antialiasing margin, which the area carries)
-//! misses the rendered area cannot touch a pixel of it, so it is dropped
-//! before vello_cpu expands the stroke: a tile of a long trace strokes its
-//! own part of the line, not all of it. Where a subpath is cut, the cut
-//! lies at a vertex farther than the reach from the area, so the cap the
-//! piece gains there and the join it loses are both out of sight; dashed
-//! pieces start at the phase the whole path has there.
+//! Cutting long strokes to what a render can show. A segment's reach is
+//! half the stroke's width, as far as its joins and caps go, plus the
+//! render's antialiasing margin, which the area carries. A segment whose
+//! reach misses the rendered area cannot touch a pixel of it, so it is
+//! dropped before vello_cpu expands the stroke. A tile of a long trace thus
+//! strokes its own part of the line, not all of it. Where a subpath is
+//! cut, the cut lies at a vertex farther than the reach from the area, so
+//! the cap the piece gains there and the join it loses are both out of
+//! sight. Dashed pieces start at the phase the whole path has there.
 
 use kurbo::{BezPath, Cap, CubicBez, Join, Line, ParamCurveArclen, PathEl, Point, QuadBez, Rect};
 
@@ -18,12 +18,12 @@ pub(super) const LONG: usize = 64;
 const ACCURACY: f64 = 1e-6;
 
 /// What of `path`, stroked with `style`, may touch `area` (in the path's
-/// space, antialiasing margin included): one path whose subpaths are the
-/// runs of segments within the stroke's reach of it and, for a dashed
-/// style, already dashed, each run from the phase the whole path has
-/// where it starts. It is stroked with the style's dashes cleared, in one
-/// call, so that pieces that overlap still fill as one path. `None` when
-/// nothing is dropped.
+/// space, antialiasing margin included). It is one path whose subpaths are
+/// the runs of segments within the stroke's reach of the area. For a
+/// dashed style the runs are already dashed, each from the phase the whole
+/// path has where it starts. Stroke it with the style's dashes cleared, in
+/// one call, so that pieces that overlap still fill as one path. `None`
+/// when nothing is dropped.
 pub(super) fn cut(path: &BezPath, style: &kurbo::Stroke, area: Rect) -> Option<BezPath> {
     let elements = path.elements();
     let reach = reach(style);

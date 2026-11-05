@@ -32,13 +32,13 @@ impl Slots {
         reserve
     }
 
-    /// Each guide and its top-left corner, in the order they were added:
-    /// a slot's first guide 0.5 em outside `grid` (the box the tracks
-    /// fill), each further one 0.5 em past the one before; top and bottom
-    /// legends centred across `extent` (the plot areas' union), left and
-    /// right ones centred on it vertically, a legend larger than the
-    /// extent overflowing it equally on both ends; colorbars with their
-    /// bar along the extent, from its start.
+    /// Each guide and its top-left corner, in the order they were added. A
+    /// slot's first guide sits 0.5 em outside `grid` (the box the tracks
+    /// fill), and each further one 0.5 em past the one before. Top and
+    /// bottom legends are centered across `extent` (the plot areas' union),
+    /// and left and right ones are centered on it vertically. A legend
+    /// larger than the extent overflows it equally on both ends. A
+    /// colorbar's bar runs along the extent, from its start.
     pub(crate) fn place(self, grid: Rect, extent: Rect, em: f64) -> Vec<(Block, Point)> {
         let gap = GAP * em;
         // How far each side's legends reach past the grid so far.
@@ -51,7 +51,7 @@ impl Slots {
                 let size = block.size();
                 let near = out[side] + gap;
                 out[side] = near + thickness;
-                // Where the block starts along the side: centred, or with
+                // Where the block starts along the side: centered, or with
                 // a colorbar's bar at the extent's start.
                 let (x, y) = match block.bar() {
                     Some(bar) => (extent.x0 - bar.x0, extent.y0 - bar.y0),

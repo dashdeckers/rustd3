@@ -12,10 +12,9 @@ use crate::{js, locale, ticks};
 /// d3's scaleDiverging: [`Sequential`](crate::scale::Sequential) with a
 /// middle stop. The domain's stops map to 0, 0.5 and 1 through a
 /// transform, each half linearly in transformed space, then through an
-/// interpolator such as a diverging scheme; the domain may descend. Log,
-/// pow, sqrt and symlog variants are
-/// [`transform`](Diverging::transform) with their builders; ticks, nice
-/// and tick formats act on the end stops. There is no `invert`, as in d3.
+/// interpolator such as a diverging scheme. The domain may descend. Ticks,
+/// nice and tick formats act on the end stops, and there is no `invert`,
+/// as in d3.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -130,9 +129,10 @@ impl<R: Clone, T: Transform> Diverging<R, T> {
     }
 
     /// d3's `scale(x)`: the interpolator at `x`'s place on its half of the
-    /// domain in transformed space, clamped to [0, 1] when set; a half whose
+    /// domain in transformed space, clamped to [0, 1] when set. A half whose
     /// stops transform alike maps to 0.5. NaN gives the unknown value when
-    /// set and the interpolator at NaN otherwise (d3 returns undefined).
+    /// set, and the interpolator at NaN otherwise, where d3 returns
+    /// undefined.
     pub fn apply(&self, x: f64) -> R {
         if x.is_nan() {
             return self
@@ -220,8 +220,8 @@ impl<R: Clone, T: Transform> Diverging<R, T> {
     }
 
     /// d3's `0.5 + (u − t1)·(s·u < s·t1 ? k10 : k21)` with `u = T(x)`, before
-    /// clamping: each half spans 0.5, or none when its stops transform
-    /// alike, and `s` follows a descending domain.
+    /// clamping. Each half spans 0.5, or nothing when its stops transform
+    /// alike, and `s` flips the comparison for a descending domain.
     fn fraction(&self, x: f64) -> f64 {
         let [t0, t1, t2] = self.forward;
         let k10 = if t0 == t1 { 0.0 } else { 0.5 / (t1 - t0) };
@@ -289,10 +289,10 @@ impl<R: Clone> Diverging<R, transform::Symlog> {
     }
 }
 
-/// The end stops fitted as a continuous scale's under the same
-/// transform, in their order: with no margin, the data's extent, a flat
-/// one widened by matplotlib's `nonsingular`. The middle stop is the
-/// caller's to keep.
+/// Fits the end stops as a continuous scale under the same transform
+/// would, keeping their order. With no margin they are the data's extent,
+/// a flat extent widened by matplotlib's `nonsingular`. The middle stop is
+/// the caller's to keep.
 ///
 /// ```
 /// use rustd3_core::scale::{self, Pad};

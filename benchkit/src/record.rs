@@ -69,15 +69,15 @@ pub enum Record {
         /// The plot area, column and row of a tile.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         tile: Option<[i32; 3]>,
-        /// Device px.
+        /// The number of device px.
         pixels: u32,
-        /// Work items.
+        /// The number of work items.
         work: u64,
-        /// Planning to start.
+        /// The time from planning to the render's start.
         queued_ms: f64,
-        /// The render.
+        /// The render's duration.
         ms: f64,
-        /// On the UI thread.
+        /// Whether it rendered on the UI thread.
         inline: bool,
     },
     /// A kept image `Caching::Verify` rendered again and found different
@@ -107,10 +107,11 @@ pub enum Record {
         /// Whole-GPU memory used, MiB (`nvidia-smi`), when sampled.
         gpu_mb: Option<f64>,
     },
-    /// A headless readback of an empty frame at the run's first size,
-    /// before its first frame (the median of a few): the screenshot's
-    /// fixed cost (a frame-sized buffer and clip mask, the background, the
-    /// conversion to RGBA), which a window's composition does not pay.
+    /// A headless readback of an empty frame at the run's first size, taken
+    /// before its first frame as the median of a few. It is the
+    /// screenshot's fixed cost (a frame-sized buffer and clip mask, the
+    /// background, the conversion to RGBA), which a window's composition
+    /// does not pay.
     Readback {
         /// Its duration.
         ms: f64,
@@ -127,7 +128,8 @@ pub enum Record {
     End {
         /// When `Done` was published.
         at_ms: f64,
-        /// False when the settle timed out before every slot was sharp.
+        /// Whether the run settled. False when the settle timed out before
+        /// every slot was sharp.
         settled: bool,
     },
 }
@@ -141,11 +143,11 @@ pub struct Run {
     pub workload: String,
     /// The scale factor asked for.
     pub factor: f32,
-    /// The run, from 1.
+    /// The run's number, from 1.
     pub run: u32,
     /// The renderer that ran (`wgpu`, `tiny-skia`).
     pub backend: String,
-    /// Headless or windowed.
+    /// Whether the run was headless rather than windowed.
     pub headless: bool,
     /// The display's refresh rate (headless: the virtual one).
     pub refresh_hz: f64,
@@ -173,7 +175,7 @@ pub struct Run {
 /// Why a raw file cannot be read or written.
 #[derive(Debug)]
 pub enum Error {
-    /// The file.
+    /// The file could not be read or written.
     Io {
         /// Its path.
         path: String,
@@ -184,7 +186,7 @@ pub enum Error {
     Line {
         /// Its path.
         path: String,
-        /// 1-based.
+        /// The line number, from 1.
         line: usize,
         /// What serde said.
         source: serde_json::Error,

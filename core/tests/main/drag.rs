@@ -48,9 +48,9 @@ fn replay(name: &str, mut drag: Drag, steps: &[Step]) {
 
 #[test]
 fn drag_traces() {
-    // G1 drag, subject offset: s − p0 = (−2, −3) is added to every
-    // position (138–139, 157–158); dx, dy are p − p0 (159–160); moved
-    // latches at 8² + 12² > 0 (69).
+    // G1 drag, subject offset. s − p0 = (−2, −3) is added to every
+    // position (138–139, 157–158), dx and dy are p − p0 (159–160), and
+    // moved latches at 8² + 12² > 0 (69).
     replay(
         "G1",
         Drag::default(),
@@ -102,8 +102,8 @@ fn drag_traces() {
             ),
         ],
     );
-    // G3 drag, click distance 5: 3² + 4² = 25 is not > 25 (69), 3² + 5²
-    // is; each move emits.
+    // G3 drag, click distance 5. 3² + 4² = 25 is not > 25 (69), but 3² + 5²
+    // is. Each move emits.
     let g3 = Drag::default().click_distance(5.0);
     let three_four = (
         to(3.0, 4.0),

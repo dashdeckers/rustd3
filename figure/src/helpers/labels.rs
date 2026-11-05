@@ -1,15 +1,17 @@
-//! Value labels as marks: [`bars()`], matplotlib's `bar_label`, the value
-//! at each bar's end; and [`pie()`], one label per slice at its arc's
-//! centroid, inside the slice, so a pie reserves no room for them.
+//! Value labels as marks.
+//!
+//! - [`bars()`]: the value at each bar's end, as matplotlib's `bar_label`.
+//! - [`pie()`]: one label per slice at its arc's centroid. Labels sit
+//!   inside the slices, so a pie reserves no room for them.
 //!
 //! Labels are typst text at the axis-label size (12 pt at notebook) in the
-//! theme's ink, numbers written in the figure's
-//! [`Locale`](rustd3_core::locale::Locale): the neutral default writes
-//! U+2212 for minus, where matplotlib writes an ASCII `-`. They sit by the
-//! line box their size gives (the text face's ascender above the first
-//! baseline, its descender below the last), as tick labels do, and take
-//! part in no collision pass. Like every mark they are clipped to the plot
-//! area.
+//! theme's ink, with numbers written in the figure's
+//! [`Locale`](rustd3_core::locale::Locale). The neutral default writes
+//! U+2212 for minus, where matplotlib writes an ASCII `-`. Labels are
+//! placed by the line box their size gives (the text face's ascender above
+//! the first baseline, its descender below the last), as tick labels are,
+//! and take part in no collision pass. Like every mark they are clipped to
+//! the plot area.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -49,18 +51,18 @@ enum Edge {
     Bottom,
     /// Its top: the label hangs below the point.
     Top,
-    /// Its middle: the label is centred on the point.
+    /// Its middle: the label is centered on the point.
     Middle,
 }
 
-/// A label's key: `text` at the axis-label size, its lines centred, in
+/// A label's key: `text` at the axis-label size, its lines centered, in
 /// `theme`'s ink.
 fn key(text: String, theme: &Theme) -> Key {
     let style = theme.note(anchor::Horizontal::Middle, theme.get_ink());
     Key::new(&Text::from(text), &style)
 }
 
-/// Appends the label of `key` centred across `at.x`, its line box's `edge`
+/// Appends the label of `key` centered across `at.x`, its line box's `edge`
 /// at `at.y`; nothing when typst rejected it.
 fn place(key: &Key, at: Point, edge: Edge, ctx: &Ctx<'_>, list: &mut List) {
     let Some(shaped) = ctx.get_label(key) else {

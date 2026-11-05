@@ -29,18 +29,20 @@ impl<'a> std::fmt::Debug for Area<'a> {
 }
 
 /// A stacked area chart of `columns` over `x`, each column a series with a
-/// value per x, stacked from 0 in the columns' order by `shape::stack`
-/// (offset none; matplotlib's `stackplot`): one opaque [`ribbon`] per
-/// column between its stacked edges, in its key's color, on linear x and
-/// y scales fitted to them, a bottom and a left axis with minor ticks, and a
-/// legend right of the plot area when there is more than one column.
+/// value per x. Columns are stacked from 0 in their order by
+/// `shape::stack` (offset none, as matplotlib's `stackplot`). Each column
+/// is one opaque [`ribbon`] between its stacked edges, in its key's color,
+/// on linear x and y scales fitted to them. The chart has a bottom and a
+/// left axis with minor ticks, and a legend right of the plot area when
+/// there is more than one column.
+///
 /// Columns are keyed by their index ("0", "1", …, pandas' names for
-/// unnamed columns) until [`keys`](Area::keys) names them; keys are the
-/// legend's labels. Rows are the shortest of `x` and the columns. The
-/// figure's one panel holds one ribbon per column, in their order: mark *i*
-/// is column *i*, so a mark index the figure reports (a `check` issue's
-/// `mark`) is named from the app's own keys, `keys[mark]`. Ribbons report
-/// no hit points, so an area chart is not hovered.
+/// unnamed columns) until [`keys`](Area::keys) names them, and keys are
+/// the legend's labels. The row count is the length of the shortest of `x`
+/// and the columns. The figure's one panel holds one ribbon per column, in
+/// order, so mark *i* is column *i*. A mark index the figure reports (a
+/// `check` issue's `mark`) therefore names the column `keys[mark]`.
+/// Ribbons report no hit points, so an area chart is not hovered.
 ///
 /// ```
 /// use rustd3_figure::helpers::chart;
@@ -62,8 +64,8 @@ pub fn area<'a>(columns: Vec<Vec<f64>>, x: Vec<f64>) -> Area<'a> {
 }
 
 impl<'a> Area<'a> {
-    /// Names the columns in order, in place of their indices: a column past
-    /// the names keeps its index, a name past the columns is unused. A key
+    /// Names the columns in order, in place of their indices. A column past
+    /// the names keeps its index, and a name past the columns is unused. A key
     /// given twice is an
     /// [`Issue::DuplicateKey`](crate::check::Issue::DuplicateKey) that
     /// [`Figure::check`] reports; its columns share a color and a legend

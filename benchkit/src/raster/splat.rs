@@ -1,10 +1,11 @@
-//! Marker splatting: each markers command of a plot-area cell composited
-//! from coverage stamps, the shape rasterized once at 16 quarter-pixel
-//! phases (4 × 4) and laid source-over at every point, instead of filled
-//! once per point; everything else renders as drawn, in order.
+//! Marker splatting, which composites each markers command of a plot-area
+//! cell from coverage stamps instead of filling the shape once per point.
+//! The shape is rasterized once at 16 quarter-pixel phases (4 × 4) and
+//! laid source-over at every point. Everything else renders as drawn, in
+//! order.
 //!
-//! The figure's renderer renders the commands between markers commands
-//! (over their bounds only); the stamps are its own renders of the shape
+//! The figure's renderer renders the commands between markers commands,
+//! over their bounds only. The stamps are its own renders of the shape
 //! alone, so only the phase (rounded to the nearest quarter pixel) and the
 //! compositing's rounding differ from filling each point.
 
@@ -55,23 +56,23 @@ pub struct Stamps {
     sets: HashMap<u64, Vec<Stamp>>,
 }
 
-/// A shape's coverage at one phase: 8-bit, row-major, the shape's centre
+/// A shape's coverage at one phase: 8-bit, row-major, the shape's center
 /// at `offset` + the phase.
 #[derive(Debug, Clone)]
 struct Stamp {
     width: usize,
     height: usize,
-    /// The stamp's top-left pixel relative to the pixel the centre is in.
+    /// The stamp's top-left pixel relative to the pixel the center is in.
     offset: [i64; 2],
     coverage: Vec<u8>,
 }
 
 impl<'a> Plan<'a> {
     /// The plan for `list` (with its `bounds`) over the cell `area` (list
-    /// px) at `k`: markers commands of solid paints, unsized, in groups
-    /// that only scale and translate and clip to rectangles are splatted;
-    /// everything else is rendered as drawn. `None` when no markers command
-    /// in the cell can be splatted.
+    /// px) at `k`. Unsized markers commands of solid paints, in groups that
+    /// only scale, translate and clip to rectangles, are splatted.
+    /// Everything else is rendered as drawn. Returns `None` when no markers
+    /// command in the cell can be splatted.
     pub fn new(list: &'a List, bounds: &Bounds, area: Rect, k: f64) -> Option<Plan<'a>> {
         let cell = Affine::scale(k) * Affine::translate((-area.x0, -area.y0));
         let size = [
@@ -253,10 +254,10 @@ impl Run {
         }
     }
 
-    /// Pushes the run, when anything in it is visible in the cell `area`
-    /// at `k`: its commands inside the groups open around it, with one step
-    /// per rectangle of a disjoint cover of where they reach, so a strip
-    /// along each edge renders without the cell between them.
+    /// Pushes the run when anything in it is visible in the cell `area` at
+    /// `k`. It pushes its commands inside the groups open around it, with
+    /// one step per rectangle of a disjoint cover of where they reach, so a
+    /// strip along each edge renders without the cell between them.
     fn finish(
         &mut self,
         list: &List,
@@ -318,9 +319,9 @@ impl Run {
     }
 }
 
-/// Disjoint rectangles covering exactly the union of `rects`: per band
-/// between their y edges the merged x intervals, bands with the same
-/// intervals joined.
+/// Disjoint rectangles covering exactly the union of `rects`. Each band
+/// between their y edges holds the merged x intervals, and bands with the
+/// same intervals are joined.
 fn cover(rects: &[[i64; 4]]) -> Vec<[i64; 4]> {
     let mut ys: Vec<i64> = rects.iter().flat_map(|r| [r[1], r[3]]).collect();
     ys.sort_unstable();
@@ -378,8 +379,8 @@ impl Stamps {
 }
 
 /// The 16 stamps of `shape` under `linear`, phase (x, y) at index
-/// `4 y + x`: opaque black filled by the figure's renderer, coverage read
-/// from alpha.
+/// `4 y + x`. Each is opaque black filled by the figure's renderer, with
+/// coverage read from alpha.
 fn stamps(shape: &BezPath, linear: Affine) -> Result<Vec<Stamp>, raster::Error> {
     let placed = linear * shape.clone();
     let b = placed.bounding_box();
@@ -578,7 +579,7 @@ mod tests {
 
     /// The largest channel difference between 400 dots filled and
     /// splatted at 1×, on a plot area 76 px square over a domain of 76, so
-    /// one data unit is one device px; `phase` rounds the dots' centres to
+    /// one data unit is one device px. `phase` rounds the dots' centers to
     /// quarter pixels.
     fn worst(phase: bool) -> u8 {
         let mut fig = Figure::new();
@@ -645,9 +646,9 @@ mod tests {
         // Only the compositing's rounding differs.
         let on = worst(true);
         assert!(on <= 4, "max {on}/255");
-        // Elsewhere a centre moves up to an eighth of a pixel along each
-        // axis to its stamp's phase: up to a quarter of an edge pixel's
-        // coverage, 64/255 for a dark dot on white.
+        // Elsewhere a center moves up to an eighth of a pixel along each
+        // axis to its stamp's phase. That changes up to a quarter of an
+        // edge pixel's coverage, 64/255 for a dark dot on white.
         let off = worst(false);
         assert!((on..=68).contains(&off), "max {off}/255");
     }

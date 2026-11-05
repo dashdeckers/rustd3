@@ -11,13 +11,14 @@ type Window = fn(&dyn Scale, &dyn Scale, Option<[f64; 2]>) -> Option<Box<dyn Sca
 /// `over`'s range.
 type Place = fn(&dyn Scale, &dyn Scale) -> Option<[f64; 2]>;
 
-/// A brush as a panel stores it ([`Panel::brush`](crate::Panel::brush)):
-/// the axis it selects along, the table positions of the handle it brushes
-/// over and of the handle its selection sets, if any, and the conversions
-/// between a selection in pixels and a domain of the target's type, which
-/// a widget needs without knowing the handles' types. A brush with no
-/// target converts to scales of its own handle's type, so a widget keeps
-/// its selection as a domain too.
+/// A brush as a panel stores it ([`Panel::brush`](crate::Panel::brush)),
+/// with its handles' types erased. It holds the axis it selects along and
+/// the table positions of the handle it brushes over and of the handle its
+/// selection sets, if any. It also holds the conversions between a
+/// selection in pixels and a domain of the target's type, which a widget
+/// needs without knowing the handles' types. A brush with no target
+/// converts to scales of its own handle's type, so a widget keeps its
+/// selection as a domain too.
 #[derive(Debug, Clone, Copy)]
 pub struct Placed {
     dim: Dim,
@@ -62,15 +63,17 @@ impl Placed {
         self.target.map(ScaleRef::get_index)
     }
 
-    /// The selection `selection` (its ends in `over`'s range, in either
-    /// order) as a scale of the target's type, or of `over`'s without a
-    /// target: `template`, a scale of that type, with its domain fitted
-    /// without a margin to the values `over` inverts the ends to, in its
-    /// own orientation; `over`'s whole domain for `None` (an empty
-    /// selection). `over` is the handle's resolved scale set to the
-    /// panel's range (`Scale::with_range`). `None` when `over` or
-    /// `template` is not of the brush's types, the selection has no width,
-    /// or an end does not invert to a value `template` admits.
+    /// The selection `selection` as a scale of the target's type, or of
+    /// `over`'s type without a target. The selection's ends lie in `over`'s
+    /// range, in either order; `None` is an empty selection.
+    ///
+    /// The scale is `template`, a scale of that type, with its domain
+    /// fitted without a margin to the values `over` inverts the ends to, in
+    /// `template`'s orientation. An empty selection gives `over`'s whole
+    /// domain. `over` is the handle's resolved scale set to the panel's
+    /// range (`Scale::with_range`). `None` when `over` or `template` is not
+    /// of the brush's types, the selection has no width, or an end does not
+    /// invert to a value `template` admits.
     pub fn window(
         &self,
         over: &dyn Scale,
@@ -81,11 +84,11 @@ impl Placed {
     }
 
     /// Where the ends of `window`'s domain lie in `over`'s range, in the
-    /// domain's order: the selection [`window`](Placed::window) inverts.
-    /// `over` is set to the panel's range as there, `window` is of the
-    /// target's type (`over`'s without a target). `None` when either is
-    /// not of the brush's types or an end does not lie at a finite
-    /// position.
+    /// domain's order. This is the selection that
+    /// [`window`](Placed::window) inverts. As there, `over` is set to the
+    /// panel's range, and `window` is of the target's type (`over`'s
+    /// without a target). `None` when either is not of the brush's types
+    /// or an end does not lie at a finite position.
     pub fn place(&self, over: &dyn Scale, window: &dyn Scale) -> Option<[f64; 2]> {
         (self.place)(over, window)
     }
@@ -154,7 +157,9 @@ mod tests {
         Kind::ends(scale).expect("continuous")
     }
 
-    /// Two linear handles, [0, 100] and [10, 0], and a log one.
+    /// A figure with two linear handles, [0, 100] and [10, 0], and two
+    /// brushes over the first: one along x that sets the second, and one
+    /// along y alone.
     fn handles() -> (Figure<'static>, brush::Placed, brush::Placed) {
         let mut fig = Figure::new();
         let over = fig.scale(scale::linear().domain([0.0, 100.0]));

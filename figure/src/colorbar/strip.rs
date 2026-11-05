@@ -14,8 +14,8 @@ use crate::text;
 /// within an eighth of a px of where the scale puts them.
 const ROWS_PER_PX: f64 = 4.0;
 
-/// The longest image, rows: a bar of 4,096 px at 4 rows per px, or of
-/// 16,384 device px.
+/// The most rows an image may have: a bar of 4,096 px at 4 rows per px, or
+/// of 16,384 device px.
 const MAX_ROWS: f64 = 16_384.0;
 
 /// How far two bins' widths may differ, as a share of the bar, and still
@@ -30,10 +30,11 @@ const NONE: Rgb = Rgb {
     opacity: 0.0,
 };
 
-/// A colorbar's colors over one resolve, from the low end of its bar:
-/// equal rows, or bins and where each ends along the bar (shares of its
-/// length, ascending from 0 to 1) when their widths differ; whether they
-/// are a binned scale's; and the colors of its end triangles.
+/// A colorbar's colors over one resolve, from the low end of its bar. They
+/// are equal rows, or bins with where each ends along the bar (shares of
+/// its length, ascending from 0 to 1) when their widths differ. The strip
+/// also holds whether the colors are a binned scale's, and the colors of
+/// the end triangles.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Strip {
     colors: Vec<Rgb>,
@@ -43,11 +44,11 @@ pub(crate) struct Strip {
 }
 
 impl Strip {
-    /// The strip of `scale`: its samples, binned ones placed by the scale's
-    /// tick positions of their edges (bins whose edges have no position or
-    /// do not ascend are drawn as equal rows); its end triangles in the
-    /// colors it clamps to, those of its domain's ends, or of its first and
-    /// last bins.
+    /// The strip of `scale`'s samples. Bins are placed by the scale's tick
+    /// positions of their edges; bins whose edges have no position or do
+    /// not ascend are drawn as equal rows. The end triangles take the
+    /// colors the scale clamps to: those of its domain's ends, or of its
+    /// first and last bins.
     pub(crate) fn of<S: Paint<Domain = f64> + Ramp>(scale: &S) -> Strip {
         let (colors, bounds, binned) = match scale.samples() {
             Samples::Even(colors) => (colors, None, false),
@@ -97,12 +98,12 @@ impl Strip {
 
     /// The strip's image for a bar `length` px long, nearest-sampled over
     /// it. On a raster target of `scale` device px per px it has one row
-    /// per device px of the bar, each the color under its centre, so every
+    /// per device px of the bar, each the color under its center, so every
     /// pixel shows the sample (d3's `table[⌊256 t⌋]` for a table scheme)
     /// whatever way a renderer breaks ties at row edges. For vector output
     /// it has one row per color when the rows are equal, else 4 rows per px
     /// (at least one per color), each the color of the bin under its
-    /// centre. A vertical bar's first row is its high end, at the top; a
+    /// center. A vertical bar's first row is its high end, at the top; a
     /// horizontal bar's first column its low end, at the left. `None`
     /// without colors.
     pub(crate) fn image(
@@ -149,8 +150,8 @@ impl Strip {
     }
 
     /// `count` equal rows from the low end, each the color under its
-    /// centre: of equal rows, the `⌊t n⌋`-th of `n`; of bins, the one whose
-    /// bounds hold it.
+    /// center. For equal rows that is the `⌊t n⌋`-th of `n`; for bins, the
+    /// bin whose bounds hold the center.
     fn rows(&self, count: f64) -> Vec<Rgb> {
         let count = count as usize;
         let n = self.colors.len();
@@ -223,7 +224,7 @@ mod tests {
         let rows = rows(&image);
         // Edge 7.25 at 0.25 of the bar: rows 0–99 are bin 0.
         assert_eq!((rows[99][0], rows[100][0]), (0, 10));
-        // Edge 9 at 6/17: row 141's centre 141.5/400 = 0.35375 is past it.
+        // Edge 9 at 6/17: row 141's center 141.5/400 = 0.35375 is past it.
         assert_eq!((rows[140][0], rows[141][0]), (10, 20));
         assert_eq!(rows[399][0], 30);
     }
@@ -257,7 +258,7 @@ mod tests {
             let t = (j as f64 + 0.5) / 300.0;
             assert_eq!(*row, text::channels(s.apply(t * 80.0)), "row {j}");
         }
-        // Device px 37's centre is the edge between entries 31 and 32: d3's
+        // Device px 37's center is the edge between entries 31 and 32: d3's
         // floor takes 32.
         assert_eq!(
             across[37],

@@ -12,12 +12,13 @@ use rustd3_figure::{Figure, Held, Resolved, Target, axis, mark};
 
 use crate::figure::{Values, cache, line, resolve};
 
-/// `a` within 1e-12 of `b`, relative.
+/// Whether `a` is within 1e-12 of `b`, relative to the larger magnitude
+/// (or to 1 below it).
 fn close(a: f64, b: f64) -> bool {
     (a - b).abs() <= 1e-12 * a.abs().max(b.abs()).max(1.0)
 }
 
-/// Asserts `domain` equals `expected` within 1e-12, relative.
+/// Asserts that `domain` equals `expected` within 1e-12, relative.
 fn assert_domain(domain: [f64; 2], expected: [f64; 2]) {
     assert!(
         close(domain[0], expected[0]) && close(domain[1], expected[1]),
@@ -223,7 +224,7 @@ fn append(rec: &mut Recording<f64>, n: u32) {
 }
 
 /// A line over `rec` on an x handle showing its last 10 s (`Fit::Window`)
-/// and a fixed y, with no axes; the x handle.
+/// and a fixed y, with no axes. Returns the figure and the x handle.
 fn windowed(rec: &Recording<f64>) -> (Figure<'_>, ScaleRef<Linear>) {
     let mut fig = Figure::new();
     let t = fig.fit_with(scale::linear(), Fit::Window(10.0));

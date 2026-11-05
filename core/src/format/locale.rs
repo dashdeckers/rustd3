@@ -19,9 +19,9 @@ pub struct Locale {
     pub(super) group_from: usize,
 }
 
-/// What a locale table states; `Default` is d3's fallbacks (locale.js 12–21):
-/// ".", no grouping (empty), ["", ""], no numerals, "%", "\u{2212}", "NaN",
-/// group_from 1.
+/// What a locale table states. `Default` gives d3's fallbacks (locale.js
+/// 12–21): ".", no grouping, no currency, no numerals, "%", "\u{2212}" and
+/// "NaN", with `group_from` 1.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Definition {
     /// The decimal point.
@@ -85,8 +85,9 @@ impl Default for Locale {
 }
 
 impl Locale {
-    /// SI style (CGPM 2003, Res. 10): ".", U+202F groups of three from five
-    /// integer digits, no currency, U+2212. `Default` returns it.
+    /// SI style (CGPM 2003, Res. 10): a "." decimal point, U+202F between
+    /// groups of three from five integer digits, no currency, and U+2212
+    /// for minus. `Default` returns it.
     pub const NEUTRAL: Locale = Locale::from_table(Table {
         decimal: ".",
         thousands: "\u{202f}",
@@ -145,8 +146,8 @@ impl Locale {
         Ok(Format::prefixed(self, specifier.parse()?, value))
     }
 
-    /// A constant locale from a table of static parts (`Locale::new` cannot
-    /// be `const`: dropping a `Definition` is not).
+    /// A constant locale from a table of static parts. `Locale::new` cannot
+    /// be `const` because dropping a `Definition` is not.
     pub(crate) const fn from_table(table: Table) -> Locale {
         let numerals = match table.numerals {
             Some(n) => Some([

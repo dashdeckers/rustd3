@@ -152,9 +152,9 @@ impl<T: ToObs, E: fmt::Display> ToObs for Result<T, E> {
 }
 
 impl Obs {
-    /// Equal within `tolerance`: numbers within max(abs, rel × magnitude);
-    /// strings token by token; a decimal in a string may differ by one
-    /// unit in its last printed place.
+    /// Whether `self` equals `other` within `tolerance`. Numbers compare
+    /// within max(abs, rel × magnitude) and strings token by token, where a
+    /// decimal may differ by one unit in its last printed place.
     pub fn approx_eq(&self, other: &Obs, tolerance: &Tolerance) -> bool {
         match (self, other) {
             (Obs::Num(a), Obs::Num(b)) => tolerance.numbers(*a, *b),

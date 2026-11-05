@@ -1,6 +1,6 @@
-//! SVG output: the list written as SVG elements, text as glyph outlines
-//! defined once each and used by every run (or, on request, as `<text>`),
-//! ids in command order.
+//! SVG output: the list written as SVG elements, with ids in command
+//! order. Text is written as glyph outlines, each defined once and used by
+//! every run, or on request as `<text>`.
 
 mod base64;
 pub(crate) mod number;
@@ -45,15 +45,16 @@ impl Options {
 #[non_exhaustive]
 pub enum Text {
     /// Every glyph used is one `<path>` in `<defs>` at 1000 units per em,
-    /// which runs `<use>`: the file needs no fonts and draws exactly the
+    /// and runs `<use>` it. The file needs no fonts and draws exactly the
     /// glyphs that were measured.
     #[default]
     Outlines,
     /// Each solid run is one `<text>` element with its source text, for
-    /// editing: family and weight from the font's `name` table, one x per
-    /// glyph when glyphs map one to one onto characters, else the first
-    /// glyph's. A viewer re-shapes the text with whatever fonts it has, so
-    /// the drawing may differ from what was measured.
+    /// editing. Family and weight come from the font's `name` table. Each
+    /// glyph gets its own x when glyphs map one to one onto characters;
+    /// otherwise only the first glyph's x is written. A viewer re-shapes the
+    /// text with whatever fonts it has, so the drawing may differ from what
+    /// was measured.
     Elements,
 }
 
@@ -86,9 +87,9 @@ pub enum Text {
 ///
 /// # Errors
 ///
-/// The [`list::Error`] of [`list::check`] for a list
-/// that fails it, and [`list::Error::Unsupported`] for a sweep gradient
-/// (which lowering for [`CAPS`] turns into an image) or an image brush.
+/// The [`list::Error`] of [`list::check`] for a list that fails it, and
+/// [`list::Error::Unsupported`] for a sweep gradient (which lowering for
+/// [`CAPS`] turns into an image) or an image brush.
 pub fn write(list: &List, options: &Options) -> Result<String, list::Error> {
     list::check(list)?;
     let faces = match options.text {
@@ -165,8 +166,8 @@ struct Writer<'a> {
 }
 
 impl Writer<'_> {
-    /// The root element and the glyph outlines every solid run uses when
-    /// runs are written as outlines.
+    /// Writes the root element, and the glyph outlines every solid run uses
+    /// when runs are written as outlines.
     fn header(&mut self) {
         let (w, h) = (
             number::px(self.list.size.width),
@@ -286,8 +287,9 @@ impl Writer<'_> {
         Ok(written.attrs)
     }
 
-    /// The shape once in `<defs>`; points grouped by paint into `<g>` runs
-    /// of `<use>`, or of paths in the group's space for a gradient.
+    /// Writes the shape once in `<defs>`, and the points grouped by paint
+    /// into `<g>` runs of `<use>`, or of paths in the group's space for a
+    /// gradient.
     fn markers(
         &mut self,
         command: usize,
@@ -351,9 +353,9 @@ impl Writer<'_> {
         Ok(())
     }
 
-    /// A solid run as `<use>` of the glyph defs under the run's transform
-    /// scaled to 1000 units per em, or as `<text>`; any other run as one
-    /// path in its group's space.
+    /// Writes a solid run as `<use>` of the glyph defs under the run's
+    /// transform scaled to 1000 units per em, or as `<text>`. Any other run
+    /// is written as one path in its group's space.
     fn glyphs(&mut self, command: usize, run: &GlyphRun) -> Result<(), list::Error> {
         let attrs = self.paint(command, "fill", &run.fill)?;
         if !matches!(run.fill, Brush::Solid(_)) {
@@ -393,8 +395,8 @@ impl Writer<'_> {
         Ok(())
     }
 
-    /// A solid run as `<text>`, whitespace preserved so that each x stays
-    /// with its glyph's character.
+    /// Writes a solid run as `<text>`, with whitespace preserved so that
+    /// each x stays with its glyph's character.
     fn element(&mut self, run: &GlyphRun, attrs: &str) {
         let chars = run.text.char_indices();
         let one_to_one = run.text.chars().count() == run.glyphs.len()
@@ -430,7 +432,7 @@ impl Writer<'_> {
         );
     }
 
-    /// `<image>` with the pixels as a base64 PNG data URI.
+    /// Writes an `<image>` with the pixels as a base64 PNG data URI.
     fn image(
         &mut self,
         command: usize,

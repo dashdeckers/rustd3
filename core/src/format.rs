@@ -1,14 +1,14 @@
 //! d3-format: numbers formatted by d3's specifier mini-language under a
 //! locale.
 //!
-//! The free functions use the neutral locale, SI style: a point, digits
-//! grouped by a narrow no-break space from five integer digits on, no
-//! currency, and − for minus. d3's own default is [`Locale::EN_US`].
+//! The free functions use the neutral locale, SI style: a decimal point,
+//! digits grouped by a narrow no-break space from five integer digits on,
+//! no currency, and − for minus. d3's own default is [`Locale::EN_US`].
 //! d3-format's tables for en-US and the ten languages of the time tables
 //! are constants of [`Locale`] (`DE_DE`, `FR_FR`, `ES_ES`, `IT_IT`,
-//! `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`, `ZH_CN`); its other tables
-//! load at run time through [`Locale::new`]. A specifier literal is checked
-//! by the compiler through [`fmt!`](crate::fmt).
+//! `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`, `ZH_CN`). Its other tables
+//! load at run time through [`Locale::new`]. [`fmt!`](crate::fmt) checks a
+//! specifier literal at compile time.
 //!
 //! ```
 //! use rustd3_core::format::{self, Locale};
@@ -23,8 +23,8 @@
 //! ```
 
 mod decimal;
-// `fmt!`'s compile-time check, which the macro's expansion names from the
-// caller's crate: public for that alone.
+// `fmt!`'s compile-time check. It is public only because the macro's
+// expansion names it from the caller's crate.
 #[doc(hidden)]
 pub mod literal;
 mod locale;
@@ -146,9 +146,9 @@ impl Format {
     }
 
     /// `values` formatted as one axis. With `,` under a locale that groups
-    /// from N integer digits (`NEUTRAL`: 5), either every value is grouped,
-    /// when some value has at least N integer digits as printed, or none
-    /// is; under a locale that always groups (`EN_US`, d3's tables) each
+    /// from N integer digits (`NEUTRAL`: 5), every value is grouped if some
+    /// value has at least N integer digits as printed, and otherwise none
+    /// is. Under a locale that always groups (`EN_US`, d3's tables), each
     /// value reads as [`format`](Format::format) writes it.
     ///
     /// ```
@@ -166,8 +166,9 @@ impl Format {
         parts.into_iter().map(|p| self.finish(p, grouped)).collect()
     }
 
-    /// Whether `,` groups a value of these parts on its own: its integer
-    /// digits reach the locale's threshold, which 0 or 1 always meets.
+    /// Whether `,` groups a value of these parts on its own, that is,
+    /// whether its integer digits reach the locale's threshold. A threshold
+    /// of 0 or 1 is always met.
     fn groups(&self, parts: &Parts) -> bool {
         let from = self.locale.group_from;
         self.comma && (from <= 1 || parts.digits.chars().count() >= from)
@@ -362,8 +363,9 @@ impl Format {
 }
 
 impl Type {
-    /// d3's formatTypes: `x` (≥ 0 and finite for every type but `c`) at
-    /// precision `p`, and the SI prefix exponent `s` chose.
+    /// d3's formatTypes: `x` written at precision `p`, and the SI prefix
+    /// exponent that `s` chose. `x` is ≥ 0 and finite for every type but
+    /// `c`.
     fn render(self, x: f64, p: usize) -> (String, Option<i32>) {
         let text = match self {
             Type::Exponent => decimal::exponential(x, p),

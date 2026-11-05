@@ -4,8 +4,8 @@
 use crate::interact::Modifiers;
 
 /// Pointer input in the chart's own pixel coordinates, as the behaviors
-/// read it; the host translates its events into it (rustd3-iced's
-/// `pointer::Tracker` for iced).
+/// read it. The host translates its events into it, as rustd3-iced's
+/// `pointer::Tracker` does for iced.
 ///
 /// Plain data. It is `#[non_exhaustive]`, so matches from other crates
 /// carry a wildcard arm.
@@ -54,8 +54,8 @@ pub enum Pointer {
         /// The pointer's vertical position.
         y: f64,
     },
-    /// The keyboard modifiers changed (shift-double-click zooms out;
-    /// brushes accept and ignore them).
+    /// The keyboard modifiers changed. The zoom reads them for double
+    /// clicks, which carry none, and brushes ignore them.
     Modifiers(Modifiers),
     /// The pointer left the area without a button held.
     Left,

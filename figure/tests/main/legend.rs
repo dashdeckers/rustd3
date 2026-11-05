@@ -1,4 +1,4 @@
-//! Legends: entries in domain order, rows in top and bottom slots centred on
+//! Legends: entries in domain order, rows in top and bottom slots centered on
 //! the plot areas, columns beside the grid and framed in panel corners, and
 //! the room slots take from the grid.
 
@@ -161,7 +161,7 @@ fn legend_glyphs_draw_dots_and_dashed_lines_in_the_squares_place() {
     };
     // Squares and dots stand in a box 0.7 em square on the baseline, 0.8
     // em before their labels; dots are the theme's marker diameter (6 pt,
-    // 8 px), centred in it. Legends in one slot stack, each on its row.
+    // 8 px), centered in it. Legends in one slot stack, each on its row.
     let dots = fills(commands(&list, slotted(1)));
     assert_eq!(dots.len(), 3);
     for (k, swatches) in [(0, &squares), (1, &dots)] {
@@ -178,7 +178,7 @@ fn legend_glyphs_draw_dots_and_dashed_lines_in_the_squares_place() {
             assert!(squares.iter().any(|(_, color)| color == paint));
         }
     }
-    // Lines: 2 em long at the square's centre height, the line width (1.5
+    // Lines: 2 em long at the square's center height, the line width (1.5
     // pt), dashed [6, 3] px or solid, labels 0.8 em after them.
     for (k, dash) in [(2, vec![6.0, 3.0]), (3, vec![])] {
         let lines: Vec<_> = commands(&list, slotted(k))
@@ -371,7 +371,7 @@ fn one_legend_value_draws_in_a_slot_and_an_inset_and_the_row_centres_on_the_plot
     let corner = commands(&list, inset(0, 0));
     assert_eq!(labels(row).len(), 4);
     assert_eq!(labels(corner).len(), 4);
-    // The row: centred on the plot area (its title's start and its last
+    // The row: centered on the plot area (its title's start and its last
     // label's advance end are equally far from the area's ends).
     let texts = labels(row);
     let (_, first_x, baseline) = texts[0].clone();
@@ -397,7 +397,7 @@ fn one_legend_value_draws_in_a_slot_and_an_inset_and_the_row_centres_on_the_plot
         "{baseline}"
     );
     // The inset: a frame 0.5 em inside the corner, white at 0.8 with a
-    // #cccccc edge, the title centred on top, entries below it.
+    // #cccccc edge, the title centered on top, entries below it.
     let frame = fills(corner)[0].clone();
     assert!((frame.0.x0 - area.x0 - 0.5 * EM).abs() < 1e-9, "{frame:?}");
     assert!((frame.0.y0 - area.y0 - 0.5 * EM).abs() < 1e-9, "{frame:?}");
@@ -459,7 +459,7 @@ fn side_slots_hold_columns_centred_on_the_plot_areas_and_stack_outward() {
     assert!(near.x0 > area.x1 && far.x0 > near.x1, "{near:?} {far:?}");
     assert!(far.x1 <= 640.0 - PAD + 1e-9, "{far:?}");
     assert!(left.x1 < area.x0 && left.x0 >= PAD - 1e-9, "{left:?}");
-    // Centred vertically: the swatch column's middle on the area's.
+    // Centered vertically: the swatch column's middle on the area's.
     let swatches = fills(commands(&list, slotted(0)));
     let (top, bottom) = (swatches[0].0.y0, swatches[2].0.y1);
     let middle = (area.y0 + area.y1) / 2.0;

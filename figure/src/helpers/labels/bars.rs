@@ -29,15 +29,15 @@ impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for Bars<X, Y> {
 }
 
 /// matplotlib's `bar_label` for bars of `data` drawn on `x` and `y` from 0
-/// (as [`bar_y`](crate::mark::bar_y) draws them): each finite value,
-/// written in the figure's locale, at its bar's end, centred across the
-/// bar (the middle of its band on band scales), offset outward by the
-/// padding (3 pt by default): above a bar that rises from 0, its line
-/// box's bottom 3 pt over the end, and below one that falls, its line
-/// box's top 3 pt under it; [`center`](Bars::center) puts it inside. The
-/// labels enter no fitting and the y scale keeps the bars' margins, so a
-/// label over the tallest bar may need more room than they give (as in
-/// matplotlib).
+/// (as [`bar_y`](crate::mark::bar_y) draws them). Each finite value is
+/// written in the figure's locale at its bar's end, centered across the bar
+/// (the middle of its band on band scales) and offset outward by the
+/// padding (3 pt by default). Over a bar that rises from 0, the label's
+/// line box bottom sits the padding above the end. Under a bar that falls,
+/// the line box top sits the padding below it. [`center`](Bars::center)
+/// puts the label inside instead. The labels enter no fitting and the y
+/// scale keeps the bars' margins, so a label over the tallest bar may need
+/// more room than they give (as in matplotlib).
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -71,8 +71,8 @@ where
 
 impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
     /// Each value written by `spec`, a core format specifier, in the
-    /// figure's locale: `".1f".parse()?` writes 3 as "3.0". By default d3's
-    /// `""` (up to 12 significant digits, trailing zeros trimmed), which
+    /// figure's locale: `".1f".parse()?` writes 3 as "3.0". The default is
+    /// d3's `""` (up to 12 significant digits, trailing zeros trimmed), which
     /// writes what matplotlib's default `%g` writes for values of six
     /// significant digits or fewer.
     #[must_use]
@@ -83,7 +83,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
         }
     }
 
-    /// The distance between a bar's end and its label, pt (3 by default,
+    /// The distance between a bar's end and its label, in pt (3 by default,
     /// not scaled by the theme's context, as matplotlib's `padding`). A
     /// distance that is not finite leaves it as it was.
     #[must_use]
@@ -94,7 +94,7 @@ impl<X: Position, Y: Position<Domain = f64>> Bars<X, Y> {
         }
     }
 
-    /// Each label inside its bar, its line box centred halfway between the
+    /// Each label inside its bar, its line box centered halfway between the
     /// bar's base and its end (matplotlib's `label_type="center"`).
     #[must_use]
     pub fn center(self) -> Self {

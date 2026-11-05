@@ -40,10 +40,10 @@ pub struct Harness<'a, Message> {
     interaction: mouse::Interaction,
 }
 
-/// A harness between frames whose interface is turned into iced's cache,
-/// so the app's state can change while no view borrows it; as the runtime
-/// does between a frame and the next `view`. [`Parked::resume`] builds the
-/// interface again from the new view, widget state carried over.
+/// A harness between frames, its interface turned into iced's cache as the
+/// runtime does between a frame and the next `view`. The app's state can
+/// then change while no view borrows it. [`Parked::resume`] builds the
+/// interface again from the new view, carrying widget state over.
 #[cfg(all(feature = "figure", feature = "fonts"))]
 pub struct Parked<Message> {
     cache: user_interface::Cache,
@@ -67,8 +67,12 @@ pub struct Shot {
 
 impl<'a, Message: 'a> Harness<'a, Message> {
     /// `root` laid out at `size` logical pixels and drawn at `scale` on
-    /// `ICED_TEST_BACKEND`'s renderer. None when that is `wgpu`, it finds
-    /// no device and `RUSTD3_ALLOW_NO_GPU=1`; panics otherwise.
+    /// `ICED_TEST_BACKEND`'s renderer. `None` when that is `wgpu`, wgpu
+    /// finds no device, and `RUSTD3_ALLOW_NO_GPU=1`.
+    ///
+    /// # Panics
+    ///
+    /// When no renderer is found and the case above does not apply.
     pub fn new(root: impl iced::Widget<Message> + 'a, size: Size, scale: f32) -> Option<Self> {
         let backend = std::env::var("ICED_TEST_BACKEND").ok();
         Self::with_backend(root, size, scale, backend.as_deref())

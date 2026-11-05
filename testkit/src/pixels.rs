@@ -62,9 +62,9 @@ impl<'a> Image<'a> {
 }
 
 impl Diff {
-    /// Compares `a` and `b` channel by channel, as given (callers pass the
-    /// same alpha convention on both sides); `threshold` sets what
-    /// [`Diff::over`] counts.
+    /// Compares `a` and `b` channel by channel, as given, so both must use
+    /// the same alpha convention. `threshold` sets what [`Diff::over`]
+    /// counts.
     pub fn between(a: &Image<'_>, b: &Image<'_>, threshold: u8) -> Result<Diff, Error> {
         if (a.width, a.height) != (b.width, b.height) {
             return Err(Error::Size {

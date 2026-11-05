@@ -40,11 +40,11 @@ pub fn transformed<T: Transform>(transform: &T, domain: [f64; 2], count: usize) 
         .collect()
 }
 
-/// 0 and ±c·10ᵏ inside the domain, every k-th decade to stay near `count`:
-/// the decades k = 0, 1, … with c·10ᵏ at most the larger magnitude of the
-/// ends (at most 400 of them), on both sides of 0 when the domain straddles
-/// it, thinned to every ⌈decades · sides / count⌉-th, in domain order.
-/// Empty unless `constant` is positive and both ends are finite.
+/// 0 and ±c·10ᵏ inside the domain, in domain order, thinned to stay near
+/// `count` values. The decades are k = 0, 1, … while c·10ᵏ is at most the
+/// larger magnitude of the ends (at most 400 of them), on both sides of 0
+/// when the domain straddles it. Every ⌈decades · sides / count⌉-th decade
+/// is kept. Empty unless `constant` is positive and both ends are finite.
 pub fn decades(domain: [f64; 2], constant: f64, count: usize) -> Vec<f64> {
     let reverse = domain[1] < domain[0];
     let [a, b] = if reverse {
@@ -77,14 +77,18 @@ pub fn decades(domain: [f64; 2], constant: f64, count: usize) -> Vec<f64> {
 }
 
 /// d3's log ticks (log.js `ticks`), reflected for a domain that starts
-/// below zero: for an integer base and fewer than `count` decades, 1, 2, …,
-/// base − 1 times each power of the base inside the domain, or d3's linear
-/// ticks when that gives fewer than `count / 2`; otherwise powers of the
-/// base at d3's ticks of the exponents. Empty when the log of an end is not
-/// finite or the base is not positive or is 1; the decades branch also
-/// serves an integer base whose per-decade values would number above
-/// 10,000, and leaves out a power that overflows (`log2` of `f64::MAX`
+/// below zero.
+///
+/// For an integer base and fewer than `count` decades, the ticks are 1, 2,
+/// …, base − 1 times each power of the base inside the domain, or d3's
+/// linear ticks when that gives fewer than `count / 2`. Otherwise they are
+/// powers of the base at d3's ticks of the exponents. That second branch
+/// also serves an integer base whose per-decade values would number above
+/// 10,000, and it leaves out a power that overflows (`log2` of `f64::MAX`
 /// rounds up to 1024).
+///
+/// Empty when the log of an end is not finite, or the base is not positive
+/// or is 1.
 #[must_use]
 pub fn log(base: f64, domain: [f64; 2], count: usize) -> Vec<f64> {
     let log = transform::Log::new(base).for_domain(domain);
@@ -181,10 +185,10 @@ pub(crate) fn pow10(k: f64) -> f64 {
 }
 
 /// Whether two majors `decades` apart, in their transform's base, skip a
-/// decade: matplotlib's `LogLocator` (3.11.2, `subs='auto'`) draws no minor
+/// decade. matplotlib's `LogLocator` (3.11.2, `subs='auto'`) draws no minor
 /// ticks under a major stride above one decade, so the log and symlog
-/// minor rules leave such gaps empty. Majors extended by one step carry
-/// float noise, hence the tolerance.
+/// minor rules leave such gaps empty. The tolerance absorbs the float noise
+/// of majors extended by one step.
 pub(crate) fn thinned(decades: f64) -> bool {
     decades.abs() > 1.0 + 1e-9
 }
@@ -197,8 +201,8 @@ pub(crate) fn crowded(in_view: f64) -> bool {
     in_view >= 10.0
 }
 
-/// c·10ᵏ, through an exact power of ten, and split where 10ᵏ alone would
-/// overflow a constant small enough to keep the product finite.
+/// c·10ᵏ through an exact power of ten. Where 10ᵏ alone would overflow, the
+/// power is split so that a small enough `c` still gives a finite product.
 pub(crate) fn decade(c: f64, k: i32) -> f64 {
     let k = f64::from(k);
     let power = pow10(k);
@@ -209,7 +213,7 @@ pub(crate) fn decade(c: f64, k: i32) -> f64 {
     }
 }
 
-/// `k` equal steps in transformed space between neighbouring majors (the
+/// `k` equal steps in transformed space between neighboring majors (the
 /// majors themselves excluded), stopping after 10,000 values. Steps that
 /// map back to no finite value (majors outside the transform's domain, such
 /// as a square root's negatives) are left out.

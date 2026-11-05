@@ -1,15 +1,16 @@
-//! Thinning long recordings at draw time: M4 per device-pixel column, its
-//! column boundaries shared per draw by every line on one clock
-//! ([`Frame`]), and its output memoized across draws in the figure's
+//! Thinning of long recordings at draw time, by M4 per device-pixel
+//! column. Every line on one clock shares a draw's column boundaries
+//! ([`Frame`]), and M4 output is memoized across draws in the figure's
 //! [`Cache`](crate::cache::Cache).
 //!
-//! A line whose x scale has the bridge to core's index
-//! ([`Position::indexed`](crate::scale::Position::indexed)) and whose data
-//! is a `Series` view is thinned by default ([`Thin::Auto`]): one column
-//! per device pixel on screen, four per device pixel for PNG and GIF and
-//! four per list pixel for SVG and PDF, with column edges where the x
-//! scale's inverse puts the device-pixel edges, so log and time axes get
-//! the right columns. Owned points and slices are drawn as given.
+//! A line is thinned by default ([`Thin::Auto`]) when its x scale has the
+//! bridge to core's index
+//! ([`Position::indexed`](crate::scale::Position::indexed)) and its data
+//! is a `Series` view. It gets one column per device pixel on screen, four
+//! per device pixel for PNG and GIF, and four per list pixel for SVG and
+//! PDF. Column edges lie where the x scale's inverse puts the device-pixel
+//! edges, so log and time axes get the right columns. Owned points and
+//! slices are drawn as given.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -68,8 +69,8 @@ pub(crate) fn edges<D>(indexed: &dyn Indexed<D>, width: f64, per_px: f64) -> Opt
     )
 }
 
-/// Columns an edge on a grid is moved left by before it is inverted (and
-/// before a dash anchor's column is searched).
+/// How far, in columns, an edge on a grid is moved left before it is
+/// inverted (and before a dash anchor's column is searched).
 pub(crate) const LEAD: f64 = 1e-6;
 
 /// The column edges on `grid` of every column that intersects the view
@@ -78,12 +79,12 @@ pub(crate) const LEAD: f64 = 1e-6;
 /// left edge to the last one's right edge, in the scale's order. `None`
 /// when no column intersects the view.
 ///
-/// Each edge is taken a millionth of a column to the left first. A pan
+/// Each edge is first moved a millionth of a column to the left. A pan
 /// inverts the same edge through another scale, which can land it an ulp
 /// either side of a sample lying exactly on it (round domains and widths
-/// put many there), so the sample would change columns between the two
-/// draws; a millionth of a column is far above that error and puts such a
-/// sample in the column to its right in both.
+/// put many there). The sample would then change columns between the two
+/// draws. A millionth of a column is far above that error, so such a
+/// sample falls in the column to its right in both.
 pub(crate) fn edges_on<D>(indexed: &dyn Indexed<D>, view: [f64; 2], grid: Grid) -> Option<Vec<D>> {
     let (first, last) = grid.span(view)?;
     let lead = LEAD / grid.density;

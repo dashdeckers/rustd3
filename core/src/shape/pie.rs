@@ -1,5 +1,4 @@
-//! d3's pie layout ([`Pie`]) and its drawing order
-//! ([`Sort`]).
+//! d3's pie layout ([`Pie`]) and its drawing order ([`Sort`]).
 
 use std::cmp::Ordering;
 use std::f64::consts::TAU;
@@ -54,7 +53,7 @@ impl Pie {
         Self { end_angle, ..self }
     }
 
-    /// The padding between neighbouring wedges (d3's default 0), at most
+    /// The padding between neighboring wedges (d3's default 0), at most
     /// the span over the number of values.
     #[must_use]
     pub fn pad_angle(self, pad_angle: f64) -> Self {
@@ -64,9 +63,9 @@ impl Pie {
     /// d3's `pie(data)` (`pie.js:15–52`): one slice per value, returned in
     /// input order (`slices[i].datum == i`), each spanning its share of the
     /// angle in drawing order. Values that are not positive (NaN included)
-    /// span only the padding; when no value is positive every slice starts
+    /// span only the padding. When no value is positive every slice starts
     /// and ends where the previous one did. `Descending` and `Ascending`
-    /// sort stably, ±0 equal and NaN last.
+    /// sort stably, with ±0 equal and NaN last.
     ///
     /// ```
     /// use rustd3_core::shape;
@@ -119,8 +118,9 @@ impl Pie {
     }
 }
 
-/// `a` against `b` by `by` when both are numbers, NaN after every number:
-/// d3's comparators call ±0 equal and leave NaN's place to the engine.
+/// Compares `a` with `b` by `by` when both are numbers, placing NaN after
+/// every number. d3's comparators call ±0 equal and leave NaN's place to
+/// the engine.
 fn nan_last(a: f64, b: f64, by: fn(f64, f64) -> Option<Ordering>) -> Ordering {
     match (a.is_nan(), b.is_nan()) {
         (true, true) => Ordering::Equal,

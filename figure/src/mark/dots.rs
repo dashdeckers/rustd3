@@ -41,7 +41,7 @@ impl<'a, X: Position, Y: Position> std::fmt::Debug for Dots<'a, X, Y> {
     }
 }
 
-/// One dot as drawn: its datum's index, where it is centred in the
+/// One dot as drawn: its datum's index, where it is centered in the
 /// panel's coordinates, its color from `fill_by` and its radius in px.
 struct Placed {
     index: usize,
@@ -183,8 +183,8 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     }
 
     /// Each dot's radius in px; by default half the theme's marker size.
-    /// A radius that is not finite and positive leaves it as it was. Radii,
-    /// these and `size_by`'s, are drawn at most three times the plot
+    /// A radius that is not finite and positive leaves it as it was. Radii
+    /// from this and from `size_by` are drawn at most three times the plot
     /// area's larger side, the guard band's reach.
     #[must_use]
     pub fn r(self, px: f64) -> Self {
@@ -194,11 +194,11 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
         }
     }
 
-    /// Places the dots in their fill key's slot of the band: the band
+    /// Places the dots in their fill key's slot of the band. The band is
     /// split into one sub-band per palette key, in the palette's order, so
     /// that dots, bars and lines of one key line up. It acts along x when
-    /// x has bands, else along y when y has; scales without bands place
-    /// dots at their value.
+    /// x has bands, else along y when y has them. Scales without bands
+    /// place dots at their value.
     ///
     /// ```
     /// use rustd3_core::scale;
@@ -223,11 +223,11 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     }
 
     /// Spreads the dots across `share` of their band (or dodged slot), as
-    /// seaborn's `stripplot` does: each at `0.5 + share·(j − 0.5)` of the
-    /// way across, with `j` in [0, 1) a hash of the point's index, so the
-    /// same data jitters the same way in every render and on every
-    /// platform. Clamped to [0, 1]; 0 by default (the band's middle). NaN
-    /// leaves it as it was.
+    /// seaborn's `stripplot` does. Each dot sits `0.5 + share·(j − 0.5)` of
+    /// the way across, where `j` in [0, 1) is a hash of the point's index,
+    /// so the same data jitters the same way in every render and on every
+    /// platform. `share` is clamped to [0, 1] and is 0 by default (the
+    /// band's middle). NaN leaves it as it was.
     #[must_use]
     pub fn jitter(self, share: f64) -> Self {
         Self {
@@ -258,7 +258,7 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     /// handle, from its value in `values` (one per point, in point order),
     /// in place of [`fill`](Dots::fill)'s color, which still picks the
     /// dodge slot. The colors resolve when the figure draws, into one
-    /// `Markers` command with a paint table; a fitted handle fits to the
+    /// `Markers` command with a paint table, and a fitted handle fits to the
     /// values. A dot whose value has no color (NaN, a value the scale does
     /// not take) is skipped. A channel of another length than the points
     /// is never truncated: the mark draws nothing and
@@ -334,11 +334,12 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
     /// One `Markers` command: a circle at every point placed on both
     /// scales, finite, with a color and a finite radius from its channels,
     /// and at most its radius outside the plot area (grown by a widget's
-    /// overscan); nothing when no point is. Sized dots stamp a unit circle at per-point radii; colored dots
-    /// index a table of their distinct colors (8-bit, in first-seen order).
+    /// overscan). Nothing is drawn when no point qualifies. Sized dots
+    /// stamp a unit circle at per-point radii, and colored dots index a
+    /// table of their distinct colors (8-bit, in first-seen order).
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         // One pass over the points into the command's own vectors: the
-        // centres, and the radii and colors only when a channel sets them.
+        // centers, and the radii and colors only when a channel sets them.
         let mut at: Vec<Point> = Vec::with_capacity(self.points.len());
         let mut sizes: Option<Vec<f64>> = self.size_by.is_some().then(Vec::new);
         let mut fills: Option<Vec<Rgb>> = self.fill_by.is_some().then(Vec::new);
@@ -424,9 +425,9 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
 
     /// Each dot drawn, in data order: placed on both scales, finite, with
     /// a color and a finite radius when its channels give them, and at
-    /// most its radius outside `area` (the panel's coordinates: the plot
-    /// area, or the view a widget grows it to); none when a channel keeps
-    /// an error or a handle is of another figure.
+    /// most its radius outside `area` (in the panel's coordinates, the plot
+    /// area or the view a widget grows it to). None when a channel keeps an
+    /// error or a handle is of another figure.
     fn placed<'c>(&'c self, ctx: &Ctx<'_>, area: kurbo::Rect) -> impl Iterator<Item = Placed> + 'c {
         let scales = ctx.x(self.x).zip(ctx.y(self.y));
         let r = self.radius(ctx);

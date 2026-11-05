@@ -3,7 +3,7 @@
 //! where core's `axis::bottom(&x)` takes the scale itself.
 //!
 //! An axis needs a scale that places values and has ticks; band keys are
-//! labelled through `Display`, so an axis on a band whose key has none
+//! labeled through `Display`, so an axis on a band whose key has none
 //! does not compile (E0277, `Bin` doesn't implement `Display`):
 //!
 //! ```compile_fail,E0277
@@ -68,9 +68,9 @@ type Format<'a, D> = Rc<dyn Fn(&D) -> String + 'a>;
 type Tint<'a> = Rc<dyn Fn(&Resolved) -> Option<Rgb> + 'a>;
 
 /// An axis of one quantity: its side, its handle, and how its ticks are
-/// chosen and labelled. Built once and placed on many panels (`From<&Axis>`
-/// clones it); closures are shared, never boxed per panel, and may borrow
-/// for `'a`.
+/// chosen and labeled. It is built once and placed on many panels
+/// (`From<&Axis>` clones it). Its closures are shared, never boxed per
+/// panel, and may borrow for `'a`.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -131,7 +131,7 @@ impl<'a, S: Kind> From<&Axis<'a, S>> for Axis<'a, S> {
     }
 }
 
-/// An axis below the panel: ticks down, labels centred under them.
+/// An axis below the panel: ticks down, labels centered under them.
 #[must_use]
 pub fn bottom<'a, S>(h: ScaleRef<S>) -> Axis<'a, S>
 where
@@ -158,7 +158,7 @@ where
     new(Orient::Right, h)
 }
 
-/// An axis above the panel: ticks up, labels centred over them.
+/// An axis above the panel: ticks up, labels centered over them.
 #[must_use]
 pub fn top<'a, S>(h: ScaleRef<S>) -> Axis<'a, S>
 where
@@ -237,10 +237,11 @@ impl<'a, S: Kind> Axis<'a, S> {
         }
     }
 
-    /// With or without tick labels and title (without, the axis is its line
-    /// and ticks), and drawn whatever its panel's place: without it, an
-    /// axis that a panel further out on its side shows too is drawn
-    /// without labels, and not at all when it is stacked or moved outward.
+    /// With or without tick labels and title; without them the axis is its
+    /// line and ticks. Either way the axis is drawn whatever its panel's
+    /// place. Without this call, an axis that a panel further out on its
+    /// side also shows is drawn without labels, and not at all when it is
+    /// stacked or moved outward.
     #[must_use]
     pub fn labels(self, labels: bool) -> Self {
         Axis {
@@ -249,25 +250,25 @@ impl<'a, S: Kind> Axis<'a, S> {
         }
     }
 
-    /// With or without offset and multiplier notation, on by default. A
-    /// continuous axis whose ticks lie evenly on d3's grid and whose domain
-    /// `[a, b]` sits more than 10⁴ spans from zero labels each tick by its
-    /// distance from an offset with the most trailing zeros, and shows the
-    /// offset ("+1e9") at its end; otherwise, when the domain's largest
-    /// magnitude is below 10⁻⁴ or at least 10⁶, it labels ticks in units of
-    /// that power of ten ("1e−7"), as matplotlib's `ScalarFormatter`.
-    /// Axes with `.format` keep their labels.
+    /// With or without offset and multiplier notation, on by default, as in
+    /// matplotlib's `ScalarFormatter`. It applies to a continuous axis whose
+    /// ticks lie evenly on d3's grid. When the domain `[a, b]` sits more
+    /// than 10⁴ spans from zero, each tick is labeled by its distance from
+    /// an offset with the most trailing zeros, and the offset ("+1e9")
+    /// shows at the axis's end. Otherwise, when the domain's largest
+    /// magnitude is below 10⁻⁴ or at least 10⁶, ticks are labeled in units
+    /// of that power of ten ("1e−7"). Axes with `.format` keep their labels.
     #[must_use]
     pub fn offset(self, on: bool) -> Self {
         Axis { offset: on, ..self }
     }
 
-    /// With or without minor ticks, off by default: core's
+    /// With or without minor ticks, off by default. Minor ticks are core's
     /// [`Ticks::minor`] values for the axis's ticks (fifths of a step on
     /// linear axes, 2–9 of each decade on log and symlog ones, none on
-    /// band, point and time axes), drawn at the theme's minor tick size and
-    /// width (4 pt and 1 pt at notebook) in the styles that draw tick
-    /// marks, without labels or grid lines.
+    /// band, point and time axes). They are drawn at the theme's minor tick
+    /// size and width (4 pt and 1 pt at notebook) in the styles that draw
+    /// tick marks, without labels or grid lines.
     ///
     /// ```
     /// use rustd3_core::scale;
@@ -284,13 +285,14 @@ impl<'a, S: Kind> Axis<'a, S> {
 
     /// Rotates tick labels counter-clockwise by `deg` (matplotlib's sign).
     /// Labels anchor at their end for positive angles on bottom axes
-    /// (matplotlib's `autofmt_xdate`: 30°, `ha="right"`), at their start
-    /// for negative ones; top axes mirror; left and right axes rotate
-    /// about the label's center. Layout measures the turned boxes: a label
-    /// of ink size w × h reaches w·|sin θ| + h·|cos θ| past a bottom or
-    /// top axis, and both collision passes test the turned boxes. The run
-    /// is shaped once; the rotation is its transform. A `deg` that is not
-    /// finite leaves the rotation as it was.
+    /// (matplotlib's `autofmt_xdate`: 30°, `ha="right"`), and at their
+    /// start for negative ones. Top axes mirror this. Beside left and right
+    /// axes a turned label ends or starts at its tick, centered on it
+    /// vertically. Layout measures the turned boxes: a label of ink size
+    /// w × h reaches w·|sin θ| + h·|cos θ| past a bottom or top axis, and
+    /// both collision passes test the turned boxes. The run is shaped once,
+    /// and the rotation is its transform. A `deg` that is not finite leaves
+    /// the rotation as it was.
     ///
     /// ```
     /// use rustd3_core::time;
@@ -323,10 +325,11 @@ where
         }
     }
 
-    /// The labels of `scale`'s about `count` ticks: the format's; else,
-    /// under a notation, d3's linear labels of what each tick reads as over
-    /// the domain mapped the same way; else the scale's own; both written
-    /// in `locale`.
+    /// The labels of `scale`'s about `count` ticks. They are the format's
+    /// when the axis has one. Otherwise, under a notation, they are d3's
+    /// linear labels of what each tick reads as, over the domain mapped the
+    /// same way, and failing that the scale's own. Both of the last two are
+    /// written in `locale`.
     fn texts(&self, scale: &S, count: usize, locale: &Locale) -> Vec<String> {
         let set = self.set(scale, count);
         if let Some(format) = &self.format {

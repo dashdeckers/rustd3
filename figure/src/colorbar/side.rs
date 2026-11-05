@@ -11,8 +11,8 @@ use crate::layout::collide;
 use crate::scale::ScaleRef;
 use crate::text::Text;
 
-/// A colorbar's long axis on side `orient` of its bar, its labels those of
-/// a binned scale's edges when `binned`.
+/// A colorbar's long axis on side `orient` of its bar, labeled with a
+/// binned scale's edges when `binned`.
 pub(crate) struct Side<'g, 'a> {
     pub(crate) bar: &'g (dyn Draw<'a> + 'a),
     pub(crate) orient: Orient,
@@ -42,7 +42,7 @@ impl<'g, 'a: 'g> axis::Draw<'g> for Side<'g, 'a> {
         None
     }
 
-    /// Always labelled.
+    /// Always labeled.
     fn labels(&self) -> Option<bool> {
         Some(true)
     }
@@ -104,10 +104,10 @@ impl<'g, 'a: 'g> axis::Draw<'g> for Side<'g, 'a> {
     }
 }
 
-/// Where a tick at `share` of a bar's interior `length` px long from its
-/// low end lies, px from the interior's top or left edge, its ticks on side
-/// `orient`: up a vertical bar from its bottom, across a horizontal one
-/// from its left.
+/// Where a tick at `share` of the way from a bar's low end lies, in px
+/// from the top or left edge of an interior `length` px long, with ticks on
+/// side `orient`. Shares run up a vertical bar from its bottom and across
+/// a horizontal one from its left.
 pub(crate) fn along(orient: Orient, length: f64, share: f64) -> f64 {
     if axis::across(orient) {
         length * share

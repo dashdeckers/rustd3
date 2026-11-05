@@ -30,8 +30,9 @@ fn main() -> iced::Result {
         .run()
 }
 
-/// The time every `period`, from a thread of its own: iced's `time::every`
-/// needs its `tokio` or `smol` feature, which the workspace leaves off.
+/// Emits the time every `period` from a thread of its own. iced's
+/// `time::every` needs its `tokio` or `smol` feature, which the workspace
+/// leaves off.
 #[expect(
     clippy::disallowed_methods,
     reason = "the app reads the clock and passes the instants to the library"

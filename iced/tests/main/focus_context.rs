@@ -15,15 +15,15 @@ use crate::simulator;
 #[allow(dead_code, reason = "the example reads what the tests do not")]
 mod app;
 
-/// The window: the focus above, the overview from y = 340; plots 860 px
-/// wide between the 40 px and 24 px margins.
+/// The window's size. The focus sits above the overview, which starts at
+/// y = 340; both plots are 860 px wide between 40 px and 24 px margins.
 const SIZE: (f32, f32) = (924.0, 430.0);
 /// A row through the overview's plot.
 const OVERVIEW_Y: f32 = 380.0;
 /// The data's 719 hours over the plot's 860 px.
 const HOURS_PER_PX: f64 = 719.0 / 860.0;
 
-/// Applies `messages` to `app` in order; the last one.
+/// Applies `messages` to `app` in order and returns the last one.
 fn apply(app: &mut App, messages: impl IntoIterator<Item = Message>) -> Option<Message> {
     let mut last = None;
     for message in messages {
@@ -49,8 +49,9 @@ fn assert_window(app: &App, window: [Timestamp; 2], [from, to]: [f64; 2], second
     );
 }
 
-/// Twenty wheel lines at canvas (450, 150), d3's sign: zoom in; `None`
-/// when the simulator is skipped.
+/// Scrolls twenty wheel lines at canvas (450, 150), which zooms in under
+/// d3's sign, and applies the messages to `app`. Returns `None` when the
+/// simulator is skipped.
 fn zoom_in(app: &mut App) -> Option<()> {
     let mut ui = simulator(SIZE, app.view())?;
     ui.point_at(Point::new(450.0, 150.0));

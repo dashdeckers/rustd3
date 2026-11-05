@@ -56,8 +56,8 @@ fn m4_scan<X: PartialOrd>(
     scan(x, &[y], edges, valid)
 }
 
-/// The raw-scan reference of a joint query: runs where no
-/// channel of `ys` is NaN, and per column each channel's extremes.
+/// The raw-scan reference of a joint query: runs where no channel of `ys`
+/// is NaN, and per column each channel's extremes.
 fn scan<X: PartialOrd>(
     x: &[X],
     ys: &[&[f64]],

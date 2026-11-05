@@ -1,16 +1,16 @@
 //! [`Layers`]: a figure's drawing list split into what each plot area's
-//! tiles show, which moves with the area's data, and the rest, which
-//! stays: the cells outside the plot areas show it, and each plot area
+//! tiles show, which moves with the area's data, and the rest, which stays
+//! put. The cells outside the plot areas show the rest, and each plot area
 //! shows its part of it over its tiles.
 //!
-//! The widget draws its list with an overscan ([`Held::overscan`]): each
+//! The widget draws its list with an overscan ([`Held::overscan`]). Each
 //! panel's background and grid lines cover its plot area grown by the
 //! overscan, and its marks are clipped to the grown area, so they reach
 //! into the gutters around it. A tile must show only its plot area's own
-//! content there, and must not carry what stays put when the content
-//! moves (the axis lines whose inner half lies on the plot area's edge
-//! pixels, a border, an inset legend), or a translated tile would move it
-//! too. So the list is split by part:
+//! content there. It must not carry what stays put when the content moves
+//! (the axis lines whose inner half lies on the plot area's edge pixels, a
+//! border, an inset legend), or a translated tile would move it too. So
+//! the list is split by part:
 //!
 //! - a panel's **layer**: the figure's background, the panel's background,
 //!   its grid lines and its marks, in the group the figure translates to
@@ -59,11 +59,11 @@ pub(crate) struct Layer {
 
 /// A figure's list split into the plot areas' layers and the chrome.
 pub(crate) struct Layers {
-    /// Everything but the layers: what the cells outside the plot areas
+    /// Everything but the layers, which the cells outside the plot areas
     /// show.
     pub(crate) chrome: Source,
-    /// The chrome without the figure's background, transparent elsewhere:
-    /// what each plot area shows over its tiles.
+    /// The chrome without the figure's background, transparent elsewhere.
+    /// Each plot area shows it over its tiles.
     pub(crate) fixed: Source,
     /// Per panel, its layer.
     pub(crate) layers: Vec<Layer>,
@@ -143,8 +143,8 @@ impl Source {
     }
 }
 
-/// A part id's value: rustd3-figure keeps it private and orders ids by
-/// it, so it is the greatest value whose id is not past `id`.
+/// A part id's value. rustd3-figure keeps it private and orders ids by it,
+/// so it is the greatest value whose id is not past `id`.
 fn value(id: part::Id) -> u64 {
     let (mut low, mut high) = (0_u64, u64::MAX);
     while low < high {
@@ -174,7 +174,7 @@ fn role(id: part::Id) -> u64 {
 }
 
 /// The panel of a part that moves with a plot area's data (a panel's
-/// background, grid lines or marks); `None` for any other part.
+/// background, grid lines or marks). `None` for any other part.
 fn moves(id: part::Id) -> Option<usize> {
     let (role, panel, _) = decode(id);
     [PANEL, MARK, GRID].contains(&role).then_some(panel)
@@ -269,9 +269,9 @@ mod tests {
             &held,
         );
         let layers = Layers::split(&list, 4, &mut Outlines::default());
-        // Every layer starts with the figure's background; past it, the
-        // layers and the chrome hold each command once, the marks' groups
-        // whole.
+        // Every layer starts with the figure's background. Past it, the
+        // layers and the chrome hold each command once, with the marks'
+        // groups whole.
         let background = list.parts[0].commands.len();
         let layered: usize = layers
             .layers

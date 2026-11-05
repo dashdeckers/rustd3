@@ -1,9 +1,9 @@
-//! The replay of a list into vello_cpu: kurbo paths and peniko paints pass
-//! through unconverted, long strokes cut to the area first ([`cull`]);
-//! images become premultiplied pixmaps, cached by their blob between
-//! renders. With splatting on, the commands between
-//! splatted markers render into the pixmap in turn, source-over, and the
-//! markers are composited there from stamps ([`splat`](super::splat)).
+//! Replaying a list into vello_cpu. kurbo paths and peniko paints pass
+//! through unconverted, and long strokes are cut to the area first
+//! ([`cull`]). Images become premultiplied pixmaps, cached by their blob
+//! between renders. With splatting on, the commands between splatted
+//! markers render into the pixmap in turn, source-over, and the markers
+//! are composited there from stamps ([`splat`](super::splat)).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -54,15 +54,17 @@ pub(super) struct Replay<'a> {
     pub(super) cull: bool,
 }
 
-/// An open group: its transform into list px, the clip layer it pushed
-/// (the path and its device transform), its clip in device px (when every
-/// clip so far is a rectangle in an axis-aligned space), and whether its
-/// space and every enclosing one only scale and translate.
+/// An open group.
 #[derive(Clone)]
 struct Group {
+    /// Its transform into list px.
     to_list: Affine,
+    /// The clip layer it pushed: its device transform and its path.
     layer: Option<(Affine, BezPath)>,
+    /// Its clip in device px, when every clip so far is a rectangle in an
+    /// axis-aligned space.
     rect: Option<[f64; 4]>,
+    /// Whether its space and every enclosing one only scale and translate.
     aligned: bool,
 }
 
@@ -222,10 +224,10 @@ impl Replay<'_> {
         Ok(())
     }
 
-    /// Renders what the context holds into `pixmap`, over what it shows
-    /// when `over` (earlier runs), and starts the context afresh inside
-    /// the clip layers of the open `groups`: a group whose commands are
-    /// split around splatted markers composites each part source-over,
+    /// Renders what the context holds into `pixmap`, over what the pixmap
+    /// shows when `over` (earlier runs), and starts the context afresh
+    /// inside the clip layers of the open `groups`. A group whose commands
+    /// are split around splatted markers composites each part source-over,
     /// which is how its layer composites them whole.
     fn render(&mut self, pixmap: &mut Pixmap, groups: &[Group], over: bool) {
         let open: Vec<&(Affine, BezPath)> =
@@ -270,7 +272,8 @@ impl Replay<'_> {
         Ok(())
     }
 
-    /// Each point that may touch the area, its shape placed by its size.
+    /// Fills each point that may touch the area, its shape placed by its
+    /// size.
     fn markers(
         &mut self,
         command: usize,
@@ -302,7 +305,7 @@ impl Replay<'_> {
         Ok(())
     }
 
-    /// A run through vello_cpu's glyph renderer, unhinted.
+    /// Draws a run through vello_cpu's glyph renderer, unhinted.
     fn glyphs(&mut self, command: usize, run: &GlyphRun, to_device: Affine) -> Result<(), Error> {
         self.paint(command, &run.fill, run.transform.inverse())?;
         self.context.set_transform(to_device * run.transform);
@@ -321,8 +324,8 @@ impl Replay<'_> {
         Ok(())
     }
 
-    /// The image stretched over `rect` by the paint transform, nearest or
-    /// bilinear.
+    /// Draws the image stretched over `rect` by the paint transform,
+    /// nearest or bilinear.
     fn image(
         &mut self,
         command: usize,

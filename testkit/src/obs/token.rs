@@ -16,7 +16,7 @@ pub enum Token {
     },
 }
 
-/// Splits text and numbers; U+2212 reads as `-`.
+/// Splits `s` into text and number tokens. U+2212 reads as `-`.
 ///
 /// A number is `[-+]?(digits[.digits]|.digits)([eE][-+]?digits)?`, so a
 /// sign always belongs to the number after it.

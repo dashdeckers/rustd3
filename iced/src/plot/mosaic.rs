@@ -2,17 +2,19 @@
 //! CPU, for iced's software renderer.
 //!
 //! iced's tiny-skia renderer draws every raster image through tiny-skia's
-//! high-precision pipeline after clearing and refilling a frame-sized clip
-//! mask (`tiny_skia/src/engine.rs:533`, `adjust_clip_mask` at `:776`), and
-//! converts every handle it has not drawn the frame before pixel by pixel
-//! (`tiny_skia/src/raster.rs`, `Cache::allocate`). While a zoom's preview
-//! layer shows, an area draws dozens of scaled, overlapping tiles: a
-//! mid-burst frame of the bench's `trace` drew 68 images over 3.1 Mpx of
-//! a 1.6 Mpx frame at factor 1, and 332 over 16.8 Mpx of 6.4 at 2,
-//! composed in 77 and 565 ms. Laid here first (rows copied for images at
-//! 1:1, scaled ones sampled at each pixel's centre, nearest) and drawn as
-//! one image, the same frames compose in about a third and a sixth of
-//! that. The GPU renderer draws the images as they are.
+//! high-precision pipeline, after clearing and refilling a frame-sized
+//! clip mask (`tiny_skia/src/engine.rs:533`, `adjust_clip_mask` at
+//! `:776`). It also converts, pixel by pixel, every handle it did not draw
+//! in the frame before (`tiny_skia/src/raster.rs`, `Cache::allocate`).
+//!
+//! While a zoom's preview layer shows, an area draws dozens of scaled,
+//! overlapping tiles. A mid-burst frame of the bench's `trace` drew 68
+//! images over 3.1 Mpx of a 1.6 Mpx frame at factor 1, composed in 77 ms.
+//! At factor 2 it drew 332 over 16.8 Mpx of 6.4, composed in 565 ms. Laid
+//! here first and drawn as one image, the same frames compose in about a
+//! third and a sixth of that. Images at 1:1 copy their rows, and scaled
+//! ones are sampled nearest at each pixel's center. The GPU renderer draws
+//! the images as they are.
 
 use iced_core::image::{self, FilterMethod};
 use iced_core::{Color, Rectangle};
@@ -21,9 +23,10 @@ use crate::plot::{slot, tile};
 
 /// A plot area's pixels, laid image by image in drawing order.
 pub(crate) struct Mosaic {
-    /// Device px [x0, y0, x1, y1], relative to the widget's device origin.
+    /// The rect in device px [x0, y0, x1, y1], relative to the widget's
+    /// device origin.
     rect: [i32; 4],
-    /// Straight RGBA, row-major, the rect's size.
+    /// Straight RGBA, row-major, of the rect's size.
     rgba: Vec<u8>,
 }
 
@@ -50,11 +53,11 @@ impl Mosaic {
         Mosaic { rect, rgba }
     }
 
-    /// Lays `source` stretched over the device rect `at` (its edges, device
-    /// px, relative to the widget's device origin), inside `clip`: each
-    /// pixel whose centre lies in `at` and `clip` takes the source pixel
-    /// under its centre, over what lies there. An image at whole pixels and
-    /// 1:1 copies its rows.
+    /// Lays `source` stretched over the device rect `at`, inside `clip`.
+    /// `at` holds the image's edges in device px, relative to the widget's
+    /// device origin. Each pixel whose center lies in `at` and `clip` takes
+    /// the source pixel under its center, composited over what lies there.
+    /// An image at whole pixels and 1:1 copies its rows.
     pub(crate) fn lay(&mut self, source: Source<'_>, at: [f64; 4], clip: [i32; 4]) {
         let (sw, sh) = (source.width as usize, source.height as usize);
         if sw == 0 || sh == 0 || source.rgba.len() != sw * sh * 4 {
@@ -64,7 +67,7 @@ impl Mosaic {
         if !(ax1 > ax0 && ay1 > ay0) {
             return;
         }
-        // The pixels whose centres x + 0.5 lie in [ax0, ax1).
+        // The pixels whose centers x + 0.5 lie in [ax0, ax1).
         let covered = |a: f64, b: f64| ((a - 0.5).ceil() as i32, (b - 0.5).ceil() as i32);
         let (cx0, cx1) = covered(ax0, ax1);
         let (cy0, cy1) = covered(ay0, ay1);
@@ -78,7 +81,7 @@ impl Mosaic {
             (((f64::from(p) + 0.5 - a) * k).floor().max(0.0) as usize).min(n - 1)
         };
         let columns: Vec<usize> = (x0..x1).map(|x| sample(x, ax0, kx, sw)).collect();
-        // Consecutive source columns: a row's span is one slice.
+        // With consecutive source columns, a row's span is one slice.
         let whole = columns.windows(2).all(|w| w[1] == w[0] + 1);
         let width = (self.rect[2] - self.rect[0]) as usize;
         let (left, span) = ((x0 - self.rect[0]) as usize, (x1 - x0) as usize);
@@ -179,8 +182,8 @@ mod tests {
     #[test]
     fn an_image_at_whole_pixels_copies_its_rows_inside_the_clip() {
         // A 4 × 3 ramp laid 1:1 at (12, 21) in the area [10, 20, 18, 26],
-        // clipped to [13, 20, 18, 23]: pixel (x, y) of the area shows the
-        // ramp's (x − 12, y − 21) inside the clip, nothing outside it.
+        // clipped to [13, 20, 18, 23]. Inside the clip, pixel (x, y) of the
+        // area shows the ramp's (x − 12, y − 21), and outside it nothing.
         let rgba = ramp(4, 3);
         let mut mosaic = Mosaic::new([10, 20, 18, 26], None);
         mosaic.lay(
@@ -197,8 +200,9 @@ mod tests {
 
     #[test]
     fn a_scaled_image_takes_the_pixel_under_each_centre() {
-        // A 4 × 2 ramp stretched over [0, 0, 8, 3]: device column x takes
-        // source column floor((x + 0.5) / 2), row y floor((y + 0.5) · 2 / 3).
+        // A 4 × 2 ramp stretched over [0, 0, 8, 3]. Device column x takes
+        // source column floor((x + 0.5) / 2), and row y takes source row
+        // floor((y + 0.5) · 2 / 3).
         let rgba = ramp(4, 2);
         let mut mosaic = Mosaic::new([0, 0, 8, 3], Some(Color::WHITE));
         mosaic.lay(
@@ -210,7 +214,7 @@ mod tests {
         assert_eq!(columns, [0, 0, 1, 1, 2, 2, 3, 3]);
         let rows: Vec<u8> = (0..3).map(|y| mosaic.pixel(0, y)[1]).collect();
         assert_eq!(rows, [0, 1, 1]);
-        // A fractional placement covers the pixels whose centres it holds.
+        // A fractional placement covers the pixels whose centers it holds.
         let mut mosaic = Mosaic::new([0, 0, 8, 1], None);
         mosaic.lay(
             source(&rgba, 4, 2, true),

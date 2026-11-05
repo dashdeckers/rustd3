@@ -1,9 +1,10 @@
 //! `#[derive(Interpolate)]`, which interpolates a struct field by field so
-//! that marks with several animated attributes transition as one value;
-//! enabled through `rustd3-core`'s `derive` feature, which re-exports it as
-//! `rustd3_core::interpolate::Interpolate` beside the trait (and the
-//! `rustd3` facade as `rustd3::interpolate::Interpolate`). Examples with
-//! the real trait, and the shapes the derive rejects, are documented there.
+//! that a mark with several animated attributes transitions as one value.
+//! `rustd3-core`'s `derive` feature enables it and re-exports it as
+//! `rustd3_core::interpolate::Interpolate` beside the trait, and the
+//! `rustd3` facade re-exports it as `rustd3::interpolate::Interpolate`.
+//! Examples with the real trait, and the shapes the derive rejects, are
+//! documented there.
 //!
 //! The derive names the trait it implements by path: `Interpolate` as the
 //! code imports it, or `path::interpolate::Interpolate` with

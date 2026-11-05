@@ -84,8 +84,9 @@ impl Channel<f64> {
 }
 
 impl<T> Channel<T> {
-    /// The channel for a mark of `points` points: [`Error::ChannelLength`]
-    /// when it has another number of values, which is never truncated.
+    /// The channel for a mark of `points` points, or
+    /// [`Error::ChannelLength`] when its value count differs. A channel is
+    /// never truncated.
     pub(crate) fn of(self, points: usize) -> Result<Self, Error> {
         if self.values.len() == points {
             Ok(self)

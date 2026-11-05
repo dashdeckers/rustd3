@@ -36,14 +36,15 @@ enum Drawn<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     Outline(mark::Line<'static, X, Y>),
 }
 
-/// A histogram of `values` on `x` with its heights on `y`: the options
-/// layer over [`mark::histogram`](crate::mark::histogram), matplotlib's
-/// `hist`. Its bins are [`hist::table`](super::table)'s for the options
-/// set (by default d3's nice bins with Sturges' count, as `histogram`'s),
-/// drawn as one [`rect`](crate::mark::rect) per bin from 0, in the theme
-/// palette's first color, or as their outline. The bars stand on 0, which
-/// is held: the y margin stops there. A table that cannot be made (edges
-/// that do not increase, weights of another length) draws nothing, and
+/// A histogram of `values` on `x` with its heights on `y`, as matplotlib's
+/// `hist`: the options layer over
+/// [`mark::histogram`](crate::mark::histogram). Its bins are
+/// [`hist::table`](super::table)'s for the options set (by default d3's
+/// nice bins with Sturges' count, as `histogram`'s). They are drawn as one
+/// [`rect`](crate::mark::rect) per bin from 0, in the theme palette's first
+/// color, or as their outline. The bars stand on 0, which is held, so the
+/// y margin stops there. A table that cannot be made (edges that do not
+/// increase, weights of another length) draws nothing, and
 /// [`Figure::check`](crate::Figure::check) reports it.
 ///
 /// ```
@@ -96,9 +97,9 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Hist<X, Y> {
         .tabled()
     }
 
-    /// Each value's weight, in the values' order: bins sum weights instead
-    /// of counting. Their count must be the values' (non-finite values
-    /// included), or the histogram draws nothing.
+    /// Each value's weight, in the values' order. Bins then sum weights
+    /// instead of counting. There must be one weight per value (non-finite
+    /// values included), or the histogram draws nothing.
     #[must_use]
     pub fn weights(self, w: impl IntoIterator<Item = f64>) -> Self {
         Self {

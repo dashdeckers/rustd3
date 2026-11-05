@@ -58,8 +58,8 @@ impl<T: Interpolate> Animated<T> {
 
     /// Heads for `target` from the value at `now`, starting after
     /// `timing.delay` plus `extra_delay` (a stagger) and taking
-    /// `timing.duration` along `timing.ease`. A start past what `Instant`
-    /// can hold is `now`.
+    /// `timing.duration` along `timing.ease`. If the delayed start
+    /// overflows `Instant`, it starts at `now`.
     pub fn go(&mut self, target: T, now: Instant, timing: Timing, extra_delay: Duration) {
         self.from = self.value(now);
         self.to = target;
@@ -87,8 +87,8 @@ impl<T: Interpolate> Animated<T> {
         &self.to
     }
 
-    /// It has not reached its target by `now`: waiting for its start or
-    /// moving.
+    /// Whether it has not reached its target by `now`, either waiting for
+    /// its start or moving.
     pub fn is_animating(&self, now: Instant) -> bool {
         now.checked_duration_since(self.start)
             .is_none_or(|elapsed| elapsed < self.duration)

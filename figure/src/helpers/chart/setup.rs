@@ -40,8 +40,8 @@ impl Default for Setup {
 }
 
 impl Setup {
-    /// Files are written at `w × h` px; a side that is not finite and
-    /// positive leaves the size as it was.
+    /// Sets the size files are written at to `w × h` px. A side that is not
+    /// finite and positive leaves the size as it was.
     pub(super) fn size(&mut self, w: f64, h: f64) {
         if [w, h].iter().all(|v| v.is_finite() && *v > 0.0) {
             self.size = Size::new(w, h);

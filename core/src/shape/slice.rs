@@ -1,9 +1,9 @@
 //! [`Slice`], one wedge of a pie.
 
-/// One wedge: d3's arc datum, with positions in place of `data`. Plain
-/// data: [`Pie::layout`](crate::shape::Pie::layout)
-/// writes it and [`Arc`](crate::shape::Arc) draws it; a literal draws any
-/// sector or annulus.
+/// One wedge: d3's arc datum, with positions in place of `data`. It is
+/// plain data. [`Pie::layout`](crate::shape::Pie::layout) writes it and
+/// [`Arc`](crate::shape::Arc) draws it, and a literal draws any sector or
+/// annulus.
 ///
 /// ```
 /// use std::f64::consts::PI;
@@ -27,6 +27,6 @@ pub struct Slice {
     /// Radians, clockwise from 12 o'clock; below `start_angle` the wedge
     /// runs anticlockwise.
     pub end_angle: f64,
-    /// The padding between neighbouring wedges, in radians.
+    /// The padding between neighboring wedges, in radians.
     pub pad_angle: f64,
 }

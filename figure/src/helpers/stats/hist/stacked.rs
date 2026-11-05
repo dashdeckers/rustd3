@@ -38,12 +38,12 @@ where
     }
 }
 
-/// Groups `(key, values)` stacked over one set of edges, matplotlib's
-/// `hist(…, stacked=True)`: the edges come from the union of every group's
-/// finite values (d3's nice bins with Sturges' count by default), each
-/// group is counted per bin, the count columns are stacked with core's
-/// [`shape::stack()`] (the groups in their order from the bottom, no offset)
-/// and each group becomes one [`rect`](crate::mark::rect) mark with rows
+/// Groups `(key, values)` stacked over one set of edges, as matplotlib's
+/// `hist(…, stacked=True)`. The edges come from the union of every group's
+/// finite values (d3's nice bins with Sturges' count by default). Each
+/// group is counted per bin, and the count columns are stacked with core's
+/// [`shape::stack()`] (the groups in order from the bottom, no offset).
+/// Each group becomes one [`rect`](crate::mark::rect) mark with rows
 /// `([edge_i, edge_{i+1}], [y0, y1])`, filled with `color`'s color for its
 /// key. As rects, the bars fit both of their ends and hold nothing.
 ///
@@ -108,9 +108,10 @@ where
         }
     }
 
-    /// Adds one `rect` mark per group to `panel`, bottom group first. Edges
-    /// that cannot be used add instead one [`hist`](super::super::hist()) of
-    /// the union, which draws nothing and reports the error to
+    /// Adds one `rect` mark per group to `panel`, bottom group first. When
+    /// the edges cannot be used, it adds one
+    /// [`hist`](super::super::hist()) of the union instead, which draws
+    /// nothing and reports the error to
     /// [`Figure::check`](crate::Figure::check).
     pub fn add_to(self, panel: &mut Panel<'_>) {
         let union: Vec<f64> = self
@@ -132,8 +133,8 @@ where
         }
     }
 
-    /// Per group, its rows over the edges of the `union` of the values by
-    /// `bins`.
+    /// Each group's rows over the edges that `bins` gives the `union` of
+    /// the values.
     fn layers(&self, union: &[f64], bins: &Bins) -> Result<Vec<Rows>, Error> {
         let edges = table(union, None, bins, false, false)?.edges;
         let shared = Bins::Edges(edges.clone());

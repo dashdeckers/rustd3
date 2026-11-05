@@ -7,10 +7,11 @@ use crate::figure::cache;
 #[cfg(feature = "raster")]
 use crate::raster::vello::{diff, whole};
 
-/// Whether `a` and `b` draw the same at `size` for vector output: equal
-/// list dumps (glyph ids included) and, with `raster`, renders of the two
-/// lists at 1× and 2× (single-threaded at the baseline SIMD level) no
-/// channel more than 1/255 apart; the first difference otherwise.
+/// Checks that `a` and `b` draw the same at `size` for vector output, and
+/// returns the first difference otherwise. Their list dumps must be equal,
+/// glyph ids included. With `raster`, their renders at 1× and 2×
+/// (single-threaded at the baseline SIMD level) must also differ by at most
+/// 1/255 in every channel.
 pub fn figures_equal(a: &Figure<'_>, b: &Figure<'_>, size: Size) -> Result<(), String> {
     let draw =
         |fig: &Figure<'_>| fig.draw_with(&mut cache(), size, Target::Vector, &Held::default());

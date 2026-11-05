@@ -15,10 +15,10 @@ use rustd3_figure::{Figure, Fits, Held, Target, Theme, axis};
 
 use crate::figure::cache;
 
-/// A custom mark that labels a number: written in the figure's locale and
-/// colored from its theme's palette, while fitting through [`Fits`] and
-/// while drawing through [`Ctx`], so the key it draws is the one it
-/// reported.
+/// A custom mark that labels a number. The label is written in the
+/// figure's locale and colored from its theme's palette, both while
+/// fitting (through [`Fits`]) and while drawing (through [`Ctx`]), so the
+/// key it draws is the one it reported.
 struct Total(f64);
 
 impl Total {

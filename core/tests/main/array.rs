@@ -165,9 +165,9 @@ fn infinite_or_missing_values_bin_as_d3_without_hanging() {
 }
 
 /// d3-array's `bin-test.js` "bin(data) assigns floating point values to
-/// the correct bins", which the translator skips (a `for…of` loop): n
-/// bins over `ticks(1, 2, n)` hold one value each. From n = 10,000 the
-/// 10,000-tick ceiling applies: `ticks` gives no values, and over the
+/// the correct bins", which the translator skips (a `for…of` loop). n bins
+/// over `ticks(1, 2, n)` hold one value each. From n = 10,000 the
+/// 10,000-tick ceiling applies. `ticks` then gives no values, and over the
 /// same 10,001 values (k / n for k from n to 2n, as d3 computes them) the
 /// thresholds are capped too, so one bucket holds them all where d3 has
 /// one per value.

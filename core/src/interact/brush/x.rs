@@ -8,7 +8,7 @@ use crate::interact::{BrushEvent, Pointer};
 /// it, on a handle resizes it, and an edge dragged past the other flips
 /// the handle (d3-brush 3.0.0, `brush.js`).
 ///
-/// The caller feeds it [`Pointer`] input and stores nothing else; a
+/// The caller feeds it [`Pointer`] input and stores nothing else. A
 /// selection that ends with zero width ends as `None`. d3's filter
 /// applies: presses of other buttons or with ctrl held do nothing. Other
 /// modifiers are accepted and ignored (no keyboard modes in v0.1), and a
@@ -54,8 +54,8 @@ impl BrushX {
         }
     }
 
-    /// Feeds one event; what d3 emits for it. A move emits only when it
-    /// changes the selection.
+    /// Feeds one event and returns what d3 emits for it. A move emits only
+    /// when it changes the selection.
     pub fn handle(&mut self, input: Pointer) -> Option<BrushEvent> {
         self.engine.handle(input)
     }
@@ -73,8 +73,8 @@ impl BrushX {
         self.engine.set_selection(selection);
     }
 
-    /// A gesture is in progress: an app syncs the brush from its own state
-    /// only between gestures.
+    /// Whether a gesture is in progress. An app syncs the brush from its own
+    /// state only between gestures.
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.engine.is_active()

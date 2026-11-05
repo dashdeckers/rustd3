@@ -89,8 +89,9 @@ impl<K: PartialEq, V> Ordinal<K, V> {
         }
     }
 
-    /// d3's implicit growth, opt in: an unseen key is appended first.
-    /// `None` only when the range is empty.
+    /// [`apply`](Ordinal::apply) with d3's implicit growth, which appends
+    /// an unseen key to the domain first. `None` only when the range is
+    /// empty.
     pub fn apply_or_insert(&mut self, key: K) -> Option<&V> {
         let i = match self.keys.iter().position(|k| *k == key) {
             Some(i) => i,
@@ -120,7 +121,7 @@ impl<K: PartialEq, V> Ordinal<K, V> {
 }
 
 /// Over numbers, an ordinal scale places its keys on an axis. Ordinal
-/// scales over colors have none: legends read their keys.
+/// scales over colors have no axis, and legends read their keys instead.
 impl<K: Clone + PartialEq + fmt::Display> Ticks for Ordinal<K, f64> {
     type Domain = K;
     type Step = ();

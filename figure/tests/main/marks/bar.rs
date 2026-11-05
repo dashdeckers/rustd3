@@ -11,7 +11,7 @@ use rustd3_figure::{Figure, Held, Target};
 use super::{draw, fitted, marked, role, solid};
 use crate::figure::{cache, resolve};
 
-/// `a` and `b` within 1e-9.
+/// Whether `a` and `b` agree within 1e-9.
 fn close(a: [f64; 2], b: [f64; 2]) -> bool {
     (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9
 }

@@ -1,6 +1,5 @@
-//! The list as text for snapshots: one line per command, then one per
-//! part, numbers through the SVG writer's formatter so that dumps are
-//! byte-stable.
+//! The list as text for snapshots. Numbers go through the SVG writer's
+//! formatter, so dumps are byte-stable.
 
 use std::fmt::Write;
 
@@ -17,9 +16,9 @@ pub struct Options {
 }
 
 impl Options {
-    /// With glyph ids, run transforms and fills; without them (the
-    /// default) a run prints its font, size and text only (for lists made
-    /// before typst shapes text).
+    /// Whether runs print their glyph ids, transforms and fills. Without
+    /// them (the default), a run prints only its font, size and text, which
+    /// suits lists made before typst shapes text.
     #[must_use]
     pub fn glyphs(self, on: bool) -> Self {
         Options { glyphs: on }

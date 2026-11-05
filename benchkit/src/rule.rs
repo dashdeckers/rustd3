@@ -63,7 +63,7 @@ reopen the GPU-layer question, which stays with the desktop profile.
 /// Which budgets a plan's cells are held to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Profile {
-    /// The verdict's: the desktop.
+    /// The desktop's budgets, which decide the verdict.
     Desktop,
     /// Weaker machines (the `weak` plan).
     Weak,
@@ -105,9 +105,9 @@ pub struct Check {
     pub interval: Option<Interval>,
     /// Met, missed or inconclusive.
     pub verdict: Verdict,
-    /// The shares over the offending frames or windows, summed over runs:
-    /// for a miss, and for a single run over the budget (no verdict, but
-    /// what a miss would be attributed to).
+    /// The shares over the offending frames or windows, summed over runs.
+    /// They are kept for a miss, and for a single run over the budget,
+    /// which has no verdict but shows what a miss would be attributed to.
     pub shares: Shares,
 }
 
@@ -302,8 +302,8 @@ impl Outcome {
         }
     }
 
-    /// The outcome's line in a report of `profile`: on the desktop a
-    /// raster or upload miss recommends the GPU data layer; the weak
+    /// The outcome's line in a report of `profile`. On the desktop, a
+    /// raster or upload miss recommends the GPU data layer. The weak
     /// profiles never decide it.
     pub fn line(self, profile: Profile) -> &'static str {
         match (profile, self) {
@@ -379,8 +379,8 @@ mod tests {
 
     #[test]
     fn offscreen_the_frame_budget_reads_each_frames_cost() {
-        // The offscreen run's frames cost 7, 5.5, 6.5 and 6.5 ms 16 ms
-        // apart: its intervals are the pacer's, its p99 cost 7 ms.
+        // The offscreen run's frames, 16 ms apart, cost 7, 5.5, 6.5 and
+        // 6.5 ms. Its intervals are the pacer's, and its p99 cost is 7 ms.
         let runs: Vec<Metrics> = (0..2)
             .map(|_| Metrics::of(&crate::metrics::tests::offscreen()).unwrap())
             .collect();

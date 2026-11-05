@@ -1,13 +1,13 @@
 //! [`Domains`]: the scales gestures changed, keyed by handle position and
-//! scale type ([`Key`]): those the widget owns, those it published during
-//! the active gesture, which handles a gesture touched, and each handle's
-//! core `Zoom` and preview view.
+//! scale type ([`Key`]). It holds the scales the widget owns, those it
+//! published during the active gesture, which handles a gesture touched,
+//! and each handle's core `Zoom` and preview view.
 //!
 //! Core's `Zoom` keeps d3's scale extent [0, ∞], which does not bound a
-//! gesture's k; each handle's zoom here is built with the extent [1e-6,
-//! 1e6], so k stays finite across a long wheel burst, while the figure's
-//! pixel operations still reject degenerate spans (a step they reject
-//! leaves the gesture where it was).
+//! gesture's k. Each handle's zoom here is built with the extent
+//! [1e-6, 1e6], so k stays finite across a long wheel burst. The figure's
+//! pixel operations still reject degenerate spans, and a step they reject
+//! leaves the gesture where it was.
 
 use std::any::TypeId;
 use std::collections::{HashMap, HashSet};
@@ -18,7 +18,7 @@ use rustd3_figure::{Held, Resolved};
 
 use crate::plot::preview::{Affine1, View};
 
-/// The scale extent of each handle's zoom: k of one gesture.
+/// The scale extent of each handle's zoom, which bounds one gesture's k.
 const SCALE_EXTENT: [f64; 2] = [1e-6, 1e6];
 
 /// A handle as the widget knows it across rebuilds of the figure: its
@@ -33,17 +33,18 @@ pub(crate) struct Key {
 /// zoom and preview view.
 #[derive(Default)]
 pub(crate) struct Domains {
-    /// Handles nobody listens to: the widget owns them.
+    /// The scales of handles no listener follows, which the widget owns.
     owned: HashMap<Key, Box<dyn Scale>>,
-    /// Published during the active gesture, until it ends.
+    /// The scales published during the active gesture, kept until it
+    /// ends.
     pending: HashMap<Key, Box<dyn Scale>>,
-    /// Changed since the last reset.
+    /// The handles changed since their last reset.
     touched: HashSet<Key>,
-    /// One core zoom per handle, persistent.
+    /// One persistent core zoom per handle.
     zooms: HashMap<Key, Zoom>,
     /// Each handle's preview view.
     views: HashMap<Key, View>,
-    /// Preview epochs started.
+    /// The number of preview epochs started.
     epochs: u64,
 }
 
@@ -79,7 +80,7 @@ impl Key {
 
 impl Domains {
     /// The overrides a refresh resolves with: every owned and pending
-    /// scale, pending winning.
+    /// scale, with pending winning.
     pub(crate) fn held(&self) -> Held {
         let mut held = Held::default();
         for (key, scale) in self.owned.iter().chain(&self.pending) {
@@ -88,8 +89,8 @@ impl Domains {
         held
     }
 
-    /// The scale `key` shows now: owned, else pending, else as `resolved`
-    /// has it; `None` when `resolved` has no scale of the key's type there.
+    /// The scale `key` shows: owned, else pending, else as `resolved` has
+    /// it. `None` when `resolved` has no scale of the key's type there.
     pub(crate) fn current(&self, key: Key, resolved: &Resolved) -> Option<Box<dyn Scale>> {
         let kept = self.owned.get(&key).or_else(|| self.pending.get(&key));
         match kept {
@@ -102,8 +103,9 @@ impl Domains {
         }
     }
 
-    /// Stores what a gesture made of `key`: published (`listened`) scales
-    /// as pending until the gesture ends, others as the widget's own.
+    /// Stores what a gesture made of `key`. A published (`listened`) scale
+    /// is pending until the gesture ends, and any other is the widget's
+    /// own.
     pub(crate) fn store(&mut self, key: Key, scale: Box<dyn Scale>, listened: bool) {
         if listened {
             self.pending.insert(key, scale);
@@ -120,7 +122,8 @@ impl Domains {
             .or_insert_with(|| Zoom::default().scale_extent(SCALE_EXTENT))
     }
 
-    /// The gesture ended: published domains are the app's from now on.
+    /// Records that the gesture ended. Published domains belong to the app
+    /// from then on.
     pub(crate) fn release(&mut self) {
         self.pending.clear();
     }
@@ -130,9 +133,10 @@ impl Domains {
         self.touched.contains(&key)
     }
 
-    /// Returns `key` to its fitted domain: the widget's own scale and the
-    /// published one go, so the figure resolves the handle as it is built;
-    /// it counts as untouched; its zoom and its preview view start afresh.
+    /// Returns `key` to its fitted domain. The widget's own scale and the
+    /// published one are dropped, so the figure resolves the handle as it
+    /// is built. The handle counts as untouched, and its zoom and its
+    /// preview view start afresh.
     pub(crate) fn reset(&mut self, key: Key) {
         self.owned.remove(&key);
         self.pending.remove(&key);
@@ -142,7 +146,8 @@ impl Domains {
     }
 
     /// Drops everything kept for handles whose position names a scale of
-    /// another type in `resolved`, or none: the app reordered its handles.
+    /// another type in `resolved`, or none, as when the app reordered its
+    /// handles.
     pub(crate) fn prune(&mut self, resolved: &Resolved) {
         self.owned.retain(|key, _| key.names(resolved));
         self.pending.retain(|key, _| key.names(resolved));

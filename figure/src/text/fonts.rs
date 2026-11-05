@@ -62,8 +62,7 @@ impl Fonts {
 
     /// `extra` font files (TrueType, OpenType or collections) first in the
     /// fallback order, then the bundled fonts when the `fonts` feature is
-    /// on. Bytes that hold no face are `Error::Font` with their position
-    /// in `extra`.
+    /// on.
     ///
     /// # Errors
     ///
@@ -131,10 +130,11 @@ impl Fonts {
         &self.families
     }
 
-    /// The line box a row of labels of `size` px shares: the text face's
-    /// (the first in fallback order) ascender above the baseline and
-    /// descender below it, px, as typst reads them (the OS/2 typographic
-    /// metrics, else hhea's); 0 and 0 without faces.
+    /// The line box a row of labels of `size` px shares, in px: the text
+    /// face's ascender above the baseline and descender below it. The text
+    /// face is the first in fallback order, and its metrics are read as
+    /// typst reads them (the OS/2 typographic metrics, else hhea's). Both
+    /// are 0 without faces.
     pub(crate) fn line(&self, size: f64) -> [f64; 2] {
         self.line.map(|em| em * size)
     }

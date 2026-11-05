@@ -16,25 +16,25 @@ use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Mark, dodge, reach, rect, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
-/// The most bins `Bins::Nice` asks d3's ticks for: they round a count
-/// up to at most 1.59 times as many ticks, which stays under core's cap of
-/// 10,000 ticks (past it, ticks give none and the histogram one bin).
+/// The most bins `Bins::Nice` asks d3's ticks for. They round a count up to
+/// at most 1.59 times as many ticks, which stays under core's cap of 10,000
+/// ticks (past it, ticks give none and the histogram one bin).
 const NICE: usize = 6_000;
 
 /// The most bins `Bins::Count` makes.
 const COUNT: usize = 10_000;
 
-/// What a histogram counts on a position scale: implemented for band and
-/// point scales, which count each key (the wheel figure's bars per speed
-/// bin), and for continuous scales over numbers, which bin the values.
-/// One function, [`histogram`], serves both.
+/// What a histogram counts on a position scale. It is implemented for band
+/// and point scales, which count each key (bars per speed bin, say), and
+/// for continuous scales over numbers, which bin the values. One function,
+/// [`histogram`], serves both.
 pub trait Binned: Position {
-    /// The bars of a histogram of `values`, in order: per bar the first
+    /// The bars of a histogram of `values`, in order: per bar, the first
     /// and last domain value it spans and its count. Band and point scales
     /// count each key (both ends are the key), in the order keys first
-    /// appear; continuous scales drop values that are not finite and bin
-    /// the rest by `bins` (both ends are a bin's edges), by
-    /// [`Bins::Nice`] with Sturges' count without.
+    /// appear. Continuous scales drop values that are not finite and bin
+    /// the rest by `bins` (both ends are a bin's edges), or by
+    /// [`Bins::Nice`] with Sturges' count without `bins`.
     fn bars(values: &[Self::Domain], bins: Option<Bins>) -> Vec<([Self::Domain; 2], f64)>;
 }
 
@@ -45,12 +45,12 @@ pub enum Bins {
     /// d3.bin's nice bins: thresholds from d3's `ticks(min, max, n)` over
     /// the values' extent niced to the outer ticks, the last bin closed.
     /// The default is Sturges' count, ⌈log₂ n⌉ + 1 for n values. At most
-    /// 6,000 is asked for (d3's ticks round it to at most about 9,500
-    /// bins), at least 1.
+    /// 6,000 bins are asked for (d3's ticks round that to at most about
+    /// 9,500 bins), and at least 1.
     Nice(usize),
     /// `n` equal-width bins over `[min, max]`, numpy's and matplotlib's
-    /// rule (one unit wide around values that are all equal), the last
-    /// bin closed; at most 10,000, at least 1.
+    /// rule (one unit wide around values that are all equal), with the last
+    /// bin closed. At most 10,000, at least 1.
     Count(usize),
 }
 
@@ -73,10 +73,11 @@ impl<X: Binned, Y: Position<Domain = f64>> std::fmt::Debug for Histogram<X, Y> {
 }
 
 /// A histogram of `values` on `x` with its counts on `y`, in the theme
-/// palette's first color: one bar per key on band and point scales, per
-/// bin of the finite values ([`Bins::Nice`] with Sturges' count by
-/// default) on continuous ones. The bars stand on 0, which is held: the y
-/// margin stops there. The values are collected when the mark is built.
+/// palette's first color. It has one bar per key on band and point scales,
+/// and one per bin of the finite values on continuous ones ([`Bins::Nice`]
+/// with Sturges' count by default). The bars stand on 0, which is held, so
+/// the y margin stops there. The values are collected when the mark is
+/// built.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -202,7 +203,7 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
 
     /// One `Fill` command per bar with area, through the rectangle code of
     /// [`rect()`](crate::mark::rect): across its key's band (a width
-    /// centred on a point key) or its bin's edges, dodged when asked, from
+    /// centered on a point key) or its bin's edges, dodged when asked, from
     /// 0 up to its count; each followed by its hatch when set.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let paint = list::brush(self.color.resolve(ctx));
@@ -214,7 +215,7 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
         }
     }
 
-    /// Per bar, the centre of its top when it lies in the plot area, with
+    /// Per bar, the center of its top when it lies in the plot area, with
     /// the bar's index (in the order of [`Binned::bars`]).
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
         let area = ctx.get_rect().with_origin(kurbo::Point::ORIGIN);
@@ -244,9 +245,9 @@ impl<'a, X: Binned, Y: Position<Domain = f64>> Mark<'a> for Histogram<X, Y> {
 
 impl<X: Binned, Y: Position<Domain = f64>> Histogram<X, Y> {
     /// Each bar placed, with its index: across its key's band (a width
-    /// centred on a point key) or its bin's edges, dodged when asked, and
-    /// from 0 up to its count along y, clamped to the guard band; bars
-    /// that cannot be placed are skipped, all of them when 0 cannot be.
+    /// centered on a point key) or its bin's edges, dodged when asked, and
+    /// from 0 up to its count along y, clamped to the guard band. Bars that
+    /// cannot be placed are skipped, and all of them are when 0 cannot be.
     fn placed(&self, ctx: &Ctx<'_>) -> Vec<(usize, [f64; 2], [f64; 2])> {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return Vec::new();
@@ -327,9 +328,10 @@ fn keys<K: PartialEq + Clone>(values: &[K]) -> Vec<([K; 2], f64)> {
 }
 
 /// `n` equal-width bins over the extent of `values` (finite, not empty),
-/// as numpy's `histogram` makes them: edges `min + i·step` with the last at
-/// `max`, a value's bin from its share of the extent, corrected by a step
-/// where that lands across an edge, the last bin closed.
+/// as numpy's `histogram` makes them. Edges are `min + i·step`, with the
+/// last at `max`. A value's bin comes from its share of the extent,
+/// corrected by a step where that lands across an edge, and the last bin
+/// is closed.
 fn equal(values: &[f64], n: usize) -> Vec<([f64; 2], f64)> {
     let [lo, hi] = array::extent(values.iter().copied()).expect("invariant: finite values");
     let (lo, hi) = if lo == hi {

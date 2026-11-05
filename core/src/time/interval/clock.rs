@@ -1,6 +1,6 @@
-//! The wall-clock units, minutes and hours: absolute steps, floored on the
-//! local clock with the zone's offset at the instant, one zone lookup per
-//! floor (d3's `minute.js` and `hour.js:4–6`).
+//! The wall-clock units, minutes and hours. They step by fixed durations
+//! and floor on the local clock, using the zone's offset at the instant,
+//! with one zone lookup per floor (d3's `minute.js` and `hour.js:4–6`).
 
 use jiff::Timestamp;
 use jiff::tz::TimeZone;

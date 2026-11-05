@@ -12,11 +12,11 @@ use crate::time::locale::Rung;
 use crate::time::{self, Interval, Time};
 
 /// The time scale's ticks: d3's `ticks(count)` with the interval they
-/// were chosen with, positioned by `apply` and labelled tick by tick
-/// through the locale's time half.
+/// were chosen with, positioned by `apply` and labeled one by one with
+/// the time part of the locale.
 ///
-/// A day in Berlin across the end of daylight saving time, with d3's
-/// 3-hour interval, under the neutral locale's ISO ladder and d3's:
+/// A day in Berlin across the end of daylight saving time, ticked every 3
+/// hours and labeled on the neutral locale's ISO ladder and on d3's.
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -56,7 +56,7 @@ impl Ticks for Time {
     }
 
     /// [`tick_label`](Time::tick_label) of each tick, independently, under
-    /// `locale`'s time half; the set's step is not consulted.
+    /// the time part of `locale`. The set's step is not consulted.
     fn labels(&self, ticks: &ticks::Set<Timestamp, Interval>, locale: &Locale) -> Vec<String> {
         ticks
             .get_values()
@@ -74,14 +74,15 @@ impl crate::sealed::Ticks for Time {}
 
 impl Time {
     /// d3's multi-scale tick format through `locale`'s ladder, in the
-    /// scale's zone: `t` labelled at the finest unit it is not aligned to.
+    /// scale's zone: `t` labeled at the coarsest unit it is aligned to.
     ///
-    /// Off the whole second the rung follows `t`'s own fraction:
-    /// nanoseconds when it has a non-zero part below the microsecond, else
-    /// microseconds when below the millisecond, else milliseconds. Then, on
-    /// the second but not the minute, seconds; minutes; hours; on a day's
-    /// start, days, or weeks on a Sunday; months on a month's first day;
-    /// years on January 1. A boundary past jiff's range counts as aligned.
+    /// Off the whole second, the rung follows `t`'s own fraction. It is
+    /// nanoseconds when `t` has a non-zero part below the microsecond, else
+    /// microseconds when it has one below the millisecond, else
+    /// milliseconds. On the second but not the minute it is seconds, and
+    /// likewise for minutes and hours. At a day's start it is days, or
+    /// weeks on a Sunday. On a month's first day it is months, and on
+    /// January 1 years. A boundary past jiff's range counts as aligned.
     ///
     /// ```
     /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -104,7 +105,7 @@ impl Time {
             .format(t, &self.zone)
     }
 
-    /// The rung `t` is labelled at (d3's `tickFormat` choice, with the
+    /// The rung `t` is labeled at (d3's `tickFormat` choice, with the
     /// sub-second rungs by `t`'s fraction).
     fn rung(&self, t: Timestamp) -> Rung {
         let off = |interval: Interval| interval.floor(t, &self.zone).is_some_and(|floor| floor < t);

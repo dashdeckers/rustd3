@@ -24,7 +24,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             write(&dir, name, fig)?;
             continue;
         }
-        // The RMS line, written by the preset's own savers.
+        // The RMS line is a `chart::Line`, so it is written through the
+        // chart's own savers.
         for issue in fig.check(presets::SIZE) {
             eprintln!("line_symlog: {issue:?}");
         }

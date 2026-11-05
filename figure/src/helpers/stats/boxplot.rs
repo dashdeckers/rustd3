@@ -1,12 +1,13 @@
-//! Box plot statistics: [`Summary`], [`summary`] and [`Whis`], matplotlib's
-//! `cbook.boxplot_stats`; the chart is [`stats::boxplot`](super::boxplot()).
+//! Box plot statistics as matplotlib's `cbook.boxplot_stats` computes them:
+//! [`Summary`], [`summary`] and [`Whis`]. The chart is
+//! [`stats::boxplot`](super::boxplot()).
 
 pub(super) mod chart;
 
 use rustd3_core::array;
 
-/// What a box plot draws of one group: matplotlib's `boxplot_stats`,
-/// plain data.
+/// What a box plot draws of one group, as plain data (matplotlib's
+/// `boxplot_stats`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Summary {
     /// The first quartile.
@@ -50,10 +51,11 @@ impl Default for Whis {
     }
 }
 
-/// matplotlib's `cbook.boxplot_stats` over the finite `values` with
-/// `whis`: quartiles by R-7 (numpy's and d3's default "linear"); whiskers
-/// at the most extreme data within their reach (never inside the box);
-/// notch = median ± 1.57·IQR/√n. `None` for no finite values.
+/// Computes matplotlib's `cbook.boxplot_stats` over the finite `values`
+/// with `whis`. Quartiles are by R-7 (numpy's and d3's default "linear"),
+/// whiskers end at the most extreme data within their reach (never inside
+/// the box), and the notch is median ± 1.57·IQR/√n. `None` when no value
+/// is finite.
 ///
 /// ```
 /// use rustd3_figure::helpers::stats::boxplot::{self, Whis};

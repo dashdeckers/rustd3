@@ -351,7 +351,8 @@ impl Specifier {
         self.kind
     }
 
-    /// d3-scale's tickFormat sets these on a parsed specifier.
+    /// The specifier with its precision set to `precision`, as d3-scale's
+    /// tickFormat sets it on a parsed specifier.
     #[must_use]
     pub fn with_precision(self, precision: usize) -> Self {
         Specifier {

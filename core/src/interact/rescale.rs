@@ -6,7 +6,7 @@ use crate::interact;
 use crate::interpolate::Interpolate;
 use crate::scale::{self, Continuous};
 
-/// The smallest span a gesture leaves, relative to the domain's centre:
+/// The smallest span a gesture leaves, relative to the domain's center:
 /// 2⁻⁴⁰, about 9.1e-13, some 4,000 ulps.
 const MIN_SPAN: f64 = 1.0 / (1u64 << 40) as f64;
 
@@ -16,13 +16,13 @@ const MIN_SPAN: f64 = 1.0 / (1u64 << 40) as f64;
 /// are d3's, through `invert`, so a clamping scale cannot zoom out, as in
 /// d3. The pixel-space gestures [`pan_px`](Rescale::pan_px) and
 /// [`zoom_px`](Rescale::zoom_px) work in the transform's space without
-/// clamping: each stop becomes the value the piecewise-linear map from the
-/// range to transformed values, extended past the end stops, gives at the
-/// moved range position. They return `None`, and the gesture keeps its
-/// transform, when a new stop or its transformed value is not finite, when
-/// the stops leave the old domain's order, when the factor is not finite
-/// and positive, or when the span is 0 or below 2⁻⁴⁰ of the domain's
-/// centre.
+/// clamping. Each stop moves to the value shown at its moved range
+/// position, read from the piecewise-linear map from the range to
+/// transformed values, extended past the end stops. They return `None`, and
+/// the gesture keeps its transform, when a new stop or its transformed
+/// value is not finite, when the stops leave the old domain's order, when
+/// the factor is not finite and positive, or when the span is 0 or below
+/// 2⁻⁴⁰ of the domain's center.
 ///
 /// ```
 /// use rustd3_core::interact::{self, Rescale};
@@ -129,8 +129,8 @@ fn zoomable(factor: f64) -> Option<()> {
 }
 
 /// `stops` if they can replace `old`: all finite, in `old`'s order (end
-/// to end, and no neighbours reversed), and spanning more than 0 and at
-/// least [`MIN_SPAN`] of their centre.
+/// to end, and no neighbors reversed), and spanning more than 0 and at
+/// least [`MIN_SPAN`] of their center.
 fn accepted<const N: usize>(old: [f64; N], stops: [f64; N]) -> Option<[f64; N]> {
     let direction = old[N - 1].partial_cmp(&old[0])?;
     let (first, last) = (stops[0], stops[N - 1]);

@@ -1,16 +1,18 @@
 //! [`Affine1`]: the scaled-preview map of one axis.
 //!
 //! While a plot-area cell's sharp render is pending, its previous image is
-//! drawn at mapped bounds: per axis, `p_current = scale · p_rendered +
-//! offset`, from the scales the image was rendered with to those just
-//! resolved. Figure scales apply pixel-space operations affinely in output
-//! space, so two points, the cell's edges, determine the map for every
-//! continuous transform. The object-safe figure scale cannot map a
-//! position, so the points come from the gestures' transforms instead:
-//! each handle keeps the [`View`] its gestures applied since its
-//! epoch began, in shares of its range, and each shown plot-area image
-//! keeps, per axis, the [`Basis`] its cell was planned at; the map is the
-//! current view after the inverse of the planned one, `T_c ∘ T_r⁻¹`.
+//! drawn at mapped bounds. Per axis the map is `p_current = scale ·
+//! p_rendered + offset`, from the scales the image was rendered with to
+//! those just resolved. Figure scales apply pixel-space operations
+//! affinely in output space, so two points, the cell's edges, determine
+//! the map for every continuous transform.
+//!
+//! The object-safe figure scale cannot map a position, so the points come
+//! from the gestures' transforms instead. Each handle keeps the [`View`]
+//! its gestures applied since its epoch began, in shares of its range.
+//! Each shown plot-area image keeps, per axis, the [`Basis`] its cell was
+//! planned at. The map is the current view after the inverse of the
+//! planned one, `T_c ∘ T_r⁻¹`.
 
 use rustd3_figure::kurbo::Rect;
 
@@ -24,19 +26,19 @@ pub(crate) struct Affine1 {
     offset: f64,
 }
 
-/// A handle's preview view: the affine map from range shares (0 at the
-/// range's start, 1 at its end) at its epoch's start to range shares now,
-/// which its gestures composed.
+/// A handle's preview view: the affine map, composed by its gestures, from
+/// range shares at its epoch's start to the current range shares. A share
+/// is 0 at the range's start and 1 at its end.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct View {
     /// Distinct for every view a handle starts afresh (first use, reset).
     pub(crate) epoch: u64,
-    /// Shares at the epoch's start to shares now.
+    /// The map from shares at the epoch's start to the current shares.
     pub(crate) map: Affine1,
 }
 
 /// The view of the handle that leads one axis of a panel, as a cell was
-/// planned (or as it is now).
+/// planned (or as it is at present).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Basis {
     pub(crate) key: Key,
@@ -45,7 +47,7 @@ pub(crate) struct Basis {
 
 impl Basis {
     /// The map from range shares as planned at `self` to range shares at
-    /// `now`; `None` when `now` leads with another handle or epoch.
+    /// `now`. `None` when `now` leads with another handle or epoch.
     pub(crate) fn to(self, now: Basis) -> Option<Affine1> {
         if self.key != now.key || self.view.epoch != now.view.epoch {
             return None;
@@ -69,7 +71,7 @@ impl Affine1 {
         Affine1 { scale, offset }
     }
 
-    /// The map that takes `a.0` to `a.1` and `b.0` to `b.1`; `None` when
+    /// The map that takes `a.0` to `a.1` and `b.0` to `b.1`. `None` when
     /// the two points coincide or the map is not finite.
     pub(crate) fn through(a: (f64, f64), b: (f64, f64)) -> Option<Affine1> {
         let scale = (b.1 - a.1) / (b.0 - a.0);
@@ -77,7 +79,7 @@ impl Affine1 {
         (scale.is_finite() && offset.is_finite()).then_some(Affine1 { scale, offset })
     }
 
-    /// The map's scale: 1 for a translation.
+    /// The map's scale, which is 1 for a translation.
     pub(crate) fn scale(self) -> f64 {
         self.scale
     }
@@ -95,7 +97,7 @@ impl Affine1 {
         }
     }
 
-    /// The map back; `None` for a map that collapses the axis.
+    /// The map back. `None` for a map that collapses the axis.
     pub(crate) fn inverse(self) -> Option<Affine1> {
         let scale = 1.0 / self.scale;
         let offset = -self.offset / self.scale;
@@ -108,12 +110,13 @@ impl Affine1 {
     }
 
     /// `shares`, a map of range shares, as a map of device px along
-    /// `along` for a cell whose device edges along it are `edges`,
-    /// rendered in the plot area `from` and shown in the plot area `to`
-    /// (list px; the same area unless a new layout moved it),
-    /// at `factor` device px per list px: two points, the cell's edges,
-    /// taken to shares of `from`, through `shares`, and back to device px
-    /// of `to`.
+    /// `along` at `factor` device px per list px.
+    ///
+    /// The cell's device edges along the axis are `edges`. It was rendered
+    /// in the plot area `from` and is shown in the plot area `to`, both in
+    /// list px, which are the same area unless a new layout moved it. The
+    /// map goes through two points, the cell's edges, taken to shares of
+    /// `from`, through `shares`, and back to device px of `to`.
     pub(crate) fn device(
         shares: Affine1,
         along: Along,
@@ -134,8 +137,8 @@ impl Affine1 {
 }
 
 /// The share of the range at device px `p` along `along` of the plot area
-/// `area` (list px) at `factor`: x runs from the area's left, y up from
-/// its bottom.
+/// `area` (list px) at `factor`. x runs from the area's left, and y runs up
+/// from its bottom.
 fn share(along: Along, area: Rect, factor: f64, p: f64) -> f64 {
     match along {
         Along::X => (p / factor - area.x0) / area.width(),
@@ -162,7 +165,7 @@ mod tests {
     #[test]
     fn affine_map_from_two_points() {
         // x [0, 100] over 400 device px, zoomed ×2 about 200 px to
-        // [25, 75]: p_c = 8 (p_r / 4 − 25) = 2 p_r − 200.
+        // [25, 75], gives p_c = 8 (p_r / 4 − 25) = 2 p_r − 200.
         let current = |p: f64| 8.0 * (p / 4.0 - 25.0);
         let map = Affine1::through((0.0, current(0.0)), (400.0, current(400.0)))
             .expect("two distinct points");
@@ -175,12 +178,12 @@ mod tests {
 
     #[test]
     fn shares_map_to_device_px_along_each_axis() {
-        // A plot area of 400 × 300 list px at (50, 20), factor 2; the
-        // shares zoomed ×2 about their middle.
+        // A plot area of 400 × 300 list px at (50, 20), at factor 2, with
+        // the shares zoomed ×2 about their middle.
         let area = Rect::new(50.0, 20.0, 450.0, 320.0);
         let zoom = Affine1::new(2.0, -0.5);
         let x = Affine1::device(zoom, Along::X, (area, area), 2.0, [100, 900]).expect("a map");
-        // Device x 500 is the area's middle: it stays; its left edge
+        // Device x 500 is the area's middle, so it stays. Its left edge
         // (100) goes 400 px further left.
         assert_eq!((x.apply(500.0), x.apply(100.0)), (500.0, -300.0));
         let y = Affine1::device(zoom, Along::Y, (area, area), 2.0, [40, 640]).expect("a map");
@@ -192,10 +195,10 @@ mod tests {
 
     #[test]
     fn a_new_layout_maps_the_old_area_onto_the_new_one() {
-        // The layout settles with the area's left edge 10 list
-        // px further right and its bottom 5 px higher, at factor 2. The
-        // same shares put the old area's edges on the new one's, whatever
-        // the views did.
+        // The layout settles with the area's left edge 10 list px further
+        // right and its bottom 5 px higher, at factor 2. The same shares
+        // put the old area's edges on the new one's, whatever the views
+        // did.
         let from = Rect::new(50.0, 20.0, 450.0, 320.0);
         let to = Rect::new(60.0, 20.0, 450.0, 315.0);
         let at = |map: Affine1, p: f64, expected: f64| {
@@ -209,7 +212,7 @@ mod tests {
         let y = Affine1::device(still, Along::Y, (from, to), 2.0, [40, 640]).expect("a map");
         at(y, 40.0, 40.0);
         at(y, 640.0, 630.0);
-        // Zoomed ×2 about the middle: the old middle is the new middle.
+        // Zoomed ×2 about the middle, the old middle is the new middle.
         let zoom = Affine1::new(2.0, -0.5);
         let x = Affine1::device(zoom, Along::X, (from, to), 2.0, [100, 900]).expect("a map");
         at(x, 500.0, 510.0);

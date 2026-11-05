@@ -12,7 +12,7 @@ use typst::utils::LazyHash;
 use crate::text::Fonts;
 
 /// One batch's world: the fonts and the batch's source, no files and no
-/// clock. A plain value, built per batch; typst's memoization still hits
+/// clock. A plain value, built per batch. typst's memoization still hits
 /// across batches because the library and book hash once in [`Fonts`].
 pub(crate) struct World {
     fonts: Arc<Fonts>,

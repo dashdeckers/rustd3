@@ -1,6 +1,6 @@
-//! An iced canvas drawn with the core level: d3's scales, line and bottom
-//! axis drawn into an iced canvas, with iced writing the axis labels
-//! (`GUIDE.md`, "The core level in an iced canvas").
+//! The core level in an iced canvas: d3's scales, line and bottom axis
+//! drawn into the canvas, with iced writing the axis labels. `GUIDE.md`
+//! covers it under "The core level in an iced canvas".
 
 use iced::alignment::{Horizontal, Vertical};
 use iced::widget::canvas;

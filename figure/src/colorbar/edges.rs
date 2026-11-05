@@ -6,12 +6,13 @@ use rustd3_core::locale::Locale;
 /// The most places d3-format writes.
 const MOST: usize = 20;
 
-/// The labels of `edges` (a binned scale's tick set), `,f` under `locale`
-/// at the precision matplotlib's `ScalarFormatter` gives tick labels: the
-/// fewest places, from 3 − ⌊log₁₀ range⌋ down, at which every edge lies
-/// within a thousandth of the range's power of ten of its label (so
-/// 3, 7.25, 9, 14.5, 20 read "3.00", "7.25", … and 0, 20, … 100 need none);
-/// then more places while two labels read alike, up to 20.
+/// The labels of `edges` (a binned scale's tick set), formatted `,f` under
+/// `locale` at the precision matplotlib's `ScalarFormatter` gives tick
+/// labels. That precision is the fewest places, counting down from
+/// 3 − ⌊log₁₀ range⌋, at which every edge lies within a thousandth of the
+/// range's power of ten of its label. So 3, 7.25, 9, 14.5, 20 read "3.00",
+/// "7.25", …, and 0, 20, … 100 need no places. Places are then added while
+/// two labels read alike, up to 20.
 pub(crate) fn labels(edges: &[f64], locale: &Locale) -> Vec<String> {
     let finite = || edges.iter().copied().filter(|v| v.is_finite());
     let (low, high) = finite().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| {

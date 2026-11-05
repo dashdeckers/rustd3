@@ -7,7 +7,7 @@ use crate::locale::Locale;
 use crate::scale::{Continuous, Ticks, Transform};
 use crate::ticks;
 
-/// Ticks act on the end stops, as in d3; the step is d3's tickFormat step
+/// Ticks act on the end stops, as in d3. The step is d3's tickFormat step,
 /// and labels are the transform's tick format under the axis locale.
 impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
     type Domain = f64;
@@ -60,9 +60,9 @@ impl<T: Transform, const N: usize> Ticks for Continuous<T, f64, N> {
 
 impl<T: Transform, const N: usize> crate::sealed::Ticks for Continuous<T, f64, N> {}
 
-/// A color range positions ticks in [0, 1] for a colorbar: ticks, step,
-/// labels and minor ticks as for an `f64` range, the position the end
-/// stops' transformed fraction.
+/// A color range positions ticks in [0, 1] for a colorbar. Ticks, step,
+/// labels and minor ticks are as for an `f64` range, and the position is
+/// the value's fraction between the end stops in transformed space.
 ///
 /// ```
 /// use rustd3_core::color::Rgb;

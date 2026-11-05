@@ -21,7 +21,7 @@ impl Machine {
         }
     }
 
-    /// Feeds one event; what d3 emits for it.
+    /// Feeds one event, and returns what d3 emits for it.
     pub(crate) fn handle(&mut self, input: Pointer) -> Option<BrushEvent> {
         match self {
             Machine::X(brush) => brush.handle(input),
@@ -29,7 +29,7 @@ impl Machine {
         }
     }
 
-    /// The selected interval along the axis, list px.
+    /// The selected interval along the axis, in list px.
     pub(crate) fn selection(&self) -> Option<[f64; 2]> {
         match self {
             Machine::X(brush) => brush.get_selection(),
@@ -37,7 +37,7 @@ impl Machine {
         }
     }
 
-    /// d3's `brush.move` without events.
+    /// Sets the selection as d3's `brush.move` does, without events.
     pub(crate) fn set_selection(&mut self, selection: Option<[f64; 2]>) {
         match self {
             Machine::X(brush) => brush.set_selection(selection),

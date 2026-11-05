@@ -2,7 +2,7 @@
 //!
 //! DejaVu Sans in two weights sets text and New Computer Modern Math sets
 //! math. Each constant carries the bytes of its font file, which keep
-//! their own licences (see this crate's `LICENSE`). rustd3-figure loads
+//! their own licenses (see this crate's `LICENSE`). rustd3-figure loads
 //! them through its default `fonts` feature.
 //!
 //! ```

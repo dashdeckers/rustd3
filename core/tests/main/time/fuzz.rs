@@ -1,7 +1,7 @@
 //! Time scales over hostile domains, counts and zones: ticks, nice,
-//! ticks with a stepped interval and the pixel gestures, each case under
-//! a 1 s timeout optimized, from a fixed seed. 150 cases by default and
-//! 3,000 with `RUSTD3_FUZZ=1`, in release
+//! ticks with a stepped interval and the pixel gestures, from a fixed
+//! seed, each case under a 1 s timeout in an optimized build. It runs 150
+//! cases by default and 3,000 with `RUSTD3_FUZZ=1`, in release
 //! (`cargo test --release -p rustd3-core --test main fuzz`).
 
 use std::sync::mpsc;
@@ -16,7 +16,7 @@ use rustd3_testkit::zone;
 
 use crate::fuzz::Xorshift;
 
-/// How long one case may take: 1 s optimized; unoptimized code runs some
+/// How long one case may take: 1 s optimized. Unoptimized code runs some
 /// 15 times slower, and a stepped week over 6,700 years takes 1.4 s there.
 const PER_CASE: Duration = Duration::from_secs(if cfg!(debug_assertions) { 15 } else { 1 });
 /// The most ticks any call returns.
@@ -46,7 +46,7 @@ enum Event {
 }
 
 impl Xorshift {
-    /// An instant: jiff's ends and their neighbours, transitions, an
+    /// An instant: jiff's ends and their neighbors, transitions, an
     /// offset from `near` of nanoseconds to centuries, or anywhere.
     fn instant(&mut self, near: Timestamp) -> Timestamp {
         const FIXED: [&str; 6] = [

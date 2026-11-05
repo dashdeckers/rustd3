@@ -52,10 +52,10 @@ impl Interval {
         })
     }
 
-    /// `t` moved by `steps` intervals and not floored (d3's
-    /// `interval.offset`): a fixed unit moves by `steps` multiples of its
-    /// step; a filtered one moves unit by unit until it has passed `|steps|`
-    /// kept boundaries, about `|steps|·k` unit moves, as d3 does.
+    /// `t` moved by `steps` intervals, not floored (d3's `interval.offset`).
+    /// A fixed unit moves by `steps` multiples of its step. A filtered one
+    /// moves unit by unit until it has passed `|steps|` kept boundaries,
+    /// about `|steps|·k` unit moves, as d3 does.
     #[must_use]
     pub fn offset(self, t: Timestamp, steps: i64, tz: &TimeZone) -> Option<Timestamp> {
         if !self.filters() {
@@ -72,10 +72,11 @@ impl Interval {
         Some(t)
     }
 
-    /// Units between `floor(start)` and `floor(end)`, the unit's own floors
-    /// with the step ignored (d3's `interval.count`; an extension for
-    /// stepped intervals, which have no count in d3). `None` when the count
-    /// leaves `i64` (nanoseconds over more than 292 years).
+    /// The number of units between `floor(start)` and `floor(end)`, taking
+    /// the unit's own floors and ignoring the step (d3's `interval.count`).
+    /// d3 has no count for stepped intervals, so counting them is an
+    /// extension. `None` when the count overflows `i64`, as nanoseconds do
+    /// over more than 292 years.
     pub fn count(self, start: Timestamp, end: Timestamp, tz: &TimeZone) -> Option<i64> {
         let difference =
             |field: fn(Timestamp, &TimeZone) -> i64| Some(field(end, tz) - field(start, tz));

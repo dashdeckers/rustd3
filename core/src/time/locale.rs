@@ -15,13 +15,13 @@ use crate::time::{Definition, Format};
 /// the [`Ladder`] tick labels climb.
 ///
 /// `NEUTRAL`, the default, writes English names, ISO composites and a
-/// 24-hour clock and labels ticks with the ISO ladder. d3-time-format's
-/// tables for en-US and ten languages are constants generated from its
-/// JSON: `EN_US`, d3's default definition with d3's ladder, and `DE_DE`,
+/// 24-hour clock, and labels ticks with the ISO ladder. d3-time-format's
+/// tables for en-US and ten other languages are constants generated from
+/// its JSON. `EN_US` is d3's default definition on d3's ladder. `DE_DE`,
 /// `FR_FR`, `ES_ES`, `IT_IT`, `PT_BR`, `NL_NL`, `PL_PL`, `RU_RU`, `JA_JP`
-/// and `ZH_CN` with the ISO ladder ([`ladder`](Locale::ladder) puts one
-/// on d3's). Its other 24 tables load at run time through
-/// [`Locale::new`].
+/// and `ZH_CN` use the ISO ladder, and [`ladder`](Locale::ladder) moves
+/// one onto d3's. d3-time-format's other 24 tables load at run time
+/// through [`Locale::new`].
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};

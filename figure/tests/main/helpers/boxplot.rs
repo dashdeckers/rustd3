@@ -150,7 +150,7 @@ fn a_box_plot_draws_its_box_whiskers_and_fliers_where_the_summary_puts_them() {
     let list = draw(&fig);
     let (fills, strokes, markers) = commands(&list);
     assert_eq!((fills.len(), strokes.len(), markers.len()), (1, 1, 1));
-    // The box: half of band "a" ([0, w/2]) around its centre w/4.
+    // The box: half of band "a" ([0, w/2]) around its center w/4.
     let bounds = fills[0].bounding_box();
     let expected = Rect::new(w / 8.0, at(5.9), 3.0 * w / 8.0, at(3.25));
     for (a, b) in [

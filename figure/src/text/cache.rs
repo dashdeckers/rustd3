@@ -7,9 +7,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::text::{Error, Fonts, Key, Shaped, batch};
 
-/// Entries unused for this many generations are dropped, and comemo's
-/// results unused for this many evictions; an eviction runs once per this
-/// many [`Cache::begin`] calls in the process.
+/// Entries unused for this many generations are dropped, and so are
+/// comemo's results unused for this many evictions. An eviction runs once
+/// per this many [`Cache::begin`] calls in the process.
 const MAX_AGE: u64 = 32;
 
 /// Every [`Cache::begin`] in the process, for comemo's eviction cadence.
@@ -78,7 +78,7 @@ impl Cache {
     /// `typst::comemo::evict(32)`, which ages typst's process-wide memo
     /// cache and drops results unused for 32 evictions. The cadence counts
     /// the calls of every cache, so with two widgets, or a widget beside
-    /// file output, eviction runs more often for each; that only ages
+    /// file output, eviction runs more often for each, which only ages
     /// results sooner.
     pub fn begin(&mut self) {
         self.generation += 1;

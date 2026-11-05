@@ -1,17 +1,18 @@
-//! Percentiles, means and [`Interval`]s: the per-run statistics across
-//! runs with Student's t at 97.5% (n = 5 → 2.776).
+//! Percentiles, means and [`Interval`]s, which summarize a per-run
+//! statistic across runs. Intervals use Student's t at 0.975 (2.776 for
+//! n = 5).
 
 /// A per-run statistic across runs: its count, median, mean and 95%
 /// confidence interval (`None` below two runs).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Interval {
-    /// Runs.
+    /// The number of runs.
     pub n: usize,
     /// Median of the runs.
     pub median: f64,
     /// Mean of the runs.
     pub mean: f64,
-    /// mean ± t(0.975, n − 1)·s/√n, from two runs on.
+    /// The interval mean ± t(0.975, n − 1)·s/√n, from two runs on.
     pub ci: Option<[f64; 2]>,
 }
 

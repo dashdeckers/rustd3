@@ -21,19 +21,19 @@ pub(crate) enum Color {
     Keyed(Box<dyn Lookup>),
 }
 
-/// An opaque ribbon color's opacity unless set: a band that lines drawn
-/// over it show through (seaborn's error bands use 0.2, matplotlib's
-/// examples 0.2–0.3).
+/// The opacity an opaque ribbon color is drawn at unless set, so lines
+/// drawn over the band show through (seaborn's error bands use 0.2,
+/// matplotlib's examples 0.2–0.3).
 const BAND: f64 = 0.25;
 
-/// How a filled mark's opacity follows its color's: the fill draws, and
-/// a legend square of its key repeats, the color at [`Alpha::of`] its
-/// opacity.
+/// How a filled mark's opacity follows its color's. The fill, and a legend
+/// square of its key, draw the color at the opacity [`Alpha::of`] gives.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum Alpha {
     /// The color's opacity times a factor in [0, 1].
     Times(f64),
-    /// A band's: an opaque color at 0.25, a translucent one at its own.
+    /// A band's opacity: 0.25 for an opaque color, a translucent color's
+    /// own.
     Band,
 }
 
@@ -44,8 +44,8 @@ pub(crate) trait Lookup {
     /// has none for it.
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb>;
 
-    /// The key's slot among the palette's keys and their count, which
-    /// dodged marks sit in; `None` when the palette has none.
+    /// The key's index among the palette's keys and the number of keys,
+    /// which place a dodged mark; `None` when the palette has none.
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)>;
 
     /// The palette's position in the scale table and the key, boxed.
@@ -100,7 +100,7 @@ impl Color {
         }
     }
 
-    /// The key's slot among its palette's keys and their count, for
+    /// The key's index among its palette's keys and the number of keys, for
     /// [`dodge`](super::dodge); `None` without a key.
     pub(crate) fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
         match self {
@@ -110,9 +110,9 @@ impl Color {
     }
 
     /// Reports the key with the mark's legend swatch `glyph`, its `hatch`
-    /// and its fill's `alpha`, so legends of the key draw that swatch and
-    /// repeat the hatch, and a square its opacity; marks without a key
-    /// report nothing.
+    /// and its fill's `alpha`. Legends of the key then draw that swatch with
+    /// the hatch, and a square swatch at that opacity. A mark without a key
+    /// reports nothing.
     pub(crate) fn report(
         &self,
         glyph: Swatch,

@@ -13,9 +13,7 @@ pub struct Pow {
 
 impl Pow {
     /// The transform of exponent `exponent` (0.5 for d3's sqrt scales),
-    /// for a scale's [`transform`](crate::scale::Sequential::transform);
-    /// `scale::pow()`, `scale::sqrt()` and the `exponent` builders make it
-    /// too.
+    /// for a scale's [`transform`](crate::scale::Sequential::transform).
     ///
     /// ```
     /// use rustd3_core::scale::{self, transform};

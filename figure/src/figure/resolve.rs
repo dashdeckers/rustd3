@@ -14,7 +14,7 @@ use crate::target::Target;
 use crate::text::Key;
 use crate::theme::Domains;
 
-/// Rounds of fitting and layout at most while windows' column counts
+/// The most rounds of fitting and layout run while windows' column counts
 /// move.
 const ROUNDS: usize = 3;
 
@@ -23,17 +23,20 @@ const ROUNDS: usize = 3;
 const COUNT: usize = 10;
 
 /// What fitting a figure's handles to all their marks' data gives, before
-/// windows and `Fit::Visible` handles settle: per table entry its scale
-/// (held, fitted, or as built), the largest x a window handle's marks
-/// admit, the panels whose marks place it across, and whether it is a
-/// `Fit::Visible` handle to settle; the labels the marks draw; and the
-/// palette keys they draw in.
+/// windows and `Fit::Visible` handles settle.
 struct Fitted {
+    /// Per table entry, its scale: held, fitted, or as built.
     scales: Vec<Box<dyn Scale>>,
+    /// Per table entry, the largest x a window handle's marks admit.
     last: Vec<Option<Box<dyn Any>>>,
+    /// Per table entry, the panels whose marks place it across their plot
+    /// areas.
     across: Vec<Vec<usize>>,
+    /// Per table entry, whether it is a `Fit::Visible` handle to settle.
     pending: Vec<bool>,
+    /// The labels the marks draw.
     labels: Vec<Key>,
+    /// The palette keys the marks draw in.
     keys: Rc<[Reported]>,
     /// The (panel, handle position) of the handles of other figures marks
     /// reported.
@@ -50,18 +53,20 @@ impl Figure<'_> {
     /// [`check`](Figure::check) reports.
     ///
     /// Each pass takes every axis's tick count from its length in the last
-    /// placement (one tick per 80 px across, per 35 px up, at least 2;
-    /// `.ticks(n)` fixes it) and places the plot areas again, until the
-    /// counts settle (at most four passes): each panel reaches past its
-    /// plot area by its axes (tick, tick pad, the labels' extent and, with
-    /// a title, the label pad and the title's ink height, at the axis's
-    /// offset), by tick labels that overhang its ends and by its title
-    /// (title pad and ink height above everything on top, and at least to
-    /// its ink top when its last baseline sits the title pad and the text
-    /// face's descender above the top-side axes of its grid row, where the
-    /// titles of one row share a baseline); each column
-    /// takes the largest reach of its panels per side and each row
-    /// likewise, and the rest is split by weight inside 0.8 em of padding,
+    /// placement, then places the plot areas again, until the counts settle
+    /// (at most four passes). The count is one tick per 80 px across or per
+    /// 35 px up, at least 2, unless `.ticks(n)` fixes it. Each panel
+    /// reaches past its plot area by:
+    /// - its axes: tick, tick pad, the labels' extent and, with a title,
+    ///   the label pad and the title's ink height, at the axis's offset;
+    /// - tick labels that overhang its ends;
+    /// - its title: title pad and ink height above everything on top. The
+    ///   titles of one grid row share a baseline, so a title also reaches
+    ///   at least to its ink top when its last baseline sits the title pad
+    ///   and the text face's descender above the row's top-side axes.
+    ///
+    /// Each column takes the largest reach of its panels per side, and each
+    /// row likewise. The rest is split by weight inside 0.8 em of padding,
     /// below the figure title's ink height and 8 px.
     pub fn resolve(
         &self,
@@ -74,9 +79,9 @@ impl Figure<'_> {
     }
 
     /// As [`resolve`](Figure::resolve), keeping the plot areas `areas`
-    /// that a gesture took at its start ([`Resolved::get_areas`]), so the plot
-    /// does not shift under the pointer: tick counts come from their
-    /// lengths in one pass, labels and collisions are recomputed, and
+    /// that a gesture took at its start ([`Resolved::get_areas`]), so the
+    /// plot does not shift under the pointer. Tick counts come from the
+    /// axes' lengths in one pass, labels and collisions are recomputed, and
     /// labels may reach past the old reaches. Areas made for another size
     /// or panel count are ignored: the layout is fresh, and
     /// [`Resolved::get_held`] is false.
@@ -113,13 +118,13 @@ impl Figure<'_> {
         self.resolve_in(size, cache, held, target, Some(areas))
     }
 
-    /// Resolves for `size`, in `areas` when they fit it: fits every
-    /// handle, then settles windows and `Fit::Visible` handles and lays the
-    /// grid out, again while the column counts the windows were fitted in
-    /// are not those of the plot areas laid out (at most [`ROUNDS`] times).
-    /// The first round fits each window in the count the cache remembers
-    /// for it, as `All` when it remembers none; the cache keeps the last
-    /// round's counts and `Fit::Visible` memory.
+    /// Resolves for `size`, in `areas` when they fit it. Fits every handle,
+    /// then settles windows and `Fit::Visible` handles and lays the grid
+    /// out. Settling and layout repeat while the column counts the windows
+    /// were fitted in differ from those of the plot areas laid out, at most
+    /// [`ROUNDS`] times. The first round fits each window in the count the
+    /// cache remembers for it, or as `All` when it remembers none. The
+    /// cache keeps the last round's counts and `Fit::Visible` memory.
     fn resolve_in(
         &self,
         size: kurbo::Size,
@@ -184,12 +189,12 @@ impl Figure<'_> {
     }
 
     /// Per table entry, the tick count its domain is rounded to under
-    /// `Domains::Nice` (`None` under margins, and for entries that are not
-    /// `Fit::All` handles): the count layout's first pass gives the first
-    /// axis that shows it in panel order (its `.ticks(n)`, else from its
-    /// length in the first placement, or in `rects` when held), d3's
-    /// [`COUNT`] when no axis shows it. The rounded domains are settled
-    /// before the passes iterate.
+    /// `Domains::Nice`; `None` under margins, and for entries that are not
+    /// `Fit::All` handles. The count is the one layout's first pass gives
+    /// the first axis, in panel order, that shows the entry: its
+    /// `.ticks(n)`, else one from its length in the first placement, or in
+    /// `rects` when held. It is d3's [`COUNT`] when no axis shows the
+    /// entry. The rounded domains are settled before the passes iterate.
     fn nice_counts(
         &self,
         size: kurbo::Size,
@@ -227,12 +232,10 @@ impl Figure<'_> {
         }
     }
 
-    /// Every scale of the table held, fitted to all its marks' data (with
-    /// the theme's margin, or rounded for `counts`), or as built,
-    /// `Fit::Visible` handles not yet settled; per entry the largest x a
-    /// window's marks admit and the panels whose marks place it across;
-    /// which entries are `Fit::Visible` handles to settle; and the labels
-    /// the marks draw.
+    /// The table's scales fitted to all their marks' data, with the theme's
+    /// margin or rounded for `counts`, and what the marks reported. Held
+    /// scales stay as held, scales not fitted stay as built, and
+    /// `Fit::Visible` handles are not yet settled.
     fn fitted(&self, held: &Held, counts: &[Option<usize>]) -> Fitted {
         let margin = self.margin();
         let unheld = |i: usize, entry: &Entry| held.scale(i, &*entry.scale).is_none();

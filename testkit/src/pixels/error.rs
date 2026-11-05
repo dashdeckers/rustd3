@@ -1,4 +1,4 @@
-//! Why two images cannot be compared.
+//! Why an image cannot be built or two images compared.
 
 /// Why an image could not be built or two images compared.
 #[derive(Debug, thiserror::Error)]

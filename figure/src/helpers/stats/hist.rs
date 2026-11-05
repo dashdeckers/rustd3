@@ -1,5 +1,5 @@
 //! Histogram statistics and stacking: [`Bins`], [`Table`], [`table`],
-//! [`Error`] and [`stacked`]; the chart is [`stats::hist`](super::hist()).
+//! [`Error`] and [`stacked`]. The chart is [`stats::hist`](super::hist()).
 
 pub(super) mod chart;
 mod stacked;
@@ -26,10 +26,10 @@ pub enum Bins {
     /// them are dropped, as numpy and matplotlib's `hist` drop them.
     Edges(Vec<f64>),
     /// numpy's `"auto"` (2.x): equal-width bins at the smaller of Sturges'
-    /// width (`range / (log₂ n + 1)`) and Freedman–Diaconis' (`2·IQR·n^(−1/3)`),
-    /// the latter at least half the square-root rule's (`range / √n`), so
-    /// an IQR of 0 or a long tail does not make thousands of bins; at most
-    /// 10,000.
+    /// width (`range / (log₂ n + 1)`) and Freedman–Diaconis' (`2·IQR·n^(−1/3)`).
+    /// The latter is at least half the square-root rule's (`range / √n`), so
+    /// an IQR of 0 or a long tail does not make thousands of bins. At most
+    /// 10,000 bins.
     Auto,
 }
 
@@ -54,15 +54,15 @@ pub enum Error {
     Edge {
         /// The first bad edge's index.
         index: usize,
-        /// Its value.
+        /// The first bad edge's value.
         value: f64,
     },
     /// Weights whose count differs from the values'.
     #[error("{weights} weights for {values} values")]
     Weights {
-        /// The values given.
+        /// The number of values given.
         values: usize,
-        /// The weights given.
+        /// The number of weights given.
         weights: usize,
     },
 }
@@ -81,11 +81,11 @@ impl From<Error> for mark::Error {
 /// The statistic behind [`hist`](super::hist()) and [`stacked`]: the finite
 /// `values` (each with its weight, 1 without `weights`) binned by `bins`,
 /// left-closed with the last bin closed, as numpy's `histogram` bins them.
-/// With `density` each height is divided by the total weight counted and
-/// the bin's width, so the bars' area sums to 1; with `cumulative` each
+/// With `density`, each height is divided by the total weight counted and
+/// the bin's width, so the bars' area sums to 1. With `cumulative`, each
 /// height is the running sum (of the bins' areas with `density`, so the
-/// last is 1), matplotlib's `hist`. No finite values give no bins, except
-/// with caller edges.
+/// last is 1), as in matplotlib's `hist`. Without finite values there are
+/// no bins, except with caller edges.
 ///
 /// ```
 /// use rustd3_figure::helpers::stats::hist::{self, Bins};

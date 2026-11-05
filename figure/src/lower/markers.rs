@@ -6,7 +6,7 @@ use peniko::Brush;
 use crate::list::{Command, Paints};
 use crate::lower::sweep;
 
-/// One fill per point: the shape scaled by the point's size and centred on
+/// One fill per point: the shape scaled by the point's size and centered on
 /// it, painted from the point's paint.
 pub(super) fn fills(
     shape: &BezPath,

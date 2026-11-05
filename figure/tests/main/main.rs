@@ -47,9 +47,9 @@ mod visible;
 #[cfg(all(feature = "fonts", feature = "pdf", feature = "raster"))]
 mod wheels;
 
-// The example figures, so that the snapshots and the thinning spot
-// checks draw exactly what the examples draw: the trace from benchkit's
-// gallery, the scatter compiled from its example.
+// The example figures, so the snapshots and the thinning spot checks draw
+// exactly what the examples draw. The trace comes from benchkit's gallery
+// and the scatter is compiled from its example.
 use benchkit::gallery::trace;
 #[path = "../../examples/scatter.rs"]
 #[allow(

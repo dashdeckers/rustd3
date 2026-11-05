@@ -1,8 +1,8 @@
-//! Lowering: a list rewritten into the commands a backend draws natively.
-//! A backend states its [`Caps`]; [`lower`] turns glyph runs into
-//! outlines, markers into fills and sweep gradients into images where it
-//! lacks them, leaves path clips in place, and returns what it could not
-//! draw faithfully as [`Warning`]s.
+//! Lowering: rewriting a list into the commands a backend draws natively.
+//! A backend states its [`Caps`], and [`lower`] replaces what it lacks.
+//! Glyph runs become outlines, markers become fills and sweep gradients
+//! become images. Path clips stay in place, and what could not be drawn
+//! faithfully is returned as [`Warning`]s.
 //!
 //! ```
 //! use rustd3_figure::kurbo::Size;
@@ -40,7 +40,7 @@ pub struct Caps {
 }
 
 impl Caps {
-    /// Everything: vello_cpu and krilla.
+    /// Every capability, as vello_cpu and krilla have.
     pub const ALL: Caps = Caps {
         glyphs: true,
         markers: true,
@@ -52,9 +52,10 @@ impl Caps {
 /// A lowered list and what it could not draw faithfully.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lowered {
-    /// The list, every command one the backend draws (path clips aside).
+    /// The list, every command of which the backend draws natively (path
+    /// clips aside).
     pub list: List,
-    /// In the order met; each names the input command.
+    /// The warnings, in the order met; each names its input command.
     pub warnings: Vec<Warning>,
 }
 
@@ -63,21 +64,21 @@ pub struct Lowered {
 /// - without `glyphs`, each glyph run becomes one fill of its outlines;
 /// - without `markers`, each point of a markers command becomes a fill;
 /// - without `sweep`, a fill or stroke with a sweep gradient becomes a
-///   group clipped to what it covers holding an image of the gradient
-///   rendered by vello_cpu at 2 px per list px ([`Warning::SweepRasterized`]),
-///   or, without the `raster` feature, takes the gradient's middle stop as
-///   a solid paint ([`Warning::SweepFlattened`]); glyph runs and markers
-///   painted with a sweep become fills first;
+///   group clipped to what it covers, holding an image of the gradient
+///   rendered by vello_cpu at 2 px per list px
+///   ([`Warning::SweepRasterized`]). Without the `raster` feature it takes
+///   the gradient's middle stop as a solid paint instead
+///   ([`Warning::SweepFlattened`]). Glyph runs and markers painted with a
+///   sweep become fills first;
 /// - without `clip_paths`, a path clip stays in place and is reported
-///   ([`Warning::UnsupportedClip`]), after the sweep pass, so a rasterized
-///   sweep reports both.
+///   ([`Warning::UnsupportedClip`]). This check runs after the sweep pass,
+///   so a rasterized sweep reports both.
 ///
 /// Parts are remapped to the new command ranges.
 ///
 /// # Errors
 ///
-/// The [`list::Error`] of [`list::check`] for a list
-/// that fails it.
+/// The [`list::Error`] of [`list::check`] for a list that fails it.
 pub fn lower(list: &List, caps: Caps) -> Result<Lowered, list::Error> {
     list::check(list)?;
     let mut outlines = Outlines::default();

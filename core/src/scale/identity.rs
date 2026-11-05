@@ -7,8 +7,8 @@ use crate::ticks;
 
 /// d3.scaleIdentity: `apply` and `invert` return their input; domain and
 /// range are one array. Ticks, nice and tick formats are a linear scale's
-/// over that array. Not the transform under linear scales,
-/// [`scale::transform::Identity`].
+/// over that array. This is not [`scale::transform::Identity`], the
+/// transform under linear scales.
 ///
 /// ```
 /// use rustd3_core::scale;

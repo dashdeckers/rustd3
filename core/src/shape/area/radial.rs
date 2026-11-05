@@ -23,7 +23,7 @@ pub struct Radial {
     inner_radius: f64,
 }
 
-/// d3.areaRadial(): straight segments down to the centre, `None` items
+/// d3.areaRadial(): straight segments down to the center, `None` items
 /// breaking the area.
 #[must_use]
 pub fn radial() -> Radial {
@@ -50,9 +50,9 @@ impl Radial {
 
     /// Draws `items` into `ctx` as d3's `areaRadial()(data)` does: items are
     /// `(angle, inner, outer)`, `(angle, outer)` over the inner radius, or
-    /// `None`; the outer edge runs forward and the inner one back, each point
-    /// placed at `(r·sin a, −r·cos a)`, as [`Area::draw`](crate::shape::Area::draw)
-    /// draws.
+    /// `None`. As [`Area::draw`](crate::shape::Area::draw) draws, the outer
+    /// edge runs forward and the inner one back, each point placed at
+    /// `(r·sin a, −r·cos a)`.
     pub fn draw<S: Span>(&self, items: impl IntoIterator<Item = S>, ctx: &mut impl PathContext) {
         let edges = items.into_iter().map(|item| {
             item.span(self.inner_radius).map(|(a, inner, outer)| {

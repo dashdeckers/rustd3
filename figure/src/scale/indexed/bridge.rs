@@ -28,13 +28,13 @@ pub trait Indexed<D>: crate::sealed::Indexed<D> {
     ) -> Option<Extent<D>>;
 
     /// For a `Series` view: M4 over the columns between consecutive
-    /// `edges` (domain values in increasing order, or decreasing, as a
-    /// reversed scale inverts device-pixel edges), keeping the samples that
-    /// pass `valid`, through `frame`: column boundaries computed once per
-    /// draw for every line on one clock, and output memoized across draws
-    /// by recording, revision, channel and grid. `None` when `points` is
-    /// not a `Series` view, or `edges` are fewer than two, not monotonic or
-    /// not valid coordinates.
+    /// `edges`, keeping the samples that pass `valid`. The edges are domain
+    /// values in increasing order, or decreasing, as a reversed scale
+    /// inverts device-pixel edges. It runs through `frame`, which computes
+    /// column boundaries once per draw for every line on one clock and
+    /// memoizes output across draws by recording, revision, channel and
+    /// grid. `None` when `points` is not a `Series` view, or `edges` are
+    /// fewer than two, not monotonic or not valid coordinates.
     fn thin(
         &self,
         points: &Points<'_, D, f64>,

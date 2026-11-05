@@ -1,12 +1,8 @@
-//! Tick labels that would still collide are dropped, in two passes. Within
-//! an axis, every k-th label is kept for the smallest k without overlap
+//! Dropping tick labels that would still collide, in two passes. Within an
+//! axis, every k-th label is kept for the smallest k without overlap
 //! (Vega's parity strategy), counted from each tick's absolute index so
-//! that labels do not flicker while the axis pans; a stride never drops
-//! more than k − 1 labels in a row, and of two time ticks closer than the
-//! interval's step (a run restarted at a month boundary) the one whose
-//! label is on the finer rung gives way alone when the two collide, so a
-//! month's or a day's label stays. Across axes, labels of
-//! larger panels are placed first and later ones that overlap them are
+//! that labels do not flicker while the axis pans. Across axes, labels of
+//! larger panels are placed first, and later ones that overlap them are
 //! dropped. Both passes test oriented boxes ([`Obb`]), so rotated labels
 //! collide as what they draw.
 
@@ -17,14 +13,12 @@ use crate::layout::Obb;
 /// Indices this large lose integer precision in `f64`.
 const EXACT: f64 = 9_007_199_254_740_992.0;
 
-/// One axis's tick labels as collision candidates: each label's box in list
-/// px (`None` for one that is not drawn), its tick's absolute index and
-/// how it follows the tick before it, and the area of its panel's plot
-/// area.
+/// One axis's tick labels as collision candidates.
 pub(crate) struct Axis<'b> {
     /// The plot area of the axis's panel, px²: larger panels go first.
     pub(crate) area: f64,
-    /// Each label's box, in tick order.
+    /// Each label's box in list px, in tick order; `None` for a label that
+    /// is not drawn.
     pub(crate) boxes: &'b [Option<Obb>],
     /// Each tick's absolute index, aligned with the boxes.
     pub(crate) indices: &'b [i64],
@@ -34,11 +28,12 @@ pub(crate) struct Axis<'b> {
 }
 
 /// How a time axis's tick follows the one before it: by its interval's
-/// step, or closer (the first stepped day of a month after the month's
-/// last, the first stepped hour after a clock change), and then which of
-/// the two labels is on the coarser rung of the time format's ladder: the
-/// one whose tick starts its parent unit (the month of stepped days, the
-/// day of stepped hours), which shows that unit ("2026-11", "November",
+/// step, or closer. A tick is closer when it is the first stepped day of a
+/// month after the month's last, or the first stepped hour after a clock
+/// change. For a closer pair, it also says which of the two labels is on
+/// the coarser rung of the time format's ladder. That is the one whose
+/// tick starts its parent unit (the month of stepped days, the day of
+/// stepped hours), and its label shows that unit ("2026-11", "November",
 /// a date at midnight).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Restart {
@@ -52,19 +47,22 @@ pub(crate) enum Restart {
     Follows,
 }
 
-/// Which labels of `axes` (given in panel order, then axis order) layout
-/// keeps. Within each axis, of two time ticks closer than their interval's
-/// step whose boxes overlap, the label on the finer rung gives way first
-/// (the month's last stepped day before the first of the next month,
-/// whose label shows the month; the first stepped hour after a clock
-/// change, not the day's midnight). The candidates
-/// are then the labels whose index is a multiple of the smallest stride
-/// k ≥ 1 for which those labels pairwise do not overlap (touching is not
-/// overlap) and no k labels in a row are left out; when no stride leaves
-/// one, the indices are taken as the labels' positions in the set. Across
-/// axes, candidates go in order of their panel's plot area (larger first),
-/// then panel, axis and label order, and one is kept when its box overlaps
-/// no kept box.
+/// Which labels of `axes`, given in panel order then axis order, layout
+/// keeps.
+///
+/// Within each axis, of two time ticks closer than their interval's step
+/// whose boxes overlap, the label on the finer rung gives way first. That
+/// is the month's last stepped day before the first of the next month,
+/// whose label shows the month, or the first stepped hour after a clock
+/// change rather than the day's midnight. The candidates are then the
+/// labels whose index is a multiple of the smallest stride k ≥ 1 for which
+/// those labels do not overlap pairwise (touching is not overlap) and no k
+/// labels in a row are left out. When no stride works on the ticks'
+/// indices, the labels' positions in the set are used as indices instead.
+///
+/// Across axes, candidates go in order of their panel's plot area (larger
+/// first), then panel, axis and label order. One is kept when its box
+/// overlaps no kept box.
 pub(crate) fn collide(axes: &[Axis<'_>]) -> Vec<Vec<bool>> {
     let mut keep: Vec<Vec<bool>> = axes.iter().map(|a| vec![false; a.boxes.len()]).collect();
     let mut candidates: Vec<(usize, usize)> = Vec::new();
@@ -90,9 +88,9 @@ pub(crate) fn collide(axes: &[Axis<'_>]) -> Vec<Vec<bool>> {
 
 /// Each value's index on the grid of d3's ticks for `domain` at about
 /// `count` ticks (its value over d3's tick step), when every value lies on
-/// that grid and the values are evenly spaced on it; `None` otherwise:
-/// fewer than two values, log or symlog decades, values chosen off the
-/// grid.
+/// that grid and the values are evenly spaced on it. `None` otherwise, as
+/// for fewer than two values, log or symlog decades, or values chosen off
+/// the grid.
 pub(crate) fn grid(values: &[f64], [a, b]: [f64; 2], count: usize) -> Option<Vec<i64>> {
     if values.len() < 2 {
         return None;
@@ -143,11 +141,12 @@ fn restart(boxes: &[Option<Obb>], restarts: &[Restart]) -> Vec<Option<Obb>> {
     out
 }
 
-/// The labels of one axis kept by the smallest stride: those with a box
-/// whose index is a multiple of the smallest k ≥ 1 that leaves at least
-/// one, no two overlapping and no k in a row out (indices not evenly
-/// spaced would otherwise let a stride keep one label of a row); `None`
-/// when no k up to one past the span of the indices does.
+/// The labels of one axis kept by the smallest stride. They are the labels
+/// with a box whose index is a multiple of the smallest k ≥ 1 that keeps at
+/// least one, with no two overlapping and no k in a row left out. The last
+/// condition matters for indices that are not evenly spaced, which would
+/// otherwise let a stride keep one label of a row. `None` when no k up to
+/// one past the span of the indices works.
 fn parity(boxes: &[Option<Obb>], indices: &[i64]) -> Option<Vec<usize>> {
     let placed: Vec<(usize, i64, Obb)> = boxes
         .iter()
@@ -176,7 +175,7 @@ mod tests {
 
     use super::*;
 
-    /// Boxes `width` wide centred `spacing` apart on one line.
+    /// Boxes `width` wide centered `spacing` apart on one line.
     fn row(widths: &[f64], spacing: f64) -> Vec<Option<Obb>> {
         widths
             .iter()

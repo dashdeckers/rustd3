@@ -1,12 +1,12 @@
-//! [`Identity`]: what a submitted archive must not hold: the
-//! home directory, the host name and the user name. Before a level packs
-//! its results it rewrites every text file through [`Identity::scrub`]:
-//! the results directory's own path goes (paths are relative to it), the
-//! home directory becomes `~`, the host name `<host>` and the user name,
-//! where it is a path component, `<user>`. What is written in the first
-//! place is already limited (`system.txt` takes `uname -srm`, and only
-//! whether the display variables are set); the scrub is the backstop for
-//! paths in command lines, logs and panic messages. [`PRIVACY`] is the
+//! [`Identity`]: what a submitted archive must not hold, namely the home
+//! directory, the host name and the user name. Before a level packs its
+//! results, it rewrites every text file through [`Identity::scrub`]. The
+//! results directory's own path is removed (paths become relative to it),
+//! the home directory becomes `~`, the host name `<host>`, and the user
+//! name `<user>` where it is a path component. What is written in the
+//! first place is already limited: `system.txt` takes `uname -srm`, and
+//! only whether the display variables are set. The scrub is the backstop
+//! for paths in command lines, logs and panic messages. [`PRIVACY`] is the
 //! archive's `PRIVACY.md`.
 
 use std::fs;
@@ -61,7 +61,7 @@ should any have appeared (in a panic message, say).
 ";
 
 impl Identity {
-    /// This process's: `HOME` (or `USERPROFILE`), the host name
+    /// This process's identity: `HOME` (or `USERPROFILE`), the host name
     /// (`HOSTNAME`, `COMPUTERNAME`, the kernel's, or `hostname`), and
     /// `USER` (or `USERNAME`, `LOGNAME`).
     pub fn here() -> Identity {
@@ -92,10 +92,10 @@ impl Identity {
         }
     }
 
-    /// `text` with the results directory `root` (each spelling in
-    /// `roots`: as given, absolute, canonical) made relative, then the
-    /// home directory written `~`, the host name `<host>` and the user
-    /// name, as a path component, `<user>`.
+    /// `text` with the results directory made relative, then the home
+    /// directory written `~`, the host name `<host>`, and the user name
+    /// `<user>` where it is a path component. `roots` holds the results
+    /// directory's spellings (as given, absolute, canonical).
     pub fn scrub(&self, text: &str, roots: &[String]) -> String {
         let mut text = text.to_owned();
         // Each path as written, with `/` for `\`, and escaped as JSON
@@ -128,9 +128,9 @@ impl Identity {
             }
         }
         if let Some(host) = self.host.as_deref().filter(|host| host.len() > 1) {
-            // As written and in lower case (Windows prints its upper-case
-            // name, DNS the lower-case one); not in every case, so that a
-            // host called `vm` leaves "a VM" alone.
+            // As written and in lower case, since Windows prints the
+            // upper-case name and DNS the lower-case one. Other cases are
+            // left alone, so that a host called `vm` leaves "a VM" intact.
             text = replace_token(&text, host, "<host>");
             text = replace_token(&text, &host.to_lowercase(), "<host>");
         }
@@ -141,7 +141,7 @@ impl Identity {
     }
 
     /// Rewrites every UTF-8 file under `dir` through [`Identity::scrub`],
-    /// `dir` itself the results directory.
+    /// with `dir` as the results directory.
     pub fn scrub_dir(&self, dir: &Path) -> std::io::Result<()> {
         let mut roots = vec![dir.display().to_string()];
         if let Ok(absolute) = std::path::absolute(dir) {
@@ -173,8 +173,8 @@ fn word(c: char) -> bool {
     c.is_alphanumeric() || matches!(c, '_' | '-')
 }
 
-/// `text` with every `from` that the character after does not continue
-/// (a path ends there) replaced by `to`.
+/// `text` with every `from` replaced by `to` where a path ends there, that
+/// is, where the next character does not continue it.
 fn replace_path(text: &str, from: &str, to: &str) -> String {
     replace_where(text, from, to, false, |before, after| {
         before.is_none_or(|c| !word(c) && c != '.') && after.is_none_or(|c| !word(c))

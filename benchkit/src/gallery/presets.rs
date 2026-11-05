@@ -1,8 +1,6 @@
-//! The chart presets of `helpers::chart` over fixed data, each at the
-//! presets' 640 × 480: lines, a symlog line of a recording's RMS, a
-//! scatter, grouped, stacked and diverging bars, a stacked area, a pie, a
-//! donut, a heatmap and a keyed heatmap. The `presets` example writes them
-//! as files; the benchmark's figure profile times them.
+//! The chart presets of `helpers::chart` over fixed data, each at 640 ×
+//! 480. The `presets` example writes them as files, and the benchmark's
+//! figure profile times them.
 
 use std::f64::consts::PI;
 

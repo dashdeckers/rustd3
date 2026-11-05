@@ -4,10 +4,10 @@
 const MOST: usize = i32::MAX as usize;
 
 /// d3.quantize(interpolator, n): `f` sampled at `i / (n − 1)` for `i` in
-/// `0..n`, so the first sample is `f(0)` and the last `f(1)`; one sample
-/// is `f(NaN)`, as in d3. Empty when `n` is 2³¹ or more, the length
-/// [`array::range`](crate::array::range) does not allocate either; d3
-/// throws from 2³² on.
+/// `0..n`, so the first sample is `f(0)` and the last `f(1)`. A single
+/// sample is `f(NaN)`, as in d3. It is empty when `n` is 2³¹ or more, a
+/// length that [`array::range`](crate::array::range) does not allocate
+/// either; d3 throws from 2³² on.
 ///
 /// ```
 /// use rustd3_core::interpolate;

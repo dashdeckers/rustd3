@@ -19,18 +19,17 @@ const CAPS: Caps = Caps {
     sweep: true,
 };
 
-/// The whole of `list` at `scale`, rendered by tiny-skia: round(width ×
-/// scale) × round(height × scale) px of straight RGBA, as
-/// `raster::render` gives with vello_cpu. Image
-/// brushes are [`list::Error::Unsupported`]; a degenerate gradient (one
-/// tiny-skia cannot build, such as a linear gradient whose ends coincide)
-/// draws nothing.
+/// The whole of `list` at `scale`, rendered by tiny-skia as
+/// `raster::render` renders it with vello_cpu: round(width × scale) ×
+/// round(height × scale) px of straight RGBA. Image brushes are
+/// [`list::Error::Unsupported`]. A degenerate gradient, one tiny-skia
+/// cannot build such as a linear gradient whose ends coincide, draws
+/// nothing.
 ///
 /// # Errors
 ///
-/// [`Error::Empty`] for a list of no device
-/// pixel, [`Error::TooLarge`] for one
-/// tiny-skia cannot allocate, and [`list::Error`] for a list that fails
+/// [`Error::Empty`] for a list of no device pixel, [`Error::TooLarge`]
+/// past 65,408 device px a side, and [`list::Error`] for a list that fails
 /// [`list::check`] or holds an image brush.
 pub fn render(list: &List, scale: f64) -> Result<Image, Error> {
     list::check(list)?;

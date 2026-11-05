@@ -16,8 +16,8 @@ trait Lookup {
     /// The key's color in the resolved palette; `None` when it has none.
     fn paint(&self, ctx: &Ctx<'_>) -> Option<Rgb>;
 
-    /// The key's slot among the palette's keys and their count, which
-    /// dodged charts sit in; `None` when the palette has none.
+    /// The key's index among the palette's keys and the number of keys,
+    /// which place a dodged chart; `None` when the palette has none.
     fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)>;
 }
 
@@ -49,7 +49,7 @@ impl Fill {
     }
 
     /// The color to draw in: the key's, the theme's gray for a key the
-    /// palette lacks, the theme palette's first color without a key.
+    /// palette lacks, or the theme palette's first color without a key.
     pub(super) fn resolve(&self, ctx: &Ctx<'_>) -> Rgb {
         match &self.0 {
             None => ctx.get_theme().get_color(),
@@ -59,8 +59,8 @@ impl Fill {
         }
     }
 
-    /// The key's slot among its palette's keys and their count; `None`
-    /// without a key.
+    /// The key's index among its palette's keys and the number of keys;
+    /// `None` without a key.
     pub(super) fn slot(&self, ctx: &Ctx<'_>) -> Option<(usize, usize)> {
         self.0.as_ref().and_then(|lookup| lookup.slot(ctx))
     }

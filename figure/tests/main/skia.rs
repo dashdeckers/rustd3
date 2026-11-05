@@ -6,9 +6,10 @@ use rustd3_figure::raster::{Error, skia};
 
 use crate::sink;
 
-/// At 1.25 the 16-texel checkerboard spans 40 device px, so texel edges
-/// fall on pixel centres and the two nearest samplers break those ties
-/// differently (164/255 there, 46/255 elsewhere); 1, 1.5 and 2 have none.
+/// The two renderers agree on the kitchen sink at 1, 1.5 and 2. Scale 1.25
+/// is left out: there the 16-texel checkerboard spans 40 device px, so
+/// texel edges fall on pixel centers and the two nearest samplers break
+/// those ties differently (164/255 there, 46/255 elsewhere).
 #[cfg(feature = "raster")]
 #[test]
 fn vello_cpu_and_tiny_skia_agree_on_the_kitchen_sink() {

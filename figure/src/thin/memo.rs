@@ -5,13 +5,13 @@ use std::fmt;
 
 use rustd3_core::series::{self, m4};
 
-/// Entries unused for this many draws are dropped, as the text cache's.
+/// Entries unused for this many draws are dropped, as in the text cache.
 const MAX_AGE: u64 = 32;
 
-/// M4 output by recording, revision, channel (two for a joint query),
-/// column grid and validity test, kept in the figure's cache across draws: a redraw of an unchanged
-/// view queries nothing, and an append bumps the revision and misses.
-/// Entries unused for 32 draws are dropped.
+/// M4 output keyed by recording, revision, channel (two for a joint
+/// query), column grid and validity test, kept in the figure's cache
+/// across draws. A redraw of an unchanged view queries nothing, and an
+/// append bumps the revision and misses.
 #[derive(Default)]
 pub(crate) struct Memo {
     entries: HashMap<Key, Entry>,

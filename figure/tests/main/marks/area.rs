@@ -42,7 +42,7 @@ fn polygons(list: &List) -> Vec<Vec<Point>> {
     out
 }
 
-/// `a` and `b` within 1e-9.
+/// Whether `a` and `b` agree within 1e-9.
 fn close(a: [f64; 2], b: [f64; 2]) -> bool {
     (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9
 }

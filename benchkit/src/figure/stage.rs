@@ -1,12 +1,13 @@
-//! [`Stage`]: what a user of the plotting library pays for one figure, on
-//! its way from data to files, each stage timed on its own through the
-//! library's public API with its default settings: building the
-//! [`Figure`], resolving it, drawing its list, then each output. SVG and
-//! PDF are written from that one list, as `save_svg` and `save_pdf` write
-//! theirs. A PNG (and a GIF) is drawn for a file target, which snaps to
-//! device pixels and thins at its own scale, so it needs a resolve and a
-//! list of its own: its stage is `save_png`'s whole work, end to end. Every
-//! output goes to memory, not to a file, so no disk is timed.
+//! [`Stage`]: one step of what a user of the plotting library pays for a
+//! figure on its way from data to files. Each stage is timed on its own
+//! through the library's public API with its default settings: building
+//! the [`Figure`], resolving it, drawing its list, then each output. SVG
+//! and PDF are written from that one list, as `save_svg` and `save_pdf`
+//! write theirs. A PNG (and a GIF) is drawn for a file target, which snaps
+//! to device pixels and thins at its own scale. It therefore needs a
+//! resolve and a list of its own, and its stage is `save_png`'s whole work,
+//! end to end. Every output goes to memory, not to a file, so no disk is
+//! timed.
 
 use std::error::Error;
 use std::time::{Duration, Instant};
@@ -27,14 +28,14 @@ pub enum Stage {
     Resolve,
     /// [`Figure::draw_resolved`] of that resolve: the drawing list.
     List,
-    /// SVG of that list: lowered for SVG and written with glyph outlines,
-    /// what `save_svg` does after drawing.
+    /// SVG of that list, lowered for SVG and written with glyph outlines,
+    /// as `save_svg` does after drawing.
     Svg,
     /// PDF of that list, what `save_pdf` does after drawing.
     Pdf,
-    /// `save_png`'s work at this many device px per logical px, end to
-    /// end: drawn for a file target with a fresh cache, rendered by
-    /// vello_cpu on its own pool, encoded.
+    /// `save_png`'s work end to end, at this many device px per logical
+    /// px. It draws for a file target with a fresh cache, renders with
+    /// vello_cpu on its own pool, and encodes.
     Png(u8),
     /// A GIF of [`GIF_FRAMES`] frames of the figure at 1× through
     /// `gif::Writer`, end to end.
@@ -48,7 +49,7 @@ pub struct Measured {
     pub stage: Stage,
     /// Its wall time, ms.
     pub ms: f64,
-    /// The output's bytes, for the outputs.
+    /// The output's size in bytes, for the output stages.
     pub bytes: Option<u64>,
 }
 
@@ -72,9 +73,10 @@ impl Stage {
     }
 }
 
-/// One repetition: builds the figure with `build`, resolves it for
-/// vector output at `size` with a fresh cache, draws its list, then writes
-/// each of `outputs`; every stage timed apart. The first error ends it.
+/// Runs one repetition, timing every stage apart. It builds the figure
+/// with `build`, resolves it for vector output at `size` with a fresh
+/// cache, draws its list, then writes each of `outputs`. The first error
+/// ends it.
 pub fn repetition<'a>(
     build: &dyn Fn() -> Figure<'a>,
     size: Size,
@@ -116,9 +118,10 @@ pub fn repetition<'a>(
     Ok(out)
 }
 
-/// The PNG `Figure::save_png` writes of `fig` at `size` × `scale`, in
-/// memory: its own draw for the file target with a fresh cache, vello_cpu
-/// on its pool (`Settings::parallel`), the encoder.
+/// The PNG that `Figure::save_png` writes of `fig` at `size` × `scale`,
+/// made in memory. It does its own draw for the file target with a fresh
+/// cache, renders with vello_cpu on its pool (`Settings::parallel`), and
+/// encodes.
 pub fn png(fig: &Figure<'_>, size: Size, scale: f64) -> Result<Vec<u8>, Box<dyn Error>> {
     let target = Target::File { scale };
     let list = fig.draw_with(&mut Cache::default(), size, target, &Held::default());

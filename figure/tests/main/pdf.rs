@@ -17,7 +17,7 @@ fn written(list: &List) -> Vec<u8> {
     pdf::write(list, &Options::default()).expect("the list writes")
 }
 
-/// A list of `size` whose background is one white fill.
+/// A list of `width` × `height` whose background is one white fill.
 fn blank(width: f64, height: f64) -> List {
     List {
         size: Size::new(width, height),
@@ -29,7 +29,7 @@ fn blank(width: f64, height: f64) -> List {
     }
 }
 
-/// The distinct colors of each 32-px tile of `image`, the most of any tile.
+/// The most distinct colors in any 32-px tile of `image`.
 fn levels_per_tile(image: &Image) -> usize {
     let mut most = 0;
     for ty in (0..image.height).step_by(32) {

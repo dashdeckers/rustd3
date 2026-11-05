@@ -46,14 +46,17 @@ impl Bin {
         Bin { thresholds, ..self }
     }
 
-    /// The buckets of `values` (bin.js `histogram(data)`). By count, the
-    /// thresholds are d3's ticks over the domain, which with the default
-    /// domain is first niced to them, and the last bucket is widened by
-    /// one step when its upper edge falls on the greatest value; values
-    /// then fall into buckets by their quotient with the step when the
-    /// first tick starts the domain, by bisection otherwise. Thresholds
-    /// outside the domain are dropped. No value that is not NaN gives one
-    /// empty bucket with NaN edges.
+    /// The buckets of `values` (bin.js `histogram(data)`).
+    ///
+    /// Under a count rule, the thresholds are d3's ticks over the domain.
+    /// The default domain is first niced to those ticks, and its last
+    /// bucket is widened by one step when its upper edge falls on the
+    /// greatest value. Values then fall into buckets by their quotient with
+    /// the step when the first tick starts the domain, and by bisection
+    /// otherwise.
+    ///
+    /// Thresholds outside the domain are dropped. Without a set domain, no
+    /// value that is not NaN gives one empty bucket with NaN edges.
     #[must_use]
     pub fn layout(&self, values: &[f64]) -> Vec<Bucket> {
         let [mut x0, mut x1] = self

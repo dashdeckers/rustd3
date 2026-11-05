@@ -1,21 +1,21 @@
 //! [`Gesture`]: the active drag or wheel gesture, its [`Track`]s (one per
 //! handle it rescales) and the layout it holds.
 //!
-//! Each pointer is fed to every track's core `Zoom` with the pointer
+//! Each pointer is fed to every track's core `Zoom`, with the pointer
 //! relative to the gesture panel's held plot area and the track's
-//! transform since the gesture began: an x track reads (k, x) of the
-//! result, a y track (k, y). A track's scale is its scale at the start
-//! rescaled by that transform, through the figure scale's pixel
-//! operations (core's `rescale_x` and `rescale_y` semantics): for every
+//! transform since the gesture began. An x track reads (k, x) of the
+//! result, and a y track reads (k, y). A track's scale is its scale at the
+//! start rescaled by that transform, through the figure scale's pixel
+//! operations (core's `rescale_x` and `rescale_y` semantics). For every
 //! output position p of the start scale, the new scale shows the same
 //! value at p · k + offset. Transforms accumulate from the start, never
-//! step to step, so rounding does not compound; a step the scale rejects
+//! step to step, so rounding does not compound. A step the scale rejects
 //! leaves the track's transform as it was.
 //!
 //! A drag snaps each track's offset to whole device pixels before it is
-//! applied, `x' = round(x · f) / f` at factor `f` (k untouched), so that a
-//! plot area's content moves by whole device pixels and its tiles can be
-//! translated; when the gesture ends its unsnapped transforms apply once
+//! applied, `x' = round(x · f) / f` at factor `f` (k untouched). A plot
+//! area's content then moves by whole device pixels, and its tiles can be
+//! translated. When the gesture ends, its unsnapped transforms apply once
 //! ([`Gesture::exact`]).
 
 use iced_core::time::{Duration, Instant};
@@ -28,8 +28,9 @@ use crate::plot::domains::{Domains, Key};
 use crate::plot::preview::Affine1;
 use crate::plot::region::{Along, Region};
 
-/// How long after its last step a wheel gesture ends: d3's own wheel idle
-/// is 150 ms (`zoom.js:68`); 300 ms keeps the layout held across a burst.
+/// How long after its last step a wheel gesture ends. d3's own wheel idle
+/// is 150 ms (`zoom.js:68`), and 300 ms keeps the layout held across a
+/// burst.
 pub(crate) const WHEEL_END: Duration = Duration::from_millis(300);
 
 /// The gesture in progress.
@@ -39,17 +40,17 @@ pub(crate) struct Gesture {
     /// Per handle: its axis, the transform since the gesture began and the
     /// scale at that moment.
     tracks: Vec<Track>,
-    /// Plot areas at the gesture's start (held layout).
+    /// The plot areas at the gesture's start, which the layout holds.
     held: Option<layout::Areas>,
-    /// The plot area of the region's panel at the start, list px:
-    /// pointers are fed relative to its corner.
+    /// The plot area of the region's panel at the start, in list px.
+    /// Pointers are fed relative to its corner.
     area: Rect,
     /// Device px per list px that offsets snap to, for a drag.
     snap: Option<f64>,
 }
 
-/// A drag pans until its release; a wheel gesture ends `WHEEL_END` after
-/// its last step.
+/// The kind of gesture. A drag pans until its release, and a wheel gesture
+/// ends `WHEEL_END` after its last step.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Kind {
     Drag,
@@ -62,12 +63,13 @@ pub(crate) struct Track {
     along: Along,
     transform: interact::Transform,
     start: Box<dyn Scale>,
-    /// The handle's preview map at the start, range shares.
+    /// The handle's preview map at the start, in range shares.
     base: Affine1,
-    /// The (k, offset) last applied: the transform's, its offset snapped
-    /// during a drag.
+    /// The (k, offset) last applied: the transform's, with its offset
+    /// snapped during a drag.
     applied: (f64, f64),
-    /// The position the last step zoomed around, list px along the axis.
+    /// The position the last step zoomed around, in list px along the
+    /// axis.
     anchor: f64,
 }
 
@@ -115,8 +117,8 @@ impl Gesture {
         }
     }
 
-    /// Snaps the offsets applied to whole device pixels at `factor`
-    /// device px per list px: what a drag does.
+    /// Snaps the offsets applied to whole device pixels at `factor` device
+    /// px per list px, as a drag does.
     pub(crate) fn snap(self, factor: f64) -> Gesture {
         let snap = (factor.is_finite() && factor > 0.0).then_some(factor);
         Gesture { snap, ..self }
@@ -137,14 +139,15 @@ impl Gesture {
         self.held.as_ref()
     }
 
-    /// A wheel step at `now`: a wheel gesture ends `WHEEL_END` after it.
+    /// Records a wheel step at `now`. A wheel gesture ends `WHEEL_END`
+    /// after it.
     pub(crate) fn wheeled(&mut self, now: Instant) {
         if let Kind::Wheel { last } = &mut self.kind {
             *last = now;
         }
     }
 
-    /// When a wheel gesture ends: `WHEEL_END` after its last step.
+    /// When a wheel gesture ends, `WHEEL_END` after its last step.
     pub(crate) fn ends_at(&self) -> Option<Instant> {
         match self.kind {
             Kind::Wheel { last } => Some(last + WHEEL_END),
@@ -152,9 +155,9 @@ impl Gesture {
         }
     }
 
-    /// Feeds `pointer` (list px) to every track's zoom in `domains`; the
-    /// steps accepted, their offsets snapped to whole device pixels during
-    /// a drag.
+    /// Feeds `pointer` (list px) to every track's zoom in `domains`, and
+    /// returns the steps accepted. During a drag their offsets are snapped
+    /// to whole device pixels.
     pub(crate) fn feed(&mut self, pointer: Pointer, domains: &mut Domains) -> Vec<Step> {
         let local = local(pointer, self.area.origin());
         let size = (self.area.width(), self.area.height());
@@ -184,7 +187,7 @@ impl Gesture {
     }
 
     /// The steps that apply each track's unsnapped transform where a
-    /// drag's snapping applied another: what the gesture's end applies
+    /// drag's snapping applied another. The gesture's end applies them
     /// once.
     pub(crate) fn exact(&mut self) -> Vec<Step> {
         let size = (self.area.width(), self.area.height());
@@ -202,8 +205,8 @@ impl Gesture {
 
 impl Track {
     /// The step that applies `(k, offset)`, zooming around `anchor` (list
-    /// px along the axis) over a plot area of `(width, height)` list px,
-    /// and records it as applied; `None` when the scale rejects it.
+    /// px along the axis) over a plot area of `(width, height)` list px. It
+    /// is recorded as applied. `None` when the scale rejects it.
     fn step(
         &mut self,
         (k, offset): (f64, f64),
@@ -217,8 +220,8 @@ impl Track {
         let scale = rescale(&*self.start, range, k, offset, anchor)?;
         self.applied = (k, offset);
         self.anchor = anchor;
-        // The transform in shares of the range: x runs from 0 to the
-        // width, y from the height to 0.
+        // The transform in shares of the range, where x runs from 0 to the
+        // width and y from the height to 0.
         let shares = match self.along {
             Along::X => Affine1::new(k, offset / width),
             Along::Y => Affine1::new(k, 1.0 - k - offset / height),
@@ -232,8 +235,8 @@ impl Track {
 }
 
 /// `start` over `range` rescaled so that the value it shows at position p
-/// is shown at `k` · p + `offset`: zoomed by `k` around `anchor` (a
-/// position the gesture is at, so that the zoom moves little), then
+/// is shown at `k` · p + `offset`. It is zoomed by `k` around `anchor`, a
+/// position the gesture is at, so that the zoom moves little. It is then
 /// panned by what remains of `offset`. `None` when the scale rejects
 /// either step.
 fn rescale(
@@ -414,7 +417,7 @@ mod tests {
     fn wheel_steps_accumulate_from_the_start_around_the_cursor() {
         let mut domains = Domains::default();
         let mut g = gesture(Box::new(scale::linear().domain([0.0, 100.0])), Along::X);
-        // At x = 150 in the area (list x 200): data 37.5 stays there.
+        // At x = 150 in the area (list x 200), data 37.5 stays there.
         let mut last = [0.0, 100.0];
         for _ in 0..5 {
             last = domain(&g.feed(wheel(200.0, 100.0, 1.0), &mut domains));
@@ -425,7 +428,7 @@ mod tests {
         for (got, want) in last.iter().zip(expected) {
             assert!((got - want).abs() < 1e-12, "{last:?} against {expected:?}");
         }
-        // Released carries no position: no change.
+        // Released carries no position, so nothing changes.
         assert!(
             g.feed(
                 Pointer::Released {
@@ -460,7 +463,7 @@ mod tests {
             g.feed(Pointer::Moved { x: 160.0, y: 100.0 }, &mut domains)
                 .is_empty()
         );
-        // 30 px down over 300 px of [0, 10]: content follows, so the
+        // 30 px down over 300 px of [0, 10]. The content follows, so the
         // domain moves up by one unit.
         let moved = domain(&g.feed(Pointer::Moved { x: 160.0, y: 130.0 }, &mut domains));
         assert!((moved[0] - 1.0).abs() < 1e-12 && (moved[1] - 11.0).abs() < 1e-12);

@@ -6,12 +6,13 @@ use std::sync::Arc;
 use crate::scale::{visible, window};
 use crate::{text, thin};
 
-/// What a caller keeps between draws of a figure: the text cache, so no
-/// label is shaped twice, the M4 memo, so an unchanged view is not thinned
-/// twice, the last domains of `Fit::Visible` handles, so they shrink by
-/// steps, and the column counts `Fit::Window` handles were last laid out
-/// in, so a window whose layout did not move is fitted once. The iced
-/// widget keeps one in its tree state; file outputs make a temporary one.
+/// What a caller keeps between draws of a figure. It holds the text cache,
+/// so no label is shaped twice, and the M4 memo, so an unchanged view is
+/// not thinned twice. It also holds the last domains of `Fit::Visible`
+/// handles, so they shrink by steps, and the column counts `Fit::Window`
+/// handles were last laid out in, so a window whose layout did not move is
+/// fitted once. The iced widget keeps one in its tree state; file outputs
+/// make a temporary one.
 #[derive(Debug)]
 pub struct Cache {
     text: text::Cache,
@@ -24,7 +25,7 @@ pub struct Cache {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Stats {
-    /// The text cache's.
+    /// The text cache's stats.
     pub text: text::Stats,
     /// M4 queries run for thinned lines: one per line whose recording,
     /// revision, channel or column grid the memo had not seen.

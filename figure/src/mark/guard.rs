@@ -2,7 +2,7 @@
 //! own width and height on every side, so that no coordinate handed to a
 //! backend exceeds three times the panel's size, whatever the zoom. The
 //! figure's marks clip polylines (Liang–Barsky) and polygons
-//! (Sutherland–Hodgman) to it; a custom mark clips its filled shapes with
+//! (Sutherland–Hodgman) to it. A custom mark clips its filled shapes with
 //! [`polygon`] and clamps its points to [`band`].
 //!
 //! ```
@@ -26,7 +26,7 @@ pub fn band(w: f64, h: f64) -> Rect {
 }
 
 /// The polylines through `points` (`None` breaks the line) with every
-/// segment clipped to `rect`, as items for a line generator: a segment
+/// segment clipped to `rect`, as items for a line generator. A segment
 /// wholly outside is dropped and breaks the line, one that leaves `rect`
 /// ends its run where it leaves, and one that enters starts a run where it
 /// enters. Points inside `rect` are kept bit for bit.
@@ -78,9 +78,9 @@ pub(crate) fn clip(
 }
 
 /// The closed polygon through `points` clipped to `rect`
-/// (Sutherland–Hodgman), such as a [`band`]: the vertices of its part
-/// inside, in order, with edges along `rect` where it was cut; empty when
-/// no part is inside. Points inside `rect` are kept bit for bit.
+/// (Sutherland–Hodgman), such as a [`band`]. Returns the vertices of its
+/// part inside, in order, with edges along `rect` where it was cut, or
+/// none when no part is inside. Points inside `rect` are kept bit for bit.
 #[must_use]
 pub fn polygon(points: &[Point], rect: Rect) -> Vec<Point> {
     let mut out = points.to_vec();

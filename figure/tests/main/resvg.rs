@@ -1,4 +1,4 @@
-//! Our SVG rendered back by resvg against vello_cpu's render of the list,
+//! The SVG output rendered back by resvg against vello_cpu's render of the list,
 //! and the example figures' SVG files against their PNG files.
 
 #[cfg(all(feature = "png", feature = "fonts"))]
@@ -56,11 +56,11 @@ fn resvg_renders_our_svg_as_vello_cpu_renders_the_list() {
     );
 }
 
-/// `fig`'s PNG at `scale`, written as the example mains write it, against
-/// two SVGs rendered by resvg at `scale`: the one `save_svg` writes (vector
-/// output, nothing snapped), and the same figure drawn for the PNG's target
-/// (its plot areas and hairlines on device pixels): the worst tiles'
-/// scores, (example files, same list).
+/// Compares `fig`'s PNG at `scale`, written as the example mains write it,
+/// with two SVGs rendered by resvg at `scale`. One is the SVG `save_svg`
+/// writes (vector output, nothing snapped). The other is the same figure
+/// drawn for the PNG's target (its plot areas and hairlines on device
+/// pixels). Returns the worst tiles' scores as (example files, same list).
 #[cfg(all(feature = "png", feature = "fonts"))]
 fn agreement(name: &str, fig: &rustd3_figure::Figure<'_>, size: Size, scale: f64) -> (f64, f64) {
     let base = std::env::temp_dir().join(format!("rustd3-figure-{}-{name}", std::process::id()));

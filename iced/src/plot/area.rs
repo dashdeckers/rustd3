@@ -1,40 +1,46 @@
-//! [`Area`]: one plot area's slot, its tiles on one grid however the
-//! partition cuts it, the tiles of an earlier grid shown as a preview, and
-//! the overlays of what stays put over them.
+//! [`Area`]: one plot area's slot. It holds the area's tiles on one grid,
+//! however the partition cuts the area, the tiles of an earlier grid shown
+//! as a preview, and the overlays of what stays put over them.
 //!
-//! A refresh moves each area to the views its axes show now (each lead
-//! handle's view in shares of its range). Measured from the views
-//! the grid began at, a move by whole device pixels on both axes moves the
-//! grid's origin by as much: keys stay, squares move, and every tile's
-//! image, rendered over its whole square, moves along and stays valid, so
-//! a pan renders only the keys entering the area's grown rect, a column
-//! per 256 px. Once the figure is resolved, the lead handles'
-//! scales confirm it: compared with the scales the area's layer
-//! was last drawn with at the area's two edges, each must have moved by
-//! the grid's whole pixels; a scale that moved otherwise (a `Fit::Visible`
-//! y refitting during an x pan, a domain the app changed mid-drag)
-//! begins the grid anew where it lies. Any other move begins the grid anew
-//! at the area's corner: every key is new, and the old tiles become the
-//! area's preview layer, drawn mapped from the views each was planned at
-//! to the views now (one affine map per axis, linear filtering, clipped
-//! to the area) under the new tiles as they land. A render that was in
-//! flight when a zoom began the grid anew, a tile of an earlier grid,
-//! joins the preview layer too: a burst of zoom steps shows sharp but
-//! stale tiles as they finish, not only the tiles from before the burst
-//! scaled ever further. The preview layer is drawn oldest
-//! first; a tile whose mapped rect newer ones cover goes. When a new
-//! layout replaces the area (its rect or the partition changed, as when
-//! the layout settles after a gesture), the new area takes the old one's
-//! tiles with an image and its preview layer into its own, each mapped
-//! from the plot area it was rendered in to the new one, so that no frame
-//! shows the background where content was.
+//! A refresh moves each area to the views its axes show, where a view is a
+//! lead handle's view in shares of its range. Measured from the views the
+//! grid began at, a move by whole device pixels on both axes moves the
+//! grid's origin by as much. The keys stay and their squares move. Every
+//! tile's image is rendered over its whole square, so it moves along and
+//! stays valid. A pan therefore renders only the keys entering the area's
+//! grown rect, a column per 256 px.
 //!
-//! The keys cover the area grown by one tile on every side: the overscan
-//! ring, rendered after the visible tiles, which a pan brings into view
-//! and a zoom-out maps into the preview. What stays put inside the area
-//! (the inner halves of axis lines, a border, an inset legend) is not in
-//! the tiles but in overlays drawn over them, rendered with nothing under
-//! them.
+//! Once the figure is resolved, the lead handles' scales confirm the move.
+//! Compared with the scales the area's layer was last drawn with, each must
+//! have moved by the grid's whole pixels at the area's two edges. A scale
+//! that moved otherwise begins the grid anew where it lies. A
+//! `Fit::Visible` y refitting during an x pan does this, and so does a
+//! domain the app changed mid-drag.
+//!
+//! Any other move begins the grid anew at the area's corner, and every key
+//! is new. The old tiles become the area's preview layer. They are drawn
+//! under the new tiles as those land, mapped from the views each was
+//! planned at to the current views, with one affine map per axis, linear
+//! filtering and a clip to the area. A render that was in flight when a
+//! zoom began the grid anew, a tile of an earlier grid, joins the preview
+//! layer too. A burst of zoom steps therefore shows sharp but stale tiles
+//! as they finish, not only the tiles from before the burst scaled ever
+//! further. The preview layer is drawn oldest first, and a tile whose
+//! mapped rect newer ones cover is dropped.
+//!
+//! A new layout replaces the area when its rect or the partition changed,
+//! as when the layout settles after a gesture. The new area then takes the
+//! old one's tiles that have an image, and the old preview layer, into its
+//! own preview layer. Each is mapped from the plot area it was rendered in
+//! to the new one, so that no frame shows the background where content
+//! was.
+//!
+//! The keys cover the area grown by one tile on every side. That outer
+//! band is the overscan ring. It renders after the visible tiles, a pan
+//! brings it into view, and a zoom-out maps it into the preview. What
+//! stays put inside the area (the inner halves of axis lines, a border, an
+//! inset legend) is not in the tiles. It is in overlays drawn over them,
+//! rendered with nothing under them.
 
 use iced_core::renderer::Quad;
 use iced_core::{Color, image};
@@ -54,13 +60,14 @@ use crate::plot::tile::{self, Grid, Key, SIZE, Tile};
 pub(crate) struct Area {
     /// Its position among the plot areas.
     index: u32,
-    /// Device px, relative to the widget's device origin.
+    /// The area's rect in device px, relative to the widget's device
+    /// origin.
     rect: [i32; 4],
     /// The plot area in list px, which preview maps go through.
     list: Rect,
     grid: Grid,
-    /// Distinct for every grid a widget's areas begin: results rendered on
-    /// another grid are dropped.
+    /// The grid's number, distinct for every grid a widget's areas begin.
+    /// Results rendered on another grid never land as this grid's tiles.
     serial: u64,
     /// The views of the handles leading each axis when the grid began.
     anchor: [Option<Basis>; 2],
@@ -94,19 +101,21 @@ struct Preview {
 pub(crate) enum Moved {
     /// Not at all.
     Still,
-    /// By these whole device pixels along x and y: its tiles' images move
+    /// By these whole device pixels along x and y. Its tiles' images move
     /// along.
     Translated([i32; 2]),
-    /// Otherwise: the grid began anew.
+    /// In any other way, so the grid began anew.
     Anew,
 }
 
-/// How far, device px, a lead scale's move at an area's edge may be from
-/// its grid's whole pixels and still be the same translation: a 256th of a
-/// pixel, which moves an antialiased edge's coverage by at most 1/255 (a
-/// half-pixel shift differs by up to 109/255), far above the rounding of a
-/// position taken through the domain (2e-6 px for values near 1e9 at 16
-/// px per unit; a time scale's whole nanoseconds).
+/// How far a lead scale's move at an area's edge may be from its grid's
+/// whole pixels and still be the same translation, in device px.
+///
+/// A 256th of a pixel moves an antialiased edge's coverage by at most
+/// 1/255, while a half-pixel shift differs by up to 109/255. It is far
+/// above the rounding of a position taken through the domain, which is
+/// 2e-6 px for values near 1e9 at 16 px per unit, and whole nanoseconds
+/// for a time scale.
 const TRANSLATED: f64 = 1.0 / 256.0;
 
 /// What an area shows in the following draw, counted over its visible
@@ -123,10 +132,10 @@ pub(crate) struct Shown {
 }
 
 impl Area {
-    /// Plot area `index` over device rect `rect` (list px `list`), holding
-    /// a layer of hash `hash` and style hash `style`, its grid anchored at
-    /// its corner at the views `now` and numbered `serial`; no tile has an
-    /// image yet.
+    /// Plot area `index` over device rect `rect` (`list` in list px),
+    /// holding a layer of hash `hash` and style hash `style`. Its grid is
+    /// anchored at its corner at the views `now` and numbered `serial`. No
+    /// tile has an image yet.
     pub(crate) fn new(
         index: u32,
         (rect, list): ([i32; 4], Rect),
@@ -184,7 +193,7 @@ impl Area {
     }
 
     /// Whether the area draws a preview layer: images of an earlier grid
-    /// or layout, mapped to the views now.
+    /// or layout, mapped to the current views.
     pub(crate) fn has_preview(&self) -> bool {
         !self.preview.is_empty()
     }
@@ -210,20 +219,22 @@ impl Area {
         tile::meets(tile.rect(), self.rect)
     }
 
-    /// Whether `tile` shows its part inside the area exact: an image of
-    /// the current layer, moved with the grid, covering that part. A
-    /// pending render of such a tile (one every slot re-renders for, or a
+    /// Whether `tile` shows its part inside the area exact, with an image
+    /// of the current layer that moved with the grid and covers that part.
+    /// A pending render of such a tile (one every slot re-renders for, or a
     /// ring tile) goes after the rest.
     pub(crate) fn is_exact(&self, tile: &Tile) -> bool {
         tile.slot().is_current() && tile.covers_in(self.grid.origin(), self.rect)
     }
 
-    /// Follows the views `now` at `factor`: measured from the views the
-    /// grid began at, a move by whole device pixels on both axes moves the
-    /// grid's origin by as much (keys entering the grown rect are added
-    /// without an image, those leaving it dropped); any other move begins
-    /// the grid anew at the area's corner, numbered `serial`, every key
-    /// new, and the old tiles with an image join the preview layer.
+    /// Follows the views `now` at `factor`, and returns how the grid moved.
+    ///
+    /// Measured from the views the grid began at, a move by whole device
+    /// pixels on both axes moves the grid's origin by as much. Keys
+    /// entering the grown rect are added without an image, and those
+    /// leaving it are dropped. Any other move begins the grid anew at the
+    /// area's corner, numbered `serial`, with every key new, and the old
+    /// tiles with an image join the preview layer.
     pub(crate) fn follow(&mut self, now: [Option<Basis>; 2], factor: f64, serial: u64) -> Moved {
         let Some(offset) = self.translation(now, factor) else {
             self.retire((factor, now));
@@ -263,11 +274,13 @@ impl Area {
 
     /// Whether the lead scales `now` (each by its handle) moved from those
     /// the layer was last drawn with as the grid moved, by `by` device px
-    /// at `factor`: the two-point test of a translation, at the
-    /// area's two edges along each axis, each scale set to the area's
-    /// range in list px. An axis led by no handle before and now passes;
-    /// another handle, or a scale that cannot place what the other drew
-    /// ([`Scale::remap`] gives `None`), does not.
+    /// at `factor`.
+    ///
+    /// This is the two-point test of a translation. It checks the area's
+    /// two edges along each axis, with each scale set to the area's range
+    /// in list px. An axis led by no handle both before and now passes. An
+    /// axis led by another handle fails, and so does a scale that cannot
+    /// place what the other drew ([`Scale::remap`] gives `None`).
     pub(crate) fn keeps(
         &self,
         now: [Option<(domains::Key, &dyn Scale)>; 2],
@@ -299,11 +312,11 @@ impl Area {
         self.leads = leads;
     }
 
-    /// Begins the grid anew where it lies, numbered `serial`: every key
-    /// new and the old tiles in the preview layer, mapped to the views
-    /// `now` at `factor`, as a move that is not a translation does. Its
-    /// origin, density and anchor stay, so the columns this refresh's
-    /// lines thinned on stay the grid's.
+    /// Begins the grid anew where it lies, numbered `serial`, as a move
+    /// that is not a translation does. Every key is new, and the old tiles
+    /// go to the preview layer, mapped to the views `now` at `factor`. The
+    /// grid's origin, density and anchor stay, so the columns this
+    /// refresh's lines thinned on stay the grid's.
     pub(crate) fn restart(&mut self, serial: u64, (factor, now): (f64, [Option<Basis>; 2])) {
         self.retire((factor, now));
         self.serial = serial;
@@ -320,14 +333,16 @@ impl Area {
                 .any(|tile| tile.slot().is_missing() && tile.slot().pending().is_none())
     }
 
-    /// The area's layer is `hash`, of style hash `style`, at
-    /// `generation`, its grid having `moved`: after a translation that
-    /// kept the layer's style, an image that showed the layer before and
-    /// covers its tile shows it now (invalidation by dependency: a
-    /// translation renders only entering tiles, anything
-    /// else every tile); every other tile that does not show it, or that
-    /// has no image and no pending render, is marked pending (every tile
-    /// with `every`). True when one was.
+    /// Records that the area's layer is `hash`, of style hash `style`, at
+    /// `generation`, with its grid having `moved`.
+    ///
+    /// After a translation that kept the layer's style, an image that
+    /// showed the layer before and covers its tile shows it still. This is
+    /// invalidation by dependency: a translation renders only entering
+    /// tiles, and anything else renders every tile. Every other tile that
+    /// does not show the layer, or that has no image and no pending
+    /// render, is marked pending, and with `every` every tile is. Returns
+    /// true when any tile was marked.
     pub(crate) fn change(
         &mut self,
         (hash, style): (u64, u64),
@@ -357,9 +372,9 @@ impl Area {
     }
 
     /// Replaces the overlays by one per rect of `rects` (device px inside
-    /// the area) with the content hash beside it; an overlay whose rect
+    /// the area), with the content hash beside it. An overlay whose rect
     /// stays keeps its image. Marks those whose content changed (all of
-    /// them with `every`) pending at `generation` and returns their
+    /// them with `every`) pending at `generation`, and returns their
     /// indices.
     pub(crate) fn overlay(
         &mut self,
@@ -399,14 +414,17 @@ impl Area {
                 .any(|(slot, &(rect, hash))| slot.rect() != rect || slot.hash() != hash)
     }
 
-    /// Applies a tile's rendered image: shown when it was rendered on the
-    /// current grid for tile `(i, j)` over `rect`, the grid's origin then
-    /// `at`, and is newer than the tile's image. The preview layer goes once
-    /// every visible tile is current. An image rendered on an earlier grid
-    /// (in flight when a zoom began this one) joins the preview layer,
-    /// mapped from the views `view` it was planned at to the views `now`
-    /// at `factor`, unless it maps to them through no view (another lead
-    /// handle or epoch). True when shown.
+    /// Applies a tile's rendered image.
+    ///
+    /// The image shows as the tile's when it was rendered on the current
+    /// grid for tile `(i, j)` over `rect`, with the grid's origin then at
+    /// `at`, and is newer than the tile's image. The preview layer goes
+    /// once every visible tile is current. An image rendered on an earlier
+    /// grid (in flight when a zoom began this one) joins the preview layer
+    /// instead. It is mapped from the views `view` it was planned at to the
+    /// views `now` at `factor`, unless no view maps it to them (another
+    /// lead handle or epoch). Returns true when the image shows, as a tile
+    /// or in the preview layer.
     pub(crate) fn land(
         &mut self,
         (serial, i, j, at): (u64, i32, i32, [i32; 2]),
@@ -452,10 +470,10 @@ impl Area {
     }
 
     /// Checks a fresh render of tile `(i, j)` of grid `serial`, over
-    /// `rect` with the grid's origin at `at`, against the image it shows of
-    /// generation and content `shown` (see [`Slot::check`]); a replacing
+    /// `rect` with the grid's origin at `at`, against the tile's image of
+    /// generation and content `shown` (see [`Slot::check`]). A replacing
     /// render lies where it was rendered. `None` when the tile shows
-    /// another image now.
+    /// another image by then, or the grid is another.
     pub(crate) fn check(
         &mut self,
         (serial, i, j, at): (u64, i32, i32, [i32; 2]),
@@ -491,7 +509,7 @@ impl Area {
     }
 
     /// Applies an overlay's rendered image, if the area still has an
-    /// overlay over `rect`. True when shown.
+    /// overlay over `rect`. Returns true when it is shown.
     pub(crate) fn land_overlay(
         &mut self,
         rect: [i32; 4],
@@ -505,7 +523,7 @@ impl Area {
     }
 
     /// What the following draw shows at factor `factor` and the views
-    /// `now`, counted over the visible tiles and the overlays: a tile whose
+    /// `now`, counted over the visible tiles and the overlays. A tile whose
     /// image falls short of its part inside the area counts as a preview,
     /// and so does one without an image that the preview layer covers. An
     /// overlay draws over the tiles, so one without an image counts as a
@@ -564,11 +582,14 @@ impl Area {
     }
 
     /// Draws the area for a widget whose device origin is `origin` at
-    /// `factor`, the views now `now`: the theme `background` when a
-    /// visible tile's part inside the area is not covered by its image,
-    /// the preview layer's tiles that meet the area mapped to `now`, each
-    /// visible tile's image moved with the grid and clipped to its square,
-    /// then the overlays, all inside the area; no tile of the ring.
+    /// `factor`, with the current views `now`.
+    ///
+    /// In order, it draws the theme `background` when a visible tile's part
+    /// inside the area is not covered by its image, then the preview
+    /// layer's tiles that meet the area, mapped to `now`. Then come each
+    /// visible tile's image, moved with the grid and clipped to its square,
+    /// and the overlays. Everything lies inside the area, and no tile of
+    /// the ring is drawn.
     pub(crate) fn draw<Renderer>(
         &self,
         renderer: &mut Renderer,
@@ -592,7 +613,7 @@ impl Area {
         let [x0, y0, x1, y1] = self.rect.map(f64::from);
         for preview in &self.preview {
             // The ring's previews lie outside the area until a zoom out
-            // brings them in; each image drawn costs the software renderer
+            // brings them in. Each image drawn costs the software renderer
             // a frame-sized clip mask.
             let [a0, b0, a1, b1] = self.mapped(preview, f64::from(factor), now);
             if a1 <= x0 || x1 <= a0 || b1 <= y0 || y1 <= b0 {
@@ -614,11 +635,11 @@ impl Area {
         }
     }
 
-    /// What [`draw`](Area::draw) draws, composed into one image on the CPU
-    /// and drawn by the renderer at once ([`Mosaic`]): what the software
-    /// renderer draws while the area shows a preview layer, every scaled
-    /// tile of which would otherwise cost it a frame-sized clip mask and a
-    /// filtered pass. The previews are sampled nearest, and those the
+    /// Draws what [`draw`](Area::draw) draws, composed into one image on
+    /// the CPU and drawn by the renderer at once ([`Mosaic`]). The software
+    /// renderer draws this way while the area shows a preview layer, since
+    /// every scaled tile would otherwise cost it a frame-sized clip mask
+    /// and a filtered pass. The previews are sampled nearest, and those the
     /// exact tiles hide are left out.
     pub(crate) fn draw_mosaic<Renderer>(
         &self,
@@ -690,15 +711,17 @@ impl Area {
         Some(offset)
     }
 
-    /// Shows what `old`, the area this one replaces in a new layout (its
-    /// rect or the partition changed), showed until this one's tiles land:
-    /// `old`'s preview layer and its tiles with an image join
-    /// the preview layer, each mapped from the plot area it was rendered
-    /// in to this one through the views it was planned at and `now`, at
-    /// `factor`, the factor `old`'s images were rendered at; one whose
-    /// views map to none of `now` (another lead handle or epoch) goes.
-    /// `old`'s overlays become this one's, so that those whose rects stay
-    /// keep their images ([`overlay`](Area::overlay)).
+    /// Shows what `old` showed until this area's tiles land. `old` is the
+    /// area this one replaces in a new layout, because its rect or the
+    /// partition changed.
+    ///
+    /// `old`'s preview layer and its tiles with an image join this area's
+    /// preview layer. Each is mapped from the plot area it was rendered in
+    /// to this one, through the views it was planned at and `now`, at
+    /// `factor`, the factor `old`'s images were rendered at. One whose
+    /// views map to none of `now` (another lead handle or epoch) is
+    /// dropped. `old`'s overlays become this one's, so that those whose
+    /// rects stay keep their images ([`overlay`](Area::overlay)).
     pub(crate) fn inherit(&mut self, old: Area, (factor, now): (f64, [Option<Basis>; 2])) {
         let list = old.list;
         let imaged = old
@@ -719,7 +742,7 @@ impl Area {
         self.overlays = old.overlays;
     }
 
-    /// The tiles with an image leave the grid for the preview layer,
+    /// Moves the tiles with an image from the grid to the preview layer,
     /// mapped to the views `now` at `factor`.
     fn retire(&mut self, (factor, now): (f64, [Option<Basis>; 2])) {
         let old = std::mem::take(&mut self.tiles);
@@ -734,8 +757,8 @@ impl Area {
     /// Adds `previews` to the preview layer, which stays in the order of
     /// its images' generations (oldest drawn first), and drops every tile
     /// whose rect, mapped to the views `now` at `factor`, newer ones cover.
-    /// All map through the same views now, so what covers what stays as
-    /// the views move on.
+    /// All map through the same current views, so what covers what stays
+    /// as the views move on.
     fn layer(
         &mut self,
         previews: impl IntoIterator<Item = Preview>,
@@ -809,8 +832,8 @@ impl Area {
         })
     }
 
-    /// The device rect the preview layer covers, mapped to `now`: the
-    /// bounds of its tiles' mapped rects; `None` without a preview.
+    /// The device rect the preview layer covers, mapped to `now`, as the
+    /// bounds of its tiles' mapped rects. `None` without a preview.
     fn coverage(&self, factor: f32, now: [Option<Basis>; 2]) -> Option<[f64; 4]> {
         self.preview
             .iter()
@@ -1009,9 +1032,9 @@ mod tests {
             Moved::Translated([-37, 0])
         );
         assert_eq!(area.origin(), [-37, 0]);
-        // Column 4, rendered over its square [1024, 1280), is at [987,
-        // 1243): still its square; no new key (i = −2 would be [−549,
-        // −293)).
+        // Column 4, rendered over its square [1024, 1280), is at
+        // [987, 1243), which is still its square. There is no new key
+        // (i = −2 would be [−549, −293)).
         assert!(!area.change((2, 0), 2, (Moved::Translated([-37, 0]), false)));
         assert!(pending(&area).is_empty());
         assert_eq!(area.tiles().len(), 30);
@@ -1071,14 +1094,14 @@ mod tests {
                 tile.shift(area.origin()),
             )
         };
-        // 3 is newer than what shows: shown, a preview of the grid it was
-        // planned on, moved with it since.
+        // 3 is newer than what shows, so it is shown as a preview of the
+        // grid it was planned on, moved with it since.
         assert!(render_00(&mut area, (3, 3), [0, 0]));
         assert_eq!(tile(&area), (Some(3), false, [37, 0]));
-        // 5 is the pending one: sharp.
+        // 5 is the pending one, so it is sharp.
         assert!(render_00(&mut area, (5, 5), [37, 0]));
         assert_eq!(tile(&area), (Some(5), true, [0, 0]));
-        // 4 is older than what shows: dropped.
+        // 4 is older than what shows, so it is dropped.
         assert!(!render_00(&mut area, (4, 4), [37, 0]));
         assert_eq!(tile(&area), (Some(5), true, [0, 0]));
     }
@@ -1108,7 +1131,7 @@ mod tests {
     fn a_zoom_begins_the_grid_anew_and_keeps_the_old_tiles_as_its_preview() {
         let mut area = rendered();
         let key = Key::of::<rustd3_core::scale::Linear>(0);
-        // Zoom out ×1.2 about the area's centre: shares p ↦ p / 1.2 + 0.0833.
+        // Zoom out ×1.2 about the area's center: shares p ↦ p / 1.2 + 0.0833.
         let zoom = Affine1::new(1.0 / 1.2, 0.5 - 0.5 / 1.2);
         let view = View {
             epoch: 1,
@@ -1117,15 +1140,16 @@ mod tests {
         let now = [Some(Basis { key, view }), None];
         assert_eq!(area.follow(now, 1.0, 2), Moved::Anew);
         assert_eq!(area.serial(), 2);
-        // The old view [0, 900) maps to [75, 825); its ring fills the rest,
-        // so every new tile is covered: previews, none missing.
+        // The old view [0, 900) maps to [75, 825), and its ring fills the
+        // rest. Every new tile is covered, so all are previews and none is
+        // missing.
         let shown = area.shown(1.0, now);
         assert_eq!((shown.missing, shown.previews), (0, 12));
     }
 
     #[test]
     fn previews_that_newer_ones_cover_go() {
-        // Two zoom steps out by 1.2 about the centre, every tile of the
+        // Two zoom steps out by 1.2 about the center, every tile of the
         // first step's grid but (0, 0) rendered in between, so the first
         // preview stays. Mapped to the second step's views, the 29 images
         // cover all of the first preview's but the two under the hole
@@ -1190,17 +1214,17 @@ mod tests {
         // Not by 36 px, nor at factor 2 (74 device px).
         assert!(!area.keeps(both, [36, 0], 1.0));
         assert!(!area.keeps(both, [37, 0], 2.0));
-        // y refitted to [0, 12] while x panned: a change; so is another
-        // handle leading y, and a lead that appeared.
+        // y refitted to [0, 12] while x panned is a change. So is another
+        // handle leading y, and so is a lead that appeared.
         let refit = scale::linear().domain([0.0, 12.0]).boxed();
         assert!(!area.keeps([Some((kx, &*x37)), Some((ky, &*refit))], [37, 0], 1.0));
         let kz = Key::of::<scale::Linear>(2);
         assert!(!area.keeps([Some((kx, &*x37)), Some((kz, &*y))], [37, 0], 1.0));
         area.lead([Some((kx, x.boxed())), None]);
         assert!(!area.keeps(both, [37, 0], 1.0));
-        // The restart keeps the origin the lines thinned on: 7 × 5 keys
-        // meet the grown rect from there, each new and pending, and the
-        // old tiles, moved by 37 px, preview all 5 × 3 visible ones.
+        // The restart keeps the origin the lines thinned on. From there
+        // 7 × 5 keys meet the grown rect, each new and pending, and the old
+        // tiles, moved by 37 px, preview all 5 × 3 visible ones.
         area.restart(3, (1.0, panned(37.0 / 900.0)));
         assert_eq!((area.serial(), area.origin()), (3, [37, 0]));
         assert!(area.change((2, 0), 2, (Moved::Anew, false)));

@@ -50,11 +50,11 @@ pub enum Error {
 
 #[cfg(feature = "fonts")]
 impl Figure<'_> {
-    /// Writes the figure as SVG to `path`: drawn for vector output at
-    /// `size` logical px with a fresh cache ([`Figure::draw`]), lowered
-    /// for SVG ([`svg::CAPS`]: sweep gradients become images) and written
-    /// with text as glyph outlines. Returns what lowering could not draw
-    /// faithfully.
+    /// Writes the figure as SVG to `path`. It is drawn for vector output
+    /// at `size` logical px with a fresh cache ([`Figure::draw`]), lowered
+    /// for SVG ([`svg::CAPS`], which turns sweep gradients into images),
+    /// and written with text as glyph outlines. Returns what lowering could
+    /// not draw faithfully.
     ///
     /// # Errors
     ///

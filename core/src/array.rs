@@ -1,9 +1,10 @@
-//! d3-array's statistics over `f64` values: counts, extremes, sums, means,
-//! variances and quantiles, which take any iterator of numbers (a slice
-//! through `.iter().copied()`) and skip NaN as d3 skips null, undefined and
-//! NaN, returning `None` where d3 returns undefined for want of a value;
-//! d3's `range` and bisection over ascending slices; and [`Bin`], d3's
-//! histogram layout.
+//! d3-array's statistics over `f64` values (counts, extremes, sums, means,
+//! variances and quantiles), d3's `range`, bisection over ascending
+//! slices, and [`Bin`], d3's histogram layout.
+//!
+//! The statistics take any iterator of numbers (a slice through
+//! `.iter().copied()`). They skip NaN as d3 skips null, undefined and NaN,
+//! and return `None` where d3 returns undefined for want of a value.
 //!
 //! ```
 //! use rustd3_core::array;

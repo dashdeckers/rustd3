@@ -1,10 +1,11 @@
-//! Legends of a scatter's numeric channels: [`sizes()`], dots of the radii
-//! a size handle gives its ticks, and [`colors()`], dots of the colors a
-//! continuous color handle gives its ticks (matplotlib's
-//! `legend_elements`). Both are [`Guide`](crate::legend::Guide)s, so they
-//! go into a figure slot or a panel corner like any legend; their entries
-//! are d3's ticks of the resolved scale, labelled as an axis labels them in
-//! the figure's locale.
+//! Legends of a scatter's numeric channels, as matplotlib's
+//! `legend_elements`. [`sizes()`] shows dots at the radii a size handle
+//! gives its ticks, and [`colors()`] dots in the colors a continuous color
+//! handle gives its ticks.
+//!
+//! Both are [`Guide`](crate::legend::Guide)s, so they go into a figure slot
+//! or a panel corner like any legend. Their entries are d3's ticks of the
+//! resolved scale, labeled as an axis labels them in the figure's locale.
 //!
 //! ```
 //! use rustd3_core::{scale, scheme};
@@ -39,7 +40,7 @@ use crate::scale::{Kind, ScaleRef};
 
 /// The values and labels of a legend's entries over `handle`'s resolved
 /// scale: its about `count` ticks, or `values` with the ticks' step, kept
-/// inside its domain, labelled by the scale's tick format in the figure's
+/// inside its domain, labeled by the scale's tick format in the figure's
 /// locale.
 fn entries<S>(
     handle: ScaleRef<S>,

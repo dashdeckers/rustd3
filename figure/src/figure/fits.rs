@@ -13,16 +13,16 @@ use crate::scale::{Kind, Position, Scale, ScaleRef, visible, window};
 use crate::text::Key;
 use crate::theme::Theme;
 
-/// What marks report while a figure resolves: per fitted handle, the
-/// extent of the values the scale admits and the sticky values a margin
-/// stops at, in the scale's own domain type (no `Timestamp` passes through
-/// `f64`). Handles that are not fitted, or that a gesture holds, ignore
-/// what is reported. The figure's own marks also report the labels they
-/// draw, so that they are shaped in the figure's one batch of text, and
-/// the palette keys they draw in, with what they draw (a line, dots, a
-/// filled shape) and their hatch, which legend swatches repeat. A handle
-/// of another figure is ignored, and recorded with the panel whose mark
-/// reported it.
+/// What marks report while a figure resolves. For each fitted handle, it
+/// holds the extent of the values the scale admits and the sticky values a
+/// margin stops at, in the scale's own domain type, so no `Timestamp`
+/// passes through `f64`. Handles that are not fitted, or that a gesture
+/// holds, ignore what is reported. The figure's own marks also report the
+/// labels they draw, so that they are shaped in the figure's one batch of
+/// text. They also report the palette keys they draw in, with what they
+/// draw (a line, dots, a filled shape) and their hatch, which legend
+/// swatches repeat. A handle of another figure is ignored, and recorded
+/// with the panel whose mark reported it.
 pub struct Fits {
     figure: figure::Id,
     /// One per table entry: a `Slot<S>` for the fitted ones.
@@ -37,9 +37,9 @@ pub struct Fits {
     labels: Vec<Key>,
     /// The palette keys marks draw in.
     keys: Vec<Reported>,
-    /// In the pass that fits `Fit::Visible` handles to what x shows: per
-    /// table entry, whether it is such a handle (so its scale is not
-    /// resolved yet); `None` in the first pass.
+    /// Per table entry, whether it is a `Fit::Visible` handle, whose scale
+    /// is not resolved yet, in the pass that fits those handles to what x
+    /// shows. `None` in the first pass.
     pending: Option<Vec<bool>>,
     /// The panel whose marks report now.
     panel: usize,
@@ -57,25 +57,32 @@ impl std::fmt::Debug for Fits {
     }
 }
 
-/// What the marks reported: per table entry its slot, filled when it is
-/// fitted and not held, and the panels that place it across; the labels
-/// marks draw; and the palette keys they draw in.
+/// What the marks reported.
 pub(super) struct Reports {
+    /// Per table entry, its slot, filled when it is fitted and not held.
     pub(super) slots: Vec<Option<Box<dyn Any>>>,
+    /// Per table entry, the panels that place it across their plot areas.
     pub(super) across: Vec<Vec<usize>>,
+    /// The labels marks draw.
     pub(super) labels: Vec<Key>,
+    /// The palette keys marks draw in.
     pub(super) keys: Vec<Reported>,
+    /// The (panel, handle position) of each handle of another figure a
+    /// mark reported.
     pub(super) foreign: Vec<(usize, usize)>,
 }
 
-/// A mark drawn in a palette's color for a key: the palette's position in
-/// the scale table, the key (the palette's domain type, boxed), the swatch
-/// that stands for the mark in a legend, its hatch and its fill's alpha.
+/// A mark drawn in a palette's color for a key.
 pub(crate) struct Reported {
+    /// The palette's position in the scale table.
     pub(crate) palette: usize,
+    /// The key, of the palette's domain type, boxed.
     pub(crate) key: Box<dyn Any>,
+    /// The swatch that stands for the mark in a legend.
     pub(crate) glyph: Swatch,
+    /// The mark's hatch.
     pub(crate) hatch: Option<Hatch>,
+    /// The alpha of the mark's fill.
     pub(crate) alpha: Alpha,
 }
 
@@ -133,7 +140,7 @@ impl Fitter {
     }
 
     /// The largest value `slot`, a filled slot of this fitter's, holds,
-    /// boxed: a window's last x.
+    /// boxed. It is a window's last x.
     pub(super) fn last(self, slot: &dyn Any) -> Option<Box<dyn Any>> {
         (self.last)(slot)
     }
@@ -218,11 +225,12 @@ impl Fits {
         }
     }
 
-    /// In the pass that fits `Fit::Visible` handles, for a mark on `x` and
-    /// `y`: `x`'s resolved scale over [0, 1] when `y` is such a handle
-    /// (the values `x` shows are those it places in [0, 1]); `None` in the
+    /// For a mark on `x` and `y`, in the pass that fits `Fit::Visible`
+    /// handles: `x`'s resolved scale over [0, 1] when `y` is such a handle.
+    /// The values `x` shows are those it places in [0, 1]. `None` in the
     /// first pass, for other `y`s, and when `x` is itself a `Fit::Visible`
-    /// handle (no cycles: `y` then sees all of its data).
+    /// handle. That last case avoids a cycle, and `y` then sees all of its
+    /// data.
     pub(crate) fn window<X: Position, Y: Kind>(
         &mut self,
         x: ScaleRef<X>,
@@ -263,26 +271,26 @@ impl Fits {
         }
     }
 
-    /// `h`'s scale before fitting: as a gesture holds it, or as built (a
-    /// mark's bridge to its x scale's index, its y scale's admission test);
+    /// `h`'s scale before fitting, as a gesture holds it or as built;
     /// `None` for a handle of another figure.
     pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
         self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
     }
 
-    /// The figure's theme, as [`Ctx::get_theme`](crate::mark::Ctx::get_theme) gives
-    /// it while drawing. A custom mark that reports labels builds their
-    /// [`Key`]s here from the theme's colors and sizes, so that the keys it
-    /// looks up while drawing are the ones it reported.
+    /// The figure's theme, as
+    /// [`Ctx::get_theme`](crate::mark::Ctx::get_theme) gives it while
+    /// drawing. A custom mark that reports labels builds their [`Key`]s
+    /// here from the theme's colors and sizes, so that the keys it looks up
+    /// while drawing are the ones it reported.
     #[must_use]
     pub fn get_theme(&self) -> &Theme {
         &self.theme
     }
 
     /// The figure's locale ([`Figure::locale`](crate::Figure::locale)), as
-    /// [`Ctx::get_locale`](crate::mark::Ctx::get_locale) gives it while drawing. A
-    /// custom mark that labels numbers writes them in it here, so that the
-    /// labels it reports are the ones it draws.
+    /// [`Ctx::get_locale`](crate::mark::Ctx::get_locale) gives it while
+    /// drawing. A custom mark that labels numbers writes them in it here,
+    /// so that the labels it reports are the ones it draws.
     #[must_use]
     pub fn get_locale(&self) -> &Locale {
         &self.locale
@@ -291,9 +299,9 @@ impl Fits {
     /// A label a mark draws, shaped with the figure's other labels in the
     /// figure's one batch of typst text. A custom mark that draws text
     /// reports each label's [`Key`] here while fitting and reads its shape
-    /// back with [`Ctx::get_label`](crate::mark::Ctx::get_label) while drawing, as
-    /// the rule marks' labels and the helpers' value labels do; a label not
-    /// reported is not shaped.
+    /// back with [`Ctx::get_label`](crate::mark::Ctx::get_label) while
+    /// drawing, as the rule marks' labels and the helpers' value labels do.
+    /// A label not reported is not shaped.
     ///
     /// ```
     /// use rustd3_core::color::Rgb;
@@ -342,9 +350,9 @@ impl Fits {
         self.labels.push(key);
     }
 
-    /// A mark drawn in palette `palette`'s (its table position) color for
-    /// `key` stands as `glyph` in a legend, is hatched with `hatch` and
-    /// filled at `alpha`, which legend swatches of that key repeat.
+    /// Reports that a mark drawn in palette `palette`'s color for `key`
+    /// stands as `glyph` in a legend, hatched with `hatch` and filled at
+    /// `alpha`. Legend swatches of that key repeat these.
     pub(crate) fn key(
         &mut self,
         palette: ScaleRef<()>,
@@ -364,14 +372,14 @@ impl Fits {
         });
     }
 
-    /// The marks of panel `panel` report next.
+    /// Makes the marks of panel `panel` the ones that report next.
     pub(super) fn enter(&mut self, panel: usize) {
         self.panel = panel;
     }
 
-    /// `h` is the x of a mark of the panel reporting now: placed across
-    /// its plot area, which a `Fit::Window` handle's columns are counted
-    /// in.
+    /// Records `h` as the x of a mark of the panel reporting now, placed
+    /// across its plot area. A `Fit::Window` handle's columns are counted
+    /// in that area.
     pub(crate) fn across<S: Kind>(&mut self, h: ScaleRef<S>) {
         let Some(index) = h.of(self.figure) else {
             self.note(h.get_index());
@@ -427,9 +435,10 @@ fn start<S: Kind>(scale: &dyn Scale) -> Box<dyn Any> {
 }
 
 /// The scale of `slot`, a `Slot<S>` of entry `index`, fitted to its extent
-/// and sticky values with `margin`, then stepped from the domain `memory`
-/// last gave it, when its domain is numbers or instants; with nothing in
-/// view, the domain `memory` last gave it, if any.
+/// and sticky values with `margin`. When its domain is numbers or
+/// instants, the fit is then stepped from the domain `memory` last gave
+/// it. With nothing in view, the scale takes the domain `memory` last gave
+/// it, if any.
 fn settle<S: Kind>(
     slot: Box<dyn Any>,
     margin: f64,

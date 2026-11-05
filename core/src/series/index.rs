@@ -53,7 +53,7 @@ struct Query<'a, F> {
     max: Option<(usize, f64)>,
 }
 
-/// A summary: the levels, nodes and bytes rather than every node.
+/// Prints a summary of the levels, nodes and bytes rather than every node.
 impl fmt::Debug for Index {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Index")
@@ -102,7 +102,7 @@ impl Index {
     /// The earliest minimum and maximum of the samples in `samples` (within
     /// `values`) that are not NaN and pass `valid`. The partial blocks at
     /// both ends are scanned raw and the full blocks between them read
-    /// from the largest aligned nodes, left to right; a node whose stored
+    /// from the largest aligned nodes, left to right. A node whose stored
     /// extreme fails `valid` descends to its children for that extreme, and
     /// a failing leaf is scanned raw.
     pub(crate) fn extremes(

@@ -16,12 +16,10 @@ use crate::target::Target;
 use crate::text::{self, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
-/// Passes at most; counts that have not settled by then are kept.
+/// The most layout passes. Counts that have not settled by then are kept.
 const PASSES: usize = 4;
 
-/// A figure laid out for one size: every panel's plot area and, per panel,
-/// its axes as placed, its title and its inset legends; and the legends in
-/// figure slots.
+/// A figure laid out for one size.
 pub(crate) struct Layout {
     /// Plot areas in list px, in panel order.
     pub(crate) areas: Vec<Rect>,
@@ -33,8 +31,8 @@ pub(crate) struct Layout {
     /// Passes run: 1 to 4.
     pub(crate) passes: usize,
     /// What the last placement's tracks needed (reaches and gaps) and had
-    /// (the length they fill), px, across the columns and down the rows;
-    /// 0 and 0 for held areas.
+    /// (the length they fill), in px, across the columns and then down the
+    /// rows. Both are 0 for held areas.
     pub(crate) room: [[f64; 2]; 2],
 }
 
@@ -55,8 +53,8 @@ pub(crate) struct Laid {
 /// One pass's axes: per panel, per axis, its labels and plan.
 type Axes = Vec<Vec<(Labels, Plan)>>;
 
-/// One pass's tick counts: per panel, per axis; then per guide in a
-/// figure slot and in a panel corner, `None` for legends.
+/// One pass's tick counts: per panel and axis, then per guide in a figure
+/// slot or a panel corner (`None` for legends).
 type Counts = (Vec<Vec<usize>>, Vec<Option<usize>>);
 
 /// A placement: the plot areas, and what the tracks needed and had across
@@ -64,30 +62,36 @@ type Counts = (Vec<Vec<usize>>, Vec<Option<usize>>);
 type Placement = (Vec<Rect>, [[f64; 2]; 2]);
 
 impl Layout {
-    /// `figure` laid out for `size` over the scales of `resolved`, its
-    /// labels measured through `text` with `extra` (the marks' labels) in
-    /// each pass's batch; with `held` plot areas, laid out in those.
+    /// `figure` laid out for `size` over the scales of `resolved`. Labels
+    /// are measured through `text`, with `extra` (the marks' labels) in
+    /// each pass's batch. With `held` plot areas, it is laid out in those.
     ///
     /// The first placement has every axis at its offset and tick alone.
     /// Each pass then takes each axis's tick count from its length in the
     /// last placement (or `.ticks(n)`), measures the new labels in one
-    /// batch, and places the plot areas again: each panel reaches past its
-    /// plot area by its axes (offset and thickness), by tick labels that
-    /// overhang its ends at their positions in the last placement, and by
-    /// its title ([`headings`]: its last baseline the title pad and the
-    /// text face's descender above the top-side axes of its grid row, and
-    /// at least as high as the title pad and its ink height above the
-    /// panel's own top reach); each
-    /// column takes the largest reach of its panels per side and each row
-    /// likewise, and the rest is split by weight inside 0.8 em of padding,
-    /// below the figure title's ink height and 8 px, inside what the
-    /// legends in figure slots reserve. Passes stop when the
-    /// counts equal the last pass's. Held areas are kept as they are: one
-    /// pass takes the counts from their lengths and measures the labels,
-    /// which may then reach past the old reaches. Every labelled vertical
-    /// axis of a figure drawn for the screen reserves twice the width of
-    /// "0" at tick-label size past its decorations, so labels can grow
-    /// during a gesture.
+    /// batch, and places the plot areas again. Each panel reaches past its
+    /// plot area by:
+    /// - its axes' offsets and thicknesses;
+    /// - tick labels that overhang its ends, at their positions in the last
+    ///   placement;
+    /// - its title ([`headings`]). Its last baseline sits the title pad and
+    ///   the text face's descender above the top-side axes of its grid row,
+    ///   and at least the title pad and its ink height above the panel's
+    ///   own top reach.
+    ///
+    /// Each column takes the largest reach of its panels per side, and each
+    /// row likewise. The rest is split by weight inside 0.8 em of padding,
+    /// below the figure title's ink height and 8 px, and inside what the
+    /// legends in figure slots reserve. Passes stop when the counts equal
+    /// the last pass's.
+    ///
+    /// Held areas are kept as they are. One pass takes the counts from
+    /// their lengths and measures the labels, which may then reach past the
+    /// old reaches.
+    ///
+    /// Every labeled vertical axis of a figure drawn for the screen
+    /// reserves twice the width of "0" at tick-label size past its
+    /// decorations, so labels can grow during a gesture.
     pub(crate) fn new(
         figure: &Figure<'_>,
         resolved: &Resolved,
@@ -343,11 +347,12 @@ fn bare(figure: &Figure<'_>, roles: &[Vec<plan::Role>]) -> Vec<Reach> {
 }
 
 /// How far above each of `panels`' plot areas its title's last baseline
-/// sits, with `axes` placed: the title pad and the text face's descender at
-/// the title size above the largest reach of the shown top-side axes among
-/// the panels whose cells start in its grid row (matplotlib moves a title
-/// up for top-side axes only), so the titles of a row share one baseline
-/// whatever their descenders and the overhangs of side axes.
+/// sits, with `axes` placed. It is the title pad and the text face's
+/// descender at the title size, above the largest reach of the shown
+/// top-side axes among the panels whose cells start in its grid row. Only
+/// top-side axes count, as matplotlib moves a title up for those alone.
+/// The titles of a row thus share one baseline, whatever their descenders
+/// and the overhangs of side axes.
 fn headings(panels: &[Panel<'_>], axes: &Axes, text: &text::Cache, theme: &Theme) -> Vec<f64> {
     let row = |p: &Panel<'_>| p.cell().rows().start;
     let mut tops = vec![0.0_f64; panels.iter().map(|p| row(p) + 1).max().unwrap_or(0)];
@@ -409,12 +414,12 @@ fn counts(figure: &Figure<'_>, areas: &[Rect]) -> Vec<Vec<usize>> {
         .collect()
 }
 
-/// How far `panel`'s drawn `axes` reach past its plot area `area`: their
-/// offsets and thicknesses, their tick labels that overhang its ends (on a
-/// horizontal axis of a `Fit::Window` handle, the most any of them would
-/// overhang at either end), and above all that the offset or multiplier
-/// labels of its vertical axes; and how far the top reaches without those
-/// labels.
+/// How far `panel`'s drawn `axes` reach past its plot area `area`, and how
+/// far the top reaches without the offset or multiplier labels. The reach
+/// covers the axes' offsets and thicknesses and their tick labels that
+/// overhang its ends. On a horizontal axis of a `Fit::Window` handle, the
+/// overhang is the most any label would overhang at either end. Above all
+/// that sit the offset or multiplier labels of its vertical axes.
 fn reach(
     panel: &Panel<'_>,
     axes: &[(Labels, Plan)],

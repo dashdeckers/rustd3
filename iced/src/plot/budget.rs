@@ -1,26 +1,27 @@
 //! [`Budget`]: the frame budget from the last two `RedrawRequested`
-//! instants, and the widget's cost model: a fixed overhead per render plus
-//! a time per pixel and per work item, fitted to every render the widget
-//! makes but `Caching::Verify`'s checks, each timed by the widget itself
-//! whether or not a probe is attached, and seeded by [`cost`]'s constants.
-//! The constants were fitted on one machine; the fit follows the one the
-//! widget runs on, its cores and its render paths, and learns the overhead
-//! small renders pay (measured at 2.78 times the constants' time over a
-//! run's renders, mostly small cells, against 0.18 for one large cell).
+//! instants, and the widget's cost model.
 //!
-//! The fit is an exponentially weighted least-squares one: each new render
-//! weighs 1/16 of it, as a moving average over 16 renders would, and a
-//! prior holds each
-//! coefficient at its seed with the weight of a tenth of a render, so a
-//! direction the renders never vary in (only tiles of one size, say) keeps
-//! its seed while the renders decide the rest.
+//! The model predicts a render's time as a fixed overhead plus a time per
+//! pixel and per work item. It is seeded by [`cost`]'s constants and fitted
+//! to every render the widget makes except `Caching::Verify`'s checks. The
+//! widget times each render itself, whether or not a probe is attached.
+//! The constants were fitted on one machine. The fit follows the machine
+//! the widget runs on, its cores and its render paths, and learns the
+//! overhead small renders pay. That overhead measured 2.78 times the
+//! constants' time over a run's renders, mostly small cells, against 0.18
+//! for one large cell.
+//!
+//! The fit is exponentially weighted least squares. Each new render weighs
+//! 1/16 of it, as a moving average over 16 renders would. A prior holds
+//! each coefficient at its seed with the weight of a tenth of a render, so
+//! a direction the renders never vary in (only tiles of one size, say)
+//! keeps its seed while the renders decide the rest.
 //!
 //! Tiles and cells (gutter runs and overlays) are fitted apart, each from
-//! its own renders ([`Kind`]): a plot area's tiles
-//! cost per segment and per dot, many at once on the pool, while an axis
-//! strip costs its glyphs and its size; one fit of both would predict a
-//! strip at about ten times what it takes and send it to the pool behind
-//! the tiles.
+//! its own renders ([`Kind`]). A plot area's tiles cost per segment and per
+//! dot, many at once on the pool, while an axis strip costs its glyphs and
+//! its size. One fit of both would predict a strip at about ten times what
+//! it takes, and send it to the pool behind the tiles.
 
 use iced_core::time::{Duration, Instant};
 
@@ -29,15 +30,15 @@ use crate::plot::cost;
 /// The shortest frame budget.
 const SHORTEST: Duration = Duration::from_millis(1);
 
-/// The longest frame budget, and the budget until two frames are known:
-/// an idle app's long gap must not make a slow render look cheap.
+/// The longest frame budget, and the budget until two frames are known.
+/// An idle app's long gap must not make a slow render look cheap.
 const LONGEST: Duration = Duration::from_micros(16_700);
 
-/// The weight a render keeps for each newer one: a new render weighs
-/// 1/16 of the fit.
+/// The weight a render keeps for each newer one, so that a new render
+/// weighs 1/16 of the fit.
 const FORGET: f64 = 15.0 / 16.0;
 
-/// Pixels in one unit of the fit's pixel term: a tile.
+/// Pixels in one unit of the fit's pixel term, which is one tile.
 const PIXELS: f64 = 65_536.0;
 
 /// Work items in one unit of the fit's work term.
@@ -58,7 +59,7 @@ const SEED: [f64; 3] = [
 /// render.
 #[derive(Debug, Default)]
 pub(crate) struct Budget {
-    /// Last two `RedrawRequested` instants.
+    /// The last two `RedrawRequested` instants.
     last: [Option<Instant>; 2],
     /// The fit of tiles, then of cells.
     fits: [Fit; 2],
@@ -96,8 +97,8 @@ impl Default for Fit {
 }
 
 impl Budget {
-    /// A `RedrawRequested` at `now`. The same instant again, which the
-    /// runtime sends for each of up to three passes of one frame, or an
+    /// Records a `RedrawRequested` at `now`. The same instant again, which
+    /// the runtime sends for each of up to three passes of one frame, or an
     /// earlier one changes nothing.
     pub(crate) fn frame(&mut self, now: Instant) {
         if self.last[1].is_none_or(|last| now > last) {
@@ -106,7 +107,7 @@ impl Budget {
     }
 
     /// The frame budget: the interval between the last two instants,
-    /// clamped to 1 ms ..= 16.7 ms; 16.7 ms until two exist.
+    /// clamped to 1 ms ..= 16.7 ms. It is 16.7 ms until two exist.
     pub(crate) fn interval(&self) -> Duration {
         match self.last {
             [Some(earlier), Some(later)] => later
@@ -127,14 +128,14 @@ impl Budget {
         self.fits[kind.index()].fold(x, y);
     }
 
-    /// The predicted time of a render of `kind` of `pixels` and `work`,
+    /// The predicted time of a render of `kind` of `pixels` and `work`, in
     /// ms.
     pub(crate) fn predict(&self, kind: Kind, pixels: u64, work: u64) -> f64 {
         self.fits[kind.index()].predict(features(pixels, work))
     }
 
-    /// Whether renders predicted to take `ms` together render inline: at
-    /// most half the frame budget.
+    /// Whether renders predicted to take `ms` together render inline, which
+    /// they do within half the frame budget.
     pub(crate) fn is_inline(&self, ms: f64) -> bool {
         // Nanoseconds over 1e6 round once: 6.9 ms halves to exactly 3.45.
         ms <= self.interval().as_nanos() as f64 / 1e6 / 2.0
@@ -142,7 +143,7 @@ impl Budget {
 }
 
 impl Kind {
-    /// Its fit's place.
+    /// The index of this kind's fit.
     fn index(self) -> usize {
         match self {
             Kind::Tile => 0,
@@ -171,7 +172,7 @@ impl Fit {
         }
     }
 
-    /// The predicted time of a render of terms `x`, ms.
+    /// The predicted time of a render of terms `x`, in ms.
     fn predict(&self, x: [f64; 3]) -> f64 {
         (0..3).map(|i| self.theta[i] * x[i]).sum()
     }
@@ -183,7 +184,7 @@ fn features(pixels: u64, work: u64) -> [f64; 3] {
 }
 
 /// The solution of `a θ = b` by Gaussian elimination with partial
-/// pivoting; `None` for a singular `a`.
+/// pivoting. `None` for a singular `a`.
 fn solve(mut a: [[f64; 3]; 3], mut b: [f64; 3]) -> Option<[f64; 3]> {
     for col in 0..3 {
         let pivot = (col..3).max_by(|&i, &j| a[i][col].abs().total_cmp(&a[j][col].abs()))?;
@@ -292,9 +293,9 @@ mod tests {
 
     #[test]
     fn the_cost_model_learns_an_overhead_and_its_rates_from_every_render() {
-        // A machine where a render costs 0.4 ms whatever it draws, 0.1 ms
-        // per 65,536 px and 0.5 ms per 256 items: small renders cost far
-        // more than the constants say, a large one less.
+        // A machine where a render costs 0.4 ms whatever it draws, plus
+        // 0.1 ms per 65,536 px and 0.5 ms per 256 items. Small renders cost
+        // far more than the constants say, and a large one less.
         let truth = |pixels: u64, work: u64| {
             0.4 + 0.1 * pixels as f64 / 65_536.0 + 0.5 * work as f64 / 256.0
         };
@@ -322,8 +323,8 @@ mod tests {
                 "{pixels} px, {work}: {fit} against {real}"
             );
         }
-        // An overhead of 0.4 ms each: 21 small renders do not fit half of
-        // 16.7 ms, which the constants alone (0.02 ms each) would allow.
+        // With an overhead of 0.4 ms each, 21 small renders do not fit half
+        // of 16.7 ms, which the constants alone (0.02 ms each) would allow.
         let small: f64 = (0..21).map(|_| budget.predict(Kind::Tile, 1_800, 0)).sum();
         assert!(!budget.is_inline(small), "{small} ms");
         let seeded = Budget::default();
@@ -333,8 +334,8 @@ mod tests {
 
     #[test]
     fn renders_of_one_shape_keep_the_other_seeds() {
-        // Only ring tiles: one size, no work. Their time is learnt; the
-        // work rate keeps its seed.
+        // Only ring tiles, of one size and no work. Their time is learnt,
+        // and the work rate keeps its seed.
         let mut budget = Budget::default();
         for _ in 0..64 {
             budget.calibrate(Kind::Tile, Duration::from_micros(900), 65_536, 0);
@@ -348,11 +349,11 @@ mod tests {
 
     #[test]
     fn tiles_and_cells_are_fitted_apart() {
-        // Tiles of a long trace cost 5 ms per 65,536 px and
-        // a little per item, on a contended pool; axis strips 0.05 ms, 0.3
-        // ms per 65,536 px and 2 µs per item. Each kind's prediction
-        // follows its own renders: a 31.5 kpx strip of 40 items is
-        // predicted at its 0.27 ms, not at the tiles' rates.
+        // Tiles of a long trace cost 5 ms per 65,536 px and a little per
+        // item, on a contended pool. Axis strips cost 0.05 ms, plus 0.3 ms
+        // per 65,536 px and 2 µs per item. Each kind's prediction follows
+        // its own renders, so a 31.5 kpx strip of 40 items is predicted at
+        // its 0.27 ms, not at the tiles' rates.
         let tile = |pixels: u64, work: u64| 5.0 * pixels as f64 / 65_536.0 + 0.01 * work as f64;
         let cell =
             |pixels: u64, work: u64| 0.05 + 0.3 * pixels as f64 / 65_536.0 + 0.002 * work as f64;

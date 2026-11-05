@@ -1,8 +1,8 @@
 //! The widget's render pipeline through the headless harness on the
-//! backend `ICED_TEST_BACKEND` names: cells rendered on the worker against
-//! the same cells rendered inline, `Render::Auto`'s choice, the newest
-//! result winning, previous
-//! images staying until their replacement lands, and the worker thread's
+//! backend `ICED_TEST_BACKEND` names. The tests compare cells rendered on
+//! the worker with the same cells rendered inline, and check
+//! `Render::Auto`'s choice, that the newest result wins, that previous
+//! images stay until their replacement lands, and the worker thread's
 //! lifetime.
 
 use std::sync::{Mutex, MutexGuard, PoisonError, mpsc};
@@ -48,8 +48,8 @@ const MEDIUM: Size = Size::new(480.0, 320.0);
 /// The cheap refresh's logical size: 256,000 device px at 2.
 const SMALL: Size = Size::new(320.0, 200.0);
 
-/// The lock [`WORKERS`] holds; a test that failed holding it poisons
-/// nothing the others read.
+/// Takes the lock on [`WORKERS`]. A test that failed while holding it
+/// poisons nothing the others read, so poisoning is ignored.
 pub fn workers() -> MutexGuard<'static, ()> {
     WORKERS.lock().unwrap_or_else(PoisonError::into_inner)
 }
@@ -205,9 +205,10 @@ fn last_frame(samples: &[Sample]) -> (u64, u32, u32, u32) {
         .expect("a frame sample")
 }
 
-/// The cost model's time for the cells the raster samples among
-/// `samples` rendered, ms; with `ring`, the tiles of the overscan ring
-/// (see [`in_view`]) too.
+/// The cost model's time, in ms, for the cells the raster samples among
+/// `samples` rendered. With `view`, only the targets in view of those plot
+/// areas count (see [`in_view`]); with `None`, the tiles of the overscan
+/// ring count too.
 fn modelled(samples: &[Sample], view: Option<&[[i64; 4]]>) -> f64 {
     samples
         .iter()
@@ -262,9 +263,10 @@ struct Settled {
     first_wake: Duration,
 }
 
-/// Frames of `harness` after each wake, the `Waken` injected before
-/// each and the frames `t` + 16 ms apart, until a frame shows every slot
-/// current. Panics when a wake takes longer than ten seconds.
+/// Draws a frame of `harness` after each wake until a frame shows every
+/// slot current. A `Waken` is injected before each frame, and the frames
+/// are 16 ms apart from `t`. Panics when a wake takes longer than ten
+/// seconds.
 fn settle<Message: 'static>(
     harness: &mut Harness<'_, Message>,
     probe: &mpsc::Receiver<Sample>,
@@ -297,9 +299,9 @@ fn settle<Message: 'static>(
     panic!("a thousand wakes without a current frame")
 }
 
-/// The samples of frames of `harness` after each wake, the `Waken`
-/// injected before each and the frames `t` + 16 ms apart, until no wake
-/// comes for a second: what a quiet pool still reported.
+/// Draws a frame of `harness` after each wake, as [`settle`] does, until
+/// no wake comes for a second. Returns the samples received, which are
+/// what the pool still reported before going quiet.
 fn quiet<Message: 'static>(
     harness: &mut Harness<'_, Message>,
     probe: &mpsc::Receiver<Sample>,
@@ -375,9 +377,9 @@ fn worker_exits_on_drop() {
     // The worker, and vello_cpu's pool threads, which take its name.
     let during = threads(WORKER);
     assert!(during > before, "{during} threads, {before} before");
-    // The job set is pending: the drop closes the queue and joins the
-    // thread after the cell in flight; the pool's threads end once the
-    // joined thread dropped its renderer.
+    // The job set is pending. The drop closes the queue and joins the
+    // thread after the cell in flight. The pool's threads end once the
+    // joined thread has dropped its renderer.
     drop(harness);
     let after = (0..10_000)
         .map(|_| {
@@ -528,8 +530,8 @@ fn previous_image_stays_until_the_new_one_arrives() {
             "{backend}, k = {k}: the old title stays until the new one lands"
         );
         let settled = settle(&mut harness, &rx, t);
-        // Tiles of the first frame's ring may still render, after it
-        // settled: of generation 2 when the new set requeued them.
+        // Tiles of the first frame's ring may still render after it
+        // settled, at generation 2 when the new set requeued them.
         let rendered: Vec<_> = rasters(&settled.samples)
             .into_iter()
             .filter(|&(target, generation, _)| {
@@ -686,9 +688,10 @@ fn expensive_refresh_uses_the_worker() {
 #[cfg(target_os = "linux")]
 #[test]
 fn threads_sets_the_pool_size() {
-    // Each size starts a pool of as many threads at its first jobs, the
-    // last pool stopped; its threads render single-threaded, so no pool of
-    // vello_cpu's own takes their name. Sizes clamp to 1..=64.
+    // Each size starts a pool of that many threads at its first jobs,
+    // after the last pool has stopped. Its threads render single-threaded,
+    // so no pool of vello_cpu's own takes their name. Sizes clamp to
+    // 1..=64.
     let _workers = workers();
     let before = threads(WORKER);
     let k = 1.0;
@@ -720,7 +723,7 @@ fn threads_sets_the_pool_size() {
     println!("pool sizes, {backend}: (asked, threads) {seen:?}");
 }
 
-/// `count()` once it is `expected`, or whatever it is after two seconds: a
+/// `count()` once it is `expected`, or whatever it is after two seconds. A
 /// new thread takes its name once it runs (std names it from inside), so
 /// the threads of a pool just started may not all be named yet.
 #[cfg(target_os = "linux")]
@@ -736,7 +739,7 @@ fn named(expected: usize, count: impl Fn() -> usize) -> usize {
 
 /// The tiles in view of plot area 0 of `area` (device px, its grid at its
 /// corner) among the raster samples of `samples`, in arrival order, each
-/// with its square's centre's distance from `at` (device px).
+/// with its square's center's distance from `at` (device px).
 fn nearest(samples: &[Sample], area: [i64; 4], at: (f64, f64)) -> Vec<f64> {
     let side = |a: i64, b: i64| (b - a + 255) / 256;
     let (columns, rows) = (side(area[0], area[2]), side(area[1], area[3]));

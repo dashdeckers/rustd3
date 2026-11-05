@@ -21,12 +21,12 @@ const EMPTY: [[f64; 2]; 3] = [[0.0, 1.0], [1.0, 10.0], [1e-7, 1.0 - 1e-7]];
 /// Domain fitting for one scale type: margins, nonsingular, sticky edges.
 ///
 /// It is matplotlib's `autoscale_view` for one axis, in the transform's
-/// space: an empty extent gets a default domain; a flat or tiny one is
-/// widened by `nonsingular` (expander 0.05) in transformed space, which for
-/// a log scale widens by 5 % of the logarithm where matplotlib widens by
-/// decades; then each side gets `margin` of the transformed span, except
-/// where a sticky value stops it. The result keeps the orientation of the
-/// scale's domain, as an inverted matplotlib axis keeps its inversion.
+/// space. An empty extent gets a default domain. A flat or tiny extent is
+/// widened by `nonsingular` (expander 0.05) in transformed space, so a log
+/// scale widens by 5 % of the logarithm where matplotlib widens by decades.
+/// Then each side gets `margin` of the transformed span, except where a
+/// sticky value stops it. The result keeps the orientation of the scale's
+/// domain, as an inverted matplotlib axis keeps its inversion.
 ///
 /// ```
 /// use rustd3_core::scale::{self, Pad};
@@ -41,10 +41,11 @@ pub trait Pad: crate::sealed::Pad {
     /// The type of the domain's values.
     type Domain;
 
-    /// `extent` is the merged data extent (`None`: no valid data); `margin`
-    /// is a fraction of the span per side (themes use 0.05); `sticky`
-    /// values are not crossed by the margin (matplotlib's sticky edges).
-    /// The result has the scale's domain orientation.
+    /// Fits a domain to `extent`, the merged data extent, or `None` when
+    /// there is no valid data. `margin` is a fraction of the span per side
+    /// (themes use 0.05), and the margin does not cross `sticky` values
+    /// (matplotlib's sticky edges). The result has the scale's domain
+    /// orientation.
     fn pad(
         &self,
         extent: Option<[Self::Domain; 2]>,
@@ -81,7 +82,7 @@ impl Pad for scale::Identity {
 impl crate::sealed::Pad for scale::Identity {}
 
 /// [`Pad::pad`] of a domain whose end stops are `ends`, under `transform`
-/// set for them: what the color scales with a transform pad by.
+/// set for them.
 pub(super) fn ends<T: scale::Transform>(
     transform: &T,
     ends: [f64; 2],
@@ -130,9 +131,9 @@ fn empty<T: scale::Transform>(transform: &T) -> [f64; 2] {
         .unwrap_or_else(|| [transform.inverse(0.0), transform.inverse(1.0)])
 }
 
-/// matplotlib's `nonsingular(u0, u1, expander=0.05)`, ascending: ±0.05 for
-/// non-finite or vanishing ends (both 0 among them); a span within 1e-15
-/// of the magnitude widened by 5 % of each end's magnitude.
+/// matplotlib's `nonsingular(u0, u1, expander=0.05)`, ascending.
+/// Non-finite or vanishing ends, both 0 included, give ±0.05. A span
+/// within 1e-15 of the magnitude widens by 5 % of each end's magnitude.
 fn nonsingular(u: [f64; 2]) -> [f64; 2] {
     if !u.iter().all(|v| v.is_finite()) {
         return [-EXPANDER, EXPANDER];

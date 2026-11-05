@@ -2,8 +2,8 @@
 //! between them, as [`Length`]s in px or [`em`].
 //!
 //! Each column takes the largest reach of its panels' decorations past
-//! their plot areas on each side, each row likewise; reaches, gaps and
-//! padding are fixed, the rest is split by weight, and positions are
+//! their plot areas on each side, and each row likewise. Reaches, gaps and
+//! padding are fixed, and the rest is split by weight. Positions are
 //! running sums, so panels of one column share `x` and `w` exactly.
 //!
 //! ```
@@ -83,9 +83,9 @@ impl Length {
 }
 
 /// The figure's grid: relative weights of rows and columns, and the gaps
-/// between neighbouring tracks, measured as the whitespace between their
+/// between neighboring tracks, measured as the whitespace between their
 /// decorated boxes. A track without a weight weighs 1, as does one whose
-/// weight is not a finite number of zero or more; a missing gap, or one
+/// weight is not a finite number of zero or more. A missing gap, or one
 /// that is not a finite length in px, is `em(1.0)`. The grid has as many
 /// tracks as it has weights or as its panels need, whichever is more.
 #[derive(Debug, Clone, Default, PartialEq)]

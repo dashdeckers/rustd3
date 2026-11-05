@@ -1,6 +1,6 @@
 //! `time::Time`: d3's time scale in an explicit zone, against d3-scale
-//! 4.0.2 in JavaScript under the zone of each row, and rustd3-core's own rows in
-//! nanoseconds.
+//! 4.0.2 in JavaScript under the zone of each row, and rustd3-core's own
+//! rows in nanoseconds.
 
 use rustd3_core::interact::{self, Rescale};
 use rustd3_core::jiff::Timestamp;

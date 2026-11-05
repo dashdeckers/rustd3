@@ -1,8 +1,8 @@
-//! The root README's `Plot` widget, compiled: a figure built in `view`
+//! The root README's `Plot` example, compiled. A figure is built in `view`
 //! and shown by the widget, which zooms and pans its x axis and sends the
-//! app the new window. The code below this header is the README's, with
-//! `rustd3_core` and `rustd3_figure` for the facade's `rustd3` and
-//! `rustd3::figure` (`tests/main/readme.rs` checks that).
+//! app the new window. Below this header the code is the README's, with
+//! `rustd3_core` and `rustd3_figure` in place of the facade's `rustd3` and
+//! `rustd3::figure`. `tests/main/readme.rs` checks that the two match.
 
 use iced::Element;
 use rustd3_core::scale;

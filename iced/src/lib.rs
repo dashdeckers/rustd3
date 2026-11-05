@@ -1,17 +1,19 @@
-//! iced integration at two levels: at the core level, [`IcedPath`] draws
-//! rustd3's shapes into an iced canvas and [`pointer::Tracker`] turns iced
-//! events into pointer input for zoom, brush and drag; at the figure
-//! level, behind the `figure` feature, the `Plot` widget shows rendered
-//! images of a figure with interaction feedback drawn on top.
+//! iced integration for rustd3, at two levels.
 //!
-//! An app depends on the `rustd3` facade and on this crate; the examples
-//! here are written with the facade's paths (`rustd3::shape`,
-//! `rustd3::figure::Figure`), which are `rustd3_core::shape` and
-//! `rustd3_figure::Figure` in the component crates.
+//! At the core level, [`IcedPath`] draws rustd3's shapes into an iced
+//! canvas, and [`pointer::Tracker`] turns iced events into pointer input for
+//! zoom, brush and drag. At the figure level, behind the `figure` feature,
+//! the `Plot` widget shows rendered images of a figure with interaction
+//! feedback drawn on top.
 //!
-//! The crate depends on iced at git revision 3cbdacc and its signatures
+//! An app depends on the `rustd3` facade and on this crate. The examples
+//! here use the facade's paths (`rustd3::shape`, `rustd3::figure::Figure`),
+//! which are `rustd3_core::shape` and `rustd3_figure::Figure` in the
+//! component crates.
+//!
+//! The crate depends on iced at git revision 3cbdacc, and its signatures
 //! name iced's types (`Event`, `Rectangle`, `mouse::Cursor`, `Point`,
-//! `Length`, `Element`, `canvas::Path`): the app depends on iced at the
+//! `Length`, `Element`, `canvas::Path`). The app depends on iced at the
 //! same revision and names them through `iced`.
 //!
 //! ```
@@ -25,7 +27,8 @@
 //! assert_eq!(trace.raw().iter().count(), 4); // begin, two lines, end
 //! ```
 
-// Builders and pure functions say so: a result dropped is a bug.
+// Builders and pure functions are must-use, since dropping their result is
+// a bug.
 #![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 #![warn(missing_debug_implementations)]
 

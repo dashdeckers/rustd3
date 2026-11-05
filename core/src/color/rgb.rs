@@ -54,8 +54,8 @@ pub struct Rgb {
 
 impl fmt::Display for Rgb {
     /// d3's `formatRgb`: `rgb(r, g, b)`, or `rgba(r, g, b, a)` when the
-    /// opacity, clamped to [0, 1] with NaN as 1, is below 1; channels
-    /// rounded and clamped to 0..=255, NaN as 0.
+    /// opacity is below 1. The opacity is clamped to [0, 1] with NaN as 1,
+    /// and the channels are rounded and clamped to 0..=255 with NaN as 0.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let a = super::clamp_opacity(self.opacity);
         let [r, g, b] = [self.r, self.g, self.b].map(clamp_channel);
@@ -111,10 +111,10 @@ impl From<Hsl> for Rgb {
 }
 
 impl Interpolate for Rgb {
-    /// d3's `interpolateRgb` at gamma 1 ([`interpolate::rgb`]), channel by
-    /// channel and for the opacity (d3's `nogamma`): `a + t·(b − a)`, or the
-    /// constant `a` when `b − a` is 0 or NaN, `b` when `a` is NaN, so an
-    /// undefined channel takes the other color's.
+    /// d3's `interpolateRgb` at gamma 1 ([`interpolate::rgb`]), applied to
+    /// each channel and the opacity (d3's `nogamma`). Each is
+    /// `a + t·(b − a)`, or, when `b − a` is 0 or NaN, the constant `a` (`b`
+    /// when `a` is NaN), so an undefined channel takes the other color's.
     fn lerp(&self, to: &Rgb, t: f64) -> Rgb {
         interpolate::rgb(*self, *to)(t)
     }
@@ -173,8 +173,8 @@ impl Rgb {
         }
     }
 
-    /// d3's `displayable()`: each channel in [−0.5, 255.5), so it rounds
-    /// into 0..=255, and the opacity in [0, 1].
+    /// d3's `displayable()`: whether each channel is in [−0.5, 255.5), so
+    /// it rounds into 0..=255, and the opacity is in [0, 1].
     #[must_use]
     pub fn displayable(self) -> bool {
         let channel = |c: f64| (-0.5..255.5).contains(&c);

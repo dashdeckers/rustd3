@@ -22,9 +22,9 @@ pub(super) enum Role {
     /// A legend: in a corner of a panel, or, under [`FIGURE`], in a figure
     /// slot.
     Legend = 7,
-    /// The line of an axis of a panel, apart from its ticks and labels: a
-    /// new domain moves those and leaves the line, and the cells its
-    /// square caps reach into beside the plot area.
+    /// The line of an axis of a panel, kept apart from its ticks and
+    /// labels. A new domain moves those but leaves the line, and the cells
+    /// its square caps reach into beside the plot area, unchanged.
     Spine = 8,
     /// A panel's grid lines, drawn over its background and under its
     /// marks.

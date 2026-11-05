@@ -1,5 +1,5 @@
-//! d3's stack layout over columns ([`Stack`]), with
-//! d3's six orders ([`Order`]) and five offsets ([`Offset`]).
+//! d3's stack layout over columns ([`Stack`]), with d3's six orders
+//! ([`Order`]) and five offsets ([`Offset`]).
 
 mod offset;
 mod order;
@@ -24,7 +24,7 @@ impl Stack {
 
     /// d3's `stack(data)` over columns, one layer per column (`stack.js`):
     /// layers indexed like `columns`, each `[y0, y1]` per row. Rows are the
-    /// shortest column's length; longer columns are truncated.
+    /// shortest column's length, and longer columns are truncated.
     ///
     /// ```
     /// use rustd3_core::shape::{self, stack};

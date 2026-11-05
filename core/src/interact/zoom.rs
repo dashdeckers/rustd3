@@ -13,7 +13,7 @@ const PER_PIXEL: f64 = 0.002;
 const LINE_PX: f64 = PER_LINE / PER_PIXEL;
 
 /// d3.zoom(): wheel, drag-to-pan and double-click within limits. It keeps
-/// only the gesture in progress; the caller stores the transform, passes
+/// only the gesture in progress. The caller stores the transform, passes
 /// it to [`handle`](Zoom::handle) with each event and keeps what comes
 /// back.
 ///
@@ -46,7 +46,7 @@ const LINE_PX: f64 = PER_LINE / PER_PIXEL;
 ///   line-to-pixel ratio, 0.05 / 0.002) and 1 px per pixel; d3 ignores
 ///   `deltaX`.
 /// - A double click applies its ×2 (×0.5 with shift) at once, without
-///   d3's 250 ms transition; the app animates if it wants. Double clicks
+///   d3's 250 ms transition, and the app animates if it wants. Double clicks
 ///   carry no modifiers, so the zoom reads them from
 ///   [`Pointer::Modifiers`] events.
 /// - A drag ends when the left button is released.
@@ -61,10 +61,10 @@ pub struct Zoom {
 /// What a zoom remembers between events.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 struct Gesture {
-    /// While the left button is held: the data location under the pointer
-    /// when it was pressed.
+    /// The data location under the pointer at the press, while the left
+    /// button is held.
     grab: Option<(f64, f64)>,
-    /// During a wheel burst: where it zooms around.
+    /// The point a wheel burst zooms around, while the burst lasts.
     wheel: Option<Anchor>,
     /// The keyboard modifiers last reported.
     modifiers: Modifiers,
@@ -118,15 +118,15 @@ impl Zoom {
         Zoom { extent, ..self }
     }
 
-    /// Feeds one event; the new transform if it changed.
+    /// Feeds one event and returns the new transform, if it changed.
     ///
     /// A left press without ctrl grabs the data point under the pointer,
-    /// and moves keep it there until the left button is released (d3's
-    /// default filter drops other buttons and ctrl-presses); a wheel step
+    /// and moves keep it there until the left button is released. d3's
+    /// default filter drops other buttons and ctrl-presses. A wheel step
     /// scales by 2^(−δy · 0.05 per line or 0.002 per pixel, × 10 with ctrl)
-    /// around the pointer, and its horizontal step pans; a double click
-    /// scales by 2 around the pointer, or 0.5 with shift held (ignored with
-    /// ctrl held, as d3's filter does).
+    /// around the pointer, and its horizontal part pans. A double click
+    /// scales by 2 around the pointer, or by 0.5 with shift held. With ctrl
+    /// held it does nothing, as d3's filter does.
     pub fn handle(
         &mut self,
         input: Pointer,
@@ -180,8 +180,7 @@ impl Zoom {
         }
     }
 
-    /// A drag is in progress (a focus-and-context view syncs the brush
-    /// only between gestures).
+    /// Whether a drag is in progress.
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.gesture.grab.is_some()
@@ -199,9 +198,9 @@ impl Zoom {
         self.scale_to(t, t.k * k, at)
     }
 
-    /// d3's `zoom.scaleTo(selection, k, p)`: scale factor `k`, within the
-    /// scale extent, keeping the data point under `at` (the centroid of
-    /// the extent for `None`) in place; constrained.
+    /// d3's `zoom.scaleTo(selection, k, p)`: `t` at scale factor `k`, within
+    /// the scale extent, with the data point under `at` (the extent's
+    /// centroid for `None`) kept in place, then constrained.
     #[must_use]
     pub fn scale_to(
         &self,
@@ -213,16 +212,16 @@ impl Zoom {
         self.constrain(translate(self.scale(t, k), p, t.invert(p)))
     }
 
-    /// d3's `zoom.translateBy(selection, x, y)`: translated by (`x`, `y`)
-    /// in data units; constrained.
+    /// d3's `zoom.translateBy(selection, x, y)`: `t` translated by (`x`,
+    /// `y`) in data units, then constrained.
     #[must_use]
     pub fn translate_by(&self, t: interact::Transform, x: f64, y: f64) -> interact::Transform {
         self.constrain(t.translate(x, y))
     }
 
     /// d3's `zoom.translateTo(selection, x, y, p)`: the data point (`x`,
-    /// `y`) shown at `at` (the centroid of the extent for `None`), the
-    /// scale factor kept; constrained.
+    /// `y`) shown at `at` (the extent's centroid for `None`), with `t`'s
+    /// scale factor kept, then constrained.
     #[must_use]
     pub fn translate_to(
         &self,
@@ -241,7 +240,7 @@ impl Zoom {
 
     /// d3's defaultConstrain against `extent` and `translate_extent`: the
     /// transform translated so the viewport stays within the translate
-    /// extent, centred where the viewport is the larger. With the default
+    /// extent, centered where the viewport is the larger. With the default
     /// unbounded translate extent it returns `t`.
     #[must_use]
     pub fn constrain(&self, t: interact::Transform) -> interact::Transform {
@@ -325,7 +324,7 @@ fn translate(t: interact::Transform, p: (f64, f64), location: (f64, f64)) -> int
 
 /// defaultConstrain's correction along one axis, from how far the
 /// viewport's low (`d0`) and high (`d1`) edges lie past the translate
-/// extent's: centred when the viewport is the larger, else the smaller
+/// extent's: centered when the viewport is the larger, else the smaller
 /// correction (JavaScript's `Math.min(0, d0) || Math.max(0, d1)`).
 fn offset(d0: f64, d1: f64) -> f64 {
     if d1 > d0 {

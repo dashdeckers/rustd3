@@ -68,16 +68,18 @@ struct Density {
 }
 
 /// A kernel density estimate of `values` along `y`, Gaussian with Scott's
-/// bandwidth as scipy and seaborn compute it, over 200 points from 3
-/// bandwidths below the least value to 3 above the greatest (seaborn's
-/// `kdeplot`). The curve is over the data, not the view, so zooming does
-/// not reshape it; its width on `w` is peak-normalized to 1. The values
-/// enter fitting on `y` (the curve's tails do not); `w` spans 0 to 1, held
-/// at 0. Over more than [`Kde::BINNED`] values the curve is the binned
-/// estimate ([`Kde::grid`]), within a relative 1e-3 of the exact one.
-/// Fewer than two finite values, or values that are all equal, draw
-/// nothing, and [`Figure::check`](crate::Figure::check) reports
-/// [`Error::Density`].
+/// bandwidth as scipy and seaborn compute it. The curve runs over 200
+/// points from 3 bandwidths below the least value to 3 above the greatest
+/// (seaborn's `kdeplot`). It is computed over the data, not the view, so
+/// zooming does not reshape it, and its width on `w` is peak-normalized
+/// to 1.
+///
+/// The values enter fitting on `y` (the curve's tails do not), and `w`
+/// spans 0 to 1, held at 0. Over more than [`Kde::BINNED`] values the
+/// curve is the binned estimate ([`Kde::grid`]), within a relative 1e-3 of
+/// the exact one. Fewer than two finite values, or values that are all
+/// equal, draw nothing, and [`Figure::check`](crate::Figure::check)
+/// reports [`Error::Density`].
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -176,9 +178,10 @@ impl Density {
     }
 
     /// A `Fill` of the region between the curve and size 0 at 0.35 opacity,
-    /// its hatch when set, and a `Stroke` of its outline, 0.75 pt, placed by
-    /// `at` from a position along the value axis and a size; nothing
-    /// without an estimate or when the region falls outside the guard band.
+    /// its hatch when set, and a `Stroke` of its outline, 0.75 pt. `at`
+    /// places a point from a position along the value axis and a size.
+    /// Draws nothing without an estimate or when the region falls outside
+    /// the guard band.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List, at: impl Fn(f64, f64) -> Option<Point>) {
         let placed: Vec<(f64, Point)> = self
             .curve
@@ -264,9 +267,9 @@ macro_rules! builders {
                 self
             }
 
-            /// Multiplies the bandwidth by `f`, seaborn's `bw_adjust`: above 1
-            /// smoother, below 1 more detailed. A factor that is not finite and
-            /// positive leaves it as it was.
+            /// Multiplies the bandwidth by `f`, as seaborn's `bw_adjust`. Above
+            /// 1 is smoother, below 1 more detailed. A factor that is not finite
+            /// and positive leaves it as it was.
             #[must_use]
             pub fn adjust(mut self, f: f64) -> Self {
                 self.density.adjust = positive(f).unwrap_or(self.density.adjust);

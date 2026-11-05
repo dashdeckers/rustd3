@@ -6,7 +6,7 @@ use std::fmt;
 use crate::series::{Coordinate, Recording, Series, Slices};
 
 /// What a mark holds: collected pairs, borrowed slices or a borrowed
-/// recording channel. Opaque: the indexed case exists only for
+/// recording channel. It is opaque because the indexed case exists only for
 /// `X: Coordinate, Y = f64`, yet `Points` itself needs no bound.
 pub struct Points<'a, X, Y> {
     repr: Repr<'a, X, Y>,
@@ -21,7 +21,7 @@ enum Repr<'a, X, Y> {
 }
 
 /// A recording seen without `X: Coordinate`, so that `Points` needs no
-/// bound; [`Points::series`] recovers the recording through `any`.
+/// bound. [`Points::series`] recovers the recording through `any`.
 pub(crate) trait Source<X> {
     /// The number of samples.
     fn len(&self) -> usize;
@@ -105,8 +105,7 @@ impl<'a, X, Y> Points<'a, X, Y> {
     }
 
     /// Whether the pairs were collected into the points (an iterator of
-    /// pairs), not borrowed (slices or a recording channel): what a figure
-    /// copies into its marks.
+    /// pairs), not borrowed (slices or a recording channel).
     ///
     /// ```
     /// use rustd3_core::series::{self, Data};
@@ -138,9 +137,10 @@ impl<'a, X: Coordinate> Points<'a, X, f64> {
 
 impl<'a, X, Y> Points<'a, X, Y> {
     /// The same recording channel as `f64` pairs, for code generic over
-    /// `X` and `Y` that thins or fits through an index: `Some` for a
-    /// borrowed [`Series`] (a channel holds `f64`, whatever `Y` is named
-    /// here), `None` for collected pairs and slices. Needs no bound.
+    /// `X` and `Y` that thins or fits through an index. `Some` for a
+    /// borrowed [`Series`], since a channel holds `f64` whatever `Y` is
+    /// named here, and `None` for collected pairs and slices. Needs no
+    /// bound.
     ///
     /// ```
     /// use rustd3_core::series::{Clock, Data, Points, Recording};

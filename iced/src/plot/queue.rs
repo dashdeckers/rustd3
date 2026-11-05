@@ -1,5 +1,5 @@
 //! [`Queue`]: the jobs waiting for the render pool, in the order they
-//! render. A refresh replaces them whole: the threads finish the job each
+//! render. A refresh replaces them whole. The threads finish the job each
 //! is rendering and take the next from the new set, so the newest state
 //! wins at the source.
 
@@ -39,7 +39,7 @@ impl Queue {
         self.ready.notify_all();
     }
 
-    /// Waits for a job and takes the first; `None` once the queue is
+    /// Waits for a job and takes the first. `None` once the queue is
     /// closed.
     pub(crate) fn take(&self) -> Option<Job> {
         let mut inbox = self.lock();
@@ -63,7 +63,7 @@ impl Queue {
         self.lock().jobs.iter().map(|job| job.generation).collect()
     }
 
-    /// Closes the queue: the threads stop after the job each renders, and
+    /// Closes the queue. The threads stop after the job each renders, and
     /// the jobs waiting are dropped.
     pub(crate) fn close(&self) {
         let mut inbox = self.lock();
@@ -73,7 +73,7 @@ impl Queue {
         self.ready.notify_all();
     }
 
-    /// The inbox; a lock poisoned by a panicking thread still holds a
+    /// The inbox. A lock poisoned by a panicking thread still holds a
     /// consistent inbox, since no code panics while holding it.
     fn lock(&self) -> MutexGuard<'_, Inbox> {
         self.inbox.lock().unwrap_or_else(PoisonError::into_inner)

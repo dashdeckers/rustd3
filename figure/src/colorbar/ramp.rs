@@ -14,8 +14,8 @@ use rustd3_core::scale::{
     transform,
 };
 
-/// The rows of an interpolator's strip: d3's table schemes have 256
-/// entries and pick `table[⌊256 t⌋]`, so each entry gets one row.
+/// The number of rows in an interpolator's strip. d3's table schemes have
+/// 256 entries and pick `table[⌊256 t⌋]`, so each entry gets one row.
 const ROWS: usize = 256;
 
 /// The color of a bin a threshold scale's range has none for:
@@ -52,14 +52,14 @@ pub enum Samples {
     Bins {
         /// Each bin's color.
         colors: Vec<Rgb>,
-        /// The edges between neighbouring bins in domain units, one fewer
+        /// The edges between neighboring bins in domain units, one fewer
         /// than the bins: thresholds or quantiles. The first and last bins
         /// end at the bar's ends.
         edges: Vec<f64>,
     },
 }
 
-/// The interpolator at each of 256 row centres.
+/// The interpolator at each of 256 row centers.
 impl<T: scale::Transform> Ramp for Sequential<Rgb, T> {
     fn samples(&self) -> Samples {
         let unit = self
@@ -70,7 +70,7 @@ impl<T: scale::Transform> Ramp for Sequential<Rgb, T> {
     }
 }
 
-/// The interpolator at each of 256 row centres, the middle stop at the
+/// The interpolator at each of 256 row centers, the middle stop at the
 /// strip's middle.
 impl<T: scale::Transform> Ramp for Diverging<Rgb, T> {
     fn samples(&self) -> Samples {
@@ -82,7 +82,7 @@ impl<T: scale::Transform> Ramp for Diverging<Rgb, T> {
     }
 }
 
-/// The colors at each of 256 row centres between the end stops in
+/// The colors at each of 256 row centers between the end stops in
 /// transformed space, inner stops at their positions.
 impl<T: scale::Transform, const N: usize> Ramp for Continuous<T, Rgb, N> {
     fn samples(&self) -> Samples {
@@ -90,7 +90,7 @@ impl<T: scale::Transform, const N: usize> Ramp for Continuous<T, Rgb, N> {
             .get_domain()
             .map(|d| Ticks::position(self, &d, 0.0).unwrap_or(f64::NAN));
         // The same stops over their positions along the strip: inverting
-        // a row centre gives the value there.
+        // a row center gives the value there.
         let unit = self.clone().range(stops);
         Samples::Even(centres().map(|t| self.apply(unit.invert(t))).collect())
     }
@@ -129,7 +129,7 @@ impl Ramp for Threshold<Rgb> {
     }
 }
 
-/// The centres of 256 equal rows in [0, 1].
+/// The centers of 256 equal rows in [0, 1].
 fn centres() -> impl Iterator<Item = f64> {
     (0..ROWS).map(|i| (i as f64 + 0.5) / ROWS as f64)
 }

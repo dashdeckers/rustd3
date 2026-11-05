@@ -7,8 +7,8 @@ use iced_core::time::Instant;
 use crate::plot::probe::Sample;
 
 /// Where a `Plot` reports its frames: stage timings, raster times and
-/// what each frame showed, timed by an app-supplied clock and sent to
-/// `sink` as [`Sample`]s. The benchmark attributes frame time with it.
+/// what each frame showed, timed by an app-supplied clock and sent to a
+/// sink as [`Sample`]s.
 #[derive(Debug, Clone)]
 pub struct Probe {
     clock: fn() -> Instant,
@@ -16,8 +16,8 @@ pub struct Probe {
 }
 
 impl Probe {
-    /// Samples timed by `clock`, sent to `sink`; a closed receiver drops
-    /// them.
+    /// A probe whose samples are timed by `clock` and sent to `sink`. A
+    /// closed receiver drops them.
     pub fn new(clock: fn() -> Instant, sink: mpsc::Sender<Sample>) -> Self {
         Probe { clock, sink }
     }

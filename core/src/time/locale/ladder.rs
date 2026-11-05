@@ -1,8 +1,8 @@
 //! [`Ladder`], the tick-label formats a locale climbs, and their rungs.
 
 /// Which tick-label ladder a locale uses: the formats a time axis labels
-/// its ticks with, one per unit, each tick taking the finest unit it is
-/// not aligned to.
+/// its ticks with, one per unit. Each tick takes the format of the
+/// coarsest unit it is aligned to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Ladder {
     /// The neutral ladder: `%Y`, `%Y-%m`, `%m-%d`, `%H:%M`,
@@ -24,7 +24,7 @@ const D3: [&str; 10] = [
     "%Y", "%B", "%b %d", "%a %d", "%I %p", "%I:%M", ":%S", ".%L", ".%f", ".%N",
 ];
 
-/// A rung of a ladder: the unit a tick is labelled at.
+/// A rung of a ladder: the unit a tick is labeled at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Rung {
     /// On a year's first instant.

@@ -1,10 +1,10 @@
 //! d3-array's ticks: about `count` nicely rounded values between two
 //! bounds, their step, and bounds extended to them.
 //!
-//! The algorithm is d3's `tickSpec`, with bail-outs where d3 would return
-//! `[NaN]`, throw, or allocate without bound: a non-finite increment or
-//! tick index, or more ticks than `min(10_000, ⌈10 · max(count, 1)⌉)`,
-//! give no ticks.
+//! The algorithm is d3's `tickSpec`. Where d3 would return `[NaN]`, throw,
+//! or allocate without bound, this gives no ticks instead: for a
+//! non-finite increment or tick index, or for more ticks than
+//! `min(10_000, ⌈10 · max(count, 1)⌉)`.
 //!
 //! ```
 //! use rustd3_core::ticks;
@@ -13,9 +13,9 @@
 //! assert_eq!(ticks::nice(0.13, 9.71, 5.0), [0.0, 10.0]);
 //! ```
 //!
-//! The tick rules that scale transforms state as their own are building
-//! blocks here too: [`linear`], [`transformed`], [`log`], [`decades`] and
-//! [`subdivide`]; a scale's chosen ticks travel as a [`Set`].
+//! The tick rules that scale transforms declare are public building blocks
+//! too: [`linear`], [`transformed`], [`log`], [`decades`] and
+//! [`subdivide`]. A scale's chosen ticks travel as a [`Set`].
 
 mod rules;
 mod set;

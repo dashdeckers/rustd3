@@ -5,10 +5,10 @@ use rustd3_figure::scale::{Kind, Scale, ScaleRef};
 
 use crate::plot::domains::Key;
 
-/// A scale to the app's message, its type erased.
+/// A function from a scale, its type erased, to the app's message.
 type Publish<'a, Message> = Box<dyn Fn(&dyn Scale) -> Option<Message> + 'a>;
 
-/// Turns changes to one handle into the app's messages: the widget keeps
+/// Turns changes to one handle into the app's messages. The widget keeps
 /// the handle's domain only while a gesture publishes it.
 pub(crate) struct Listener<'a, Message> {
     key: Key,
@@ -16,8 +16,8 @@ pub(crate) struct Listener<'a, Message> {
 }
 
 impl<'a, Message> Listener<'a, Message> {
-    /// Listens to `handle`: a scale of its type becomes `f` of its domain's
-    /// end stops, in the scale's own type.
+    /// A listener to `handle`. A scale of its type becomes `f` of its
+    /// domain's end stops, in the scale's own type.
     pub(crate) fn new<S>(handle: ScaleRef<S>, f: impl Fn([S::Domain; 2]) -> Message + 'a) -> Self
     where
         S: Kind,
@@ -36,7 +36,7 @@ impl<'a, Message> Listener<'a, Message> {
         self.key
     }
 
-    /// The message for `scale`; `None` when it is not of the handle's type
+    /// The message for `scale`. `None` when it is not of the handle's type
     /// or has no continuous domain.
     pub(crate) fn publish(&self, scale: &dyn Scale) -> Option<Message> {
         (self.publish)(scale)

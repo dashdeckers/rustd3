@@ -22,11 +22,11 @@ impl Store {
         Self::at(dir.into(), bless)
     }
 
-    /// Panics unless `dir/name` equals `actual` byte for byte. A missing
-    /// or different reference is written (and the call passes) only when
-    /// blessing; otherwise the panic names the path, the first differing
-    /// line (1-based, both versions) and both line counts, and writes
-    /// `actual` to `dir/name.new` for inspection.
+    /// Panics unless `dir/name` equals `actual` byte for byte. Only when
+    /// blessing is a missing or different reference written, and the call
+    /// passes. Otherwise the panic names the path, the first differing line
+    /// (1-based, both versions) and both line counts, and writes `actual` to
+    /// `dir/name.new` for inspection.
     ///
     /// `name` matches `[A-Za-z0-9_][A-Za-z0-9_.-]*` and may carry an
     /// extension (`trace.svg`); any other name panics.

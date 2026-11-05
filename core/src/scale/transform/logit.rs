@@ -10,7 +10,7 @@ const MIN_POSITIVE: f64 = 1e-7;
 
 /// The logit transform, `ln(p / (1 − p))`, for probabilities in (0, 1).
 /// Ticks are 0.5 and decades towards 0 and 1 (matplotlib's
-/// `LogitLocator`); nice leaves the domain alone, and labels default to
+/// `LogitLocator`). Nice leaves the domain alone, and labels default to
 /// `".12~g"`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Logit;
@@ -25,10 +25,11 @@ impl Transform for Logit {
     }
 
     /// matplotlib's `LogitLocator.tick_values` with `nbins = max(count,
-    /// 1)`: the ideal ticks 10ᵇ (b < 0), 0.5 and 1 − 10⁻ᵇ (b > 0) between
-    /// the ends' indices, every ⌈ideal / nbins⌉-th when there are more
-    /// than `nbins`; d3's linear ticks when fewer than two ideal ticks lie
-    /// between. Values outside the domain are dropped; domain order.
+    /// 1)`. The ideal ticks are 10ᵇ (b < 0), 0.5 and 1 − 10⁻ᵇ (b > 0)
+    /// between the ends' indices, every ⌈ideal / nbins⌉-th when there are
+    /// more than `nbins`. When fewer than two ideal ticks lie between, the
+    /// ticks are d3's linear ticks instead. Values outside the domain are
+    /// dropped, and the ticks are in domain order.
     fn ticks(&self, domain: [f64; 2], count: usize) -> Vec<f64> {
         let reverse = domain[1] < domain[0];
         let [a, b] = if reverse {
@@ -81,7 +82,7 @@ impl Transform for Logit {
         domain
     }
 
-    /// Every tick labelled, the specifier defaulting to `".12~g"`.
+    /// Every tick labeled, the specifier defaulting to `".12~g"`.
     fn tick_format(
         &self,
         locale: &Locale,
@@ -94,9 +95,9 @@ impl Transform for Logit {
     }
 }
 
-/// matplotlib's `LogitLocator.nonsingular` on ordered ends, with no axis:
-/// non-finite ends, or none inside (0, 1), give (10⁻⁷, 1 − 10⁻⁷); an end
-/// at or beyond 0 or 1 moves to 10⁻⁷ from it; equal ends v spread to
+/// matplotlib's `LogitLocator.nonsingular` on ordered ends, with no axis.
+/// Non-finite ends, or none inside (0, 1), give (10⁻⁷, 1 − 10⁻⁷). An end
+/// at or beyond 0 or 1 moves to 10⁻⁷ from it, and equal ends v spread to
 /// (0.1v, 1 − 0.1v).
 fn nonsingular(a: f64, b: f64) -> [f64; 2] {
     if !a.is_finite() || !b.is_finite() || b <= 0.0 || a >= 1.0 {

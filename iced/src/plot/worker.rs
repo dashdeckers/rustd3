@@ -1,14 +1,14 @@
 //! [`Pool`]: the threads that rasterize jobs off the UI thread, each with
-//! its own single-threaded renderer, the results channel and the wake
-//! flag.
+//! its own single-threaded renderer, along with the results channel and
+//! the wake flag.
 //!
-//! The pool's threads are the widget's only parallelism: each owns a
-//! `raster::Renderer` with no thread pool of vello_cpu's own (`threads:
-//! 0`), as the UI thread's inline renderer does too, so vello_cpu's pool
-//! never runs beside them and oversubscribes the cores. By
+//! The pool's threads are the widget's only parallelism. Each owns a
+//! `raster::Renderer` with no thread pool of vello_cpu's own
+//! (`threads: 0`), as the UI thread's inline renderer does too. vello_cpu's
+//! pool therefore never runs beside them and oversubscribes the cores. By
 //! default the pool has a thread per core but one (the UI's), 1 to 8,
 //! counted by `available_parallelism`, which respects the process's CPU
-//! affinity; with one thread the pool is a single worker.
+//! affinity. With one thread the pool is a single worker.
 
 use std::io;
 use std::num::NonZero;
@@ -25,23 +25,23 @@ use crate::plot::queue::Queue;
 /// The pool's threads' name, which tests count threads by.
 pub(crate) const NAME: &str = "rustd3-plot";
 
-/// The most threads `Plot::threads` asks for.
+/// The most threads `Plot::threads` allows.
 pub(crate) const MAX: usize = 64;
 
 /// Threads rendering the newest jobs, nearest first.
 pub(crate) struct Pool {
     queue: Arc<Queue>,
     done: mpsc::Receiver<Done>,
-    /// Set by a thread before `wake`, cleared by the UI on drain: many
-    /// finished jobs cost one `Event::Waken`.
+    /// Set by a thread before `wake` and cleared by the UI on drain, so
+    /// many finished jobs cost one `Event::Waken`.
     woken: Arc<AtomicBool>,
     threads: Vec<JoinHandle<()>>,
 }
 
 impl Pool {
     /// Starts `size` threads (at least one), which wake the UI through
-    /// `waker` after each result; an error when the OS cannot start one
-    /// (the threads started are stopped).
+    /// `waker` after each result. Returns an error when the OS cannot
+    /// start one, and the threads already started are stopped.
     pub(crate) fn start(size: usize, waker: &Waker) -> io::Result<Pool> {
         let queue = Arc::new(Queue::new());
         let woken = Arc::new(AtomicBool::new(false));
@@ -68,8 +68,8 @@ impl Pool {
         self.threads.len()
     }
 
-    /// Replaces the waiting jobs with `jobs`, rendered in their order;
-    /// each thread finishes the job it is rendering first.
+    /// Replaces the waiting jobs with `jobs`, rendered in their order.
+    /// Each thread finishes the job it is rendering first.
     pub(crate) fn replace(&self, jobs: Vec<Job>) {
         self.queue.replace(jobs);
     }
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn the_default_pool_leaves_a_core_to_the_ui() {
-        // The spot rows: available parallelism 2 gives 1 thread, 16 give 8.
+        // Available parallelism 2 gives 1 thread, and 16 gives 8.
         assert_eq!([1, 2, 4, 9, 16, 64].map(size_for), [1, 1, 3, 8, 8, 8]);
     }
 }

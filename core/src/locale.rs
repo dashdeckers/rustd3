@@ -1,7 +1,6 @@
-//! The figure locale: what labels are written in, one value for every
-//! label a scale, an axis or a figure formats: numbers through its number
-//! half, d3's formatLocale, and dates through its time half, d3's
-//! timeFormatLocale with the tick-label ladder.
+//! The figure locale: one value that sets how every label a scale, an axis
+//! or a figure formats is written. Its number half is d3's formatLocale,
+//! and its time half is d3's timeFormatLocale with the tick-label ladder.
 //!
 //! ```
 //! use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -41,9 +40,9 @@ impl Default for Locale {
 }
 
 impl From<format::Locale> for Locale {
-    /// The figure locale whose labels write numbers as `number` does, and
-    /// dates as the neutral locale: a runtime table, such as one of
-    /// d3-format's, labelling an axis.
+    /// A figure locale that writes numbers with `number` and dates as
+    /// [`Locale::NEUTRAL`] does. It lets a runtime table, such as one of
+    /// d3-format's, label an axis.
     ///
     /// ```
     /// use std::borrow::Cow;
@@ -70,13 +69,13 @@ impl From<format::Locale> for Locale {
 }
 
 impl Locale {
-    /// SI style: a point, U+202F groups of three from five integer digits,
-    /// U+2212 for minus; English names, ISO dates and the ISO ladder.
-    /// `Default` returns it.
+    /// SI style: a decimal point, U+202F between groups of three from five
+    /// integer digits, and U+2212 for minus. Dates use English names, ISO
+    /// formats and the ISO ladder. `Default` returns it.
     pub const NEUTRAL: Locale = Locale::new(format::Locale::NEUTRAL, time::Locale::NEUTRAL);
 
-    /// d3's default locale: commas in groups of three, a dollar currency;
-    /// d3's en-US dates and d3's ladder.
+    /// d3's default locale: commas between groups of three and a dollar
+    /// currency, with d3's en-US dates and d3's ladder.
     pub const EN_US: Locale = Locale::new(format::Locale::EN_US, time::Locale::EN_US);
 
     /// German (Germany): d3's de-DE number and time tables, the ISO ladder.
@@ -111,9 +110,9 @@ impl Locale {
     /// Chinese (China): d3's zh-CN number and time tables, the ISO ladder.
     pub const ZH_CN: Locale = Locale::new(format::Locale::ZH_CN, time::Locale::ZH_CN);
 
-    /// The figure locale of two tables: numbers as `number` writes them,
-    /// dates as `time` does. Every constant is such a pair; this one takes
-    /// runtime tables, such as d3-time-format's without a constant.
+    /// A figure locale that writes numbers with `number` and dates with
+    /// `time`. Every constant is such a pair. This takes runtime tables,
+    /// such as a d3-time-format table that has no constant here.
     ///
     /// ```
     /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -147,8 +146,8 @@ impl Locale {
         Locale { number, time }
     }
 
-    /// The locale with its time half `time` and its number half as it was:
-    /// a constant writing dates on another ladder, or in another table.
+    /// The locale with its time half replaced by `time`. It lets a constant
+    /// write dates on another ladder or from another table.
     ///
     /// ```
     /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};

@@ -24,8 +24,9 @@ pub fn iso_format(t: Timestamp) -> String {
     Locale::NEUTRAL.format(ISO).format(t, &TimeZone::UTC)
 }
 
-/// d3's `isoParse`: an RFC 3339 instant, through jiff's parser (an offset
-/// or `Z` is required); its error where d3 returns null.
+/// d3's `isoParse`: `s` read as an RFC 3339 instant by jiff's parser, which
+/// requires an offset or `Z`. It returns jiff's error where d3 returns
+/// null.
 ///
 /// ```
 /// use rustd3_core::time;

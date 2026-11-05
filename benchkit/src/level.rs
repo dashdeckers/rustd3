@@ -1,14 +1,14 @@
 //! [`Level`]: the benchmark's one entry point,
 //! `bench_all [--quick | --default | --full]` (`bench_figure` for the
-//! plotting library alone), the same on Linux, Windows and macOS. A level
-//! prints what it will run and an estimate,
-//! takes the CPU reference, times the plotting library alone (the
-//! `figure` profile), and around them runs the widget's part
-//! ([`Widget`]: the display measurement first, the profiles that drive
-//! the `Plot` widget after), unless `--figure-only` or `bench_figure`
-//! leaves it out. Every step lands in
-//! `bench-results/<UTC stamp>-<level>/`, packed into one archive after
-//! each, and nothing stops a level.
+//! plotting library alone), the same on Linux, Windows and macOS.
+//!
+//! A level prints what it will run and an estimate, takes the CPU
+//! reference, and times the plotting library alone (the `figure` profile).
+//! Around those it runs the widget's part ([`Widget`]), with the display
+//! measurement first and the profiles that drive the `Plot` widget after,
+//! unless `--figure-only` or `bench_figure` leaves it out. Every step
+//! lands in `bench-results/<UTC stamp>-<level>/`, which is packed into one
+//! archive after each step. Nothing stops a level.
 
 #[cfg(feature = "widget")]
 pub mod widget;
@@ -27,7 +27,7 @@ use crate::{archive, figure, reference, system};
 /// How much a level runs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Level {
-    /// About 16 minutes: what an issue report needs; report-only.
+    /// About 16 minutes: what an issue report needs (report-only).
     Quick,
     /// About 95 minutes: the software profile, the registered verdict run
     /// and the weak profiles.
@@ -64,18 +64,19 @@ pub struct Request {
 }
 
 /// The widget's part of a level, in a build with the `widget` feature
-/// (`widget::Part`): the display measurement before the CPU reference,
-/// then, after the figure profile, the profiles that drive the `Plot`
+/// (`widget::Part`). It measures the display before the CPU reference.
+/// After the figure profile, it runs the profiles that drive the `Plot`
 /// widget, and at `--full` the `also` measurements.
 pub trait Widget {
     /// What it will run and the level's estimate with it.
     fn outline(&self) -> Outline;
-    /// Measures the display into `dir`; its profiles are known from then.
+    /// Measures the display into `dir`. Its profiles are known from then
+    /// on.
     fn display(&mut self, dir: &Path) -> Result<Display, Box<dyn Error>>;
     /// Its profiles before they run: pending, or skipped with why.
     fn profiles(&self) -> Vec<results::Profile>;
-    /// Runs its profile `index` into `dir` (one skipped comes back as it
-    /// was planned), noting how it ran in `notes` (`system.txt`).
+    /// Runs its profile `index` into `dir` and notes how it ran in `notes`
+    /// (`system.txt`). A skipped profile comes back as it was planned.
     fn run(
         &mut self,
         index: usize,
@@ -93,7 +94,7 @@ pub struct Outline {
     pub before: Vec<String>,
     /// Its lines after the figure profile's: its profiles, `also`.
     pub after: Vec<String>,
-    /// The whole level's estimated wall time with it, s.
+    /// The whole level's estimated wall time with the widget's part, in s.
     pub estimate_s: f64,
     /// How its estimate is made, for the estimate's line.
     pub note: String,
@@ -152,8 +153,8 @@ impl Level {
 
 impl Request {
     /// Runs the level with the bench at `exe`, and with `widget`'s part
-    /// when given; without it, the plotting library alone: the CPU
-    /// reference and the figure profile, no window.
+    /// when given. Without it, the level runs the plotting library alone:
+    /// the CPU reference and the figure profile, with no window.
     pub fn run(
         &self,
         exe: &Path,
@@ -256,8 +257,8 @@ impl Request {
                 .map_or_else(|| "not measured".to_owned(), |ms| format!("{ms:.2} ms"));
             println!("  {:<17} {ms}", timing.name);
         }
-        // An archive after every step: std cannot catch Ctrl-C portably,
-        // so an interrupted level leaves the last whole one.
+        // Pack an archive after every step. std cannot catch Ctrl-C
+        // portably, so an interrupted level leaves the last whole archive.
         save(&results, &notes)?;
         if timed {
             println!(
@@ -302,8 +303,8 @@ impl Request {
 
 /// Writes the level's own files into `dir` (`system.txt`, `results.json`,
 /// `report.md`, `PRIVACY.md`), rewrites every text file under it through
-/// `identity`'s scrub, and packs it into `archive`: the archive's files,
-/// read back, and its bytes.
+/// `identity`'s scrub, and packs it into `archive`. Returns the number of
+/// files in the archive, read back, and its size in bytes.
 fn save(
     dir: &Path,
     archive: &Path,
@@ -323,8 +324,9 @@ fn save(
     Ok((archive::read(archive)?.len(), size))
 }
 
-/// The `system76-power` profile while a level runs: `performance`, the
-/// one before restored when dropped; nothing where the tool is absent.
+/// The `system76-power` profile held while a level runs. It sets
+/// `performance` and restores the previous profile when dropped, and does
+/// nothing where the tool is absent.
 struct Power {
     previous: Option<String>,
 }
@@ -373,8 +375,8 @@ mod tests {
 
     #[test]
     fn an_archive_holds_no_home_and_no_host_name() {
-        // A results directory under a fake home, with what names paths in
-        // a real one: a run's command line, its console, a panic.
+        // A results directory under a fake home, holding what names paths
+        // in a real one: a run's command line, its console, a panic.
         let root = std::env::temp_dir().join(format!("rustd3-privacy-{}", std::process::id()));
         let home = root.join("home").join("alice");
         let out = home.join("rustd3").join("bench-results");

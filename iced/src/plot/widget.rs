@@ -29,7 +29,7 @@ type Report<'a, Message> = Box<dyn Fn(Option<Hover>) -> Message + 'a>;
 /// A figure shown as images rendered from its drawing list.
 ///
 /// The widget takes the figure by value, as `view` builds it, and keeps
-/// it for relayouts; between frames it keeps the figure's cache (laid-out
+/// it for relayouts. Between frames it keeps the figure's cache (laid-out
 /// labels, thinned lines) and the rendered cells in iced's widget tree.
 pub struct Plot<'a, Message> {
     figure: Figure<'a>,
@@ -55,7 +55,7 @@ impl<'a, Message> std::fmt::Debug for Plot<'a, Message> {
 }
 
 impl<'a, Message> Plot<'a, Message> {
-    /// Shows `figure`; the widget keeps it for relayouts.
+    /// A widget that shows `figure`, which it keeps for relayouts.
     #[must_use]
     pub fn new(figure: Figure<'a>) -> Self {
         Plot {
@@ -76,7 +76,7 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// The widget's width; defaults to `Length::Fill`.
+    /// The widget's width, `Length::Fill` by default.
     #[must_use]
     pub fn width(self, width: impl Into<Length>) -> Self {
         Plot {
@@ -85,7 +85,7 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// The widget's height; defaults to `Length::Fill`.
+    /// The widget's height, `Length::Fill` by default.
     #[must_use]
     pub fn height(self, height: impl Into<Length>) -> Self {
         Plot {
@@ -94,18 +94,20 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Device pixels per logical pixel; wins over every fallback. In a
-    /// window the widget learns the factor from the window's events (and
-    /// wgpu's renderer), so an app passes it only when it scales itself on
-    /// the software renderer, which reports none. `iced_test`'s
-    /// `Simulator` has no window: it snapshots at 2 and tells widgets no
+    /// Device pixels per logical pixel, which wins over every fallback.
+    ///
+    /// In a window the widget learns the factor from the window's events
+    /// (and wgpu's renderer), so an app passes it only when it scales
+    /// itself on the software renderer, which reports none. `iced_test`'s
+    /// `Simulator` has no window. It snapshots at 2 and tells widgets no
     /// factor, so a test that snapshots a `Plot` passes the snapshot's
-    /// factor here; without it the widget draws for 1 and the snapshot
-    /// shows each of its pixels doubled. A factor that is not finite and
-    /// positive is skipped for the next in the chain; one above 8, from
-    /// here or from the window, is taken as 8; and a widget wider or
-    /// taller than 65,408 device px, the most the renderer draws, renders
-    /// at the factor that fits it.
+    /// factor here. Without it the widget draws for 1, and the snapshot
+    /// shows each of its pixels doubled.
+    ///
+    /// A factor that is not finite and positive is skipped for the next in
+    /// the chain. One above 8, from here or from the window, is taken as 8.
+    /// A widget wider or taller than 65,408 device px, the most the
+    /// renderer draws, renders at the factor that fits it.
     ///
     /// ```text
     /// let plot = Plot::new(fig).scale_factor(2.0); // as iced_test snapshots
@@ -120,8 +122,9 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Crosshair in the hovered panel (default on): two lines one device
-    /// pixel wide through the pointer, in the figure theme's ink at 40%.
+    /// The crosshair in the hovered panel, on by default. It is two lines
+    /// one device pixel wide through the pointer, in the figure theme's ink
+    /// at 40%.
     #[must_use]
     pub fn crosshair(self, on: bool) -> Self {
         Plot {
@@ -130,9 +133,9 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Ring around the nearest data point (default on): the point of the
-    /// hovered panel's marks nearest the pointer within 12 logical px,
-    /// circled in the figure theme's ink.
+    /// The ring around the nearest data point, on by default. It circles
+    /// the point of the hovered panel's marks nearest the pointer within 12
+    /// logical px, in the figure theme's ink.
     #[must_use]
     pub fn highlight(self, on: bool) -> Self {
         Plot {
@@ -141,25 +144,26 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Where changed cells rasterize; defaults to [`Render::Auto`].
+    /// Where changed cells rasterize, [`Render::Auto`] by default.
     #[must_use]
     pub fn render(self, render: Render) -> Self {
         Plot { render, ..self }
     }
 
-    /// How the widget reuses rendered images; defaults to
-    /// [`Caching::On`]. [`Caching::Off`] re-renders every cell whenever
-    /// any changed, a diagnostic for the benchmark; [`Caching::Verify`]
-    /// renders what it keeps again and reports what differs.
+    /// How the widget reuses rendered images, [`Caching::On`] by default.
+    /// [`Caching::Off`] re-renders every cell whenever any changed, as a
+    /// diagnostic for the benchmark. [`Caching::Verify`] renders what it
+    /// keeps again and reports what differs.
     #[must_use]
     pub fn caching(self, caching: Caching) -> Self {
         Plot { caching, ..self }
     }
 
-    /// Bump when something the hashes cannot see changed (a paint
-    /// image's pixels replaced in place, a font swapped); every cell
-    /// re-renders at the next refresh. 0 by default; the widget compares
-    /// each value with the last one it rendered.
+    /// A revision the app bumps when something the hashes cannot see
+    /// changed, such as a paint image's pixels replaced in place or a font
+    /// swapped. Every cell then re-renders at the next refresh. It is 0 by
+    /// default, and the widget compares each value with the last one it
+    /// rendered.
     ///
     /// ```no_run
     /// # mod rustd3 { pub use rustd3_figure as figure; }
@@ -184,12 +188,13 @@ impl<'a, Message> Plot<'a, Message> {
         Plot { revision, ..self }
     }
 
-    /// Render pool size, clamped to 1..=64; changing it restarts the pool
-    /// (at its next jobs). By default the available parallelism less the
-    /// UI thread, 1 to 8, which respects the process's CPU affinity: one
-    /// thread on a 2-core machine, 8 on 16 cores. Every render the widget
-    /// makes, on the pool or inline on the UI thread, is single-threaded,
-    /// so the pool is the widget's only parallelism whatever its size.
+    /// The render pool's size, clamped to 1..=64. Changing it restarts the
+    /// pool at its next jobs. By default it is the available parallelism
+    /// less the UI thread, from 1 to 8, which respects the process's CPU
+    /// affinity: one thread on a 2-core machine, 8 on 16 cores. Every
+    /// render the widget makes, on the pool or inline on the UI thread, is
+    /// single-threaded, so the pool is the widget's only parallelism
+    /// whatever its size.
     ///
     /// ```no_run
     /// # mod rustd3 { pub use rustd3_figure as figure; }
@@ -208,10 +213,10 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Reports per-stage durations, per-cell raster times and what each
-    /// frame showed to `probe`, timed by its clock (see [`probe`](crate::plot::probe)).
-    /// Without a probe nothing is sent; the widget times its renders for
-    /// its cost model either way.
+    /// Reports to `probe` the per-stage durations, per-cell raster times
+    /// and what each frame showed, timed by the probe's clock (see
+    /// [`probe`](crate::plot::probe)). Without a probe nothing is sent. The
+    /// widget times its renders for its cost model either way.
     ///
     /// ```no_run
     /// # mod rustd3 { pub use rustd3_figure as figure; }
@@ -246,15 +251,15 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
-    /// Changes to `handle`'s domain become messages; the app owns the
+    /// Changes to `handle`'s domain become messages, and the app owns the
     /// domain from then on. Without this, the widget keeps it.
     ///
-    /// A gesture publishes one message per handle per frame, the domain's
-    /// end stops in the scale's own type, and continues from the domain it
-    /// last published until it ends, so updates the app applies late lose
-    /// no distance. Only continuous handles change. A later `on_change`
-    /// for the same handle replaces this one. A handle of another figure
-    /// has no domain here: the listener is not added.
+    /// A gesture publishes one message per handle per frame, holding the
+    /// domain's end stops in the scale's own type. Until the gesture ends,
+    /// it continues from the domain it last published, so updates the app
+    /// applies late lose no distance. Only continuous handles change. A
+    /// later `on_change` for the same handle replaces this one. A handle of
+    /// another figure has no domain here, so the listener is not added.
     ///
     /// The message carries the domain in the scale's own type: a time
     /// handle publishes instants, and a message of numbers for it does not
@@ -308,26 +313,30 @@ impl<'a, Message> Plot<'a, Message> {
     }
 
     /// The selections of brushes over `over` (`Panel::brush`) become
-    /// messages: `f(Some([a, b]))` with the values `over`'s scale inverts
-    /// the selection's ends to, in their order along the axis (left to
-    /// right, top to bottom), while a gesture changes it and when it ends;
-    /// `f(None)` when it ends empty (a click without a drag) or a double
-    /// click clears it. One message per brush per frame, the latest. A
-    /// later `on_brush` for the same handle replaces this one. A handle of
-    /// another figure has no brush here: the listener is not added.
+    /// messages.
     ///
-    /// A drag over a brushed plot area brushes (the wheel still zooms):
-    /// a press outside the selection starts a new one, on it moves it, on
-    /// its edges resizes it, as d3-brush does; the live rectangle and the
-    /// selection band are drawn over the panel's plot area, and only the
-    /// overlay redraws. With `.sets(target)` the selection sets the
-    /// target's domain as a zoom does (published by `on_change`, else the
-    /// widget's own, which fitting then skips until a double click), and
-    /// between gestures the band follows the target's domain: a zoom of the
-    /// target moves it, and a target showing all of `over`'s domain shows
-    /// none.
+    /// While a gesture changes a selection, and when it ends, the message
+    /// is `f(Some([a, b]))`. `a` and `b` are the values `over`'s scale
+    /// inverts the selection's ends to, in their order along the axis (left
+    /// to right, top to bottom). The message is `f(None)` when the gesture
+    /// ends empty (a click without a drag) or a double click clears the
+    /// selection. One message goes out per brush per frame, with the latest
+    /// selection. A later `on_brush` for the same handle replaces this one.
+    /// A handle of another figure has no brush here, so the listener is not
+    /// added.
     ///
-    /// Only handles with a typed inverse have brushes: a selection over a
+    /// A drag over a brushed plot area brushes, and the wheel still zooms.
+    /// As in d3-brush, a press outside the selection starts a new one, a
+    /// press on it moves it, and a press on its edges resizes it. The live
+    /// rectangle and the selection band are drawn over the panel's plot
+    /// area, and only the overlay redraws. With `.sets(target)` the
+    /// selection sets the target's domain as a zoom does. That domain is
+    /// published by `on_change`, or else is the widget's own, which fitting
+    /// then skips until a double click. Between gestures the band follows
+    /// the target's domain, so a zoom of the target moves it, and a target
+    /// showing all of `over`'s domain shows no band.
+    ///
+    /// Only handles with a typed inverse have brushes. A selection over a
     /// band handle has no domain values, and `brush::x` does not take one.
     ///
     /// ```no_run
@@ -372,18 +381,21 @@ impl<'a, Message> Plot<'a, Message> {
         self
     }
 
-    /// What the pointer is over becomes messages: `f(Some(hover))` when
-    /// the drawn point nearest the pointer (within 12 logical px, in the
-    /// panel whose plot area holds it) changes, `f(None)` once when there
-    /// is none any more or the pointer left the widget. Moving within one
-    /// point sends nothing. Moves between frames are hit-tested against an
-    /// index of the drawn points built with the drawing list, so hovering
-    /// resolves and renders nothing; at most one message goes out per
-    /// frame, and none during a gesture. The highlight ring shows the same
-    /// point; tooltips are the app's own widgets, built from these
-    /// messages. The index is built only for a widget with the highlight
-    /// or `on_hover`, and not while a gesture lasts: the refresh after it
-    /// builds it, and nothing is hit-tested meanwhile.
+    /// What the pointer is over becomes messages.
+    ///
+    /// `f(Some(hover))` goes out when the drawn point nearest the pointer
+    /// changes, within 12 logical px and in the panel whose plot area holds
+    /// the pointer. `f(None)` goes out once when there is no such point any
+    /// more or the pointer left the widget. Moving within one point sends
+    /// nothing. Moves between frames are hit-tested against an index of
+    /// the drawn points built with the drawing list, so hovering resolves
+    /// and renders nothing. At most one message goes out per frame, and
+    /// none during a gesture. The highlight ring shows the same point.
+    /// Tooltips are the app's own widgets, built from these messages.
+    ///
+    /// The index is built only for a widget with the highlight or
+    /// `on_hover`, and not while a gesture lasts. The refresh after the
+    /// gesture builds it, and nothing is hit-tested meanwhile.
     ///
     /// ```no_run
     /// # mod rustd3 { pub use rustd3_core::scale; pub use rustd3_figure as figure; }

@@ -15,9 +15,9 @@ const MAX_TICKS: usize = 10_000;
 const SYMMETRIC: f64 = 0.2;
 
 /// The inverse hyperbolic sine transform, `w·asinh(x/w)`: linear within
-/// about the linear width w of 0 and logarithmic beyond, with negative
-/// values. Ticks are signed powers of ten (matplotlib's `AsinhLocator`);
-/// labels default to `",.12~g"`.
+/// about the linear width w of 0 and logarithmic beyond, and defined for
+/// negative values. Ticks are signed powers of ten (matplotlib's
+/// `AsinhLocator`), and labels default to `",.12~g"`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Asinh {
     linear_width: f64,
@@ -40,14 +40,15 @@ impl Transform for Asinh {
     }
 
     /// matplotlib's `AsinhLocator` in base 10 with `numticks = min(count,
-    /// 10,000) + 1`: ends nearly symmetric about 0 are made symmetric; the
-    /// transformed ends are split into `numticks` equal steps (those nearer
-    /// 0 than half a step dropped and 0 added when they straddle it); each
-    /// step mapped back is rounded down to a signed power of ten, as
-    /// matplotlib does through `⌊ln|x| / ln 10⌋`; fewer than two distinct
-    /// powers give equal steps of the ends instead, each value once (one
-    /// tick for a zero-width domain). Values outside the domain are
-    /// dropped; domain order; empty for a non-finite end.
+    /// 10,000) + 1`. Ends nearly symmetric about 0 are made symmetric. The
+    /// transformed ends are split into `numticks` equal steps. When they
+    /// straddle 0, the steps nearer 0 than half a step are dropped and 0 is
+    /// added. Each step, mapped back, is rounded down to a signed power of
+    /// ten, as matplotlib does through `⌊ln|x| / ln 10⌋`. Fewer than two
+    /// distinct powers give equal steps of the ends instead, each value
+    /// once (one tick for a zero-width domain). Values outside the domain
+    /// are dropped, and the ticks are in domain order. Empty for a
+    /// non-finite end.
     fn ticks(&self, domain: [f64; 2], count: usize) -> Vec<f64> {
         let reverse = domain[1] < domain[0];
         let [a, b] = if reverse {
@@ -91,7 +92,7 @@ impl Transform for Asinh {
         z
     }
 
-    /// Every tick labelled, the specifier defaulting to `",.12~g"`.
+    /// Every tick labeled, the specifier defaulting to `",.12~g"`.
     fn tick_format(
         &self,
         locale: &Locale,
@@ -104,10 +105,10 @@ impl Transform for Asinh {
     }
 }
 
-/// `sign(x)·10^⌊log10|x|⌋`, 0 for 0, with the decade read a relative
-/// 1e-9 above the exact power: a value one ulp under 10ᵏ, as the
-/// platform's `sinh(asinh(10ᵏ))` can return, still ticks at 10ᵏ, so the
-/// ticks do not depend on the libm in use.
+/// `sign(x)·10^⌊log10|x|⌋`, or 0 for 0. The decade is read a relative
+/// 1e-9 above the exact power, so a value one ulp under 10ᵏ, which the
+/// platform's `sinh(asinh(10ᵏ))` can return, still ticks at 10ᵏ. This
+/// keeps the ticks independent of the libm in use.
 fn power_below(x: f64) -> f64 {
     if x == 0.0 {
         0.0

@@ -10,8 +10,8 @@ use crate::time::{self, Time};
 const HOUR: i128 = 3_600 * 1_000_000_000;
 /// One day, in nanoseconds.
 const DAY: i128 = 24 * HOUR;
-/// No data: matplotlib's date axis without data, 1970-01-01 to 1970-01-02
-/// UTC, in nanoseconds from the epoch.
+/// The extent of matplotlib's date axis without data, 1970-01-01 to
+/// 1970-01-02 UTC, in nanoseconds from the epoch.
 const EMPTY: [i128; 2] = [0, DAY];
 /// How far a flat extent widens per side: an hour, so one sample's axis
 /// reads in hours and minutes (matplotlib's `DateLocator.nonsingular`
@@ -21,11 +21,11 @@ const WIDEN: i128 = HOUR;
 /// relative to the span, as in the continuous scales' `Pad`.
 const STICKY_TOLERANCE: f64 = 1e-5;
 
-/// matplotlib's autoscaling of a date axis: no data gives 1970-01-01 to
-/// 1970-01-02 UTC; equal ends widen by an hour per side (matplotlib
-/// widens anything under 10⁻⁶ days, which would flatten every recording
-/// shorter than 0.1 s, and by two years, which hides a sensor's one
-/// sample in a decade); each side then gets `margin` of the span, rounded
+/// matplotlib's autoscaling of a date axis. No data gives 1970-01-01 to
+/// 1970-01-02 UTC. Equal ends widen by an hour per side. matplotlib widens
+/// anything under 10⁻⁶ days, which would flatten every recording shorter
+/// than 0.1 s, and widens it by two years, which hides a sensor's one
+/// sample in a decade. Each side then gets `margin` of the span, rounded
 /// to the nanosecond, except where a sticky instant stops it. The result
 /// keeps the domain's orientation and saturates at jiff's range.
 ///

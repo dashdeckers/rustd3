@@ -1,8 +1,8 @@
-//! `bench_compare A B`: two results, each a level's directory or
-//! archive (or a suite's directory from before the levels), side by side: the
-//! machines, then per profile and cell the key metrics of A and B and
-//! their ratio B/A (per figure and stage for the figure profile),
-//! with the cells and profiles only one side has marked.
+//! `bench_compare A B`: two results side by side, each a level's directory
+//! or archive (or a suite's directory from before the levels). It shows
+//! the machines, then per profile and cell the key metrics of A and B and
+//! their ratio B/A (per figure and stage for the figure profile). Cells
+//! and profiles that only one side has are marked.
 
 use std::fmt::Write as _;
 

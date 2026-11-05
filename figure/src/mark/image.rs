@@ -1,5 +1,5 @@
 //! [`Image`]: a grid of values drawn as a raster through a color handle,
-//! one pixel per cell; [`Grid`], its values and the rectangle they cover.
+//! one pixel per cell. [`Grid`]: the values and the rectangle they cover.
 
 use std::sync::Arc;
 
@@ -48,10 +48,10 @@ pub struct Grid {
     y: [f64; 2],
 }
 
-/// Which cells of one axis are drawn and where: the cells between `first`
-/// and `last` (counted from the axis' low px end) span `[lo, hi]` px, and
-/// cell `k` there is the grid's `k` or, when the axis runs against px,
-/// its `n − 1 − k`.
+/// Which cells of one axis are drawn, and where. The cells between `first`
+/// and `last` (counted from the axis' low px end) span `[lo, hi]` px. Cell
+/// `k` there is the grid's cell `k`, or its cell `n − 1 − k` when the axis
+/// runs against px.
 struct Span {
     first: usize,
     last: usize,
@@ -61,15 +61,17 @@ struct Span {
     n: usize,
 }
 
-/// `grid` drawn on `x` and `y` through the color handle `color`: an image
-/// of one pixel per cell, `cols × rows`, placed at the device rectangle of
-/// the grid's extent with nearest sampling, so cells stay sharp as
-/// colorbars need. Cells are opaque unless their color has alpha; a cell
-/// whose value has no color (NaN, a value the scale does not take) is
-/// transparent. Row 0 sits at the extent's first y, at the bottom when y
-/// runs up. The extent's edges enter fitting and hold the margins, so the
-/// grid fills the plot area as matplotlib's `imshow` does; the values fit
-/// a fitted color handle. Only the cells within the guard band around the
+/// `grid` drawn on `x` and `y` through the color handle `color`, as an
+/// image of one pixel per cell (`cols × rows`). The image is placed at the
+/// device rectangle of the grid's extent with nearest sampling, so cells
+/// stay sharp as colorbars need. Cells are opaque unless their color has
+/// alpha, and a cell whose value has no color (NaN, a value the scale does
+/// not take) is transparent. Row 0 sits at the extent's first y, at the
+/// bottom when y runs up.
+///
+/// The extent's edges enter fitting and hold the margins, so the grid
+/// fills the plot area as matplotlib's `imshow` does. The values fit a
+/// fitted color handle. Only the cells within the guard band around the
 /// plot area are drawn.
 ///
 /// ```
@@ -101,9 +103,8 @@ where
 }
 
 impl Grid {
-    /// `cols × rows` cells holding `values`, row-major, row 0 at `y[0]`;
-    /// [`Error::GridLength`] with the lengths when the values do not fill
-    /// the cells exactly.
+    /// `cols × rows` cells holding `values`, row-major, with row 0 at
+    /// `y[0]`.
     ///
     /// ```
     /// use rustd3_figure::mark::{Error, Grid};
@@ -221,9 +222,9 @@ where
 }
 
 impl Span {
-    /// The cells of an axis of `n` cells whose ends lie at `[p0, p1]` px
-    /// that reach into `[lo, hi]`; `None` when none do or the axis has no
-    /// length.
+    /// The cells that reach into `[lo, hi]` px, on an axis of `n` cells
+    /// whose ends lie at `[p0, p1]` px; `None` when none do or the axis has
+    /// no length.
     fn new([p0, p1]: [f64; 2], n: usize, [lo, hi]: [f64; 2]) -> Option<Span> {
         let (start, end) = (p0.min(p1), p0.max(p1));
         let step = (end - start) / n as f64;

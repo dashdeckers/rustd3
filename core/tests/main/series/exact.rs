@@ -1,6 +1,6 @@
-//! M4 from the index against a raw scan of the same samples, over the
-//! two generated traces: a vibration-like signal and a slow
-//! signal with gaps of 1 to 50,000 samples, 1,000,000 samples each.
+//! M4 from the index against a raw scan of the same samples, over two
+//! generated traces of 1,000,000 samples each: a vibration-like signal and
+//! a slow signal with gaps of 1 to 50,000 samples.
 
 use std::hint::black_box;
 use std::sync::OnceLock;
@@ -13,8 +13,8 @@ use super::{Lcg, m4_scan, thinned_by_index};
 /// The traces' sample count.
 const N: usize = 1_000_000;
 
-/// A generated trace, and its recording on an explicit
-/// clock of the same x.
+/// A generated trace, and its recording on an explicit clock of the same
+/// x.
 struct Trace {
     x: Vec<f64>,
     y: Vec<f64>,
@@ -74,8 +74,8 @@ fn edges(view: [f64; 2], columns: usize) -> Vec<f64> {
         .collect()
 }
 
-/// Drift, a 7 Hz tone, noise,
-/// 0.2 s bursts every 10 s and 50 one-sample impacts at 10 kHz, seed 42.
+/// Drift, a 7 Hz tone, noise, 0.2 s bursts every 10 s and 50 one-sample
+/// impacts at 10 kHz, seed 42.
 fn signal() -> &'static Trace {
     static TRACE: OnceLock<Trace> = OnceLock::new();
     TRACE.get_or_init(|| {
@@ -112,9 +112,9 @@ fn vibration(n: usize) -> (Vec<f64>, Vec<f64>, Vec<usize>) {
     (x, y, impacts)
 }
 
-/// A 0.1 Hz tone with noise, seed 9, with
-/// four gaps each of 1, 10, 100, 1,000, 10,000 and 50,000 samples (some
-/// overlap), the first sample a gap and the last NaN.
+/// A 0.1 Hz tone with noise, seed 9, with four gaps each of 1, 10, 100,
+/// 1,000, 10,000 and 50,000 samples (some overlap), the first sample a gap
+/// and the last NaN.
 fn gaps() -> &'static Trace {
     static TRACE: OnceLock<Trace> = OnceLock::new();
     TRACE.get_or_init(|| {

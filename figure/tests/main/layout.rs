@@ -64,7 +64,7 @@ fn line_box(size: f64) -> [f64; 2] {
     [1556.0, 492.0].map(|units| units / 2048.0 * size)
 }
 
-/// `a` and `b` are the same f64, bit for bit.
+/// Whether `a` and `b` are the same f64, bit for bit.
 fn same(a: f64, b: f64) -> bool {
     a.to_bits() == b.to_bits()
 }
@@ -441,7 +441,7 @@ fn panel_titles_of_a_row_share_a_baseline_whatever_their_descenders_and_side_axe
             .mark(line(x, [0.0, 10.0]))
             .mark(line(y, [0.0, 3.0]))
             .title(title);
-        // A labelled left axis overhangs the top by half its line box in
+        // A labeled left axis overhangs the top by half its line box in
         // the first panel of each row; a top axis raises the second row.
         if i % 2 == 0 {
             panel.axis(axis::left(y));
@@ -478,7 +478,7 @@ fn tick_labels_at_the_ends_widen_the_sides_they_cross() {
     fig.panel(0, 0).axis(axis::bottom(x)).axis(axis::right(y));
     let area = resolve(&fig, &Held::default()).get_plot_areas()[0];
     // "0" overhangs the left end by half its advance, "3.0" the top by
-    // half its line box, centred on the tick; the right axis's own reach is
+    // half its line box, centered on the tick; the right axis's own reach is
     // wider than "10"'s half.
     let digit = 9.3314;
     assert!((area.x0 - PAD - digit / 2.0).abs() < 1e-3, "{area:?}");
@@ -521,8 +521,8 @@ fn attached_panels_with_axes_and_titles_share_pixel_ranges_exactly() {
     assert!(areas[0].x0 < areas[1].x0 && areas[0].y0 < areas[2].y0);
 }
 
-/// A `rows` × `cols` grid of panels at `size`, each with a left and a
-/// bottom axis on its own handles, fitted to 0 … 10 and 0 … 3.
+/// A `rows` × `cols` grid of panels, each with a left and a bottom axis on
+/// its own handles, fitted to 0 … 10 and 0 … 3.
 fn grid(rows: usize, cols: usize) -> Figure<'static> {
     let mut fig = Figure::new();
     for r in 0..rows {

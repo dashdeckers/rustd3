@@ -1,7 +1,7 @@
-//! Checking a figure before drawing it:
-//! [`Figure::check`](crate::Figure::check) lays it out for
-//! a size without drawing and lists what does not fit or will not draw
-//! well, so a test can assert that a figure fits.
+//! Checking a figure before drawing it.
+//! [`Figure::check`](crate::Figure::check) lays the figure out for a size
+//! without drawing, and lists what does not fit or will not draw well, so
+//! a test can assert that a figure fits.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -52,8 +52,9 @@ pub enum Issue {
         /// The px the tracks have.
         available: f64,
     },
-    /// An axis that the collision passes left fewer than two of its tick
-    /// labels: labels too long, or rotated too little, for its length.
+    /// An axis left with fewer than two tick labels by the collision
+    /// passes, because its labels are too long, or rotated too little, for
+    /// its length.
     FewLabels {
         /// The axis's panel.
         panel: usize,
@@ -73,7 +74,8 @@ pub enum Issue {
         /// the order they were added.
         legends: [usize; 2],
     },
-    /// Owned data over 100,000 points: use a Series.
+    /// A mark with owned data over 100,000 points, which belongs in a
+    /// `Series`.
     LargeOwned {
         /// The mark's panel.
         panel: usize,
@@ -110,7 +112,7 @@ pub enum Issue {
         panel: usize,
         /// The mark's index in its panel.
         mark: usize,
-        /// What the mark kept from when it was built.
+        /// The error the mark recorded when it was built.
         error: crate::mark::Error,
     },
     /// A panel asked for in a cell that reaches past the grid's 4,096
@@ -122,12 +124,12 @@ pub enum Issue {
         /// The cell's first column.
         col: usize,
     },
-    /// A scale handle of another figure ([`ScaleRef`](crate::scale::ScaleRef)
-    /// carries its figure): the marks, axes, guides, zooms and brushes
-    /// given it draw nothing (a palette of another figure leaves its marks
-    /// in the theme's gray and its axis untinted; a mark's values on the
-    /// figure's own handles still fit them). One issue per panel and
-    /// handle.
+    /// A scale handle of another figure
+    /// ([`ScaleRef`](crate::scale::ScaleRef) carries its figure). The marks,
+    /// axes, guides, zooms and brushes given it draw nothing, except that a
+    /// palette of another figure leaves its marks in the theme's gray and
+    /// its axis untinted. A mark's values on the figure's own handles still
+    /// fit them. One issue per panel and handle.
     ForeignHandle {
         /// The panel it was given to; `None` for a figure slot's guide.
         panel: Option<usize>,
@@ -169,8 +171,9 @@ pub enum Element {
     PanelTitle,
     /// The figure title, wider than the canvas inside its padding.
     FigureTitle,
-    /// A legend: in a slot, larger than the canvas inside its padding; in
-    /// a panel corner, than the plot area 0.5 em inside its edges.
+    /// A legend larger than its room. In a slot the room is the canvas
+    /// inside its padding; in a panel corner it is the plot area 0.5 em
+    /// inside its edges.
     Legend,
 }
 

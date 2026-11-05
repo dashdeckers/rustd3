@@ -1,8 +1,9 @@
 //! Brushes through the headless harness on the backend `ICED_TEST_BACKEND`
-//! names: d3's focus and context as a figure, the window it publishes,
-//! inputs before the app's update, the band following a zoom of its
-//! target, empty selections, modifier changes, precedence over the wheel,
-//! and the overlay: inside the brushed panel only, and no cell rendered.
+//! names. The tests cover d3's focus and context as a figure, the window it
+//! publishes, inputs before the app's update, the band following a zoom of
+//! its target, empty selections, modifier changes, precedence over the
+//! wheel, and the overlay, which stays inside the brushed panel and renders
+//! no cell.
 
 use std::sync::mpsc;
 use std::time::Duration;
@@ -56,9 +57,9 @@ pub fn hours(t: Timestamp) -> f64 {
     t.duration_since(start()).as_secs_f64() / 3600.0
 }
 
-/// A focus-and-context view as a figure: a focus panel over `window` above a context
-/// panel over all 30 days, which brushes the focus's window; the app owns
-/// the window when it `listens`.
+/// A focus-and-context view as a figure. A focus panel over `window` sits
+/// above a context panel over all 30 days, which brushes the focus's
+/// window. The app owns the window when it `listens`.
 pub struct FocusContext {
     pub window: [Timestamp; 2],
     pub k: f32,
@@ -144,10 +145,10 @@ impl FocusContext {
     }
 }
 
-/// One frame as iced's runtime runs it: `RedrawRequested(now)`; while the
-/// widget published messages, `app` applies them, the interface is rebuilt
-/// from its view and `RedrawRequested(now)` is sent again, at most three
-/// times; then the screenshot. Returns it and the messages.
+/// Runs one frame as iced's runtime does. It sends `RedrawRequested(now)`.
+/// While the widget publishes messages, `app` applies them, the interface
+/// is rebuilt from its view and `RedrawRequested(now)` is sent again, at
+/// most three times in all. Returns the screenshot and the messages.
 pub fn run_frame(
     harness: &mut Harness<'static, Message>,
     app: &mut FocusContext,
@@ -178,7 +179,7 @@ pub fn across(area: Rect, share: f64) -> Point {
     )
 }
 
-/// The cursor moved to `to` and the left button pressed there.
+/// Moves the cursor to `at` and presses the left button there.
 pub fn press(harness: &mut Harness<'static, Message>, at: Point) {
     harness.point_at(at);
     let _ = harness.events(&[
@@ -187,13 +188,13 @@ pub fn press(harness: &mut Harness<'static, Message>, at: Point) {
     ]);
 }
 
-/// The cursor moved to `to`.
+/// Moves the cursor to `to`.
 pub fn move_to(harness: &mut Harness<'static, Message>, to: Point) {
     harness.point_at(to);
     let _ = harness.events(&[Event::Mouse(mouse::Event::CursorMoved { position: to })]);
 }
 
-/// The left button released.
+/// Releases the left button.
 pub fn release(harness: &mut Harness<'static, Message>) {
     let _ = harness.events(&[Event::Mouse(mouse::Event::ButtonReleased(
         mouse::Button::Left,
@@ -224,7 +225,7 @@ fn spans(window: [Timestamp; 2], [from, to]: [f64; 2], width: f64) -> bool {
 }
 
 /// A harness of `app` after its first frame at `t0`, and the context's
-/// plot area; `None` when the backend is skipped.
+/// plot area. `None` when the backend is skipped.
 fn started(app: &mut FocusContext, t0: Instant) -> Option<(Harness<'static, Message>, Rect)> {
     let context = app.areas()[1];
     let mut harness = Harness::new(app.view(), SIZE, app.k)?;
@@ -391,7 +392,7 @@ fn zooming_the_focus_shrinks_the_band() {
         (f64::from(left) - edges[0]).abs() <= 1.0 && (f64::from(right) - edges[1]).abs() <= 1.0,
         "{backend}: {before:?}"
     );
-    // Twenty lines at the focus's centre: k = 2, around its middle.
+    // Twenty lines at the focus's center: k = 2, around its middle.
     let focus = app.areas()[0];
     harness.point_at(Point::new(focus.center().x as f32, focus.center().y as f32));
     let _ = harness.events(&[Event::Mouse(mouse::Event::WheelScrolled {
@@ -679,7 +680,6 @@ fn brush_overlay_stays_inside_its_panel() {
                 !changed(left - 1, middle) && !changed(right, middle),
                 "{backend}, k = {k}, {name}: nothing past them"
             );
-            // The full height of the plot area.
             // The full height of the plot area, down to the bottom axis's
             // line, which the outline's ink at 40% does not change.
             let column = (left + right) / 2;

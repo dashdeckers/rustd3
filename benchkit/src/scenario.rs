@@ -1,11 +1,12 @@
 //! [`Scenario`]: what a run does to the plot, as generated input.
 //!
-//! Positions are logical px relative to the plot, as fractions of its
-//! size ([`Anchors`]), so every window size gets the same gesture: for
-//! the standard figures the "top panel" is at 27% of the height (the
-//! trace's upper panel, the grid's second row), the "bottom panel" at 88%,
-//! both at the middle; a workload whose panels lie elsewhere names its
-//! own. Sweeps are 600 px or 60% of the window, whichever is shorter.
+//! Positions are logical px relative to the plot, given as fractions of
+//! its size ([`Anchors`]), so every window size gets the same gesture. For
+//! the standard figures, the "top panel" is at 27% of the height (the
+//! trace's upper panel, the grid's second row) and the "bottom panel" at
+//! 88%, both at the middle across. A workload whose panels lie elsewhere
+//! names its own anchors. Sweeps are 600 px or 60% of the window,
+//! whichever is shorter.
 
 use iced::Size;
 
@@ -32,8 +33,9 @@ pub enum Scenario {
     /// The window jumps between three fixed sizes every 500 ms, one
     /// re-layout each.
     Resize,
-    /// The window dragged by a corner: a step every 16 ms for 1.5 s, down
-    /// to 70% of its real size and back, a drag every 3 s (report-only).
+    /// The window dragged by a corner, a step every 16 ms for 1.5 s, down
+    /// to 70% of its real size and back. A drag starts every 3 s
+    /// (report-only).
     DragResize,
     /// No input: process start to the first sharp frame.
     Cold,
@@ -73,10 +75,11 @@ const RESIZES: [Size; 3] = [
 /// The pointer's rate during drags and hovers: a 125 Hz mouse.
 const MOUSE_MS: f64 = 8.0;
 
-/// Where the gestures act, as fractions of the plot's size: the vertical
-/// drag and the wheel at `x` across, the wheel and the horizontal drag on
-/// the "top panel" at `top` down (the drag starting half its sweep right
-/// of `x`), the vertical drag on the "bottom panel" at `bottom` down.
+/// Where the gestures act, as fractions of the plot's size. The scroll
+/// wheel and the horizontal drag act on the "top panel" at `top` down, and
+/// the vertical drag on the "bottom panel" at `bottom` down. The wheel and
+/// the vertical drag act at `x` across, while the horizontal drag starts
+/// half its sweep right of `x`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Anchors {
     /// Across, from the left.
@@ -88,8 +91,8 @@ pub struct Anchors {
 }
 
 impl Anchors {
-    /// The standard figures': the middle across, the trace's upper panel
-    /// at 27% of the height, its lower one at 88%.
+    /// The standard figures' anchors: the middle across, the trace's upper
+    /// panel at 27% of the height, and its lower one at 88%.
     pub const STANDARD: Anchors = Anchors {
         x: 0.5,
         top: 0.27,
@@ -181,7 +184,7 @@ impl Scenario {
     }
 
     /// The time from the first input to the end of the pan half of `4k`
-    /// as a share of its duration; the rest is the zoom half.
+    /// as a share of its duration. The rest is the zoom half.
     pub const PAN_HALF: f64 = 0.5;
 
     /// The generated input for a plot of `size` whose gestures act at
@@ -257,11 +260,11 @@ fn hover(events: &mut Vec<Timed>, size: Size, duration_ms: f64) {
     }
 }
 
-/// A left-button drag from `from_ms` to `to_ms`: press, moves of 2–8 px
+/// A left-button drag from `from_ms` to `to_ms`. It presses, moves 2–8 px
 /// every 8 ms along `axis`, sweeping 600 px (at most 60% of the window)
-/// one way, then back if `both`, and so on; release at the end. The x
+/// one way, then back if `both`, and so on, and releases at the end. The x
 /// drag starts half its sweep right of the anchor on the top panel and
-/// sweeps left first; the y drag starts on the bottom panel and sweeps up
+/// sweeps left first. The y drag starts on the bottom panel and sweeps up
 /// first.
 fn drag(
     events: &mut Vec<Timed>,
@@ -324,9 +327,10 @@ fn drag(
     });
 }
 
-/// From `from_ms`: the pointer on the top panel, then bursts of 30 wheel
-/// lines in 1 s (30 Hz), alternately +1 (in) and −1 (out), a burst every
-/// 1.5 s, so each pause outlasts the 300 ms wheel end.
+/// From `from_ms`, the pointer on the top panel, then bursts of 30 wheel
+/// lines in 1 s (30 Hz), alternately +1 (in) and −1 (out). A burst starts
+/// every 1.5 s, so each pause outlasts the 300 ms after which the widget
+/// ends a wheel gesture.
 fn wheel_lines(events: &mut Vec<Timed>, at: Placed, from_ms: f64, to_ms: f64) {
     events.push(Timed {
         t_ms: from_ms,
@@ -361,7 +365,7 @@ fn wheel_pixels(events: &mut Vec<Timed>, at: Placed, duration_ms: f64) {
 }
 
 /// Bursts of `per_second` wheel events over 1 s every 1.5 s from
-/// `from_ms` (the first 8 ms after it) until `to_ms`; `delta(burst, k)`
+/// `from_ms` (the first 8 ms after it) until `to_ms`. `delta(burst, k)`
 /// gives event `k` of burst `burst`.
 fn bursts(
     events: &mut Vec<Timed>,
@@ -419,9 +423,10 @@ fn resizes(events: &mut Vec<Timed>, duration_ms: f64) {
 }
 
 /// Window drags by a corner from 500 ms, one every [`DRAG_EVERY_MS`]
-/// while one fits: every [`DRAG_STEP_MS`] for [`DRAG_MS`], the window's
-/// shares of its real size fall linearly to 1 − [`DRAG_SHRINK`] at the
-/// drag's middle and rise back to 1 at its last step.
+/// while one fits. Each drag steps every [`DRAG_STEP_MS`] for
+/// [`DRAG_MS`]. The window's shares of its real size fall linearly to
+/// 1 − [`DRAG_SHRINK`] at the drag's middle and rise back to 1 at its last
+/// step.
 fn drags(events: &mut Vec<Timed>, duration_ms: f64) {
     let steps = (DRAG_MS / DRAG_STEP_MS).round() as u32;
     let mut start = 500.0;

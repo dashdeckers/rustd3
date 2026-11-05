@@ -29,13 +29,13 @@ pub enum Command {
     },
     /// One shape filled at many points.
     Markers {
-        /// The shape, centred on the origin at size 1.
+        /// The shape, centered on the origin at size 1.
         shape: BezPath,
-        /// Where each copy is centred.
+        /// Where each copy is centered.
         at: Vec<Point>,
         /// The paint of every point when `paints` is absent.
         paint: Brush,
-        /// Per-point uniform scale of `shape`; len == at.len().
+        /// Per-point uniform scale of `shape`, one per point of `at`.
         sizes: Option<Vec<f64>>,
         /// Per-point paints; when present, `paint` is unused.
         paints: Option<Paints>,

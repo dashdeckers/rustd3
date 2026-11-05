@@ -27,7 +27,8 @@ impl<T: Copy> Clone for Chunks<T> {
     }
 }
 
-/// A summary: a recording's Debug output does not list millions of samples.
+/// Prints a summary, so that a recording's Debug output does not list
+/// millions of samples.
 impl<T> fmt::Debug for Chunks<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Chunks")

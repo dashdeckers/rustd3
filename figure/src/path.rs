@@ -23,9 +23,9 @@ const EPSILON: f64 = 1e-6;
 const ARC_TOLERANCE: f64 = 0.1;
 
 /// A [`PathContext`] that records into a [`BezPath`]. Arcs follow d3 and
-/// [`SvgPath`](rustd3_core::path::SvgPath) exactly (as cubics); a segment
-/// with no subpath to continue starts one, as a canvas does, where d3 would
-/// write path data no renderer reads.
+/// [`SvgPath`](rustd3_core::path::SvgPath) exactly, as cubics. A segment
+/// with no subpath to continue starts one, as a canvas does; d3 would
+/// instead write path data that no renderer reads.
 #[derive(Debug, Clone, Default)]
 pub struct Bez {
     path: BezPath,
@@ -89,9 +89,10 @@ impl PathContext for Bez {
         self.current = Some(p);
     }
 
-    /// d3's arc: a line to its start unless that is within 1e-6 of the
-    /// current point (a move when there is none), then cubics; nothing for
-    /// a negative radius and nothing past the start for a zero one.
+    /// Draws d3's arc: a line to its start, then cubics. The line is
+    /// skipped when the start is within 1e-6 of the current point, and is a
+    /// move when there is no current point. A negative radius draws
+    /// nothing, and a zero radius draws nothing past the start.
     fn arc(&mut self, x: f64, y: f64, r: f64, start: f64, end: f64, anticlockwise: bool) {
         if r < 0.0 {
             return;

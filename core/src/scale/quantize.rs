@@ -131,8 +131,9 @@ impl<R> Quantize<R> {
 
 impl<R: PartialEq> Quantize<R> {
     /// d3's `invertExtent(y)`: the bin of the first range value equal to
-    /// `y`, from its lower to its upper edge (the domain's ends at either
-    /// end); `None` when no value is equal, where d3 returns `[NaN, NaN]`.
+    /// `y`, from its lower to its upper edge. The outer bins end at the
+    /// domain's ends. `None` when no value is equal, where d3 returns
+    /// `[NaN, NaN]`.
     pub fn invert_extent(&self, y: &R) -> Option<[f64; 2]> {
         let i = self.range.iter().position(|r| r == y)?;
         let [x0, x1] = self.domain;
@@ -142,8 +143,9 @@ impl<R: PartialEq> Quantize<R> {
     }
 }
 
-/// The domain fitted as a linear scale's: with no margin, the data's
-/// extent, a flat one widened by matplotlib's `nonsingular`.
+/// Fits the domain as a linear scale's would be fitted. With no margin it
+/// is the data's extent, a flat extent widened by matplotlib's
+/// `nonsingular`.
 ///
 /// ```
 /// use rustd3_core::scale::{self, Pad};

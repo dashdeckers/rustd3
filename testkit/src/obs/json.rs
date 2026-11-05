@@ -5,8 +5,8 @@ use super::Obs;
 /// A JSON value with no [`Obs`] form.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum Error {
-    /// An object; fixture tests navigate objects with serde_json and
-    /// convert the leaves. Carries the object's JSON text.
+    /// An object, with its JSON text. Fixture tests navigate objects with
+    /// serde_json and convert only the leaves.
     #[error("a JSON object has no Obs form: {0}")]
     Object(String),
 }

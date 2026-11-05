@@ -1,7 +1,7 @@
 //! The number-format and time-format parsers on random specifiers: random
 //! characters of each mini-language mixed with arbitrary Unicode. Parsing
 //! never panics, and a parsed number format writes every `f64`, from NaN
-//! and ±infinity to subnormals and 1e±300; a time format writes
+//! and ±infinity to subnormals and 1e±300. A time format writes
 //! timestamps across jiff's whole range in every bundled locale and in
 //! zones with odd offsets.
 

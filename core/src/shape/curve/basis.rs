@@ -16,8 +16,8 @@ pub(crate) struct Basis {
     p1: (f64, f64),
 }
 
-/// d3's curveBasisClosed: no area flag; the first three points are drawn
-/// again at the end.
+/// d3's curveBasisClosed, which has no area flag. The first three points
+/// are drawn again at the end.
 pub(crate) struct BasisClosed {
     point: u8,
     p0: (f64, f64),

@@ -8,7 +8,7 @@ use crate::js;
 /// d3's `ZoomTransform`: screen = data · k + (x, y). Not the trait under
 /// continuous scales, [`scale::Transform`](crate::scale::Transform).
 ///
-/// Plain data; d3's `transform.rescaleX(x)` is
+/// Plain data. d3's `transform.rescaleX(x)` is
 /// [`x.rescale_x(&t)`](crate::interact::Rescale::rescale_x).
 ///
 /// ```

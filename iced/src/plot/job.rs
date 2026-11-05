@@ -1,5 +1,5 @@
-//! [`Job`]: one cell or tile to rasterize, all its bands, from a list
-//! shared with the other jobs of its refresh; and [`Done`], its result.
+//! [`Job`]: one cell or tile to rasterize, with all its bands, from a list
+//! shared with the other jobs of its refresh. [`Done`] is its result.
 
 use std::ops::Range;
 use std::sync::Arc;
@@ -23,7 +23,7 @@ pub(crate) struct Job {
     pub(super) hash: u64,
     pub(super) list: Arc<List>,
     pub(super) bounds: Arc<Bounds>,
-    /// Device px, relative to the widget's device origin.
+    /// The rect in device px, relative to the widget's device origin.
     pub(super) rect: [i32; 4],
     /// Device rows of each band, relative to the cell.
     pub(super) bands: Vec<Range<i32>>,
@@ -31,12 +31,13 @@ pub(crate) struct Job {
     pub(super) scale: f64,
     /// The cell's work items, echoed into its `Raster` sample.
     pub(super) work: u64,
-    /// Whether its markers are splatted (`raster::Renderer::splat`): a
-    /// plot area's tiles over a markers command of at least
-    /// [`SPLAT`](crate::plot::state::SPLAT) points.
+    /// Whether its markers are splatted (`raster::Renderer::splat`). A
+    /// plot area's tiles splat when the area has a markers command of at
+    /// least [`SPLAT`](crate::plot::state::SPLAT) points.
     pub(super) splat: bool,
     /// Whether it checks the image its slot shows (`Caching::Verify`)
-    /// instead of replacing it: `generation` and `hash` are the image's.
+    /// instead of replacing it. A check's `generation` and `hash` are the
+    /// image's.
     pub(super) check: bool,
     /// The probe's clock and its reading at planning time.
     pub(super) enqueued: Option<Stamp>,
@@ -92,8 +93,8 @@ pub(crate) struct Done {
 }
 
 impl Spot {
-    /// The kind of render the cost model fits a job for this spot with:
-    /// a tile's, or a gutter run's and an overlay's.
+    /// The kind of render the cost model fits a job for this spot with: a
+    /// tile, or a cell for a gutter run and an overlay.
     pub(crate) fn kind(self) -> Kind {
         match self {
             Spot::Tile { .. } => Kind::Tile,
@@ -103,7 +104,7 @@ impl Spot {
 }
 
 impl Stamp {
-    /// `clock` read now.
+    /// `clock` and its reading at this instant.
     pub(crate) fn now(clock: fn() -> Instant) -> Stamp {
         Stamp { clock, at: clock() }
     }
@@ -111,9 +112,10 @@ impl Stamp {
 
 impl Job {
     /// Renders every band with `renderer`, splatting markers as the job
-    /// says: each band is the list area of its device rows divided by the
+    /// says. Each band is the list area of its device rows divided by the
     /// scale, which renders exactly the rows' device size. The render is
-    /// timed for the cost model, and with a stamp by its clock too.
+    /// timed for the cost model, and with a stamp also by the stamp's
+    /// clock.
     pub(crate) fn run(self, renderer: &mut raster::Renderer) -> Done {
         let start = self.enqueued.map(|stamp| Stamp::now(stamp.clock));
         renderer.splat(self.splat);
@@ -153,11 +155,12 @@ impl Job {
     }
 }
 
-/// `render`'s result and how long it took on the monotonic clock. The
-/// `Plot` widget times its own renders for its cost model, and this is the
-/// one place it reads a clock it was not given: what it renders
-/// never depends on the reading, only whether later jobs render inline or
-/// on the pool, which the frame interval already decides.
+/// `render`'s result and how long it took on the monotonic clock.
+///
+/// The `Plot` widget times its own renders for its cost model, and this is
+/// the one place it reads a clock it was not given. What it renders never
+/// depends on the reading. The reading decides only whether later jobs
+/// render inline or on the pool, which the frame interval already decides.
 #[expect(
     clippy::disallowed_methods,
     reason = "the Plot widget times its own renders for its cost model"

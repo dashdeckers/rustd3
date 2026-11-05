@@ -21,7 +21,7 @@ pub fn width(w: f64, scale: f64) -> f64 {
     device_width(w, scale) / scale
 }
 
-/// A line centre such that a line `w` wide covers whole device pixels:
+/// A line center such that a line `w` wide covers whole device pixels:
 /// `(floor(x·s) + 0.5) / s` when the snapped device width is odd,
 /// `round(x·s) / s` when it is even.
 ///

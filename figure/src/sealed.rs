@@ -1,11 +1,11 @@
-//! Supertraits that close the figure's scale protocol: public traits in a
-//! private module, so no other crate can name them. `Scale` closes every
-//! capability trait built on it (`Kind`, `Position`, `Invert`, `Paint`,
-//! `Fittable`, `mark::Binned`); core's sealed `Ticks` closes
+//! Supertraits that seal the figure's scale protocol. They are public
+//! traits in a private module, so no other crate can name them. `Scale`
+//! seals every capability trait built on it (`Kind`, `Position`, `Invert`,
+//! `Paint`, `Fittable`, `mark::Binned`), and core's sealed `Ticks` seals
 //! `colorbar::Ramp`.
 
-/// Closes [`scale::Scale`](crate::scale::Scale).
+/// Seals [`scale::Scale`](crate::scale::Scale).
 pub trait Scale {}
 
-/// Closes [`scale::Indexed`](crate::scale::Indexed).
+/// Seals [`scale::Indexed`](crate::scale::Indexed).
 pub trait Indexed<D> {}

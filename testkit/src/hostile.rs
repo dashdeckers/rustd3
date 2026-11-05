@@ -8,7 +8,7 @@
 use std::any::Any;
 use std::panic::{self, AssertUnwindSafe};
 
-/// The values every hostile draw favours.
+/// The values every hostile draw favors.
 const EDGES: [f64; 24] = [
     0.0,
     -0.0,
@@ -36,7 +36,7 @@ const EDGES: [f64; 24] = [
     -f64::NAN,
 ];
 
-/// The counts every count draw favours.
+/// The counts every count draw favors.
 const COUNTS: [usize; 12] = [
     0,
     1,
@@ -140,7 +140,7 @@ impl Rng {
         }
     }
 
-    /// A small count, below `n`, with 0 and 1 favoured.
+    /// A small count, below `n`, with 0 and 1 favored.
     pub fn small(&mut self, n: usize) -> usize {
         match self.below(4) {
             0 => 0,
@@ -194,7 +194,7 @@ impl Rng {
             .collect()
     }
 
-    /// An arbitrary Unicode scalar value, favouring ASCII, combining marks,
+    /// An arbitrary Unicode scalar value, favoring ASCII, combining marks,
     /// line separators and astral characters.
     pub fn char(&mut self) -> char {
         const ODD: [char; 10] = [
@@ -225,7 +225,7 @@ impl Rng {
 /// Runs `cases` cases of `property`, each with a generator seeded from
 /// `seed` and the case's number, so that a case reruns alone. The first
 /// case that panics fails the run with `name`, the seed, the case and the
-/// panic's message. `RUSTD3_FUZZ=1` runs ten times as many cases;
+/// panic's message. `RUSTD3_FUZZ=1` runs ten times as many cases, and
 /// `RUSTD3_TRACE=1` prints each case before it runs, for a case that
 /// aborts or hangs instead of panicking.
 pub fn run(name: &str, seed: u64, cases: usize, mut property: impl FnMut(&mut Rng)) {
@@ -255,7 +255,7 @@ pub fn case(seed: u64, case: usize) -> Rng {
 }
 
 fn case_rng(seed: u64, case: usize) -> Rng {
-    // splitmix64 of the case number, so neighbouring cases start far apart.
+    // splitmix64 of the case number, so neighboring cases start far apart.
     let mut z = (case as u64).wrapping_add(0x9E37_79B9_7F4A_7C15);
     z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);

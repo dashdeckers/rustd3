@@ -160,7 +160,7 @@ fn positive_angles_end_bottom_labels_at_their_ticks_rising_left_to_right() {
         let (sin, cos) = 30f64.to_radians().sin_cos();
         assert!((a - cos).abs() < 1e-6 && (b + sin).abs() < 1e-6, "{a} {b}");
     }
-    // Left labels end a gap short of the axis, centred on their ticks.
+    // Left labels end a gap short of the axis, centered on their ticks.
     for (i, b) in boxes[6..].iter().enumerate() {
         let tick = area.y1 - area.height() * i as f64 / 2.0;
         assert!((b.x1 - (area.x0 - GAP)).abs() < 1e-9, "{b:?}");

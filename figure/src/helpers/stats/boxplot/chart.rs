@@ -47,14 +47,15 @@ impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for BoxPlot<X, Y> {
 
 /// One box plot per group `(key, values)` on `x` and `y`, from
 /// [`boxplot::summary`](super::summary) with 1.5 × IQR whiskers. Each
-/// group sits in its key's band (as bars sit, on scales without bands): a
-/// box half the slot's width from `q1` to `q3`, filled in the theme
-/// palette's first color with a 1 pt edge in ink, a median line, whiskers
-/// to the most extreme data within their reach with caps half the box's
-/// width, and the fliers beyond them as hollow dots, all lines in ink and
-/// the patch edge's width (matplotlib's `boxplot` under seaborn's colors).
-/// Whisker ends and fliers enter fitting; the box does not hold zero. A
-/// group without finite values draws nothing.
+/// group sits in its key's band (or where bars would sit, on scales
+/// without bands). It is a box half the slot's width from `q1` to `q3`,
+/// filled in the theme palette's first color with a 1 pt edge in ink, and
+/// a median line. Whiskers end at the most extreme data within their
+/// reach, with caps half the box's width, and the fliers beyond them are
+/// hollow dots. All lines are in ink at the patch edge's width
+/// (matplotlib's `boxplot` under seaborn's colors). Whisker ends and
+/// fliers enter fitting; the box does not hold zero. A group without
+/// finite values draws nothing.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -98,8 +99,8 @@ where
 }
 
 impl<X: Position, Y: Position<Domain = f64>> BoxPlot<X, Y> {
-    /// Notched boxes: narrowing to half their width at the median, the
-    /// notch from `notch_low` to `notch_high` (matplotlib's shape); the
+    /// Notched boxes, narrowing to half their width at the median, with the
+    /// notch from `notch_low` to `notch_high` (matplotlib's shape). The
     /// median line spans the waist.
     #[must_use]
     pub fn notch(self, yes: bool) -> Self {
@@ -123,9 +124,9 @@ impl<X: Position, Y: Position<Domain = f64>> BoxPlot<X, Y> {
         }
     }
 
-    /// Places each group in its fill key's part of the slot, the slot split
-    /// into one part per palette key in the palette's order, so that box
-    /// plots of several marks stand side by side.
+    /// Places each group in its fill key's part of the slot. The slot is
+    /// split into one part per palette key, in the palette's order, so that
+    /// box plots of several marks stand side by side.
     #[must_use]
     pub fn dodge(self) -> Self {
         Self {
@@ -165,9 +166,9 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for BoxPlot<X, Y> {
 
     /// One `Fill` command of every box, one `Stroke` of their edges,
     /// medians, whiskers and caps, and `Markers` for the fliers (and the
-    /// means): boxes and lines clipped to the guard band and, on raster
-    /// targets, on device pixels; groups whose quartiles or whisker ends
-    /// cannot be placed are skipped.
+    /// means). Boxes and lines are clipped to the guard band and, on raster
+    /// targets, lie on device pixels. Groups whose quartiles or whisker
+    /// ends cannot be placed are skipped.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
@@ -262,7 +263,7 @@ impl<'c> Shapes<'c> {
         )
     }
 
-    /// The whiskers and caps of a group centred at `centre`, its box `half`
+    /// The whiskers and caps of a group centered at `centre`, its box `half`
     /// px to each side, from its quartiles `[q1, _, q3]` to its whisker
     /// ends `[low, high]` (px).
     fn group(&mut self, centre: f64, half: f64, [q1, _, q3]: [f64; 3], [low, high]: [f64; 2]) {
@@ -277,9 +278,9 @@ impl<'c> Shapes<'c> {
     }
 
     /// A plain box `half` px to each side of `centre` from `q1` to `q3`,
-    /// with its median line (px): the fill's edges on device pixel
-    /// boundaries and the edge's lines on whole device pixels, as
-    /// rectangles are drawn.
+    /// with its median line (px). As with rectangles, the fill's edges lie
+    /// on device pixel boundaries and the edge's lines on whole device
+    /// pixels.
     fn plain(&mut self, centre: f64, half: f64, [q1, median, q3]: [f64; 3]) {
         let snap = self.ctx.snap();
         let r = Rect::new(centre - half, q3, centre + half, q1).abs();
@@ -330,7 +331,7 @@ impl<'c> Shapes<'c> {
         self.segment(self.clamp(centre - waist, y), self.clamp(centre + waist, y));
     }
 
-    /// Fliers at `ys` (px) on the line `x = centre`, those within a
+    /// Fliers at `ys` (px) on the line `x = centre`, keeping those within a
     /// marker's radius of the plot area.
     fn fliers(&mut self, centre: f64, ys: impl Iterator<Item = f64>) {
         let r = self.ctx.get_theme().get_marker() / 2.0;

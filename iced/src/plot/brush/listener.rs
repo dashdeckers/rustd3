@@ -5,8 +5,8 @@ use rustd3_figure::scale::{Invert, Kind, Scale, ScaleRef};
 
 use crate::plot::domains::Key;
 
-/// A selection in pixels, inverted through the brush's scale, to the app's
-/// message.
+/// A function from a selection in pixels, inverted through the brush's
+/// scale, to the app's message.
 type Publish<'a, Message> = Box<dyn Fn(&dyn Scale, Option<[f64; 2]>) -> Option<Message> + 'a>;
 
 /// Turns the selections of brushes over one handle into the app's
@@ -17,9 +17,9 @@ pub(crate) struct Listener<'a, Message> {
 }
 
 impl<'a, Message> Listener<'a, Message> {
-    /// Listens to brushes over `over`: a selection becomes `f` of the
+    /// A listener to brushes over `over`. A selection becomes `f` of the
     /// values the handle's scale inverts its ends to, in their order, and
-    /// no selection `f(None)`.
+    /// no selection becomes `f(None)`.
     pub(crate) fn new<A>(
         over: ScaleRef<A>,
         f: impl Fn(Option<[<A as Kind>::Domain; 2]>) -> Message + 'a,
@@ -45,7 +45,7 @@ impl<'a, Message> Listener<'a, Message> {
     }
 
     /// The message for `selection` (list px along the brush's axis) of a
-    /// brush over `over`, the handle's scale set to the plot area's range;
+    /// brush over `over`, the handle's scale set to the plot area's range.
     /// `None` when `over` is not of the handle's type or an end does not
     /// invert.
     pub(crate) fn publish(&self, over: &dyn Scale, selection: Option<[f64; 2]>) -> Option<Message> {

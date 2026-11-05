@@ -1,14 +1,14 @@
 //! One-dimensional brushes: values placed on a panel, like axes. A panel
 //! with a brush selects an interval of a handle's domain by dragging over
-//! its plot area; in the iced `Plot` widget the selection is published
-//! with `Plot::on_brush`, and with [`Brush::sets`] it becomes the domain
-//! of another handle (d3's focus and context). File outputs ignore
-//! brushes: they have no input.
+//! its plot area. In the iced `Plot` widget the selection is published
+//! with `Plot::on_brush`, and [`Brush::sets`] makes it the domain of
+//! another handle (d3's focus and context). File outputs ignore brushes,
+//! since they have no input.
 //!
 //! A brush needs a typed inverse from pixels to its handle's domain
-//! ([`Invert`]): continuous and time handles have one, band and point
+//! ([`Invert`]). Continuous and time handles have one; band and point
 //! handles do not, so a brush over a band handle does not compile. The
-//! handle it sets must take the same domain values: a selection of
+//! handle it sets must take the same domain values, so a selection of
 //! numbers cannot set a time handle (E0271, type mismatch resolving
 //! `<Time as Kind>::Domain == f64`):
 //!

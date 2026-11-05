@@ -74,8 +74,7 @@ impl<S> ScaleRef<S> {
         }
     }
 
-    /// Position in the scale table (the widget keys state by it and the
-    /// scale's `TypeId`).
+    /// The handle's position in its figure's scale table.
     #[must_use]
     pub fn get_index(self) -> usize {
         self.index as usize

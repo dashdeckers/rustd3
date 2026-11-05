@@ -1,12 +1,14 @@
-//! Color schemes: categorical ones as `const` arrays of [`Rgb`] (d3's,
-//! seaborn's and Okabe and Ito's), and every d3-scale-chromatic
-//! sequential, diverging and cyclical scheme as a plain function of `t`
-//! in [0, 1], named as d3's camel case lowered to snake case
-//! (`interpolateYlGnBu` is [`yl_gn_bu`]). Each is d3's own code in `f64`:
-//! ColorBrewer's schemes run d3's basis spline over their 9- or 11-stop
-//! rows, turbo and cividis are d3's polynomials, the viridis family d3's
-//! 256-entry tables. At NaN the spline and formula schemes give NaN
-//! channels and the tables entry 0, where d3 returns undefined.
+//! Color schemes. The categorical ones (d3's, seaborn's and Okabe and
+//! Ito's) are `const` arrays of [`Rgb`]. Every d3-scale-chromatic
+//! sequential, diverging and cyclical scheme is a plain function of `t` in
+//! [0, 1], named as d3's camel case lowered to snake case
+//! (`interpolateYlGnBu` is [`yl_gn_bu`]).
+//!
+//! Each is d3's own code in `f64`. ColorBrewer's schemes run d3's basis
+//! spline over their 9- or 11-stop rows, turbo and cividis are d3's
+//! polynomials, and the viridis family reads d3's 256-entry tables. At NaN,
+//! the spline and formula schemes give NaN channels and the tables give
+//! entry 0, where d3 returns undefined.
 //!
 //! ```
 //! use rustd3_core::{scale, scheme};

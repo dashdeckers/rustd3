@@ -1,4 +1,4 @@
-//! What a violin draws inside its body: [`Inner`]; the chart is
+//! [`Inner`]: what a violin draws inside its body. The chart is
 //! [`stats::violin`](super::violin()).
 
 pub(super) mod chart;

@@ -39,13 +39,13 @@ pub trait Transform: Clone {
     /// The domain value of a transformed value.
     fn inverse(&self, y: f64) -> f64;
 
-    /// About `count` ticks over `domain`, in its order: every transform
-    /// states its rule, usually one of `ticks::`.
+    /// About `count` ticks over `domain`, in its order. There is no
+    /// default, and the rule is usually one of the `ticks::` functions.
     fn ticks(&self, domain: [f64; 2], count: usize) -> Vec<f64>;
 
-    /// Minor ticks between `major`: by default five equal steps in
-    /// transformed space between neighbouring majors; log-like transforms
-    /// supply their own.
+    /// Minor ticks between `major`. The default is five equal steps in
+    /// transformed space between neighboring majors, and log-like
+    /// transforms supply their own.
     fn minor(&self, major: &[f64]) -> Vec<f64> {
         ticks::subdivide(self, major, 5)
     }

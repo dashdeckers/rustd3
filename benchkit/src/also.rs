@@ -1,8 +1,8 @@
-//! What the benchmark measures beside its scenarios: figure-level renders, resolves and lists,
-//! the widget's tiles drawn on iced's headless renderers, a real gesture
-//! frame composed by its software renderer ([`compose`]), its renders per
-//! frame of a pan and one tile of a long trace's geometry, timed in this
-//! build, written as the report's "Also measured" section.
+//! What the benchmark measures beside its scenarios: figure-level renders,
+//! resolves and lists, and the widget's tiles and frames on iced's
+//! headless renderers ([`compose`] for a real gesture frame). Each item is
+//! timed in this build and written as the report's "Also measured"
+//! section.
 
 mod compose;
 
@@ -120,7 +120,7 @@ fn dense_scatter() -> Row {
 /// The trace example at 2×: its cells rendered at their own origins,
 /// stitched, against the whole canvas rendered at once (single-threaded,
 /// baseline SIMD). vello_cpu's output where strokes overlap depends on
-/// the render's origin; this measures by how much.
+/// the render's origin, and this measures by how much.
 fn origin_dashes() -> Row {
     let rec = trace::recording(trace::SAMPLES);
     let fig = trace::trace(&rec);
@@ -229,9 +229,10 @@ fn thin_line() -> Row {
 }
 
 /// Resolving the `trace` workload with x on `Fit::Window(10.0)` at
-/// 1600 × 1000 at 2: from a fresh cache (two rounds: the window's column
-/// count is not known yet) and in a steady layout after an append (one
-/// round), with the labels the text cache looked up per resolve.
+/// 1600 × 1000 at 2, with the labels the text cache looked up per resolve.
+/// It resolves from a fresh cache, which takes two rounds because the
+/// window's column count is not yet known, and in a steady layout after
+/// an append, which takes one.
 fn windowed_resolve() -> Row {
     let target = Target::Screen { scale: 2.0 };
     let size = Size::new(1600.0, 1000.0);
@@ -283,12 +284,12 @@ fn windowed_resolve() -> Row {
     }
 }
 
-/// The UI thread's work per frame of a pan on the scatters at
-/// full size, 1600 × 1000 at 1, as the widget does it: resolving with both
-/// handles held at the pan's domains (3 px further each frame) and
-/// drawing the list (the probe's resolve and list stages), then the
-/// list's bounds, its cells and the hit index; medians of 9 frames over a
-/// warm cache.
+/// The UI thread's work per frame of a pan on the scatters at full size,
+/// 1600 × 1000 at 1, as the widget does it. Each frame resolves with both
+/// handles held at the pan's domains (3 px further each frame) and draws
+/// the list (the probe's resolve and list stages), then computes the
+/// list's bounds, its cells and the hit index. The row gives medians of 9
+/// frames over a warm cache.
 fn scatter_lists() -> Row {
     let target = Target::Screen { scale: 1.0 };
     let size = Size::new(1600.0, 1000.0);
@@ -352,12 +353,13 @@ fn scatter_lists() -> Row {
     }
 }
 
-/// A 1600 × 1000 device-px plot area of tiles drawn per frame
-/// of a pan at factor 1 on iced's headless renderers: a drag in steps of 3
-/// px, every visible tile translated (drawn at whole device pixels, no
-/// resampling); per frame the widget's `draw` and the renderer composing
-/// the frame (`screenshot`, which on wgpu also reads it back), the ring's
-/// renders in the update before them excluded; medians of 30 frames.
+/// A 1600 × 1000 device-px plot area of tiles drawn per frame of a pan at
+/// factor 1 on iced's headless renderers. The pan is a drag in steps of
+/// 3 px, with every visible tile translated (drawn at whole device pixels,
+/// no resampling). Per frame it times the widget's `draw` and the renderer
+/// composing the frame (`screenshot`, which on wgpu also reads it back),
+/// excluding the ring's renders in the update before them. The row gives
+/// medians of 30 frames.
 fn tile_draw() -> Row {
     let parts: Vec<String> = ["tiny-skia", "wgpu"]
         .into_iter()
@@ -525,13 +527,13 @@ fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
     ))
 }
 
-/// Per frame of a `pan-x` replay over the `trace`
-/// workload (full size, 1600 × 1000 logical at 1 and 2, `Render::Auto`,
-/// the default pool, headless without drawing), the renders of the frame,
-/// inline in its update and on the pool until the pool falls silent for
-/// 300 ms: tiles and cells (gutter runs and overlays) apart, their time,
-/// and the share of frames whose cells all rendered inline; means over 40
-/// frames after the press.
+/// The renders per frame of a `pan-x` replay over the `trace` workload
+/// (full size, 1600 × 1000 logical at 1 and 2, `Render::Auto`, the default
+/// pool, headless without drawing). It counts each frame's renders inline
+/// in its update and on the pool until the pool falls silent for 300 ms.
+/// It reports tiles and cells (gutter runs and overlays) apart, their
+/// time, and the share of frames whose cells all rendered inline, as means
+/// over 40 frames after the press.
 fn pan_frames() -> Row {
     let mut parts = Vec::new();
     for backend in ["tiny-skia", "wgpu"] {
@@ -691,8 +693,8 @@ impl Driven {
         );
     }
 
-    /// Lands the pool's results, an `Event::Waken` after each wake, until
-    /// no wake comes for `quiet`.
+    /// Lands the pool's results, with an `Event::Waken` after each wake,
+    /// until no wake comes for `quiet`.
     fn drain(
         &mut self,
         ui: &mut UserInterface<'_, (), iced::Theme, iced::Renderer>,
@@ -715,13 +717,13 @@ impl Driven {
     }
 }
 
-/// What one render of the `trace` workload's bottom
-/// axis strip (the cell under its bottom plot area, 1600 × 1000 at 1 and
-/// 2) spends its time on, as a pool thread renders it (single-threaded):
-/// the list as drawn, without its glyph runs, without its strokes, and no
-/// command at all (the fixed cost of a render of that size); and the same
-/// for the overlay over the plot area's bottom edge (two device rows);
-/// medians of 15.
+/// What one render of the `trace` workload's bottom axis strip spends its
+/// time on, as a pool thread renders it (single-threaded). The strip is
+/// the cell under its bottom plot area, at 1600 × 1000 at 1 and 2. It
+/// renders the list as drawn, without its glyph runs, without its
+/// strokes, and with no command at all (the fixed cost of a render of
+/// that size). It does the same for the overlay over the plot area's
+/// bottom edge (two device rows). The row gives medians of 15.
 fn gutter_costs() -> Row {
     let data = Workload::Trace.data(1.0);
     let fig = data.figure(false);
@@ -829,15 +831,15 @@ fn splat_speed() -> Row {
     }
 }
 
-/// One tile of `trace` mid-zoom, as the pool renders it: the
-/// top plot area's layer drawn with the widget's overscan of two tiles at
-/// the x domain a zoom of ×1.6 about the area's centre gives (1600 × 1000
-/// at 1 and 2), and a 256-device-px tile of it (its second column, across
-/// the area's middle) rendered single-threaded (medians of 15): its time,
-/// the stroke segments of the commands that meet it against those that
-/// reach it (within half the stroke's width and a device px), kurbo's
-/// stroke expansion of those commands' whole paths, and the tile's fixed
-/// cost (no command).
+/// One tile of `trace` mid-zoom, as the pool renders it. The top plot
+/// area's layer is drawn with the widget's overscan of two tiles, at the
+/// x domain that a zoom of ×1.6 about the area's center gives (1600 × 1000
+/// at 1 and 2). A 256-device-px tile of it (its second column, across the
+/// area's middle) is rendered single-threaded, with medians of 15. The row
+/// gives its time, the stroke segments of the commands that meet it
+/// against those that reach it (within half the stroke's width and a
+/// device px), kurbo's stroke expansion of those commands' whole paths,
+/// and the tile's fixed cost (no command).
 fn tile_geometry() -> Row {
     let data = Workload::Trace.data(1.0);
     let fig = data.figure(false);
@@ -939,8 +941,8 @@ fn tile_geometry() -> Row {
 }
 
 /// The warm composition of a `trace` frame mid-zoom by iced's software
-/// renderer at factor 1 ([`compose`]'s harness), ms; `None`
-/// without a headless tiny-skia renderer.
+/// renderer at factor 1 ([`compose`]'s harness), in ms, or `None` without
+/// a headless tiny-skia renderer.
 pub fn composition_ms() -> Option<f64> {
     compose::zoom_frame_ms()
 }
@@ -993,7 +995,7 @@ fn channel_diff(a: &Image, ax: u32, ay: u32, b: &Image, bx: u32, by: u32) -> u8 
 }
 
 /// Each pixel column's topmost and bottommost row at least half covered
-/// by the (30, 60, 140) line: red at most 142.
+/// by the (30, 60, 140) line, which is where red is at most 142.
 fn ink(image: &Image) -> Vec<Option<(u32, u32)>> {
     (0..image.width)
         .map(|x| {

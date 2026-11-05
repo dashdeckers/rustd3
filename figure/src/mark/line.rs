@@ -104,9 +104,9 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
     }
 
     /// Dashes: on and off lengths in px, from offset 0 at the first point
-    /// drawn; a thinned line on a column grid a widget holds
-    /// ([`Held::grids`](crate::Held::grids)) starts the pattern at the
-    /// first sample of the column containing the grid's origin instead. A
+    /// drawn. A thinned line on a column grid a widget holds
+    /// ([`Held::grids`](crate::Held::grids)) instead starts the pattern at
+    /// the first sample of the column containing the grid's origin. A
     /// pattern with a negative or non-finite length, or none longer than 0,
     /// leaves the line as it was.
     #[must_use]
@@ -129,9 +129,10 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
         Self { thin: t, ..self }
     }
 
-    /// Vertices at the centre of the stroke key's sub-band (band x only):
-    /// the band split into one sub-band per palette key, in the palette's
-    /// order, so that a line runs through the dodged dots of its key.
+    /// Vertices at the center of the stroke key's sub-band (band x only).
+    /// The band is split into one sub-band per palette key, in the
+    /// palette's order, so that a line runs through the dodged dots of its
+    /// key.
     #[must_use]
     pub fn dodge(self) -> Self {
         Self {
@@ -155,11 +156,11 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
 
     /// One `Stroke` command through every point placed on both scales, or
     /// through the samples M4 keeps per column of a thinned line, joined
-    /// straight: each run of placed points is clipped to the guard band
-    /// and joined by the curve; nothing when no segment is left. A dashed
-    /// thinned line on a held column grid sets its dash offset so that the
-    /// pattern's phase is 0 at the first point drawn in the column holding
-    /// the grid's origin, measured along its run.
+    /// straight. Each run of placed points is clipped to the guard band and
+    /// joined by the curve; nothing is drawn when no segment is left. A
+    /// dashed thinned line on a held column grid sets its dash offset so
+    /// that the pattern's phase is 0 at the first point drawn in the column
+    /// holding the grid's origin, measured along its run.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
@@ -200,9 +201,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
     }
 
     /// The points the line passes through inside the plot area, with their
-    /// indices in the data: M4's kept samples of a thinned line (read
-    /// through the draw's memo, so no second query), every placed point
-    /// otherwise.
+    /// indices in the data. For a thinned line these are M4's kept samples,
+    /// read through the draw's memo so there is no second query; otherwise
+    /// they are every placed point.
     fn hits(&self, ctx: &Ctx<'_>, sink: &mut hit::Sink) {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
@@ -253,24 +254,25 @@ impl<X: Position, Y: Position> Line<'_, X, Y> {
 
 /// List px past the anchor at which [`phase`] puts the pattern's phase 0.
 ///
-/// A dash starting exactly on the anchor, a vertex, would start an ulp
-/// either side of it depending on how the arc length rounds, which
-/// differs between two draws of a pan: an ulp before it, the dash holds a
-/// sliver of the segment before and joins it, so the corner gains a wedge
-/// (up to 17/255 at the seam of two tiles, measured). A millionth of a px
-/// past it, far above the rounding, every draw starts the dash on the
-/// segment after.
+/// A dash starting exactly on the anchor, a vertex, would start an ulp to
+/// either side of it depending on how the arc length rounds, and that
+/// differs between two draws of a pan. When it starts an ulp before, the
+/// dash holds a sliver of the previous segment and joins it, so the corner
+/// gains a wedge (measured at up to 17/255 at the seam of two tiles). A
+/// millionth of a px past the anchor is far above the rounding, so every
+/// draw starts the dash on the following segment.
 const PAST: f64 = 1e-6;
 
-/// The dash offset that puts the phase of `pattern` at 0 on the first of
-/// `items` (runs of points broken by `None`, as the line draws them) that
-/// lies in the column of `grid` holding its origin, `[origin, origin + 1 /
-/// density)` across, both edges a millionth of a column to the left as
-/// thinning takes them ([`thin::LEAD`]: a sample on the origin, which a pan
-/// can place an ulp either side of it, stays in the column), [`PAST`]
-/// after it: the arc length from the start of that point's run and
-/// `PAST`, negated, modulo the pattern's length, as each run starts the
-/// pattern afresh at the offset. 0 without a pattern or such a point.
+/// The dash offset that puts the phase of `pattern` at 0, [`PAST`] after
+/// an anchor point. The anchor is the first of `items` (runs of points
+/// broken by `None`, as the line draws them) that lies in the column of
+/// `grid` holding its origin, `[origin, origin + 1 / density)` across.
+/// Both column edges sit a millionth of a column to the left, as thinning
+/// takes them ([`thin::LEAD`]), so a sample on the origin, which a pan can
+/// place an ulp to either side, stays in the column. The offset is the arc
+/// length from the start of the anchor's run plus `PAST`, negated, modulo
+/// the pattern's length, since each run starts the pattern afresh at the
+/// offset. 0 without a pattern or such a point.
 fn phase(items: &[Option<Point>], grid: thin::Grid, pattern: &[f64]) -> f64 {
     let period: f64 = pattern.iter().sum();
     if period <= 0.0 || !period.is_finite() {

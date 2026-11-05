@@ -1,6 +1,5 @@
-//! Themes: a builder example, defaults and builder
-//! validation, sizes and styles as a drawn figure shows them, and nice
-//! domains.
+//! Themes: a builder example, defaults and builder validation, sizes and
+//! styles as a drawn figure shows them, and nice domains.
 
 use rustd3_core::color::Rgb;
 use rustd3_core::jiff::Timestamp;
@@ -14,17 +13,19 @@ use rustd3_figure::{Figure, Held, Target, Theme, axis};
 
 use crate::figure::{cache, line};
 
-/// The roles of a figure's parts: panel backgrounds, axes, axis lines and
-/// grid lines.
+/// The part role of panel backgrounds.
 const PANEL: u64 = 2;
+/// The part role of axes.
 const AXIS: u64 = 4;
+/// The part role of axis lines.
 const SPINE: u64 = 8;
+/// The part role of grid lines.
 const GRID: u64 = 9;
 
 #[test]
 fn the_builder_example_of_themes_sets_the_figures_theme() {
     let mut fig = Figure::new();
-    // seaborn's structure, our defaults
+    // seaborn's structure, with this crate's defaults.
     fig.theme(Theme::default());
     assert_eq!(*fig.get_theme(), Theme::default());
 
@@ -249,7 +250,7 @@ fn whitegrid_draws_one_grid_line_per_major_tick_under_the_marks() {
     for (line, (_, (x, _))) in lines.iter().zip(&bottom) {
         let (a, b) = (line.start(), line.end());
         assert_eq!((a.x, a.y, b.y), (b.x, area.y0, area.y1));
-        // Labels are centred on their ticks.
+        // Labels are centered on their ticks.
         assert!(a.x > *x, "{a:?} {x}");
     }
     for line in &lines[bottom.len()..] {

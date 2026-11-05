@@ -4,16 +4,17 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub enum Target {
-    /// SVG, PDF: list px, 4 thinning columns per px, no snapping.
+    /// Vector output (SVG, PDF), in list px, with 4 thinning columns per px
+    /// and no snapping.
     Vector,
-    /// PNG, GIF: device px = list px × `scale`; 4 thinning columns per
-    /// device px.
+    /// A raster file (PNG, GIF). Device px = list px × `scale`, with 4
+    /// thinning columns per device px.
     File {
         /// Device pixels per list px.
         scale: f64,
     },
-    /// iced: device px = list px × `scale`; 1 thinning column per device
-    /// px.
+    /// The iced widget's screen. Device px = list px × `scale`, with 1
+    /// thinning column per device px.
     Screen {
         /// Device pixels per list px.
         scale: f64,
@@ -40,8 +41,8 @@ impl Target {
     /// Thinning columns per list px: four per list pixel for vector
     /// output, four per device pixel for files, one per device pixel on
     /// screen. Files are thinned finer than the screen because M4's zigzag
-    /// leaves lighter stripes inside dense bands that overlapping segments
-    /// fill: at four columns per pixel they nearly vanish.
+    /// leaves lighter stripes inside the dense bands that overlapping
+    /// segments fill. At four columns per pixel the stripes nearly vanish.
     pub(crate) fn columns(self) -> f64 {
         match self {
             Target::Vector => 4.0,

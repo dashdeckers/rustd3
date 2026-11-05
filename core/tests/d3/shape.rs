@@ -4,7 +4,7 @@ use rustd3_core::shape::{self, Curve};
 
 use super::support::{assert_d3_eq, assert_path_eq, drawn};
 
-// d3-shape/test/basis-test.js: line.curve(curveBasis)(data) generates the expected path
+// d3-shape/test/curve/basis-test.js: line.curve(curveBasis)(data) generates the expected path
 #[test]
 fn line_curve_curvebasis_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::Basis);
@@ -20,7 +20,7 @@ fn line_curve_curvebasis_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/basis-test.js:10:3
 }
 
-// d3-shape/test/basis-test.js: area.curve(curveBasis)(data) generates the expected path
+// d3-shape/test/curve/basis-test.js: area.curve(curveBasis)(data) generates the expected path
 #[test]
 fn area_curve_curvebasis_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::Basis);
@@ -36,7 +36,7 @@ fn area_curve_curvebasis_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/basis-test.js:18:3
 }
 
-// d3-shape/test/basisClosed-test.js: line.curve(curveBasisClosed)(data) generates the expected path
+// d3-shape/test/curve/basisClosed-test.js: line.curve(curveBasisClosed)(data) generates the expected path
 #[test]
 fn line_curve_curvebasisclosed_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::BasisClosed);
@@ -76,7 +76,7 @@ fn line_curve_curvebasisclosed_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/basisClosed-test.js:12:3
 }
 
-// d3-shape/test/basisOpen-test.js: line.curve(curveBasisOpen)(data) generates the expected path
+// d3-shape/test/curve/basisOpen-test.js: line.curve(curveBasisOpen)(data) generates the expected path
 #[test]
 fn line_curve_curvebasisopen_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::BasisOpen);
@@ -116,7 +116,7 @@ fn line_curve_curvebasisopen_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/basisOpen-test.js:12:3
 }
 
-// d3-shape/test/basisOpen-test.js: area.curve(curveBasisOpen)(data) generates the expected path
+// d3-shape/test/curve/basisOpen-test.js: area.curve(curveBasisOpen)(data) generates the expected path
 #[test]
 fn area_curve_curvebasisopen_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::BasisOpen);
@@ -153,7 +153,7 @@ fn area_curve_curvebasisopen_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/basisOpen-test.js:22:3
 }
 
-// d3-shape/test/bumpX-test.js: line.curve(curveBumpX)(data) generates the expected path
+// d3-shape/test/curve/bumpX-test.js: line.curve(curveBumpX)(data) generates the expected path
 #[test]
 fn line_curve_curvebumpx_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::BumpX);
@@ -169,7 +169,7 @@ fn line_curve_curvebumpx_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/bumpX-test.js:10:3
 }
 
-// d3-shape/test/bumpX-test.js: area.curve(curveBumpX)(data) generates the expected path
+// d3-shape/test/curve/bumpX-test.js: area.curve(curveBumpX)(data) generates the expected path
 #[test]
 fn area_curve_curvebumpx_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::BumpX);
@@ -185,7 +185,7 @@ fn area_curve_curvebumpx_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/bumpX-test.js:18:3
 }
 
-// d3-shape/test/bumpY-test.js: line.curve(curveBumpY)(data) generates the expected path
+// d3-shape/test/curve/bumpY-test.js: line.curve(curveBumpY)(data) generates the expected path
 #[test]
 fn line_curve_curvebumpy_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::BumpY);
@@ -201,7 +201,7 @@ fn line_curve_curvebumpy_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/bumpY-test.js:10:3
 }
 
-// d3-shape/test/bumpY-test.js: area.curve(curveBumpY)(data) generates the expected path
+// d3-shape/test/curve/bumpY-test.js: area.curve(curveBumpY)(data) generates the expected path
 #[test]
 fn area_curve_curvebumpy_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::BumpY);
@@ -217,7 +217,7 @@ fn area_curve_curvebumpy_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/bumpY-test.js:18:3
 }
 
-// d3-shape/test/bundle-test.js: line.curve(curveBundle) uses a default beta of 0.85
+// d3-shape/test/curve/bundle-test.js: line.curve(curveBundle) uses a default beta of 0.85
 #[test]
 fn line_curve_curvebundle_uses_a_default_beta_of_0_85() {
     let l = shape::line().curve(Curve::Bundle { beta: 0.85 });
@@ -229,7 +229,7 @@ fn line_curve_curvebundle_uses_a_default_beta_of_0_85() {
     ); // d3-shape/test/curve/bundle-test.js:7:3
 }
 
-// d3-shape/test/bundle-test.js: line.curve(curveBundle.beta(beta)) uses the specified beta
+// d3-shape/test/curve/bundle-test.js: line.curve(curveBundle.beta(beta)) uses the specified beta
 #[test]
 fn line_curve_curvebundle_beta_beta_uses_the_specified_beta() {
     assert_path_eq(
@@ -242,7 +242,7 @@ fn line_curve_curvebundle_beta_beta_uses_the_specified_beta() {
     ); // d3-shape/test/curve/bundle-test.js:11:3
 }
 
-// d3-shape/test/cardinal-test.js: line.curve(curveCardinal)(data) generates the expected path
+// d3-shape/test/curve/cardinal-test.js: line.curve(curveCardinal)(data) generates the expected path
 #[test]
 fn line_curve_curvecardinal_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::Cardinal { tension: 0.0 });
@@ -262,7 +262,7 @@ fn line_curve_curvecardinal_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/cardinal-test.js:11:3
 }
 
-// d3-shape/test/cardinal-test.js: line.curve(curveCardinal) uses a default tension of zero
+// d3-shape/test/curve/cardinal-test.js: line.curve(curveCardinal) uses a default tension of zero
 #[test]
 fn line_curve_curvecardinal_uses_a_default_tension_of_zero() {
     let l = shape::line().curve(Curve::Cardinal { tension: 0.0 });
@@ -274,7 +274,7 @@ fn line_curve_curvecardinal_uses_a_default_tension_of_zero() {
     ); // d3-shape/test/curve/cardinal-test.js:16:3
 }
 
-// d3-shape/test/cardinal-test.js: line.curve(curveCardinal.tension(tension)) uses the specified tension
+// d3-shape/test/curve/cardinal-test.js: line.curve(curveCardinal.tension(tension)) uses the specified tension
 #[test]
 fn line_curve_curvecardinal_tension_tension_uses_the_specified_tension() {
     assert_path_eq(
@@ -287,7 +287,7 @@ fn line_curve_curvecardinal_tension_tension_uses_the_specified_tension() {
     ); // d3-shape/test/curve/cardinal-test.js:20:3
 }
 
-// d3-shape/test/cardinal-test.js: area.curve(curveCardinal)(data) generates the expected path
+// d3-shape/test/curve/cardinal-test.js: area.curve(curveCardinal)(data) generates the expected path
 #[test]
 fn area_curve_curvecardinal_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::Cardinal { tension: 0.0 });
@@ -307,7 +307,7 @@ fn area_curve_curvecardinal_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/cardinal-test.js:34:3
 }
 
-// d3-shape/test/cardinal-test.js: area.curve(curveCardinal) uses a default tension of zero
+// d3-shape/test/curve/cardinal-test.js: area.curve(curveCardinal) uses a default tension of zero
 #[test]
 fn area_curve_curvecardinal_uses_a_default_tension_of_zero() {
     let a = shape::area().curve(Curve::Cardinal { tension: 0.0 });
@@ -319,7 +319,7 @@ fn area_curve_curvecardinal_uses_a_default_tension_of_zero() {
     ); // d3-shape/test/curve/cardinal-test.js:39:3
 }
 
-// d3-shape/test/cardinal-test.js: area.curve(curveCardinal.tension(tension)) uses the specified tension
+// d3-shape/test/curve/cardinal-test.js: area.curve(curveCardinal.tension(tension)) uses the specified tension
 #[test]
 fn area_curve_curvecardinal_tension_tension_uses_the_specified_tension() {
     assert_path_eq(
@@ -332,7 +332,7 @@ fn area_curve_curvecardinal_tension_tension_uses_the_specified_tension() {
     ); // d3-shape/test/curve/cardinal-test.js:43:3
 }
 
-// d3-shape/test/cardinalClosed-test.js: line.curve(curveCardinalClosed)(data) generates the expected path
+// d3-shape/test/curve/cardinalClosed-test.js: line.curve(curveCardinalClosed)(data) generates the expected path
 #[test]
 fn line_curve_curvecardinalclosed_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CardinalClosed { tension: 0.0 });
@@ -352,7 +352,7 @@ fn line_curve_curvecardinalclosed_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/cardinalClosed-test.js:11:3
 }
 
-// d3-shape/test/cardinalClosed-test.js: line.curve(curveCardinalClosed) uses a default tension of zero
+// d3-shape/test/curve/cardinalClosed-test.js: line.curve(curveCardinalClosed) uses a default tension of zero
 #[test]
 fn line_curve_curvecardinalclosed_uses_a_default_tension_of_zero() {
     let l = shape::line().curve(Curve::CardinalClosed { tension: 0.0 });
@@ -364,7 +364,7 @@ fn line_curve_curvecardinalclosed_uses_a_default_tension_of_zero() {
     ); // d3-shape/test/curve/cardinalClosed-test.js:16:3
 }
 
-// d3-shape/test/cardinalClosed-test.js: line.curve(curveCardinalClosed.tension(tension)) uses the specified tension
+// d3-shape/test/curve/cardinalClosed-test.js: line.curve(curveCardinalClosed.tension(tension)) uses the specified tension
 #[test]
 fn line_curve_curvecardinalclosed_tension_tension_uses_the_specified_tension() {
     assert_path_eq(
@@ -377,7 +377,7 @@ fn line_curve_curvecardinalclosed_tension_tension_uses_the_specified_tension() {
     ); // d3-shape/test/curve/cardinalClosed-test.js:20:3
 }
 
-// d3-shape/test/cardinalClosed-test.js: area.curve(curveCardinalClosed)(data) generates the expected path
+// d3-shape/test/curve/cardinalClosed-test.js: area.curve(curveCardinalClosed)(data) generates the expected path
 #[test]
 fn area_curve_curvecardinalclosed_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::CardinalClosed { tension: 0.0 });
@@ -397,7 +397,7 @@ fn area_curve_curvecardinalclosed_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/cardinalClosed-test.js:34:3
 }
 
-// d3-shape/test/cardinalClosed-test.js: area.curve(curveCardinalClosed) uses a default tension of zero
+// d3-shape/test/curve/cardinalClosed-test.js: area.curve(curveCardinalClosed) uses a default tension of zero
 #[test]
 fn area_curve_curvecardinalclosed_uses_a_default_tension_of_zero() {
     let a = shape::area().curve(Curve::CardinalClosed { tension: 0.0 });
@@ -409,7 +409,7 @@ fn area_curve_curvecardinalclosed_uses_a_default_tension_of_zero() {
     ); // d3-shape/test/curve/cardinalClosed-test.js:39:3
 }
 
-// d3-shape/test/cardinalClosed-test.js: area.curve(curveCardinalClosed.tension(tension)) uses the specified tension
+// d3-shape/test/curve/cardinalClosed-test.js: area.curve(curveCardinalClosed.tension(tension)) uses the specified tension
 #[test]
 fn area_curve_curvecardinalclosed_tension_tension_uses_the_specified_tension() {
     assert_path_eq(
@@ -422,7 +422,7 @@ fn area_curve_curvecardinalclosed_tension_tension_uses_the_specified_tension() {
     ); // d3-shape/test/curve/cardinalClosed-test.js:43:3
 }
 
-// d3-shape/test/cardinalOpen-test.js: line.curve(curveCardinalOpen)(data) generates the expected path
+// d3-shape/test/curve/cardinalOpen-test.js: line.curve(curveCardinalOpen)(data) generates the expected path
 #[test]
 fn line_curve_curvecardinalopen_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CardinalOpen { tension: 0.0 });
@@ -439,7 +439,7 @@ fn line_curve_curvecardinalopen_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/cardinalOpen-test.js:11:3
 }
 
-// d3-shape/test/cardinalOpen-test.js: line.curve(curveCardinalOpen) uses a default tension of zero
+// d3-shape/test/curve/cardinalOpen-test.js: line.curve(curveCardinalOpen) uses a default tension of zero
 #[test]
 fn line_curve_curvecardinalopen_uses_a_default_tension_of_zero() {
     let l = shape::line().curve(Curve::CardinalOpen { tension: 0.0 });
@@ -451,7 +451,7 @@ fn line_curve_curvecardinalopen_uses_a_default_tension_of_zero() {
     ); // d3-shape/test/curve/cardinalOpen-test.js:16:3
 }
 
-// d3-shape/test/cardinalOpen-test.js: line.curve(curveCardinalOpen.tension(tension)) uses the specified tension
+// d3-shape/test/curve/cardinalOpen-test.js: line.curve(curveCardinalOpen.tension(tension)) uses the specified tension
 #[test]
 fn line_curve_curvecardinalopen_tension_tension_uses_the_specified_tension() {
     assert_path_eq(
@@ -464,7 +464,7 @@ fn line_curve_curvecardinalopen_tension_tension_uses_the_specified_tension() {
     ); // d3-shape/test/curve/cardinalOpen-test.js:20:3
 }
 
-// d3-shape/test/cardinalOpen-test.js: area.curve(curveCardinalOpen)(data) generates the expected path
+// d3-shape/test/curve/cardinalOpen-test.js: area.curve(curveCardinalOpen)(data) generates the expected path
 #[test]
 fn area_curve_curvecardinalopen_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::CardinalOpen { tension: 0.0 });
@@ -481,7 +481,7 @@ fn area_curve_curvecardinalopen_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/cardinalOpen-test.js:34:3
 }
 
-// d3-shape/test/cardinalOpen-test.js: area.curve(curveCardinalOpen) uses a default tension of zero
+// d3-shape/test/curve/cardinalOpen-test.js: area.curve(curveCardinalOpen) uses a default tension of zero
 #[test]
 fn area_curve_curvecardinalopen_uses_a_default_tension_of_zero() {
     let a = shape::area().curve(Curve::CardinalOpen { tension: 0.0 });
@@ -493,7 +493,7 @@ fn area_curve_curvecardinalopen_uses_a_default_tension_of_zero() {
     ); // d3-shape/test/curve/cardinalOpen-test.js:39:3
 }
 
-// d3-shape/test/cardinalOpen-test.js: area.curve(curveCardinalOpen.tension(tension)) uses the specified tension
+// d3-shape/test/curve/cardinalOpen-test.js: area.curve(curveCardinalOpen.tension(tension)) uses the specified tension
 #[test]
 fn area_curve_curvecardinalopen_tension_tension_uses_the_specified_tension() {
     assert_path_eq(
@@ -506,7 +506,7 @@ fn area_curve_curvecardinalopen_tension_tension_uses_the_specified_tension() {
     ); // d3-shape/test/curve/cardinalOpen-test.js:43:3
 }
 
-// d3-shape/test/catmullRom-test.js: line.curve(curveCatmullRom)(data) generates the expected path
+// d3-shape/test/curve/catmullRom-test.js: line.curve(curveCatmullRom)(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullrom_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRom { alpha: 0.5 });
@@ -526,7 +526,7 @@ fn line_curve_curvecatmullrom_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRom-test.js:11:3
 }
 
-// d3-shape/test/catmullRom-test.js: line.curve(curveCatmullRom.alpha(1))(data) generates the expected path
+// d3-shape/test/curve/catmullRom-test.js: line.curve(curveCatmullRom.alpha(1))(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullrom_alpha_1_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRom { alpha: 1.0 });
@@ -546,7 +546,7 @@ fn line_curve_curvecatmullrom_alpha_1_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRom-test.js:20:3
 }
 
-// d3-shape/test/catmullRom-test.js: line.curve(curveCatmullRom) uses a default alpha of 0.5 (centripetal)
+// d3-shape/test/curve/catmullRom-test.js: line.curve(curveCatmullRom) uses a default alpha of 0.5 (centripetal)
 #[test]
 fn line_curve_curvecatmullrom_uses_a_default_alpha_of_0_5_centripetal() {
     let l = shape::line().curve(Curve::CatmullRom { alpha: 0.5 });
@@ -558,7 +558,7 @@ fn line_curve_curvecatmullrom_uses_a_default_alpha_of_0_5_centripetal() {
     ); // d3-shape/test/curve/catmullRom-test.js:25:3
 }
 
-// d3-shape/test/catmullRom-test.js: area.curve(curveCatmullRom.alpha(0))(data) generates the expected path
+// d3-shape/test/curve/catmullRom-test.js: area.curve(curveCatmullRom.alpha(0))(data) generates the expected path
 #[test]
 fn area_curve_curvecatmullrom_alpha_0_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::CatmullRom { alpha: 0.0 });
@@ -578,7 +578,7 @@ fn area_curve_curvecatmullrom_alpha_0_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRom-test.js:39:3
 }
 
-// d3-shape/test/catmullRom-test.js: area.curve(curveCatmullRom) uses a default alpha of 0.5 (centripetal)
+// d3-shape/test/curve/catmullRom-test.js: area.curve(curveCatmullRom) uses a default alpha of 0.5 (centripetal)
 #[test]
 fn area_curve_curvecatmullrom_uses_a_default_alpha_of_0_5_centripetal() {
     let a = shape::area().curve(Curve::CatmullRom { alpha: 0.5 });
@@ -590,7 +590,7 @@ fn area_curve_curvecatmullrom_uses_a_default_alpha_of_0_5_centripetal() {
     ); // d3-shape/test/curve/catmullRom-test.js:44:3
 }
 
-// d3-shape/test/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed)(data) generates the expected path
+// d3-shape/test/curve/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed)(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullromclosed_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRomClosed { alpha: 0.5 });
@@ -610,7 +610,7 @@ fn line_curve_curvecatmullromclosed_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRomClosed-test.js:11:3
 }
 
-// d3-shape/test/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed.alpha(0))(data) generates the expected path
+// d3-shape/test/curve/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed.alpha(0))(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullromclosed_alpha_0_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRomClosed { alpha: 0.0 });
@@ -630,7 +630,7 @@ fn line_curve_curvecatmullromclosed_alpha_0_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRomClosed-test.js:20:3
 }
 
-// d3-shape/test/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed.alpha(1))(data) generates the expected path
+// d3-shape/test/curve/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed.alpha(1))(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullromclosed_alpha_1_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRomClosed { alpha: 1.0 });
@@ -650,7 +650,7 @@ fn line_curve_curvecatmullromclosed_alpha_1_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRomClosed-test.js:29:3
 }
 
-// d3-shape/test/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed) uses a default alpha of 0.5 (centripetal)
+// d3-shape/test/curve/catmullRomClosed-test.js: line.curve(curveCatmullRomClosed) uses a default alpha of 0.5 (centripetal)
 #[test]
 fn line_curve_curvecatmullromclosed_uses_a_default_alpha_of_0_5_centripetal() {
     let l = shape::line().curve(Curve::CatmullRomClosed { alpha: 0.5 });
@@ -662,7 +662,7 @@ fn line_curve_curvecatmullromclosed_uses_a_default_alpha_of_0_5_centripetal() {
     ); // d3-shape/test/curve/catmullRomClosed-test.js:34:3
 }
 
-// d3-shape/test/catmullRomOpen-test.js: line.curve(curveCatmullRomOpen)(data) generates the expected path
+// d3-shape/test/curve/catmullRomOpen-test.js: line.curve(curveCatmullRomOpen)(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullromopen_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRomOpen { alpha: 0.5 });
@@ -679,7 +679,7 @@ fn line_curve_curvecatmullromopen_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRomOpen-test.js:11:3
 }
 
-// d3-shape/test/catmullRomOpen-test.js: line.curve(curveCatmullRomOpen.alpha(1))(data) generates the expected path
+// d3-shape/test/curve/catmullRomOpen-test.js: line.curve(curveCatmullRomOpen.alpha(1))(data) generates the expected path
 #[test]
 fn line_curve_curvecatmullromopen_alpha_1_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::CatmullRomOpen { alpha: 1.0 });
@@ -696,7 +696,7 @@ fn line_curve_curvecatmullromopen_alpha_1_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRomOpen-test.js:20:3
 }
 
-// d3-shape/test/catmullRomOpen-test.js: line.curve(curveCatmullRomOpen) uses a default alpha of 0.5 (centripetal)
+// d3-shape/test/curve/catmullRomOpen-test.js: line.curve(curveCatmullRomOpen) uses a default alpha of 0.5 (centripetal)
 #[test]
 fn line_curve_curvecatmullromopen_uses_a_default_alpha_of_0_5_centripetal() {
     let l = shape::line().curve(Curve::CatmullRomOpen { alpha: 0.5 });
@@ -708,7 +708,7 @@ fn line_curve_curvecatmullromopen_uses_a_default_alpha_of_0_5_centripetal() {
     ); // d3-shape/test/curve/catmullRomOpen-test.js:25:3
 }
 
-// d3-shape/test/catmullRomOpen-test.js: area.curve(curveCatmullRomOpen.alpha(0.5))(data) generates the expected path
+// d3-shape/test/curve/catmullRomOpen-test.js: area.curve(curveCatmullRomOpen.alpha(0.5))(data) generates the expected path
 #[test]
 fn area_curve_curvecatmullromopen_alpha_0_5_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::CatmullRomOpen { alpha: 0.5 });
@@ -725,7 +725,7 @@ fn area_curve_curvecatmullromopen_alpha_0_5_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/catmullRomOpen-test.js:39:3
 }
 
-// d3-shape/test/catmullRomOpen-test.js: area.curve(curveCatmullRomOpen) uses a default alpha of 0.5 (centripetal)
+// d3-shape/test/curve/catmullRomOpen-test.js: area.curve(curveCatmullRomOpen) uses a default alpha of 0.5 (centripetal)
 #[test]
 fn area_curve_curvecatmullromopen_uses_a_default_alpha_of_0_5_centripetal() {
     let a = shape::area().curve(Curve::CatmullRomOpen { alpha: 0.5 });
@@ -737,7 +737,7 @@ fn area_curve_curvecatmullromopen_uses_a_default_alpha_of_0_5_centripetal() {
     ); // d3-shape/test/curve/catmullRomOpen-test.js:44:3
 }
 
-// d3-shape/test/linear-test.js: line.curve(curveLinear)(data) generates the expected path
+// d3-shape/test/curve/linear-test.js: line.curve(curveLinear)(data) generates the expected path
 #[test]
 fn line_curve_curvelinear_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::Linear);
@@ -753,7 +753,7 @@ fn line_curve_curvelinear_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/linear-test.js:10:3
 }
 
-// d3-shape/test/linear-test.js: area.curve(curveLinear)(data) generates the expected path
+// d3-shape/test/curve/linear-test.js: area.curve(curveLinear)(data) generates the expected path
 #[test]
 fn area_curve_curvelinear_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::Linear);
@@ -769,7 +769,7 @@ fn area_curve_curvelinear_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/linear-test.js:18:3
 }
 
-// d3-shape/test/linearClosed-test.js: line.curve(curveLinearClosed)(data) generates the expected path
+// d3-shape/test/curve/linearClosed-test.js: line.curve(curveLinearClosed)(data) generates the expected path
 #[test]
 fn line_curve_curvelinearclosed_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::LinearClosed);
@@ -785,7 +785,7 @@ fn line_curve_curvelinearclosed_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/linearClosed-test.js:10:3
 }
 
-// d3-shape/test/monotoneX-test.js: line.curve(curveMonotoneX)(data) generates the expected path
+// d3-shape/test/curve/monotoneX-test.js: line.curve(curveMonotoneX)(data) generates the expected path
 #[test]
 fn line_curve_curvemonotonex_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::MonotoneX);
@@ -805,7 +805,7 @@ fn line_curve_curvemonotonex_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/monotoneX-test.js:11:3
 }
 
-// d3-shape/test/monotoneX-test.js: line.curve(curveMonotoneX)(data) preserves monotonicity in y
+// d3-shape/test/curve/monotoneX-test.js: line.curve(curveMonotoneX)(data) preserves monotonicity in y
 #[test]
 fn line_curve_curvemonotonex_data_preserves_monotonicity_in_y() {
     let l = shape::line().curve(Curve::MonotoneX);
@@ -826,7 +826,7 @@ fn line_curve_curvemonotonex_data_preserves_monotonicity_in_y() {
     ); // d3-shape/test/curve/monotoneX-test.js:16:3
 }
 
-// d3-shape/test/monotoneX-test.js: line.curve(curveMonotoneX)(data) handles duplicate x-values
+// d3-shape/test/curve/monotoneX-test.js: line.curve(curveMonotoneX)(data) handles duplicate x-values
 #[test]
 fn line_curve_curvemonotonex_data_handles_duplicate_x_values() {
     let l = shape::line().curve(Curve::MonotoneX);
@@ -859,7 +859,7 @@ fn line_curve_curvemonotonex_data_handles_duplicate_x_values() {
     ); // d3-shape/test/curve/monotoneX-test.js:23:3
 }
 
-// d3-shape/test/monotoneX-test.js: line.curve(curveMonotoneX)(data) handles segments of infinite slope
+// d3-shape/test/curve/monotoneX-test.js: line.curve(curveMonotoneX)(data) handles segments of infinite slope
 #[test]
 fn line_curve_curvemonotonex_data_handles_segments_of_infinite_slope() {
     let l = shape::line().curve(Curve::MonotoneX);
@@ -883,7 +883,7 @@ fn line_curve_curvemonotonex_data_handles_segments_of_infinite_slope() {
     ); // d3-shape/test/curve/monotoneX-test.js:29:3
 }
 
-// d3-shape/test/monotoneX-test.js: line.curve(curveMonotoneX)(data) ignores coincident points
+// d3-shape/test/curve/monotoneX-test.js: line.curve(curveMonotoneX)(data) ignores coincident points
 #[test]
 fn line_curve_curvemonotonex_data_ignores_coincident_points() {
     let l = shape::line().curve(Curve::MonotoneX);
@@ -971,7 +971,7 @@ fn line_curve_curvemonotonex_data_ignores_coincident_points() {
     ); // d3-shape/test/curve/monotoneX-test.js:39:3
 }
 
-// d3-shape/test/monotoneX-test.js: area.curve(curveMonotoneX)(data) generates the expected path
+// d3-shape/test/curve/monotoneX-test.js: area.curve(curveMonotoneX)(data) generates the expected path
 #[test]
 fn area_curve_curvemonotonex_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::MonotoneX);
@@ -991,7 +991,7 @@ fn area_curve_curvemonotonex_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/monotoneX-test.js:48:3
 }
 
-// d3-shape/test/monotoneY-test.js: line.curve(curveMonotoneY)(data) generates the expected path
+// d3-shape/test/curve/monotoneY-test.js: line.curve(curveMonotoneY)(data) generates the expected path
 #[test]
 fn line_curve_curvemonotoney_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::MonotoneY);
@@ -1011,7 +1011,7 @@ fn line_curve_curvemonotoney_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/monotoneY-test.js:11:3
 }
 
-// d3-shape/test/monotoneY-test.js: line.curve(curveMonotoneY)(data) preserves monotonicity in y
+// d3-shape/test/curve/monotoneY-test.js: line.curve(curveMonotoneY)(data) preserves monotonicity in y
 #[test]
 fn line_curve_curvemonotoney_data_preserves_monotonicity_in_y() {
     let l = shape::line().curve(Curve::MonotoneY);
@@ -1032,7 +1032,7 @@ fn line_curve_curvemonotoney_data_preserves_monotonicity_in_y() {
     ); // d3-shape/test/curve/monotoneY-test.js:16:3
 }
 
-// d3-shape/test/monotoneY-test.js: line.curve(curveMonotoneY)(data) handles duplicate x-values
+// d3-shape/test/curve/monotoneY-test.js: line.curve(curveMonotoneY)(data) handles duplicate x-values
 #[test]
 fn line_curve_curvemonotoney_data_handles_duplicate_x_values() {
     let l = shape::line().curve(Curve::MonotoneY);
@@ -1065,7 +1065,7 @@ fn line_curve_curvemonotoney_data_handles_duplicate_x_values() {
     ); // d3-shape/test/curve/monotoneY-test.js:23:3
 }
 
-// d3-shape/test/monotoneY-test.js: line.curve(curveMonotoneY)(data) handles segments of infinite slope
+// d3-shape/test/curve/monotoneY-test.js: line.curve(curveMonotoneY)(data) handles segments of infinite slope
 #[test]
 fn line_curve_curvemonotoney_data_handles_segments_of_infinite_slope() {
     let l = shape::line().curve(Curve::MonotoneY);
@@ -1089,7 +1089,7 @@ fn line_curve_curvemonotoney_data_handles_segments_of_infinite_slope() {
     ); // d3-shape/test/curve/monotoneY-test.js:29:3
 }
 
-// d3-shape/test/monotoneY-test.js: line.curve(curveMonotoneY)(data) ignores coincident points
+// d3-shape/test/curve/monotoneY-test.js: line.curve(curveMonotoneY)(data) ignores coincident points
 #[test]
 fn line_curve_curvemonotoney_data_ignores_coincident_points() {
     let l = shape::line().curve(Curve::MonotoneY);
@@ -1177,7 +1177,7 @@ fn line_curve_curvemonotoney_data_ignores_coincident_points() {
     ); // d3-shape/test/curve/monotoneY-test.js:39:3
 }
 
-// d3-shape/test/monotoneY-test.js: area.curve(curveMonotoneY)(data) generates the expected path
+// d3-shape/test/curve/monotoneY-test.js: area.curve(curveMonotoneY)(data) generates the expected path
 #[test]
 fn area_curve_curvemonotoney_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::MonotoneY);
@@ -1197,7 +1197,7 @@ fn area_curve_curvemonotoney_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/monotoneY-test.js:48:3
 }
 
-// d3-shape/test/natural-test.js: line.curve(curveNatural)(data) generates the expected path
+// d3-shape/test/curve/natural-test.js: line.curve(curveNatural)(data) generates the expected path
 #[test]
 fn line_curve_curvenatural_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::Natural);
@@ -1217,7 +1217,7 @@ fn line_curve_curvenatural_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/natural-test.js:11:3
 }
 
-// d3-shape/test/natural-test.js: area.curve(curveNatural)(data) generates the expected path
+// d3-shape/test/curve/natural-test.js: area.curve(curveNatural)(data) generates the expected path
 #[test]
 fn area_curve_curvenatural_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::Natural);
@@ -1237,7 +1237,7 @@ fn area_curve_curvenatural_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/natural-test.js:20:3
 }
 
-// d3-shape/test/step-test.js: line.curve(curveStep)(data) generates the expected path
+// d3-shape/test/curve/step-test.js: line.curve(curveStep)(data) generates the expected path
 #[test]
 fn line_curve_curvestep_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::Step);
@@ -1253,7 +1253,7 @@ fn line_curve_curvestep_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/step-test.js:10:3
 }
 
-// d3-shape/test/step-test.js: area.curve(curveStep)(data) generates the expected path
+// d3-shape/test/curve/step-test.js: area.curve(curveStep)(data) generates the expected path
 #[test]
 fn area_curve_curvestep_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::Step);
@@ -1269,7 +1269,7 @@ fn area_curve_curvestep_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/step-test.js:18:3
 }
 
-// d3-shape/test/stepAfter-test.js: line.curve(curveStepAfter)(data) generates the expected path
+// d3-shape/test/curve/stepAfter-test.js: line.curve(curveStepAfter)(data) generates the expected path
 #[test]
 fn line_curve_curvestepafter_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::StepAfter);
@@ -1285,7 +1285,7 @@ fn line_curve_curvestepafter_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/stepAfter-test.js:10:3
 }
 
-// d3-shape/test/stepAfter-test.js: area.curve(curveStepAfter)(data) generates the expected path
+// d3-shape/test/curve/stepAfter-test.js: area.curve(curveStepAfter)(data) generates the expected path
 #[test]
 fn area_curve_curvestepafter_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::StepAfter);
@@ -1301,7 +1301,7 @@ fn area_curve_curvestepafter_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/stepAfter-test.js:18:3
 }
 
-// d3-shape/test/stepBefore-test.js: line.curve(curveStepBefore)(data) generates the expected path
+// d3-shape/test/curve/stepBefore-test.js: line.curve(curveStepBefore)(data) generates the expected path
 #[test]
 fn line_curve_curvestepbefore_data_generates_the_expected_path() {
     let l = shape::line().curve(Curve::StepBefore);
@@ -1317,7 +1317,7 @@ fn line_curve_curvestepbefore_data_generates_the_expected_path() {
     ); // d3-shape/test/curve/stepBefore-test.js:10:3
 }
 
-// d3-shape/test/stepBefore-test.js: area.curve(curveStepBefore)(data) generates the expected path
+// d3-shape/test/curve/stepBefore-test.js: area.curve(curveStepBefore)(data) generates the expected path
 #[test]
 fn area_curve_curvestepbefore_data_generates_the_expected_path() {
     let a = shape::area().curve(Curve::StepBefore);

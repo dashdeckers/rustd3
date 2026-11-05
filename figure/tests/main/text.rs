@@ -24,10 +24,10 @@ use rustd3_figure::text::{
 
 use crate::sink::DEJAVU;
 
-/// The bundled fonts; without the `fonts` feature, the same three files
-/// given as extra fonts, read once per process as the bundled ones are, so
-/// that their blobs, which part hashes name faces by, are the same in every
-/// cache.
+/// The bundled fonts. Without the `fonts` feature, the same three files
+/// given as extra fonts and read once per process, as the bundled ones
+/// are. That keeps their blobs, which part hashes name faces by, the same
+/// in every cache.
 pub fn fonts() -> Arc<Fonts> {
     #[cfg(feature = "fonts")]
     let fonts = Fonts::bundled();
@@ -50,7 +50,7 @@ pub fn fonts() -> Arc<Fonts> {
     fonts
 }
 
-/// The spot checks' style: 11 px, black, lines centred.
+/// The spot checks' style: 11 px, black, lines centered.
 pub fn style() -> Style {
     Style {
         size: 11.0,
@@ -695,9 +695,9 @@ fn list_dump_of_labels() {
 }
 
 /// Every label's ink lies in its box and reaches the box's top and bottom
-/// (the ink edges under typst's `"bounds"` text edges) within a device px;
-/// a top, middle or bottom anchor has that edge of the ink on the anchor
-/// point, under a rotation too; nothing is drawn outside the boxes.
+/// (the ink edges under typst's `"bounds"` text edges) within a device px.
+/// A top, middle or bottom anchor has that edge of the ink on the anchor
+/// point, under a rotation too. Nothing is drawn outside the boxes.
 #[cfg(feature = "raster")]
 #[test]
 fn a_vello_render_draws_each_label_in_its_box_at_its_anchor() {

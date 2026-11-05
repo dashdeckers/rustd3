@@ -1,8 +1,9 @@
 //! The `Plot` widget through the headless harness on the backend
-//! `ICED_TEST_BACKEND` names, against the PNG of the same figure: display
-//! and the overlay; `Plot::revision` and `Plot::caching`; and live data,
-//! the cells an append, a moving window or `drop_front` re-renders, read
-//! from the probe's raster samples against the parts that changed.
+//! `ICED_TEST_BACKEND` names, against the PNG of the same figure. The
+//! tests cover display and the overlay, `Plot::revision` and
+//! `Plot::caching`, and live data. For live data they check the cells an
+//! append, a moving window or `drop_front` re-renders, reading the probe's
+//! raster samples against the parts that changed.
 
 use std::sync::mpsc;
 use std::time::Duration;
@@ -73,9 +74,10 @@ fn samples(n: usize, seed: usize) -> Vec<(f64, f64)> {
 }
 
 /// The first frame of `fig` in the widget at factor `k`, rendered
-/// inline, and the backend's name; `None` when the backend is skipped.
-/// (The cost model predicts 8.7 ms for [`figure`] at 2, over half the
-/// first frame's budget, so `Render::Auto` would wait for the worker.)
+/// inline, and the backend's name. `None` when the backend is skipped.
+/// Rendering is inline because the cost model predicts 8.7 ms for
+/// [`figure`] at 2, over half the first frame's budget, so `Render::Auto`
+/// would wait for the worker.
 fn shoot(fig: Figure<'static>, k: f32) -> Option<(Shot, String)> {
     let plot = Plot::<()>::new(fig).scale_factor(k).render(Render::Inline);
     let mut harness = Harness::new(plot, SIZE, k)?;
@@ -83,9 +85,10 @@ fn shoot(fig: Figure<'static>, k: f32) -> Option<(Shot, String)> {
     Some((harness.frame(headless::epoch()), backend))
 }
 
-/// The widget's first frame of `make()` at `k` against the PNG of the
-/// same figure on the screenshot's white: max difference and channels
-/// over 16, printed.
+/// Compares the widget's first frame of `make()` at `k` with the PNG of
+/// the same figure on the screenshot's white, and prints the max
+/// difference and the channels over 16. Returns the difference, the frame
+/// and the backend's name.
 fn compare(make: fn() -> Figure<'static>, k: f32) -> Option<(pixels::Diff, Shot, String)> {
     let (shot, backend) = shoot(make(), k)?;
     let size = kurbo::Size::new(f64::from(SIZE.width), f64::from(SIZE.height));
@@ -198,7 +201,8 @@ fn is_red(pixel: [u8; 4]) -> bool {
 }
 
 /// The columns (`vertical`) or rows of `shot` within `span` that are red
-/// along at least 90% of `along`: a spine's, which must be one run.
+/// along at least 90% of `along`. These are a spine's, which must form one
+/// run.
 fn spine(
     shot: &Shot,
     vertical: bool,
@@ -221,9 +225,9 @@ fn spine(
 
 #[test]
 fn spines_have_no_seam_whatever_factor_the_widget_assumes() {
-    // The widget told the window's factor (right) or another (wrong: 1
-    // on a scaled window, 2 on an unscaled one), as a headless capture
-    // without `.scale_factor` is wrong.
+    // The widget is told either the window's factor (right) or another
+    // one (wrong: 1 on a scaled window, 2 on an unscaled one). The wrong
+    // case is what a headless capture without `.scale_factor` gets.
     let mut seams = Vec::new();
     for k in [1.0_f32, 1.25, 1.5, 2.0] {
         for assumed in [k, if k == 1.0 { 2.0 } else { 1.0 }] {
@@ -278,9 +282,9 @@ fn changed(before: &Shot, after: &Shot) -> Vec<(u32, u32)> {
         .collect()
 }
 
-/// A frame of `plot` at `k`, rendered inline, then one after the pointer
-/// moved to `at` (logical), the backend's name and whether the move asked
-/// for a redraw.
+/// Two frames of `plot` at `k`, rendered inline, before and after the
+/// pointer moves to `at` (logical). Also returns the backend's name and
+/// whether the move asked for a redraw.
 fn hover(plot: Plot<'static, ()>, k: f32, at: Point) -> Option<(Shot, Shot, String, bool)> {
     let plot = plot.scale_factor(k).render(Render::Inline);
     let mut harness = Harness::new(plot, SIZE, k)?;
@@ -342,7 +346,7 @@ fn crosshair_stays_inside_the_hovered_panel() {
 fn highlight_marks_the_nearest_point() {
     let k = 2.0;
     let [x0, y0, x1, y1] = plot_area(&four_dots(), k, 0);
-    // (5, 5) at the centre of the plot area; the pointer 5 px right and 4
+    // (5, 5) at the center of the plot area; the pointer 5 px right and 4
     // px up of it, logical.
     let expected = ((x0 + x1) as f32 / 2.0, (y0 + y1) as f32 / 2.0);
     let at = Point::new(expected.0 / k + 5.0, expected.1 / k - 4.0);
@@ -424,11 +428,11 @@ pub fn rendered(samples: &[Sample], fig: &Figure<'_>, size: Size, k: f32) -> Vec
 }
 
 /// The cells each raster sample among `samples` rendered for `fig` at
-/// `size` and `k`: a tile counts as the cell holding its plot area's top
-/// left pixel (each plot area of these figures is one cell); a gutter run
-/// reports its first cell and its pixels, and holds the cells after it in
-/// its row up to them; an overlay reports the plot area's cell, larger
-/// than itself.
+/// `size` and `k`. A tile counts as the cell holding its plot area's top
+/// left pixel, since each plot area of these figures is one cell. A gutter
+/// run reports its first cell and its pixels, and covers the cells after it
+/// in its row until their areas reach that pixel count. An overlay reports
+/// the plot area's cell, which is larger than the overlay.
 fn spans(samples: &[Sample], fig: &Figure<'_>, size: Size, k: f32) -> Vec<Vec<u32>> {
     let cells = partition(fig, size, k).1;
     let areas = plot_areas(fig, size, k).len();
@@ -623,9 +627,9 @@ const APPEND: usize = 1_000;
 /// 0.5 Hz and amplitude 0.9, 0.7 or 0.5. Its sampled peaks are exactly
 /// ± the amplitude (each peak's argument rounds to within an ulp of
 /// ±π/2 + 2πk, where the sine rounds to ±1) and one of each lies in every
-/// two seconds, so neither appends nor `drop_front` move a fitted y; and
-/// it is smooth, so no thinned stroke overlaps itself (where vello_cpu's
-/// output would depend on the render's origin).
+/// two seconds, so neither appends nor `drop_front` move a fitted y. It is
+/// smooth, so no thinned stroke overlaps itself (where vello_cpu's output
+/// would depend on the render's origin).
 fn wave(from: usize, n: usize, seed: usize) -> Vec<f64> {
     let (hz, amplitude) = [(1.0, 0.9), (2.0, 0.7), (0.5, 0.5)][seed % 3];
     (from..from + n)
@@ -666,10 +670,11 @@ enum Follow {
     Window(f64),
 }
 
-/// The live trace: every channel of `top` in the upper panel and of
-/// `bottom` in the lower one, in the palette's colors, sharing x as
-/// `follow` says, each panel's y fitted to its data; left axes, bottom
-/// axes (the upper one unlabelled); the upper panel zooms x. Its x handle.
+/// The live trace and its x handle. Every channel of `top` is in the upper
+/// panel and every channel of `bottom` in the lower one, in the palette's
+/// colors. The panels share x as `follow` says, and each fits its y to its
+/// data. Both have left and bottom axes (the upper bottom axis
+/// unlabeled), and the upper panel zooms x.
 fn trace<'a>(
     top: &'a Recording<f64>,
     bottom: &'a Recording<f64>,
@@ -972,10 +977,10 @@ fn ten_hz_appends_stay_sharp() {
     );
     assert!(predicted <= 16.7 / 2.0, "{predicted} ms");
     drop(grown);
-    // Where the renders run is forced: the widget fits its cost model to
-    // its own renders, here a debug build's, so `Render::Auto`'s
-    // choice is the machine's; the prediction above is the seed's.
-    // Frames 100 ms apart.
+    // Where the renders run is forced. The widget fits its cost model to
+    // its own renders, here a debug build's, so `Render::Auto`'s choice
+    // would depend on the machine; the prediction above is the seed
+    // model's. Frames are 100 ms apart.
     let plot = live(&top, &bottom, follow, k, Render::Inline, None);
     let Some(mut harness) = Harness::new(plot, size, k) else {
         return;
@@ -990,10 +995,10 @@ fn ten_hz_appends_stay_sharp() {
         append(&mut bottom, BOTTOM, APPEND);
         harness = parked.resume(live(&top, &bottom, follow, k, Render::Inline, None));
         let shot = harness.frame(t + Duration::from_millis(100) * step);
-        // Every changed cell and tile rendered in the frame: it is the
-        // sharp one, which differs from the PNG only where vello_cpu's
-        // output depends on a cell's origin where strokes cross; a
-        // preview would be shifted.
+        // Every changed cell and tile rendered in the frame, so it is the
+        // sharp one; a preview would be shifted. It differs from the PNG
+        // only where strokes cross, where vello_cpu's output depends on a
+        // cell's origin.
         let diff = against(&shot, &trace(&top, &bottom, follow).0, size, k);
         worst = worst.max(diff.max());
         assert_eq!(
@@ -1140,8 +1145,8 @@ fn a_gesture_holds_a_windowed_handle() {
     assert_ne!(reset.rgba, held.rgba, "{backend}");
 }
 
-/// One inline frame of `plot` at `size` logical px on a factor-1 host,
-/// drawn; nothing when the backend is skipped.
+/// Draws one inline frame of `plot` at `size` logical px on a factor-1
+/// host. Does nothing when the backend is skipped.
 fn one_frame(plot: Plot<'static, ()>, size: Size) {
     let Some(mut harness) = Harness::new(plot, size, 1.0) else {
         return;

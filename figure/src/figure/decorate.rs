@@ -1,5 +1,4 @@
-//! A figure into a drawing list: backgrounds, marks, borders, axes and
-//! titles, each a part.
+//! Turning a resolved figure into a drawing list, one part per element.
 
 use std::cell::RefCell;
 
@@ -15,18 +14,19 @@ use crate::panel::Panel;
 use crate::text::{self, Anchor, Key, Shaped, anchor};
 use crate::thin;
 
-/// Tolerance of a rectangle's path: exact, rectangles have no curves.
+/// The tolerance of a rectangle's path. Any value is exact, since
+/// rectangles have no curves.
 const TOLERANCE: f64 = 0.1;
 
 impl Figure<'_> {
-    /// Appends the figure as `resolved` lays it out to `list`, each element
-    /// wrapped in a part with bounds `Rect::ZERO` and hash 0: the figure
-    /// background, then per panel its background, its grid lines in the
-    /// styles with a grid, its marks in insertion
-    /// order inside one group translated to the plot area and clipped to
-    /// it, its inset legends, its border, axes (each its line, then its
-    /// ticks and labels) and title, then the figure
-    /// title, centred on the plot areas' extent, and the legends in figure
+    /// Appends the figure, as `resolved` lays it out, to `list`. Each
+    /// element is wrapped in a part with bounds `Rect::ZERO` and hash 0.
+    /// The figure background comes first. Then each panel adds its
+    /// background, its grid lines (in styles with a grid), its marks in
+    /// insertion order inside one group translated to the plot area and
+    /// clipped to it, its inset legends, its border, its axes (each its
+    /// line, then its ticks and labels) and its title. Last come the figure
+    /// title, centered on the plot areas' extent, and the legends in figure
     /// slots. Marks thin through `frame`.
     pub(super) fn decorate(
         &self,
@@ -147,11 +147,12 @@ fn marks(list: &mut List, index: usize, panel: &Panel<'_>, ctx: &Ctx<'_>) {
     }
 }
 
-/// Appends the grid lines of the panel laid out as `laid` across its plot
-/// area `area` and `overscan` px past its ends, in `color`, `width` px wide
-/// (snapped by `snap`): one line per major tick of its first shown
-/// horizontal axis and of its first shown vertical axis, as matplotlib
-/// draws one x and one y grid per axes; nothing without such ticks.
+/// Appends the grid lines of the panel laid out as `laid`, across its plot
+/// area `area` and `overscan` px past its ends, in `color` and `width` px
+/// wide (snapped by `snap`). There is one line per major tick of the
+/// panel's first shown horizontal axis and of its first shown vertical
+/// axis, as matplotlib draws one x and one y grid per axes. Nothing is
+/// appended without such ticks.
 fn grid(
     list: &mut List,
     laid: &Laid,

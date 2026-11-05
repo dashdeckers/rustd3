@@ -11,12 +11,13 @@ use crate::layout::{Obb, collide};
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
 
-/// One axis's labels for a layout pass: its side and color, the keys of its
-/// tick labels (none when it is not labelled; `None` for an empty label)
-/// with their ticks' absolute indices, how each follows the one before it
-/// on a time axis, and their rotation, which ticks the
-/// scale's format blanks, the line box its tick labels share, and the keys
-/// of its offset or multiplier label and of its title, set in that color.
+/// One axis's labels for a layout pass. It holds the axis's side and
+/// color, and the keys of its tick labels (none when it is not labeled,
+/// `None` for an empty label) with their ticks' absolute indices, how each
+/// follows the one before it on a time axis, and their rotation. It also
+/// holds which ticks the scale's format blanks, the line box its tick
+/// labels share, and the keys of its offset or multiplier label and of its
+/// title, all set in that color.
 #[derive(Clone)]
 pub(crate) struct Labels {
     pub(super) orient: Orient,
@@ -27,9 +28,9 @@ pub(crate) struct Labels {
     pub(super) ticks: Vec<Option<Key>>,
     pub(super) indices: Vec<i64>,
     pub(super) restarts: Vec<collide::Restart>,
-    /// Ticks whose label the scale's own format leaves empty (d3's log
-    /// blanking), in tick order whether labelled or not: drawn as minor
-    /// ticks.
+    /// Which ticks have a label the scale's own format leaves empty (d3's
+    /// log blanking), in tick order whether labeled or not. These are
+    /// drawn as minor ticks.
     pub(super) minor: Vec<bool>,
     /// The text face's ascender and descender at the tick-label size.
     line: [f64; 2],
@@ -39,8 +40,8 @@ pub(crate) struct Labels {
 
 impl Labels {
     /// The labels of `axis` over the resolved scales for about `count`
-    /// ticks, in `theme`'s styles, with the line box of `text`'s fonts;
-    /// none when not `labeled`.
+    /// ticks, in `theme`'s styles, with the line box of `text`'s fonts.
+    /// Without `labeled` there are no tick labels, offset label or title.
     pub(crate) fn new<'a>(
         axis: &(dyn Draw<'a> + 'a),
         resolved: &Resolved,
@@ -95,7 +96,7 @@ impl Labels {
         self.orient
     }
 
-    /// The title's key, when labelled with one.
+    /// The title's key, when labeled with one.
     pub(crate) fn title(&self) -> Option<&Key> {
         self.title.as_ref()
     }
@@ -120,12 +121,12 @@ impl Labels {
             .chain(&self.title)
     }
 
-    /// How far the axis reaches past its offset: its tick, and, when
-    /// labelled, the tick pad, its labels' extent across the axis (the
+    /// How far the axis reaches past its offset. That is its tick and, when
+    /// labeled, the tick pad and its labels' extent across the axis (the
     /// widest advance beside a vertical axis, the tallest box under a
-    /// horizontal one), on a horizontal axis its offset or multiplier label
-    /// a tick pad further, and, with a title, the label pad and the title's
-    /// ink height.
+    /// horizontal one). A horizontal axis adds its offset or multiplier
+    /// label a tick pad further, and a title adds the label pad and the
+    /// title's ink height.
     pub(crate) fn thickness(&self, text: &text::Cache, theme: &Theme) -> f64 {
         let mut thickness = theme.tick();
         if self.ticks.is_empty() && self.title.is_none() {
@@ -168,11 +169,11 @@ impl Labels {
     /// Where tick label `shaped` has its first baseline, px below its
     /// anchor point (the end of its tick plus the tick pad; above it when
     /// negative). Rows share baselines through the text face's line box,
-    /// as matplotlib places tick labels: under a bottom axis the first
-    /// baseline lies the ascender below the point; over a top axis the last
-    /// baseline lies the descender above it; beside a vertical axis the box
-    /// from the first line's ascender to the last line's descender is
-    /// centred on the point.
+    /// as matplotlib places tick labels. Under a bottom axis the first
+    /// baseline lies the ascender below the point, and over a top axis the
+    /// last baseline lies the descender above it. Beside a vertical axis
+    /// the box from the first line's ascender to the last line's descender
+    /// is centered on the point.
     pub(super) fn baseline(&self, shaped: &Shaped) -> f64 {
         let [ascender, descender] = self.line;
         match self.orient {
@@ -182,11 +183,12 @@ impl Labels {
         }
     }
 
-    /// Tick label `shaped`'s box relative to its anchor point, axis-aligned:
-    /// for an unrotated label its advance width aligned by its side, by its
-    /// line box (the text face's ascender above its first baseline to its
-    /// descender below the last) united with its ink; for a rotated one the
-    /// bounding rectangle of its turned box ([`oriented`](Labels::oriented)).
+    /// Tick label `shaped`'s axis-aligned box relative to its anchor point.
+    /// For an unrotated label it spans its advance width, aligned by the
+    /// axis's side, by its line box (the text face's ascender above its
+    /// first baseline to its descender below the last) united with its
+    /// ink. For a rotated label it is the bounding rectangle of its turned
+    /// box ([`oriented`](Labels::oriented)).
     pub(crate) fn bounds(&self, shaped: &Shaped) -> Rect {
         if self.angle != 0.0 {
             return self.oriented(shaped).aabb();
@@ -204,16 +206,20 @@ impl Labels {
         Rect::new(x0, top, x0 + width, bottom)
     }
 
-    /// Tick label `shaped`'s box relative to its anchor point as collisions
-    /// test it: [`bounds`](Labels::bounds) for an unrotated label; for a
-    /// rotated one its ink box (advance width by ink height) turned by the
-    /// angle, its bounding rectangle placed as matplotlib aligns a rotated
-    /// label's: on a bottom axis its top on the anchor, its right edge
-    /// there for positive angles (the label ends at its tick, as
-    /// `autofmt_xdate`'s `ha="right"`) and its left edge for negative ones;
-    /// a top axis mirrors that, its bottom on the anchor and its left edge
-    /// there for positive angles; beside a left or right axis it ends or
-    /// starts at the anchor, centred on it vertically.
+    /// Tick label `shaped`'s box relative to its anchor point, as
+    /// collisions test it. For an unrotated label it is
+    /// [`bounds`](Labels::bounds). For a rotated one it is its ink box
+    /// (advance width by ink height) turned by the angle, with its bounding
+    /// rectangle placed as matplotlib aligns a rotated label:
+    ///
+    /// - on a bottom axis, its top on the anchor, with its right edge there
+    ///   for positive angles (the label ends at its tick, as
+    ///   `autofmt_xdate`'s `ha="right"`) and its left edge for negative
+    ///   ones;
+    /// - on a top axis, mirrored: its bottom on the anchor, with its left
+    ///   edge there for positive angles;
+    /// - beside a left or right axis, ending or starting at the anchor and
+    ///   centered on it vertically.
     pub(crate) fn oriented(&self, shaped: &Shaped) -> Obb {
         if self.angle == 0.0 {
             return Obb::rect(self.bounds(shaped));
@@ -272,10 +278,10 @@ impl Labels {
     }
 
     /// How far the tick labels would reach past the two ends of the panel
-    /// along the axis, wherever their ticks sit: the most any of them
-    /// reaches before its tick and after it ([before its start, after its
-    /// end]), as if one sat at each end. What an axis on a `Fit::Window`
-    /// handle reserves, so ticks sliding past the ends move no layout.
+    /// along the axis, wherever their ticks sit, as [before its start,
+    /// after its end]. Each side is the most any label reaches before or
+    /// after its tick, as if one sat at each end. An axis on a `Fit::Window`
+    /// handle reserves this, so ticks sliding past the ends move no layout.
     pub(crate) fn reserve(&self, text: &text::Cache) -> [f64; 2] {
         let across = across(self.orient);
         shaped(text, &self.ticks)
@@ -289,7 +295,7 @@ impl Labels {
 }
 
 /// How a tick label aligns on the end of its tick plus the tick pad:
-/// centred under or over a horizontal axis, ending left of a left axis and
+/// centered under or over a horizontal axis, ending left of a left axis and
 /// starting right of a right one.
 pub(crate) fn align(orient: Orient) -> anchor::Horizontal {
     match orient {
@@ -299,10 +305,10 @@ pub(crate) fn align(orient: Orient) -> anchor::Horizontal {
     }
 }
 
-/// Where an axis's offset or multiplier label sits: at the right end of a
-/// horizontal axis, beyond its tick labels; above the top end of a vertical
-/// one, starting at a left axis's line and ending at a right one's, over
-/// the plot area.
+/// Where an axis's offset or multiplier label sits. On a horizontal axis
+/// it is at the right end, beyond the tick labels. On a vertical axis it
+/// is above the top end, over the plot area, starting at a left axis's
+/// line or ending at a right one's.
 pub(crate) fn notation(orient: Orient) -> Anchor {
     let (h, v) = match orient {
         Orient::Bottom => (anchor::Horizontal::End, anchor::Vertical::Top),

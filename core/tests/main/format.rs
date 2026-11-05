@@ -403,8 +403,8 @@ fn literal_check_agrees_with_parser() {
 
 #[test]
 fn degenerate_values_under_the_tables_match_d3() {
-    // d3-format 3.1.2's formatLocale over the same JSON tables, in JavaScript,
-    // but for one row.
+    // d3-format 3.1.2's formatLocale over the same JSON tables, computed in
+    // JavaScript, except for one row.
     let ar = from_json(table!("ar-001"));
     let in_ = from_json(table!("en-IN"));
     let rows: [(&Locale, &str, f64, &str); 17] = [
@@ -453,7 +453,7 @@ fn degenerate_values_under_the_tables_match_d3() {
 }
 
 /// `fmt!`'s doc says it writes no currency, as the neutral locale has
-/// none, and shows the route that writes one; the route does.
+/// none, and shows the route that writes one. That route does write one.
 #[test]
 fn fmt_docs_say_the_neutral_locale_has_no_currency_and_show_one_that_does() {
     let source = include_str!("../../src/format/literal.rs");

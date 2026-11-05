@@ -1,5 +1,5 @@
-//! [`resolve`]: the scale-factor chain, and [`fit`]: the factor a widget
-//! too large for the renderer at it renders at.
+//! [`resolve`]: the scale-factor chain. [`fit`]: the lower factor a widget
+//! renders at when it is too large for the renderer at its own.
 
 use iced_core::{Size, renderer};
 
@@ -9,11 +9,11 @@ use iced_core::{Size, renderer};
 /// machine holds.
 pub(crate) const MOST: f32 = 8.0;
 
-/// Explicit input, the renderer's hint, the window's factor, then 1.0.
-/// Non-finite or non-positive values are skipped; one above [`MOST`] is
-/// taken as `MOST`.
+/// Resolves the factor from, in order, explicit input, the renderer's
+/// hint, the window's factor, then 1.0. Non-finite or non-positive values
+/// are skipped, and one above [`MOST`] is taken as `MOST`.
 ///
-/// tiny-skia's renderer reports no scale; wgpu's reports the window's and
+/// tiny-skia's renderer reports no scale. wgpu's reports the window's and
 /// the application's factors, whose product it draws at
 /// (`core/src/renderer.rs:75,214`). Window events carry the window's
 /// factor alone (`winit/src/lib.rs:671-675`).
@@ -30,8 +30,8 @@ pub(crate) fn resolve(
         .min(MOST)
 }
 
-/// The most device px a side the figure's raster renderer draws (beyond
-/// it a render fails with `raster::Error::TooLarge`).
+/// The most device px a side that the figure's raster renderer draws.
+/// Beyond it a render fails with `raster::Error::TooLarge`.
 const SIDE: f32 = 65_408.0;
 
 /// `factor`, lowered where the widget's logical `size` would be wider or

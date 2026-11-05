@@ -1,5 +1,6 @@
 //! PDF output (feature `pdf`): the list written by krilla on one page of
-//! its size in points, glyph runs as real, selectable text in subset fonts.
+//! its size in points. Glyph runs become real, selectable text in subset
+//! fonts.
 
 mod image;
 
@@ -93,9 +94,9 @@ impl Options {
     }
 }
 
-/// `list` as a one-page PDF of `size × 0.75` points, list px kept as the
-/// page's units by a root `scale(0.75)`: a 960 × 760 px list is a 720 ×
-/// 570 pt page, which `pdftoppm -r 96` rasterizes at 960 × 760 px.
+/// `list` as a one-page PDF of `size × 0.75` points. A root `scale(0.75)`
+/// keeps list px as the page's units, so a 960 × 760 px list is a
+/// 720 × 570 pt page, which `pdftoppm -r 96` rasterizes at 960 × 760 px.
 ///
 /// Every command is drawn natively ([`CAPS`]): glyph runs as text in
 /// their fonts, subset and embedded, selectable through each run's source
@@ -104,9 +105,9 @@ impl Options {
 /// Paints are placed in their group's space for every command, as the list
 /// positions them. Two limits are krilla's: radial gradients pad whatever
 /// their extend, and stops interpolate in sRGB whatever the gradient's
-/// color space. A group clipped to an area of nothing draws nothing. The document
-/// has no creation date and metadata only with a title, so the same list
-/// writes the same bytes.
+/// color space. A group clipped to an area of nothing draws nothing. The
+/// document has no creation date and has metadata only with a title, so
+/// the same list writes the same bytes.
 ///
 /// ```
 /// use rustd3_figure::kurbo::{Rect, Shape, Size};
@@ -133,8 +134,7 @@ impl Options {
 /// [`Error::Size`] for a list whose size is not positive and finite,
 /// [`Error::Unsupported`] for what PDF does not draw, [`Error::Font`] for a
 /// font krilla cannot embed, [`Error::List`] for a list that fails
-/// [`list::check`], [`Error::Krilla`] for what krilla
-/// reports.
+/// [`list::check`], and [`Error::Krilla`] for what krilla reports.
 pub fn write(list: &List, options: &Options) -> Result<Vec<u8>, Error> {
     list::check(list)?;
     let (width, height) = (list.size.width, list.size.height);
@@ -277,10 +277,10 @@ impl Replay<'_> {
         Ok(())
     }
 
-    /// A run under its transform, each glyph normalized by the run's size:
-    /// advance and offset from the pen, which is the sum of the advances
-    /// before it. A glyph whose bytes are not a slice of the run's text
-    /// maps to no text.
+    /// Draws a run under its transform, with each glyph's advance and
+    /// offset from the pen normalized by the run's size. The pen is the sum
+    /// of the advances before the glyph. A glyph whose bytes are not a
+    /// slice of the run's text maps to no text.
     fn glyphs(
         &mut self,
         surface: &mut Surface<'_>,
@@ -341,9 +341,9 @@ struct Marks<'a> {
 }
 
 impl Marks<'_> {
-    /// `shape` stamped at each point under a translation and its size;
-    /// the fill changes only where the paint index does, and per point for
-    /// a gradient, whose transform undoes the point's placement.
+    /// Draws `shape` stamped at each point under a translation and its
+    /// size. The fill changes only where the paint index does, and per
+    /// point for a gradient, whose transform undoes the point's placement.
     fn draw(
         &self,
         surface: &mut Surface<'_>,

@@ -27,11 +27,11 @@ impl std::fmt::Debug for Heatmap {
 
 /// A heatmap of `grid`: an [`image`] of its cells through a sequential
 /// color scale fitted to its values (viridis unless
-/// [`colors`](Heatmap::colors) says otherwise), filling the plot area, and
+/// [`colors`](Heatmap::colors) says otherwise), filling the plot area, with
 /// a [`colorbar`] of the scale right of it. Its axes are linear over the
-/// grid's extent, row 0 at the extent's first y (at the bottom unless the
-/// extent runs down), with minor ticks; [`keys`](Heatmap::keys) puts band
-/// axes of row and column names in their place.
+/// grid's extent, with minor ticks, and row 0 sits at the extent's first y
+/// (at the bottom unless the extent runs down). [`keys`](Heatmap::keys)
+/// replaces them with band axes of row and column names.
 ///
 /// ```
 /// use rustd3_figure::helpers::chart;
@@ -53,9 +53,10 @@ pub fn heatmap(grid: Grid) -> Heatmap {
 }
 
 impl Heatmap {
-    /// The color scheme the values map onto, low to high: viridis by
-    /// default, any of core's sequential schemes (`scheme::magma`,
-    /// `scheme::blues`, …) or a function of its own over [0, 1].
+    /// The color scheme the values map onto, low to high. It is viridis by
+    /// default, and may be any of core's sequential schemes
+    /// (`scheme::magma`, `scheme::blues`, …) or a function of your own over
+    /// [0, 1].
     ///
     /// ```
     /// use rustd3_core::scheme;

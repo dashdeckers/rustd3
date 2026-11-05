@@ -11,20 +11,26 @@ use crate::mark::Ctx;
 use crate::text::{self, Key};
 
 impl Figure<'_> {
-    /// The figure resolved for `size` with a fresh cache over the bundled
-    /// fonts for vector output, nothing drawn, and what it finds: grid axes
-    /// with no room left for plot areas, axes left with fewer than two of
-    /// their tick labels, legends drawn over each other, text longer than
-    /// what it labels
-    /// (axis and panel titles, the figure title, legends), labels with
-    /// glyphs the fonts lack or markup typst rejects, and what each mark
-    /// reports ([`Mark::issues`](crate::mark::Mark::issues): collected data
-    /// over 100,000 points, palette keys outside their palette, band and
-    /// point keys outside their domain), and what the helper that built it
-    /// found (a series name given twice). Layout's issues come first, in
-    /// panel order, then text's, by label, then the marks', in panel and
-    /// mark order, the helper's last; the keys outside one handle's domain
-    /// are counted in one issue, where its first mark reported them.
+    /// The issues found when the figure is resolved for `size` and vector
+    /// output, with a fresh cache over the bundled fonts and nothing drawn.
+    /// They come in this order:
+    ///
+    /// - layout's, in panel order: grid axes with no room left for plot
+    ///   areas, axes left with fewer than two of their tick labels, legends
+    ///   drawn over each other, and text longer than what it labels (axis
+    ///   and panel titles, the figure title, legends);
+    /// - text's, by label: labels with glyphs the fonts lack or markup
+    ///   typst rejects;
+    /// - the marks', in panel and mark order, as each mark reports them
+    ///   ([`Mark::issues`](crate::mark::Mark::issues)): collected data over
+    ///   100,000 points, palette keys outside their palette, and band and
+    ///   point keys outside their domain. The keys outside one handle's
+    ///   domain are counted in one issue, where its first mark reported
+    ///   them;
+    /// - panels outside the grid, handles of other figures, and windowed
+    ///   categorical handles;
+    /// - last, what the helper that built the figure found (a series name
+    ///   given twice).
     ///
     /// ```
     /// use rustd3_figure::check::Issue;
@@ -117,9 +123,10 @@ fn room(resolved: &Resolved) -> Vec<Issue> {
         .collect()
 }
 
-/// The handles of other figures given to the figure: per panel, those its
-/// axes, insets, zooms and brush were given and those its marks reported,
-/// in panel order; then those of figure slots. Each once per panel.
+/// The handles of other figures given to the figure. Per panel, in panel
+/// order, these are the handles its axes, insets, zooms and brush were
+/// given and those its marks reported; then come those of figure slots.
+/// Each handle appears once per panel.
 fn foreign(figure: &Figure<'_>, resolved: &Resolved) -> Vec<Issue> {
     let mut found: Vec<(Option<usize>, usize)> = Vec::new();
     let mut add = |at: (Option<usize>, usize)| {
@@ -144,8 +151,8 @@ fn foreign(figure: &Figure<'_>, resolved: &Resolved) -> Vec<Issue> {
         .collect()
 }
 
-/// Labelled axes with two or more tick labels placed of which the
-/// collision passes kept fewer than two, in panel and axis order.
+/// Labeled axes that placed two or more tick labels but kept fewer than
+/// two after the collision passes, in panel and axis order.
 fn few(resolved: &Resolved) -> Vec<Issue> {
     let mut issues = Vec::new();
     for (panel, laid) in resolved.panels().iter().enumerate() {
@@ -165,9 +172,9 @@ fn few(resolved: &Resolved) -> Vec<Issue> {
     issues
 }
 
-/// Legends whose boxes overlap (touching is not overlap): per panel its
-/// insets, then the legends in figure slots, each pair once in the order
-/// they were added.
+/// Legends whose boxes overlap (touching is not overlap). Each panel's
+/// insets come first, then the legends in figure slots, each pair once in
+/// the order they were added.
 fn overlaps(resolved: &Resolved) -> Vec<Issue> {
     let insets = resolved
         .panels()
@@ -196,7 +203,7 @@ fn overlaps(resolved: &Resolved) -> Vec<Issue> {
 }
 
 /// Text larger than its room: the figure title, then per panel its title,
-/// its labelled axes' titles and its inset legends, then the legends in
+/// its labeled axes' titles and its inset legends, then the legends in
 /// figure slots.
 fn overflow(figure: &Figure<'_>, resolved: &Resolved, text: &text::Cache) -> Vec<Issue> {
     let em = figure.get_theme().em();

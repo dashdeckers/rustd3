@@ -10,7 +10,7 @@ pub enum Order {
     Ascending,
     /// The largest sum of values at the bottom.
     Descending,
-    /// The earliest peaks in the middle, later ones outward: for
+    /// The earliest peaks in the middle and later ones outward, for
     /// streamgraphs.
     InsideOut,
     /// The earliest peak at the bottom.
@@ -21,7 +21,7 @@ pub enum Order {
 
 impl Order {
     /// d3's order function: the layers' indices bottom first, read from
-    /// each row's top (`[_, y1]`); NaN counts as 0.
+    /// each row's top (`[_, y1]`). NaN counts as 0.
     ///
     /// ```
     /// use rustd3_core::shape::stack::Order;

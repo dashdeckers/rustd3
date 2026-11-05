@@ -276,7 +276,7 @@ fn against(shot: &Shot, reference: &raster::Image) -> pixels::Diff {
     pixels::Diff::between(&shot.image(), &png, 16).expect("invariant: the shot has the PNG's size")
 }
 
-/// The device rect `rect` (device px) in logical px at `k`: its centre.
+/// The center of the device rect `[x0, y0, x1, y1]`, in logical px at `k`.
 fn centre([x0, y0, x1, y1]: [i64; 4], k: f32) -> Point {
     Point::new((x0 + x1) as f32 / 2.0 / k, (y0 + y1) as f32 / 2.0 / k)
 }
@@ -296,12 +296,9 @@ fn sized(w: i64, h: i64, k: f32) -> Size {
     panic!("no size gives a {w} × {h} plot area at {k}");
 }
 
-/// A drag of `d` device px over [`figure`] at `size` and `k`, its
-/// overscan ring resident: the tiles that render in the drag's frame
-/// (area, i, j), how many gutter cells, the frame against a fresh render
-/// of the snapped domain, and once the release ends the drag the tiles
-/// that render and what the frame shows (missing, previews); also the
-/// plot area and the backend.
+/// Drags `d` device px over [`figure`] at `size` and `k`, with its
+/// overscan ring resident, then releases. `None` when the backend is
+/// skipped.
 fn drag_by(k: f32, size: Size, d: i32) -> Option<Dragged> {
     let (tx, rx) = mpsc::channel();
     let probe = Probe::new(clock, tx);
@@ -364,28 +361,38 @@ fn drag_by(k: f32, size: Size, d: i32) -> Option<Dragged> {
 
 /// What [`drag_by`] reports.
 struct Dragged {
+    /// The keys (i, j) of the tiles that render in the drag's frame.
     keys: HashSet<(i32, i32)>,
+    /// How many tile renders the drag's frame made.
     rendered: usize,
+    /// How many gutter cells render in the drag's frame.
     cells: usize,
+    /// The largest channel difference between the drag's frame and a fresh
+    /// render of the snapped domain.
     max: u8,
+    /// How many tiles render once the release ends the drag.
     released: usize,
+    /// What the release's frame shows: (missing, previews).
     settled: (u32, u32),
+    /// The plot area, device px.
     area: [i64; 4],
+    /// The backend's name.
     backend: String,
 }
 
 #[test]
 fn pan_renders_only_entering_tiles() {
-    // The spot checks: a 900 × 600 device-px plot area, its ring of 6 × 5
-    // keys resident, each rendered over its whole square. +37 px:
-    // no visible tile renders, and the column i = −2 that enters the ring
-    // (its 5 rows, each its square [−475, −219)) waits for the drag to end:
-    // no tile renders in the drag's frame; −37 px: no key
-    // enters, and the ring column i = 4, rendered over [1024, 1280), lies
-    // at [987, 1243), its square: no tile renders. The release ends the
-    // drag and the layout settles (the panned axis's labels reach out
-    // differently, so here the plot area moves and every key renders
-    // anew): its frame shows every tile sharp.
+    // The spot checks use a 900 × 600 device-px plot area with its ring of
+    // 6 × 5 keys resident, each rendered over its whole square.
+    // - At +37 px no visible tile renders. The column i = −2 that enters
+    //   the ring (5 rows, each over its square [−475, −219)) waits for the
+    //   drag to end, so no tile renders in the drag's frame.
+    // - At −37 px no key enters. The ring column i = 4, rendered over
+    //   [1024, 1280), lies at [987, 1243), which is its square, so no tile
+    //   renders.
+    // The release ends the drag and the layout settles. The panned axis's
+    // labels reach out differently, so here the plot area moves and every
+    // key renders anew. The release's frame shows every tile sharp.
     let size = sized(900, 600, 1.0);
     for (d, entering) in [(37, Some(-2)), (-37, None)] {
         let Some(drag) = drag_by(1.0, size, d) else {
@@ -431,8 +438,9 @@ fn pan_renders_only_entering_tiles() {
 
 /// A figure over one channel of 200,000 samples at 1 kHz (a slow sine
 /// with a faster ripple, smooth at any zoom, so nothing overlaps itself
-/// densely), x fixed at `x`, y at [−1.5, 1.5], dashed by `dash` when
-/// given; left and bottom axes; the panel zooms x. Also its x handle.
+/// densely), with x fixed at `x`, y at [−1.5, 1.5], and dashes `dash` when
+/// given. It has left and bottom axes, and the panel zooms x. Returns the
+/// figure and its x handle.
 fn recorded<'a>(
     rec: &'a Recording<f64>,
     x: [f64; 2],
@@ -468,11 +476,11 @@ fn ripple() -> Recording<f64> {
     Recording::new(clock, [y]).expect("a valid recording")
 }
 
-/// Pans the widget over [`recorded`] with x at [80, 120] at factor `k`
-/// by each of `moves` (device px from the drag's start), comparing each
-/// frame with the figure of the snapped domain drawn as the widget draws
-/// it, with the column grid of the drag when `anchored`. The worst
-/// difference and the backend.
+/// Pans the widget over [`recorded`] with x at [80, 120], dashed by
+/// `dash`, at factor `k` by each of `moves` (device px from the drag's
+/// start). Compares each frame with the figure of the snapped domain drawn
+/// as the widget draws it, on the column grid of the drag. Returns the
+/// worst difference and the backend.
 fn pan_recorded(k: f32, dash: &[f64], moves: &[i32]) -> Option<(u8, String)> {
     let rec = ripple();
     let x = [80.0, 120.0];
@@ -582,10 +590,10 @@ fn zoom_out_preview_uses_the_overscan_ring() {
             t += FRAME;
             let _ = harness.frame(t);
         }
-        // ×1.2 out about the area's centre: d3's wheel delta is 0.002 per
-        // logical px, which iced reports in physical px; the views before
-        // it map to the middle 1 / 1.2 of the area, and the ring fills the
-        // margins.
+        // Zooms out ×1.2 about the area's center. d3's wheel delta is 0.002
+        // per logical px, which iced reports in physical px. The views
+        // before it map to the middle 1 / 1.2 of the area, and the ring
+        // fills the margins.
         let pixels = 1.2_f64.log2() / 0.002 * f64::from(k);
         harness.point_at(centre(area, k));
         let _ = harness.events(&[Event::Mouse(mouse::Event::WheelScrolled {
@@ -768,10 +776,10 @@ fn trace(n: usize) -> Recording<f64> {
     Recording::new(clock, channels).expect("finite samples")
 }
 
-/// [`trace`]'s figure as the benchmark lays it out: channels 0 and 1 on
-/// the top panel, 2 on the bottom one, x fixed at `x` (s) and shared, y
-/// at [−2, 2] per panel; left axes, and bottom axes when `bottom`; both
-/// panels zoom x.
+/// [`trace`]'s figure as the benchmark lays it out. Channels 0 and 1 are on
+/// the top panel and 2 on the bottom one. The panels share x, fixed at `x`
+/// (s), and each has y at [−2, 2]. Both have left axes, bottom axes when
+/// `bottom`, and zoom x.
 fn traced(rec: &Recording<f64>, x: [f64; 2], bottom: bool) -> Figure<'_> {
     let mut fig = Figure::new();
     let time = fig.scale(scale::linear().domain(x));
@@ -894,15 +902,19 @@ fn drain(harness: &mut Harness<'_, ()>) {
 /// tiles rendered after it.
 type Replayed = (u32, u32, usize);
 
-/// A pan-x replay over [`traced`] (without its bottom axes, so that a pan
-/// changes nothing outside the plot areas) at `k` as the benchmark's
-/// `pan-x` (`benchkit/src/scenario.rs`) drives it: the pointer right of
-/// centre on the top panel, a press, then every 8 ms a move of 2–8
-/// logical px, left for 600 px (at most 60% of the width), then back;
-/// `frames` frames 16 ms apart under `Render::Worker`, each followed by
-/// the worker's renders (a worker that keeps up). Per frame after the
-/// press: (missing, previews), and the tiles rendered after it; then the
-/// tiles rendered once the release ends the drag.
+/// Replays a pan-x over [`traced`] at `k` as the benchmark's `pan-x`
+/// (`benchkit/src/scenario.rs`) drives it. The figure has no bottom axes,
+/// so a pan changes nothing outside the plot areas.
+///
+/// The pointer presses right of center on the top panel. It then moves
+/// 2–8 logical px every 8 ms, left for 600 px (at most 60% of the width),
+/// then back. There are `frames` frames 16 ms apart under
+/// `Render::Worker`, each followed by the worker's renders, as for a
+/// worker that keeps up.
+///
+/// Returns, per frame after the press, (missing, previews) and the tiles
+/// rendered after it; then the tiles rendered once the release ends the
+/// drag, and the backend.
 fn pan_replay(rec: &Recording<f64>, k: f32, frames: u32) -> Option<(Vec<Replayed>, usize, String)> {
     let (tx, rx) = mpsc::channel();
     let x = [10.0, 30.0];

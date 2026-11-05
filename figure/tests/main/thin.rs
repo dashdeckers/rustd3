@@ -221,10 +221,10 @@ fn vibration() -> &'static (Recording<f64>, Vec<usize>) {
     })
 }
 
-/// A view of the vibration trace: x over
-/// [0, 100] s, y over [−2.4, 2.4] in a plot area 1000 × 240 px, stroked
-/// `width` px wide (1, or the theme's 2) in (30, 60, 140);
-/// the figure's size; its x and y handles.
+/// A view of the vibration trace, with its size and its x and y handles.
+/// It has x over [0, 100] s and y over [−2.4, 2.4] in a plot area
+/// 1000 × 240 px, stroked `width` px wide (1, or the theme's 2) in
+/// (30, 60, 140).
 fn vibration_view(thin: Thin, width: f64) -> (Figure<'static>, Size, [ScaleRef<Linear>; 2]) {
     let (rec, _) = vibration();
     let mut fig = Figure::new();
@@ -447,9 +447,9 @@ fn the_trace_at_2x_keeps_the_bounds_per_device_pixel() {
 }
 
 /// Channel 2 of [`recording`] (200 s at 1 kHz, a slow tone) on x fixed at
-/// `domain` and y at [−1, 2], dashed by `dash` when given, drawn on the
-/// screen at `k` with a column grid on x at `origin` list px and one
-/// column per device px; the list and the plot area.
+/// `domain` and y at [−1, 2], dashed by `dash` when given. It is drawn on
+/// the screen at `k` with a column grid on x at `origin` list px and one
+/// column per device px. Returns the list and the plot area.
 fn on_grid(
     rec: &Recording<f64>,
     domain: [f64; 2],
@@ -584,7 +584,7 @@ fn dash_phase_is_zero_at_the_anchor() {
         );
         assert!(phase.min(9.0 - phase) < 1e-5, "k = {k}: phase {phase}");
     }
-    // Without a grid the pattern starts at the first point, as before.
+    // Without a grid the pattern starts at the first point.
     let mut fig = Figure::new();
     let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
     fig.panel(0, 0)

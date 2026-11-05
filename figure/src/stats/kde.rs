@@ -12,9 +12,9 @@ use rustd3_core::array;
 ///
 /// Over more than [`Kde::BINNED`] values, [`grid`](Kde::grid) bins the
 /// values linearly onto a fine grid aligned with its points and convolves
-/// the bins with the kernel ([`binned`](Kde::binned)): milliseconds where
-/// the exact sum over a million values takes seconds, within a relative
-/// 1e-3 of it.
+/// the bins with the kernel ([`binned`](Kde::binned)). Over a million
+/// values that takes milliseconds where the exact sum takes seconds, and
+/// stays within a relative 1e-3 of it.
 ///
 /// ```
 /// use rustd3_figure::stats::Kde;
@@ -35,8 +35,8 @@ pub struct Kde {
     h: f64,
 }
 
-/// Nodes of the binned grid per bandwidth, at least: linear binning's
-/// relative error at a kernel u bandwidths away is at most
+/// The least number of binned-grid nodes per bandwidth. Linear binning's
+/// relative error at a kernel u bandwidths away is then at most
 /// (u² − 1) / (8 · 128²), 5e-5 three bandwidths out.
 const NODES_PER_BANDWIDTH: f64 = 128.0;
 
@@ -86,11 +86,12 @@ impl Kde {
     }
 
     /// `points` positions evenly spaced over `[min − cut·h, max + cut·h]`
-    /// (numpy's `linspace`, both ends included) and the density at each:
-    /// seaborn's grid, which `density_y` takes at 200 points and `cut = 3`.
-    /// [`exact`](Kde::exact) for at most [`Kde::BINNED`] values,
-    /// [`binned`](Kde::binned) above. Empty for 2³¹ points or more, as
-    /// every grid of this type is: such a grid is not allocated.
+    /// (numpy's `linspace`, both ends included), each with its density.
+    /// This is seaborn's grid, which `density_y` takes at 200 points and
+    /// `cut = 3`. It is [`exact`](Kde::exact) for at most [`Kde::BINNED`]
+    /// values and [`binned`](Kde::binned) above. Like every grid of this
+    /// type it is empty for 2³¹ points or more, since such a grid is not
+    /// allocated.
     #[must_use]
     pub fn grid(&self, points: usize, cut: f64) -> Vec<(f64, f64)> {
         if self.values.len() > Kde::BINNED {
@@ -110,16 +111,16 @@ impl Kde {
             .collect()
     }
 
-    /// [`grid`](Kde::grid)'s positions with the density at each from the
-    /// values binned: each value's weight is split linearly between the two
-    /// nearest nodes of a grid at least 128 nodes per bandwidth fine whose
-    /// every m-th node is a position, and each position's density is the
-    /// bins convolved with the kernel out to 37 bandwidths, its weights
-    /// computed once. It takes n + `points` × 9,500 steps or so, where
-    /// [`exact`](Kde::exact) takes `points` × n kernels, and stays within a
-    /// relative 1e-3 of it. With fewer than two points, a negative `cut`
-    /// or values spread over more than about 32,000 bandwidths, it is
-    /// `exact`.
+    /// [`grid`](Kde::grid)'s positions with the density at each computed
+    /// from the values binned. Each value's weight is split linearly
+    /// between the two nearest nodes of a grid at least 128 nodes per
+    /// bandwidth fine, whose every m-th node is a position. Each position's
+    /// density is the bins convolved with the kernel out to 37 bandwidths,
+    /// with the kernel weights computed once. It takes n + `points` × 9,500
+    /// steps or so, where [`exact`](Kde::exact) takes `points` × n kernels,
+    /// and stays within a relative 1e-3 of it. With fewer than two points,
+    /// a negative `cut` or values spread over more than about 32,000
+    /// bandwidths, it is `exact`.
     #[must_use]
     pub fn binned(&self, points: usize, cut: f64) -> Vec<(f64, f64)> {
         let support = self.support(points, cut);
@@ -190,8 +191,8 @@ impl Kde {
     }
 
     /// The same estimate with bandwidth `h` times `adjust` (seaborn's
-    /// `bw_adjust`), or Scott's times `adjust` without `h`; as it was when
-    /// that is not finite and positive.
+    /// `bw_adjust`), or Scott's times `adjust` without `h`; unchanged when
+    /// that product is not finite and positive.
     pub(crate) fn rescaled(self, h: Option<f64>, adjust: f64) -> Kde {
         let scaled = h.unwrap_or(self.h) * adjust;
         if scaled.is_finite() && scaled > 0.0 {

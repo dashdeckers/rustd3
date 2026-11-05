@@ -1,12 +1,13 @@
-//! d3's vocabulary: scales, ticks, axes, shapes and `PathContext`, number and
-//! time formats, locales, color and schemes, interpolation and easing,
-//! array statistics, recordings of sampled data, keyed joins, and zoom,
-//! brush, drag and animation as plain values and state machines,
-//! renderer-agnostic, following d3's semantics and checked by tests
-//! derived from d3's own test suites. Applications usually
-//! depend on the `rustd3` facade, which re-exports these modules: the
-//! examples here use this crate's own name, and `rustd3_core::x` is
-//! `rustd3::x` with the facade.
+//! d3's vocabulary as renderer-agnostic plain values and state machines:
+//! scales, ticks, axes, shapes and `PathContext`, number and time formats,
+//! locales, color and schemes, interpolation and easing, array statistics,
+//! recordings of sampled data, keyed joins, and zoom, brush, drag and
+//! animation. It follows d3's semantics and is checked by tests derived
+//! from d3's own test suites.
+//!
+//! Applications usually depend on the `rustd3` facade, which re-exports
+//! these modules. The examples here use this crate's own name;
+//! `rustd3_core::x` is `rustd3::x` through the facade.
 //!
 //! ```
 //! use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -37,7 +38,8 @@
 //! of this crate's API and re-exported as [`jiff`]: a major version of
 //! jiff is a major version of this crate.
 
-// Builders and pure functions say so: a result dropped is a bug.
+// Builders and pure functions are `#[must_use]`: dropping their result is a
+// bug.
 #![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 #![warn(missing_debug_implementations)]
 
@@ -62,6 +64,7 @@ pub mod time;
 mod js;
 mod sealed;
 
-/// jiff, which time is built on: figure, iced and applications name its
-/// types (`Timestamp`, `tz::TimeZone`, `civil::Weekday`) through this path.
+/// The jiff crate that [`time`] is built on, re-exported so dependents can
+/// name its types (`Timestamp`, `tz::TimeZone`, `civil::Weekday`) through
+/// this path.
 pub use jiff;

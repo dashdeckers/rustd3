@@ -60,8 +60,8 @@ fn state() -> State {
     state
 }
 
-/// One inline `RedrawRequested(now)` at factor 1 with `listeners`: the
-/// cells that changed and the messages.
+/// Runs one inline `RedrawRequested(now)` at factor 1 with `listeners`,
+/// and returns the cells that changed and the messages.
 fn redraw<Message>(
     state: &mut State,
     fig: &Figure<'_>,
@@ -80,8 +80,9 @@ fn redraw<Message>(
     state.redraw(fig, 1.0, now, &pipeline, (listeners, &[]))
 }
 
-/// One inline `RedrawRequested(now)` at factor 1 reported to a probe: the
-/// tiles it rendered, as (column, row) of plot area 0's grid.
+/// Runs one inline `RedrawRequested(now)` at factor 1 reported to a probe,
+/// and returns the tiles it rendered as (column, row) of plot area 0's
+/// grid.
 fn rendered(state: &mut State, fig: &Figure<'_>, now: Instant) -> Keys {
     let (tx, rx) = mpsc::channel();
     let probe = Probe::new(epoch, tx);
@@ -134,7 +135,7 @@ fn keys(state: &State) -> (Keys, Keys) {
 }
 
 /// Dots on x (handle 0, [0, 100]) and y (handle 1, [0, 10]) in a panel
-/// without axes that zooms both: its plot area lies where it does
+/// without axes that zooms both. Its plot area lies in the same place
 /// whatever the domains.
 fn bare() -> Figure<'static> {
     let mut fig = Figure::new();
@@ -159,7 +160,7 @@ fn a_zoom_renders_the_tiles_that_show_and_the_ring_once_it_ends() {
         all
     };
     assert_eq!(first, all, "the first frame renders every tile");
-    // A wheel step zooms both handles: every key is new, and only the four
+    // A wheel step zooms both handles. Every key is new, and only the four
     // that show render while the gesture lasts.
     let area = state.map.area(0).expect("one panel");
     let rect = state.areas[0].rect();
@@ -168,7 +169,7 @@ fn a_zoom_renders_the_tiles_that_show_and_the_ring_once_it_ends() {
     let (shown, ring) = keys(&state);
     assert_eq!(step, shown, "during the gesture");
     assert!(rendered(&mut state, &fig, t0 + Duration::from_millis(160)).is_empty());
-    // The first redraw 300 ms after the step ends the gesture: the plot
+    // The first redraw 300 ms after the step ends the gesture. The plot
     // area stays, and its ring renders.
     let settled = rendered(&mut state, &fig, t0 + Duration::from_millis(316));
     assert_eq!(state.areas[0].rect(), rect);
@@ -178,10 +179,10 @@ fn a_zoom_renders_the_tiles_that_show_and_the_ring_once_it_ends() {
 
 #[test]
 fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
-    // The pool takes a tile of the first step's grid; three more
-    // steps arrive before it finishes. The queue holds the newest step's
-    // jobs alone after each, and the finished tile, of a grid three steps
-    // old, shows through the preview mapping instead of being dropped.
+    // The pool takes a tile of the first step's grid, and three more steps
+    // arrive before it finishes. After each step the queue holds only the
+    // newest step's jobs. The finished tile, of a grid three steps old,
+    // shows through the preview mapping instead of being dropped.
     let mut state = state();
     let t0 = epoch();
     let fig = bare();
@@ -212,8 +213,8 @@ fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
             state.generation
         );
         if step == 1 {
-            // A thread takes the first tile that shows: the job the pool
-            // has.
+            // A thread takes the first tile that shows, which is the job
+            // the pool has.
             let t = state.areas[0]
                 .tiles()
                 .iter()
@@ -238,9 +239,9 @@ fn a_tile_in_flight_through_a_burst_of_zoom_steps_lands_in_the_preview() {
 
 #[test]
 fn no_tile_renders_inline_while_a_gesture_lasts() {
-    // Under `Render::Auto` the bare panel's tiles are cheap
-    // enough to render inline, and do when idle; during a wheel gesture
-    // they go to the pool; once it ends, inline renders resume (the ring).
+    // Under `Render::Auto` the bare panel's tiles are cheap enough to
+    // render inline, and do so when idle. During a wheel gesture they go to
+    // the pool. Once it ends, inline renders resume for the ring.
     let mut state = state();
     let t0 = epoch();
     let fig = bare();
@@ -313,9 +314,9 @@ fn no_tile_renders_inline_while_a_gesture_lasts() {
 
 #[test]
 fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
-    // Under `Render::Auto` a drag's entering column renders
-    // inline when the cost model says it fits, as idle renders do (on the
-    // pool it lands a frame later, a long one on the software renderer); a
+    // Under `Render::Auto` a drag's entering column renders inline when
+    // the cost model says it fits, as idle renders do. On the pool it would
+    // land a frame later, and a frame is long on the software renderer. A
     // wheel step's tiles still go to the pool.
     let mut state = state();
     let t0 = epoch();
@@ -363,7 +364,7 @@ fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
     state.redraw::<()>(&fig, 1.0, t0, &pipeline, (&[], &[]));
     drained(&mut state);
     let _ = rx.try_iter().count();
-    // A press, then a move of 300 px right: column −2 enters the area
+    // A press, then a move of 300 px right. Column −2 enters the area
     // without an image.
     let area = state.map.area(0).expect("one panel");
     let at = area.center();
@@ -392,7 +393,7 @@ fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
         state.is_dragging() && here > 0 && there == 0,
         "the drag's entering tiles inline: {here} inline, {there} on the pool"
     );
-    // The release ends the drag; a wheel step's tiles go to the pool.
+    // The release ends the drag, and a wheel step's tiles go to the pool.
     state.queue(Pointer::Released {
         button: rustd3_core::interact::Button::Left,
     });
@@ -414,13 +415,14 @@ fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
 
 #[test]
 fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
-    // While a gesture lasts the widget's images go in one layer
-    // whose bounds differ from one draw to the next, which iced's software
-    // renderer damages whole (one rect a frame, each image drawn once);
-    // idle, the layer keeps the widget's bounds. Of the previews only those
-    // that meet the plot area are drawn: a step's 16 old tiles (the ring
-    // included), which the pool has not replaced yet, draw as 4 on the GPU
-    // renderer (the software one composes them into one image first).
+    // While a gesture lasts, the widget's images go in one layer whose
+    // bounds differ from one draw to the next. iced's software renderer
+    // damages such a layer whole, so it redraws one rect a frame and draws
+    // each image once. When idle, the layer keeps the widget's bounds. Of
+    // the previews only those that meet the plot area are drawn. A step's
+    // 16 old tiles (the ring included), which the pool has not replaced
+    // yet, draw as 4 on the GPU renderer. The software renderer composes
+    // them into one image first.
     let mut state = state();
     let t0 = epoch();
     let fig = bare();
@@ -470,11 +472,11 @@ fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
 
 #[test]
 fn on_the_software_renderer_an_area_with_previews_draws_one_image() {
-    // A renderer that reports no scale (iced's
-    // software one) draws a plot area that shows a preview layer as one
-    // image composed on the CPU, at the area's rect and nearest; the GPU
-    // renderer draws its previews and tiles one by one. Once every tile is
-    // sharp the preview layer goes, and so does the mosaic.
+    // A renderer that reports no scale (iced's software one) draws a plot
+    // area that shows a preview layer as one image composed on the CPU, at
+    // the area's rect and sampled nearest. The GPU renderer draws its
+    // previews and tiles one by one. Once every tile is sharp the preview
+    // layer goes, and so does the mosaic.
     let mut state = state();
     let t0 = epoch();
     let fig = bare();
@@ -526,7 +528,8 @@ fn on_the_software_renderer_an_area_with_previews_draws_one_image() {
         "{} images, {linear} previews",
         gpu.len()
     );
-    // The step's tiles land: sharp, no preview, a tile an image again.
+    // The step's tiles land sharp, with no preview, and each tile draws as
+    // its own image again.
     let mut seen = 0;
     while !state.waiting().is_empty() || state.areas[0].has_preview() {
         let woke = (0..10_000).any(|_| {
@@ -544,10 +547,10 @@ fn on_the_software_renderer_an_area_with_previews_draws_one_image() {
 
 #[test]
 fn during_a_gesture_the_gutters_wait_ahead_of_the_tiles() {
-    // A wheel step over a panel with axes changes its tiles,
-    // its axis strips and the overlays over its edges; on the pool the
-    // gutters and overlays render first, so the axes keep step with the
-    // data. Idle, the tiles that show still go first.
+    // A wheel step over a panel with axes changes its tiles, its axis
+    // strips and the overlays over its edges. On the pool the gutters and
+    // overlays render first, so the axes keep step with the data. When
+    // idle, the tiles that show still go first.
     let mut state = state();
     let t0 = epoch();
     let fig = panel(false);
@@ -577,7 +580,7 @@ fn during_a_gesture_the_gutters_wait_ahead_of_the_tiles() {
         during.starts_with(&"g".repeat(gutters)),
         "the gutters first: {during}"
     );
-    // The gesture ends: what the settle renders puts the tiles first.
+    // The gesture ends, and what the settle renders puts the tiles first.
     let settled = step + Duration::from_millis(300);
     state.redraw::<()>(&fig, 1.0, settled, &pipeline, (&[], &[]));
     let after = kinds(&state.waiting());
@@ -586,10 +589,10 @@ fn during_a_gesture_the_gutters_wait_ahead_of_the_tiles() {
 
 #[test]
 fn the_hit_index_waits_for_a_gesture_to_end_and_hover_stays_right() {
-    // The index is built for a widget that hovers, not during
-    // a gesture (scatter1m spent 46–62 ms a pan frame on it), and by the
-    // refresh after; meanwhile nothing is hit-tested, so no outdated
-    // point is reported.
+    // The index is built for a widget that hovers, but not during a
+    // gesture (scatter1m spent 46–62 ms a pan frame on it). The refresh
+    // after the gesture builds it. Meanwhile nothing is hit-tested, so no
+    // outdated point is reported.
     let mut state = state();
     let t0 = epoch();
     let fig = bare();
@@ -614,8 +617,8 @@ fn the_hit_index_waits_for_a_gesture_to_end_and_hover_stays_right() {
     let before = dot([0.0, 100.0]);
     state.moved(Some(before), bounds, shown);
     assert_eq!(index(&mut state), Some(Some(1)), "the dot at the centre");
-    // Eight wheel lines at the area's left edge zoom x by 2^0.4: the dot
-    // moves right by about 70 px.
+    // Eight wheel lines at the area's left edge zoom x by 2^0.4, and the
+    // dot moves right by about 70 px.
     assert!(
         state
             .queue(eight(Point::new(area.x0 + 1.0, area.center().y)))
@@ -625,7 +628,8 @@ fn the_hit_index_waits_for_a_gesture_to_end_and_hover_stays_right() {
     assert!(state.unhit, "no index during the gesture");
     state.moved(Some(before), bounds, shown);
     assert_eq!(index(&mut state), None, "nothing hit-tested during it");
-    // The gesture ends: the refresh builds the index of the zoomed dots.
+    // The gesture ends, and the refresh builds the index of the zoomed
+    // dots.
     rendered(&mut state, &fig, t0 + Duration::from_millis(316));
     assert!(!state.unhit);
     let zoomed = domain::<Linear>(state.domains.owned(x));
@@ -671,7 +675,7 @@ fn counting() -> (Waker, Arc<AtomicUsize>) {
     (waker, wakes)
 }
 
-/// One wheel line up (zoom in) at `at`, list px.
+/// One wheel line up (zoom in) at `at`, in list px.
 fn wheel(at: Point) -> Pointer {
     Pointer::Wheel {
         x: at.x,
@@ -699,7 +703,7 @@ fn owned_domains_survive_rebuilds() {
     assert!(changed > 0 && messages.is_empty());
     let owned = domain::<Linear>(state.domains.owned(x));
     assert!(owned[1] - owned[0] < 100.0, "zoomed in: {owned:?}");
-    // The view is rebuilt every frame: the widget's domain stays.
+    // The view is rebuilt every frame, and the widget's domain stays.
     for t in [16, 32, 400] {
         state.rebuilt();
         redraw::<()>(
@@ -724,8 +728,9 @@ fn state_is_dropped_when_the_handle_type_changes() {
     redraw::<()>(&mut state, &panel(false), t0, &[]);
     let (x, y) = (Key::of::<Linear>(1), Key::of::<Linear>(0));
     assert!(state.domains.owned(x).is_some() && state.domains.owned(y).is_some());
-    // Handle 1 becomes a log scale: what the widget kept for (1, linear)
-    // goes; handle 0 is still linear and keeps its domain.
+    // Handle 1 becomes a log scale, so what the widget kept for
+    // (1, linear) is dropped. Handle 0 is still linear and keeps its
+    // domain.
     state.rebuilt();
     redraw::<()>(
         &mut state,
@@ -740,7 +745,8 @@ fn state_is_dropped_when_the_handle_type_changes() {
 }
 
 /// Dots on y (handle 0, linear [0, 3]) and x (handle 1, linear [0, 10]),
-/// with left and bottom axes; the panel zooms y. Also the y handle.
+/// with left and bottom axes, in a panel that zooms y. Also returns the
+/// y handle.
 fn tall() -> (Figure<'static>, ScaleRef<Linear>) {
     let mut fig = Figure::new();
     let y = fig.scale(scale::linear().domain([0.0, 3.0]));
@@ -754,7 +760,7 @@ fn tall() -> (Figure<'static>, ScaleRef<Linear>) {
     (fig, y)
 }
 
-/// Eight lines up (zoom in by 2^0.4) at `at`, list px.
+/// Eight lines up (zoom in by 2^0.4) at `at`, in list px.
 fn eight(at: Point) -> Pointer {
     Pointer::Wheel {
         x: at.x,
@@ -772,10 +778,10 @@ fn layout_holds_during_a_wheel_gesture() {
     redraw::<()>(&mut state, &tall().0, t0, &[]);
     let start = state.resolved.as_ref().expect("resolved").get_plot_areas()[0];
     let at = Point::new(start.center().x, start.y1 - 2.0);
-    // Eight wheel steps of eight lines near the bottom, 16 ms apart, the
-    // view rebuilt after each: [0, 3] narrows to about a third, whose tick
-    // labels take two decimals. Then redraws without input up to 288 ms
-    // after the last.
+    // Eight wheel steps of eight lines near the bottom, 16 ms apart, with
+    // the view rebuilt after each. [0, 3] narrows to about a third, whose
+    // tick labels take two decimals. Then come redraws without input, up
+    // to 288 ms after the last step.
     let left = |state: &State| {
         let resolved = state.resolved.as_ref().expect("resolved");
         let boxes = resolved.label_boxes();
@@ -853,12 +859,12 @@ fn layout_holds_during_a_wheel_gesture() {
 
 #[test]
 fn the_first_draw_of_a_gesture_damages_the_widget_whole() {
-    // iced's software renderer redraws a layer whole only when
-    // its bounds differ from the last frame's; otherwise it damages each
-    // moved image apart and redraws every image once per damaged rect,
-    // which took a tiny-skia zoom burst's first frame 10–11 s at factor 2
-    // under Xvfb. However many idle draws came before, the first draw of a
-    // gesture is in a layer whose bounds differ from the last idle draw's.
+    // iced's software renderer redraws a layer whole only when its bounds
+    // differ from the last frame's. Otherwise it damages each moved image
+    // separately and redraws every image once per damaged rect, which took
+    // a tiny-skia zoom burst's first frame 10–11 s at factor 2 under Xvfb.
+    // However many idle draws came before, the first draw of a gesture is
+    // in a layer whose bounds differ from the last idle draw's.
     let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
     let theme = rustd3_figure::Theme::default();
     let layers = |state: &State| {
@@ -899,7 +905,7 @@ fn piped<'a>(render: Render, probe: Option<&'a Probe>, waker: &'a Waker) -> Pipe
     }
 }
 
-/// The `Frame` samples among `samples`: (missing, previews).
+/// The `Frame` samples among `samples`, as (missing, previews).
 fn frames(samples: impl IntoIterator<Item = Sample>) -> Vec<(u32, u32)> {
     samples
         .into_iter()
@@ -914,13 +920,13 @@ fn frames(samples: impl IntoIterator<Item = Sample>) -> Vec<(u32, u32)> {
 
 #[test]
 fn the_layout_settling_after_a_zoom_leaves_no_slot_blank() {
-    // Eight-line wheel steps near the bottom of `tall` narrow y
-    // until its labels take two decimals, so the layout settles at the
-    // gesture's end with the plot area narrower: a new partition, every
-    // run, tile and overlay new. With every render on the pool, the old
-    // area's tiles show in the new area's preview layer and the old gutter
-    // images under the new runs, so no frame shows a slot missing, from the
-    // first step to the sharp frame after the settle.
+    // Eight-line wheel steps near the bottom of `tall` narrow y until its
+    // labels take two decimals. The layout then settles at the gesture's
+    // end with the plot area narrower, which makes a new partition with
+    // every run, tile and overlay new. With every render on the pool, the
+    // old area's tiles show in the new area's preview layer, and the old
+    // gutter images show under the new runs. So no frame shows a slot
+    // missing, from the first step to the sharp frame after the settle.
     let mut state = state();
     let t0 = epoch();
     let (fig, _) = tall();
@@ -955,9 +961,9 @@ fn the_layout_settling_after_a_zoom_leaves_no_slot_blank() {
         "nothing landed yet: {settle:?}"
     );
     seen.extend(settle);
-    // Every image moved at the settle, as in a gesture: the widget draws
-    // in one layer whose bounds change from draw to draw, so the software
-    // renderer redraws it once, until nothing of the old layout shows.
+    // Every image moved at the settle, as in a gesture. Until nothing of
+    // the old layout shows, the widget draws in one layer whose bounds
+    // change from draw to draw, so the software renderer redraws it once.
     let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
     let theme = rustd3_figure::Theme::default();
     let layers = |state: &State| {
@@ -1008,18 +1014,18 @@ fn published_domains_last_until_the_gesture_ends() {
     let area = state.map.area(0).expect("one panel");
     state.queue(eight(area.center()));
     let (changed, messages) = redraw(&mut state, &fig, t0 + Duration::from_millis(16), &listeners);
-    // Published: the list waits for the app's rebuilt view.
+    // Published, so the list waits for the app's rebuilt view.
     assert_eq!((changed, messages.len()), (0, 1));
     assert_eq!(domain::<Linear>(state.domains.published(y)), messages[0]);
     assert!(state.domains.owned(y).is_none());
-    // The app applied nothing; until the gesture ends the widget shows
+    // The app applied nothing. Until the gesture ends, the widget shows
     // what it published.
     state.rebuilt();
     let (changed, messages) = redraw(&mut state, &fig, t0 + Duration::from_millis(32), &listeners);
     assert!(changed > 0 && messages.is_empty());
     let shown = domain::<Linear>(state.resolved.as_ref().and_then(|r| r.get_scale_at(0)));
     assert_eq!(Some(shown), state.domains.published(y).map(|_| shown));
-    // The gesture ends: the app's domain rules.
+    // The gesture ends, and the app's domain rules.
     redraw(
         &mut state,
         &fig,

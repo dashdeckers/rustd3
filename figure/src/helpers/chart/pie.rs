@@ -16,7 +16,7 @@ use crate::scale::{Paint, ScaleRef};
 use crate::{Figure, path};
 
 /// A pie chart: one wedge per slice around the middle of the plot area,
-/// labelled inside (see [`pie`]).
+/// labeled inside (see [`pie`]).
 pub struct Pie<K> {
     /// Each slice's key and value, in data order.
     slices: Vec<(K, f64)>,
@@ -39,15 +39,15 @@ struct Wedges<K> {
     color: ScaleRef<Ordinal<K, Rgb>>,
 }
 
-/// A pie chart of `slices`, keys and values: d3's `pie` angles (0 at 12
-/// o'clock, clockwise, the largest value first) and `arc` wedges centred in
-/// the plot area, of outer radius half the plot area's smaller side less
-/// half an em, each in its key's color (the palette in data order), and
-/// each key written at its wedge's centroid by
-/// [`labels::pie`](crate::helpers::labels::pie), so the pie reserves no
-/// room for labels and needs no legend. Slices whose value is not positive
-/// span no angle and are not drawn. A pie has no axes: `.x_label`,
-/// `.y_label` and `.minor` leave it as it is.
+/// A pie chart of `slices`, keys and values. The wedges are d3 `arc`s at
+/// d3's `pie` angles (0 at 12 o'clock, clockwise, the largest value
+/// first), centered in the plot area. Their outer radius is half the plot
+/// area's smaller side less half an em. Each wedge is in its key's color
+/// (the palette in data order), and each key is written at its wedge's
+/// centroid by [`labels::pie`](crate::helpers::labels::pie), so the pie
+/// reserves no room for labels and needs no legend. Slices whose value is
+/// not positive span no angle and are not drawn. A pie has no axes, so
+/// `.x_label`, `.y_label` and `.minor` leave it as it is.
 ///
 /// ```
 /// use rustd3_figure::helpers::chart;

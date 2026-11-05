@@ -13,10 +13,10 @@ pub fn precision_fixed(step: f64) -> Option<usize> {
 }
 
 /// [`precision_fixed`] for a step measured between values of magnitude up
-/// to `max`: the step is read to 12 significant digits of `max` first, so
-/// that the float noise of a difference (0.3 − 0.2 = 0.09999999999999998;
-/// 1e9 + 0.3 − (1e9 + 0.2) = 0.09999990463256836) adds no place. `None`
-/// for a step that is zero, not finite or below that resolution.
+/// to `max`. The step is first read to 12 significant digits of `max`, so
+/// the float noise of a difference adds no place (0.3 − 0.2 =
+/// 0.09999999999999998; 1e9 + 0.3 − (1e9 + 0.2) = 0.09999990463256836).
+/// `None` for a step that is zero, not finite, or below that resolution.
 pub(crate) fn precision_fixed_between(step: f64, max: f64) -> Option<usize> {
     let step = step.abs();
     let digits = 12 + decimal::exponent(step)? - decimal::exponent(max.abs().max(step))?;

@@ -1,5 +1,6 @@
-//! d3's own test suites as rustd3-core's tests: every assertion of d3's
-//! tests that applies to rustd3-core, with d3's file, line and column.
+//! d3's own test suites, ported as rustd3-core's tests. Every assertion
+//! of d3's tests that applies to rustd3-core is here, citing d3's file,
+//! line and column.
 
 mod array;
 mod color;

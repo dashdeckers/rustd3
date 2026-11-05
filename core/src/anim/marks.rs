@@ -19,16 +19,14 @@ pub enum Phase {
     Exiting,
 }
 
-/// Keyed marks with enter, update and exit transitions: d3's general
-/// update pattern as state the application owns, one animated value per
-/// key. [`update`](Marks::update) plans with [`join::join`];
-/// [`values`](Marks::values) samples every mark at an `Instant`, exiting
-/// ones included until they finish and are pruned.
+/// Keyed marks with enter, update and exit transitions, one animated value
+/// per key: d3's general update pattern as state the application owns.
+/// Exiting marks stay until they finish and are pruned.
 ///
-/// The update pattern (100 ms transitions, 20 ms stagger, cubic in-out;
-/// marks enter from 0 and exit to 0): new data at 60 ms, mid-flight, sends
-/// `a` out from where it is, retargets `b` without a jump and enters `c`
-/// one stagger step later.
+/// Below, transitions take 100 ms with a 20 ms stagger and cubic in-out
+/// easing, and marks enter from 0 and exit to 0. New data at 60 ms,
+/// mid-flight, sends `a` out from where it is, retargets `b` without a
+/// jump, and enters `c` one stagger step later.
 ///
 /// ```
 /// use std::time::Duration;
@@ -82,12 +80,12 @@ impl<K, T> Default for Marks<K, T> {
 }
 
 impl<K: Eq + Hash + Clone, T: Interpolate> Marks<K, T> {
-    /// Reconciles the marks with the next data, `targets` in display
-    /// order, at `now`.
+    /// Reconciles the marks with the next data at `now`, with `targets` in
+    /// display order.
     ///
-    /// A target whose key has no mark enters from `enter(&target)`; a mark
-    /// whose key is a target heads for it, an exiting one becoming
-    /// [`Phase::Present`] again from where it is; both wait `timing`'s
+    /// A target whose key has no mark enters from `enter(&target)`. A mark
+    /// whose key is a target heads for it, and an exiting one becomes
+    /// [`Phase::Present`] again from where it is. Both wait `timing`'s
     /// delay plus its stagger times the target's position. A present mark
     /// whose key is not a target exits towards `exit(&current)` without
     /// stagger. A key given twice keeps one mark, which heads for the later
@@ -156,8 +154,8 @@ impl<K, T: Interpolate> Marks<K, T> {
             .retain(|mark| mark.phase == Phase::Present || mark.value.is_animating(now));
     }
 
-    /// Some mark has not reached its target by `now`: while this holds, the
-    /// application keeps its frame clock running.
+    /// Whether some mark has not reached its target by `now`. While it
+    /// holds, the application keeps its frame clock running.
     #[must_use]
     pub fn is_animating(&self, now: Instant) -> bool {
         self.items.iter().any(|mark| mark.value.is_animating(now))

@@ -1,6 +1,6 @@
-//! d3's area generator ([`Area`]): a curve along the
-//! top of each run of items, then back along its baseline; and its radial
-//! form ([`Radial`]).
+//! d3's area generator, [`Area`], which draws a curve along the top of each
+//! run of items and back along its baseline, and its radial form,
+//! [`Radial`].
 
 mod radial;
 
@@ -51,8 +51,8 @@ impl Area {
 
     /// Draws `items` into `ctx` as d3's `area(data)` does: for each run of
     /// `Some` items, the curve through `(x, y1)` forward, then through
-    /// `(x, y0)` backward, closed by the curve. A closed curve draws the two
-    /// edges as two closed rings, as d3's do; `Curve::Bundle` draws as
+    /// `(x, y0)` backward, closed by the curve. As in d3, a closed curve
+    /// draws the two edges as two closed rings. `Curve::Bundle` draws as
     /// `Curve::Basis`.
     pub fn draw<S: Span>(&self, items: impl IntoIterator<Item = S>, ctx: &mut impl PathContext) {
         let edges = items
@@ -64,8 +64,8 @@ impl Area {
 
 /// d3's area loop (`area.js`, `area(data)`) over `(x0, y0, x1, y1)` items:
 /// for each run of `Some` items, `curve` through `(x1, y1)` forward, then
-/// through `(x0, y0)` backward. [`Area`] passes `x0 == x1`; the radial area
-/// passes edges whose x differ.
+/// through `(x0, y0)` backward. The two edges' x are equal for [`Area`]
+/// and differ for the radial area.
 fn draw_edges(
     curve: Curve,
     edges: impl IntoIterator<Item = Option<(f64, f64, f64, f64)>>,

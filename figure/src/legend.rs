@@ -2,8 +2,8 @@
 //! A [`Legend`] is a value built once from an ordinal color handle and
 //! placed in a figure [`Slot`] outside the grid
 //! ([`Figure::legend`](crate::Figure::legend)) or in a corner of a panel
-//! ([`Panel::legend`](crate::Panel::legend)); one value may go in both.
-//! Both take any [`Guide`]: a legend, or a
+//! ([`Panel::legend`](crate::Panel::legend)), and one value may go in
+//! both. Both places take any [`Guide`]: a legend, or a
 //! [`Colorbar`](crate::colorbar::Colorbar) of a continuous or binned color
 //! scale.
 //!
@@ -48,15 +48,15 @@ use crate::scale::ScaleRef;
 use crate::text::Text;
 use crate::theme::Theme;
 
-/// A legend of an ordinal palette: one entry per key of its domain, in
-/// domain order, a swatch in the key's color beside the key's `Display`
-/// text, under an optional title. Each key's swatch stands for the
-/// figure's marks drawn in its color: a square when one of them is an
-/// area, ribbon, bar, histogram, density or rectangle (hatched as the
-/// first hatched one is), else a line when one is a line (dashed by the
-/// first on and off lengths of its dash), else a dot for dots; a key no
-/// mark uses gets a square. [`glyph`](Legend::glyph) sets one swatch for
-/// every key.
+/// A legend of an ordinal palette, under an optional title. It has one
+/// entry per key of the domain, in domain order: a swatch in the key's
+/// color beside the key's `Display` text. Each key's swatch stands for the
+/// figure's marks drawn in its color. It is a square when one of them is
+/// an area, ribbon, bar, histogram, density or rectangle, hatched as the
+/// first hatched one is. Otherwise it is a line when one is a line, dashed
+/// by the first on and off lengths of its dash, or else a dot for dots. A
+/// key no mark uses gets a square. [`glyph`](Legend::glyph) sets one
+/// swatch for every key.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -144,10 +144,10 @@ pub(crate) trait Draw {
     /// The handle it is drawn from.
     fn scale(&self) -> ScaleRef<()>;
 
-    /// The entries over the resolved scales, in `theme`'s colors: for a
-    /// legend of an ordinal palette, each key's color (a square's at the
-    /// most opaque fill of its marks), text, swatch and the hatch of the marks
-    /// filled with it, in domain order.
+    /// The entries over the resolved scales, in `theme`'s colors. For a
+    /// legend of an ordinal palette, they are each key's color, text,
+    /// swatch and the hatch of the marks filled with it, in domain order. A
+    /// square's color takes the most opaque fill of its marks.
     fn entries(&self, resolved: &Resolved, theme: &Theme) -> Vec<Entry>;
 
     /// The title.

@@ -7,9 +7,10 @@ use crate::{array, ticks};
 
 /// d3's scaleThreshold: n ascending thresholds cut the line into n + 1
 /// bins, open at both ends, mapped in order to the range's values. The
-/// domain must be ascending; an unsorted one gives unspecified bins, as in
-/// d3, and is neither sorted nor checked. Nor is the range's length: a bin
-/// without a range value maps to `None`, as d3's to undefined.
+/// domain must be ascending. As in d3, it is neither sorted nor checked,
+/// and an unsorted one gives unspecified bins. The range's length is not
+/// checked either, and a bin without a range value maps to `None`, where
+/// d3 gives undefined.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -85,8 +86,8 @@ impl<R> Threshold<R> {
 
 impl<R: PartialEq> Threshold<R> {
     /// d3's `invertExtent(y)`: the thresholds around the bin of the first
-    /// range value equal to `y`, `None` at an open end where d3 has
-    /// undefined; `None` when no value is equal.
+    /// range value equal to `y`. An open end is `None`, where d3 has
+    /// undefined. `None` when no value is equal.
     pub fn invert_extent(&self, y: &R) -> Option<[Option<f64>; 2]> {
         let i = self.range.iter().position(|r| r == y)?;
         let lower = i.checked_sub(1).and_then(|j| self.domain.get(j)).copied();
@@ -106,11 +107,10 @@ impl<R> Ticks for Threshold<R> {
         super::ticks::edges(self.domain.clone(), count)
     }
 
-    /// The default placement, equal-width bins with the open ends as wide
-    /// as the others: the i-th of n thresholds at `(i + 1)/(n + 1)`. `None`
-    /// for a value that is not a threshold, NaN included. This is the
-    /// geometry of a threshold scale's colorbar in rustd3-figure: its open
-    /// ends have no edge in domain units, and equal rows invent none.
+    /// The i-th of n thresholds at `(i + 1)/(n + 1)`, so every bin, the
+    /// open ends included, is equally wide. The open ends have no edge in
+    /// domain units, and equal widths avoid inventing one. `None` for a
+    /// value that is not a threshold, NaN included.
     fn position(&self, value: &f64, _offset: f64) -> Option<f64> {
         let i = self.domain.iter().position(|d| d == value)?;
         Some((i + 1) as f64 / (self.domain.len() + 1) as f64)

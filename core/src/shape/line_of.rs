@@ -1,5 +1,4 @@
-//! [`LineOf`]: d3-style accessors over [`line`](crate::shape::line()) (Part
-//! I, Accessors, option B).
+//! [`LineOf`]: d3-style accessors over [`line`](crate::shape::line()).
 
 use std::fmt;
 
@@ -9,8 +8,8 @@ use crate::shape::Curve;
 /// d3.line() with accessors: `x`, `y` and `defined` read each datum,
 /// borrowing what they need for `'a` (never `'static`), and `draw` maps the
 /// data through them into [`shape::line`](crate::shape::line()), so curves
-/// and gaps are the line's own. The default accessors return 0 and `true`;
-/// there is no area counterpart.
+/// and gaps are the line's own. The default accessors return 0 and `true`.
+/// There is no area counterpart.
 ///
 /// ```
 /// use rustd3_core::{path, scale, shape};
@@ -83,8 +82,8 @@ impl<'a, D> LineOf<'a, D> {
         }
     }
 
-    /// Whether a datum is drawn; one that is not breaks the line: d3's
-    /// `line.defined`.
+    /// Whether a datum is drawn (d3's `line.defined`). A datum that is not
+    /// drawn breaks the line.
     #[must_use]
     pub fn defined(self, defined: impl Fn(&D) -> bool + 'a) -> Self {
         Self {

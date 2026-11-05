@@ -1,6 +1,5 @@
 //! The run directory's CSVs and `report.md`, rebuilt from `meta.json` and
-//! the raw files: the readings, the budget table, the metrics, attribution
-//! of misses, memory, flags and the rule's outcome.
+//! the raw files.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -107,7 +106,7 @@ struct Cell<'a> {
     /// Raw files that are missing or unreadable.
     failed: u32,
     /// For a windowed `4k` cell, the smallest device size the compositor
-    /// gave its windows when one fell short of 3840 × 2160: the cell is
+    /// gave its windows when one fell short of 3840 × 2160. The cell is
     /// then "n/a: display too small".
     small: Option<[f32; 2]>,
 }
@@ -331,9 +330,9 @@ fn budgets_of(meta: &Meta) -> Profile {
         .unwrap_or_else(|| Profile::of(&meta.plan))
 }
 
-/// The outcome line: the rule's, marked report-only on X11 through
-/// XWayland and at the quick level; a fixed line for the plans without a
-/// verdict.
+/// The outcome line. It is the rule's, marked report-only on X11 through
+/// XWayland and at the quick level, or a fixed line for the plans without
+/// a verdict.
 fn outcome_line(meta: &Meta, kind: Kind, outcome: Outcome, profile: Profile) -> String {
     let prefix = match (kind, meta.xwayland) {
         (Kind::Smoke, _) => return SMOKE_OUTCOME.to_owned(),
@@ -773,7 +772,7 @@ fn markdown(
     md
 }
 
-/// The budget table: a row per cell, "n/a" cells included; its heading
+/// The budget table: a row per cell, "n/a" cells included. Its heading
 /// says so when the plan is report-only.
 fn budgets(md: &mut String, cells: &[Cell<'_>], checks: &[(usize, Scenario, Check)], kind: Kind) {
     let heading = match kind {
@@ -993,8 +992,8 @@ fn metrics(md: &mut String, cells: &[Cell<'_>]) {
 
 /// The window drags (`drag-resize`), report-only: frame intervals,
 /// dropped frames and the latency from each drag's last step to the first
-/// current frame; with `resize`, what that scenario does instead. Nothing
-/// when the plan has neither.
+/// current frame. With `resize`, it shows what that scenario does instead.
+/// Nothing is written when the plan has neither.
 fn drags(md: &mut String, cells: &[Cell<'_>]) {
     let has = |scenario: Scenario| cells.iter().any(|c| c.scenario == scenario);
     if !has(Scenario::DragResize) && !has(Scenario::Resize) {
@@ -1045,7 +1044,7 @@ fn drags(md: &mut String, cells: &[Cell<'_>]) {
 }
 
 /// Attribution of every missed budget, and of budgets a single run
-/// exceeded (no verdict); offscreen, composition takes upload's place.
+/// exceeded (no verdict). Offscreen, composition takes upload's place.
 fn attribution(
     md: &mut String,
     cells: &[Cell<'_>],

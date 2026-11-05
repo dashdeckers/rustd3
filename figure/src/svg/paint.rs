@@ -10,7 +10,7 @@ use crate::svg::number;
 /// How a paint is written: an attribute value, and the gradient element it
 /// refers to, if any.
 pub(crate) struct Written {
-    /// `fill='…'` or `stroke='…'`, with its opacity, leading space.
+    /// `fill='…'` or `stroke='…'` and its opacity, with a leading space.
     pub(crate) attrs: String,
     /// `<linearGradient …>…</linearGradient>` or `<radialGradient …>…`.
     pub(crate) def: Option<String>,

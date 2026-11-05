@@ -1,11 +1,8 @@
-//! d3's interaction as values and state machines: renderer-agnostic
-//! [`Pointer`] input with its [`Modifiers`]; d3-zoom's [`Transform`], a
-//! value, and [`Zoom`], the behavior that changes it; [`Rescale`], what a
-//! transform or a pixel-space gesture does to a scale; d3-brush's
-//! [`BrushX`] and [`BrushY`], which report [`BrushEvent`]s; and d3-drag's
-//! [`Drag`], which reports [`drag::Event`]s. The host
-//! translates its events into `Pointer`; the behaviors keep only their
-//! gesture state and return what changed.
+//! d3's interaction as values and state machines. The host translates its
+//! events into renderer-agnostic [`Pointer`] input. d3-zoom's [`Zoom`],
+//! d3-brush's [`BrushX`] and [`BrushY`], and d3-drag's [`Drag`] keep only
+//! their gesture state and return what changed. [`Rescale`] applies a
+//! zoom [`Transform`] or a pixel-space gesture to a scale.
 //!
 //! Two `Transform`s exist on purpose: `interact::Transform` (d3's
 //! `ZoomTransform`, here) and the trait `scale::Transform`. Code that needs
@@ -29,7 +26,7 @@ pub use zoom::Zoom;
 
 /// d3.drag(): a press picks a subject, and the pointer drags it until the
 /// left button is released (d3-drag 3.0.0, `drag.js`). The caller asks
-/// what is under the pointer only on a press; reported positions keep the
+/// what is under the pointer only on a press. Reported positions keep the
 /// subject's offset from the press, so a dragged circle does not jump to
 /// the pointer. Its methods and [`drag::Event`] are in [`mod@drag`].
 ///

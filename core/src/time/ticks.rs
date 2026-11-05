@@ -48,11 +48,12 @@ const TABLE: [(Interval, i128); 18] = [
 ];
 
 /// d3.timeTickInterval: the interval of about `count` ticks between
-/// `start` and `stop`. The table's entry nearest to `|stop − start| /
-/// count` by ratio; beyond a year, years stepped by d3-array's tick step;
-/// below a second, milliseconds, microseconds or nanoseconds stepped by it
-/// (d3 stops at whole milliseconds). The choice depends on the span alone;
-/// a zone applies where the interval floors and steps, as in [`ticks`].
+/// `start` and `stop`. It is the table's entry nearest to `|stop − start|
+/// / count` by ratio. Beyond a year it is years, stepped by d3-array's tick
+/// step. Below a second it is milliseconds, microseconds or nanoseconds,
+/// stepped the same way, where d3 stops at whole milliseconds. The choice
+/// depends on the span alone. A zone applies only where the interval
+/// floors and steps, as in [`ticks`].
 ///
 /// ```
 /// use rustd3_core::jiff::{SignedDuration, Timestamp};
@@ -101,12 +102,12 @@ pub fn tick_interval(start: Timestamp, stop: Timestamp, count: usize) -> Interva
 }
 
 /// d3.timeTicks: about `count` boundaries of [`tick_interval`] in `zone`
-/// from `start` to `stop`, both included, in the order of `start → stop`;
-/// at most `min(10·count, 10_000)`, so a count of 0 gives none. Equal
-/// ends give one tick.
+/// from `start` to `stop`, both included, in the order of `start → stop`.
+/// There are at most `min(10·count, 10_000)`, so a count of 0 gives none.
+/// Equal ends give one tick.
 ///
 /// Eight days in Los Angeles take every other day of the month at local
-/// midnight; the `utc` twin counts days from 1970-01-01, as d3's does.
+/// midnight. The `utc` twin counts days from 1970-01-01, as d3's does.
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -181,8 +182,9 @@ fn lay_out(
     } else {
         (start, stop)
     };
-    // d3's `+stop + 1` makes the stop inclusive; jiff's last instant is no
-    // interval's boundary but the nanosecond's.
+    // d3's `+stop + 1` makes the stop inclusive. jiff's last instant cannot
+    // take the extra nanosecond, but only the nanosecond interval has a
+    // boundary there.
     let end = high
         .checked_add(SignedDuration::from_nanos(1))
         .unwrap_or(high);

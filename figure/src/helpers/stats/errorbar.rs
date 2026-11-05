@@ -1,4 +1,4 @@
-//! An error bar's reach: [`Reach`]; the chart is
+//! [`Reach`]: how far an error bar reaches. The chart is
 //! [`stats::errorbar`](super::errorbar()).
 
 pub(super) mod chart;

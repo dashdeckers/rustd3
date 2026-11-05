@@ -1,6 +1,6 @@
-//! d3's line generator ([`Line`]): one curve through a
-//! run of points, a new run after every gap; and its radial form
-//! ([`Radial`]).
+//! d3's line generator, [`Line`], which draws one curve through each run of
+//! points and starts a new run after every gap, and its radial form,
+//! [`Radial`].
 
 mod radial;
 

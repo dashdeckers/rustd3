@@ -14,8 +14,8 @@ pub(crate) struct Cardinal {
     window: Window,
 }
 
-/// d3's curveCardinalClosed: no area flag; the first three points are
-/// drawn again at the end.
+/// d3's curveCardinalClosed, which has no area flag. The first three
+/// points are drawn again at the end.
 pub(crate) struct CardinalClosed {
     point: u8,
     window: Window,

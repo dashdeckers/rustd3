@@ -7,7 +7,7 @@ pub enum Horizontal {
     /// The left edge: text starts at the anchor.
     #[default]
     Start,
-    /// The middle: text is centred on the anchor.
+    /// The middle: text is centered on the anchor.
     Middle,
     /// The right edge: text ends at the anchor.
     End,

@@ -1,6 +1,7 @@
-//! Hit testing: the points marks draw, in a bucket grid per panel, for
-//! hover. [`Figure::hits`](crate::Figure::hits) builds an [`Index`] from
-//! what each mark reports to a [`Sink`] ([`Mark::hits`](crate::mark::Mark::hits)).
+//! Hit testing for hover: the points marks draw, in a bucket grid per
+//! panel. [`Figure::hits`](crate::Figure::hits) builds an [`Index`] from
+//! what each mark reports to a [`Sink`] in
+//! [`Mark::hits`](crate::mark::Mark::hits).
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -82,15 +83,18 @@ pub struct Index {
 }
 
 impl Figure<'_> {
-    /// The points the marks of `resolved`'s panels draw, each panel's in a
-    /// grid of 32 px buckets, in figure px ([`Mark::hits`](crate::mark::Mark::hits)):
-    /// dots report every point drawn, lines the points they pass through
-    /// inside the plot area (a thinned line its kept samples, read through
+    /// The points the marks of `resolved`'s panels draw, in figure px, with
+    /// each panel's points in a grid of 32 px buckets.
+    ///
+    /// Each mark reports its points in
+    /// [`Mark::hits`](crate::mark::Mark::hits). Dots report every point
+    /// drawn. Lines report the points they pass through inside the plot
+    /// area; a thinned line reports its kept samples, read through
     /// `cache`'s M4 memo, so a figure drawn with the same cache queries
-    /// nothing again), bars and histogram bars the centre of each bar's
-    /// value end inside the plot area (the top of a vertical bar, the
-    /// right end of a horizontal one); rules, areas, ribbons, densities and
-    /// rects none.
+    /// nothing again. Bars and histogram bars report the center of each
+    /// bar's value end inside the plot area (the top of a vertical bar, the
+    /// right end of a horizontal one). Rules, areas, ribbons, densities and
+    /// rects report none.
     pub fn hits(&self, resolved: &Resolved, cache: &mut Cache) -> Index {
         let (text, frame) = cache.start();
         let frame = RefCell::new(frame);
@@ -117,9 +121,8 @@ impl Figure<'_> {
 
 impl Index {
     /// The point nearest `at` (figure px) within `radius` px, edges
-    /// included: searched in the buckets the radius overlaps; of equally
-    /// near points, the one reported first (panel, then mark, then point
-    /// order).
+    /// included. Of equally near points, the one reported first wins, in
+    /// panel, then mark, then point order.
     #[must_use]
     pub fn nearest(&self, at: Point, radius: f64) -> Option<Hit> {
         let mut best: Option<Hit> = None;

@@ -1,6 +1,5 @@
-//! [`Figure`]: a table of scales behind typed handles, panels in grid
-//! cells that refer to scales only through handles, a layout, a title and
-//! a theme; resolving it fits domains and lays the grid out.
+//! [`Figure`]: scales behind typed handles, and panels in grid cells that
+//! use them. Resolving a figure fits its domains and lays out its grid.
 
 mod decorate;
 mod draw;
@@ -63,14 +62,16 @@ pub struct Figure<'a> {
     id: Id,
     scales: Vec<Entry>,
     panels: Vec<Panel<'a>>,
-    /// The cells asked for past the grid's tracks, and the panel that
-    /// stands in for them, never laid out or drawn.
+    /// The cells asked for past the grid's tracks.
     outside: Vec<Cell>,
+    /// The panel that stands in for cells past the grid's tracks, never
+    /// laid out or drawn.
     detached: Option<Box<Panel<'a>>>,
     /// The positions of the handles of other figures given to figure
-    /// slots, and of handles fitted with `Fit::Window` on a categorical
-    /// scale.
+    /// slots.
     foreign: Vec<usize>,
+    /// The positions of handles fitted with `Fit::Window` on a categorical
+    /// scale.
     categorical: Vec<usize>,
     grid: Grid,
     title: Option<Text>,
@@ -87,13 +88,15 @@ impl<'a> std::fmt::Debug for Figure<'a> {
     }
 }
 
-/// One scale of the table, how to fit it when it is fitted, whether to
-/// what its panels' x shows (`Fit::Visible`), and the span of x it shows
-/// when it is a window (`Fit::Window`): its `Kind::Span`, boxed.
+/// One scale of the table, with how it is fitted.
 struct Entry {
     scale: Box<dyn Scale>,
+    /// How to fit the scale, when it is fitted.
     fitter: Option<fits::Fitter>,
+    /// Whether it fits to what its panels' x shows (`Fit::Visible`).
     visible: bool,
+    /// The span of x it shows when it is a window (`Fit::Window`), its
+    /// `Kind::Span` boxed.
     window: Option<Box<dyn Any>>,
 }
 
@@ -144,12 +147,12 @@ impl<'a> Figure<'a> {
     ///
     /// A `Fit::Window(span)` handle shows the newest `span` of x, in whole
     /// thinning columns of the widest panel that places it across its plot
-    /// area (see [`Fit::Window`]): resolving lays the figure out with the
-    /// window, measures the plot areas, and fits and lays out again until
-    /// the column count it fitted with is the one it laid out (the last
-    /// count is remembered in the [`Cache`](crate::cache::Cache), so a layout that did not move
-    /// takes one pass). `Fit::Window(())` on a categorical scale (span
-    /// `()`) means nothing: the handle fits as `Fit::All`, and
+    /// area (see [`Fit::Window`]). Resolving lays the figure out with the
+    /// window, measures the plot areas, then fits and lays out again until
+    /// the column count it fitted with is the one it laid out. The last
+    /// count is remembered in the [`Cache`](crate::cache::Cache), so a
+    /// layout that did not move takes one pass. `Fit::Window(())` on a
+    /// categorical scale means nothing: the handle fits as `Fit::All`, and
     /// [`check`](Figure::check) reports it.
     ///
     /// ```
@@ -178,12 +181,13 @@ impl<'a> Figure<'a> {
     /// ```
     ///
     /// A `Fit::Visible` handle on y fits to the data whose x lies in the
-    /// resolved domain of its marks' x handles (read from a recording's
-    /// index in O(log n)), merged across panels; its domain grows at once
-    /// to contain the padded extent and shrinks only by whole eighths of
-    /// its last span, remembered in the [`Cache`](crate::cache::Cache) by handle index and
-    /// scale type, so panning does not make it flicker. Used as x, or over
-    /// an x that is itself `Fit::Visible`, it fits all its data.
+    /// resolved domain of its marks' x handles, merged across panels. A
+    /// recording's index finds that data in O(log n). The domain grows at
+    /// once to contain the padded extent, and shrinks only by whole eighths
+    /// of its last span, so panning does not make it flicker. That span is
+    /// remembered in the [`Cache`](crate::cache::Cache) by handle index and
+    /// scale type. Used as x, or over an x that is itself `Fit::Visible`,
+    /// the handle fits all its data.
     pub fn fit_with<S: Fittable>(&mut self, s: S, fit: Fit<S::Span>) -> ScaleRef<S> {
         let categorical =
             matches!(fit, Fit::Window(_)) && TypeId::of::<S::Span>() == TypeId::of::<()>();
@@ -241,7 +245,7 @@ impl<'a> Figure<'a> {
         self
     }
 
-    /// A title centred above the grid.
+    /// A title centered above the grid.
     pub fn title(&mut self, t: impl Into<Text>) -> &mut Self {
         self.title = Some(t.into());
         self
@@ -253,10 +257,10 @@ impl<'a> Figure<'a> {
         self
     }
 
-    /// The locale default tick labels are written in, offset and
-    /// multiplier notation's included; [`Locale::NEUTRAL`] (SI style:
-    /// U+202F groups of three from five digits) by default. Labels an
-    /// axis's `.format` writes are its own.
+    /// The locale default tick labels are written in, including offset and
+    /// multiplier notation. The default is [`Locale::NEUTRAL`], SI style,
+    /// which groups numbers of five or more digits in threes with U+202F.
+    /// Labels written by an axis's `.format` are its own.
     ///
     /// ```
     /// use rustd3_core::locale::Locale;
@@ -272,12 +276,12 @@ impl<'a> Figure<'a> {
         self
     }
 
-    /// Places guide `g` in figure slot `slot`, outside the grid: a legend
-    /// as a row centred on the plot areas above or below it, a column
-    /// beside it; a colorbar along the side, as long as the plot areas
-    /// beside it. Guides in one slot stack outward in the order they are
-    /// added. A guide of a handle of another figure is not placed, and
-    /// [`check`](Figure::check) reports the handle.
+    /// Places guide `g` in figure slot `slot`, outside the grid. A legend
+    /// above or below the grid is a row centered on the plot areas, and one
+    /// beside it is a column. A colorbar runs along its side, as long as
+    /// the plot areas beside it. Guides in one slot stack outward in the
+    /// order they are added. A guide of a handle of another figure is not
+    /// placed, and [`check`](Figure::check) reports the handle.
     pub fn legend(&mut self, slot: Slot, g: impl legend::Guide<'a>) -> &mut Self {
         let stored = g.erase().0;
         let [h] = stored.handles();
@@ -299,8 +303,8 @@ impl<'a> Figure<'a> {
         &self.foreign
     }
 
-    /// The handles fitted with `Fit::Window` on a categorical scale, as
-    /// `Fit::All`.
+    /// The positions of the handles fitted with `Fit::Window` on a
+    /// categorical scale, which fit as `Fit::All`.
     #[cfg_attr(
         not(feature = "fonts"),
         expect(dead_code, reason = "fig.check reads it, and needs fonts")
@@ -381,7 +385,7 @@ impl<'a> Figure<'a> {
         self.title.as_ref()
     }
 
-    /// Appends `entry` to the table; its handle.
+    /// Appends `entry` to the table and returns its handle.
     fn add<S>(&mut self, entry: Entry) -> ScaleRef<S> {
         let index = u32::try_from(self.scales.len())
             .expect("invariant: a figure holds fewer than 2^32 scales");

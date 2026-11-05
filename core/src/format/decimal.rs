@@ -4,7 +4,8 @@
 //! std's float formatting rounds a value exactly halfway between two
 //! results to even; JavaScript rounds it up (`(2.5).toFixed(0)` is "3",
 //! `format!("{:.0}", 2.5)` is "2"). Ties are detected exactly from the
-//! float's bits and rounded up here. Every function takes a finite x ≥ 0.
+//! float's bits and rounded up here. Unless a function says otherwise, it
+//! takes a finite x ≥ 0.
 
 use crate::js;
 
@@ -25,9 +26,9 @@ pub(super) fn exponent(x: f64) -> Option<i32> {
     (x.is_finite() && x != 0.0).then(|| shortest(x).1)
 }
 
-/// d3's formatDecimalParts: x's significant digits and the decimal exponent
-/// of the first, rounded to `sig` digits, or as many as needed for `sig` 0;
-/// `None` for 0 (and non-finite x).
+/// d3's formatDecimalParts: x's significant digits, rounded to `sig` digits
+/// (or as many as needed when `sig` is 0), and the decimal exponent of the
+/// first. `None` for 0 and non-finite x.
 pub(super) fn parts(x: f64, sig: usize) -> Option<(String, i32)> {
     if !x.is_finite() || x == 0.0 {
         None
@@ -38,8 +39,8 @@ pub(super) fn parts(x: f64, sig: usize) -> Option<(String, i32)> {
     }
 }
 
-/// JavaScript's `x.toFixed(places)` (below 10²¹, where JavaScript switches
-/// to exponent notation and this keeps all digits), `Infinity` for ∞.
+/// JavaScript's `x.toFixed(places)`, or `Infinity` for ∞. From 10²¹ up,
+/// JavaScript switches to exponent notation; this keeps all digits.
 pub(super) fn fixed(x: f64, places: usize) -> String {
     if x.is_infinite() {
         // `%` multiplies by 100 first, which can overflow.

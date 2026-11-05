@@ -1,12 +1,15 @@
-//! Colorbars: what a legend is to a palette, a [`Colorbar`] is to a
-//! continuous or binned color scale. It goes into a figure slot
+//! Colorbars: a [`Colorbar`] is to a continuous or binned color scale what
+//! a legend is to a palette.
+//!
+//! A colorbar goes into a figure slot
 //! ([`Figure::legend`](crate::Figure::legend)) or a panel corner
-//! ([`Panel::legend`](crate::Panel::legend)) like a legend: `em(1)` thick
-//! (the tick-label size), as long as the plot areas beside a slot or 40%
-//! of a panel's long side in a corner. Its ramp is one image strip drawn
-//! with nearest sampling ([`Ramp`]), labelled by the scale's own ticks in
-//! the figure's locale, outlined by the theme's axis line, with
-//! matplotlib's end triangles on request ([`Extend`]).
+//! ([`Panel::legend`](crate::Panel::legend)) like a legend. It is `em(1)`
+//! thick (the tick-label size). In a slot it is as long as the plot areas
+//! beside it, and in a corner 40% of the panel's long side. Its ramp is one
+//! image strip drawn with nearest sampling ([`Ramp`]), labeled by the
+//! scale's own ticks in the figure's locale and outlined by the theme's
+//! axis line. matplotlib's end triangles are available on request
+//! ([`Extend`]).
 //!
 //! ```
 //! use rustd3_core::{scale, scheme};
@@ -21,7 +24,7 @@
 //!     .legend(Inset::TopRight, colorbar(heat).ticks(3).extend(Extend::Both));
 //! ```
 //!
-//! A colorbar needs a scale that maps numbers to colors along a ramp; an
+//! A colorbar needs a scale that maps numbers to colors along a ramp. An
 //! ordinal palette has keys, which a [`legend`](crate::legend::legend)
 //! shows, so a colorbar of one does not compile (E0277, `Ordinal<&str,
 //! Rgb>: Ramp` is not satisfied; rustc also reports E0271 for the keys,
@@ -74,12 +77,13 @@ use crate::text::Text;
 /// A label for each tick value, in place of the scale's.
 type Format<'a> = Rc<dyn Fn(f64) -> String + 'a>;
 
-/// The legend of a continuous or binned color scale: a strip of its colors
-/// along a bar, from its low end (bottom or left) to its high end, its
-/// ticks and their labels on the side away from the grid or, in a corner,
-/// right of a vertical bar and below a horizontal one, and its title past
-/// them along the bar. Built once and placed in any number of slots and
-/// corners (`Clone` shares its format).
+/// The legend of a continuous or binned color scale. It is a strip of the
+/// scale's colors along a bar, from its low end (bottom or left) to its
+/// high end, with ticks, their labels, and a title past them along the
+/// bar. The ticks sit on the side away from the grid or, in a corner,
+/// right of a vertical bar and below a horizontal one. A colorbar is built
+/// once and placed in any number of slots and corners (`Clone` shares its
+/// format).
 pub struct Colorbar<'a, S> {
     handle: ScaleRef<S>,
     title: Option<Text>,
@@ -185,15 +189,15 @@ pub(crate) trait Draw<'a>: 'a {
     /// Whether `.format` sets its labels.
     fn formats(&self) -> bool;
 
-    /// The labels of the resolved scale's about `count` ticks: the
-    /// format's; for a binned scale (`binned`), its edges' at the places
-    /// they need ([`edges::labels`]); else the scale's own; in the figure's
-    /// locale.
+    /// The labels of the resolved scale's about `count` ticks, in the
+    /// figure's locale. They come from the format when one is set.
+    /// Otherwise a binned scale (`binned`) labels its edges at the places
+    /// they need ([`edges::labels`]), and any other scale uses its own.
     fn texts(&self, resolved: &Resolved, count: usize, binned: bool) -> Vec<String>;
 
     /// Each of about `count` ticks' share of the bar from its low end,
-    /// aligned with [`texts`](Draw::texts): the scale's tick position;
-    /// `None` where it has none or it is not finite.
+    /// aligned with [`texts`](Draw::texts). A share is the scale's tick
+    /// position, or `None` where it has none or it is not finite.
     fn shares(&self, resolved: &Resolved, count: usize) -> Vec<Option<f64>>;
 }
 

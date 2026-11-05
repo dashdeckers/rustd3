@@ -1,5 +1,5 @@
 //! [`Input`]: pointer events queued until the next `RedrawRequested`,
-//! which applies them in order: iced can deliver several events before the
+//! which applies them in order. iced can deliver several events before the
 //! app's `update` runs and the view is rebuilt.
 
 use rustd3_core::interact::{Button, Pointer};
@@ -16,7 +16,7 @@ impl Input {
         self.queue.push(pointer);
     }
 
-    /// Whether a left press waits in the queue: moves after it belong to
+    /// Whether a left press waits in the queue. Moves after it belong to
     /// the drag it starts.
     pub(crate) fn has_press(&self) -> bool {
         self.queue.iter().any(|pointer| {

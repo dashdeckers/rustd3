@@ -1,17 +1,17 @@
 //! [`Brush`]: a brush a panel places (`Panel::brush`), as the widget keeps
-//! it across rebuilds of the figure: core's `BrushX` or `BrushY` over the
-//! panel's plot area in list px, the scale its selections invert through,
-//! what it selects, and the gesture in progress.
+//! it across rebuilds of the figure. It holds core's `BrushX` or `BrushY`
+//! over the panel's plot area in list px, the scale its selections invert
+//! through, what it selects, and the gesture in progress.
 //!
 //! Brushes are kept by their panel's grid cell, the handle they are over
-//! (position and scale type) and their axis, and dropped when the rebuilt
-//! figure has no such brush, so a figure rebuilt in `view` keeps a gesture
-//! alive. Between gestures a brush takes its selection from the domain it
-//! selects ([`Brush::sync`]): its target's current domain, or for a brush
-//! without a target its own last selection, kept as a domain, so a zoom of
-//! either moves the band at the next refresh. During a gesture it never
-//! does: the app may not have applied what the gesture published yet (use
-//! case 1's bug).
+//! (position and scale type) and their axis. They are dropped when the
+//! rebuilt figure has no such brush, so a figure rebuilt in `view` keeps a
+//! gesture alive. Between gestures a brush takes its selection from the
+//! domain it selects ([`Brush::sync`]). That is its target's current
+//! domain or, for a brush without a target, its own last selection kept as
+//! a domain. A zoom of either then moves the band at the next refresh.
+//! During a gesture it never does, because the app may not have applied
+//! what the gesture published yet (use case 1's bug).
 
 mod listener;
 mod machine;
@@ -30,8 +30,8 @@ use rustd3_figure::scale::Scale;
 use crate::plot::domains::Key;
 use crate::plot::overlay;
 
-/// How close to over's whole range, px, a target's window counts as all of
-/// it.
+/// How close to `over`'s whole range, in px, a target's window must come to
+/// count as all of it.
 const WHOLE: f64 = 1e-6;
 
 /// The band's fill: its share of the ink's opacity.
@@ -52,7 +52,7 @@ pub(crate) struct Spot<'r> {
     pub(crate) over: Key,
     /// That handle's resolved scale, before any range.
     pub(crate) scale: &'r dyn Scale,
-    /// The panel's plot area, list px.
+    /// The panel's plot area, in list px.
     pub(crate) area: Rect,
     /// Its target's current scale (the widget's own, published, or as
     /// resolved), if it has a target.
@@ -71,14 +71,14 @@ pub(crate) struct Brush {
     panel: usize,
     /// Core's brush; its extent is `extent`.
     machine: Machine,
-    /// The plot area the machine was made over, list px.
+    /// The plot area the machine was made over, in list px.
     extent: Rect,
-    /// Over's resolved scale set to the plot area's range, as the last
-    /// refresh between gestures had it: selections invert through it, so a
+    /// `over`'s resolved scale set to the plot area's range, as the last
+    /// refresh between gestures had it. Selections invert through it, so a
     /// gesture inverts through the scale at its start.
     scale: Box<dyn Scale>,
-    /// Without a target: the selection, as a scale of over's type whose
-    /// domain it is.
+    /// The selection of a brush without a target, as a scale of `over`'s
+    /// type whose domain it is.
     selected: Option<Box<dyn Scale>>,
     /// During a gesture: the plot areas it holds.
     held: Option<layout::Areas>,
@@ -138,12 +138,14 @@ impl Brush {
         self.held.as_ref().filter(|_| self.is_active())
     }
 
-    /// Brings the state to the refresh that resolved `spot`: its panel and
-    /// placed brush, and between gestures its plot area, over's scale, and
-    /// the selection the domain it selects shows there: its target's
-    /// current domain (none when the target shows all of over's domain, as
-    /// at the start), else its own last selection; clipped to the plot
-    /// area.
+    /// Brings the state up to date with the refresh that resolved `spot`.
+    ///
+    /// It takes the panel and the placed brush. Between gestures it also
+    /// takes the plot area, `over`'s scale, and the selection that the
+    /// domain it selects shows there, clipped to the plot area. That domain
+    /// is the target's current domain, or without a target the brush's own
+    /// last selection. A target that shows all of `over`'s domain, as at
+    /// the start, gives no selection.
     pub(crate) fn sync(&mut self, spot: &Spot<'_>) {
         let (placed, area) = (spot.placed, spot.area);
         self.panel = spot.panel;
@@ -167,8 +169,8 @@ impl Brush {
         self.machine.set_selection(selection);
     }
 
-    /// Feeds `pointer` (list px) to the machine; a press that starts a
-    /// gesture holds `held`. What d3 emits for it.
+    /// Feeds `pointer` (list px) to the machine, and returns what d3 emits
+    /// for it. A press that starts a gesture holds `held`.
     pub(crate) fn feed(
         &mut self,
         pointer: Pointer,
@@ -185,9 +187,9 @@ impl Brush {
     }
 
     /// What `selection` selects, as a scale of `template`'s type (the
-    /// target's, or over's without a target): the values the scale at the
-    /// gesture's start inverts the ends to, over's whole domain for
-    /// `None` ([`Placed::window`]).
+    /// target's, or `over`'s without a target). Its domain is the values
+    /// the scale at the gesture's start inverts the ends to, or `over`'s
+    /// whole domain for `None` ([`Placed::window`]).
     pub(crate) fn window(
         &self,
         template: &dyn Scale,
@@ -196,8 +198,8 @@ impl Brush {
         self.placed.window(&*self.scale, template, selection)
     }
 
-    /// A gesture reported `selection`: kept to publish, and for a brush
-    /// without a target kept as a domain.
+    /// Records that a gesture reported `selection`. It is kept to publish,
+    /// and for a brush without a target it is also kept as a domain.
     pub(crate) fn report(&mut self, selection: Option<[f64; 2]>) {
         self.fresh = Some(selection);
         if self.placed.get_target().is_none() {
@@ -207,8 +209,8 @@ impl Brush {
         }
     }
 
-    /// Clears the selection, as a double click does: reported when there
-    /// was one.
+    /// Clears the selection, as a double click does, and reports the
+    /// change when there was a selection.
     pub(crate) fn clear(&mut self) {
         if self.machine.selection().is_some() {
             self.fresh = Some(None);
@@ -217,12 +219,14 @@ impl Brush {
         self.selected = None;
     }
 
-    /// Draws the selection, the live rectangle during a gesture and the
-    /// band between gestures alike, for a widget whose device origin is
-    /// `origin` at `factor`: across the plot area (its full height for an
-    /// x brush, its full width for a y brush), filled with `ink` at 10% and
+    /// Draws the selection for a widget whose device origin is `origin` at
+    /// `factor`. This is the live rectangle during a gesture and the band
+    /// between gestures alike.
+    ///
+    /// The selection spans the plot area (its full height for an x brush,
+    /// its full width for a y brush). It is filled with `ink` at 10% and
     /// outlined one device px wide at 40%, in a layer clipped to the plot
-    /// area. Its edges are rounded to device px; the outline's sides and
+    /// area. Its edges are rounded to device px. The outline's sides and
     /// the fill are quads that do not overlap, so both renderers composite
     /// each pixel once.
     pub(crate) fn draw<Renderer>(
@@ -323,10 +327,11 @@ fn along(dim: Dim, area: Rect) -> [f64; 2] {
     }
 }
 
-/// The band a window at `ends` shows over `[low, high]`: clipped to it;
-/// `None` when it lies outside or has no width there, or, when a window
-/// covering all of it means no selection (`whole_is_none`, a target that
-/// shows all of over's domain), when it covers all of it.
+/// The band a window at `ends` shows over `[low, high]`, clipped to it.
+/// `None` when the window lies outside or has no width there. With
+/// `whole_is_none` (a target that shows all of `over`'s domain), a window
+/// that covers all of `[low, high]` means no selection, so it is `None`
+/// too.
 fn band(ends: [f64; 2], [low, high]: [f64; 2], whole_is_none: bool) -> Option<[f64; 2]> {
     let [a, b] = if ends[1] < ends[0] {
         [ends[1], ends[0]]

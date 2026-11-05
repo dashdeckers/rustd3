@@ -35,8 +35,8 @@ impl Block {
         }
     }
 
-    /// Appends the block with its top-left corner at `at`, hairlines and
-    /// edges on device pixels on raster targets (`snap`).
+    /// Appends the block with its top-left corner at `at`, with hairlines
+    /// and edges on device pixels on raster targets (`snap`).
     pub(crate) fn draw(
         &self,
         at: Point,

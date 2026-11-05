@@ -26,8 +26,9 @@ const EM: f64 = 44.0 / 3.0;
 /// The canvas padding, px.
 const PAD: f64 = 0.8 * EM;
 
-/// The tick length and the tick pad at notebook, px: 6 pt and 3.5 pt.
+/// The tick length at notebook, px: 6 pt.
 const TICK: f64 = 8.0;
+/// The tick pad at notebook, px: 3.5 pt.
 const TICK_PAD: f64 = 14.0 / 3.0;
 
 /// The blues of d3's `schemeBlues[5]`.
@@ -292,7 +293,7 @@ fn a_side_colorbar_spans_every_row_beside_it() {
     let bar = strip(cb);
     assert!(close(bar.y0, areas[0].y0) && close(bar.y1, areas[1].y1));
     // Labels end a tick and a tick pad left of the bar; the title is turned
-    // a quarter counter-clockwise past them, centred on the bar.
+    // a quarter counter-clockwise past them, centered on the bar.
     let all = runs(cb);
     let (title, labels) = all.split_last().expect("labels and a title");
     assert_eq!(&*title.text, "temp [°C]");
@@ -565,10 +566,10 @@ fn a_300_px_bar_with_both_triangles_takes_15_px_for_each() {
     assert_eq!((bar.y0 - 15.0, bar.y1 + 15.0), (area.y0, area.y1));
 }
 
-/// A colorbar of `color` drawn in `slot` beside a panel 300 px long along
-/// it, at 1× by vello_cpu: each pixel's RGBA along the bar's middle from
-/// its low end (bottom or left). The style draws no outline, which would
-/// cover the strip's end pixels.
+/// Each pixel's RGBA along the middle of a colorbar of `color`, from its
+/// low end (bottom or left). The bar is drawn in `slot` beside a panel
+/// 300 px long along it and rendered at 1× by vello_cpu. The style draws
+/// no outline, which would cover the strip's end pixels.
 #[cfg(feature = "raster")]
 fn rendered<S: Paint<Domain = f64> + Ramp>(color: S, slot: Slot) -> Vec<[u8; 4]> {
     let (mut fig, heat) = panel(color);

@@ -31,18 +31,18 @@ pub(crate) struct Placed {
     pub(crate) keep: Vec<bool>,
     /// Its minor ticks' positions along the plot area (`Axis::minor`).
     pub(crate) minors: Vec<f64>,
-    /// How far above the plot area a vertical axis's offset or multiplier
-    /// label sits, a tick pad below its bottom: the panel's top reach
-    /// without those labels.
+    /// The height above the plot area that lies a tick pad below a vertical
+    /// axis's offset or multiplier label: the panel's top reach without
+    /// those labels.
     pub(crate) above: f64,
 }
 
 impl Placed {
     /// The axis with `labels` and `plan` beside plot area `area`, its ticks
-    /// at `positions`, every tick label kept: each label's box is its box
-    /// ([`Labels::oriented`]) at the end of its tick plus the tick pad,
-    /// `None` for a label that is not placed, empty, or that typst
-    /// rejected.
+    /// at `positions`, with every tick label kept. Each label's box is its
+    /// box ([`Labels::oriented`]) at the end of its tick plus the tick pad,
+    /// or `None` for a label that is not placed, empty, or rejected by
+    /// typst.
     pub(crate) fn new(
         labels: Labels,
         plan: Plan,
@@ -82,10 +82,10 @@ impl Placed {
     }
 
     /// Appends the axis line beside plot area `area` to `list`, in the
-    /// theme's edge color (its own when tinted) with square caps, so two
-    /// axes meet at a closed corner as matplotlib's projecting spines do;
-    /// on raster targets (`snap`) the line and its square-capped ends lie
-    /// on whole device pixels. Nothing in the styles without axis lines.
+    /// theme's edge color (its own when tinted). Square caps make two axes
+    /// meet at a closed corner, as matplotlib's projecting spines do. On
+    /// raster targets (`snap`) the line and its square-capped ends lie on
+    /// whole device pixels. Styles without axis lines draw nothing.
     pub(crate) fn line(&self, area: Rect, theme: &Theme, snap: Snap, list: &mut List) {
         let labels = &self.labels;
         let Some(edge) = theme.edge() else {
@@ -122,25 +122,28 @@ impl Placed {
         self.texts(area, text, theme, list);
     }
 
-    /// Appends the axis's tick marks beside plot area `area` to `list`:
-    /// those whose label the scale's format blanks (d3's log ticks between
-    /// labelled ones) and its minor ticks at the minor size and width, on
-    /// whole device pixels on raster targets (`snap`).
+    /// Appends the axis's tick marks beside plot area `area` to `list`.
+    /// Ticks whose label the scale's format blanks (d3's log ticks between
+    /// labeled ones) and minor ticks take the minor size and width. On
+    /// raster targets (`snap`) the marks lie on whole device pixels.
     pub(crate) fn marks(&self, area: Rect, theme: &Theme, snap: Snap, list: &mut List) {
         self.ticks(&self.spine(area, theme), theme, snap, list);
     }
 
-    /// Appends the axis's kept tick labels beside plot area `area` to
-    /// `list`, a tick pad past the ticks on the baselines their line box
-    /// gives ([`Labels::baseline`]), its offset or multiplier label (at the
-    /// right end of a horizontal axis, a tick pad beyond the labels; above
-    /// the top end of a vertical one); rotated labels are turned about their
-    /// first baseline's left end, placed by [`Labels::oriented`]; and its
-    /// title a label pad past all of them, turned a quarter
-    /// counter-clockwise beside a vertical axis so that it reads bottom to
-    /// top on either side, as matplotlib draws every vertical label (its
-    /// descenders toward a left axis, its ascenders toward a right one).
-    /// Labels keep their positions on raster targets.
+    /// Appends the axis's kept tick labels, its offset or multiplier label
+    /// and its title beside plot area `area` to `list`.
+    ///
+    /// Tick labels sit a tick pad past the ticks, on the baselines their
+    /// line box gives ([`Labels::baseline`]). Rotated labels are turned
+    /// about their first baseline's left end and placed by
+    /// [`Labels::oriented`]. The offset or multiplier label sits at the
+    /// right end of a horizontal axis, a tick pad beyond the labels, or
+    /// above the top end of a vertical one. The title sits a label pad past
+    /// all of them. Beside a vertical axis it is turned a quarter
+    /// counter-clockwise so that it reads bottom to top on either side, as
+    /// matplotlib draws every vertical label (its descenders toward a left
+    /// axis, its ascenders toward a right one). Labels keep their positions
+    /// on raster targets.
     pub(crate) fn texts(&self, area: Rect, text: &text::Cache, theme: &Theme, list: &mut List) {
         let labels = &self.labels;
         let orient = labels.orient;
@@ -196,11 +199,12 @@ impl Placed {
         }
     }
 
-    /// Adds to `path` a grid line across plot area `area`, and `overscan`
-    /// px past its ends, at each of the axis's ticks whose label the
-    /// scale's format does not blank (major ticks), as hairlines `width` px
-    /// wide on whole device pixels on raster targets (`snap`): vertical
-    /// lines for a horizontal axis, horizontal ones for a vertical axis.
+    /// Adds to `path` a grid line at each of the axis's major ticks (those
+    /// whose label the scale's format does not blank). Each line crosses
+    /// plot area `area` and runs `overscan` px past its ends, vertical for a
+    /// horizontal axis and horizontal for a vertical one. On raster targets
+    /// (`snap`) the lines are hairlines `width` px wide on whole device
+    /// pixels.
     pub(crate) fn grid(
         &self,
         area: Rect,
@@ -232,10 +236,10 @@ impl Placed {
         across(self.labels.orient)
     }
 
-    /// Appends the tick marks along `spine` to `list`: major ticks at the
-    /// theme's tick size and width, those whose label the scale's format
-    /// blanks and the minor ticks at the minor size and width, on whole
-    /// device pixels on raster targets (`snap`).
+    /// Appends the tick marks along `spine` to `list`. Major ticks take the
+    /// theme's tick size and width; ticks whose label the scale's format
+    /// blanks and minor ticks take the minor size and width. On raster
+    /// targets (`snap`) they lie on whole device pixels.
     fn ticks(&self, spine: &Spine, theme: &Theme, snap: Snap, list: &mut List) {
         let labels = &self.labels;
         let width = theme.tick_width();
@@ -301,10 +305,10 @@ impl Spine {
         }
     }
 
-    /// [`at`](Spine::at) with the axis line where `snap` lays a line of its
-    /// width and `along` where it lays a hairline `w` px wide across it, so
-    /// the axis line, its ends and its ticks cover whole device pixels on
-    /// raster targets.
+    /// [`at`](Spine::at), snapped. The axis line goes where `snap` lays a
+    /// line of its width, and `along` goes where `snap` lays a hairline `w`
+    /// px wide across it. The axis line, its ends and its ticks then cover
+    /// whole device pixels on raster targets.
     fn snapped(&self, along: f64, beyond: f64, w: f64, snap: Snap) -> Point {
         let base = self.at(along, 0.0);
         let snapped = if across(self.orient) {

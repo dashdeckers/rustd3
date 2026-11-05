@@ -9,11 +9,11 @@ use rustd3_core::path::PathContext;
 /// d3's tolerance for coincident points and empty arcs, as in `SvgPath`.
 const EPSILON: f64 = 1e-6;
 
-/// d3 generators draw into an iced path through this.
+/// A d3 path context that draws into an iced path builder.
 ///
 /// iced's own `Builder::arc` starts a new subpath, which would split a d3
-/// pie slice in two, and the builder exposes no current point, so
-/// `IcedPath` tracks the current point and the subpath's start and cuts
+/// pie slice in two, and the builder exposes no current point. So
+/// `IcedPath` tracks the current point and the subpath's start, and cuts
 /// arcs into cubics of at most a quarter turn itself, with d3's arc
 /// semantics: a negative radius draws nothing.
 ///
@@ -67,8 +67,8 @@ impl PathContext for IcedPath<'_> {
         self.reach((x, y));
     }
 
-    /// d3's arc, cut into cubics of at most a quarter turn; a negative
-    /// radius draws nothing.
+    /// Draws d3's arc, cut into cubics of at most a quarter turn. A
+    /// negative radius draws nothing.
     fn arc(&mut self, x: f64, y: f64, r: f64, start: f64, end: f64, anticlockwise: bool) {
         if r < 0.0 {
             return;
@@ -137,7 +137,7 @@ impl PathContext for IcedPath<'_> {
 }
 
 impl<'a> IcedPath<'a> {
-    /// A context drawing into `builder`, which must start empty: the
+    /// A context drawing into `builder`, which must start empty, since the
     /// context's current point starts unset.
     pub fn new(builder: &'a mut canvas::path::Builder) -> Self {
         IcedPath {
@@ -147,7 +147,7 @@ impl<'a> IcedPath<'a> {
         }
     }
 
-    /// Records the end of a segment; a segment drawn with no current point
+    /// Records the end of a segment. A segment drawn with no current point
     /// starts its subpath there, as iced's builder (lyon's) does.
     fn reach(&mut self, to: (f64, f64)) {
         if self.current.is_none() {
@@ -171,7 +171,7 @@ pub fn path(draw: impl FnOnce(&mut IcedPath<'_>)) -> canvas::Path {
     canvas::Path::new(|builder| draw(&mut IcedPath::new(builder)))
 }
 
-/// An iced point; geometry converts to `f32` only here, at the backend
+/// An iced point. Geometry converts to `f32` only here, at the backend
 /// boundary.
 fn point(x: f64, y: f64) -> Point {
     Point::new(x as f32, y as f32)

@@ -32,8 +32,8 @@ mod tiles;
 mod update_pattern;
 
 /// `view` in a simulator of `size` logical px on `ICED_TEST_BACKEND`'s
-/// renderer; `None`, with a message, when that is wgpu, it finds no device
-/// and `RUSTD3_ALLOW_NO_GPU=1`.
+/// renderer. Returns `None`, with a message, when the backend is wgpu, wgpu
+/// finds no device, and `RUSTD3_ALLOW_NO_GPU=1`.
 fn simulator<'a, M: 'a>(
     size: (f32, f32),
     view: impl iced::Widget<M> + 'a,

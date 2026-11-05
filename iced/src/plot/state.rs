@@ -39,9 +39,9 @@ use crate::pointer::Tracker;
 pub(crate) struct State {
     /// Laid-out labels, thinned lines and `Fit::Visible` memory.
     cache: Cache,
-    /// The renderer of what renders inline, single-threaded whatever the
-    /// pool's size: vello_cpu's own pool costs about 4 ms a render on two
-    /// cores whatever its size, and the pool is the widget's only
+    /// Renders the cells drawn on the UI thread. It is single-threaded
+    /// because vello_cpu's own pool costs about 4 ms a render on two cores,
+    /// whatever its size, and the worker pool already supplies the widget's
     /// parallelism.
     raster: raster::Renderer,
     /// Glyph outlines the list's command bounds are measured with.
@@ -56,13 +56,13 @@ pub(crate) struct State {
     /// Whether the figure was rebuilt or the widget resized since the
     /// last refresh.
     stale: bool,
-    /// The partition's cells, row-major: their device rects.
+    /// The device rects of the partition's cells, row-major.
     cells: Vec<[i32; 4]>,
     /// Per partition cell, the plot area that holds it, if one does.
     owner: Vec<Option<usize>>,
     /// The partition's cells outside the plot areas, merged into runs of
-    /// one slot each; cells inside a plot area show nothing of their own
-    /// (its tiles do).
+    /// one slot each. Cells inside a plot area show nothing of their own,
+    /// since the area's tiles cover them.
     gutters: Vec<Run>,
     /// Gutter images of an earlier layout: each stays drawn under the runs
     /// that meet it until every one of them shows an image of its own.
@@ -82,12 +82,12 @@ pub(crate) struct State {
     /// The plot areas, in panel order: their device rects, relative to the
     /// widget's device origin, and their tiles.
     areas: Vec<Area>,
-    /// Grids begun: each area's grid gets a new number.
+    /// The number of grids begun, which numbers each new grid.
     grids: u64,
     /// The hit index of the last list, and the hover last reported.
     hits: hover::Hits,
-    /// Whether the hit index is not of the list shown: built only for a
-    /// widget that hovers, and not while a gesture lasts.
+    /// Whether the hit index is out of date with the list shown. It is
+    /// built only for a widget that hovers, and not while a gesture lasts.
     unhit: bool,
     /// The pointer where the last move left it, logical px in the window;
     /// `None` when it left or something above covers it.
@@ -96,13 +96,13 @@ pub(crate) struct State {
     overlay: Overlay,
     /// The render pool, started with the first jobs it gets.
     pool: Option<Pool>,
-    /// Where the last gesture input was, list px: the pool renders the
+    /// Where the last gesture input was, in list px. The pool renders the
     /// tiles nearest it first.
     focus: Option<kurbo::Point>,
     /// Whether tiles of the overscan ring wait for the gesture in progress
-    /// to end: the first refresh after it renders them.
+    /// to end. The first refresh after it ends renders them.
     deferred: bool,
-    /// Whether the last draw grew its layer by half a px: draws alternate
+    /// Whether the last draw grew its layer by half a px. Draws alternate
     /// while a gesture lasts ([`draw`](State::draw)).
     grown: Cell<bool>,
     /// Turns iced events into pointer input in the widget's logical px.
@@ -113,12 +113,13 @@ pub(crate) struct State {
     domains: Domains,
     /// The zoom or pan gesture in progress.
     gesture: Option<Gesture>,
-    /// The brushes the figure places, as the last refresh resolved them;
-    /// one of them may have a gesture in progress.
+    /// The brushes the figure places, as the last refresh resolved them.
+    /// One of them may have a gesture in progress.
     brushes: Vec<Brush>,
     /// The last resolve: the scales a gesture starts from.
     resolved: Option<Resolved>,
-    /// Its plot areas and axis strips, and the handles each panel zooms.
+    /// The last resolve's plot areas and axis strips, and the handles each
+    /// panel zooms.
     map: region::Map,
     /// The keyboard modifiers last reported.
     modifiers: Modifiers,
@@ -132,9 +133,9 @@ pub(crate) struct State {
 /// What queuing a pointer asks of the shell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) struct Queued {
-    /// Capture the event: the widget handles it.
+    /// Whether to capture the event, which the widget handles.
     pub(crate) capture: bool,
-    /// Request a redraw, which applies the queue.
+    /// Whether to request a redraw, which applies the queue.
     pub(crate) redraw: bool,
 }
 
@@ -201,12 +202,14 @@ impl Default for State {
 }
 
 impl State {
-    /// A new view built a new figure, which may or may not differ.
+    /// Marks the list for rebuilding: a new view built a new figure, which
+    /// may or may not differ.
     pub(crate) fn rebuilt(&mut self) {
         self.stale = true;
     }
 
-    /// The layout's logical size; a new one marks the list for rebuilding.
+    /// Records the layout's logical size. A new size marks the list for
+    /// rebuilding.
     pub(crate) fn resize(&mut self, size: Size) {
         if size != self.size {
             self.size = size;
@@ -214,7 +217,7 @@ impl State {
         }
     }
 
-    /// The window's factor, from `Opened` or `Rescaled`.
+    /// Records the window's factor, from `Opened` or `Rescaled`.
     pub(crate) fn rescale(&mut self, factor: f32) {
         self.window = Some(factor);
     }
@@ -224,8 +227,8 @@ impl State {
         self.window
     }
 
-    /// The pointer input `event` makes over a widget laid out at `bounds`
-    /// at `factor`, in the widget's logical px.
+    /// Translates `event` into pointer input in the widget's logical px,
+    /// for a widget laid out at `bounds` at `factor`.
     pub(crate) fn translate(
         &mut self,
         event: &Event,
@@ -237,20 +240,23 @@ impl State {
         self.tracker.translate(event, bounds, cursor)
     }
 
-    /// A press waits for the next `RedrawRequested` to be timed.
+    /// Whether a press waits for the next `RedrawRequested` to be timed.
     pub(crate) fn wants_redraw(&self) -> bool {
         self.tracker.wants_redraw()
     }
 
     /// Queues `pointer` for the next `RedrawRequested` when a gesture
-    /// reads it, and says what the shell should do: a left press over a
-    /// region with zoomable handles or a brushed plot area, or during a
-    /// gesture (a press ends a gesture whose release was lost), and a
-    /// wheel step over a region with zoomable handles or during a drag,
-    /// are captured and redraw; a move during a drag or a brush gesture,
-    /// queued or active, and a left release redraw; a modifier change
-    /// waits for the next redraw. Wheel steps during a brush gesture are
-    /// left alone.
+    /// reads it, and returns what the shell should do.
+    ///
+    /// - A left press is captured and redraws when it is over a region with
+    ///   zoomable handles or a brushed plot area, or during a gesture (a
+    ///   press ends a gesture whose release was lost).
+    /// - A wheel step is captured and redraws when it is over a region with
+    ///   zoomable handles or during a drag. Wheel steps during a brush
+    ///   gesture are left alone.
+    /// - A move redraws during a drag or a brush gesture, queued or active.
+    /// - A left release redraws.
+    /// - A modifier change waits for the next redraw.
     pub(crate) fn queue(&mut self, pointer: Pointer) -> Queued {
         let capture = Queued {
             capture: true,
@@ -294,13 +300,15 @@ impl State {
         queued.unwrap_or_default()
     }
 
-    /// Handles one `RedrawRequested(now)`: counts the frame, applies the
-    /// queued input, refreshes `figure` at `factor` when it was rebuilt,
-    /// the widget resized, the factor changed or input changed a domain,
-    /// and reports what the following draw shows to the pipeline's probe.
-    /// Returns the number of cells whose content changed and the messages
+    /// Handles one `RedrawRequested(now)`. It counts the frame, applies the
+    /// queued input, and refreshes `figure` at `factor` when it was
+    /// rebuilt, the widget resized, the factor changed or input changed a
+    /// domain. It then reports what the following draw shows to the
+    /// pipeline's probe.
+    ///
+    /// Returns the number of cells whose content changed, and the messages
     /// for `listeners` and the brush listeners `brushes`. When applying the
-    /// input published a message, the list is not built in this pass: the
+    /// input published a message, the list is not built in this pass. The
     /// runtime runs the app's `update`, rebuilds the view and sends
     /// `RedrawRequested` again (`winit/src/lib.rs:788-830`).
     pub(crate) fn redraw<Message>(
@@ -328,23 +336,26 @@ impl State {
         (changed, messages)
     }
 
-    /// When the wheel gesture in progress ends, if one is: the widget
-    /// asks for a redraw then.
+    /// When the wheel gesture in progress ends, if there is one. The widget
+    /// asks for a redraw at that instant.
     pub(crate) fn wheel_end(&self) -> Option<Instant> {
         self.gesture.as_ref().and_then(Gesture::ends_at)
     }
 
-    /// Applies the queued input at `now`, once per `RedrawRequested`:
-    /// gesture boundaries, then each pointer fed to the gesture's tracks or
-    /// brush; accepted steps are stored, pending for `listeners`' handles
-    /// and owned otherwise. A left press over a brushed plot area starts a
-    /// brush gesture, elsewhere over a region with zoomable handles a drag,
-    /// which its release ends; a wheel step with no gesture starts a wheel
-    /// gesture on its region (during a drag it feeds the drag's tracks,
-    /// during a brush gesture nothing), which ends at the first redraw
-    /// `gesture::WHEEL_END` after its last step. Returns one message per
-    /// listened handle that changed (the latest domain) and one per brush
-    /// whose selection changed, for `brushes`.
+    /// Applies the queued input at `now`, once per `RedrawRequested`.
+    ///
+    /// Gesture boundaries come first, then each pointer is fed to the
+    /// gesture's tracks or brush. Accepted steps are stored, as pending for
+    /// `listeners`' handles and as owned otherwise. A left press over a
+    /// brushed plot area starts a brush gesture, and elsewhere over a
+    /// region with zoomable handles it starts a drag, which its release
+    /// ends. A wheel step with no gesture starts a wheel gesture on its
+    /// region, which ends at the first redraw `gesture::WHEEL_END` after
+    /// its last step. During a drag a wheel step feeds the drag's tracks,
+    /// and during a brush gesture it feeds nothing.
+    ///
+    /// Returns one message per listened handle that changed (the latest
+    /// domain), and one per brush whose selection changed, for `brushes`.
     fn apply<Message>(
         &mut self,
         now: Instant,
@@ -467,13 +478,15 @@ impl State {
         messages
     }
 
-    /// Feeds `pointer` to brush `index`, a press that starts its gesture
-    /// holding the plot areas of the last resolve, and applies what it
-    /// reports: a selection is kept for `on_brush`, and with a target it
-    /// sets the target's domain as a gesture's step does (published for
-    /// `listeners`' handles, owned otherwise; the key goes to `fresh`); at
-    /// its end what it published goes out and is the app's from then on,
-    /// and the layout settles. True when it set a domain.
+    /// Feeds `pointer` to brush `index` and applies what the brush reports.
+    ///
+    /// A press that starts the brush's gesture holds the plot areas of the
+    /// last resolve. A selection is kept for `on_brush`. With a target, the
+    /// brush sets the target's domain as a gesture's step does: published
+    /// for `listeners`' handles and owned otherwise, with the key pushed to
+    /// `fresh`. At the gesture's end, what it published goes out and belongs
+    /// to the app from then on, and the layout settles. Returns true when
+    /// it set a domain.
     fn stroke<Message>(
         &mut self,
         index: usize,
@@ -556,8 +569,9 @@ impl State {
         self.stroke_on(release, fresh, listeners, messages)
     }
 
-    /// One message per brush whose selection this frame changed, for the
-    /// listener of the handle it is over among `listeners`: the latest.
+    /// Pushes one message per brush whose selection changed this frame,
+    /// with the latest selection, to the listener among `listeners` of the
+    /// handle the brush is over.
     fn publish<Message>(
         &mut self,
         listeners: &[brush::Listener<'_, Message>],
@@ -574,13 +588,14 @@ impl State {
         }
     }
 
-    /// Resets every handle the panel of `region` zooms, and its brush's
-    /// target, that a gesture touched: the widget's own scales go (the
-    /// figure refits them and the hold ends), published ones leave
-    /// `pending` and the next resolve publishes their fitted domains; their
-    /// zooms and preview views start afresh. The panel's brush loses its
-    /// selection, reported to `on_brush` if it had one. True when a handle
-    /// was reset.
+    /// Resets every handle that the panel of `region` zooms, and its
+    /// brush's target, when a gesture touched it.
+    ///
+    /// The widget's own scales are dropped, so the figure refits them and
+    /// the hold ends. Published ones leave `pending`, and the next resolve
+    /// publishes their fitted domains. Their zooms and preview views start
+    /// afresh. The panel's brush loses its selection, which is reported to
+    /// `on_brush` if it had one. Returns true when a handle was reset.
     fn reset<Message>(&mut self, region: Region, listeners: &[Listener<'_, Message>]) -> bool {
         let Some(panel) = region.panel() else {
             return false;
@@ -617,9 +632,9 @@ impl State {
     }
 
     /// Starts a gesture of `kind` over `region` when it has zoomable
-    /// handles: each track starts from its handle's current scale (owned,
-    /// else pending, else as last resolved), and the plot areas of the
-    /// last resolve are held.
+    /// handles. Each track starts from its handle's current scale (owned,
+    /// else pending, else as last resolved), and the plot areas of the last
+    /// resolve are held.
     fn begin(&mut self, region: Region, kind: gesture::Kind) {
         let (Some(resolved), Some(area)) = (
             &self.resolved,
@@ -652,9 +667,9 @@ impl State {
     }
 
     /// Feeds `pointer` to the gesture's tracks and stores each accepted
-    /// step, published (pending) for a handle one of `listeners` listens
-    /// to, else owned; the keys go to `fresh`. True when a step was
-    /// accepted.
+    /// step, as published (pending) for a handle one of `listeners` listens
+    /// to and as owned otherwise. The keys go to `fresh`. Returns true when
+    /// a step was accepted.
     fn feed<Message>(
         &mut self,
         pointer: Pointer,
@@ -668,9 +683,9 @@ impl State {
         self.keep(steps, fresh, listeners)
     }
 
-    /// Stores each of `steps`, published (pending) for a handle one of
-    /// `listeners` listens to, else owned; the keys go to `fresh`. True
-    /// when there was one.
+    /// Stores each of `steps`, as published (pending) for a handle one of
+    /// `listeners` listens to and as owned otherwise. The keys go to
+    /// `fresh`. Returns true when `steps` was not empty.
     fn keep<Message>(
         &mut self,
         steps: Vec<gesture::Step>,
@@ -690,8 +705,8 @@ impl State {
         accepted
     }
 
-    /// One message per key in `fresh` that one of `listeners` listens to:
-    /// its published domain.
+    /// Drains `fresh`, pushing one message with the published domain for
+    /// each key that one of `listeners` listens to.
     fn flush<Message>(
         &self,
         fresh: &mut Vec<Key>,
@@ -706,10 +721,10 @@ impl State {
         }
     }
 
-    /// Ends the gesture in progress, if any: a drag's unsnapped transforms
-    /// apply once, what it published goes out, published domains are the
-    /// app's from now on, the layout is held no more and settles at the
-    /// next refresh.
+    /// Ends the gesture in progress, if any. A drag's unsnapped transforms
+    /// apply once, and what the gesture published goes out. Published
+    /// domains belong to the app from then on. The layout is released and
+    /// settles at the next refresh.
     fn end<Message>(
         &mut self,
         fresh: &mut Vec<Key>,
@@ -735,8 +750,8 @@ impl State {
     }
 
     /// Whether a gesture is in progress: a drag, a wheel gesture until its
-    /// end or a brush gesture. Its refreshes render only the tiles that
-    /// meet the plot areas; the ring waits for it to end.
+    /// end, or a brush gesture. Refreshes during it render only the tiles
+    /// that meet the plot areas, and the ring waits for it to end.
     fn is_active(&self) -> bool {
         self.gesture.is_some() || self.is_brushing()
     }
@@ -749,11 +764,13 @@ impl State {
         self.brushes.iter().position(|brush| brush.panel() == panel)
     }
 
-    /// Brings the brushes to `resolved`: one state per placed brush, kept
-    /// by its panel's grid cell, the handle it is over and its axis, and
-    /// made for brushes it did not have; states of brushes the figure no
-    /// longer places go. Between gestures each takes its selection from
-    /// the domain it selects (a target's as the widget shows it now).
+    /// Brings the brushes up to date with `resolved`.
+    ///
+    /// Each placed brush has one state, kept by its panel's grid cell, the
+    /// handle it is over and its axis, and made new for a brush there was
+    /// no state for. States of brushes the figure stops placing are
+    /// dropped. Between gestures each brush takes its selection from the
+    /// domain it selects, for a target as the widget shows it at present.
     fn sync(&mut self, resolved: &Resolved) {
         let mut kept = Vec::with_capacity(self.brushes.len());
         for (panel, &area) in resolved.get_plot_areas().iter().enumerate() {
@@ -795,19 +812,25 @@ impl State {
     }
 
     /// Resolves `figure` once at the widget's size for the screen at
-    /// `factor`, with the gestures' domains as overrides (pending winning
-    /// over owned) and, during a gesture, in the plot areas it holds;
-    /// drops what the widget keeps for handles whose type changed. When a
-    /// double click reset published handles, returns their fitted domains
-    /// as messages for `listeners` and draws nothing in this pass.
-    /// Otherwise first moves each plot area's tile grid to the views now
-    /// (by whole device pixels during a drag), resolves with an overscan of
-    /// two tiles and, during a drag, the column grids of the moved areas,
-    /// keeps each translation only where the lead handles' scales moved as
-    /// the grid did ([`confirm`](State::confirm)), and renders what changed (see
-    /// [`repaint`](State::repaint)): inline, shown at once, or as jobs
-    /// that replace the pool's waiting ones, as `pipeline.render` asks or,
-    /// for `Auto`, as the cost model predicts against the frame budget.
+    /// `factor`, and renders what changed.
+    ///
+    /// The gestures' domains are overrides, with pending winning over
+    /// owned. During a gesture the resolve uses the plot areas the gesture
+    /// holds. What the widget keeps for handles whose scale type changed is
+    /// dropped. When a double click reset published handles, this returns
+    /// their fitted domains as messages for `listeners` and draws nothing in
+    /// this pass.
+    ///
+    /// Otherwise it first moves each plot area's tile grid to the current
+    /// views, by whole device pixels during a drag. It resolves with an
+    /// overscan of two tiles and, during a drag, the column grids of the
+    /// moved areas. It keeps each translation only where the lead handles'
+    /// scales moved as the grid did ([`confirm`](State::confirm)). Then it
+    /// renders what changed ([`repaint`](State::repaint)), either inline
+    /// and shown at once, or as jobs that replace the pool's waiting ones.
+    /// `pipeline.render` picks which, and under `Auto` the cost model's
+    /// prediction against the frame budget picks.
+    ///
     /// Returns how many cells, tiles and overlays changed. A new
     /// `pipeline.revision` refreshes as a rebuilt figure does.
     fn refresh<Message>(
@@ -859,7 +882,7 @@ impl State {
         self.domains.prune(&resolved);
         self.map = region::Map::of(&resolved);
         self.sync(&resolved);
-        // A reset's published handles get their fitted domains; the app
+        // A reset's published handles get their fitted domains. The app
         // rebuilds the view with them, and the next pass draws.
         let fitted: Vec<Message> = std::mem::take(&mut self.resets)
             .into_iter()
@@ -883,13 +906,14 @@ impl State {
         (changed, Vec::new())
     }
 
-    /// The two-point test of each area [`follow`](State::follow)
-    /// translated by the views: the scales `resolved` gives its
-    /// lead handles, against those its layer was last drawn with, must
-    /// have moved by the grid's whole pixels at `k` at its edges. An area
-    /// whose scales moved otherwise (a `Fit::Visible` y refitting during
-    /// an x pan, a domain the app changed mid-drag) begins its grid anew
-    /// where it lies, so every tile renders.
+    /// Checks, by a two-point test, each area that
+    /// [`follow`](State::follow) translated by the views. Against the
+    /// scales its layer was last drawn with, the scales `resolved` gives
+    /// its lead handles must have moved by the grid's whole pixels at `k`
+    /// at its edges. An area whose scales moved otherwise begins its grid
+    /// anew where it lies, so every tile renders. A `Fit::Visible` y
+    /// refitting during an x pan does this, and so does a domain the app
+    /// changed mid-drag.
     fn confirm(&mut self, mut moves: Vec<Moved>, resolved: &Resolved, k: f64) -> Vec<Moved> {
         for (p, moved) in moves.iter_mut().enumerate() {
             let Moved::Translated(by) = *moved else {
@@ -918,8 +942,8 @@ impl State {
         })
     }
 
-    /// Moves each plot area's grid to the views its axes show now at `k`;
-    /// how each moved.
+    /// Moves each plot area's grid to the views its axes show at `k`, and
+    /// returns how each moved.
     fn follow(&mut self, k: f64) -> Vec<Moved> {
         let views: Vec<[Option<Basis>; 2]> = (0..self.areas.len()).map(|p| self.views(p)).collect();
         let mut grids = self.grids;
@@ -939,11 +963,11 @@ impl State {
         moves
     }
 
-    /// The column grids lines thin on: for each plot area, its x lead
-    /// handle's columns from the tile grid's origin at one per device px
-    /// (list px from the area's left edge at `k`: 0 until a drag moves the
-    /// grid), so that every tile of one grid thins on the same columns and
-    /// starts dashes at the same sample.
+    /// The column grids that lines thin on. For each plot area this is its
+    /// x lead handle's columns at one per device px, starting from the tile
+    /// grid's origin. The origin is in list px from the area's left edge at
+    /// `k`, and is 0 until a drag moves the grid. Every tile of one grid
+    /// then thins on the same columns and starts dashes at the same sample.
     fn thin_grids(&self, k: f64) -> Vec<(usize, thin::Grid)> {
         let mut grids: Vec<(usize, thin::Grid)> = Vec::new();
         for (p, area) in self.areas.iter().enumerate() {
@@ -959,15 +983,18 @@ impl State {
         grids
     }
 
-    /// Draws `resolved` (of `figure`, the probe's clock read at `start`
-    /// before resolving) into a list at `k` and splits it into the plot
-    /// areas' layers and the chrome ([`Layers`]); cuts the chrome into
-    /// cells at every plot-area edge; plans the gutter runs, the plot
-    /// areas' tiles (their grids having moved as `moves` says) and the
-    /// overlays of the chrome over the plot areas; and renders what
-    /// changed ([`render`](State::render)): the visible tiles, then the
-    /// gutters and overlays, then the ring of tiles around each area.
-    /// Returns how many changed.
+    /// Draws `resolved` into a list at `k` and renders what changed.
+    /// `resolved` comes from `figure`, and `start` is the probe's clock
+    /// read before resolving.
+    ///
+    /// The list splits into the plot areas' layers and the chrome
+    /// ([`Layers`]), and the chrome is cut into cells at every plot-area
+    /// edge. It then plans the gutter runs, the plot areas' tiles (their
+    /// grids having moved as `moves` says) and the overlays of the chrome
+    /// over the plot areas. It renders what changed
+    /// ([`render`](State::render)): the visible tiles, then the gutters and
+    /// overlays, then the ring of tiles around each area. Returns how many
+    /// cells, tiles and overlays changed.
     fn repaint(
         &mut self,
         figure: &Figure<'_>,
@@ -1024,8 +1051,8 @@ impl State {
         let verify = pipeline.caching == Caching::Verify;
         // A list whose cells all hash as before draws the same points. The
         // index is built only for a widget that hovers, and not while a
-        // gesture lasts (it hit-tests nothing then): the first refresh
-        // after builds it.
+        // gesture lasts, since nothing is hit-tested then. The first
+        // refresh after the gesture builds it.
         self.unhit |= !plan.is_empty();
         if self.unhit && pipeline.hover && !self.is_active() {
             self.hits.rebuild(figure.hits(resolved, &mut self.cache));
@@ -1036,9 +1063,9 @@ impl State {
         if plan.is_empty() && !verify && !settle {
             return 0;
         }
-        // A tile's work is its share of its layer's over the area, by the
-        // pixels of the area it covers (the ring's tiles count pixels
-        // only); an overlay's, its chrome's over its rect.
+        // A tile's work is its share of its layer's work over the area, by
+        // the pixels of the area it covers. The ring's tiles count pixels
+        // only. An overlay's work is its chrome's work over its rect.
         let areas = rects
             .iter()
             .zip(&layers.layers)
@@ -1077,16 +1104,21 @@ impl State {
         plan.len()
     }
 
-    /// Renders everything waiting, what the last refresh changed and what
-    /// an earlier job set left, at the current generation, in
-    /// [`waiting`](State::waiting)'s order: inline under `Render::Inline`,
-    /// on the pool under `Render::Worker`, and under `Render::Auto` inline
-    /// each job whose predicted time still fits half the frame budget with
-    /// those before it, the rest on the pool, whose waiting jobs they
-    /// replace (it abandons them); while a wheel gesture or a brush lasts,
-    /// every tile goes to the pool. Under `Caching::Verify` every kept or
-    /// translated slot renders again after them, as a check. Everything
-    /// renders inline when the pool cannot start.
+    /// Renders everything waiting at the current generation, in
+    /// [`waiting`](State::waiting)'s order. That is what the last refresh
+    /// changed and what an earlier job set left.
+    ///
+    /// - Under `Render::Inline` every job renders inline.
+    /// - Under `Render::Worker` every job goes to the pool.
+    /// - Under `Render::Auto` a job renders inline when its predicted time,
+    ///   added to those before it, still fits half the frame budget. The
+    ///   rest go to the pool and replace its waiting jobs, which it
+    ///   abandons. While a wheel gesture or a brush lasts, every tile goes
+    ///   to the pool.
+    ///
+    /// Under `Caching::Verify`, every kept or translated slot renders again
+    /// after them as a check. Everything renders inline when the pool
+    /// cannot start.
     fn render(&mut self, pipeline: &Pipeline<'_>) {
         let probe = pipeline.probe;
         let enqueued = probe.map(|probe| Stamp::now(probe.clock()));
@@ -1107,12 +1139,12 @@ impl State {
             .filter_map(|at| self.job(at, generation, enqueued))
             .collect();
         let mut predicted = 0.0;
-        // During a wheel gesture or a brush the UI thread renders no tile:
-        // a zoom step's tiles would take its frames, and the pool shows
+        // During a wheel gesture or a brush the UI thread renders no tile.
+        // A zoom step's tiles would take its frames, and the pool shows
         // them as they land. A drag's tiles are the column entering the
-        // area, which renders inline when it fits as idle renders do: on
-        // the pool it lands a frame later, and on the software renderer a
-        // frame is long.
+        // area, which renders inline when it fits, as idle renders do. On
+        // the pool it would land a frame later, and on the software
+        // renderer a frame is long.
         let pooled = self.is_active() && !self.is_dragging();
         let (mut here, mut there): (Vec<Job>, Vec<Job>) = match pipeline.render {
             Render::Inline => (jobs, Vec::new()),
@@ -1177,8 +1209,8 @@ impl State {
         gutters.chain(tiles).chain(overlays).collect()
     }
 
-    /// The check of the image `at` shows: a job rendering it again for the
-    /// generation and content of that image.
+    /// A check of the image `at` shows: a job that renders it again for
+    /// that image's generation and content.
     fn check(&self, at: At, enqueued: Option<Stamp>) -> Option<Job> {
         let slot = match at {
             At::Gutter(g) => self.gutters.get(g)?.slot(),
@@ -1195,8 +1227,8 @@ impl State {
     }
 
     /// The job that renders `at` for `generation` from what the last
-    /// repaint drew, its queue time measured from `enqueued`; `None`
-    /// before a repaint drew anything or for a slot that is gone.
+    /// repaint drew, with its queue time measured from `enqueued`. `None`
+    /// before a repaint drew anything, or for a slot that is gone.
     fn job(&self, at: At, generation: u64, enqueued: Option<Stamp>) -> Option<Job> {
         let drawn = self.drawn.as_ref()?;
         let k = drawn.k;
@@ -1298,10 +1330,11 @@ impl State {
         })
     }
 
-    /// Starts the pool of `pipeline.threads` threads unless it runs at
-    /// that size, waking the UI through `pipeline.waker`; a pool of another
-    /// size stops first, its results landing. False when the OS cannot
-    /// start a thread: everything then renders inline.
+    /// Starts the pool of `pipeline.threads` threads, which wakes the UI
+    /// through `pipeline.waker`, unless it already runs at that size. A
+    /// pool of another size stops first, and its results land. Returns
+    /// false when the OS cannot start a thread, and everything then renders
+    /// inline.
     fn start(&mut self, pipeline: &Pipeline<'_>) -> bool {
         if let Some(pool) = self.pool.take_if(|pool| pool.size() != pipeline.threads) {
             for done in pool.stop() {
@@ -1314,7 +1347,7 @@ impl State {
         self.pool.is_some()
     }
 
-    /// The views of the handles leading each axis of `panel` now, each
+    /// The current views of the handles leading each axis of `panel`, each
     /// started when it has none.
     fn views(&mut self, panel: usize) -> [Option<Basis>; 2] {
         [Along::X, Along::Y].map(|along| {
@@ -1326,8 +1359,8 @@ impl State {
         })
     }
 
-    /// The views of the handles leading each axis of `panel` now, as
-    /// started; an axis whose handle has none has no basis.
+    /// The current views of the handles leading each axis of `panel`,
+    /// without starting any. An axis whose handle has no view has no basis.
     fn peek(&self, panel: usize) -> [Option<Basis>; 2] {
         [Along::X, Along::Y].map(|along| {
             let key = self.map.lead(panel, along)?;
@@ -1338,16 +1371,19 @@ impl State {
         })
     }
 
-    /// Everything waiting for a render, in the order it renders: the
-    /// tiles that meet their plot area and do not show their part of it
-    /// exact, then the gutters and the overlays, then the ring of tiles
-    /// around each area and the tiles whose part inside it is exact; the
-    /// tiles of each group nearest the last gesture input first (each
-    /// area's centre without one). During a gesture the gutters and the
-    /// overlays go first, so that on the pool the axes render ahead of the
-    /// tiles each step replaces and keep step with the data;
-    /// and the ring waits: each step of a zoom would render it all again,
-    /// two to three times the tiles that show.
+    /// Everything waiting for a render, in the order it renders.
+    ///
+    /// First come the tiles that meet their plot area and do not show their
+    /// part of it exact. Then come the gutters and the overlays, then the
+    /// ring of tiles around each area and the tiles whose part inside the
+    /// area is exact. Within each group, the tiles nearest the last gesture
+    /// input go first, or those nearest each area's center without one.
+    ///
+    /// During a gesture the gutters and the overlays go first, so that on
+    /// the pool the axes render ahead of the tiles each step replaces and
+    /// keep step with the data. The ring also waits, since each step of a
+    /// zoom would render it all again, two to three times the tiles that
+    /// show.
     fn waiting(&self) -> Vec<At> {
         let active = self.is_active();
         let tiles = |ring: bool| {
@@ -1393,8 +1429,8 @@ impl State {
         }
     }
 
-    /// How far `tile`'s centre lies from the last gesture input, or from
-    /// `area`'s centre without one, device px.
+    /// How far `tile`'s center lies from the last gesture input, or from
+    /// `area`'s center without one, in device px.
     fn distance(&self, area: &Area, tile: &Tile) -> f64 {
         let centre = |[x0, y0, x1, y1]: [i32; 4]| {
             kurbo::Point::new(
@@ -1409,8 +1445,8 @@ impl State {
         centre(tile.rect()).distance(focus)
     }
 
-    /// A pending render of `at` moves to `generation`: the job set it was
-    /// in was replaced by one that renders it again.
+    /// Moves a pending render of `at` to `generation`, because the job set
+    /// it was in was replaced by one that renders it again.
     fn requeue(&mut self, at: At, generation: u64) {
         let slot = match at {
             At::Gutter(g) => self.gutters[g].slot_mut(),
@@ -1421,7 +1457,7 @@ impl State {
     }
 
     /// Applies the pool's results in arrival order, each reported to
-    /// `probe`. True when any was shown, so the widget redraws.
+    /// `probe`. Returns true when any was shown, so the widget redraws.
     pub(crate) fn drain(&mut self, probe: Option<&Probe>) -> bool {
         let Some(pool) = &self.pool else {
             return false;
@@ -1434,19 +1470,22 @@ impl State {
     }
 
     /// Plans a refresh whose partition is `partition`, for the plot areas
-    /// `planned` describes: rebuilds the cells, the gutter runs and the
-    /// areas when their rects differ (every run, tile and overlay new and
-    /// changed; at the factor the images shown were rendered at, the old
-    /// runs' images stay drawn under the new runs and the old areas' join
-    /// the new ones' preview layers until theirs land); else
-    /// finds the gutter runs whose content hash differs
-    /// from their slot's, each area's tiles that its layer's hash, its
-    /// style and its grid's move leave stale, and the overlays whose rects
-    /// or hashes changed. With `caching` off, every one when any changed;
-    /// every one when `revision` is not the one the slots were planned at.
-    /// If any changed, bumps the generation, stores the new hashes and
-    /// marks them pending. Returns them, tiles first, area by area, then
-    /// the gutters, then the overlays.
+    /// `planned` describes.
+    ///
+    /// When the rects differ, it rebuilds the cells, the gutter runs and
+    /// the areas, so every run, tile and overlay is new and changed. If the
+    /// images shown were rendered at this factor, the old runs' images stay
+    /// drawn under the new runs, and the old areas' tiles join the new
+    /// areas' preview layers until their own images land. Otherwise it
+    /// finds the gutter runs whose content hash differs from their slot's,
+    /// each area's tiles that its layer's hash, its style and its grid's
+    /// move leave stale, and the overlays whose rects or hashes changed.
+    /// With `caching` off, every one changes when any changed. Every one
+    /// changes when `revision` is not the one the slots were planned at.
+    ///
+    /// If any changed, it bumps the generation, stores the new hashes and
+    /// marks them pending. Returns them: the tiles, area by area, then the
+    /// gutters, then the overlays.
     fn plan(
         &mut self,
         partition: Partition<'_>,
@@ -1477,8 +1516,8 @@ impl State {
                 })
                 .collect()
         } else {
-            // What the old layout shows stays until the new slots' images
-            // land, when it was rendered at this factor.
+            // When the old layout was rendered at this factor, what it shows
+            // stays until the new slots' images land.
             let carry = self.drawn.as_ref().is_some_and(|drawn| drawn.k == k);
             self.owner = cell_rects
                 .iter()
@@ -1575,10 +1614,10 @@ impl State {
     }
 
     /// Applies a rendered job, reported to `probe` as rendered `inline` or
-    /// not: its time joins the cost model's fit (every render but
+    /// not. Its time joins the cost model's fit, except for
     /// `Caching::Verify`'s checks, which are not the work the model
-    /// predicts); it is shown when it belongs to this partition and
-    /// is newer than its slot's image. True when it is shown.
+    /// predicts. Its image is shown when it belongs to this partition and
+    /// is newer than its slot's image. Returns true when it is shown.
     fn land(&mut self, done: Done, inline: bool, probe: Option<&Probe>) -> bool {
         if done.check {
             self.verify(done, probe);
@@ -1649,9 +1688,10 @@ impl State {
         }
     }
 
-    /// Applies a check (`Caching::Verify`): the fresh render against the
-    /// image its slot shows, which it replaces when they differ by more
-    /// than 1/255, reported to `probe` as a mismatch.
+    /// Applies a check (`Caching::Verify`), comparing the fresh render with
+    /// the image its slot shows. When they differ by more than 1/255, the
+    /// fresh render replaces that image and the difference is reported to
+    /// `probe` as a mismatch.
     fn verify(&mut self, done: Done, probe: Option<&Probe>) {
         if done.generation < self.floor {
             return;
@@ -1696,7 +1736,8 @@ impl State {
     }
 
     /// Drops each gutter image of an earlier layout that no run waits
-    /// under: every run that meets it shows an image of its own.
+    /// under, which is when every run that meets it shows an image of its
+    /// own.
     fn prune(&mut self) {
         let gutters = &self.gutters;
         self.former.retain(|former| {
@@ -1706,9 +1747,9 @@ impl State {
         });
     }
 
-    /// What the following draw shows; reports each newly shown image's
-    /// bytes once. A gutter run without an image of its own that an image
-    /// of an earlier layout meets shows that image: a preview.
+    /// A frame sample of what the following draw shows, which reports each
+    /// newly shown image's bytes once. A gutter run without an image of its
+    /// own shows an image of an earlier layout that meets it, as a preview.
     fn report(&mut self, at: Instant) -> Sample {
         let gutters = || self.gutters.iter().map(Run::slot);
         let under = |slot: &Slot| {
@@ -1749,10 +1790,11 @@ impl State {
         }
     }
 
-    /// The pointer moved to `at` (logical, in the window; `None` when it
-    /// left or something above covers it) over a widget laid out at
-    /// `bounds`: hovers there as [`hover`](State::hover) does, and says
-    /// whether the widget should redraw; no cell renders.
+    /// Records that the pointer moved to `at` over a widget laid out at
+    /// `bounds`, and hovers there as [`hover`](State::hover) does. `at` is
+    /// in logical px in the window, and `None` when the pointer left or
+    /// something above covers it. Returns whether the widget should
+    /// redraw. No cell renders.
     pub(crate) fn moved(
         &mut self,
         at: Option<Point>,
@@ -1764,13 +1806,15 @@ impl State {
     }
 
     /// Hit-tests the pointer's last position over a widget laid out at
-    /// `bounds` with the cached index: the panel whose plot area holds it,
-    /// and that panel's drawn point nearest it within 12 logical px, for
-    /// the overlay `shown` asks for and for `on_hover`. While a gesture is
-    /// active, or the index is not of the list shown (until the refresh
-    /// after a gesture builds it), nothing is hit-tested: the overlay
-    /// shows no ring and nothing changes for `on_hover`. True when the
-    /// overlay or the hovered point changed.
+    /// `bounds` with the cached index. It finds the panel whose plot area
+    /// holds the pointer, and that panel's drawn point nearest it within 12
+    /// logical px, for the overlay `shown` asks for and for `on_hover`.
+    ///
+    /// Nothing is hit-tested while a gesture is active, or while the index
+    /// is out of date with the list shown (until the refresh after a
+    /// gesture builds it). The overlay then shows no ring, and nothing
+    /// changes for `on_hover`. Returns true when the overlay or the hovered
+    /// point changed.
     pub(crate) fn hover(&mut self, bounds: Rectangle, shown: overlay::Shown) -> bool {
         let Some(factor) = self.factor else {
             return false;
@@ -1809,8 +1853,9 @@ impl State {
     }
 
     /// What `on_hover` hears after this frame, once per change of the
-    /// hovered point (`Some(None)` once when it was lost); nothing while a
-    /// gesture is active or the index is not of the list shown.
+    /// hovered point, with `Some(None)` once when the point was lost. It is
+    /// `None` while a gesture is active or the index is out of date with
+    /// the list shown.
     pub(crate) fn reported(&mut self) -> Option<Option<Hover>> {
         if self.is_active() || self.unhit {
             return None;
@@ -1818,18 +1863,20 @@ impl State {
         self.hits.report()
     }
 
-    /// Draws every image of a gutter run over the images an earlier layout
-    /// left (the theme background where a run has none), each plot area's
-    /// tiles over its
-    /// preview layer mapped from the views it was planned at to the views
-    /// now, then each brush's selection and the hover overlay in the
-    /// theme's ink, for a widget laid out at `bounds`. While a gesture
-    /// lasts, and while previews or an earlier layout's gutter images
-    /// show, the images are drawn in one layer over the widget whose
-    /// bounds alternate between frames by half a logical px, so that
-    /// iced's software renderer redraws the widget once a frame; on that
-    /// renderer an area that shows a preview layer is drawn as one image
-    /// composed on the CPU ([`Area::draw_mosaic`]).
+    /// Draws the widget laid out at `bounds`.
+    ///
+    /// Every image of a gutter run is drawn over the images an earlier
+    /// layout left, with the theme background where a run has none. Each
+    /// plot area's tiles are drawn over its preview layer, which is mapped
+    /// from the views it was planned at to the current views. Each brush's
+    /// selection and the hover overlay follow, in the theme's ink.
+    ///
+    /// While a gesture lasts, and while previews or an earlier layout's
+    /// gutter images show, the images are drawn in one layer over the
+    /// widget. That layer's bounds alternate between frames by half a
+    /// logical px, so that iced's software renderer redraws the widget once
+    /// a frame. On that renderer an area that shows a preview layer is
+    /// drawn as one image composed on the CPU ([`Area::draw_mosaic`]).
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
@@ -1840,16 +1887,19 @@ impl State {
         let origin = origin(bounds, factor);
         let background = overlay::color(theme.get_background());
         // iced's software renderer redraws each damaged rect of a frame
-        // apart, every image that meets it once per rect, each draw
-        // clearing a frame-sized clip mask (`tiny_skia/src/lib.rs:72-160`,
-        // `engine.rs:533`), and finds a moved image's damage image by image
-        // (`layer.rs:289-294`): a frame of a pan or zoom, where every image
-        // moves, damaged many small rects. A layer whose bounds changed is
-        // damaged as a whole (`layer.rs:206-209`), so while a gesture lasts,
-        // and while images of an earlier grid or layout show (mapped to the
-        // views now, they move with them; at a settle all of them move at
-        // once), the images go in one layer whose bounds alternate by half
-        // a px: one rect, each image drawn once.
+        // separately, and draws every image that meets a rect once per
+        // rect. Each draw clears a frame-sized clip mask
+        // (`tiny_skia/src/lib.rs:72-160`, `engine.rs:533`). It finds a
+        // moved image's damage image by image (`layer.rs:289-294`), so a
+        // frame of a pan or zoom, where every image moves, damages many
+        // small rects. A layer whose bounds changed is damaged as a whole
+        // (`layer.rs:206-209`). So while a gesture lasts, and while images
+        // of an earlier grid or layout show, the images go in one layer
+        // whose bounds alternate by half a px. The frame then damages one
+        // rect and draws each image once. Images of an earlier grid or
+        // layout count as moving because they are mapped to the current
+        // views and move with them, and at a settle all of them move at
+        // once.
         let moving =
             self.is_active() || !self.former.is_empty() || self.areas.iter().any(Area::has_preview);
         // Grown when the last draw was not, so that the first draw of a
@@ -1858,10 +1908,10 @@ impl State {
         self.grown.set(grown);
         let layer = if grown { bounds.expand(0.5) } else { bounds };
         // A renderer that reports no scale is iced's software one
-        // (`scale_factor`): while an area shows a preview layer, its scaled
+        // (`scale_factor`). While an area shows a preview layer, its scaled
         // and overlapping tiles are composed on the CPU and drawn as one
-        // image (`Mosaic`), each image costing tiny-skia a frame-sized clip
-        // mask and a filtered pass.
+        // image (`Mosaic`), since each image would cost tiny-skia a
+        // frame-sized clip mask and a filtered pass.
         let software = renderer.scale().is_none();
         renderer.with_layer(layer, |renderer| {
             for run in &self.gutters {
@@ -1888,12 +1938,14 @@ impl State {
         self.overlay.draw(renderer, origin, factor, theme.get_ink());
     }
 
-    /// The cursor over a widget laid out at `bounds` with the pointer at
-    /// `at` (logical, in the window): a grabbing hand during a drag, a
-    /// crosshair during a brush gesture and over a brushed plot area (d3's
-    /// overlay cursor), a grab hand over a plot area with zoomable handles,
-    /// the resize arrow of the axis's direction over a zoomable axis, a
-    /// crosshair over other plot areas, none elsewhere.
+    /// The cursor over a widget laid out at `bounds`, with the pointer at
+    /// `at` in logical px in the window.
+    ///
+    /// It is a grabbing hand during a drag, and a crosshair during a brush
+    /// gesture and over a brushed plot area (d3's overlay cursor). Over a
+    /// plot area with zoomable handles it is a grab hand, and over a
+    /// zoomable axis the resize arrow of the axis's direction. Over other
+    /// plot areas it is a crosshair, and elsewhere there is none.
     pub(crate) fn interaction(&self, at: Option<Point>, bounds: Rectangle) -> mouse::Interaction {
         if self.is_dragging() {
             return mouse::Interaction::Grabbing;
@@ -1941,8 +1993,9 @@ struct Partition<'a> {
 }
 
 /// What a refresh plans the plot areas from: the factor, and per area its
-/// device rect and list px, the views its axes show, its layer's hash and
-/// style hash, its overlays' rects and hashes, and how its grid moved.
+/// rect in device px and in list px, the views its axes show, its layer's
+/// hash and style hash, its overlays' rects and hashes, and how its grid
+/// moved.
 struct Planned<'a> {
     k: f64,
     rects: &'a [[i32; 4]],
@@ -1953,11 +2006,11 @@ struct Planned<'a> {
     moves: &'a [Moved],
 }
 
-/// What a repaint drew from: the lists every job renders (each plot
-/// area's layer, the chrome, the chrome without the figure's background)
-/// at `k` device px per list px, the raster work of each partition cell,
-/// and of each layer over its plot area, and whether each layer's tiles
-/// splat their markers.
+/// What a repaint drew from. It holds the lists every job renders (each
+/// plot area's layer, the chrome, and the chrome without the figure's
+/// background) at `k` device px per list px. It also holds the raster work
+/// of each partition cell and of each layer over its plot area, and
+/// whether each layer's tiles splat their markers.
 struct Drawn {
     layers: Layers,
     k: f64,
@@ -1966,17 +2019,18 @@ struct Drawn {
     splat: Vec<bool>,
 }
 
-/// The points of a markers command from which the widget splats it
-/// (`raster::Renderer::splat`): the large marker sets on screen.
+/// The point count from which the widget splats a markers command on
+/// screen (`raster::Renderer::splat`).
 pub(crate) const SPLAT: usize = 10_000;
 
 /// Where the parts of `fixed` (the chrome without the figure's
-/// background) reach into the plot area at device rect `area` at `k`:
-/// each part's device bounds, out by a device px for antialiasing as
-/// cells take them, cut to the area, and cut into disjoint rects (each
-/// rect less those before it), so that an overlay's pixel is composited
-/// once; each with an FNV-1a hash of its rect and the hashes of the parts
-/// that reach into it.
+/// background) reach into the plot area at device rect `area` at `k`.
+///
+/// Each part's device bounds grow by a device px for antialiasing, as
+/// cells take them, and are cut to the area. They are then cut into
+/// disjoint rects, each rect less those before it, so that an overlay's
+/// pixel is composited once. Each rect comes with an FNV-1a hash of the
+/// rect and of the hashes of the parts that reach into it.
 fn overlays(fixed: &List, area: [i32; 4], k: f64) -> Vec<([i32; 4], u64)> {
     let reach: Vec<([i32; 4], u64)> = fixed
         .parts
@@ -2116,8 +2170,8 @@ mod tests {
         state
     }
 
-    /// One inline `RedrawRequested` without a probe; the number of cells
-    /// whose content changed.
+    /// Runs one inline `RedrawRequested` without a probe, and returns the
+    /// number of cells whose content changed.
     fn refresh(state: &mut State, fig: &Figure<'_>, k: f32) -> usize {
         let pipeline = Pipeline {
             render: Render::Inline,
@@ -2131,8 +2185,8 @@ mod tests {
         state.redraw::<()>(fig, k, clock(), &pipeline, (&[], &[])).0
     }
 
-    /// One inline `RedrawRequested` reported to a fresh probe; its
-    /// samples.
+    /// Runs one inline `RedrawRequested` reported to a fresh probe, and
+    /// returns its samples.
     fn probed(state: &mut State, fig: &Figure<'_>, k: f32) -> Vec<Sample> {
         let (tx, rx) = mpsc::channel();
         let probe = Probe::new(clock, tx);
@@ -2162,8 +2216,8 @@ mod tests {
     }
 
     /// Drains the pool's results into `state` after each wake, reported
-    /// to `probe`, until no slot waits for a render; at most ten seconds
-    /// per wake.
+    /// to `probe`, until no slot waits for a render. It waits at most ten
+    /// seconds for each wake.
     fn settle(state: &mut State, wakes: &AtomicUsize, probe: Option<&Probe>) {
         let mut seen = 0;
         while !state.waiting().is_empty() {
@@ -2265,8 +2319,8 @@ mod tests {
             // Four plot areas cut each axis into at most nine tracks.
             assert!(cells.len() > 4, "k = {k}: {} cells", cells.len());
             // The cells outside plot areas, the plot areas' tiles and their
-            // overlays render; the cells and the tiles that meet a plot area,
-            // cut to it, partition the canvas as the cells do.
+            // overlays render. The cells and the tiles that meet a plot
+            // area, cut to it, partition the canvas as the cells do.
             assert_eq!(rendered, slots(&state).len());
             let rects = shown(&state);
             let area = |[x0, y0, x1, y1]: [i32; 4]| i64::from(x1 - x0) * i64::from(y1 - y0);
@@ -2526,9 +2580,9 @@ mod tests {
         }
     }
 
-    /// The threads of this process named `name`: Linux names a thread
-    /// after the one that started it unless it is given a name, as
-    /// vello_cpu's own pool's are not.
+    /// The number of this process's threads named `name`. Linux names a
+    /// thread after the one that started it unless the thread is given a
+    /// name, and vello_cpu's own pool does not name its threads.
     #[cfg(target_os = "linux")]
     fn named(name: &str) -> usize {
         std::fs::read_dir("/proc/self/task")
@@ -2541,14 +2595,14 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn inline_renders_start_no_thread_whatever_the_pool_size() {
-        // What renders inline renders single-threaded, so the
-        // pool's threads (named `rustd3-plot`) are the widget's only ones.
-        // In a thread of its own name, a state renders inline, then on a
-        // pool of `threads`; no thread keeps that name from it. typst lays
+        // What renders inline renders single-threaded, so the pool's
+        // threads (named `rustd3-plot`) are the widget's only ones. In a
+        // thread of its own name, a state renders inline, then on a pool of
+        // `threads`, and no thread inherits that name from it. typst lays
         // text out on rayon's global pool, whose threads take the name of
-        // the thread that first uses it, and std names the pool's threads
-        // from inside them: the global pool starts here, and the count is
-        // read until the pool's threads have their names.
+        // the thread that first uses it. std names the pool's threads from
+        // inside them. So the global pool starts here, and the count is
+        // read again until the pool's threads have their names.
         refresh(&mut state(480.0, 320.0), &fixture::grid(), 2.0);
         for threads in [1, 4] {
             let name = format!("rd3-inline-{threads}");
@@ -2664,8 +2718,8 @@ mod tests {
             (&[], &[]),
         );
         assert!(mismatches(&rx.try_iter().collect::<Vec<_>>()).is_empty());
-        // A resident tile corrupted in place: the next check replaces it
-        // with a fresh render, the image it had.
+        // A resident tile is corrupted in place. The next check replaces
+        // it with a fresh render, which is the image it had.
         let (p, t) = (1, 7);
         let key = state.areas[p].tiles()[t].key();
         let before = state.areas[p].tiles()[t].slot().images();

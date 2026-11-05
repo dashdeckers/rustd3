@@ -5,10 +5,11 @@ use iced_core::time::Instant;
 use iced_core::{Event, Point, Rectangle, keyboard, mouse, window};
 use rustd3_core::interact::{Button, Delta, Modifiers, Pointer};
 
-/// iced's double click: the same button again within this many
-/// milliseconds… (`core/src/mouse/click.rs:73–84`)
+/// The time of iced's double click: the same button again within this many
+/// milliseconds (`core/src/mouse/click.rs:73–84`).
 const DOUBLE_CLICK_MS: u128 = 300;
-/// …and less than this many logical pixels away.
+/// The distance of iced's double click: the second press less than this
+/// many logical pixels away.
 const DOUBLE_CLICK_PX: f64 = 6.0;
 
 /// Turns iced events into [`Pointer`] input in an area's own coordinates.
@@ -16,27 +17,28 @@ const DOUBLE_CLICK_PX: f64 = 6.0;
 /// Apps keep one in their `canvas::Program::State` and pass every event
 /// with the program's bounds and cursor to [`translate`](Tracker::translate):
 ///
-/// - a move inside the area, or anywhere while a button is held, is
-///   `Moved` relative to the area (drags continue outside, as d3's window
-///   listeners do); leaving the area with no button held, or the window,
-///   is `Left`, once;
-/// - a press inside is `Pressed`; the release of the held button,
-///   anywhere, is `Released`;
-/// - a wheel step inside is `Wheel`, its delta negated to the DOM's sign
-///   (iced's positive y scrolls up) and pixel deltas, which iced passes
-///   in physical pixels, divided by the scale factor;
-/// - a modifier change, anywhere, is `Modifiers`, and later presses and
-///   wheel steps carry it;
-/// - a `RedrawRequested` after a press stamps the press with the redraw's
-///   time and is `DoubleClicked` when iced's rule holds: the same button
+/// - A move inside the area, or anywhere while a button is held, is
+///   `Moved` relative to the area. Drags continue outside, as d3's window
+///   listeners do. Leaving the area with no button held, or leaving the
+///   window, is `Left`, once.
+/// - A press inside is `Pressed`. The release of the held button,
+///   anywhere, is `Released`.
+/// - A wheel step inside is `Wheel`. Its delta is negated to the DOM's
+///   sign (iced's positive y scrolls up), and pixel deltas, which iced
+///   passes in physical pixels, are divided by the scale factor.
+/// - A modifier change, anywhere, is `Modifiers`, and later presses and
+///   wheel steps carry it.
+/// - A `RedrawRequested` after a press stamps the press with the redraw's
+///   time. It is `DoubleClicked` when iced's rule holds: the same button
 ///   as the last stamped press, at most 300 ms later and less than 6 px
 ///   away.
 ///
-/// Time comes only from `RedrawRequested`, so while a press waits for it,
-/// [`wants_redraw`](Tracker::wants_redraw) is true: a program that
-/// publishes no message for the event returns `Action::request_redraw()`
-/// (iced redraws after a published message anyway). One press waits at a
-/// time; a second press before the redraw takes its place.
+/// Time comes only from `RedrawRequested`, so while a press waits for one,
+/// [`wants_redraw`](Tracker::wants_redraw) is true. A program that
+/// publishes no message for the event then returns
+/// `Action::request_redraw()` (iced redraws after a published message
+/// anyway). One press waits at a time, and a second press before the
+/// redraw takes its place.
 ///
 /// ```
 /// # mod rustd3 { pub use rustd3_core::interact; }
@@ -103,7 +105,7 @@ impl Tracker {
     }
 
     /// Divides `ScrollDelta::Pixels`, which iced passes in physical
-    /// pixels, by `factor`; a factor that is not finite and positive is
+    /// pixels, by `factor`. A factor that is not finite and positive is
     /// ignored.
     #[must_use]
     pub fn scale_factor(self, factor: f32) -> Self {
@@ -117,8 +119,9 @@ impl Tracker {
         }
     }
 
-    /// The pointer input `event` makes for the area `bounds`, with the
-    /// cursor where iced reports it; `None` for events that make none.
+    /// Translates `event` into pointer input for the area `bounds`, with
+    /// the cursor where iced reports it. Returns `None` for events that
+    /// make none.
     pub fn translate(
         &mut self,
         event: &Event,
@@ -141,8 +144,8 @@ impl Tracker {
         }
     }
 
-    /// A press waits for the next `RedrawRequested` to be timed: while this
-    /// is true, a program that publishes nothing returns
+    /// Whether a press waits for the next `RedrawRequested` to be timed.
+    /// While this is true, a program that publishes nothing returns
     /// `Action::request_redraw()`.
     #[must_use]
     pub fn wants_redraw(&self) -> bool {
@@ -193,7 +196,7 @@ impl Tracker {
         }
     }
 
-    /// `Moved` inside the area or during a drag; `Left` on leaving it.
+    /// `Moved` inside the area or during a drag, and `Left` on leaving it.
     fn moved(&mut self, position: Point, bounds: Rectangle) -> Option<Pointer> {
         let inside = bounds.contains(position);
         if inside || self.held.is_some() {
@@ -215,7 +218,8 @@ impl Tracker {
         }
     }
 
-    /// Times the waiting press; `DoubleClicked` when it completes one.
+    /// Times the waiting press, and returns `DoubleClicked` when it
+    /// completes one.
     fn stamp(&mut self, now: Instant) -> Option<Pointer> {
         let press = self.waiting.take()?;
         let double = self.last.is_some_and(|(last, at)| {
@@ -238,7 +242,7 @@ impl Tracker {
         }
     }
 
-    /// A wheel delta in the DOM's sign, pixels in logical pixels.
+    /// A wheel delta in the DOM's sign, with pixels in logical pixels.
     fn delta(&self, delta: mouse::ScrollDelta) -> Delta {
         match delta {
             mouse::ScrollDelta::Lines { x, y } => Delta::Lines {

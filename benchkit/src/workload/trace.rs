@@ -1,7 +1,8 @@
-//! The `trace` workload: two stacked panels sharing a linear x in seconds,
-//! each with its own y; three channels on one 10 kHz clock, channels 1–2
-//! in the top panel and 3 in the bottom one; x zoomed by both panels, y
-//! by its own; a left and a bottom axis per panel and a legend.
+//! The `trace` workload: two stacked panels that share a linear x in
+//! seconds, each with its own y. Three channels run on one 10 kHz clock,
+//! channels 1–2 in the top panel and 3 in the bottom one. Both panels zoom
+//! x and each zooms its own y. Each panel has a left and a bottom axis,
+//! and the figure has a legend.
 
 use rustd3_core::scale::{self, Ticks};
 use rustd3_core::scheme::COLORBLIND;
@@ -27,7 +28,7 @@ const CHANNELS: [&str; 3] = ["channel 1", "channel 2", "channel 3"];
 
 /// A vibration-like signal sample by sample: drift, a 7 Hz tone, noise,
 /// a 0.2 s burst every 10 s and one-sample impacts at fixed indices of the
-/// first `n` samples; it continues past `n` for appends.
+/// first `n` samples. It continues past `n` for appends.
 #[derive(Debug)]
 pub struct Signal {
     rng: Rng,

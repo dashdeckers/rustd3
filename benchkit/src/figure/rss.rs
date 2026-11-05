@@ -1,20 +1,21 @@
-//! Peak resident memory where the platform tells it: on Linux, `VmHWM` of
-//! `/proc/self/status`, the process's high-water mark. Each figure runs in
-//! a process of its own, whose mark is reset to its resident set once its
-//! data is generated (writing 5 to `/proc/self/clear_refs`, Linux 4.0 on),
-//! so the peak is of its stages, its data held; where the reset is
-//! refused, the peak is the process's whole life. Elsewhere (Windows,
-//! macOS) there is none: "n/a".
+//! Peak resident memory, where the platform reports it. On Linux it is
+//! `VmHWM` of `/proc/self/status`, the process's high-water mark. Each
+//! figure runs in a process of its own, and its mark is reset to its
+//! resident set once its data is generated (by writing 5 to
+//! `/proc/self/clear_refs`, Linux 4.0 and later). The peak then covers the
+//! figure's stages with its data held. Where the reset is refused, it
+//! covers the process's whole life. Elsewhere (Windows, macOS) there is no
+//! peak, and the report shows "n/a".
 
 use std::fs;
 
-/// Resets the high-water mark to the current resident set; false where
-/// it cannot.
+/// Resets the high-water mark to the current resident set. Returns false
+/// where it cannot.
 pub fn reset() -> bool {
     fs::write("/proc/self/clear_refs", "5").is_ok()
 }
 
-/// The high-water mark since the last [`reset`], MiB; `None` without
+/// The high-water mark since the last [`reset`], in MiB, or `None` without
 /// `/proc/self/status`.
 pub fn peak_mb() -> Option<f64> {
     let status = fs::read_to_string("/proc/self/status").ok()?;

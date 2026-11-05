@@ -1,17 +1,17 @@
-//! The reference the widget's pixels are compared with: the PNG of the
-//! same figure, rendered by vello_cpu for the screen at the widget's
-//! factor and composited onto the screenshot's background, its plot areas
-//! as the widget draws them.
+//! The reference the widget's pixels are compared with. It is the PNG of
+//! the same figure, rendered by vello_cpu for the screen at the widget's
+//! factor and composited onto the screenshot's background, with its plot
+//! areas drawn as the widget draws them.
 //!
 //! The widget draws its plot areas with an overscan of two tiles (512
-//! device px), so that a pan can bring in what lies beyond the view: a
-//! thinned line crossing a plot area's left or right edge continues past
-//! it there, where the file output ends it one sample beyond the edge.
-//! Within half a line width of the edge the two differ (up to
-//! 32/255 measured), so the reference takes each plot area's pixels
-//! from the figure drawn with the same overscan without the other panels'
-//! plot-area layers (which the overscan grows over it); everything else is
-//! the PNG's.
+//! device px), so that a pan can bring in what lies beyond the view. A
+//! thinned line crossing a plot area's left or right edge therefore
+//! continues past the edge in the widget, while the file output ends it
+//! one sample beyond the edge. Within half a line width of the edge the
+//! two differ (up to 32/255 measured). So the reference takes each plot
+//! area's pixels from the figure drawn with the same overscan, minus the
+//! other panels' plot-area layers (which the overscan grows over it).
+//! Everything else is the PNG's.
 
 use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
@@ -109,9 +109,9 @@ fn composed(
     image
 }
 
-/// `list` without the plot-area layers of the panels other than `panel`
-/// (of `panels`): each panel's background (part role 2), grid lines (9)
-/// and marks (6), with the group the marks are drawn in.
+/// `list` without the plot-area layers of every panel but `panel` (of
+/// `panels`). A panel's plot-area layers are its background (part role 2),
+/// grid lines (9) and marks (6), with the group the marks are drawn in.
 fn only(list: &List, panel: usize, panels: usize) -> List {
     let id = |role: u64, panel: usize| part::Id::new(role << 56 | (panel as u64) << 32);
     let moves = |p: &part::Id, q: usize| {

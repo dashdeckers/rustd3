@@ -11,12 +11,14 @@ use crate::workload::Workload;
 /// The wheel figure's logical size: the example's.
 const WHEELS: Size = Size::new(wheels::SIZE.width as f32, wheels::SIZE.height as f32);
 
-/// Where the gestures act: near the middle of the front-left scatter's
-/// plot area (the wheel, the horizontal drag) and of the rear-left one's
-/// (the vertical drag), which zoom vibration and temperature, as
-/// fractions of the figure at 960 × 760 and in the 4k window, where the
-/// areas' middles lie at 0.33 and 0.27 across, 0.22 and 0.21 down, 0.66
-/// and 0.67 down (`gestures_land_on_the_scatters` checks both).
+/// Where the gestures act on the wheel figure, as fractions of the figure.
+/// The scroll wheel and the horizontal drag act near the middle of the
+/// front-left scatter's plot area, and the vertical drag near the middle
+/// of the rear-left one's. Both scatters zoom vibration and temperature.
+/// At 960 × 760 and in the 4k window, the areas' middles lie at 0.33 and
+/// 0.27 across, at 0.22 and 0.21 down for the front-left area, and at 0.66
+/// and 0.67 down for the rear-left one (`gestures_land_on_the_scatters`
+/// checks both sizes).
 const ANCHORS: Anchors = Anchors {
     x: 0.3,
     top: 0.22,
@@ -25,8 +27,8 @@ const ANCHORS: Anchors = Anchors {
 
 impl Workload {
     /// The logical size of its figure where a scenario uses the standard
-    /// window: the wheel figure keeps its own; the others take the
-    /// scenario's.
+    /// window. The wheel figure keeps its own size; `None` means the figure
+    /// takes the scenario's.
     pub fn size(self) -> Option<Size> {
         match self {
             Workload::Wheels => Some(WHEELS),
@@ -38,8 +40,8 @@ impl Workload {
         }
     }
 
-    /// Whether a panel of its figure zooms an x handle, which a
-    /// horizontal drag pans: the wheel figure's x is a band scale.
+    /// Whether a panel of its figure zooms an x handle, which a horizontal
+    /// drag pans. The wheel figure's x is a band scale, so it does not.
     pub fn pans_x(self) -> bool {
         match self {
             Workload::Trace
@@ -51,10 +53,10 @@ impl Workload {
         }
     }
 
-    /// Whether it supports `scenario`; a cell it does not is "n/a": `live`
-    /// and `soak` need recordings, `pan-x` an x that pans. (`4k`'s pan
-    /// half on a figure whose x does not pan moves nothing; its zoom half
-    /// does.)
+    /// Whether it supports `scenario`. A cell it does not support is "n/a".
+    /// `live` and `soak` need recordings, and `pan-x` needs an x that pans.
+    /// On a figure whose x does not pan, `4k`'s pan half moves nothing but
+    /// its zoom half still does.
     pub fn supports(self, scenario: Scenario) -> bool {
         (self.has_recordings() || !scenario.needs_recordings())
             && (self.pans_x() || scenario != Scenario::PanX)

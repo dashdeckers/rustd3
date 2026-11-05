@@ -24,7 +24,7 @@ fn y_domain(fig: &Figure<'_>, y: ScaleRef<Linear>, cache: &mut Cache, held: &Hel
         .get_domain()
 }
 
-/// Asserts `a` equals `b` within 1e-9.
+/// Asserts that `a` equals `b` within 1e-9.
 fn near(a: [f64; 2], b: [f64; 2]) {
     assert!(
         (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9,

@@ -3,7 +3,7 @@
 use crate::interpolate::gamma::Channel;
 
 /// d3.interpolateHue: hue `a` to hue `b` in degrees along the shorter arc,
-/// wrapped into [0, 360); an undefined (NaN) hue takes the other's.
+/// wrapped into [0, 360). An undefined (NaN) hue takes the other's.
 ///
 /// ```
 /// use rustd3_core::interpolate;

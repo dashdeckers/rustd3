@@ -46,7 +46,7 @@ pub enum Error<X: Coordinate = f64> {
     /// A regular clock's period that is not finite and positive.
     #[error("a regular clock needs a finite positive period, got {0:?}")]
     Period(X::Period),
-    /// x values passed to a recording on a regular clock: how many.
+    /// x values passed to a recording on a regular clock, with their count.
     #[error("a regular clock takes no x values, got {0}")]
     Regular(usize),
     /// A column edge that is not valid, or smaller than the one before it.
@@ -57,7 +57,7 @@ pub enum Error<X: Coordinate = f64> {
         /// Its value.
         value: X,
     },
-    /// Fewer than two column edges: how many.
+    /// Fewer than two column edges, with their count.
     #[error("need at least 2 column edges, got {0}")]
     Edges(usize),
     /// Columns queried against a recording or revision they were not built

@@ -17,8 +17,8 @@ pub(crate) enum Channel {
 }
 
 impl Channel {
-    /// d3's `nogamma(a, b)`: linear in `b − a`; when that is 0 or NaN, the
-    /// constant `a`, or `b` when `a` is NaN, so an undefined channel takes
+    /// d3's `nogamma(a, b)`: linear in `b − a`. When that is 0 or NaN, it is
+    /// the constant `a` (`b` when `a` is NaN), so an undefined channel takes
     /// the other side's value.
     pub(crate) fn nogamma(a: f64, b: f64) -> Channel {
         let d = b - a;
@@ -48,9 +48,9 @@ impl Channel {
         }
     }
 
-    /// d3's `hue(a, b)`: linear along the shorter arc, a difference `d`
-    /// beyond ±180° taken as `d − 360·round(d / 360)`; constant as
-    /// [`nogamma`](Channel::nogamma) when the difference is 0 or NaN. The
+    /// d3's `hue(a, b)`: linear along the shorter arc, with a difference `d`
+    /// beyond ±180° taken as `d − 360·round(d / 360)`. It is constant, as in
+    /// [`nogamma`](Channel::nogamma), when the difference is 0 or NaN. The
     /// result is not wrapped into [0, 360).
     pub(crate) fn hue(a: f64, b: f64) -> Channel {
         let d = b - a;

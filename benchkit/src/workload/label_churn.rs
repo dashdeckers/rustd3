@@ -1,9 +1,9 @@
 //! The `label-churn` workload: `trace` on a time axis. The same three
-//! channels run on a 10 kHz clock of instants whose span is centred on
-//! midnight UTC, and x is a UTC time handle labelled by its own ticks in
-//! the figure's locale (the neutral ISO ladder: seconds or sub-seconds,
-//! minutes, and the date at the day boundary), so pans across midnight and
-//! zooms bring label strings the text cache has not seen.
+//! channels run on a 10 kHz clock of instants whose span is centered on
+//! midnight UTC. x is a UTC time handle labeled by its own ticks in the
+//! figure's locale, on the neutral ISO ladder (seconds or sub-seconds,
+//! minutes, and the date at the day boundary). Pans across midnight and
+//! zooms therefore bring label strings the text cache has not seen.
 
 use rustd3_core::jiff::{SignedDuration, Timestamp};
 use rustd3_core::series::Clock;
@@ -13,7 +13,7 @@ use rustd3_figure::scale::Fit;
 
 use crate::workload::trace::{RATE, Trace};
 
-/// The midnight the data's span is centred on: 2026-10-28T00:00:00Z.
+/// The midnight the data's span is centered on: 2026-10-28T00:00:00Z.
 const MIDNIGHT: Timestamp = Timestamp::constant(1_793_145_600, 0);
 
 impl Trace<Timestamp> {

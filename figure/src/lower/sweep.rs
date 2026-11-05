@@ -51,8 +51,8 @@ pub(super) fn painted(command: &Command) -> bool {
 }
 
 /// `command`, a fill or stroke painted by a sweep, as a group clipped to
-/// what it covers holding an image of the gradient over that area,
-/// rendered at 2 px per list px (at most 4,096 px a side) through
+/// what it covers. The group holds an image of the gradient over that
+/// area, rendered at 2 px per list px (at most 4,096 px a side) through
 /// `to_list`, the group's transform into list px. A command that covers
 /// nothing adds nothing.
 #[cfg(feature = "raster")]

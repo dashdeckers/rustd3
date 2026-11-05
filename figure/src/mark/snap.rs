@@ -78,7 +78,7 @@ impl Snap {
         self.scale.map_or(w, |s| snap::width(w, s))
     }
 
-    /// The centre `x` of a hairline `w` px wide (its unsnapped width), such
+    /// The center `x` of a hairline `w` px wide (its unsnapped width), such
     /// that it covers whole device pixels: the x of a vertical line or the
     /// y of a horizontal one.
     #[must_use]
@@ -86,7 +86,7 @@ impl Snap {
         self.scale.map_or(x, |s| snap::line(x, w, s))
     }
 
-    /// `p` with both coordinates as [`line`](Snap::line) centres: a
+    /// `p` with both coordinates as [`line`](Snap::line) centers: a
     /// hairline's end, or a corner of a stroked rectangle.
     pub(crate) fn point(self, p: Point, w: f64) -> Point {
         Point::new(self.line(p.x, w), self.line(p.y, w))
@@ -114,7 +114,7 @@ mod tests {
         }
         // 1.25 pt = 1.667 px is 2.083 device px: 2.
         assert!((snap.width(5.0 / 3.0) * 1.25 - 2.0).abs() < 1e-12);
-        // An even width centres on a pixel boundary, an odd one inside one.
+        // An even width centers on a pixel boundary, an odd one inside one.
         assert_eq!(snap.line(10.3, 5.0 / 3.0) * 1.25, 13.0);
         let screen = Snap::of(Target::Screen { scale: 1.0 });
         assert_eq!(screen.line(10.3, 5.0 / 3.0), 10.0);

@@ -1,6 +1,6 @@
-//! A colorbar over one resolve ([`Content`]) and laid out as a [`Block`]:
-//! its bar along a side of the grid or a panel with its end triangles,
-//! ticks, labels and title, and drawing it.
+//! A colorbar's layout and drawing. [`Content`] is a colorbar over one
+//! resolve, and [`Block`] is one laid out along a side of the grid or in a
+//! panel, with its bar, end triangles, ticks, labels and title.
 
 use kurbo::{Point, Rect, Size, Vec2};
 use rustd3_core::axis::Orient;
@@ -15,7 +15,7 @@ use crate::mark::Snap;
 use crate::text::{self, Key};
 use crate::theme::Theme;
 
-/// A colorbar over one resolve: its strip, and, once layout measured it
+/// A colorbar over one resolve: its strip and, once layout has measured it
 /// for a pass, the side its ticks are on, their count, their labels and
 /// each tick's share of the bar from its low end.
 pub(crate) struct Content<'g, 'a> {
@@ -32,11 +32,11 @@ struct Measured {
     shares: Vec<Option<f64>>,
 }
 
-/// A colorbar laid out, relative to its top-left corner: its size, whether
-/// it is framed, its bar's interior, its end triangles' lengths ([low,
-/// high]), whether the bar is vertical, the strip drawn over it, and its
-/// ticks, labels and title placed as an axis beside the interior (`None`
-/// before layout measured them).
+/// A colorbar laid out, in coordinates relative to its top-left corner. It
+/// holds its size, whether it is framed, its bar's interior, its end
+/// triangles' lengths `[low, high]`, whether the bar is vertical, the strip
+/// drawn over it, and its ticks, labels and title placed as an axis beside
+/// the interior (`None` before layout has measured them).
 pub(crate) struct Block {
     size: Size,
     framed: bool,
@@ -57,11 +57,11 @@ impl<'g, 'a> Content<'g, 'a> {
         }
     }
 
-    /// Measures the colorbar for a pass with its ticks on side `orient` of
-    /// a bar `length` px long with its triangles: about `.ticks(n)` ticks,
-    /// or as many as an axis as long as its interior takes (one per 80 px
-    /// across, per 35 px up), and their labels, through `text`'s line box;
-    /// the count.
+    /// Measures the colorbar for a pass, with its ticks on side `orient` of
+    /// a bar `length` px long including its triangles. It takes about
+    /// `.ticks(n)` ticks, or as many as an axis as long as the interior
+    /// takes (one per 80 px across, per 35 px up), and measures their
+    /// labels through `text`'s line box. Returns the tick count.
     pub(crate) fn measure(
         &mut self,
         orient: Orient,
@@ -102,11 +102,11 @@ impl<'g, 'a> Content<'g, 'a> {
     }
 
     /// The colorbar with its ticks on side `orient` (a vertical bar for
-    /// left and right, a horizontal one for top and bottom), its bar with
-    /// its triangles `length` px long and one em of `theme` thick, its
-    /// ticks, labels and title as measured when measured on that side: the
-    /// block holds the bar, its triangles, the labels' boxes and the title
-    /// centred along the interior.
+    /// left and right, a horizontal one for top and bottom). Its bar,
+    /// triangles included, is `length` px long and one em of `theme` thick.
+    /// Its ticks, labels and title are placed as measured, when the last
+    /// measure was on that side. The block holds the bar, its triangles,
+    /// the labels' boxes and the title centered along the interior.
     pub(crate) fn block(
         &self,
         orient: Orient,
@@ -209,15 +209,16 @@ impl Block {
         }
     }
 
-    /// Appends the block with its top-left corner at `at`: the frame (as a
-    /// legend's), the end triangles in the scale's clamped end colors, the
-    /// strip's image ([`Strip::image`]) stretched over the interior with
-    /// nearest sampling, the outline of the bar and its triangles as the
-    /// theme's axis line (none in the styles without one), then the tick
-    /// marks in every style (matplotlib's colorbar turns its long axis's
-    /// ticks on whatever the style), labels and title as an axis's. On
-    /// raster targets (`snap`) the interior's edges lie on device pixels
-    /// and the outline and ticks on whole device pixels.
+    /// Appends the block with its top-left corner at `at`. It draws, in
+    /// order, the frame (as a legend's), the end triangles in the scale's
+    /// clamped end colors, the strip's image ([`Strip::image`]) stretched
+    /// over the interior with nearest sampling, and the outline of the bar
+    /// and its triangles as the theme's axis line (none in the styles
+    /// without one). Then come the tick marks, drawn in every style because
+    /// matplotlib's colorbar turns its long axis's ticks on whatever the
+    /// style, and the labels and title as an axis's. On raster targets
+    /// (`snap`) the interior's edges lie on device pixels, and the outline
+    /// and ticks on whole device pixels.
     pub(crate) fn draw(
         &self,
         at: Point,

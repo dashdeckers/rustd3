@@ -1,6 +1,6 @@
-//! Animated GIF output (feature `gif`): figures drawn for raster files,
-//! rendered by vello_cpu and encoded frame by frame, with one figure
-//! cache for the whole sequence so that labels repeated between frames are
+//! Animated GIF output (feature `gif`). Figures are drawn for raster
+//! files, rendered by vello_cpu and encoded frame by frame. One figure
+//! cache serves the whole sequence, so labels repeated between frames are
 //! shaped once.
 
 #[cfg(feature = "fonts")]
@@ -35,10 +35,10 @@ pub enum Repeat {
     Times(u16),
 }
 
-/// Writes figures as the frames of an animated GIF of one size: each frame
-/// drawn for [`Target::File`] at the writer's scale, rendered by vello_cpu
-/// on its own pool ([`raster::Settings::parallel`]) and quantized to its
-/// own palette of at most 256 colors.
+/// Writes figures as the frames of an animated GIF of one size. Each frame
+/// is drawn for [`Target::File`] at the writer's scale, rendered by
+/// vello_cpu on its own pool ([`raster::Settings::parallel`]), and
+/// quantized to its own palette of at most 256 colors.
 ///
 /// ```no_run
 /// use std::time::Duration;
@@ -91,23 +91,23 @@ pub enum Error {
     /// A figure whose theme background is not opaque.
     #[error("figure has a translucent background; GIF has 1-bit alpha")]
     Translucent,
-    /// What the gif crate reported, input and output aside.
+    /// An error the gif crate reported, other than an I/O error.
     #[error("gif: {0}")]
     Encoding(String),
     /// The output could not be written.
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
-    /// The frame could not be rendered: its list fails
-    /// [`list::check`](crate::list::check), or it is larger than vello_cpu
-    /// renders (65,408 device px a side) or of no device pixel.
+    /// The frame could not be rendered. Its list fails
+    /// [`list::check`](crate::list::check), it is larger than vello_cpu
+    /// renders (65,408 device px a side), or it has no device pixel.
     #[error(transparent)]
     Raster(#[from] raster::Error),
 }
 
 #[cfg(feature = "fonts")]
 impl<W: std::io::Write> Writer<W> {
-    /// A GIF of `size` logical px at `scale` device px each, its header and
-    /// loop count written to `out` now, before any frame.
+    /// A GIF of `size` logical px at `scale` device px each. Its header and
+    /// loop count are written to `out` immediately, before any frame.
     ///
     /// # Errors
     ///
@@ -145,8 +145,8 @@ impl<W: std::io::Write> Writer<W> {
     /// Draws, rasterizes (vello_cpu, `Settings::parallel()`) and encodes one frame.
     ///
     /// The frame shows for `delay` rounded to centiseconds, at least 2
-    /// (browsers show shorter delays as 10). A figure whose theme background
-    /// is translucent is [`Error::Translucent`]: GIF's alpha is one bit.
+    /// (browsers show shorter delays as 10). GIF's alpha is one bit, so a
+    /// figure whose theme background is translucent is an error.
     ///
     /// # Errors
     ///
@@ -192,7 +192,8 @@ fn centiseconds(delay: Duration) -> u16 {
     (delay.as_secs_f64() * 100.0).round().clamp(2.0, 65_535.0) as u16
 }
 
-/// The gif crate's error: io errors as [`Error::Io`].
+/// The gif crate's error as an [`Error`], with I/O errors as
+/// [`Error::Io`].
 #[cfg(feature = "fonts")]
 fn encoding(e: ::gif::EncodingError) -> Error {
     if let ::gif::EncodingError::Io(io) = e {

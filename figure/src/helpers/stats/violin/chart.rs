@@ -21,7 +21,7 @@ const POINTS: usize = 100;
 const FILL: f64 = 0.35;
 
 /// seaborn's violin line width, in patch edge widths (1.25 ×
-/// `patch.linewidth`): the quartile lines' width.
+/// `patch.linewidth`). The quartile lines are drawn at this width.
 const LINE: f64 = 1.25;
 
 /// The inner box's width, in violin line widths (seaborn's `box_width`).
@@ -73,18 +73,21 @@ enum Body {
     Curve(Vec<(f64, f64)>),
 }
 
-/// One violin per group `(key, values)` on `x` and `y`: the Gaussian
-/// kernel density estimate of the finite values with Scott's bandwidth
-/// ([`stats::Kde`](crate::stats::Kde)), evaluated at 100 points evenly
-/// spaced over `[min − cut·h, max + cut·h]` (`cut` 0: the data's range,
-/// matplotlib's `violinplot`), mirrored about the middle of the group's
-/// key slot (as box plots sit), filled at 0.35 opacity and outlined 0.75
-/// pt wide as densities are. Widths are shared within the mark: the
-/// largest density among its groups spans the slot's width, so areas
-/// compare between groups. Inside, a miniature box plot in ink
-/// ([`Inner::Box`]). A group of one value, or of values that are all
-/// equal, draws a line across the slot at the value; a group without
-/// finite values draws nothing. The bodies' ends enter fitting.
+/// One violin per group `(key, values)` on `x` and `y`. Each is the
+/// Gaussian kernel density estimate of the finite values with Scott's
+/// bandwidth ([`stats::Kde`](crate::stats::Kde)), evaluated at 100 points
+/// evenly spaced over `[min − cut·h, max + cut·h]`. The default `cut` of 0
+/// gives the data's range, as matplotlib's `violinplot` does. The estimate
+/// is mirrored about the middle of the group's key slot (as box plots
+/// sit), filled at 0.35 opacity and outlined 0.75 pt wide, as densities
+/// are.
+///
+/// Widths are shared within the mark: the largest density among its
+/// groups spans the slot's width, so areas compare between groups. Inside
+/// each body is a miniature box plot in ink ([`Inner::Box`]). A group of
+/// one value, or of values that are all equal, draws a line across the
+/// slot at the value, and a group without finite values draws nothing.
+/// The bodies' ends enter fitting.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -141,9 +144,9 @@ impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
         Self { points, ..self }.traced()
     }
 
-    /// How far past the data the bodies run, in bandwidths; 0 by default
-    /// (matplotlib), seaborn's default is 2. A value that is not finite
-    /// and not negative leaves it as it was.
+    /// How far past the data the bodies run, in bandwidths. The default is
+    /// 0, as in matplotlib; seaborn's default is 2. A value that is negative
+    /// or not finite leaves it as it was.
     #[must_use]
     pub fn cut(self, k: f64) -> Self {
         let cut = if k.is_finite() && k >= 0.0 {
@@ -171,8 +174,8 @@ impl<X: Position, Y: Position<Domain = f64>> Violin<X, Y> {
         }
     }
 
-    /// Places each group in its fill key's part of the slot, the slot split
-    /// into one part per palette key in the palette's order, so that
+    /// Places each group in its fill key's part of the slot. The slot is
+    /// split into one part per palette key, in the palette's order, so that
     /// violins of several marks stand side by side.
     #[must_use]
     pub fn dodge(self) -> Self {
@@ -228,7 +231,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Mark<'a> for Violin<X, Y> {
     }
 
     /// One `Fill` command of every body and a `Stroke` of their outlines
-    /// (and of the lines of flat groups), clipped to the guard band; then
+    /// (and of the lines of flat groups), clipped to the guard band, then
     /// the inner box plots' or quartiles' strokes. Groups whose key or
     /// values cannot be placed are skipped.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {

@@ -7,9 +7,9 @@ use crate::scale::{Band, Ticks, band};
 use crate::ticks;
 
 /// d3.scalePoint: a band scale with zero bandwidth (inner padding 1), so
-/// each key maps to a point; its `padding` is the outer padding, and it
-/// has no inner or outer padding builders, as in d3. Keys compare with
-/// `PartialEq`, as a band's: a NaN key never matches, where d3's
+/// each key maps to a point. As in d3, its `padding` is the outer padding,
+/// and it has no inner or outer padding builders. Keys compare with
+/// `PartialEq`, as a band's do, so a NaN key never matches, where d3's
 /// SameValueZero finds it.
 ///
 /// ```
@@ -61,7 +61,7 @@ impl<K: PartialEq> Point<K> {
         self.with(|b| b.round(round))
     }
 
-    /// The outer padding, in steps: d3's `pointish` maps `padding` to
+    /// The outer padding, in steps. d3's `pointish` maps `padding` to
     /// `paddingOuter`.
     #[must_use]
     pub fn padding(self, p: f64) -> Self {
@@ -87,7 +87,7 @@ impl<K: PartialEq> Point<K> {
         self.band.bandwidth()
     }
 
-    /// d3's `step()`: the distance between neighbouring points.
+    /// d3's `step()`: the distance between neighboring points.
     #[must_use]
     pub fn step(&self) -> f64 {
         self.band.step()

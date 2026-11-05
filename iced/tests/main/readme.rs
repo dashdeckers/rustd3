@@ -1,7 +1,8 @@
-//! The root README's `Plot` widget code compiles: its last `rust` block,
-//! which the facade cannot build (it has no rustd3-iced), is the
-//! `readme_plot` example with the facade's paths. The facade's
-//! `tests/main/readme.rs` holds the other blocks to its own examples.
+//! Checks that the root README's `Plot` widget code compiles. The README's
+//! last `rust` block must be the `readme_plot` example written with the
+//! facade's paths; the facade cannot build it because it has no
+//! rustd3-iced. The facade's `tests/main/readme.rs` checks the other blocks
+//! against its own examples.
 
 /// The README, whose `rust` blocks are compiled examples.
 const README: &str = include_str!("../../../README.md");

@@ -1,6 +1,6 @@
-//! d3-axis for the core level: an axis draws its domain path and tick marks
-//! into any [`PathContext`] and returns its labels as positions and
-//! strings for the host's own text.
+//! d3-axis without a renderer: an axis draws its domain path and tick marks
+//! into any [`PathContext`], and returns its labels as positions and
+//! strings for the host to draw as text.
 //!
 //! ```
 //! use rustd3_core::{axis, path, scale};
@@ -166,7 +166,7 @@ impl<'s, S: Ticks> Axis<'s, S> {
         Axis { locale, ..self }
     }
 
-    /// d3's `tickSize`: the inner and outer tick size, in pixels.
+    /// d3's `tickSize`: the inner and outer tick size, in px.
     #[must_use]
     pub fn tick_size(self, px: f64) -> Self {
         Axis {
@@ -220,8 +220,9 @@ impl<'s, S: Ticks> Axis<'s, S> {
         Axis { minor: on, ..self }
     }
 
-    /// Domain path, then major ticks, then minor ticks, into `ctx`. Ticks
-    /// whose position is `None` or not finite are left out.
+    /// Draws the domain path, then the major ticks, then the minor ticks
+    /// into `ctx`. Ticks whose position is `None` or not finite are left
+    /// out.
     pub fn draw(&self, ctx: &mut impl PathContext) {
         let (k, o) = (self.orient.sign(), self.offset);
         let [r0, r1] = self.scale.ends().map(|r| r + o);
@@ -246,8 +247,8 @@ impl<'s, S: Ticks> Axis<'s, S> {
         }
     }
 
-    /// Where the host draws each label, and what: one per tick whose
-    /// position is finite, formatted as one batch.
+    /// The labels for the host to draw: one per tick whose position is
+    /// finite, formatted as one batch.
     #[must_use]
     pub fn labels(&self) -> Vec<Label> {
         let set = self.set();

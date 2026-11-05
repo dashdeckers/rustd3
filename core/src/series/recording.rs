@@ -87,7 +87,7 @@ impl<X: Coordinate> Clone for Recording<X> {
 impl<X: Coordinate> Recording<X> {
     /// A recording of `channels` on `clock`, at revision 0. Every channel
     /// has as many samples as an explicit clock has x values (on a regular
-    /// clock, as many as the first channel); zero channels are allowed.
+    /// clock, as many as the first channel). Zero channels are allowed.
     /// Nothing is stored unless everything is valid: the period and start
     /// of a regular clock, the lengths, explicit x valid and non-decreasing,
     /// and at most `u32::MAX` samples.
@@ -130,14 +130,14 @@ impl<X: Coordinate> Recording<X> {
     }
 
     /// Appends to every channel at once, or to none. A regular clock takes
-    /// `x = &[]`; an explicit one takes one x per new sample, valid and not
-    /// below the last stored x. On an error the recording is unchanged.
+    /// `x = &[]`, and an explicit one takes one x per new sample, valid and
+    /// not below the last stored x. On an error the recording is unchanged.
     ///
     /// # Errors
     ///
     /// [`Error::Channels`] for another number of channels than the
     /// recording has, and the errors of [`Recording::new`] for the appended
-    /// samples; the recording is then unchanged.
+    /// samples.
     pub fn extend<C: AsRef<[f64]>>(
         &mut self,
         x: &[X],
@@ -149,8 +149,9 @@ impl<X: Coordinate> Recording<X> {
         Ok(())
     }
 
-    /// Drops the whole chunks that lie before sample `before`; returns
-    /// how many samples went (a multiple of 65,536). Indices shift down.
+    /// Drops the whole chunks that lie before sample `before`, and returns
+    /// how many samples went (a multiple of 65,536). Indices shift down by
+    /// that many.
     pub fn drop_front(&mut self, before: usize) -> usize {
         let chunks = before.min(self.len) / CHUNK;
         if chunks == 0 {
@@ -335,9 +336,9 @@ impl<X: Coordinate> Recording<X> {
     }
 }
 
-/// The first index in `0..=len` where `below` fails, `below` holding on a
-/// prefix: doubling steps outward from `guess` bracket it, then bisection
-/// finds it, so a guess off by d costs O(log d) probes.
+/// The first index in `0..=len` where `below` fails, given that `below`
+/// holds on a prefix. Doubling steps outward from `guess` bracket it and
+/// bisection then finds it, so a guess off by d costs O(log d) probes.
 fn gallop(guess: usize, len: usize, below: impl Fn(usize) -> bool) -> usize {
     let (mut lo, mut hi) = (0, len);
     let mut step = 1;

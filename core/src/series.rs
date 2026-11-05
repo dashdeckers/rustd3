@@ -1,7 +1,9 @@
-//! Long data: recordings of `f64` channels on one clock, held in chunks
-//! that appends never move and that `drop_front` removes whole; `Copy`
-//! views of one channel; and M4 thinning per column, answered by an exact
-//! index that grows with every append.
+//! Long data: [`Recording`]s of `f64` channels on one clock.
+//!
+//! Samples are held in chunks that appends never move and that
+//! `drop_front` removes whole. A [`Series`] is a `Copy` view of one
+//! channel. M4 thinning per pixel column is answered by an exact index that
+//! grows with every append.
 //!
 //! ```
 //! use rustd3_core::series::{Clock, Error, Recording};

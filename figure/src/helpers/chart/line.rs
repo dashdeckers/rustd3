@@ -24,16 +24,18 @@ impl<'a> std::fmt::Debug for Line<'a> {
 }
 
 /// A line chart of `data` (pairs, two slices or a recording channel, as
-/// [`mark::line`] takes them; a channel thins to M4's points per column),
-/// more series added with [`series`](Line::series): each a
+/// [`mark::line`] takes them; a channel thins to M4's points per column).
+/// [`series`](Line::series) adds more series. Each series is a
 /// [`mark::line`] in its key's color on linear x and y scales fitted to
-/// every series, a bottom and a left axis with minor ticks, and a legend
-/// of lines right of the plot area when there is more than one series.
+/// every series. The chart has a bottom and a left axis with minor ticks,
+/// and a legend of lines right of the plot area when there is more than
+/// one series.
+///
 /// The first series' key is "0", pandas' name for an unnamed column, until
 /// [`key`](Line::key) names it. Keys are the legend's labels. The figure's
-/// one panel holds one mark per series, in their order: mark *i* is series
-/// *i*, so a hover (a `hit::Hit`, or rustd3-iced's `plot::Hover`) is named
-/// from the app's own keys, `keys[hover.mark]`.
+/// one panel holds one mark per series, in order, so mark *i* is series
+/// *i*. A hover (a `hit::Hit`, or rustd3-iced's `plot::Hover`) therefore
+/// names the series `keys[hover.mark]`.
 ///
 /// A line over one channel of a recording:
 ///
@@ -111,8 +113,8 @@ impl<'a> Line<'a> {
         self
     }
 
-    /// The x scale, fitted to the series' x: linear by default; log,
-    /// symlog, asinh, logit and the others through
+    /// The x scale, fitted to the series' x. It is linear by default; log,
+    /// symlog, asinh, logit and the others are taken through
     /// [`AnyContinuous`]'s conversions.
     #[must_use]
     pub fn x_scale(self, s: impl Into<AnyContinuous>) -> Self {

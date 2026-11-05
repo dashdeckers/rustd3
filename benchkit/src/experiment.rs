@@ -1,14 +1,15 @@
-//! [`Experiment`]: the flags that narrow or vary a level for one question
-//! on one machine: which profiles run (`--only`),
-//! which of their cells (`--scenario`, `--workload`, `--factor`), how many
-//! runs a cell (`--runs`), the widget's `--render`, `--threads` and
-//! `--caching`, and a [`Sweep`] of one of those three, each value its own
-//! profile `<profile>@<key>=<value>` in the one archive. A level records it
-//! in `results.json` and its reports.
+//! [`Experiment`]: the flags that narrow or vary a level to answer one
+//! question on one machine. They choose which profiles run (`--only`),
+//! which of their cells (`--scenario`, `--workload`, `--factor`) and how
+//! many runs a cell gets (`--runs`). They also set the widget's
+//! `--render`, `--threads` and `--caching`, or a [`Sweep`] of one of those
+//! three, where each value is its own profile `<profile>@<key>=<value>` in
+//! the one archive. A level records the experiment in `results.json` and
+//! its reports.
 
 use serde::{Deserialize, Serialize};
 
-/// What the command line narrows or varies; the default runs the level as
+/// What the command line narrows or varies. The default runs the level as
 /// it is.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Experiment {
@@ -18,13 +19,13 @@ pub struct Experiment {
     /// `--scenario`: the widget profiles' cells of these scenarios only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scenarios: Option<Vec<String>>,
-    /// `--workload`: of these workloads only.
+    /// `--workload`: the cells of these workloads only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workloads: Option<Vec<String>>,
-    /// `--factor`: at these factors only.
+    /// `--factor`: the cells at these factors only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub factors: Option<Vec<f32>>,
-    /// `--runs`: runs a cell, in place of each profile's.
+    /// `--runs`: the runs per cell, in place of each profile's own count.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runs: Option<u32>,
     /// `--render`: `auto`, `inline` or `worker`, for the widget's
@@ -42,8 +43,8 @@ pub struct Experiment {
     pub sweep: Option<Sweep>,
 }
 
-/// Each selected widget profile once per value of one of the widget's
-/// settings.
+/// A sweep that runs each selected widget profile once per value of one of
+/// the widget's settings.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Sweep {
     /// The setting.
@@ -148,7 +149,7 @@ impl Key {
 }
 
 impl Sweep {
-    /// `KEY=V1,V2,…`.
+    /// Parses `KEY=V1,V2,…`.
     pub fn parse(text: &str) -> Result<Sweep, Error> {
         let bad = || Error::Sweep(text.to_owned());
         let (key, values) = text.split_once('=').ok_or_else(bad)?;
@@ -171,8 +172,8 @@ impl Experiment {
         *self == Experiment::default()
     }
 
-    /// Checks what one flag cannot: every `--only` name is a profile, and
-    /// no setting is swept and given.
+    /// Checks what no single flag can: that every `--only` name is a
+    /// profile, and that no setting is both swept and given on its own.
     pub fn checked(self) -> Result<Experiment, Error> {
         if let Some(name) = self
             .only
@@ -202,8 +203,8 @@ impl Experiment {
             .is_none_or(|only| only.iter().any(|n| n == name))
     }
 
-    /// The runs of each selected widget profile: one, or one per value of
-    /// the sweep; each with the widget's settings as flags.
+    /// The runs of each selected widget profile, each with the widget's
+    /// settings as flags. There is one run, or one per value of the sweep.
     pub fn variants(&self) -> Vec<Variant> {
         let mut base = Vec::new();
         if let Some(render) = &self.render {
@@ -235,7 +236,7 @@ impl Experiment {
         }
     }
 
-    /// What it sets, a phrase each (empty when nothing).
+    /// What it sets, one phrase per setting (empty when it sets nothing).
     pub fn describe(&self) -> Vec<String> {
         let list = |items: &[String]| items.join(", ");
         let mut lines = Vec::new();

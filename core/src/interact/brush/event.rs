@@ -2,7 +2,7 @@
 
 /// What a brush reports: d3's `start`, `brush` and `end` events, each
 /// with the selection after it, `None` when there is none. `S` is the
-/// selection; the default is an interval, and a 2-D form would use
+/// selection. The default is an interval, and a 2-D form would use
 /// `[[f64; 2]; 2]`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BrushEvent<S = [f64; 2]> {

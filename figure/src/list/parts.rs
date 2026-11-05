@@ -1,8 +1,9 @@
-//! Part hashes: FNV-1a 64 over what each part of a list drew, so that a
-//! figure drawn again from equal data hashes equally and a part drawn
-//! elsewhere or differently does not; and [`Cells`], the canvas cut at
-//! every plot-area edge, with the parts each cell touches, a hash of them
-//! and their raster work, which a widget renders and skips by.
+//! Part hashes and [`Cells`]. A part's hash is FNV-1a 64 over what it
+//! drew, so a figure drawn again from equal data hashes equally, and a part
+//! drawn elsewhere or differently does not. [`Cells`] cut the canvas at
+//! every plot-area edge, each cell with the parts it touches, a hash of
+//! them and their raster work, by which a widget decides what to render
+//! and what to skip.
 
 use std::fmt;
 use std::ops::Range;
@@ -21,9 +22,8 @@ const PRIME: u64 = 0x0000_0100_0000_01b3;
 /// Path elements per raster work item of a fill or stroke.
 const ELEMENTS: u64 = 16;
 
-/// The canvas cut into cells at device-pixel edges: the column and row
-/// edges, and the cells row-major (cell `row × (cols.len() − 1) + col`).
-/// Plain data.
+/// The canvas cut into cells at device-pixel edges, with the cells
+/// row-major (cell `row × (cols.len() − 1) + col`). Plain data.
 ///
 /// ```
 /// use rustd3_figure::list::{self, List};
@@ -46,11 +46,11 @@ pub struct Cells {
 /// One cell of [`Cells`]. Plain data.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Cell {
-    /// Device px, integer edges.
+    /// The cell's rect in device px, on integer edges.
     pub rect: Rect,
     /// Indices into `List::parts` whose device bounds touch the cell.
     pub parts: Vec<u32>,
-    /// The cell rect and its parts' hashes, in order.
+    /// FNV-1a 64 of the cell's rect and its parts' hashes, in order.
     pub hash: u64,
     /// Raster work items of the listed parts.
     pub work: u64,
@@ -67,19 +67,28 @@ impl Cells {
     }
 }
 
-/// The canvas of `list` cut at `xs` and `ys` (list px, each snapped to
-/// device px at `scale`: `round(x · scale)`, sorted and deduplicated; edges
-/// that are not finite are ignored, negative ones taken as 0), with each
-/// cell's parts bucketed once: the parts whose bounds in device px,
-/// inflated by one device px for antialiasing but not past the clip the
-/// part is drawn in (taken out to whole device px), share interior with
-/// the cell, so marks clipped to a plot area whose edges lie on device
-/// pixels touch only its cells. A cell's hash is FNV-1a 64 of its rect and its parts' hashes in
-/// order; its work counts one item per `Fill`, `Stroke` or `Image` command
-/// of its parts plus ⌊elements / 16⌋ of a fill's or stroke's path, one per
-/// point of a `Markers` command and one per glyph of a `Glyphs` command;
-/// a part that touches several cells counts fully in each. Parts that
-/// draw nothing (bounds of no area) touch no cell.
+/// The canvas of `list` cut at `xs` and `ys`, with each cell's parts
+/// bucketed once.
+///
+/// The edges are in list px, each snapped to device px at `scale` as
+/// `round(x · scale)`, then sorted and deduplicated. Edges that are not
+/// finite are ignored, and negative ones are taken as 0.
+///
+/// A cell's parts are those whose bounds in device px share interior with
+/// the cell. The bounds are inflated by one device px for antialiasing,
+/// but not past the clip the part is drawn in (taken out to whole device
+/// px), so marks clipped to a plot area whose edges lie on device pixels
+/// touch only its cells. Parts that draw nothing (bounds of no area) touch
+/// no cell.
+///
+/// A cell's hash is FNV-1a 64 of its rect and its parts' hashes in order.
+/// Its work counts, over its parts:
+/// - one item per `Fill`, `Stroke` or `Image` command, plus
+///   ⌊elements / 16⌋ of a fill's or stroke's path;
+/// - one per point of a `Markers` command;
+/// - one per glyph of a `Glyphs` command.
+///
+/// A part that touches several cells counts fully in each.
 #[must_use]
 pub fn cells(list: &List, xs: &[f64], ys: &[f64], scale: f64) -> Cells {
     let cols = edges(xs, scale);
@@ -255,10 +264,10 @@ fn work(command: &Command) -> u64 {
     }
 }
 
-/// An FNV-1a 64 hash being written: byte-wise, the same on every platform
-/// and Rust version, unlike `std`'s `DefaultHasher`. Numbers go in as their
-/// little-endian bytes (floats by their bits); enumerated settings of
-/// gradients and images as their names, through [`fmt::Write`].
+/// An FNV-1a 64 hash being written. It is byte-wise, and the same on every
+/// platform and Rust version, unlike `std`'s `DefaultHasher`. Numbers go in
+/// as their little-endian bytes, floats by their bits. Enumerated settings
+/// of gradients and images go in as their names, through [`fmt::Write`].
 pub(crate) struct Fnv(u64);
 
 impl Default for Fnv {
@@ -287,10 +296,11 @@ impl Fnv {
         self.bytes(&v.to_le_bytes());
     }
 
-    /// Hashes `words` a whole 64-bit word at a time (FNV-1a's step on a
-    /// word instead of a byte), for the long arrays of marker commands:
-    /// an eighth of the steps, and a sequence that differs from another in
-    /// one word still hashes differently, as each step is a bijection.
+    /// Hashes `words` a whole 64-bit word at a time, applying FNV-1a's step
+    /// to a word instead of a byte. The long arrays of marker commands take
+    /// an eighth of the steps this way. A sequence that differs from
+    /// another in one word still hashes differently, as each step is a
+    /// bijection.
     fn words(&mut self, words: impl IntoIterator<Item = u64>) {
         for w in words {
             self.0 = (self.0 ^ w).wrapping_mul(PRIME);
@@ -518,14 +528,15 @@ impl Fnv {
 }
 
 /// Fills every part's hash: FNV-1a 64 over the groups open at the part's
-/// start (each one's transform and clip, so the same content drawn at
-/// another place or under another clip hashes differently) and over every
-/// command in its range, as drawn (paths, paints, strokes, marker points
-/// and channels, glyph runs' faces, sizes, transforms, ids and positions,
-/// images by their blob ids); a markers command's points, sizes and paint
-/// indices a 64-bit word per step. A part drawn again from equal data hashes
-/// equally. Parts are in order and inside the commands, as a figure
-/// builds them.
+/// start and over every command in its range, as drawn. Each open group's
+/// transform and clip are hashed, so the same content drawn at another
+/// place or under another clip hashes differently. Commands contribute
+/// their paths, paints, strokes, marker points and channels, glyph runs'
+/// faces, sizes, transforms, ids and positions, and images by their blob
+/// ids. A markers command's points, sizes and paint indices are hashed one
+/// 64-bit word per step. A part drawn again from equal data hashes
+/// equally. Parts are in order and inside the commands, as a figure builds
+/// them.
 pub(crate) fn hash(list: &mut List) {
     let mut open: Vec<&Command> = Vec::new();
     let mut followed = 0;

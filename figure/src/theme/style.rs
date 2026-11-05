@@ -42,7 +42,7 @@ const LIGHT_GRAY: Rgb = Rgb::hex(0xcccccc);
 const WHITE: Rgb = Rgb::hex(0xffffff);
 
 impl Style {
-    /// Behind each plot area.
+    /// The color behind each plot area.
     pub(crate) fn panel(self) -> Rgb {
         match self {
             Style::DarkGrid | Style::Dark => DARK_PANEL,

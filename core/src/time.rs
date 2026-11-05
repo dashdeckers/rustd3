@@ -1,18 +1,12 @@
-//! Time with explicit zones, on jiff: [`Interval`], d3-time's calendar
-//! intervals with microseconds and nanoseconds beside them, the lazy
-//! [`interval::Range`] of an interval's boundaries, d3's tick functions,
-//! [`ticks`], [`ticks_with`], [`tick_interval`] and their `utc_` twins,
-//! [`Time`], d3's time scale, made by [`time()`] and [`utc()`], and
-//! d3-time-format's formats: a [`Format`] compiled under a [`Locale`]
-//! (d3's timeFormatLocale plus the [`Ladder`] tick labels climb, built
-//! from a [`Definition`]), or under the neutral locale by [`format()`], and
-//! d3's [`iso_format`] and [`iso_parse`].
+//! Time with explicit zones, on jiff: d3-time's [`Interval`]s and tick
+//! functions ([`ticks`]), d3's time scale ([`Time`]), and d3-time-format's
+//! formats ([`Format`], compiled under a [`Locale`]).
 //!
-//! Every zone is a parameter: nothing here reads the system's clock or
-//! zone. Instants are jiff [`Timestamp`]s and arithmetic on them is in
-//! `i128` nanoseconds, never through an `f64` epoch value (in 2026 one of
-//! those resolves 256 ns). The zone is consulted only where the calendar
-//! needs it, from minutes up.
+//! Every zone is a parameter, and nothing here reads the system's clock or
+//! zone. Instants are jiff [`Timestamp`]s. Arithmetic on them is in `i128`
+//! nanoseconds, never through an `f64` epoch value, which in 2026 resolves
+//! only 256 ns. The zone is consulted only where the calendar needs it, for
+//! minutes and longer units.
 //!
 //! ```
 //! use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -47,9 +41,9 @@ pub use locale::{Ladder, Locale};
 pub use scale::Time;
 pub use ticks::{tick_interval, ticks, ticks_with, utc_tick_interval, utc_ticks};
 
-/// A unit of time and a step: d3-time's intervals (`timeSecond` …
-/// `timeYear`, `utcDay`, `unixDay`), with microseconds and nanoseconds
-/// beside milliseconds. A closed set: d3's custom intervals are not ported.
+/// A unit of time and a step, as in d3-time's intervals (`timeSecond` …
+/// `timeYear`, `utcDay`, `unixDay`), plus microseconds and nanoseconds.
+/// The set is closed, since d3's custom intervals are not ported.
 ///
 /// The step is d3's `every`; a step of 0 behaves as 1. Fixed units take it
 /// as a multiple of the unit since the epoch; the others keep the
@@ -117,12 +111,12 @@ pub enum Interval {
     Year(u32),
 }
 
-/// d3.scaleTime with an explicit zone: domain from local midnight on
-/// 2000-01-01 to 2000-01-02 in `zone`, range [0, 1], ticks laid out in
-/// `zone` (days of the month).
+/// A d3.scaleTime in `zone`. Its domain runs from local midnight on
+/// 2000-01-01 to 2000-01-02, its range is [0, 1], and its ticks are laid
+/// out in `zone`, with days counted by the day of the month.
 ///
-/// A day in Berlin across the end of daylight saving time: d3's
-/// 3-hour interval, at local midnight, 03:00 … 21:00 and midnight again.
+/// A day in Berlin across the end of daylight saving time ticks every 3
+/// hours, from local midnight through 21:00 to midnight again.
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -145,11 +139,11 @@ pub fn time(zone: TimeZone) -> Time {
     Time::new(default_domain(&zone), zone, false)
 }
 
-/// d3.scaleUtc: domain 2000-01-01T00:00Z to 2000-01-02T00:00Z, range
-/// [0, 1], ticks laid out in UTC with d3's utc intervals (days counted from
-/// 1970-01-01, `UnixDay`).
+/// A d3.scaleUtc. Its domain runs from 2000-01-01T00:00Z to
+/// 2000-01-02T00:00Z, its range is [0, 1], and its ticks use d3's utc
+/// intervals, which count days from 1970-01-01 ([`Interval::UnixDay`]).
 ///
-/// It differs from `time(TimeZone::UTC)` only in its ticks' days:
+/// It differs from `time(TimeZone::UTC)` only in its ticks' days.
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
@@ -194,8 +188,8 @@ pub(crate) fn at(ns: i128) -> Option<Timestamp> {
     }
 }
 
-/// The instant `ns` nanoseconds from the epoch, or jiff's first or last
-/// instant past them.
+/// The instant `ns` nanoseconds from the epoch, clamped to jiff's first
+/// and last instants.
 pub(crate) fn saturating(ns: i128) -> Timestamp {
     let ns = ns.clamp(
         Timestamp::MIN.as_nanosecond(),

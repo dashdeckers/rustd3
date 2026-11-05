@@ -27,16 +27,17 @@ impl Figure<'_> {
     }
 
     /// The figure as a drawing list of `size` for `target`, with `held`'s
-    /// scales: starts a draw of `cache` (the text cache's generation),
-    /// resolves, and emits the figure background, then per panel its
-    /// background, its marks (inside a group clipped to the plot area), its
-    /// border, axes and title, then the figure title, each a part whose
-    /// bounds are the union of its commands' bounds (one
-    /// [`Bounds`](crate::list::Bounds) of the whole list) and whose hash is
+    /// scales. Starts a draw of `cache` (the text cache's generation),
+    /// resolves, and emits one part per element. The figure background
+    /// comes first, then per panel its background, grid lines, marks
+    /// (inside a group clipped to the plot area), inset legends, border,
+    /// axes and title, then the figure title and the legends in figure
+    /// slots. A part's bounds are the union of its commands' bounds (one
+    /// [`Bounds`](crate::list::Bounds) of the whole list), and its hash is
     /// FNV-1a 64 of what it drew where it drew it
-    /// ([`Part::hash`](crate::list::Part::hash)). Lines over recordings are thinned through `cache`'s M4 memo, so a
-    /// second draw of an unchanged figure runs no M4 query (and shapes no
-    /// text).
+    /// ([`Part::hash`](crate::list::Part::hash)). Lines over recordings
+    /// thin through `cache`'s M4 memo, so a second draw of an unchanged
+    /// figure runs no M4 query and shapes no text.
     pub fn draw_with(
         &self,
         cache: &mut Cache,
@@ -67,12 +68,12 @@ impl Figure<'_> {
 
     /// The list of `resolved`, which this figure's
     /// [`resolve`](Figure::resolve) or [`resolve_held`](Figure::resolve_held)
-    /// returned for `cache` after a [`Cache::begin`]: what
+    /// returned for `cache` after a [`Cache::begin`]. It is what
     /// [`draw_with`](Figure::draw_with) emits after it resolves, for a
     /// caller that also reads the resolved figure (plot areas, cell edges,
-    /// hits) and so resolves once. A `Resolved` of another figure is not
-    /// drawn from: this figure is resolved afresh at its size and target,
-    /// with nothing held.
+    /// hits) and so resolves only once. Given a `Resolved` of another
+    /// figure, this figure is resolved afresh at that size and target, with
+    /// nothing held.
     ///
     /// ```
     /// use rustd3_core::scale;

@@ -29,9 +29,9 @@ pub(crate) enum Region {
 /// The direction a handle maps along.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Along {
-    /// Across: x.
+    /// Across, along x.
     X,
-    /// Up: y.
+    /// Up, along y.
     Y,
 }
 
@@ -39,9 +39,9 @@ pub(crate) enum Along {
 /// px), and the handles each panel zooms.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Map {
-    /// Plot areas, in panel order.
+    /// The plot areas, in panel order.
     areas: Vec<Rect>,
-    /// Shown axes: their strip and region.
+    /// The shown axes, each with its strip and region.
     axes: Vec<(Rect, Region)>,
     /// Per panel, the handles zoomed along x and along y.
     zooms: Vec<[Vec<Key>; 2]>,
@@ -131,9 +131,9 @@ impl Map {
     }
 
     /// The handles a gesture over `region` rescales, with the direction
-    /// each maps along: over a plot area, every handle its panel zooms
-    /// along x and along y (each once); over an axis, its handle if the
-    /// panel zooms it along that direction.
+    /// each maps along. Over a plot area these are every handle its panel
+    /// zooms along x and along y, each once. Over an axis it is the axis's
+    /// handle, if the panel zooms it along that direction.
     pub(crate) fn tracks(&self, region: Region) -> Vec<(Key, Along)> {
         match region {
             Region::Area { panel } => {
@@ -162,7 +162,7 @@ impl Map {
         }
     }
 
-    /// The plot area of `panel`, list px.
+    /// The plot area of `panel`, in list px.
     pub(crate) fn area(&self, panel: usize) -> Option<Rect> {
         self.areas.get(panel).copied()
     }
@@ -275,8 +275,8 @@ mod tests {
             }
         );
         assert_eq!(map.at(Point::new(1.0, 1.0)), Region::Outside);
-        // The panel zooms x only: its area rescales x, its bottom axis x,
-        // its left axis nothing.
+        // The panel zooms x only. Its area rescales x, its bottom axis
+        // rescales x, and its left axis rescales nothing.
         assert_eq!(map.tracks(map.at(area.center())), [(kx, Along::X)]);
         assert_eq!(map.tracks(map.at(below)), [(kx, Along::X)]);
         assert!(map.tracks(map.at(left)).is_empty());

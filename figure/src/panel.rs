@@ -11,9 +11,10 @@ use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::Text;
 use crate::{brush, figure};
 
-/// One plot area in a grid cell: its marks, axes and inset legends, which
-/// refer to the figure's scales only through handles, its title, its
-/// border, the handles gestures over it rescale, and its brush.
+/// One plot area in a grid cell, with its marks, axes, inset legends,
+/// title, border, brush, and the handles that gestures over it rescale.
+/// Marks, axes and legends refer to the figure's scales only through
+/// handles.
 pub struct Panel<'a> {
     figure: figure::Id,
     cell: Cell,
@@ -26,7 +27,7 @@ pub struct Panel<'a> {
     zooms: [Vec<ScaleRef<()>>; 2],
     brush: Option<brush::Placed>,
     /// The positions of the handles of other figures that axes, insets,
-    /// zooms and the brush were given, which those draw nothing for.
+    /// zooms and the brush were given. Nothing is drawn for those handles.
     foreign: Vec<usize>,
 }
 
@@ -59,11 +60,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// Places an axis, given by value or by reference (one axis value is
-    /// placed on many panels). It sits at its `outward` offset, 0 by
-    /// default. An axis on a handle of another figure is not placed (its
-    /// tint's palette of another figure only leaves it untinted), and
-    /// [`Figure::check`](crate::Figure::check) reports the handle.
+    /// Places an axis, given by value or by reference (so one axis value
+    /// can be placed on many panels). It sits at its `outward` offset, 0 by
+    /// default. An axis on a handle of another figure is not placed, and
+    /// [`Figure::check`](crate::Figure::check) reports the handle. A tint
+    /// palette of another figure only leaves the axis untinted.
     pub fn axis<S>(&mut self, a: impl Into<Axis<'a, S>>) -> &mut Self
     where
         S: Position + Ticks<Domain = <S as Kind>::Domain>,
@@ -77,9 +78,9 @@ impl<'a> Panel<'a> {
     }
 
     /// Places guide `g` in corner `at` of the plot area, framed, 0.5 em
-    /// from the corner and drawn over the marks: a legend as a column, a
-    /// colorbar along the plot area's longer side, 40% of its length. A
-    /// guide of a handle of another figure is not placed, and
+    /// from the corner and drawn over the marks. A legend is a column; a
+    /// colorbar runs along the plot area's longer side, at 40% of its
+    /// length. A guide of a handle of another figure is not placed, and
     /// [`Figure::check`](crate::Figure::check) reports the handle.
     pub fn legend(&mut self, at: Inset, g: impl legend::Guide<'a>) -> &mut Self {
         let stored = g.erase().0;
@@ -89,7 +90,7 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// A title centred above the plot area and its top axes.
+    /// A title centered above the plot area and its top axes.
     pub fn title(&mut self, t: impl Into<Text>) -> &mut Self {
         self.title = Some(t.into());
         self
@@ -102,10 +103,10 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// Gestures over the plot area rescale `h` along x: in the iced `Plot`
-    /// widget, a wheel zooms it around the cursor and a left-button drag
-    /// pans it, and every panel that uses `h` follows. Any number of
-    /// handles per axis: `.zoom_y(vib).zoom_y(temp)` zooms twin axes
+    /// Gestures over the plot area rescale `h` along x. In the iced `Plot`
+    /// widget a wheel zooms it around the cursor and a left-button drag
+    /// pans it, and every panel that uses `h` follows. An axis takes any
+    /// number of handles, so `.zoom_y(vib).zoom_y(temp)` zooms twin axes
     /// together. Only continuous scales change. A handle of another figure
     /// is not zoomed, and [`Figure::check`](crate::Figure::check) reports
     /// it.
@@ -119,11 +120,12 @@ impl<'a> Panel<'a> {
         self.zoom(1, h.erased())
     }
 
-    /// Drag in this panel brushes; one brush per panel (a second replaces
-    /// it). In the iced `Plot` widget a left-button drag over the plot
-    /// area selects an interval along the brush's axis instead of panning,
-    /// while the wheel still zooms; file outputs ignore it. A brush over or
-    /// setting a handle of another figure is not placed, and
+    /// Places brush `b`, so dragging in this panel brushes. A panel has one
+    /// brush, and a second replaces the first. In the iced `Plot` widget a
+    /// left-button drag over the plot area selects an interval along the
+    /// brush's axis instead of panning, while the wheel still zooms. File
+    /// outputs ignore the brush. A brush over or setting a handle of
+    /// another figure is not placed, and
     /// [`Figure::check`](crate::Figure::check) reports the handle.
     ///
     /// ```
@@ -207,9 +209,10 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// Whether every handle in `needed`, those an element is drawn on, is
-    /// of this panel's figure; every handle of another figure in `needed`
-    /// and `optional` is recorded for [`Figure::check`](crate::Figure::check).
+    /// Whether every handle in `needed` (the handles an element is drawn
+    /// on) belongs to this panel's figure. Every handle of another figure
+    /// in `needed` and `optional` is recorded for
+    /// [`Figure::check`](crate::Figure::check).
     fn admit(&mut self, needed: &[ScaleRef<()>], optional: &[ScaleRef<()>]) -> bool {
         for h in needed.iter().chain(optional) {
             if h.of(self.figure).is_none() && !self.foreign.contains(&h.get_index()) {

@@ -5,9 +5,9 @@ use crate::format::specifier::MAX_WIDTH;
 
 /// Whether `spec` is a valid d3 format specifier,
 /// `[[fill]align][sign][symbol][0][width][,][.precision][~][type]`, as
-/// [`Specifier`](super::Specifier)'s `FromStr` judges it: d3's
-/// `formatSpecifier.js` pattern, case-insensitive, whose fill is any one
-/// character but a line terminator, and a width of at most 2²⁹ − 24.
+/// [`Specifier`](super::Specifier)'s `FromStr` judges it. That is d3's
+/// `formatSpecifier.js` pattern, case-insensitive, with a fill of any one
+/// character except a line terminator and a width of at most 2²⁹ − 24.
 /// Usable in `const`.
 ///
 /// ```
@@ -57,17 +57,18 @@ pub const fn is_valid(spec: &str) -> bool {
 }
 
 /// A [`Format`](crate::format::Format) under the neutral locale from a
-/// specifier literal that the compiler checks: an invalid one is a
+/// specifier literal that the compiler checks. An invalid specifier is a
 /// compile-time error, `error[E0080]: evaluation panicked: invalid d3
 /// format specifier: …`. Specifiers built at run time go through
-/// [`format::format`](crate::format::format), which returns a `Result`; a
-/// locale's own formats through [`Locale::format`](crate::format::Locale::format).
+/// [`format::format`](crate::format::format), which returns a `Result`,
+/// and a locale's own formats through
+/// [`Locale::format`](crate::format::Locale::format).
 ///
 /// `fmt!` formats under [`Locale::NEUTRAL`](crate::format::Locale::NEUTRAL),
-/// which has no currency symbol: `$` in a specifier writes nothing there.
-/// For currency, format under a locale that has one, through the
-/// locale's own `.format(…)` (the specifier then checked at run time):
-/// `Locale::EN_US.format("$,.2f")` writes "$1,234.50".
+/// which has no currency symbol, so `$` in a specifier writes nothing.
+/// For currency, use the `.format(…)` of a locale that has one, which
+/// checks the specifier at run time: `Locale::EN_US.format("$,.2f")`
+/// writes "$1,234.50".
 ///
 /// ```
 /// use rustd3_core::fmt;

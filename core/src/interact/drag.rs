@@ -18,8 +18,8 @@ pub(super) struct Gesture {
     offset: (f64, f64),
     /// d3's `p`: the pointer's last position.
     point: (f64, f64),
-    /// d3's `mousemoving`: the pointer travelled beyond the click
-    /// distance.
+    /// d3's `mousemoving`: whether the pointer has traveled beyond the
+    /// click distance.
     moved: bool,
 }
 
@@ -34,15 +34,16 @@ impl Drag {
         }
     }
 
-    /// Feeds one event; what d3 emits for it. `subject` is asked on a
-    /// press: the dragged thing's position, or None to ignore the press.
+    /// Feeds one event and returns what d3 emits for it. On a press,
+    /// `subject` returns the dragged thing's position, or `None` to ignore
+    /// the press.
     ///
-    /// A left press without ctrl asks `subject` at the press (d3's filter,
-    /// 9–11, drops the rest) and starts at the subject's position; each
+    /// Only a left press without ctrl asks `subject` (d3's filter, 9–11,
+    /// drops the rest), and the drag starts at the subject's position. Each
     /// move reports the pointer plus the subject's offset from the press,
-    /// and the movement since the previous event; the left button's
-    /// release ends the drag at the last position. A press during a drag
-    /// starts anew when `subject` gives a position, as d3's does.
+    /// and the movement since the previous event. The left button's release
+    /// ends the drag at the last position. A press during a drag starts
+    /// anew when `subject` gives a position, as d3's does.
     pub fn handle(
         &mut self,
         input: Pointer,
@@ -105,7 +106,7 @@ impl Drag {
         }
     }
 
-    /// A drag is in progress.
+    /// Whether a drag is in progress.
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.gesture.is_some()

@@ -8,8 +8,8 @@ use crate::time;
 
 /// Each sample is computed from the clock's start, without accumulation.
 /// A regular clock's x that would leave jiff's range saturates at
-/// [`Timestamp::MAX`], which is therefore not a valid x, as an `f64`
-/// overflows to the infinity a recording rejects.
+/// [`Timestamp::MAX`], which is therefore not a valid x. This mirrors an
+/// `f64`, which overflows to the infinity a recording rejects.
 ///
 /// ```
 /// use rustd3_core::jiff::{SignedDuration, Timestamp};

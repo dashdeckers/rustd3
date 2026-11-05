@@ -32,10 +32,10 @@ const PROBES: [f64; 18] = [
     f64::NAN,
 ];
 
-/// What one draw thins with: the column boundaries computed so far, which
-/// every line on one clock shares, and the figure cache's M4 memo, which
-/// outlives the draw. [`Indexed::thin`](crate::scale::Indexed::thin) takes
-/// it.
+/// What one draw thins with. It holds the column boundaries computed so
+/// far, which every line on one clock shares, and the figure cache's M4
+/// memo, which outlives the draw.
+/// [`Indexed::thin`](crate::scale::Indexed::thin) takes it.
 pub struct Frame {
     memo: Memo,
     columns: HashMap<(series::Id, u64, u64), Columns>,
@@ -68,7 +68,8 @@ impl Frame {
         self.memo
     }
 
-    /// How often column boundaries were found computed in this draw.
+    /// How often a line found its column boundaries already computed in
+    /// this draw.
     #[cfg(test)]
     pub(crate) fn hits(&self) -> u64 {
         self.hits
@@ -76,13 +77,15 @@ impl Frame {
 
     /// M4 of `series` over the columns between consecutive `edges`
     /// (increasing), whose bits hash to `grid`, keeping the samples that
-    /// pass `valid`, jointly with `upper` when given (core's
-    /// `Series::m4_joint`): from the memo when this recording, revision,
-    /// channels, grid and test were thinned before, else from the index over
-    /// column boundaries computed once per draw for the recording, its
-    /// revision and the grid. `None` when `upper` belongs to another
-    /// recording, or `edges` are fewer than two, out of order or not valid
-    /// coordinates.
+    /// pass `valid`. With `upper`, the query is joint (core's
+    /// `Series::m4_joint`).
+    ///
+    /// The result comes from the memo when this recording, revision,
+    /// channels, grid and test were thinned before. Otherwise it comes from
+    /// the index over column boundaries, which are computed once per draw
+    /// for the recording, its revision and the grid. `None` when `upper`
+    /// belongs to another recording, or `edges` are fewer than two, out of
+    /// order or not valid coordinates.
     pub(crate) fn lines<X: Coordinate>(
         &mut self,
         series: Series<'_, X>,

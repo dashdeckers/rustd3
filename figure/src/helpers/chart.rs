@@ -1,25 +1,28 @@
-//! One-call chart presets, matplotlib's and seaborn's conveniences as
-//! consuming builders that end in a figure: [`line()`] (one or more
-//! series), [`scatter()`], [`bar()`] (grouped, stacked or diverging, see
-//! [`bar::Mode`]), [`area()`] (stacked), [`pie()`] (and donuts) and
-//! [`heatmap()`] (with a colorbar).
+//! One-call chart presets: matplotlib's and seaborn's conveniences as
+//! consuming builders that end in a figure.
+//!
+//! - [`line()`], for one or more series.
+//! - [`scatter()`].
+//! - [`bar()`], grouped, stacked or diverging (see [`bar::Mode`]).
+//! - [`area()`], stacked.
+//! - [`pie()`], for pies and donuts.
+//! - [`heatmap()`], with a colorbar.
 //!
 //! Every preset takes the same finishing builders: `.title(t)` (the panel's
 //! title), `.x_label(t)` and `.y_label(t)` (the axes' labels), `.size(w, h)`
 //! (640 × 480 px by default, matplotlib's 6.4 × 4.8 in at 100 dpi),
 //! `.theme(theme)` and `.minor(on)` (minor ticks,
-//! [`Axis::minor`](crate::axis::Axis::minor), on by default), and ends
-//! in `.figure()`, a [`Figure`](crate::Figure) to change further, or in a
-//! file at its size, `.save_svg(path)` or `.save_png(path, scale)`.
+//! [`Axis::minor`](crate::axis::Axis::minor), on by default). Each ends in
+//! `.figure()`, a [`Figure`](crate::Figure) to change further, or in a file
+//! at its size with `.save_svg(path)` or `.save_png(path, scale)`.
 //!
 //! Series take their colors from the theme's palette
 //! ([`Theme::get_palette`](crate::Theme::get_palette)) through an ordinal
 //! scale over their keys, and a legend of the keys goes right of the plot
 //! area when there is more than one series. Each preset is ordinary code
-//! over the figure's handles and marks, a copy of which makes the chart a
-//! preset does not; the pie's margin (half an em) is the one thing the
-//! presets read from the theme that a copy outside this crate names
-//! itself.
+//! over the figure's handles and marks. To make a chart no preset offers,
+//! copy one. The pie's margin (half an em) is the one theme value the
+//! presets read that a copy outside this crate must name itself.
 //!
 //! ```
 //! use rustd3_figure::helpers::chart;
@@ -34,12 +37,12 @@
 //! ```
 
 /// The finishing builders every preset shares (see the module's docs), for
-/// the preset type `$preset` with the generics and bounds `$g`; each preset
+/// the preset type `$preset` with the generics and bounds `$g`. Each preset
 /// holds its [`setup::Setup`] as `setup` and has its own `figure`.
 macro_rules! finish {
     (impl[$($g:tt)*] $preset:ty) => {
         impl<$($g)*> $preset {
-            /// The plot area's title (the panel's), centred over it.
+            /// The plot area's title (the panel's), centered over it.
             #[must_use]
             pub fn title(mut self, t: impl Into<crate::text::Text>) -> Self {
                 self.setup.title = Some(t.into());
@@ -60,9 +63,9 @@ macro_rules! finish {
                 self
             }
 
-            /// The size the files are written at, logical px: 640 × 480 by
-            /// default, matplotlib's 6.4 × 4.8 in at 100 dpi. A side that is
-            /// not finite and positive leaves the size as it was.
+            /// The size the files are written at, in logical px. It is
+            /// 640 × 480 by default, matplotlib's 6.4 × 4.8 in at 100 dpi. A
+            /// side that is not finite and positive leaves the size as it was.
             #[must_use]
             pub fn size(mut self, w: f64, h: f64) -> Self {
                 self.setup.size(w, h);
@@ -89,8 +92,8 @@ macro_rules! finish {
             }
 
             /// Writes the figure as SVG to `path` at its size
-            /// ([`Figure::save_svg`](crate::Figure::save_svg)); a preset
-            /// draws nothing that lowering changes.
+            /// ([`Figure::save_svg`](crate::Figure::save_svg)). A preset
+            /// draws nothing that lowering to SVG changes.
             ///
             /// # Errors
             ///

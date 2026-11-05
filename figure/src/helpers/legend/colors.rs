@@ -22,11 +22,12 @@ impl<C> std::fmt::Debug for Colors<C> {
 }
 
 /// A legend of `handle`, a continuous color handle (a dots mark's
-/// [`fill_by`](crate::mark::Dots::fill_by)): one entry per tick of its
-/// resolved scale for about [`count`](Colors::count) ticks (5 by default),
-/// inside its domain, each a dot of the theme's marker size in that
-/// value's color beside the tick's label. Colors over 1 … 100 at count 5
-/// give 20, 40, 60, 80, 100, as matplotlib's `legend_elements` does.
+/// [`fill_by`](crate::mark::Dots::fill_by)). It has one entry per tick of
+/// the resolved scale inside its domain, for about
+/// [`count`](Colors::count) ticks (5 by default). Each entry is a dot of
+/// the theme's marker size in that value's color, beside the tick's label.
+/// Colors over 1 … 100 at count 5 give 20, 40, 60, 80, 100, as
+/// matplotlib's `legend_elements` does.
 ///
 /// ```
 /// use rustd3_core::{scale, scheme};
@@ -71,8 +72,8 @@ where
         self.handle.erased()
     }
 
-    /// One dot per entry in the color the scale gives it; one it gives
-    /// none (`None`) takes the theme's gray.
+    /// One dot per entry in the color the scale gives it, or in the theme's
+    /// gray where the scale gives none.
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
         let Some(scale) = resolved.get_scale(self.handle) else {
             return Vec::new();

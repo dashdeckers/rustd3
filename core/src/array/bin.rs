@@ -1,6 +1,6 @@
-//! What [`Bin`](crate::array::Bin) lays values out by and into: the
+//! The inputs and outputs of [`Bin`](crate::array::Bin): the
 //! [`Thresholds`] rule, d3's three threshold-count rules, and the
-//! [`Bucket`]s.
+//! [`Bucket`]s it fills.
 
 mod bucket;
 mod thresholds;

@@ -1,7 +1,7 @@
-//! d3-interpolate, typed: a value blends with another of its type through
-//! [`Interpolate`], where d3 inspects runtime types; d3's interpolators are
-//! closures of `t`, and its color interpolators take the color space's type
-//! (callers convert, where d3 dispatches on strings).
+//! d3-interpolate, typed. Where d3 inspects runtime types, a value here
+//! blends with another of its type through [`Interpolate`]. d3's
+//! interpolators are closures of `t`. Its color interpolators take the
+//! color space's type, so callers convert where d3 dispatches on strings.
 //!
 //! ```
 //! use rustd3_core::color::{Hcl, Rgb};
@@ -55,8 +55,8 @@ pub trait Interpolate: Clone {
 
 /// Derives [`Interpolate`](trait@Interpolate) field by field for a struct
 /// with named fields. `use rustd3_core::interpolate::Interpolate;` imports
-/// the trait and the derive together; derive `Clone` as well, the trait's
-/// supertrait.
+/// the trait and the derive together. Derive `Clone` as well, since it is
+/// the trait's supertrait.
 ///
 /// ```
 /// use rustd3_core::interpolate::Interpolate;
@@ -89,7 +89,7 @@ pub trait Interpolate: Clone {
 /// }
 /// ```
 ///
-/// Skipped, it keeps the start value until `t = 1`:
+/// A skipped field keeps the start value until `t = 1`:
 ///
 /// ```
 /// use rustd3_core::interpolate::Interpolate;
@@ -212,9 +212,9 @@ impl Interpolate for f32 {
 }
 
 impl Interpolate for Hsl {
-    /// d3's interpolateHsl, in HSL: the hue along the shorter arc,
-    /// saturation, lightness and opacity linearly, an undefined component
-    /// taking the other color's.
+    /// d3's interpolateHsl, in HSL: the hue along the shorter arc, and the
+    /// saturation, lightness and opacity linearly. An undefined component
+    /// takes the other color's.
     fn lerp(&self, to: &Hsl, t: f64) -> Hsl {
         let [h, s, l, opacity] = Channel::four(
             [self.h, self.s, self.l, self.opacity],
@@ -227,8 +227,8 @@ impl Interpolate for Hsl {
 }
 
 impl Interpolate for Lab {
-    /// d3's interpolateLab, in Lab: every channel linearly, an undefined
-    /// channel taking the other color's.
+    /// d3's interpolateLab, in Lab: every channel linearly. An undefined
+    /// channel takes the other color's.
     fn lerp(&self, to: &Lab, t: f64) -> Lab {
         let [l, a, b, opacity] = Channel::four(
             [self.l, self.a, self.b, self.opacity],
@@ -241,9 +241,9 @@ impl Interpolate for Lab {
 }
 
 impl Interpolate for Hcl {
-    /// d3's interpolateHcl, in HCL: the hue along the shorter arc, chroma,
-    /// luminance and opacity linearly, an undefined component taking the
-    /// other color's.
+    /// d3's interpolateHcl, in HCL: the hue along the shorter arc, and the
+    /// chroma, luminance and opacity linearly. An undefined component takes
+    /// the other color's.
     fn lerp(&self, to: &Hcl, t: f64) -> Hcl {
         let [h, c, l, opacity] = Channel::four(
             [self.h, self.c, self.l, self.opacity],

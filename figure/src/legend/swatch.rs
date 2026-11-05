@@ -19,13 +19,13 @@ const TOLERANCE: f64 = 1e-3;
 
 /// What a legend draws beside each label, in the key's color, standing on
 /// the label's baseline in a box 0.7 em tall (matplotlib's
-/// `legend.handleheight`). A legend of a palette draws each key's as its
-/// marks report it ([`Legend`](crate::legend::Legend)); a square of a key
-/// whose marks are hatched repeats their [`Hatch`](crate::hatch::Hatch),
-/// and one of a translucent area, ribbon or density is drawn at the
-/// opacity it fills at, as matplotlib's legend handles are; a key filled
-/// by several marks takes the most opaque fill, so a square of opaque
-/// bars stays opaque beside a translucent density.
+/// `legend.handleheight`). A legend of a palette draws each key's swatch
+/// as its marks report it ([`Legend`](crate::legend::Legend)). A square of
+/// a key whose marks are hatched repeats their
+/// [`Hatch`](crate::hatch::Hatch). A square of a translucent area, ribbon
+/// or density is drawn at the opacity it fills at, as matplotlib's legend
+/// handles are. A key filled by several marks takes the most opaque fill,
+/// so a square of opaque bars stays opaque beside a translucent density.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -44,13 +44,12 @@ pub enum Swatch {
     #[default]
     Square,
     /// A filled dot of the theme's marker diameter (at most the square's
-    /// side), centred where the square would be: for scatters.
+    /// side), centered where the square would be: for scatters.
     Dot,
     /// A line 2 em long (matplotlib's `legend.handlelength`) at the height
-    /// of the square's centre, the theme's line width, solid or dashed by
-    /// `dash`, its on and off lengths in px as a line mark's `.dash`: for
-    /// lines. A dash that is not finite and non-negative with a positive
-    /// sum draws solid.
+    /// of the square's center, in the theme's line width: for lines. It is
+    /// solid, or dashed by `dash` as a line mark's `.dash` is. A dash that
+    /// is not finite and non-negative with a positive sum draws solid.
     Line {
         /// The dash's on and off lengths, px; `None` for a solid line.
         dash: Option<[f64; 2]>,
@@ -67,11 +66,11 @@ impl Swatch {
     }
 
     /// Appends the swatch in `color` to `list`, in its box `rect` in the
-    /// figure's coordinates, sized by `theme`; a square, as large as the
-    /// box's shorter side and centred in it, is hatched with `hatch`, anchored to the figure
-    /// as its marks' hatches are, and a dot is `size` px across when given
-    /// (a size legend's), else the theme's marker diameter at most the
-    /// box's height.
+    /// figure's coordinates, sized by `theme`. A square is as large as the
+    /// box's shorter side, centered in it, and hatched with `hatch`,
+    /// anchored to the figure as its marks' hatches are. A dot is `size` px
+    /// across when given (a size legend's), else the theme's marker
+    /// diameter, at most the box's height.
     pub(crate) fn draw(
         self,
         rect: Rect,

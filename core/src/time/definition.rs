@@ -4,11 +4,11 @@ use std::borrow::Cow;
 
 use crate::time::Ladder;
 
-/// The fields of d3's timeFormatLocale definition, plus the ladder: what
-/// [`Locale::new`](crate::time::Locale::new) builds a locale from. d3-time-format's
-/// JSON tables map onto it key by key (`dateTime` is `date_time`,
-/// `shortDays` is `short_days`, `shortMonths` is `short_months`); d3's
-/// tables label ticks with [`Ladder::D3`].
+/// The fields of d3's timeFormatLocale definition plus the tick-label
+/// [`Ladder`], from which [`Locale::new`](crate::time::Locale::new) builds
+/// a locale. d3-time-format's JSON tables map onto it key by key
+/// (`dateTime` is `date_time`, `shortDays` is `short_days`, `shortMonths`
+/// is `short_months`). d3's own tables label ticks with [`Ladder::D3`].
 ///
 /// ```
 /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};

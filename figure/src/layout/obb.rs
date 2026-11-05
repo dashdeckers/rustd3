@@ -7,7 +7,7 @@ use kurbo::{Point, Rect, Vec2};
 
 /// An oriented box in list px: its four corners in order around it and
 /// its two edge directions as unit vectors. An axis-aligned box keeps the
-/// exact edges of the rectangle it came from, so the test below decides
+/// exact edges of the rectangle it came from, so [`Obb::overlaps`] decides
 /// as the rectangles' own comparison would.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Obb {
@@ -50,9 +50,9 @@ impl Obb {
 
     /// Whether the boxes share interior, by the separating-axis test on
     /// the four edge directions of the two: boxes that touch do not
-    /// overlap. For two congruent boxes of one axis, centres `d` apart
-    /// along it at angle θ, it is the section's rule: disjoint iff
-    /// `d·|cos θ| ≥ w` or `d·|sin θ| ≥ h`.
+    /// overlap. For two congruent boxes on one axis, turned by θ with
+    /// centers `d` apart along it, the test reduces to the spacing rule:
+    /// they are disjoint iff `d·|cos θ| ≥ w` or `d·|sin θ| ≥ h`.
     pub(crate) fn overlaps(&self, other: &Obb) -> bool {
         [self.u, self.n, other.u, other.n].iter().all(|&axis| {
             let (a0, a1) = self.project(axis);
@@ -91,7 +91,7 @@ mod tests {
 
     use super::*;
 
-    /// A 60 × 15 px label at `deg`, its centre `d` px along x from the
+    /// A 60 × 15 px label at `deg`, its center `d` px along x from the
     /// origin.
     fn label(deg: f64, d: f64) -> Obb {
         let local = Rect::new(-30.0, -7.5, 30.0, 7.5);

@@ -9,8 +9,8 @@ use crate::locale::Locale;
 use crate::scale::{TickFormat, Transform, tick_format};
 use crate::ticks;
 
-/// What an axis needs from a scale: d3 duck-types it (`scale.ticks`,
-/// `scale.tickFormat`, `scale.bandwidth`), this names it.
+/// What an axis needs from a scale. d3 duck-types it (`scale.ticks`,
+/// `scale.tickFormat`, `scale.bandwidth`), and this trait names it.
 ///
 /// Labels are one batch over the whole set, so the neutral locale groups an
 /// axis all or nothing:
@@ -26,12 +26,13 @@ use crate::ticks;
 /// ```
 ///
 /// The method is `tick_set`, not `ticks`, because a scale's inherent
-/// `ticks(count)` is d3's and would shadow it; for the same reason a
+/// `ticks(count)` is d3's and would shadow it. For the same reason a
 /// continuous scale's minor ticks of a set are written
 /// `Ticks::minor(&scale, &set)`.
 ///
-/// Sealed: implemented for core's scales only, so that it can grow; a
-/// scale of one's own is a `Continuous` over a custom [`Transform`](crate::scale::Transform).
+/// The trait is sealed, implemented for core's scales only, so that it can
+/// grow. A scale of one's own is a `Continuous` over a custom
+/// [`Transform`](crate::scale::Transform).
 ///
 /// ```compile_fail,E0277
 /// use rustd3_core::scale::Ticks;
@@ -69,12 +70,12 @@ pub trait Ticks: crate::sealed::Ticks {
         Vec::new()
     }
 
-    /// The two ends of the domain as the scale maps them: the first and
-    /// last range value, d3's `range[0]` and `range[n-1]`, the span an axis
-    /// draws along; `[0, 1]` for a range that is not numeric (a color
-    /// scale's, which a colorbar maps to pixels). Unlike the scale's
-    /// `get_range`, the range as it was given (any length, any value
-    /// type), it is always two numbers.
+    /// The two ends of the domain as the scale maps them, the span an axis
+    /// draws along. For a numeric range they are the first and last range
+    /// values, d3's `range[0]` and `range[n-1]`. A range that is not
+    /// numeric, such as a color scale's, gives `[0, 1]`, which a colorbar
+    /// maps to pixels. Unlike the scale's `get_range`, which is the range
+    /// as given at any length and value type, this is always two numbers.
     fn ends(&self) -> [f64; 2];
 }
 
@@ -96,12 +97,12 @@ pub(super) fn labels(
 }
 
 /// The minor ticks of a scale under `transform` whose end stops are
-/// `ends`: the majors extended by one step on each side in transformed
-/// space (u₋₁ = 2u₀ − u₁, uₙ₊₁ = 2uₙ − uₙ₋₁), the transform's minor ticks
-/// of that list, kept inside the ends and off the majors. An extension
-/// that maps back to no finite value, or not past its end (a transform
-/// undefined there, such as a square root's negatives), is left out. None
-/// for fewer than two majors.
+/// `ends`. The majors are extended by one step on each side in transformed
+/// space (u₋₁ = 2u₀ − u₁, uₙ₊₁ = 2uₙ − uₙ₋₁), and the transform's minor
+/// ticks of that list are kept inside the ends and off the majors. An
+/// extension is left out when it maps back to no finite value or not past
+/// its end, as where the transform is undefined (a square root's
+/// negatives). None for fewer than two majors.
 pub(super) fn minor<T: Transform>(transform: &T, ends: [f64; 2], majors: &[f64]) -> Vec<f64> {
     let ([first, second, ..], [.., before, last]) = (majors, majors) else {
         return Vec::new();
@@ -127,10 +128,9 @@ pub(super) fn minor<T: Transform>(transform: &T, ends: [f64; 2], majors: &[f64])
         .collect()
 }
 
-/// A binned scale's ticks: its bin edges `values`, in order, with the
-/// smallest positive gap between neighbours as the step (NaN for none),
-/// which sets the labels' precision as d3's `tickFormat` uses its tick
-/// step.
+/// A binned scale's ticks, its bin edges `values` in order. The step is
+/// the smallest positive gap between neighbors, or NaN for none, and sets
+/// the labels' precision as d3's `tickFormat` uses its tick step.
 pub(super) fn edges(values: Vec<f64>, count: usize) -> ticks::Set<f64, f64> {
     let step = values
         .windows(2)

@@ -1,10 +1,10 @@
-//! The calendar units, days to years: civil arithmetic on the local date
-//! in the zone, resolved once per result as `Date` resolves a local time
-//! (jiff's compatible disambiguation), so São Paulo's skipped midnight
-//! floors to 01:00 and a day is not always 24 hours. Offsets keep the
-//! local time of day and carry a day of the month past the month's end
-//! into the next, as `setDate`, `setMonth` and `setFullYear` do (d3's
-//! `day.js`, `week.js`, `month.js` and `year.js`).
+//! The calendar units, days to years. They work by civil arithmetic on the
+//! local date in the zone, and resolve each result to an instant once, as
+//! JS `Date` resolves a local time (jiff's compatible disambiguation). So
+//! São Paulo's skipped midnight floors to 01:00, and a day is not always
+//! 24 hours. Offsets keep the local time of day and carry a day of the
+//! month past the month's end into the next, as `setDate`, `setMonth` and
+//! `setFullYear` do (d3's `day.js`, `week.js`, `month.js` and `year.js`).
 
 use jiff::civil::{Date, DateTime, Time, Weekday};
 use jiff::tz::TimeZone;
@@ -112,8 +112,9 @@ fn midnight(date: Date, tz: &TimeZone) -> Option<Timestamp> {
     resolve(date.to_datetime(Time::midnight()), tz)
 }
 
-/// The instant of the local `dt`, as `Date` resolves it: in a gap the
-/// offset before the transition, in a fold the earlier instant.
+/// The instant of the local `dt`, resolved as JS `Date` does. A time in a
+/// gap takes the offset before the transition, and a time in a fold takes
+/// the earlier instant.
 fn resolve(dt: DateTime, tz: &TimeZone) -> Option<Timestamp> {
     tz.to_timestamp(dt).ok()
 }

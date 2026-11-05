@@ -1,6 +1,6 @@
-//! The wheel figure: its samples, marks, bars and
-//! fitted domains against `tests/fixtures/wheels.json` (from matplotlib's
-//! autoscaling of the same artists), its checks at two sizes, its labels and lowering, text
+//! The wheel figure: its samples, marks, bars and fitted domains against
+//! `tests/fixtures/wheels.json` (from matplotlib's autoscaling of the same
+//! artists), its checks at two sizes, its labels and lowering, text
 //! snapshots of its list and SVG, and its PDF through poppler.
 
 use benchkit::gallery::wheels;

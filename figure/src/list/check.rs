@@ -5,11 +5,15 @@ use peniko::{Brush, Gradient, GradientKind, ImageData};
 
 use crate::list::{Clip, Command, Error, List, Paints};
 
-/// Checks that every backend can draw `list`: Push and Pop balanced; glyph
-/// fonts inside the font table; markers channels as long as their points,
-/// with paint indices inside the table; image data of width × height × 4
-/// bytes; parts ordered, non-overlapping, balanced and inside the commands
-/// (any `hash` is accepted); every coordinate finite.
+/// Checks that every backend can draw `list`:
+/// - Push and Pop are balanced;
+/// - glyph fonts are inside the font table;
+/// - markers channels are as long as their points, with paint indices
+///   inside the table;
+/// - image data is width × height × 4 bytes;
+/// - parts are ordered, non-overlapping, balanced and inside the commands
+///   (any `hash` is accepted);
+/// - every coordinate is finite.
 ///
 /// # Errors
 ///
@@ -91,7 +95,8 @@ pub fn check(list: &List) -> Result<(), Error> {
     parts(list)
 }
 
-/// The parts in order, inside the commands, each balanced.
+/// Checks that the parts are in order, inside the commands, and each
+/// balanced.
 fn parts(list: &List) -> Result<(), Error> {
     let len = list.commands.len();
     let mut previous = 0;
@@ -137,7 +142,7 @@ fn parts(list: &List) -> Result<(), Error> {
     Ok(())
 }
 
-/// The first non-finite value, as an error.
+/// Checks that every value is finite; the first that is not is the error.
 fn finite(command: usize, values: impl IntoIterator<Item = f64>) -> Result<(), Error> {
     match values.into_iter().find(|v| !v.is_finite()) {
         Some(value) => Err(Error::NonFinite { command, value }),
@@ -170,7 +175,8 @@ fn points(el: PathEl) -> [Option<Point>; 3] {
     }
 }
 
-/// A paint's geometry finite and its image, if any, of the right length.
+/// Checks that a paint's geometry is finite and its image, if any, has
+/// the right length.
 fn brush(command: usize, paint: &Brush) -> Result<(), Error> {
     match paint {
         Brush::Solid(color) => finite(command, color.components.map(f64::from)),

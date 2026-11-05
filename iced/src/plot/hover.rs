@@ -1,14 +1,15 @@
 //! [`Hover`]: the drawn point under the pointer, as `Plot::on_hover`
-//! reports it, and [`Hits`]: the hit index the widget keeps per resolve
-//! and the hover it last reported.
+//! reports it. [`Hits`]: the hit index the widget keeps per resolve, and
+//! the hover it last reported.
 //!
 //! The index holds the points the marks of the last drawing list draw. It
-//! is rebuilt only when a refresh builds a list whose cells changed (a
-//! list whose cells all hash as before draws the same points), so pointer
-//! moves between redraws query it and resolve nothing; only for a widget
-//! that reads it (the highlight, `Plot::on_hover`), and not while a
-//! gesture lasts, whose frames hit-test nothing: the first refresh after
-//! the gesture builds it, and until then nothing is hit-tested.
+//! is rebuilt only when a refresh builds a list whose cells changed, since
+//! a list whose cells all hash as before draws the same points. Pointer
+//! moves between redraws therefore query it and resolve nothing. It is
+//! built only for a widget that reads it (the highlight, `Plot::on_hover`),
+//! and not while a gesture lasts, whose frames hit-test nothing. The first
+//! refresh after the gesture builds it, and until then nothing is
+//! hit-tested.
 
 use iced_core::Point;
 use rustd3_figure::{hit, kurbo};
@@ -21,13 +22,15 @@ pub(crate) const RADIUS: f64 = 12.0;
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct Hover {
-    /// Flat panel index (`hit::Hit::panel`); `Resolved::get_panel_cell` maps it back.
+    /// The flat panel index (`hit::Hit::panel`), which
+    /// `Resolved::get_panel_cell` maps back.
     pub panel: usize,
-    /// Index of the mark in the panel's insertion order.
+    /// The index of the mark in the panel's insertion order.
     pub mark: usize,
-    /// Index of the item in the mark's data (thinned marks: the sample index).
+    /// The index of the item in the mark's data (for a thinned mark, the
+    /// sample index).
     pub index: usize,
-    /// Pointer position in widget coordinates.
+    /// The pointer position in widget coordinates.
     pub at: Point,
 }
 
@@ -35,7 +38,7 @@ pub struct Hover {
 /// reported.
 #[derive(Debug, Default)]
 pub(crate) struct Hits {
-    /// The points the last list's marks draw, list px.
+    /// The points the last list's marks draw, in list px.
     index: hit::Index,
     /// The hover under the pointer at the last hit test.
     now: Option<Hover>,
@@ -64,17 +67,18 @@ impl Hits {
             .filter(|hit| hit.panel == panel)
     }
 
-    /// The hover a hit test found; true when its point differs from the
-    /// last hit test's, so the widget redraws and the frame reports it.
+    /// Records the hover a hit test found. Returns true when its point
+    /// differs from the last hit test's, so the widget redraws and the
+    /// frame reports it.
     pub(crate) fn set(&mut self, now: Option<Hover>) -> bool {
         let changed = now.map(|hover| hover.key()) != self.now.map(|hover| hover.key());
         self.now = now;
         changed
     }
 
-    /// The hover to report, once per change of the hovered point: the
-    /// hover now when its panel, mark and index differ from the last
-    /// reported (`None` once when it was lost).
+    /// The hover to report, once per change of the hovered point. It is
+    /// the current hover when its panel, mark and index differ from the
+    /// last reported, and `Some(None)` once when the point was lost.
     pub(crate) fn report(&mut self) -> Option<Option<Hover>> {
         let key = self.now.map(|hover| hover.key());
         (key != self.reported).then(|| {

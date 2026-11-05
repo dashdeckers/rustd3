@@ -19,10 +19,11 @@ const TOLERANCE: f64 = 0.01;
 /// The page `frame` as a shaped label. Text and shapes typst paints with
 /// a gradient or tiling take `fill`. The box is the frame's: its width is
 /// the advance width, its height the ink's under `"bounds"` text edges. The
-/// ascent is the baseline of the first frame that has one, the label's
-/// `box`, which typst sets at its first line's baseline (the page frame's
-/// own baseline is unset and would be the height); a label that starts
-/// with a fraction or a radical has its first text item well above it.
+/// ascent is the baseline of the first frame that has one, which is the
+/// label's `box`, set by typst at its first line's baseline. The page
+/// frame's own baseline is unset and would be the height. A label that
+/// starts with a fraction or a radical has its first text item well above
+/// that baseline.
 pub(crate) fn page(fonts: &Arc<Fonts>, frame: &Frame, fill: Color) -> Shaped {
     let mut walk = Walk {
         fonts,
@@ -87,7 +88,7 @@ struct Walk<'a> {
 }
 
 impl Walk<'_> {
-    /// `frame`'s items, placed by `at`.
+    /// Walks `frame`'s items, placed by `at`.
     fn frame(&mut self, frame: &Frame, at: Affine) {
         for (pos, item) in frame.items() {
             let here = at * Affine::translate((pos.x.to_pt(), pos.y.to_pt()));
@@ -108,7 +109,8 @@ impl Walk<'_> {
         }
     }
 
-    /// One run; glyph positions from the pen, advances and offsets.
+    /// Adds one run, with glyph positions from the pen, advances and
+    /// offsets.
     fn text(&mut self, text: &TextItem, at: Affine) {
         let size = text.size;
         let mut pen = 0.0;
@@ -143,7 +145,7 @@ impl Walk<'_> {
         }));
     }
 
-    /// A shape's fill and its stroke's outline, each as a fill.
+    /// Adds a shape's fill and its stroke's outline, each as a fill.
     fn shape(&mut self, shape: &visualize::Shape, at: Affine) {
         let path = geometry(&shape.geometry);
         if let Some(fill) = &shape.fill {

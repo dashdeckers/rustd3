@@ -1,14 +1,15 @@
-//! [`Run`]: gutter cells merged into one slot. The partition cuts the
-//! canvas at every plot-area edge, so an axis strip under a row of panels,
-//! with the corners its labels reach into, is several cells that a pan
-//! re-renders together; each would be its own render and its own image.
-//! After the cells are classified, the adjacent gutter cells of one row
-//! band that depend on the same handles ([`Dep`]) merge, from the left,
-//! while the merged image stays under `BAND_BYTES` (a single cell at or
-//! over it stays alone and is drawn as bands). Merging happens when the
-//! partition is built: during a gesture the layout holds, so the runs hold
-//! too, and a run whose cells change apart from each other only renders
-//! more pixels than it had to.
+//! [`Run`]: gutter cells merged into one slot.
+//!
+//! The partition cuts the canvas at every plot-area edge. An axis strip
+//! under a row of panels, with the corners its labels reach into, is
+//! therefore several cells that a pan re-renders together, and each would
+//! be its own render and its own image. After the cells are classified,
+//! the adjacent gutter cells of one row band that depend on the same
+//! handles ([`Dep`]) merge from the left, while the merged image stays
+//! under `BAND_BYTES`. A single cell at or over that size stays alone and
+//! is drawn as bands. Merging happens when the partition is built. During
+//! a gesture the layout holds, so the runs hold too, and a run whose cells
+//! change apart from each other only renders more pixels than it had to.
 
 use std::ops::Range;
 
@@ -29,10 +30,10 @@ pub(crate) struct Run {
 /// What a gutter cell's content changes with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum Dep {
-    /// A handle, by its table position: the ticks and labels of an axis
-    /// that shows it.
+    /// A handle, by its table position, for the ticks and labels of an
+    /// axis that shows it.
     Handle(usize),
-    /// A part that changes on its own: a legend.
+    /// A part that changes on its own, such as a legend.
     Part(part::Id),
 }
 
@@ -78,17 +79,18 @@ impl Run {
         self.slot
     }
 
-    /// The content hash of its cells, whose hashes are `hashes` (one per
-    /// partition cell): FNV-1a 64 of theirs in order.
+    /// The content hash of its cells, given `hashes` (one per partition
+    /// cell). It is FNV-1a 64 of the cells' hashes in order.
     pub(crate) fn hash(&self, hashes: &[u64]) -> u64 {
         self.cells.clone().fold(FNV, |h, c| fnv(h, hashes[c]))
     }
 }
 
-/// The runs of a partition `across` cells wide whose cells' device rects
-/// are `rects`, plot-area `owner`s and dependency sets `deps`: in each
-/// row, the cells no plot area holds, adjacent ones with the same set
-/// merged from the left while the merged RGBA stays under `BAND_BYTES`.
+/// The runs of a partition `across` cells wide, whose cells have device
+/// rects `rects`, plot-area owners `owner` and dependency sets `deps`. In
+/// each row the cells no plot area holds form runs. Adjacent ones with the
+/// same set merge from the left while the merged RGBA stays under
+/// `BAND_BYTES`.
 pub(crate) fn runs(
     rects: &[[i32; 4]],
     across: usize,
@@ -118,9 +120,10 @@ pub(crate) fn runs(
 }
 
 /// The dependency set of each cell of `cells`, cut from the chrome `list`
-/// of `resolved`: the handles of the axes whose ticks and labels reach
-/// into it, and the legends that do, sorted, each once. Spines, borders,
-/// titles and the background change with the layout alone.
+/// of `resolved`. It holds the handles of the axes whose ticks and labels
+/// reach into the cell, and the legends that do, sorted, each once.
+/// Spines, borders, titles and the background change with the layout
+/// alone.
 pub(crate) fn deps(cells: &list::Cells, list: &List, resolved: &Resolved) -> Vec<Vec<Dep>> {
     cells
         .cells
@@ -165,8 +168,8 @@ mod tests {
 
     #[test]
     fn cells_with_the_same_handles_merge_along_a_row() {
-        // Corner, axis strip, corner, the next panel's strip, corner; the
-        // second panel's cell is a plot area's.
+        // Corner, axis strip, corner, the next panel's strip, corner. The
+        // fourth cell lies in the second panel's plot area.
         let rects = row(&[50, 400, 30, 400, 20]);
         let owner = [None, None, None, Some(1), None];
         let x = vec![Dep::Handle(0)];
@@ -179,7 +182,7 @@ mod tests {
 
     #[test]
     fn runs_stay_in_their_row_and_under_band_bytes() {
-        // Two rows of two cells: the second row starts a new run.
+        // Two rows of two cells, where the second row starts a new run.
         let mut rects = row(&[100, 100]);
         rects.extend(
             row(&[100, 100])
@@ -188,8 +191,8 @@ mod tests {
         );
         let none = vec![Vec::new(); 4];
         assert_eq!(runs(&rects, 2, &[None; 4], &none), [0..2, 2..4]);
-        // Cells 4,000 px wide and 40 tall hold 640,000 bytes: three merge
-        // (1,920,000 < 2 MiB = 2,097,152), the fourth starts a new run.
+        // Cells 4,000 px wide and 40 tall hold 640,000 bytes. Three merge
+        // (1,920,000 < 2 MiB = 2,097,152), and the fourth starts a new run.
         let wide = row(&[4_000; 5]);
         assert_eq!(BAND_BYTES, 2_097_152);
         assert_eq!(

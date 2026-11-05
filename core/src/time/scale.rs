@@ -37,7 +37,8 @@ pub struct Time {
     range: [f64; 2],
     zone: TimeZone,
     clamp: bool,
-    /// d3's utc tick intervals (`UnixDay` for days), as `scaleUtc` takes.
+    /// Whether ticks use d3's utc intervals (`UnixDay` for days), as
+    /// `scaleUtc`'s do.
     utc_ticks: bool,
 }
 
@@ -90,11 +91,11 @@ impl Time {
         &self.zone
     }
 
-    /// The range value of `t` (d3's `scale(t)`): its offset from the
-    /// domain's start over the domain's span, blended between the range's
-    /// ends as d3's `interpolateNumber`; the middle of the range for equal
-    /// ends, as d3's `normalize`. When clamping, the fraction is kept to
-    /// [0, 1] first.
+    /// The range value of `t` (d3's `scale(t)`). `t`'s offset from the
+    /// domain's start, as a fraction of the domain's span, is blended
+    /// between the range's ends as d3's `interpolateNumber` does. Equal
+    /// domain ends give the middle of the range, as d3's `normalize` does.
+    /// When clamping, the fraction is kept to [0, 1] first.
     #[must_use]
     pub fn apply(&self, t: Timestamp) -> f64 {
         let span = self.span();
@@ -108,10 +109,10 @@ impl Time {
     }
 
     /// d3's `invert(y)`: the instant that maps to `y`, rounded to the
-    /// nanosecond, the domain's middle for a flat range (d3's `normalize`),
-    /// within the domain when clamping. It saturates at jiff's first and
-    /// last instants; a NaN `y`, where d3 has an Invalid Date, gives the
-    /// domain's start.
+    /// nanosecond. A flat range gives the domain's middle (d3's
+    /// `normalize`), and clamping keeps the result within the domain. It
+    /// saturates at jiff's first and last instants. A NaN `y`, where d3 has
+    /// an Invalid Date, gives the domain's start.
     #[must_use]
     pub fn invert(&self, y: f64) -> Timestamp {
         let offset = self.offset(self.kept(self.position(y)));

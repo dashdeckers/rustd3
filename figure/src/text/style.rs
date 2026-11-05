@@ -9,7 +9,7 @@ use crate::text::anchor;
 pub struct Style {
     /// Font size in px (typst's `pt` used as a plain unit).
     pub size: f64,
-    /// Bold weight for the whole label.
+    /// Whether the whole label is bold.
     pub bold: bool,
     /// The color of text no span colors.
     pub fill: Rgb,

@@ -1,12 +1,12 @@
-//! [`Keyed`]: a palette key applied to the figure's marks a chart draws
-//! through.
+//! [`Keyed`]: a palette key applied to the figure marks a chart draws
+//! with.
 
 use crate::mark::{Line, Rect};
 use crate::scale::{Paint, Position, ScaleRef};
 
-/// A palette handle and one of its keys, with the palette's type erased:
-/// what `.fill(palette, key)` or `.stroke(palette, key)` gives a chart
-/// that draws through [`rect`](crate::mark::rect) or
+/// A palette handle and one of its keys, with the palette's type erased.
+/// It is what `.fill(palette, key)` or `.stroke(palette, key)` gives a
+/// chart that draws with [`rect`](crate::mark::rect) or
 /// [`line`](crate::mark::line).
 pub(super) trait Keyed<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
     /// `m` filled with the key's color.

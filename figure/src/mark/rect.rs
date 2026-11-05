@@ -33,9 +33,9 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for R
     }
 }
 
-/// One filled rectangle per row `([x0, x1], [y0, y1])` on `x` and `y`:
-/// all four edges enter fitting, none is held. Rows over shared bin edges
-/// stack histograms.
+/// One filled rectangle per row `([x0, x1], [y0, y1])` on `x` and `y`.
+/// All four edges enter fitting, and none is held. Rows over shared bin
+/// edges stack histograms.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -145,10 +145,10 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
     }
 }
 
-/// Pushes `r`, a rectangle in the panel's coordinates, filled with `paint`:
-/// clipped to the guard band of `ctx`'s plot area, its edges on device
-/// pixel boundaries on raster targets; nothing when that leaves no area.
-/// The rectangle filled, if any.
+/// Pushes `r`, a rectangle in the panel's coordinates, filled with `paint`
+/// and clipped to the guard band of `ctx`'s plot area. On raster targets
+/// its edges lie on device pixel boundaries. Pushes nothing when clipping
+/// leaves no area. Returns the rectangle filled, if any.
 pub(super) fn fill(
     list: &mut List,
     ctx: &Ctx<'_>,

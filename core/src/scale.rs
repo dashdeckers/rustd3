@@ -1,12 +1,13 @@
-//! d3-scale's continuous scales as plain values: built by consuming
-//! builders, read by `apply`, `invert`, `ticks` and `tick_format`, and
-//! generic over a public [`Transform`] and the range type; d3's identity
-//! scale; its sequential and diverging scales, a transform followed by an
-//! interpolator such as a color scheme; its band, point and ordinal scales
-//! over an explicit domain of keys; its quantize, quantile and threshold
-//! scales, which cut a domain into bins; [`Ticks`], what an axis or a
-//! colorbar needs from any of them; and [`Pad`], a domain fitted to data as
-//! matplotlib autoscales an axis.
+//! d3-scale's scales as plain values, built by consuming builders.
+//!
+//! The continuous scales are generic over a [`Transform`] and the range
+//! type, and are read by `apply`, `invert`, `ticks` and `tick_format`. The
+//! other families are d3's identity scale, the sequential and diverging
+//! scales (a transform followed by an interpolator such as a color scheme),
+//! the band, point and ordinal scales over an explicit domain of keys, and
+//! the quantize, quantile and threshold scales, which cut a domain into
+//! bins. [`Ticks`] is what an axis or a colorbar needs from any of them, and
+//! [`Pad`] fits a domain to data as matplotlib autoscales an axis.
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -22,9 +23,9 @@
 //! # Ok::<(), rustd3_core::format::InvalidFormat>(())
 //! ```
 
-/// Calls `$then!` with the names of the built-in transforms, the variants
-/// of `transform::Any`: one list for its forwarding and for the
-/// conversions into `AnyContinuous`.
+/// Calls `$then!` with the names of the built-in transforms, which are the
+/// variants of `transform::Any`. The one list serves both `Any`'s
+/// forwarding and the conversions into `AnyContinuous`.
 macro_rules! builtin_transforms {
     ($then:ident) => {
         $then!(Identity, Pow, Log, Symlog, Logit, Asinh, Func);
@@ -121,8 +122,8 @@ pub fn log() -> Log {
     continuous(transform::Log::new(10.0)).domain([1.0, 10.0])
 }
 
-/// d3.scaleSymlog(): constant 1, domain [0, 1], range [0, 1]; ticks by
-/// decades past the constant where d3 ticks linearly.
+/// d3.scaleSymlog(): constant 1, domain [0, 1], range [0, 1]. Past the
+/// constant it ticks by decades, where d3 ticks linearly.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -136,9 +137,9 @@ pub fn symlog() -> Symlog {
     continuous(transform::Symlog::new(1.0))
 }
 
-/// A logit scale for probabilities: domain [0, 1] (which the transform
-/// sends to ±∞, so set a domain inside (0, 1)) and range [0, 1]; ticks at
-/// 0.5 and decades towards 0 and 1.
+/// A logit scale for probabilities, with domain [0, 1] and range [0, 1].
+/// The transform sends 0 and 1 to ±∞, so set a domain inside (0, 1). Ticks
+/// fall at 0.5 and at decades towards 0 and 1.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -151,9 +152,9 @@ pub fn logit() -> Logit {
     continuous(transform::Logit)
 }
 
-/// An inverse hyperbolic sine scale: linear width 1, domain [0, 1], range
-/// [0, 1]; ticks at signed powers of ten, as matplotlib's asinh scale,
-/// a domain end at an exact power of ten included.
+/// An inverse hyperbolic sine scale with linear width 1, domain [0, 1] and
+/// range [0, 1]. As in matplotlib's asinh scale, ticks fall at signed
+/// powers of ten, including a domain end that is an exact power of ten.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -169,8 +170,8 @@ pub fn asinh() -> Asinh {
     continuous(transform::Asinh::new(1.0))
 }
 
-/// A scale under the closures `forward` and `inverse`, ticked by `rule`:
-/// the choice of rule is part of the signature.
+/// A scale under the closures `forward` and `inverse`, ticked by `rule`,
+/// which has no default.
 ///
 /// ```
 /// use rustd3_core::scale::{self, TickRule};
@@ -186,10 +187,10 @@ pub fn func(
     continuous(transform::Func::new(forward, inverse, rule))
 }
 
-/// d3-scale's linear nice (linear.js): `domain` extended to multiples of
-/// the tick increment for `count` ticks, written back only once the
-/// increment stops changing within ten tries (d3-array's `nice` writes
-/// back every try).
+/// Extends `domain` to multiples of the tick increment for `count` ticks,
+/// as d3-scale's linear nice (linear.js). The result is written back only
+/// once the increment stops changing within ten tries, where d3-array's
+/// `nice` writes back every try.
 pub(crate) fn nice_linear(domain: [f64; 2], count: usize) -> [f64; 2] {
     let reverse = domain[1] < domain[0];
     let [mut start, mut stop] = if reverse {
@@ -221,8 +222,8 @@ pub(crate) fn nice_linear(domain: [f64; 2], count: usize) -> [f64; 2] {
     domain
 }
 
-/// `keys` in order, each kept at its first position: d3's categorical
-/// domains, which an `InternMap` dedupes.
+/// Returns `keys` without duplicates, each kept at its first position, as
+/// d3's `InternMap` dedupes a categorical domain.
 fn unique<K: PartialEq>(keys: impl IntoIterator<Item = K>) -> Vec<K> {
     let mut out: Vec<K> = Vec::new();
     for key in keys {

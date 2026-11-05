@@ -20,10 +20,10 @@ use crate::scale::Kind;
 /// `Figure::fit` and `Figure::fit_with` take. Every kind is one except
 /// `Quantile`, whose domain is the data sample itself. Continuous and time
 /// scales are fitted with the theme's margin, or rounded to nice values
-/// under `Domains::Nice` ([`Kind::niced`]); color scales and quantize
-/// to the data's extent with none; band, point, ordinal and threshold
-/// scales keep the domain they were built with, since their keys or
-/// thresholds are the domain.
+/// under `Domains::Nice` ([`Kind::niced`]). Color scales and quantize are
+/// fitted to the data's extent with no margin. Band, point, ordinal and
+/// threshold scales keep the domain they were built with, since their keys
+/// or thresholds are the domain.
 pub trait Fittable: Kind {}
 
 impl<T: scale::Transform + 'static, const N: usize> Fittable for Continuous<T, f64, N> {}

@@ -1,13 +1,13 @@
-//! d3.piecewise: one interpolator per neighbouring pair of values.
+//! d3.piecewise: one interpolator per neighboring pair of values.
 
 use std::sync::Arc;
 
 /// d3.piecewise(interpolate, values): `interpolator` built for each pair of
-/// neighbouring `values`, and `t` in [0, 1] spread over the N − 1
-/// segments: segment `i = floor(t·(N − 1))`, clamped to the first and
-/// last, evaluated at `t·(N − 1) − i`, so `t` outside [0, 1] extrapolates
-/// the end segments. Fewer than two values fail to compile when the
-/// function is instantiated, where d3 fails when called.
+/// neighboring `values`, with `t` in [0, 1] spread over the N − 1
+/// segments. Segment `i = floor(t·(N − 1))`, clamped to the first and
+/// last, is evaluated at `t·(N − 1) − i`, so `t` outside [0, 1]
+/// extrapolates the end segments. Fewer than two values fail to compile
+/// when the function is instantiated, where d3 fails when called.
 ///
 /// ```
 /// use rustd3_core::color::Rgb;

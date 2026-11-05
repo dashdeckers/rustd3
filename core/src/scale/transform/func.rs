@@ -10,8 +10,8 @@ use crate::scale::{self, TickFormat, TickRule, Transform};
 type Map = Arc<dyn Fn(f64) -> f64 + Send + Sync>;
 
 /// A transform from a forward and an inverse closure, ticked by the
-/// [`TickRule`] it was built with and labelled to the places of its ticks'
-/// smallest gap; see [`scale::func`](crate::scale::func).
+/// [`TickRule`] it was built with and labeled to the places of its ticks'
+/// smallest gap. See [`scale::func`](crate::scale::func).
 #[derive(Clone)]
 pub struct Func {
     forward: Map,
@@ -56,11 +56,11 @@ impl Transform for Func {
         self.rule.ticks(self, domain, count)
     }
 
-    /// With no specifier, the labels of a scale whose tick rule replaces
-    /// its transform's: `,f` to the places of the smallest gap between
-    /// this transform's ticks, every tick labelled. A given specifier, or
-    /// fewer than two ticks, takes d3's linear tick format; under
-    /// [`TickRule::Data`] the two agree.
+    /// With no specifier, `,f` to the places of the smallest gap between
+    /// this transform's ticks, labeling every tick, as for a scale whose
+    /// tick rule replaces its transform's. A given specifier, or fewer than
+    /// two ticks, takes d3's linear tick format. Under [`TickRule::Data`]
+    /// the two agree.
     fn tick_format(
         &self,
         locale: &Locale,

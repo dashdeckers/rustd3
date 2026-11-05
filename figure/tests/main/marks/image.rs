@@ -12,7 +12,8 @@ use rustd3_figure::{Figure, Held, Target};
 use super::marked;
 use crate::figure::{cache, resolve};
 
-/// The image a list's marks drew: its rect, size and straight RGBA bytes.
+/// The image a list's marks drew: its rect, size, straight RGBA bytes,
+/// and whether it is smoothed.
 fn drawn(list: &List) -> (Rect, [u32; 2], Vec<u8>, bool) {
     list::check(list).expect("a valid list");
     let marked = marked(list);

@@ -20,8 +20,8 @@ pub(crate) struct CatmullRom {
     chords: Chords,
 }
 
-/// d3's curveCatmullRomClosed: no area flag; the first three points are
-/// drawn again at the end.
+/// d3's curveCatmullRomClosed, which has no area flag. The first three
+/// points are drawn again at the end.
 pub(crate) struct CatmullRomClosed {
     point: u8,
     chords: Chords,
@@ -233,7 +233,7 @@ impl Chords {
         (self.l01_2a, self.l12_2a, self.l23_2a) = (0.0, 0.0, 0.0);
     }
 
-    /// The chord from `p2` to the next point `p`.
+    /// Measures the chord from `p2` to the next point `p`.
     fn measure(&mut self, (x, y): (f64, f64)) {
         let (dx, dy) = (self.p2.0 - x, self.p2.1 - y);
         self.l23_2a = (dx * dx + dy * dy).powf(self.alpha);

@@ -41,13 +41,13 @@ pub enum Event {
     Wheel(Delta),
     /// The keyboard modifiers change. Missing flags default to false.
     Modifiers {
-        /// Control.
+        /// Whether Control is held.
         #[serde(default)]
         ctrl: bool,
-        /// Shift.
+        /// Whether Shift is held.
         #[serde(default)]
         shift: bool,
-        /// Alt.
+        /// Whether Alt is held.
         #[serde(default)]
         alt: bool,
     },
@@ -183,7 +183,7 @@ impl Replay {
         out
     }
 
-    /// Parses JSON Lines; blank lines are skipped and times must not
+    /// Parses JSON Lines. Blank lines are skipped, and times must not
     /// decrease.
     pub fn from_jsonl(text: &str) -> Result<Replay, Error> {
         let mut events: Vec<Timed> = Vec::new();

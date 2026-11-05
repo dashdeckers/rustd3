@@ -49,7 +49,8 @@ impl Tolerance {
         }
     }
 
-    /// NaN equals only NaN; infinities equal only themselves.
+    /// Whether `a` and `b` agree within the bounds. NaN equals only NaN, and
+    /// an infinity equals only itself.
     pub(super) fn numbers(&self, a: f64, b: f64) -> bool {
         if a.is_nan() || b.is_nan() {
             return a.is_nan() && b.is_nan();

@@ -1,18 +1,21 @@
-//! The `figure` profile: what a user of the plotting library
-//! alone pays, at every level, headless and without iced, so it runs on
-//! any machine. For each [`Subject`], each [`Stage`] from building the
-//! figure to its files is timed through the library's public API with its
+//! The `figure` profile: what a user of the plotting library alone pays,
+//! at every level. It runs headless and without iced, so it runs on any
+//! machine. For each [`Subject`], each [`Stage`] from building the figure
+//! to its files is timed through the library's public API with its
 //! default settings, a cold repetition first and then the level's
-//! repetitions. Each figure runs in a process of its own (`figure-child`):
-//! in one process the resident high-water mark carries what earlier
-//! figures left with the allocator, so a figure's peak would depend on
-//! what ran before it; alone, its peak memory (Linux's
-//! `/proc/self/status`, "n/a" elsewhere) is its own, its first repetition
-//! is cold as a program's first figure is, and a crash fails that figure
-//! only. There are no budgets: the profile is report-only, and the CPU
-//! reference puts its numbers on a scale across machines. It writes
+//! repetitions.
+//!
+//! Each figure runs in a process of its own (`figure-child`). In a shared
+//! process, the resident high-water mark would carry what earlier figures
+//! left with the allocator, so a figure's peak would depend on what ran
+//! before it. Alone, its peak memory (Linux's `/proc/self/status`, "n/a"
+//! elsewhere) is its own, its first repetition is cold as a program's
+//! first figure is, and a crash fails that figure only.
+//!
+//! There are no budgets. The profile is report-only, and the CPU reference
+//! puts its numbers on a scale across machines. It writes
 //! `figure/summary.csv`, `figure/report.md` and `run-figure.log` into the
-//! level's directory and its entry in `results.json`.
+//! level's directory, and its entry in `results.json`.
 
 mod report;
 mod rss;
@@ -50,8 +53,8 @@ pub struct Plan {
     pub outputs: Vec<Stage>,
     /// Repetitions after the cold one.
     pub repetitions: u32,
-    /// The machine's memory, MiB (0: unknown), against which a figure
-    /// that needs more than [`MEMORY_SHARE`] of it is skipped.
+    /// The machine's memory in MiB, or 0 when unknown. A figure that needs
+    /// more than [`MEMORY_SHARE`] of it is skipped.
     pub ram_mb: u64,
 }
 
@@ -77,12 +80,14 @@ const LINES: [usize; 4] = [10_000, 100_000, 1_000_000, 10_000_000];
 const SCATTERS: [usize; 3] = [1_000, 10_000, 1_000_000];
 
 impl Plan {
-    /// The profile at `level` on a machine of `ram_mb` MiB (0: unknown):
-    /// at `--quick` the six main figures, 7 repetitions after the cold
-    /// one; at `--default` also the ladders (lines of 10k to 10M samples,
-    /// scatters of 1k to 1M markers), the presets and the wheel figure, 10
-    /// repetitions; at `--full` the scatters to 10M markers and a GIF of
-    /// every figure but the ladders', 15 repetitions.
+    /// The profile at `level` on a machine of `ram_mb` MiB (0 when
+    /// unknown):
+    /// - `--quick`: the six main figures, 7 repetitions after the cold one.
+    /// - `--default`: also the ladders (lines of 10k to 10M samples,
+    ///   scatters of 1k to 1M markers), the presets and the wheel figure,
+    ///   10 repetitions.
+    /// - `--full`: the scatters to 10M markers and a GIF of every figure
+    ///   but the ladders', 15 repetitions.
     pub fn of(level: Level, ram_mb: u64) -> Plan {
         let outputs = vec![Stage::Svg, Stage::Pdf, Stage::Png(1), Stage::Png(2)];
         let mut subjects = MAIN.to_vec();
@@ -152,8 +157,9 @@ impl Plan {
         )
     }
 
-    /// Its estimated wall time, s: each subject's repetitions on two
-    /// cores at 2.1 GHz, where it was measured, those skipped aside.
+    /// Its estimated wall time in s: each subject's repetitions on two
+    /// cores at 2.1 GHz, where the estimates were measured, leaving out
+    /// skipped subjects.
     pub fn estimate_s(&self) -> f64 {
         self.subjects
             .iter()
@@ -168,7 +174,7 @@ impl Plan {
     /// Times every subject, each in its own process of the bench at
     /// `exe` (`figure-child`), prints each as it ends, and writes
     /// `figure/summary.csv`, `figure/report.md` and `run-figure.log` into
-    /// `dir`: the profile's entry in `results.json`.
+    /// `dir`. Returns the profile's entry in `results.json`.
     pub fn run(&self, exe: &Path, dir: &Path) -> Result<results::Profile, Box<dyn Error>> {
         let out = dir.join(NAME);
         fs::create_dir_all(&out)?;
@@ -230,11 +236,11 @@ impl Plan {
         Ok(profile)
     }
 
-    /// `subject` timed in a process of its own, `exe figure-child --level
-    /// L --subject NAME`, which prints the figure as JSON: each figure's
-    /// peak memory is its own and its first repetition truly cold, whatever
-    /// ran before it. A child that fails or outlives its limit leaves the
-    /// figure failed, with why.
+    /// `subject` timed in a process of its own,
+    /// `exe figure-child --level L --subject NAME`, which prints the figure
+    /// as JSON. Each figure's peak memory is then its own, and its first
+    /// repetition truly cold, whatever ran before it. A child that fails or
+    /// outlives its limit leaves the figure failed, with the reason.
     fn spawn(&self, exe: &Path, subject: Subject) -> results::Figure {
         let failed = |why: String| results::Figure {
             failed: Some(why),
@@ -279,9 +285,9 @@ impl Plan {
         }
     }
 
-    /// `subject` timed in this process: its data generated, the
-    /// high-water mark reset, then a cold repetition and the plan's
-    /// repetitions of its stages; a stage's error or a panic leaves it
+    /// `subject` timed in this process. It generates the data, resets the
+    /// high-water mark, then runs a cold repetition and the plan's
+    /// repetitions of its stages. A stage's error or a panic leaves it
     /// failed with the reason.
     fn time(&self, subject: Subject) -> results::Figure {
         let size = subject.size();

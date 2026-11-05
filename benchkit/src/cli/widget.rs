@@ -40,7 +40,8 @@ pub enum Command {
     ReproSoftware {
         /// `--out FILE`; `None` is `bench-results/repro-<UTC stamp>.txt`.
         out: Option<PathBuf>,
-        /// `--single`: one window-sized image in place of the grid of 40.
+        /// `--single`: one image larger than the window in place of the
+        /// grid of 40.
         single: bool,
     },
 }
@@ -62,8 +63,8 @@ pub struct Options {
     /// `--budgets`: the budgets the report holds the cells to; `None` is
     /// the plan's (`weak` for the weak plan, else the desktop's).
     pub budgets: Option<rule::Profile>,
-    /// False with `--no-also`: the report's "Also measured" items are not
-    /// measured after the runs.
+    /// Whether the report's "Also measured" items are measured after the
+    /// runs. `--no-also` turns this off.
     pub also: bool,
     /// `--present-mode`, passed to iced as `ICED_PRESENT_MODE`.
     pub present_mode: Option<PresentMode>,
@@ -89,7 +90,7 @@ pub struct Options {
     pub cpu_limit: Option<String>,
     /// `--xwayland`: the runs' windows open on X11 through XWayland in a
     /// Linux Wayland session (`WAYLAND_DISPLAY` removed from their
-    /// environment); a report-only profile, which `suite` runs.
+    /// environment). It makes a report-only profile, which `suite` runs.
     pub xwayland: bool,
     /// `--frames DIR` (headless): every `every`-th composed frame written as
     /// a PNG under `DIR/<cell>__r<run>/`, to look at.
@@ -153,9 +154,9 @@ pub enum Readback {
 }
 
 impl Command {
-    /// Parses the arguments of `example`, `bench_gestures` or
-    /// `bench_software`: one of its commands by name, else its plan's
-    /// flags, which run it.
+    /// Parses the arguments of `example` (`bench_gestures` or
+    /// `bench_software`): one of its commands by name, or else its plan's
+    /// flags, which run the plan.
     pub fn parse(example: Example, args: &[String]) -> Result<Command, Error> {
         let (name, rest) = match args.split_first() {
             Some((first, rest)) if !first.starts_with("--") => (first.as_str(), rest),
@@ -326,8 +327,8 @@ impl Options {
         Ok((options, pairs))
     }
 
-    /// `bench_software`'s flags: `run`'s, its plan the software plan,
-    /// headless on tiny-skia.
+    /// Parses `bench_software`'s flags: `run`'s flags, with the software
+    /// plan, headless on tiny-skia.
     fn software(args: &[String]) -> Result<Options, Error> {
         let mut options = Options::parse(args, &[])?;
         options.headless = true;
@@ -371,8 +372,8 @@ impl Options {
         })
     }
 
-    /// The display's refresh rate: `--refresh-hz`, 60 headless; a windowed
-    /// run without it is an error.
+    /// The display's refresh rate: `--refresh-hz`, or 60 headless. A
+    /// windowed run without it is an error.
     pub fn refresh_hz(&self) -> Result<f64, Error> {
         match (self.refresh_hz, self.headless) {
             (Some(hz), _) => Ok(hz),
@@ -381,7 +382,7 @@ impl Options {
         }
     }
 
-    /// The display's scale factor: `--native-factor`, 2 headless; a
+    /// The display's scale factor: `--native-factor`, or 2 headless. A
     /// windowed run without it is an error.
     pub fn native(&self) -> Result<f32, Error> {
         match (self.native, self.headless) {

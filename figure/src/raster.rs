@@ -1,7 +1,7 @@
-//! Raster outputs: the list rendered by vello_cpu at any scale and over
+//! Raster outputs. The list is rendered by vello_cpu at any scale and over
 //! any area (feature `raster`), encoded as PNG (`png`), or rendered by the
-//! tiny-skia fallback (`tiny-skia`); and the device-pixel snapping helpers
-//! raster targets lay out with.
+//! tiny-skia fallback (`tiny-skia`). The `snap` module holds the
+//! device-pixel snapping helpers raster targets lay out with.
 
 #[cfg(feature = "raster")]
 mod cull;
@@ -22,9 +22,9 @@ use crate::list;
 use crate::list::{Bounds, List, Outlines};
 
 /// The longest side of a render, in device px. vello_cpu 0.3.0 sizes are
-/// `u16`, but its spans round widths up to 128 px and its tiles heights up
-/// to 4 px, and either overflows past 65,535: widths from 65,409 and
-/// heights from 65,533 panic (`vello_cpu-0.3.0/src/span.rs:84-90`,
+/// `u16`, but its spans round widths up to 128 px and its tiles round
+/// heights up to 4 px, and either overflows past 65,535. Widths from 65,409
+/// and heights from 65,533 panic (`vello_cpu-0.3.0/src/span.rs:84-90`,
 /// `vello_common-0.3.0/src/util.rs:222-238`).
 #[cfg(any(feature = "raster", feature = "tiny-skia"))]
 const MAX_SIDE: f64 = 65_408.0;
@@ -120,9 +120,8 @@ impl Settings {
         Settings { simd, ..self }
     }
 
-    /// vello_cpu's own pool: the available parallelism − 1, clamped to
-    /// 1..=8; what file outputs use. The `Plot` widget renders
-    /// single-threaded, inline and on its own pool alike.
+    /// vello_cpu's own pool, of the available parallelism − 1 threads
+    /// clamped to 1..=8. File outputs render with it.
     pub fn parallel() -> Settings {
         let cores = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
         let threads = cores.saturating_sub(1).clamp(1, 8);
@@ -205,27 +204,26 @@ impl Renderer {
         self
     }
 
-    /// Composite markers from pre-rasterized coverage stamps (default
-    /// off): a markers command of solid paints at one size, in groups that
-    /// only scale and translate and clip to rectangles, lays each point's
+    /// Composites markers from pre-rasterized coverage stamps (default
+    /// off). A markers command of solid paints at one size, in groups that
+    /// only scale, translate and clip to rectangles, lays each point's
     /// stamp at the nearest eighth-pixel phase instead of filling its
-    /// shape, within 32/255 of the filled markers and several times
-    /// faster for large marker sets. Everything else renders as with
-    /// splatting off. The `Plot` widget turns it on for screen renders of
-    /// markers commands of at least 10,000 points; file outputs never do.
+    /// shape. The result is within 32/255 of the filled markers, and
+    /// several times faster for large marker sets. Everything else renders
+    /// as with splatting off. File outputs never splat.
     pub fn splat(&mut self, on: bool) -> &mut Renderer {
         self.splat = on;
         self
     }
 
-    /// The part of `list` inside `area` (list px) at `scale`: exactly
+    /// The part of `list` inside `area` (list px) at `scale`, transparent
+    /// where nothing is drawn. The image is exactly
     /// round(area.width × scale) × round(area.height × scale) device px, at
-    /// most 65,408 a side,
-    /// transparent where nothing is drawn. Commands whose `bounds` miss
-    /// `area` grown by one device px are skipped, markers point by point,
-    /// and a long stroked path is cut to the segments whose stroke may
-    /// reach the area (dashes keep their phase), so a tile of a long line
-    /// strokes its own part of it.
+    /// most 65,408 a side. Commands whose `bounds` miss `area` grown by one
+    /// device px are skipped, markers point by point. A long stroked path
+    /// is cut to the segments whose stroke may reach the area, with dashes
+    /// keeping their phase, so a tile of a long line strokes only its own
+    /// part of it.
     ///
     /// `bounds` must be [`Bounds::of`] this list; bounds of another
     /// number of commands are [`Error::Bounds`].

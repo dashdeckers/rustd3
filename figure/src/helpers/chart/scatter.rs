@@ -20,8 +20,8 @@ impl<'a> std::fmt::Debug for Scatter<'a> {
 
 /// A scatter plot of `points`: one [`mark::dots`] in the theme palette's
 /// first color at the theme's marker size on linear x and y scales fitted
-/// to them, a bottom and a left axis with minor ticks. One series, so no
-/// legend; sized and colored dots with their legends are
+/// to them, with a bottom and a left axis with minor ticks. It has one
+/// series and so no legend. For sized and colored dots with legends, use
 /// [`dots`](mark::dots)' `size_by` and `fill_by` with
 /// [`helpers::legend`](crate::helpers::legend) on a figure of your own.
 ///

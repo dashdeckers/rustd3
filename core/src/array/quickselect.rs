@@ -1,4 +1,4 @@
-//! d3's quickselect (Floyd–Rivest, after mourner/quickselect, ISC licence,
+//! d3's quickselect (Floyd–Rivest, after mourner/quickselect, ISC license,
 //! Copyright 2018 Vladimir Agafonkin), on values without NaN.
 
 /// Reorders `values` so that `values[k]` is the value that sorting would

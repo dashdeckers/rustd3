@@ -37,10 +37,10 @@ pub(crate) fn shown(last: &dyn Any, span: &dyn Any, columns: u32) -> Option<Box<
     instants(last, span, columns).map(|e| Box::new(e) as Box<dyn Any>)
 }
 
-/// [`ends`] in `i128` nanoseconds: each column is `span / columns`
-/// rounded to whole nanoseconds, `right` the first multiple of it from the
-/// epoch at or past `last`, and `left` lies `columns` columns before it,
-/// so appends move the window by whole columns and the columns' edges
+/// [`ends`] in `i128` nanoseconds. Each column is `span / columns` rounded
+/// to whole nanoseconds, `right` is the first multiple of it from the
+/// epoch at or past `last`, and `left` lies `columns` columns before it.
+/// Appends thus move the window by whole columns, and the columns' edges
 /// repeat exactly. `None` when `span` is not positive, `columns` is 0, a
 /// column rounds to no nanosecond or an end leaves jiff's range.
 pub(crate) fn instants(
@@ -61,12 +61,12 @@ pub(crate) fn instants(
     Some([instant(right - columns * col)?, instant(right)?])
 }
 
-/// The newest `span` of x ending at `last` in a plot area `columns` device
-/// columns wide, `[left, right]`: with `col = span / columns`, `right` is
-/// the first whole multiple of `col` at or past `last` and `left` lies
-/// `columns` columns before it, so appends move the window by whole
-/// columns. `None` when `span` is not finite and positive, `columns` is 0
-/// or an end is not finite.
+/// The newest `span` of x ending at `last`, as `[left, right]`, in a plot
+/// area `columns` device columns wide. With `col = span / columns`,
+/// `right` is the first whole multiple of `col` at or past `last`, and
+/// `left` lies `columns` columns before it, so appends move the window by
+/// whole columns. `None` when `span` is not finite and positive, `columns`
+/// is 0 or an end is not finite.
 pub(crate) fn ends(last: f64, span: f64, columns: u32) -> Option<[f64; 2]> {
     if !(span.is_finite() && span > 0.0 && columns > 0 && last.is_finite()) {
         return None;
@@ -80,8 +80,8 @@ pub(crate) fn ends(last: f64, span: f64, columns: u32) -> Option<[f64; 2]> {
 
 /// The column count each windowed handle was last laid out in, keyed by
 /// its index in the scale table and its scale's type, which survive a
-/// figure's rebuild: kept in [`figure::Cache`](crate::cache::Cache), so a resolve
-/// whose layout did not move fits each window once.
+/// figure's rebuild. It is kept in the [`Cache`](crate::cache::Cache), so
+/// a resolve whose layout did not move fits each window once.
 #[derive(Debug, Default)]
 pub(crate) struct Memory {
     columns: HashMap<(usize, TypeId), u32>,

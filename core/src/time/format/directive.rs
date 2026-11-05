@@ -182,8 +182,9 @@ fn day_of_year(at: &Zoned) -> Option<i64> {
     Some(1 + Interval::Day(1).count(Interval::Year(1).floor(t, tz)?, t, tz)?)
 }
 
-/// `%U` and `%W` (`formatWeekNumberSunday`, `…Monday`): weeks starting on
-/// `first` from the one that holds the eve of the year's first day.
+/// `%U` and `%W` (`formatWeekNumberSunday`, `…Monday`): the number of weeks
+/// starting on `first` from the week that holds the eve of the year's
+/// first day to `at`.
 fn week_of_year(at: &Zoned, first: Weekday) -> Option<i64> {
     let (t, tz) = (at.timestamp(), at.time_zone());
     let year = Interval::Year(1).floor(t, tz)?;
@@ -191,8 +192,8 @@ fn week_of_year(at: &Zoned, first: Weekday) -> Option<i64> {
     Interval::Week(first, 1).count(eve, t, tz)
 }
 
-/// `dISO`: the Thursday of `at`'s ISO week, the one before for Thursday to
-/// Sunday, the next for Monday to Wednesday.
+/// `dISO`: the Thursday of `at`'s ISO week. For Thursday to Sunday it is
+/// the Thursday on or before `at`, and for Monday to Wednesday the next.
 fn iso_thursday(at: &Zoned) -> Option<jiff::Timestamp> {
     let (t, tz) = (at.timestamp(), at.time_zone());
     let thursday = Interval::Week(Weekday::Thursday, 1);
@@ -204,8 +205,9 @@ fn iso_thursday(at: &Zoned) -> Option<jiff::Timestamp> {
     }
 }
 
-/// `%V` (`formatWeekNumberISO`): Thursdays from the year of `at`'s ISO
-/// Thursday to it, plus one when that year starts on a Thursday.
+/// `%V` (`formatWeekNumberISO`): the number of Thursdays from the start of
+/// the year of `at`'s ISO Thursday up to that Thursday, plus one when the
+/// year starts on a Thursday.
 fn iso_week(at: &Zoned) -> Option<i64> {
     let tz = at.time_zone();
     let thursday = iso_thursday(at)?;

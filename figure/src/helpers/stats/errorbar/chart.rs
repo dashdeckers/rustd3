@@ -9,8 +9,8 @@ use crate::list::{self, Command, List};
 use crate::mark::{Ctx, Mark, guard};
 use crate::scale::{Kind, Position, ScaleRef};
 
-/// px per pt: caps are measured as matplotlib's `capsize`, in points not
-/// scaled by the theme's context.
+/// px per pt. Caps are measured in points, as matplotlib's `capsize`, and
+/// are not scaled by the theme's context.
 const PX_PER_PT: f64 = 4.0 / 3.0;
 
 /// Error bars: per row, a vertical bar at its key from `value − below` to
@@ -31,11 +31,11 @@ impl<X: Position, Y: Position<Domain = f64>> std::fmt::Debug for ErrorBar<X, Y> 
 
 /// One error bar per row `(key, value, error)` on `x` and `y`: a vertical
 /// line at the key (the middle of its band) from `value − below` to
-/// `value + above`, in ink and the theme's line width (matplotlib's
-/// `bar(yerr=…)` draws them black, seaborn dark gray). No caps by default,
-/// matplotlib's `capsize` 0 and seaborn's; [`caps`](ErrorBar::caps) adds
-/// them. The bars' ends enter fitting; a row whose error is negative or
-/// not finite draws nothing.
+/// `value + above`, in ink at the theme's line width (matplotlib's
+/// `bar(yerr=…)` draws them black, seaborn dark gray). There are no caps
+/// by default, as with matplotlib's `capsize` 0 and seaborn's;
+/// [`caps`](ErrorBar::caps) adds them. The bars' ends enter fitting. A row
+/// whose error is negative or not finite draws nothing.
 ///
 /// ```
 /// use rustd3_core::scale;

@@ -165,7 +165,7 @@ fn bar_labels_of_keys_outside_the_band_draw_nothing_and_are_reported() {
     }
 }
 
-/// The centres of the line boxes of the labels a figure of one panel with
+/// The centers of the line boxes of the labels a figure of one panel with
 /// `mark` draws, relative to its plot area's middle, and their texts.
 fn centres(mark: labels::Pie<&'static str>) -> Vec<(String, Point)> {
     let mut fig = Figure::new();

@@ -45,7 +45,7 @@ const BUNDLED: [(&str, Locale, &str); 11] = [
 ];
 
 /// The locale d3's `timeFormatLocale` builds from the JSON table `json`,
-/// labelling ticks with `ladder`.
+/// labeling ticks with `ladder`.
 pub(super) fn from_json(json: &str, ladder: Ladder) -> Locale {
     let table: Value = serde_json::from_str(json).expect("a JSON table");
     let text = |key: &str| Cow::Owned(table[key].as_str().expect("a string field").to_owned());

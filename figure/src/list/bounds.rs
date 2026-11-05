@@ -10,10 +10,10 @@ use crate::list::{Clip, Command, List, Outlines, outline};
 ///
 /// A command's bounds hold everything it may draw: a fill's path bbox, a
 /// stroke's inflated for its joins and caps, a markers command's points one
-/// by one, a run's glyph outlines; each through the transforms of its
-/// groups and intersected with their clips. `Push`, `Pop` and commands that
-/// draw nothing (an empty path, no points, everything clipped away) have
-/// `None`.
+/// by one, and a run's glyph outlines. Each passes through the transforms
+/// of its groups and is intersected with their clips. `Push`, `Pop` and
+/// commands that draw nothing (an empty path, no points, everything
+/// clipped away) have `None`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bounds(Vec<Option<Rect>>);
 
@@ -116,15 +116,15 @@ fn reach(style: &kurbo::Stroke) -> f64 {
     style.width.abs() / 2.0 * join.max(cap(style.start_cap)).max(cap(style.end_cap))
 }
 
-/// The union of the shape's bbox scaled by each point's size and centred on
+/// The union of the shape's bbox scaled by each point's size and centered on
 /// it; `None` without points.
 fn markers(shape: &BezPath, at: &[Point], sizes: Option<&[f64]>) -> Option<Rect> {
     let unit = shape.bounding_box();
-    // The union of the shape placed at every point, its size applied: per
-    // point the extremes of `p + s × corner`, NaN coordinates (and points
-    // of a size that is not finite) ignored by `min` and `max` as the
-    // placed rectangles' union ignores them. Addition is monotonic, so
-    // adding the shape's extent once to the points' extremes is exact.
+    // The union of the shape placed at every point at its size, taken per
+    // point as the extremes of `p + s × corner`. `min` and `max` ignore NaN
+    // coordinates, as the placed rectangles' union would, and points whose
+    // size is not finite are skipped. Without sizes, addition is monotonic,
+    // so adding the shape's extent once to the points' extremes is exact.
     let (mut x0, mut y0, mut x1, mut y1) = (
         f64::INFINITY,
         f64::INFINITY,

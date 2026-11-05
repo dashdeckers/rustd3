@@ -42,7 +42,7 @@ tiny-skia = { workspace = true, optional = true }
 
 [dev-dependencies]
 rustd3-testkit.workspace = true
-# The gallery figures its examples and tests draw; no iced.
+# The gallery figures that the examples and tests draw, without iced.
 benchkit.workspace = true
 resvg.workspace = true
 serde_json.workspace = true

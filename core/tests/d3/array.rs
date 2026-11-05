@@ -2683,7 +2683,7 @@ fn bin_data_does_not_mutate_user_supplied_thresholds_as_an_array() {
     assert_eq!(thresholds, vec![3.0, 4.0, 5.0, 6.0]); // d3-array/test/bin-test.js:248:3
 }
 
-// d3-array/test/sturges-test.js: thresholdSturges(values, min, max) returns the expected result
+// d3-array/test/threshold/sturges-test.js: thresholdSturges(values, min, max) returns the expected result
 #[test]
 fn thresholdsturges_values_min_max_returns_the_expected_result() {
     assert_eq!(
@@ -2693,13 +2693,13 @@ fn thresholdsturges_values_min_max_returns_the_expected_result() {
     assert_eq!(array::bin::sturges(&[1.0]) as f64, 1.0); // d3-array/test/threshold/sturges-test.js:6:3
 }
 
-// d3-array/test/sturges-test.js: thresholdSturges(values, min, max) handles empty arrays
+// d3-array/test/threshold/sturges-test.js: thresholdSturges(values, min, max) handles empty arrays
 #[test]
 fn thresholdsturges_values_min_max_handles_empty_arrays() {
     assert_eq!(array::bin::sturges(&Vec::<f64>::new()) as f64, 1.0); // d3-array/test/threshold/sturges-test.js:10:3
 }
 
-// d3-array/test/scott-test.js: thresholdScott(values, min, max) returns the expected result
+// d3-array/test/threshold/scott-test.js: thresholdScott(values, min, max) returns the expected result
 #[test]
 fn thresholdscott_values_min_max_returns_the_expected_result() {
     assert_eq!(
@@ -2708,7 +2708,7 @@ fn thresholdscott_values_min_max_returns_the_expected_result() {
     ); // d3-array/test/threshold/scott-test.js:5:3
 }
 
-// d3-array/test/scott-test.js: thresholdScott(values, min, max) handles values with zero deviation
+// d3-array/test/threshold/scott-test.js: thresholdScott(values, min, max) handles values with zero deviation
 #[test]
 fn thresholdscott_values_min_max_handles_values_with_zero_deviation() {
     assert_eq!(
@@ -2717,19 +2717,19 @@ fn thresholdscott_values_min_max_handles_values_with_zero_deviation() {
     ); // d3-array/test/threshold/scott-test.js:9:3
 }
 
-// d3-array/test/scott-test.js: thresholdScott(values, min, max) handles single-value arrays
+// d3-array/test/threshold/scott-test.js: thresholdScott(values, min, max) handles single-value arrays
 #[test]
 fn thresholdscott_values_min_max_handles_single_value_arrays() {
     assert_eq!(array::bin::scott(&[1.0], 1.0, 4.0) as f64, 1.0); // d3-array/test/threshold/scott-test.js:13:3
 }
 
-// d3-array/test/scott-test.js: thresholdScott(values, min, max) handles empty arrays
+// d3-array/test/threshold/scott-test.js: thresholdScott(values, min, max) handles empty arrays
 #[test]
 fn thresholdscott_values_min_max_handles_empty_arrays() {
     assert_eq!(array::bin::scott(&Vec::<f64>::new(), 1.0, 4.0) as f64, 1.0); // d3-array/test/threshold/scott-test.js:17:3
 }
 
-// d3-array/test/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) returns the expected result
+// d3-array/test/threshold/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) returns the expected result
 #[test]
 fn thresholdfreedmandiaconis_values_min_max_returns_the_expected_result() {
     assert_eq!(
@@ -2738,7 +2738,7 @@ fn thresholdfreedmandiaconis_values_min_max_returns_the_expected_result() {
     ); // d3-array/test/threshold/freedmanDiaconic-test.js:5:3
 }
 
-// d3-array/test/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles values with zero deviation
+// d3-array/test/threshold/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles values with zero deviation
 #[test]
 fn thresholdfreedmandiaconis_values_min_max_handles_values_with_zero_deviation() {
     assert_eq!(
@@ -2747,13 +2747,13 @@ fn thresholdfreedmandiaconis_values_min_max_handles_values_with_zero_deviation()
     ); // d3-array/test/threshold/freedmanDiaconic-test.js:9:3
 }
 
-// d3-array/test/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles single-value arrays
+// d3-array/test/threshold/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles single-value arrays
 #[test]
 fn thresholdfreedmandiaconis_values_min_max_handles_single_value_arrays() {
     assert_eq!(array::bin::freedman_diaconis(&[1.0], 1.0, 4.0) as f64, 1.0); // d3-array/test/threshold/freedmanDiaconic-test.js:13:3
 }
 
-// d3-array/test/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles empty arrays
+// d3-array/test/threshold/freedmanDiaconic-test.js: thresholdFreedmanDiaconis(values, min, max) handles empty arrays
 #[test]
 fn thresholdfreedmandiaconis_values_min_max_handles_empty_arrays() {
     assert_eq!(

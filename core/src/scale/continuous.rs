@@ -72,9 +72,9 @@ impl<T: Transform> Continuous<T> {
 }
 
 impl<T, R, const N: usize> Continuous<T, R, N> {
-    /// The scale under the transform `f` makes of this one's, every other
-    /// field moved across; `f` must keep the map, since the forward cache
-    /// is kept.
+    /// Replaces the transform with `f` of it, keeping every other field.
+    /// `f` must not change the mapping, since the forward cache is kept as
+    /// is.
     pub(crate) fn map_transform<U>(self, f: impl FnOnce(T) -> U) -> Continuous<U, R, N> {
         Continuous {
             transform: f(self.transform),
@@ -103,9 +103,9 @@ impl<T, R, const N: usize> Continuous<T, R, N> {
         &self.forward
     }
 
-    /// Where `x` lies between the end stops in transformed space, 0 at the
-    /// first and 1 at the last (d3's normalize): unclamped, 0.5 for ends
-    /// that transform alike.
+    /// Where `x` lies between the end stops in transformed space, from 0 at
+    /// the first to 1 at the last, as d3's normalize. It is unclamped, and
+    /// 0.5 when the ends transform alike.
     pub(crate) fn fraction(&self, x: f64) -> f64
     where
         T: Transform,
@@ -174,7 +174,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         Continuous { range, ..self }
     }
 
-    /// d3's `interpolate(f)`: blend neighbouring range values `a` and `b`
+    /// d3's `interpolate(f)`: blend neighboring range values `a` and `b`
     /// at `t` with `f(a, b, t)` instead of `lerp`.
     #[must_use]
     pub fn interpolate(self, f: impl Fn(&R, &R, f64) -> R + Send + Sync + 'static) -> Self {
@@ -210,8 +210,8 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         self.domain(domain)
     }
 
-    /// The range value of `x` (d3's `scale(x)`): `unknown` for NaN when set,
-    /// otherwise NaN flows through as d3's arithmetic carries it.
+    /// The range value of `x` (d3's `scale(x)`). NaN maps to `unknown` when
+    /// set, and otherwise flows through the arithmetic as in d3.
     pub fn apply(&self, x: f64) -> R {
         if x.is_nan()
             && let Some(unknown) = &self.unknown
@@ -296,11 +296,12 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         self.tick_format_in(&Locale::NEUTRAL, count, specifier)
     }
 
-    /// d3's `tickFormat(count, specifier)` under `locale`: the transform's
-    /// tick format. With a tick rule set and no specifier, the labels follow
-    /// the rule's ticks instead: `,f` to the decimal places of the smallest
-    /// gap between neighbouring `ticks(count)`, every tick labelled; fewer
-    /// than two ticks keep the transform's format.
+    /// d3's `tickFormat(count, specifier)` under `locale`, which is the
+    /// transform's tick format. With a tick rule set and no specifier, the
+    /// labels follow the rule's ticks instead. They use `,f` with the
+    /// decimal places of the smallest gap between neighboring
+    /// `ticks(count)`, and every tick is labeled. With fewer than two ticks
+    /// the transform's format is kept.
     ///
     /// ```
     /// use rustd3_core::scale::{self, TickRule};
@@ -341,7 +342,7 @@ impl<T: Transform, R: Interpolate, const N: usize> Continuous<T, R, N> {
         [self.domain[0], self.domain[N - 1]]
     }
 
-    /// `x` kept between the end stops, as d3's clamper: NaN stays NaN.
+    /// `x` kept between the end stops, as d3's clamper. NaN stays NaN.
     fn clamped(&self, x: f64) -> f64 {
         let [a, b] = self.end_stops();
         let (low, high) = if a > b { (b, a) } else { (a, b) };
@@ -439,10 +440,10 @@ impl<R: Interpolate, const N: usize> Continuous<transform::Asinh, R, N> {
     }
 }
 
-/// d3's bimap and polymap: `u` placed among `stops` (both arrays reversed
-/// when the last stop is below the first), normalized within its segment,
-/// and the segment's two `values` blended at that fraction. Past the end
-/// stops the end segments extend.
+/// Places `u` among `stops`, normalizes it within its segment, and blends
+/// the segment's two `values` at that fraction, as d3's bimap and polymap.
+/// Both arrays are read reversed when the last stop is below the first.
+/// Past the end stops the end segments extend.
 pub(crate) fn polymap<V, const N: usize>(
     stops: &[f64; N],
     values: &[V; N],

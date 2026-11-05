@@ -15,13 +15,14 @@ pub(crate) use pad::Pad;
 
 use crate::time::Locale;
 
-/// A compiled d3 time specifier with its locale (d3's `locale.format`):
-/// every directive of d3-time-format, `%L %f %Q %s %Z` included, plus `%N`
-/// for nanoseconds. Instants format in the zone a call names; jiff supplies
-/// the civil fields, once per formatted value.
+/// A compiled d3 time specifier with its locale (d3's `locale.format`).
+/// It supports every directive of d3-time-format, `%L %f %Q %s %Z`
+/// included, plus `%N` for nanoseconds. Instants format in the zone each
+/// call names, and jiff supplies the civil fields once per formatted value.
 ///
-/// Flags pad numbers: `%-d` none, `%_d` spaces, `%0d` zeros, the default
-/// (spaces for `%e`). An unknown directive writes its letter, as d3 does,
+/// Flags set how numbers pad: `%-d` not at all, `%_d` with spaces, `%0d`
+/// with zeros. Without a flag, numbers pad with zeros, except `%e`, which
+/// pads with spaces. An unknown directive writes its letter, as d3 does,
 /// so formatting cannot fail.
 ///
 /// ```
@@ -70,12 +71,17 @@ pub fn format(spec: &str) -> Format {
     Locale::NEUTRAL.format(spec)
 }
 
-/// Appends `spec`'s items to `items`, as d3's `newFormat` reads a
-/// specifier: text; `%` with an optional pad flag and a letter; `%%` as a
-/// percent sign; `%c %x %X` as the locale's patterns, compiled in turn; a
-/// letter d3 does not know as text; a trailing `%` as nothing. A composite
-/// inside its own expansion, where d3 recurses without end, writes its
-/// letter; `expanding` holds the composites being expanded.
+/// Appends `spec`'s items to `items`, reading the specifier as d3's
+/// `newFormat` does:
+///
+/// - Characters outside a directive are text.
+/// - `%`, an optional pad flag and a letter make a directive.
+/// - `%%` is a percent sign.
+/// - `%c %x %X` are the locale's patterns, compiled in turn.
+/// - A letter d3 does not know is text, and a trailing `%` is nothing.
+///
+/// A composite inside its own expansion, where d3 recurses without end,
+/// writes its letter. `expanding` holds the composites being expanded.
 fn compile(spec: &str, locale: &Locale, expanding: &mut Vec<char>, items: &mut Vec<Item>) {
     let mut chars = spec.chars();
     while let Some(c) = chars.next() {

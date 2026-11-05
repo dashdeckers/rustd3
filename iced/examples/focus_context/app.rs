@@ -36,7 +36,7 @@ const AXIS_ROOM: f32 = 24.0;
 const TOP: f64 = 8.0;
 /// The tick labels' size in px.
 const LABEL_PX: f64 = 11.0;
-/// d3's `dy` of a label centred on its tick (vertical axes), in em.
+/// d3's `dy` of a label centered on its tick (vertical axes), in em.
 const MIDDLE_EM: f64 = 0.32;
 /// The axes' lines.
 const AXIS_INK: Color = Color::from_rgb(0.4, 0.4, 0.4);
@@ -156,15 +156,16 @@ impl App {
         self.full
     }
 
-    /// x over `domain` onto a plot `width` px wide, in the app's zone.
+    /// The x scale from `domain` onto a plot `width` px wide, in the app's
+    /// time zone.
     fn x(&self, domain: [Timestamp; 2], width: f32) -> Time {
         time::time(self.tz.clone())
             .domain(domain)
             .range([0.0, f64::from(width)])
     }
 
-    /// y over every value, nice, onto a plot `height` px high below
-    /// [`TOP`].
+    /// The y scale over every trace's values, niced, onto a plot `height` px
+    /// high below [`TOP`].
     fn y(&self, height: f32) -> Linear {
         let values = self
             .traces
@@ -176,8 +177,8 @@ impl App {
             .nice(5)
     }
 
-    /// Each trace as a monotone line through `x` and `y`, `width` px wide,
-    /// in its category color.
+    /// Strokes each trace as a monotone line through `x` and `y`, `width` px
+    /// thick, in its category color.
     fn draw_lines(&self, frame: &mut Frame, x: &Time, y: &Linear, width: f32) {
         let color = scale::ordinal(self.traces.iter().map(|s| s.name), scheme::CATEGORY10);
         for s in &self.traces {
@@ -210,7 +211,8 @@ impl canvas::Program<Message> for Focus<'_> {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Option<Action<Message>> {
-        // Pointer x in the x scale's range.
+        // The tracker reads the pointer relative to the plot, so its x is in
+        // the x scale's range.
         let plot = plot(bounds);
         let zoom = zoom.get_or_insert_with(|| Zoom::default().scale_extent([1.0, 50.0]));
         let Some(input) = tracker.translate(event, plot, cursor) else {
@@ -289,9 +291,9 @@ impl canvas::Program<Message> for Overview<'_> {
         let [r0, r1] = x.get_range();
         let brush =
             brush.get_or_insert_with(|| BrushX::new([[r0, 0.0], [r1, f64::from(OVERVIEW_HEIGHT)]]));
-        // Between gestures follow the app's window; during one, the view may
-        // not have caught up with our own messages yet, and syncing then
-        // would pull the brush back under the pointer.
+        // Between gestures, follow the app's window. During a gesture the
+        // view may not have caught up with the brush's own messages yet, and
+        // syncing then would pull the brush back under the pointer.
         if !brush.is_active() {
             let shown = self.app.visible.map(|t| x.apply(t));
             brush.set_selection((self.app.visible != self.app.full).then_some(shown));
@@ -341,8 +343,8 @@ fn plot(bounds: Rectangle) -> Rectangle {
     }
 }
 
-/// Nothing to publish; while a press waits for the next redraw to be
-/// timed (double clicks), ask for that redraw.
+/// Publishes nothing, but requests a redraw while a press waits for the
+/// next redraw to be timed (to detect double clicks).
 fn waiting(tracker: &Tracker) -> Option<Action<Message>> {
     tracker.wants_redraw().then(Action::request_redraw)
 }
@@ -355,7 +357,7 @@ fn draw_axis<S: Ticks>(frame: &mut Frame, axis: &axis::Axis<'_, S>, origin: Poin
         let lines = rustd3_iced::path(|p| axis.draw(p));
         f.stroke(&lines, Stroke::default().with_color(AXIS_INK));
         for label in axis.labels() {
-            // d3 sets the baseline `dy` em below y; centre the text there.
+            // d3 sets the baseline `dy` em below y; center the text there.
             let middle = label.get_y() + (label.get_dy() - MIDDLE_EM) * LABEL_PX;
             f.fill_text(Text {
                 content: label.get_text().to_owned(),

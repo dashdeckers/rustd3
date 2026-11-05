@@ -1,13 +1,13 @@
-//! [`Rgba`]: straight RGBA pixels as a krilla custom image, the way to an
-//! image PDF viewers interpolate.
+//! [`Rgba`]: straight RGBA pixels as a krilla custom image. Embedding
+//! pixels this way gives an image that PDF viewers interpolate.
 
 use std::sync::Arc;
 
 use krilla::image::{BitsPerComponent, CustomImage, ImageColorspace};
 
-/// Straight RGBA pixels as krilla's two channels: the RGB bytes, then the
-/// alpha bytes, in one shared buffer, so cloning and hashing stay cheap
-/// beside the bytes themselves.
+/// Straight RGBA pixels split into krilla's two channels, the RGB bytes
+/// and then the alpha bytes. Both live in one shared buffer, so cloning is
+/// cheap and hashing costs little beyond the bytes.
 #[derive(Debug, Clone, Hash)]
 pub(crate) struct Rgba {
     width: u32,

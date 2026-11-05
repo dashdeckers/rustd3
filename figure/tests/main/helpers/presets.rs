@@ -248,8 +248,8 @@ fn grouped_bars_are_one_dodged_bar_mark_per_series_in_four_fifths_of_each_step()
     for (i, m) in marks.iter().enumerate() {
         assert_eq!(paint(m), Some(&palette(i)));
     }
-    // Side by side, each a third of 0.8 of the step, the step the plot
-    // area's width over four keys (marks draw in the plot area's
+    // Side by side, each a third of 0.8 of the step, where the step is the
+    // plot area's width over four keys (marks draw in the plot area's
     // coordinates).
     let area = crate::figure::resolve(&fig, &rustd3_figure::Held::default()).get_plot_areas()[0];
     let step = area.width() / 4.0;

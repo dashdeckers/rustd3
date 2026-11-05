@@ -51,34 +51,39 @@ pub(crate) trait Draw<'a>: 'a {
     /// not the scale's blanking.
     fn formats(&self) -> bool;
 
-    /// Each of about `count` ticks' position along a panel `length` px
-    /// long, aligned with [`texts`](Draw::texts): across [0, length] for a
-    /// horizontal axis, up [length, 0] for a vertical one; `None` for a key
-    /// outside the domain or a position that is not finite.
+    /// The position of each of about `count` ticks along a panel `length`
+    /// px long, aligned with [`texts`](Draw::texts). Positions run across
+    /// [0, length] for a horizontal axis and up [length, 0] for a vertical
+    /// one. `None` for a key outside the domain or a position that is not
+    /// finite.
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>>;
 
-    /// With `.minor(true)`, the positions of core's minor ticks for about
-    /// `count` ticks ([`Ticks::minor`]) along a panel `length` px long, as
-    /// [`positions`](Draw::positions) places ticks, those not finite left
-    /// out; none otherwise.
+    /// The positions of core's minor ticks for about `count` ticks
+    /// ([`Ticks::minor`]) along a panel `length` px long, placed as
+    /// [`positions`](Draw::positions) places ticks. Positions that are not
+    /// finite are left out. Empty unless the axis has `.minor(true)`.
     fn minors(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<f64>;
 
-    /// Each of about `count` ticks' absolute index, aligned with
-    /// [`texts`](Draw::texts), which the stride of the collision pass counts
-    /// from: the value over d3's tick step when the ticks are evenly spaced
-    /// on that grid; for a time scale, the units of its tick interval from
-    /// the Unix epoch floored in its zone; the key's position in the domain
-    /// for band and point scales; the position in the set otherwise (log
-    /// ticks).
+    /// The absolute index of each of about `count` ticks, aligned with
+    /// [`texts`](Draw::texts). The collision pass counts its stride from
+    /// these indices. The index is:
+    ///
+    /// - for a time scale, the units of its tick interval from the Unix
+    ///   epoch floored in its zone;
+    /// - the value over d3's tick step, when the ticks are evenly spaced on
+    ///   that grid;
+    /// - for band and point scales, the key's position in the domain;
+    /// - otherwise (log ticks), the position in the set.
     fn indices(&self, resolved: &Resolved, count: usize) -> Vec<i64>;
 
     /// For a time scale, how each of about `count` ticks follows the one
-    /// before it, aligned with [`texts`](Draw::texts): by its tick
-    /// interval's step, or by fewer units (the first stepped day of a month
-    /// after a month's last, the first stepped hour after a clock change),
-    /// and then whether it starts its parent unit (the month of stepped
-    /// days, the day of stepped hours: `Interval::floor` one unit up), whose
-    /// label is the coarser one of the two; empty for other scales.
+    /// before it, aligned with [`texts`](Draw::texts). A tick follows by
+    /// its tick interval's step, or by fewer units (the first stepped day of
+    /// a month after a month's last, the first stepped hour after a clock
+    /// change). A tick that follows by fewer units also records whether it
+    /// starts its parent unit (the month of stepped days, the day of
+    /// stepped hours, as `Interval::floor` one unit up finds it), since its
+    /// label is then the coarser one of the two. Empty for other scales.
     fn restarts(&self, resolved: &Resolved, count: usize) -> Vec<collide::Restart>;
 
     /// The offset or multiplier label of about `count` ticks
@@ -292,11 +297,11 @@ fn step(interval: Interval) -> u32 {
     }
 }
 
-/// The unit a stepped `interval`'s runs restart at, whose start a time
-/// format labels on the coarser rung: the minute of stepped seconds, the
-/// hour of stepped minutes, the day of stepped hours, the month of
-/// stepped days, the year of stepped months; `None` for the intervals
-/// whose steps count from the epoch and never restart.
+/// The unit at which a stepped `interval`'s runs restart, whose start a
+/// time format labels on the coarser rung. It is the minute of stepped
+/// seconds, the hour of stepped minutes, the day of stepped hours, the
+/// month of stepped days and the year of stepped months. `None` for the
+/// intervals whose steps count from the epoch and never restart.
 fn parent(interval: Interval) -> Option<Interval> {
     match interval {
         Interval::Second(_) => Some(Interval::Minute(1)),
@@ -313,11 +318,12 @@ fn parent(interval: Interval) -> Option<Interval> {
     }
 }
 
-/// Each of `instants`' count of units of `time`'s tick interval for about
-/// `count` ticks from the Unix epoch floored to that interval in the
-/// scale's zone (`Interval::count`, the step ignored), so the
-/// kept labels stay on the same instants while a time axis pans; `None`
-/// when a boundary or count leaves jiff's range or `i64`.
+/// The number of units of `time`'s tick interval (for about `count`
+/// ticks) from the Unix epoch to each of `instants`, with the epoch
+/// floored to that interval in the scale's zone (`Interval::count`,
+/// ignoring the step). The labels the collision pass keeps so stay on the
+/// same instants while a time axis pans. `None` when a boundary or count
+/// leaves jiff's range or `i64`.
 fn intervals(time: &Time, instants: &[Timestamp], count: usize) -> Option<Vec<i64>> {
     let interval = time.tick_interval(count);
     let zone = time.get_zone();

@@ -1,11 +1,13 @@
 //! d3.range.
 
-/// d3.range(start, stop, step): `start + i·step` for `i` in `0..n`, `n =
-/// ⌈(stop − start)/step⌉`, so `range(0.0, 1.0, 0.2)` ends with
-/// 0.6000000000000001 as in d3. Empty, without looping, when `n` is not a
-/// positive number below 2³¹ (d3 truncates it to a 32-bit integer): a zero
-/// or NaN step, a NaN bound, an infinite length, or a step against the
-/// direction from `start` to `stop`.
+/// d3.range(start, stop, step): `start + i·step` for `i` in `0..n`, where
+/// `n = ⌈(stop − start)/step⌉`, so `range(0.0, 1.0, 0.2)` ends with
+/// 0.6000000000000001 as in d3.
+///
+/// It is empty, without looping, when `n` is not a positive number below
+/// 2³¹ (d3 truncates it to a 32-bit integer). That covers a zero or NaN
+/// step, a NaN bound, an infinite length, and a step against the direction
+/// from `start` to `stop`.
 #[must_use]
 pub fn range(start: f64, stop: f64, step: f64) -> Vec<f64> {
     let n = ((stop - start) / step).ceil();

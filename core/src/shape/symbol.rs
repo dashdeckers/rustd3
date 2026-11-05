@@ -4,8 +4,8 @@ use std::f64::consts::{PI, TAU};
 
 use crate::path::PathContext;
 
-/// One of d3's fill symbols, drawn centred at the origin with a given area.
-/// The set is closed; d3's stroke symbols are Later.
+/// One of d3's fill symbols, drawn centered at the origin with a given area.
+/// The set is closed, and d3's stroke symbols are not provided.
 ///
 /// ```
 /// use rustd3_core::path;
@@ -18,7 +18,7 @@ use crate::path::PathContext;
 pub enum Symbol {
     /// A circle.
     Circle,
-    /// A Greek cross, arms as wide as the centre square.
+    /// A Greek cross, arms as wide as the center square.
     Cross,
     /// A rhombus, taller than wide.
     Diamond,
@@ -45,7 +45,7 @@ impl Symbol {
         Symbol::Wye,
     ];
 
-    /// Draws the symbol centred at the origin with area `size` (d3's
+    /// Draws the symbol centered at the origin with area `size` (d3's
     /// default 64), as d3's symbol types draw into a context.
     pub fn draw(self, size: f64, ctx: &mut impl PathContext) {
         match self {

@@ -5,9 +5,10 @@ use kurbo::{Point, Rect};
 /// A bucket's side, px.
 const BUCKET: f64 = 32.0;
 
-/// One panel's points in a uniform grid of 32 px buckets over the panel's
-/// plot area and every point reported (a line's samples may lie outside
-/// the plot area), each bucket listing its points in the order reported.
+/// One panel's points in a uniform grid of 32 px buckets. The grid covers
+/// the panel's plot area and every point reported, since a line's samples
+/// may lie outside the plot area. Each bucket lists its points in the
+/// order reported.
 #[derive(Debug, Clone)]
 pub(crate) struct Grid {
     origin: Point,
@@ -19,9 +20,9 @@ pub(crate) struct Grid {
 }
 
 impl Grid {
-    /// The grid over plot area `area` of `points` (mark, datum index,
-    /// figure px), reported in that order; points that are not finite are
-    /// left out.
+    /// The grid over plot area `area` of `points`, each a (mark, datum
+    /// index, figure px) triple, in the order reported. Points that are not
+    /// finite are left out.
     pub(crate) fn new(area: Rect, points: Vec<(usize, usize, Point)>) -> Grid {
         let points: Vec<(usize, usize, Point)> =
             points.into_iter().filter(|(.., p)| p.is_finite()).collect();
@@ -49,9 +50,10 @@ impl Grid {
         self.points.len()
     }
 
-    /// The point nearest `at` within `radius` (edges included), searched in
-    /// the buckets the radius overlaps, the first reported among equally
-    /// near ones: its mark, datum index, place and distance.
+    /// The mark, datum index, place and distance of the point nearest `at`
+    /// within `radius` (edges included). Only the buckets the radius
+    /// overlaps are searched, and of equally near points the first
+    /// reported wins.
     pub(crate) fn nearest(&self, at: Point, radius: f64) -> Option<(usize, usize, Point, f64)> {
         if !(at.is_finite() && radius >= 0.0) || self.points.is_empty() {
             return None;

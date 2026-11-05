@@ -1,4 +1,4 @@
-//! Colour parsers on random strings, colour spaces and interpolators at t
+//! Color parsers on random strings, color spaces and interpolators at t
 //! outside [0, 1] and at NaN, schemes at any t, and d3-array's statistics,
 //! bins and bisection over hostile values. Nothing panics.
 
@@ -11,7 +11,7 @@ use rustd3_testkit::hostile::{self, Rng};
 
 const CASES: usize = 600;
 
-/// Characters of CSS colours.
+/// Characters of CSS colors.
 const CSS: &str = "#0123456789abcdefABCDEF(),.%+- rgbhslatrednvy";
 
 fn t(rng: &mut Rng) -> f64 {

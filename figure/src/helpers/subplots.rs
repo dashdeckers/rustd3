@@ -7,8 +7,8 @@ use crate::scale::ScaleRef;
 use crate::{Figure, Panel, axis};
 
 /// A figure with one panel per cell of a grid and its handles: one fitted
-/// linear x per column and one fitted linear y per row. Other scale kinds
-/// come from copying [`subplots`].
+/// linear x per column and one fitted linear y per row. For other scale
+/// kinds, copy [`subplots`].
 pub struct Subplots<'a> {
     fig: Figure<'a>,
     x: Vec<ScaleRef<Linear>>,
@@ -21,10 +21,11 @@ impl<'a> std::fmt::Debug for Subplots<'a> {
     }
 }
 
-/// One panel per cell of a `rows × cols` grid; x fitted and shared per
-/// column, y per row, with bottom and left axes on every panel. Layout
-/// labels only the outer ones (the bottom row's x, the left column's y),
-/// as matplotlib's `subplots(sharex="col", sharey="row")` does.
+/// One panel per cell of a `rows × cols` grid, with x fitted and shared
+/// per column, y per row, and bottom and left axes on every panel. The
+/// layout labels only the outer axes (the bottom row's x, the left
+/// column's y), as matplotlib's `subplots(sharex="col", sharey="row")`
+/// does.
 ///
 /// ```
 /// use rustd3_figure::helpers::subplots;

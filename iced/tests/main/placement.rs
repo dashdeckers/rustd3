@@ -1,7 +1,8 @@
 //! Image placement on both backends at factors 1, 1.25, 1.5 and 2, which
 //! pins the two constants the `Plot` widget is built on: `NUDGE`, the bias
 //! that lands an image on exact device pixels, and `BAND_BYTES`, the
-//! largest image wgpu uploads inside the frame that first draws it.
+//! smallest image wgpu does not upload inside the frame that first draws
+//! it.
 
 use std::time::Duration;
 
@@ -14,7 +15,8 @@ use rustd3_testkit::pixels;
 
 use crate::headless::{self, Harness, Shot};
 
-/// An RGBA image of fewer bytes uploads inside the frame on wgpu.
+/// The size in bytes below which wgpu uploads an RGBA image inside the
+/// frame that first draws it.
 pub const BAND_BYTES: usize = 2 * 1024 * 1024;
 /// Device px added to an image's origin before dividing by the factor.
 pub const NUDGE: f32 = 0.0625;
@@ -298,9 +300,10 @@ fn a_larger_image_needs_a_tick() {
 #[test]
 fn every_device_offset_lands_exactly_at_every_factor() {
     // 4 × 4 images of distinct texels at device offsets 1, 8, …, 771 on
-    // both axes: every residue the factors repeat with, at magnitudes up to
-    // the window's. Biases of 0 (tiny-skia, a pixel early at some offsets
-    // at 1.25 and 1.5) and 0.5 (wgpu, a pixel late at all) fail here.
+    // both axes, which covers every residue the factors repeat with at
+    // magnitudes up to the window's. Biases of 0 (tiny-skia, a pixel early
+    // at some offsets at 1.25 and 1.5) and 0.5 (wgpu, a pixel late at all)
+    // fail here.
     let texels: Vec<u8> = (0..4u8)
         .flat_map(|j| (0..4u8).flat_map(move |i| [50 + 60 * i, 50 + 60 * j, 0, 255]))
         .collect();

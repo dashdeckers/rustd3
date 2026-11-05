@@ -1,5 +1,5 @@
-//! The update pattern at fixed instants: `t0` is any instant and `ms(n)` is `n`
-//! milliseconds after it; the values depend only on the offsets.
+//! The update pattern example's app at fixed instants. `t0` is any instant
+//! and `ms(n)` is `n` ms after it, so the values depend only on the offsets.
 
 use std::time::Duration;
 

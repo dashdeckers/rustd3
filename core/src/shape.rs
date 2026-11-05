@@ -1,6 +1,6 @@
-//! d3-shape over iterators of already-scaled geometry: lines and areas with d3's curves, their radial forms, pies
-//! and arcs, stacks and symbols, each drawing into any
-//! [`PathContext`](crate::path::PathContext).
+//! d3-shape over iterators of already-scaled geometry, drawing into any
+//! [`PathContext`](crate::path::PathContext): lines and areas with d3's
+//! curves, their radial forms, pies and arcs, stacks and symbols.
 //!
 //! ```
 //! use rustd3_core::path;
@@ -73,8 +73,8 @@ pub struct Line {
 /// An item an area draws: `(x, y0, y1)`, or `(x, y1)` over the area's
 /// baseline, or `None` for a gap.
 pub trait Span {
-    /// The item as `(x, y0, y1)`, a 2-tuple taking `baseline` as `y0`; `None`
-    /// breaks the area (d3's `defined`).
+    /// The item as `(x, y0, y1)`, a 2-tuple taking `baseline` as `y0`.
+    /// `None` breaks the area (d3's `defined`).
     fn span(self, baseline: f64) -> Option<(f64, f64, f64)>;
 }
 
@@ -95,9 +95,9 @@ pub struct Area {
     baseline: f64,
 }
 
-/// d3.pie(): values to the angles of [`Slice`]s, largest first by default;
-/// built by consuming builders, laid out by [`Pie::layout`]. Its methods
-/// and [`pie::Sort`] are in [`pie`](mod@pie).
+/// d3.pie(): values to the angles of [`Slice`]s, largest first by default.
+/// It is built by consuming builders and laid out by [`Pie::layout`]. Its
+/// methods and [`pie::Sort`] are in [`pie`](mod@pie).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pie {
     sort: pie::Sort,
@@ -106,8 +106,8 @@ pub struct Pie {
     pad_angle: f64,
 }
 
-/// d3.stack() over columns: orders and offsets as builders, laid out by
-/// [`Stack::layout`]. Its methods, [`stack::Order`] and [`stack::Offset`]
+/// d3.stack() over columns, with orders and offsets as builders, laid out
+/// by [`Stack::layout`]. Its methods, [`stack::Order`] and [`stack::Offset`]
 /// are in [`stack`](mod@stack).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Stack {
@@ -121,9 +121,9 @@ pub fn line() -> Line {
     Line::default()
 }
 
-/// d3.line() with accessors over a slice of data, a wrapper of
-/// [`line()`] for data that is not geometry yet: x and y 0, every
-/// datum defined, until set.
+/// d3.line() with accessors over a slice of data, wrapping [`line()`] for
+/// data that is not geometry yet. Until set, x and y are 0 and every datum
+/// is defined.
 #[must_use]
 pub fn line_of<'a, D>() -> LineOf<'a, D> {
     LineOf::default()
@@ -148,9 +148,9 @@ pub fn arc() -> Arc {
     Arc::default()
 }
 
-/// d3.stack() over columns: one layer per
-/// column, in the columns' order on a zero baseline, each `[y0, y1]` per
-/// row; rows are the shortest column's length.
+/// d3.stack() over columns: one layer per column, in the columns' order on
+/// a zero baseline, holding `[y0, y1]` per row. There are as many rows as
+/// the shortest column has values.
 ///
 /// ```
 /// use rustd3_core::shape;

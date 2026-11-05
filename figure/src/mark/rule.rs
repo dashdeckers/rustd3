@@ -68,7 +68,7 @@ pub fn rule_y<Y: Position>(value: <Y as Kind>::Domain, y: ScaleRef<Y>) -> Rule<Y
 
 impl<S: Position> Rule<S> {
     /// A rule at `value` of `scale` along `along`, in the theme palette's
-    /// first color and line width, solid, unlabelled.
+    /// first color and line width, solid, unlabeled.
     fn new(value: <S as Kind>::Domain, scale: ScaleRef<S>, along: Along) -> Self {
         Rule {
             value,

@@ -40,8 +40,9 @@ impl<'g, 'a> Content<'g, 'a> {
     }
 
     /// Measures a colorbar for a pass in figure slot `slot` beside plot
-    /// areas whose union is `extent` ([`colorbar::Content::measure`]): its
-    /// tick count; `None` for a legend, which needs no measuring.
+    /// areas whose union is `extent`, and returns its tick count
+    /// ([`colorbar::Content::measure`]). `None` for a legend, which needs
+    /// no measuring.
     pub(crate) fn measure_slot(
         &mut self,
         slot: Slot,
@@ -74,9 +75,9 @@ impl<'g, 'a> Content<'g, 'a> {
     }
 
     /// The guide laid out for figure slot `slot` beside plot areas whose
-    /// union is `extent`: legends as a row on top and bottom, a column at
-    /// the sides; colorbars along the side, as long as `extent` across it,
-    /// their ticks away from the grid.
+    /// union is `extent`. A legend is a row on top and bottom, and a column
+    /// at the sides. A colorbar runs along the side, as long as `extent`
+    /// along it, with its ticks away from the grid.
     pub(crate) fn slotted(
         &self,
         slot: Slot,
@@ -96,11 +97,11 @@ impl<'g, 'a> Content<'g, 'a> {
         }
     }
 
-    /// The guide laid out for a corner of plot area `area`, framed:
-    /// legends as a column; colorbars along the area's longer side
-    /// (vertical with ticks on the right when it is at least as tall as
-    /// wide, else horizontal with ticks below, as last measured), 40% of
-    /// its length.
+    /// The guide laid out for a corner of plot area `area`, framed. A
+    /// legend is a column. A colorbar runs along the area's longer side, at
+    /// 40% of its length, in the orientation last measured. That is
+    /// vertical with ticks on the right when the area is at least as tall
+    /// as wide, else horizontal with ticks below.
     pub(crate) fn inset(&self, area: Rect, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
         match self {

@@ -15,7 +15,8 @@ use crate::plot::{BAND_BYTES, NUDGE};
 /// One cell of the partition: its device rect and current content hash,
 /// what it shows and the render it waits for.
 pub(crate) struct Slot {
-    /// Device px [x0, y0, x1, y1], relative to the widget's device origin.
+    /// The rect in device px [x0, y0, x1, y1], relative to the widget's
+    /// device origin.
     rect: [i32; 4],
     /// Hash of the cell's current content.
     hash: u64,
@@ -32,7 +33,7 @@ struct Shown {
     bands: Vec<Band>,
     generation: u64,
     hash: u64,
-    /// Not yet reported as drawn for the first time.
+    /// Whether the image is not yet reported as drawn for the first time.
     fresh: bool,
     /// For a plot-area cell, the view of the handle leading each axis when
     /// the image was planned.
@@ -44,7 +45,7 @@ pub(crate) struct Band {
     /// Device rows relative to the cell.
     rows: Range<i32>,
     handle: image::Handle,
-    /// Whether every pixel is opaque: a mosaic copies its rows.
+    /// Whether every pixel is opaque, so a mosaic copies its rows.
     opaque: bool,
 }
 
@@ -100,14 +101,14 @@ impl Slot {
         self.hash
     }
 
-    /// The image shown lies over `rect` now: a tile's latest render, of
-    /// its square where the grid then lay.
+    /// Records that the image shown lies over `rect`: a tile's latest
+    /// render, of its square where the grid then lay.
     pub(crate) fn reshape(&mut self, rect: [i32; 4]) {
         self.rect = rect;
     }
 
-    /// The image shown is of content `hash`, the current one: what a
-    /// translated tile's image shows after a whole-pixel pan.
+    /// Records that the image shown is of content `hash`, the current one.
+    /// A translated tile's image shows this after a whole-pixel pan.
     pub(crate) fn relabel(&mut self, hash: u64) {
         self.hash = hash;
         if let Some(shown) = &mut self.shown {
@@ -120,26 +121,26 @@ impl Slot {
         self.pending
     }
 
-    /// The cell's content changed to `hash` at `generation`, whose render
-    /// is now pending.
+    /// Records that the cell's content changed to `hash` at `generation`,
+    /// whose render is then pending.
     pub(crate) fn change(&mut self, hash: u64, generation: u64) {
         self.hash = hash;
         self.pending = Some(generation);
     }
 
-    /// A pending render moves to `generation`: the job set it was in was
-    /// replaced by one that renders it again.
+    /// Moves a pending render to `generation`, because the job set it was
+    /// in was replaced by one that renders it again.
     pub(crate) fn requeue(&mut self, generation: u64) {
         if self.pending.is_some() {
             self.pending = Some(generation);
         }
     }
 
-    /// A render of content `hash` for `generation`, planned at `view`,
-    /// finished; `bands` is `None` when it failed. The pending render
-    /// clears when it is this one; the bands are shown iff `generation` is
-    /// newer than the image on screen, or there is none. True when they
-    /// are.
+    /// Applies a finished render of content `hash` for `generation`,
+    /// planned at `view`. `bands` is `None` when the render failed. The
+    /// pending render clears when it is this one. The bands are shown
+    /// exactly when `generation` is newer than the image on screen, or
+    /// there is none. Returns true when they are shown.
     pub(crate) fn land(
         &mut self,
         generation: u64,
@@ -177,11 +178,12 @@ impl Slot {
             .map(|shown| (shown.generation, shown.hash))
     }
 
-    /// `bands`, a fresh render of the image on screen (generation and
-    /// content hash `shown`, the same rows), against it: the largest
-    /// channel difference, of 255; above 1 the fresh bands replace the
-    /// image, which is drawn for the first time again. `None` when the slot
-    /// shows another image now or the bands do not line up.
+    /// Checks `bands`, a fresh render of the image on screen, against that
+    /// image. `shown` is the image's generation and content hash, and the
+    /// bands cover the same rows. Returns the largest channel difference,
+    /// of 255. Above 1 the fresh bands replace the image, which is then
+    /// drawn for the first time again. `None` when the slot shows another
+    /// image by then, or the bands do not line up.
     pub(crate) fn check(&mut self, shown: (u64, u64), bands: Vec<Band>) -> Option<u8> {
         if self.shows() != Some(shown) {
             return None;
@@ -237,20 +239,22 @@ impl Slot {
         self.shown.as_ref().map(|shown| shown.view)
     }
 
-    /// An image of the current content: neither missing nor a preview.
+    /// Whether the slot shows an image of the current content: neither
+    /// missing nor a preview.
     pub(crate) fn is_current(&self) -> bool {
         self.shown
             .as_ref()
             .is_some_and(|shown| shown.hash == self.hash)
     }
 
-    /// No image at all: the theme background shows.
+    /// Whether the slot has no image at all, so the theme background
+    /// shows.
     pub(crate) fn is_missing(&self) -> bool {
         self.shown.is_none()
     }
 
-    /// An image of content other than the current: an older render shown
-    /// until the newest lands.
+    /// Whether the slot shows an image of content other than the current:
+    /// an older render shown until the newest lands.
     pub(crate) fn is_preview(&self) -> bool {
         self.shown
             .as_ref()
@@ -320,8 +324,8 @@ impl Slot {
 
     /// Draws the image, if there is one, with nearest filtering at bounds
     /// that land on its device pixels moved by `shift` device px, clipped
-    /// to `clip` (device px), for a widget whose device origin is
-    /// `origin`: a tile translated with its plot area's content.
+    /// to `clip` (device px), for a widget whose device origin is `origin`.
+    /// This draws a tile translated with its plot area's content.
     pub(crate) fn draw_at<Renderer>(
         &self,
         renderer: &mut Renderer,
@@ -479,11 +483,11 @@ pub(crate) fn logical([x0, y0, x1, y1]: [i32; 4], origin: [i32; 2], factor: f32)
     }
 }
 
-/// Device position `p` nudged by `NUDGE` away from its pixel's edge on the
-/// side that lands on `p`: tiny-skia truncates toward zero (`as i32`,
-/// `tiny_skia/src/raster.rs:63-64`) and wgpu adds 0.001 and rounds, so a
-/// nudge above lands on `p` for `p ≥ 0`, and a nudge below for a tile of
-/// the overscan ring left of or above the window's origin.
+/// Device position `p` nudged by `NUDGE` away from its pixel's edge, on the
+/// side that lands on `p`. tiny-skia truncates toward zero (`as i32`,
+/// `tiny_skia/src/raster.rs:63-64`), and wgpu adds 0.001 and rounds. So a
+/// nudge above lands on `p` for `p ≥ 0`, and a nudge below lands on it for
+/// a tile of the overscan ring left of or above the window's origin.
 pub(crate) fn nudged(p: i32) -> f32 {
     if p < 0 {
         p as f32 - NUDGE
@@ -492,10 +496,10 @@ pub(crate) fn nudged(p: i32) -> f32 {
     }
 }
 
-/// Row ranges of the bands a cell of `rect` is drawn as: one band when its
-/// RGBA stays under `BAND_BYTES`, else bands of `BAND_BYTES / (width × 4)
-/// − 1` rows (at least one), the last one shorter, each strictly under the
-/// limit.
+/// Row ranges of the bands a cell of `rect` is drawn as. It is one band
+/// when the cell's RGBA stays under `BAND_BYTES`. Otherwise each band has
+/// `BAND_BYTES / (width × 4) − 1` rows (at least one) and the last is
+/// shorter, so each stays strictly under the limit.
 pub(crate) fn bands(rect: [i32; 4]) -> Vec<Range<i32>> {
     let [x0, y0, x1, y1] = rect;
     let row = usize::try_from(x1 - x0).unwrap_or(0) * 4;
@@ -594,8 +598,8 @@ mod tests {
         let bounds = slot([0, 0, 30, 30]).bounds(&(0..30), [origin, 0], k);
         assert_eq!(bounds.x, (15.0 + NUDGE) / 1.5);
         assert!((bounds.x - 10.0417).abs() < 1e-4);
-        // Back to device px: tiny-skia truncates, wgpu adds 0.001 and
-        // rounds; both land on 15, where a half-pixel bias rounds to 16.
+        // Back in device px, tiny-skia truncates, and wgpu adds 0.001 and
+        // rounds. Both land on 15, where a half-pixel bias rounds to 16.
         assert_eq!((bounds.x * k) as i32, 15);
         assert_eq!((bounds.x * k + 0.001).round(), 15.0);
         assert_eq!(((15.0 + 0.5) / k * k + 0.001_f32).round(), 16.0);

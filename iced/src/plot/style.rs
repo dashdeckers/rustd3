@@ -1,17 +1,17 @@
 //! [`hash`]: what a part of a drawing list looks like apart from where it
-//! draws, so that a plot area whose content moved by whole device pixels
-//! and changed nothing else keeps its translated tiles.
+//! draws. A plot area whose content moved by whole device pixels, and
+//! changed nothing else, then keeps its translated tiles.
 //!
 //! A pan changes every position in a plot area's layer, so its part hashes
-//! all change; the style hash leaves positions out and keeps the
-//! paints, stroke styles (width, caps, joins, the dash pattern without its
+//! all change. The style hash leaves positions out. It keeps the paints,
+//! the stroke styles (width, caps, joins, and the dash pattern without its
 //! offset, which follows the column grid), marker shapes and paint tables,
 //! fonts, sizes and glyph ids, images, and the commands' kinds and groups.
-//! Per-point arrays (marker centres, sizes and paint indices) are left out
-//! with the positions: points entering and leaving the overscan change
-//! them on every pan. A command whose style equals the one before it is
-//! folded once, so a thinned line that a pan splits into more or fewer
-//! runs (NaN gaps entering the view) keeps its hash.
+//! Per-point arrays (marker centers, sizes and paint indices) are left out
+//! with the positions, because points entering and leaving the overscan
+//! change them on every pan. A command whose style equals the one before
+//! it is folded once, so a thinned line that a pan splits into more or
+//! fewer runs (NaN gaps entering the view) keeps its hash.
 
 use std::fmt::Write as _;
 
@@ -22,8 +22,8 @@ use rustd3_figure::peniko::Brush;
 use crate::plot::layer::{FNV, fnv};
 
 /// The style hash of `part`, a part of `list`: FNV-1a 64 over its
-/// commands' looks in order, positions left out, equal consecutive
-/// commands folded once.
+/// commands' looks in order, with positions left out and equal
+/// consecutive commands folded once.
 pub(crate) fn hash(list: &List, part: &Part) -> u64 {
     let mut hash = FNV;
     let mut last = None;
@@ -115,9 +115,9 @@ impl Words {
         self.0 = fnv(self.0, word);
     }
 
-    /// A paint: a solid color's components; a gradient's stops and
-    /// interpolation, not its geometry; an image brush's pixels and
-    /// sampler.
+    /// Folds in a paint: a solid color's components, a gradient's stops
+    /// and interpolation but not its geometry, or an image brush's pixels
+    /// and sampler.
     fn brush(&mut self, brush: &Brush) {
         match brush {
             Brush::Solid(color) => {
@@ -148,8 +148,9 @@ impl Words {
         }
     }
 
-    /// A stroke's width, joins, caps and dash pattern; not the dash
-    /// offset, which a pan moves with the column grid.
+    /// Folds in a stroke's width, miter limit, joins, caps and dash
+    /// pattern. The dash offset is left out, since a pan moves it with the
+    /// column grid.
     fn stroke(&mut self, style: &Stroke) {
         self.tag(style.width.to_bits());
         self.tag(style.miter_limit.to_bits());
@@ -163,7 +164,8 @@ impl Words {
         }
     }
 
-    /// A marker's shape, centred on the origin: its elements and points.
+    /// Folds in a marker's shape, centered on the origin: its elements and
+    /// points.
     fn path(&mut self, path: &BezPath) {
         for element in path.elements() {
             let points: &[_] = match element {
@@ -195,7 +197,7 @@ impl Words {
         }
     }
 
-    /// The bytes of `text`, eight at a time.
+    /// Folds in the bytes of `text`, eight at a time.
     fn text(&mut self, text: &str) {
         for chunk in text.as_bytes().chunks(8) {
             let mut word = [0; 8];
@@ -217,9 +219,9 @@ mod tests {
     use super::hash;
     use crate::plot::state;
 
-    /// The mark parts of a curve and dots over x `x`, the curve in
-    /// `color` and `width` px, drawn at 480 × 320 at 2: each part's hash
-    /// and style hash.
+    /// Each part's hash and style hash for the mark parts of a curve and
+    /// dots over x `x`, with the curve in `color` and `width` px, drawn at
+    /// 480 × 320 at 2.
     fn marks(x: [f64; 2], color: Rgb, width: f64) -> Vec<(u64, u64)> {
         let curve: Vec<(f64, f64)> = (0..=200)
             .map(|i| {

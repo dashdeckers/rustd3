@@ -3,9 +3,10 @@
 use std::sync::Arc;
 
 /// d3.interpolateBasis: a uniform cubic B-spline through `values` at `t` in
-/// [0, 1], `t` outside held at the ends; the outer neighbours of the ends
-/// are reflected, so the spline starts at the first value and ends at the
-/// last. Fewer than two values give NaN, as d3's undefined arithmetic does.
+/// [0, 1], with `t` outside held at the ends. The outer neighbors of the
+/// ends are reflected, so the spline starts at the first value and ends at
+/// the last. Fewer than two values give NaN, as d3's undefined arithmetic
+/// does.
 ///
 /// ```
 /// use rustd3_core::interpolate;
@@ -20,10 +21,10 @@ pub fn basis(values: &[f64]) -> impl Fn(f64) -> f64 + Clone + Send + Sync + use<
     move |t| at(&values, t, |v| *v)
 }
 
-/// d3's basis.js at `t` over the channel `channel` of each of `values`:
-/// with `n = len − 1`, segment 0 at 0 for `t ≤ 0`, segment `n − 1` at 1
-/// for `t ≥ 1`, otherwise segment `floor(t·n)`; NaN for fewer than two
-/// values.
+/// d3's basis.js at `t`, over the `channel` of each of `values`. With
+/// `n = len − 1`, it evaluates segment 0 at 0 for `t ≤ 0`, segment `n − 1`
+/// at 1 for `t ≥ 1`, and segment `floor(t·n)` otherwise. NaN for fewer
+/// than two values.
 pub(crate) fn at<V>(values: &[V], t: f64, channel: impl Fn(&V) -> f64) -> f64 {
     let Some(last) = values.len().checked_sub(2) else {
         return f64::NAN;

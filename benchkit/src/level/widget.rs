@@ -1,18 +1,23 @@
-//! The widget's part of a level, built with the `widget`
-//! feature: the display measurement before the CPU reference, then, after
-//! the figure profile, the [`Profile`]s that drive the `Plot` widget, each a
-//! run of a plan by `bench_software` or `bench_gestures` in its own
-//! directory of the level's with its console in `run-<profile>.log`: the software path offscreen (headless on any
-//! machine), the native backend (iced's own choice), the software
-//! renderer, the software renderer on X11 in a Linux Wayland session,
-//! and at the default and full levels the weak plan on 4 and on 2
-//! cores; at `--full`, every `also` measurement last. A
-//! core count is enforced by pinning the bench where the system offers it
-//! (`taskset` on Linux, `start /AFFINITY` on Windows) and otherwise by the
-//! widget's render pool (`--threads`), and the report says which. Without
-//! a display the profiles run headless, a profile the machine cannot run
+//! The widget's part of a level, built with the `widget` feature. It
+//! measures the display before the CPU reference, then, after the figure
+//! profile, runs the [`Profile`]s that drive the `Plot` widget. Each
+//! profile is a run of a plan by `bench_software` or `bench_gestures` in
+//! its own directory of the level's, with its console in
+//! `run-<profile>.log`. The profiles are:
+//! - the software path offscreen (headless on any machine);
+//! - the native backend (iced's own choice);
+//! - the software renderer;
+//! - the software renderer on X11 in a Linux Wayland session;
+//! - at the default and full levels, the weak plan on 4 and on 2 cores.
+//!
+//! At `--full`, every `also` measurement runs last.
+//!
+//! A core count is enforced by pinning the bench where the system offers
+//! it (`taskset` on Linux, `start /AFFINITY` on Windows), and otherwise by
+//! the widget's render pool (`--threads`). The report says which. Without
+//! a display the profiles run headless. A profile the machine cannot run
 //! is skipped with its reason, and a profile whose runs fail is recorded
-//! and the level goes on.
+//! while the level goes on.
 
 use std::error::Error;
 use std::ffi::OsStr;
@@ -35,7 +40,7 @@ use crate::sibling::Siblings;
 use crate::workload::Workload;
 use crate::{also, figure, report, results, rule, system};
 
-/// The widget's part of a level, which `Request::run` runs.
+/// The widget's part of a level.
 #[derive(Debug)]
 pub struct Part {
     /// The level.
@@ -52,8 +57,8 @@ pub struct Part {
     guess: Machine,
     /// The display, once measured.
     display: Option<Display>,
-    /// The profiles this machine runs, each with why it is skipped, if it
-    /// is: known once the display is measured.
+    /// The profiles this machine runs, each with the reason it is skipped,
+    /// if it is. They are known once the display is measured.
     profiles: Vec<(Profile, Option<String>)>,
     /// `--frames DIR` and `--every N`, for the software profile.
     frames: Option<(PathBuf, u32)>,
@@ -79,11 +84,11 @@ pub struct Profile {
     pub budgets: rule::Profile,
     /// The cores it is limited to.
     pub cores: Option<usize>,
-    /// Its windows open on X11 through XWayland.
+    /// Whether its windows open on X11 through XWayland.
     pub xwayland: bool,
-    /// It composes its frames offscreen, headless whatever the display, at
-    /// 60 Hz and a native factor of 2 so that its cells keep 1600 × 1000
-    /// logical px at both factors.
+    /// Whether it composes its frames offscreen, headless whatever the
+    /// display, at 60 Hz and a native factor of 2, so that its cells keep
+    /// 1600 × 1000 logical px at both factors.
     pub offscreen: bool,
     /// After its name, a sweep's value (`@threads=2`), else empty.
     pub variant: String,
@@ -105,13 +110,14 @@ const NO_WINDOW: &str = "no profile selected opens a window (--only)";
 /// What a level knows of the machine when it decides which profiles run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Machine {
-    /// Logical cores.
+    /// The number of logical cores.
     pub cores: usize,
-    /// A Linux Wayland session with XWayland.
+    /// Whether this is a Linux Wayland session with XWayland.
     pub xwayland: bool,
-    /// No window opens: every profile runs headless.
+    /// Whether no window opens, so every profile runs headless.
     pub headless: bool,
-    /// iced's own choice is the software renderer (no GPU adapter).
+    /// Whether iced's own choice is the software renderer (no GPU
+    /// adapter).
     pub software: bool,
 }
 
@@ -132,7 +138,7 @@ pub const NO_XWAYLAND: &str = "it runs only in a Linux Wayland session with XWay
                                (WAYLAND_DISPLAY and DISPLAY both set)";
 
 /// The display measurement's allowance in the estimate beyond its plan,
-/// s: a window opening once.
+/// in s, for a window opening once.
 const DISPLAY_MARGIN_S: f64 = 3.0;
 
 /// The `also` measurements' allowance in the full level's estimate, s
@@ -247,10 +253,11 @@ impl Level {
     }
 
     /// The estimated wall time of the level with `profiles` on a display
-    /// of factor `native`, s: the CPU reference and the figure profile,
-    /// the display measurement, then each profile that runs, from its
-    /// plan's durations and run counts plus the per-run overhead
-    /// (`Plan::estimate_s`), and at `--full` the `also` measurements.
+    /// of factor `native`, in s. It adds up the CPU reference and the
+    /// figure profile, the display measurement, each profile that runs
+    /// (from its plan's durations and run counts plus the per-run
+    /// overhead, `Plan::estimate_s`), and at `--full` the `also`
+    /// measurements.
     pub fn estimate_s(self, profiles: &[(Profile, Option<String>)], native: f32) -> f64 {
         let display = display_s(native);
         let measured = if self == Level::Full { ALSO_S } else { 0.0 };
@@ -465,7 +472,7 @@ impl Part {
 
     /// The level's profiles on `machine` as the experiment selects them,
     /// narrowed to its cells and runs, a variant per sweep value, on a
-    /// display of factor `native`; a profile left with no cell is skipped
+    /// display of factor `native`. A profile left with no cell is skipped
     /// and says why.
     fn select(&self, machine: Machine, native: f32) -> Vec<(Profile, Option<String>)> {
         let e = &self.experiment;
@@ -513,9 +520,9 @@ impl Part {
             .any(|(profile, skip)| skip.is_none() && !profile.offscreen)
     }
 
-    /// The display: headless without trying where no window can open,
-    /// else from the display plan's one window (`display/`), headless if
-    /// it opened none.
+    /// Measures the display. Where no window can open, it is headless
+    /// without trying. Otherwise it comes from the display plan's one
+    /// window (`display/`), and is headless if that plan opened none.
     fn measure(&self, dir: &Path) -> Result<Display, Box<dyn Error>> {
         let native = self.native.unwrap_or(1.0);
         let none =
@@ -733,7 +740,7 @@ impl Limit {
                 command
             }
             Limit::Affinity(n) => {
-                // The empty title start takes before its flags.
+                // `start` takes an empty title before its flags.
                 let mut command = Command::new("cmd");
                 command
                     .args(["/C", "start", "", "/B", "/WAIT", "/AFFINITY", &mask(n)])
@@ -774,9 +781,10 @@ fn mask(n: usize) -> String {
 }
 
 /// Runs `exe ARGS` (`… --out DIR/NAME`, under `limit` with its
-/// `--cpu-limit`, if any), its console written to `DIR/run-NAME.log` and,
-/// when `shown`, printed, and moves the stamped directory the bench
-/// writes into `DIR/NAME` up into it.
+/// `--cpu-limit`, if any). Its console is written to `DIR/run-NAME.log`
+/// and, when `shown`, printed. Afterwards it moves the contents of the
+/// stamped directory that the bench writes under `DIR/NAME` up into
+/// `DIR/NAME`.
 fn spawn(
     exe: &Path,
     dir: &Path,
@@ -867,8 +875,8 @@ pub fn xwayland() -> bool {
 }
 
 /// Whether `nogpu-x11` runs on `os` with these `WAYLAND_DISPLAY` and
-/// `DISPLAY`: on Linux with both set, empty counting as unset as winit
-/// reads them.
+/// `DISPLAY`: on Linux with both set. An empty value counts as unset, as
+/// winit reads them.
 fn xwayland_on(os: &str, wayland_display: Option<&OsStr>, display: Option<&OsStr>) -> bool {
     let set = |var: Option<&OsStr>| var.is_some_and(|v| !v.is_empty());
     os == "linux" && set(wayland_display) && set(display)
@@ -976,9 +984,10 @@ mod tests {
         assert_eq!(default[4].0.cores, Some(4));
         assert!(default[0].0.cells(1.0).iter().all(|c| c.runs == 3));
         assert_eq!(Level::Full.profiles(DESKTOP)[1].0.plan, Plan::Full);
-        // About 10 minutes for quick, 75 for default, each with the figure
-        // profile's 1 and 4: here 8.5 and 71 without the X11 profile, 10
-        // and 77 with it; and the software profile's 6.2 and 18.6.
+        // About 10 minutes for quick and 75 for default, each including the
+        // figure profile's 1 and 4. Here that is 8.5 and 71 without the X11
+        // profile and 10 and 77 with it, with the software profile's 6.2
+        // and 18.6.
         let minutes =
             |level: Level, machine| level.estimate_s(&level.profiles(machine), 1.0) / 60.0;
         let wayland = Machine {

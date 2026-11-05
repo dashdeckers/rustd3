@@ -137,7 +137,7 @@ fn stack_offset_function_sets_the_offset_function() {
     ); // d3-shape/test/stack-test.js:104:3
 }
 
-// d3-shape/test/diverging-test.js: stackOffsetDiverging(series, order) applies a zero baseline, ignoring existing offsets
+// d3-shape/test/offset/diverging-test.js: stackOffsetDiverging(series, order) applies a zero baseline, ignoring existing offsets
 #[test]
 fn stackoffsetdiverging_series_order_applies_a_zero_baseline_ignoring_existing_offsets() {
     let mut series = vec![
@@ -159,7 +159,7 @@ fn stackoffsetdiverging_series_order_applies_a_zero_baseline_ignoring_existing_o
     ); // d3-shape/test/offset/diverging-test.js:11:3
 }
 
-// d3-shape/test/diverging-test.js: stackOffsetDiverging(series, order) handles a single series
+// d3-shape/test/offset/diverging-test.js: stackOffsetDiverging(series, order) handles a single series
 #[test]
 fn stackoffsetdiverging_series_order_handles_a_single_series() {
     let mut series = vec![vec![[1.0, 2.0], [2.0, 4.0], [3.0, 4.0]]];
@@ -170,7 +170,7 @@ fn stackoffsetdiverging_series_order_handles_a_single_series() {
     assert_eq!(series, vec![vec![[0.0, 1.0], [0.0, 2.0], [0.0, 1.0]]]); // d3-shape/test/offset/diverging-test.js:23:3
 }
 
-// d3-shape/test/diverging-test.js: stackOffsetDiverging(series, order) treats NaN as zero
+// d3-shape/test/offset/diverging-test.js: stackOffsetDiverging(series, order) treats NaN as zero
 #[test]
 fn stackoffsetdiverging_series_order_treats_nan_as_zero() {
     let mut series = vec![
@@ -185,7 +185,7 @@ fn stackoffsetdiverging_series_order_treats_nan_as_zero() {
     assert!((series[1][1][1]).is_nan()); // d3-shape/test/offset/diverging-test.js:35:3
 }
 
-// d3-shape/test/diverging-test.js: stackOffsetDiverging(series, order) observes the specified order
+// d3-shape/test/offset/diverging-test.js: stackOffsetDiverging(series, order) observes the specified order
 #[test]
 fn stackoffsetdiverging_series_order_observes_the_specified_order() {
     let mut series = vec![
@@ -207,7 +207,7 @@ fn stackoffsetdiverging_series_order_observes_the_specified_order() {
     ); // d3-shape/test/offset/diverging-test.js:51:3
 }
 
-// d3-shape/test/diverging-test.js: stackOffsetDiverging(series, order) puts negative values below zero, in order
+// d3-shape/test/offset/diverging-test.js: stackOffsetDiverging(series, order) puts negative values below zero, in order
 #[test]
 fn stackoffsetdiverging_series_order_puts_negative_values_below_zero_in_order() {
     let mut series = vec![
@@ -229,7 +229,7 @@ fn stackoffsetdiverging_series_order_puts_negative_values_below_zero_in_order() 
     ); // d3-shape/test/offset/diverging-test.js:65:3
 }
 
-// d3-shape/test/diverging-test.js: stackOffsetDiverging(series, order) puts zero values at zero, in order
+// d3-shape/test/offset/diverging-test.js: stackOffsetDiverging(series, order) puts zero values at zero, in order
 #[test]
 fn stackoffsetdiverging_series_order_puts_zero_values_at_zero_in_order() {
     let mut series = vec![
@@ -251,7 +251,7 @@ fn stackoffsetdiverging_series_order_puts_zero_values_at_zero_in_order() {
     ); // d3-shape/test/offset/diverging-test.js:79:3
 }
 
-// d3-shape/test/expand-test.js: stackOffsetExpand(series, order) expands to fill [0, 1]
+// d3-shape/test/offset/expand-test.js: stackOffsetExpand(series, order) expands to fill [0, 1]
 #[test]
 fn stackoffsetexpand_series_order_expands_to_fill_0_1() {
     let mut series = vec![
@@ -285,7 +285,7 @@ fn stackoffsetexpand_series_order_expands_to_fill_0_1() {
     ); // d3-shape/test/offset/expand-test.js:11:3
 }
 
-// d3-shape/test/expand-test.js: stackOffsetExpand(series, order) treats NaN as zero
+// d3-shape/test/offset/expand-test.js: stackOffsetExpand(series, order) treats NaN as zero
 #[test]
 fn stackoffsetexpand_series_order_treats_nan_as_zero() {
     let mut series = vec![
@@ -300,7 +300,7 @@ fn stackoffsetexpand_series_order_treats_nan_as_zero() {
     assert!((series[1][1][1]).is_nan()); // d3-shape/test/offset/expand-test.js:25:3
 }
 
-// d3-shape/test/expand-test.js: stackOffsetExpand(series, order) observes the specified order
+// d3-shape/test/offset/expand-test.js: stackOffsetExpand(series, order) observes the specified order
 #[test]
 fn stackoffsetexpand_series_order_observes_the_specified_order() {
     let mut series = vec![
@@ -334,7 +334,7 @@ fn stackoffsetexpand_series_order_observes_the_specified_order() {
     ); // d3-shape/test/offset/expand-test.js:41:3
 }
 
-// d3-shape/test/none-test.js: stackOffsetNone(series, order) stacks upon the first layer’s existing positions
+// d3-shape/test/offset/none-test.js: stackOffsetNone(series, order) stacks upon the first layer’s existing positions
 #[test]
 fn stackoffsetnone_series_order_stacks_upon_the_first_layer_s_existing_positions() {
     let mut series = vec![
@@ -356,7 +356,7 @@ fn stackoffsetnone_series_order_stacks_upon_the_first_layer_s_existing_positions
     ); // d3-shape/test/offset/none-test.js:11:3
 }
 
-// d3-shape/test/none-test.js: stackOffsetNone(series, order) treats NaN as zero
+// d3-shape/test/offset/none-test.js: stackOffsetNone(series, order) treats NaN as zero
 #[test]
 fn stackoffsetnone_series_order_treats_nan_as_zero() {
     let mut series = vec![
@@ -371,7 +371,7 @@ fn stackoffsetnone_series_order_treats_nan_as_zero() {
     assert!((series[1][1][1]).is_nan()); // d3-shape/test/offset/none-test.js:25:3
 }
 
-// d3-shape/test/none-test.js: stackOffsetNone(series, order) observes the specified order
+// d3-shape/test/offset/none-test.js: stackOffsetNone(series, order) observes the specified order
 #[test]
 fn stackoffsetnone_series_order_observes_the_specified_order() {
     let mut series = vec![
@@ -393,7 +393,7 @@ fn stackoffsetnone_series_order_observes_the_specified_order() {
     ); // d3-shape/test/offset/none-test.js:41:3
 }
 
-// d3-shape/test/silhouette-test.js: stackOffsetSilhouette(series, order) centers the stack around zero
+// d3-shape/test/offset/silhouette-test.js: stackOffsetSilhouette(series, order) centers the stack around zero
 #[test]
 fn stackoffsetsilhouette_series_order_centers_the_stack_around_zero() {
     let mut series = vec![
@@ -427,7 +427,7 @@ fn stackoffsetsilhouette_series_order_centers_the_stack_around_zero() {
     ); // d3-shape/test/offset/silhouette-test.js:11:3
 }
 
-// d3-shape/test/silhouette-test.js: stackOffsetSilhouette(series, order) treats NaN as zero
+// d3-shape/test/offset/silhouette-test.js: stackOffsetSilhouette(series, order) treats NaN as zero
 #[test]
 fn stackoffsetsilhouette_series_order_treats_nan_as_zero() {
     let mut series = vec![
@@ -442,7 +442,7 @@ fn stackoffsetsilhouette_series_order_treats_nan_as_zero() {
     assert!((series[1][1][1]).is_nan()); // d3-shape/test/offset/silhouette-test.js:25:3
 }
 
-// d3-shape/test/silhouette-test.js: stackOffsetSilhouette(series, order) observes the specified order
+// d3-shape/test/offset/silhouette-test.js: stackOffsetSilhouette(series, order) observes the specified order
 #[test]
 fn stackoffsetsilhouette_series_order_observes_the_specified_order() {
     let mut series = vec![
@@ -476,7 +476,7 @@ fn stackoffsetsilhouette_series_order_observes_the_specified_order() {
     ); // d3-shape/test/offset/silhouette-test.js:41:3
 }
 
-// d3-shape/test/wiggle-test.js: stackOffsetWiggle(series, order) minimizes weighted wiggle
+// d3-shape/test/offset/wiggle-test.js: stackOffsetWiggle(series, order) minimizes weighted wiggle
 #[test]
 fn stackoffsetwiggle_series_order_minimizes_weighted_wiggle() {
     let mut series = vec![
@@ -510,7 +510,7 @@ fn stackoffsetwiggle_series_order_minimizes_weighted_wiggle() {
     ); // d3-shape/test/offset/wiggle-test.js:11:3
 }
 
-// d3-shape/test/wiggle-test.js: stackOffsetWiggle(series, order) treats NaN as zero
+// d3-shape/test/offset/wiggle-test.js: stackOffsetWiggle(series, order) treats NaN as zero
 #[test]
 fn stackoffsetwiggle_series_order_treats_nan_as_zero() {
     let mut series = vec![
@@ -526,7 +526,7 @@ fn stackoffsetwiggle_series_order_treats_nan_as_zero() {
     assert!((series[1][0][1]).is_nan()); // d3-shape/test/offset/wiggle-test.js:26:3
 }
 
-// d3-shape/test/wiggle-test.js: stackOffsetWiggle(series, order) observes the specified order
+// d3-shape/test/offset/wiggle-test.js: stackOffsetWiggle(series, order) observes the specified order
 #[test]
 fn stackoffsetwiggle_series_order_observes_the_specified_order() {
     let mut series = vec![
@@ -560,7 +560,7 @@ fn stackoffsetwiggle_series_order_observes_the_specified_order() {
     ); // d3-shape/test/offset/wiggle-test.js:45:3
 }
 
-// d3-shape/test/appearance-test.js: stackOrderAppearance(series) returns an order by appearance
+// d3-shape/test/order/appearance-test.js: stackOrderAppearance(series) returns an order by appearance
 #[test]
 fn stackorderappearance_series_returns_an_order_by_appearance() {
     assert_d3_eq(
@@ -573,7 +573,7 @@ fn stackorderappearance_series_returns_an_order_by_appearance() {
     ); // d3-shape/test/order/appearance-test.js:5:3
 }
 
-// d3-shape/test/appearance-test.js: stackOrderAppearance(series) treats NaN values as zero
+// d3-shape/test/order/appearance-test.js: stackOrderAppearance(series) treats NaN values as zero
 #[test]
 fn stackorderappearance_series_treats_nan_values_as_zero() {
     assert_d3_eq(
@@ -586,7 +586,7 @@ fn stackorderappearance_series_treats_nan_values_as_zero() {
     ); // d3-shape/test/order/appearance-test.js:13:3
 }
 
-// d3-shape/test/ascending-test.js: stackOrderAscending(series) returns an order by sum
+// d3-shape/test/order/ascending-test.js: stackOrderAscending(series) returns an order by sum
 #[test]
 fn stackorderascending_series_returns_an_order_by_sum() {
     assert_d3_eq(
@@ -599,7 +599,7 @@ fn stackorderascending_series_returns_an_order_by_sum() {
     ); // d3-shape/test/order/ascending-test.js:5:3
 }
 
-// d3-shape/test/ascending-test.js: stackOrderAscending(series) treats NaN values as zero
+// d3-shape/test/order/ascending-test.js: stackOrderAscending(series) treats NaN values as zero
 #[test]
 fn stackorderascending_series_treats_nan_values_as_zero() {
     assert_d3_eq(
@@ -612,7 +612,7 @@ fn stackorderascending_series_treats_nan_values_as_zero() {
     ); // d3-shape/test/order/ascending-test.js:13:3
 }
 
-// d3-shape/test/descending-test.js: stackOrderDescending(series) returns an order by sum
+// d3-shape/test/order/descending-test.js: stackOrderDescending(series) returns an order by sum
 #[test]
 fn stackorderdescending_series_returns_an_order_by_sum() {
     assert_d3_eq(
@@ -625,7 +625,7 @@ fn stackorderdescending_series_returns_an_order_by_sum() {
     ); // d3-shape/test/order/descending-test.js:5:3
 }
 
-// d3-shape/test/descending-test.js: stackOrderDescending(series) treats NaN values as zero
+// d3-shape/test/order/descending-test.js: stackOrderDescending(series) treats NaN values as zero
 #[test]
 fn stackorderdescending_series_treats_nan_values_as_zero() {
     assert_d3_eq(
@@ -638,7 +638,7 @@ fn stackorderdescending_series_treats_nan_values_as_zero() {
     ); // d3-shape/test/order/descending-test.js:13:3
 }
 
-// d3-shape/test/insideOut-test.js: stackOrderInsideOut(series) returns an order by appearance
+// d3-shape/test/order/insideOut-test.js: stackOrderInsideOut(series) returns an order by appearance
 #[test]
 fn stackorderinsideout_series_returns_an_order_by_appearance() {
     assert_d3_eq(
@@ -711,7 +711,7 @@ fn stackorderinsideout_series_returns_an_order_by_appearance() {
     ); // d3-shape/test/order/insideOut-test.js:5:3
 }
 
-// d3-shape/test/insideOut-test.js: stackOrderInsideOut(series) treats NaN values as zero
+// d3-shape/test/order/insideOut-test.js: stackOrderInsideOut(series) treats NaN values as zero
 #[test]
 fn stackorderinsideout_series_treats_nan_values_as_zero() {
     assert_d3_eq(
@@ -784,7 +784,7 @@ fn stackorderinsideout_series_treats_nan_values_as_zero() {
     ); // d3-shape/test/order/insideOut-test.js:17:3
 }
 
-// d3-shape/test/none-test.js: stackOrderNone(series) returns [0, 1, … series.length - 1]
+// d3-shape/test/order/none-test.js: stackOrderNone(series) returns [0, 1, … series.length - 1]
 #[test]
 fn stackordernone_series_returns_0_1_series_length_1() {
     assert_d3_eq(
@@ -793,7 +793,7 @@ fn stackordernone_series_returns_0_1_series_length_1() {
     ); // d3-shape/test/order/none-test.js:5:3
 }
 
-// d3-shape/test/reverse-test.js: stackOrderReverse(series) returns [series.length - 1, series.length - 2, … 0]
+// d3-shape/test/order/reverse-test.js: stackOrderReverse(series) returns [series.length - 1, series.length - 2, … 0]
 #[test]
 fn stackorderreverse_series_returns_series_length_1_series_length_2_0() {
     assert_d3_eq(

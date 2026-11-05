@@ -1,12 +1,12 @@
-//! [`Probe`](crate::plot::Probe) and its [`Sample`]s: what each frame of a `Plot` cost and
-//! what it showed, timed by a clock the app supplies.
+//! [`Probe`](crate::plot::Probe) and its [`Sample`]s: what each frame of a
+//! `Plot` cost and what it showed, timed by a clock the app supplies.
 //!
 //! A `Plot` with a probe sends, per `RedrawRequested`, a [`Sample::Stage`]
 //! for each UI-thread stage it ran, a [`Sample::Raster`] for each cell it
 //! rendered inline, and one [`Sample::Frame`] describing the following
-//! draw; cells rendered on the pool report their `Raster` sample when
+//! draw. Cells rendered on the pool report their `Raster` sample when
 //! their result is drained, on `Event::Waken`. Without a probe nothing is
-//! sent; the widget times its renders for its cost model either way, on
+//! sent. The widget times its renders for its cost model either way, on
 //! the monotonic clock, and reports none of those readings.
 //!
 //! ```
@@ -32,13 +32,13 @@ pub(in crate::plot) mod channel;
 
 /// One measurement of a `Plot`'s frame.
 ///
-/// `frame` counts the `RedrawRequested` events the widget handled; a
+/// `frame` counts the `RedrawRequested` events the widget handled, and a
 /// sample sent between them carries the last one's count. `generation`
 /// increments whenever the state the widget shows changes (a list whose
 /// cell hashes differ from the stored ones).
 ///
 /// Each variant is `#[non_exhaustive]`, so a later version may add fields
-/// to it: code outside this crate reads samples with `..` in its patterns
+/// to it. Code outside this crate reads samples with `..` in its patterns
 /// and does not build them.
 ///
 /// ```
@@ -77,7 +77,8 @@ pub enum Sample {
         /// How long it took, by the probe's clock.
         duration: Duration,
     },
-    /// One cell or tile rasterized (worker or inline), all its bands.
+    /// One cell or tile rasterized, on a worker or inline, with all its
+    /// bands.
     #[non_exhaustive]
     Raster {
         /// The frame it was reported in: the one that rendered it inline,
@@ -89,8 +90,8 @@ pub enum Sample {
         target: Target,
         /// Device pixels of the cell or tile.
         pixels: u32,
-        /// The cell's `work` (its drawing-list part's), for the cost model; a tile's
-        /// share of its plot area's, by pixels.
+        /// The cell's `work` (its drawing-list part's) for the cost model,
+        /// or a tile's share of its plot area's work, by pixels.
         work: u64,
         /// Time between planning and the start of the render.
         queued: Duration,
@@ -108,24 +109,24 @@ pub enum Sample {
         at: Instant,
         /// The newest generation planned.
         generation: u64,
-        /// Slots (the runs of gutter cells, the plot areas' visible tiles
-        /// and their overlays) with an image of any generation; a tile
-        /// without one of its own counts when its area's preview layer
-        /// covers it.
+        /// Slots with an image of any generation. The slots are the runs
+        /// of gutter cells, the plot areas' visible tiles and their
+        /// overlays. A tile without an image of its own counts when its
+        /// area's preview layer covers it.
         images: u32,
         /// Slots with no image at all (the theme background shows).
         missing: u32,
         /// Slots whose shown content hash differs from their current
-        /// hash, gutters included: previews, an older render shown until
-        /// the newest lands, and tiles the preview layer of an earlier
-        /// grid stands in for. A slot whose content did not change is
-        /// current whatever generation its image came from.
+        /// hash, gutters included. These are previews: an older render
+        /// shown until the newest lands, and tiles the preview layer of an
+        /// earlier grid stands in for. A slot whose content did not change
+        /// is current whatever generation its image came from.
         previews: u32,
         /// Bytes of handles drawn for the first time.
         uploaded: u64,
     },
     /// Under `Caching::Verify`, a kept or translated slot whose image
-    /// differed from a fresh render by more than 1/255; the fresh render
+    /// differed from a fresh render by more than 1/255. The fresh render
     /// replaced it.
     #[non_exhaustive]
     Mismatch {
@@ -152,16 +153,16 @@ pub enum Stage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target {
     /// A cell outside every plot area, by its position in the partition's
-    /// cells (row-major), stable while the partition's rect sequence is
-    /// unchanged. Adjacent gutter cells of a row merged into one image
-    /// report their first (leftmost) cell, with the pixels of all of
-    /// them; what stays put over a plot area reports the cell holding its
-    /// top left pixel.
+    /// cells (row-major). It is stable while the partition's rect sequence
+    /// is unchanged. Adjacent gutter cells of a row merged into one image
+    /// report their first (leftmost) cell, with the pixels of all of them.
+    /// An overlay of what stays put over a plot area reports the cell
+    /// holding its top left pixel.
     Cell(u32),
-    /// A tile of a plot area: the area's position among the plot areas
-    /// (panel order), and the tile's column and row on its grid, whose
+    /// A tile of a plot area, by the area's position among the plot areas
+    /// (panel order) and the tile's column and row on its grid. The grid's
     /// tile (0, 0) starts at the device position of the area's data
-    /// anchor (its top-left corner until a gesture moves it).
+    /// anchor, which is its top-left corner until a gesture moves it.
     Tile {
         /// The plot area.
         area: u32,

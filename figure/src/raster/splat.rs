@@ -1,13 +1,12 @@
-//! Marker splatting: a markers command whose points share one
-//! solid paint table and one size, drawn through groups that only scale
-//! and translate and clip to rectangles, is composited from coverage
-//! stamps of its shape instead of filled once per point. The shape is
-//! rasterized by vello_cpu itself at 8 × 8 eighth-pixel phases under the
-//! device transform's scale; each point lays the stamp of the phase
-//! nearest its centre source-over onto the premultiplied pixmap. A centre
-//! moves by at most 1/16 px along each axis, which bounds the difference
-//! from filling each point (within 32/255 on the benchmark's scatters);
-//! file outputs never splat.
+//! Marker splatting. A markers command whose points share one solid paint
+//! table and one size, drawn through groups that only scale, translate and
+//! clip to rectangles, is composited from coverage stamps of its shape
+//! instead of filled once per point. vello_cpu itself rasterizes the shape
+//! at 8 × 8 eighth-pixel phases under the device transform's scale. Each
+//! point lays the stamp of the phase nearest its center source-over onto
+//! the premultiplied pixmap. A center moves by at most 1/16 px along each
+//! axis, which bounds the difference from filling each point (within
+//! 32/255 on the benchmark's scatters). File outputs never splat.
 
 use std::collections::HashMap;
 
@@ -30,8 +29,8 @@ pub(super) struct Stamps {
     sets: HashMap<u64, Vec<Stamp>>,
 }
 
-/// A shape's coverage at one phase: 8-bit, row-major; its top-left pixel
-/// lies `offset` px from the pixel holding the centre.
+/// A shape's coverage at one phase, 8-bit and row-major. Its top-left
+/// pixel lies `offset` px from the pixel holding the center.
 #[derive(Debug)]
 pub(super) struct Stamp {
     width: usize,
@@ -40,15 +39,19 @@ pub(super) struct Stamp {
     coverage: Vec<u8>,
 }
 
-/// What one splatted command needs: its shape, centres and paints, the
-/// device transform of its group and the device clip, `[x0, y0, x1, y1]`
-/// in whole px.
+/// What one splatted command needs.
 pub(super) struct Splat<'a> {
+    /// The marker shape.
     pub(super) shape: &'a BezPath,
+    /// The marker centers.
     pub(super) at: &'a [Point],
+    /// The paint of every point when `paints` is absent.
     pub(super) paint: &'a Brush,
+    /// Per-point paints.
     pub(super) paints: Option<&'a Paints>,
+    /// The device transform of the command's group.
     pub(super) device: Affine,
+    /// The device clip, `[x0, y0, x1, y1]` in whole px.
     pub(super) clip: [i64; 4],
 }
 

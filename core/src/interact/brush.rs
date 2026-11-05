@@ -1,5 +1,5 @@
-//! d3-brush's one-dimensional brushes, [`BrushX`] and [`BrushY`], over
-//! one crate-private engine, d3's `brush(dim)`; they report
+//! d3-brush's one-dimensional brushes, [`BrushX`] and [`BrushY`]. They
+//! share a crate-private engine, d3's `brush(dim)`, and report
 //! [`BrushEvent`]s.
 
 mod engine;

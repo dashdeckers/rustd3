@@ -51,8 +51,9 @@ fn compile(fonts: &Arc<Fonts>, keys: &[&Key], compiles: &mut u64) -> Result<Page
         })
 }
 
-/// Tight pages without margins, text edges at the ink, every family in
-/// fallback order, and each label's snippet on its own page.
+/// The typst source of `keys`: tight pages without margins, text edges at
+/// the ink, every family in fallback order, and each label's snippet on
+/// its own page.
 fn source(fonts: &Fonts, keys: &[&Key]) -> String {
     let families: Vec<String> = fonts.families().iter().map(|f| literal(f)).collect();
     let mut source = format!(

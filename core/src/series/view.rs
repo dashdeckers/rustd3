@@ -5,7 +5,8 @@ use std::ops::Range;
 use crate::series::channel::Channel;
 use crate::series::{Columns, Coordinate, Error, Recording, m4, runs};
 
-/// One channel of a recording, borrowed; `Copy`, passed by value from `view`.
+/// One channel of a recording, borrowed. It is `Copy`, and
+/// [`Recording::series`] returns it by value.
 ///
 /// ```
 /// use rustd3_core::series::{Clock, Recording};
@@ -100,8 +101,7 @@ impl<'a, X: Coordinate> Series<'a, X> {
     /// the columns, holding each column's first, minimum, maximum and last
     /// sample of the run (minimum and maximum among the values that pass
     /// `valid`), plus the samples just outside the columns when the run
-    /// holds them. Columns built for another recording or revision are
-    /// [`Error::Stale`].
+    /// holds them.
     ///
     /// # Errors
     ///
@@ -116,15 +116,14 @@ impl<'a, X: Coordinate> Series<'a, X> {
         }))
     }
 
-    /// M4 over two channels of one recording, e.g. a ribbon's lower and
-    /// upper edge: both edges keep their extremes in every column. The
-    /// query walks the runs where neither channel is NaN; per column of a
-    /// joint run it keeps the run's first and last sample there and both
+    /// M4 over two channels of one recording, such as a ribbon's lower and
+    /// upper edge, so that both edges keep their extremes in every column.
+    /// The query walks the runs where neither channel is NaN. Per column of
+    /// a joint run it keeps the run's first and last sample there and both
     /// channels' minimum and maximum (among the values that pass `valid`),
-    /// sorted and deduplicated, plus the samples just outside the columns
-    /// when the joint run holds them, as [`m4`](Series::m4) does for one
-    /// channel. Channels of two recordings are [`Error::Recordings`];
-    /// columns built for another recording or revision [`Error::Stale`].
+    /// sorted and deduplicated. As [`m4`](Series::m4) does for one channel,
+    /// it adds the samples just outside the columns when the joint run
+    /// holds them.
     ///
     /// ```
     /// use rustd3_core::series::{Clock, Recording};

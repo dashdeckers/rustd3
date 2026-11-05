@@ -27,8 +27,8 @@ pub fn rgb(a: Rgb, b: Rgb) -> impl Fn(f64) -> Rgb + Clone + Send + Sync {
 }
 
 /// d3.interpolateRgb.gamma(gamma): the sRGB channels blended along d3's
-/// gamma curve `(a^γ + t·(b^γ − a^γ))^(1/γ)`, the opacity linearly; gamma
-/// 1 is [`rgb`].
+/// gamma curve `(a^γ + t·(b^γ − a^γ))^(1/γ)`, and the opacity linearly.
+/// Gamma 1 is [`rgb`].
 pub fn rgb_gamma(gamma: f64, a: Rgb, b: Rgb) -> impl Fn(f64) -> Rgb + Clone + Send + Sync {
     let [r, g, blue] =
         [(a.r, b.r), (a.g, b.g), (a.b, b.b)].map(|(x, y)| Channel::gamma(gamma, x, y));
@@ -42,8 +42,8 @@ pub fn rgb_gamma(gamma: f64, a: Rgb, b: Rgb) -> impl Fn(f64) -> Rgb + Clone + Se
 }
 
 /// d3.interpolateRgbBasis: a uniform cubic B-spline through `colors` per
-/// sRGB channel (d3's [`basis`](crate::interpolate::basis)), opaque; an
-/// undefined channel counts as 0.
+/// sRGB channel (d3's [`basis`](crate::interpolate::basis)). The result is
+/// opaque, and an undefined channel counts as 0.
 ///
 /// ```
 /// use rustd3_core::color::Rgb;
@@ -75,8 +75,8 @@ pub(crate) fn basis_at(stops: &[Rgb], t: f64) -> Rgb {
     )
 }
 
-/// d3.interpolateHsl: the hue along the shorter arc, saturation,
-/// lightness and opacity linearly; an undefined component takes the other
+/// d3.interpolateHsl: the hue along the shorter arc, and the saturation,
+/// lightness and opacity linearly. An undefined component takes the other
 /// color's.
 ///
 /// ```
@@ -116,8 +116,8 @@ pub fn lab(a: Lab, b: Lab) -> impl Fn(f64) -> Rgb + Clone + Send + Sync {
     move |t| Rgb::from(a.lerp(&b, t))
 }
 
-/// d3.interpolateHcl: the hue along the shorter arc, chroma, luminance
-/// and opacity linearly. An undefined hue or chroma takes the other
+/// d3.interpolateHcl: the hue along the shorter arc, and the chroma,
+/// luminance and opacity linearly. An undefined hue or chroma takes the other
 /// color's, so white blends into a color along that color's hue.
 ///
 /// ```
@@ -140,8 +140,8 @@ pub fn hcl_long(a: Hcl, b: Hcl) -> impl Fn(f64) -> Rgb + Clone + Send + Sync {
 }
 
 /// d3.interpolateCubehelix.gamma(gamma): the hue along the shorter arc,
-/// saturation and opacity linearly, and the lightness evaluated at
-/// `t^gamma`; d3.interpolateCubehelix is gamma 1.
+/// the saturation and opacity linearly, and the lightness evaluated at
+/// `t^gamma`. d3.interpolateCubehelix is gamma 1.
 ///
 /// ```
 /// use rustd3_core::color::Cubehelix;

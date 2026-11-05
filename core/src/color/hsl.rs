@@ -118,8 +118,8 @@ impl Hsl {
         }
     }
 
-    /// d3's `displayable()`: saturation in [0, 1] or undefined, lightness
-    /// and opacity in [0, 1].
+    /// d3's `displayable()`: whether the saturation is in [0, 1] or
+    /// undefined, and the lightness and opacity are in [0, 1].
     #[must_use]
     pub fn displayable(self) -> bool {
         ((0.0..=1.0).contains(&self.s) || self.s.is_nan())
@@ -127,8 +127,8 @@ impl Hsl {
             && (0.0..=1.0).contains(&self.opacity)
     }
 
-    /// d3's `formatHsl()`: `hsl(h, s%, l%)`, or `hsla(h, s%, l%, a)` when
-    /// the clamped opacity is below 1, of the clamped components.
+    /// d3's `formatHsl()`: the clamped components as `hsl(h, s%, l%)`, or
+    /// as `hsla(h, s%, l%, a)` when the clamped opacity is below 1.
     #[must_use]
     pub fn format_hsl(self) -> String {
         let a = super::clamp_opacity(self.opacity);

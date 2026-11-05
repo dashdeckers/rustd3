@@ -18,10 +18,11 @@ pub struct Extent<D> {
     pub y: Option<[f64; 2]>,
 }
 
-/// [`Indexed::series_extent`](crate::scale::Indexed::series_extent) for any coordinate: the samples of `points`
-/// whose x lies in `[low, high]` when `x` holds `(low, past)` with `past`
-/// the first x beyond `high` (`None` past the coordinate's last value),
-/// every sample for `None`.
+/// [`Indexed::series_extent`](crate::scale::Indexed::series_extent) for
+/// any coordinate. It reads the samples of `points` whose x lies in
+/// `[low, high]`, where `x` holds `(low, past)` and `past` is the first x
+/// beyond `high` (`None` past the coordinate's last value). With `x` of
+/// `None`, it reads every sample.
 pub(crate) fn extent<X: Coordinate>(
     points: &Points<'_, X, f64>,
     x: Option<(X, Option<X>)>,
@@ -46,8 +47,8 @@ pub(crate) fn extent<X: Coordinate>(
 
 /// [`Indexed::thin`](crate::scale::Indexed::thin) for any coordinate, and
 /// [`Indexed::thin_joint`](crate::scale::Indexed::thin_joint) with
-/// an `upper` edge: the edges put in increasing order, their grid keyed by
-/// `bits` of each edge.
+/// an `upper` edge. The edges are put in increasing order, and their grid
+/// is keyed by `bits` of each edge.
 pub(crate) fn thin<X: Coordinate, B: IntoIterator<Item = u64>>(
     points: &Points<'_, X, f64>,
     upper: Option<&Points<'_, X, f64>>,

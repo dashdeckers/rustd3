@@ -7,14 +7,14 @@ use rustd3_core::color::Rgb;
 use crate::list::{self, Clip, Command, List};
 use crate::theme::Theme;
 
-/// Lines of one family over one shape at most: a denser family draws none.
+/// The most lines of one family over one shape; a denser family draws none.
 const MOST: f64 = 4096.0;
 
 /// Parallel lines over a filled shape, clipped to it: one family of lines
 /// at an angle, or two crossing at right angles. Angles are degrees
 /// counter-clockwise on screen, matplotlib's sense (45° looks like `/`).
 /// The lines lie `k·s` from the figure's origin for whole `k`, so they
-/// continue across neighbouring bars, as matplotlib's do; the spacing `s`
+/// continue across neighboring bars, as matplotlib's do; the spacing `s`
 /// and the line width are points times the theme's context (4/3 px per
 /// pt). Legend swatches of a hatched mark's key repeat its hatch.
 ///
@@ -40,7 +40,7 @@ const MOST: f64 = 4096.0;
 pub struct Hatch {
     /// Each family's angle, degrees counter-clockwise.
     angles: Vec<f64>,
-    /// Between neighbouring lines of a family, pt.
+    /// The distance between neighboring lines of a family, pt.
     spacing: f64,
     /// The lines' width, pt.
     width: f64,
@@ -71,7 +71,7 @@ impl Hatch {
         }
     }
 
-    /// `pt` between neighbouring lines of a family, 6 by default; a
+    /// `pt` between neighboring lines of a family, 6 by default; a
     /// spacing that is not finite and positive leaves it as it was.
     #[must_use]
     pub fn spacing(self, pt: f64) -> Self {
@@ -113,10 +113,11 @@ impl Hatch {
     /// The lines over `bounds`, a box in a group whose origin lies at
     /// `origin` in the figure's coordinates, as one path in the group's
     /// coordinates. Each family at angle θ is the lines `n·p = k·s` in the
-    /// figure's y-down coordinates with normal `n = (sin θ, cos θ)` and
-    /// spacing `s` px under `theme`, for the whole `k` from `⌈min n·c / s⌉`
-    /// to `⌊max n·c / s⌋` over the box's corners `c`, each running across
-    /// the box; families of more than 4,096 lines are left out.
+    /// figure's y-down coordinates, with normal `n = (sin θ, cos θ)` and
+    /// spacing `s` px under `theme`. `k` runs over the whole numbers from
+    /// `⌈min n·c / s⌉` to `⌊max n·c / s⌋` over the box's corners `c`, and
+    /// each line runs across the box. Families of more than 4,096 lines are
+    /// left out.
     pub(crate) fn path(&self, bounds: Rect, origin: Vec2, theme: &Theme) -> BezPath {
         let s = theme.pt(self.spacing);
         let corners = [
@@ -157,11 +158,12 @@ impl Hatch {
         path
     }
 
-    /// Appends the hatch of a shape clipped by `clip` whose bounding box is
-    /// `bounds`, in a group whose origin lies at `origin` in the figure's
-    /// coordinates: a group under `clip`, one stroke of all its lines with
-    /// butt caps and miter joins in its color (the theme's ink by default),
-    /// and the group's end; nothing when no line crosses the box.
+    /// Appends the hatch of a shape to `list`. The shape is clipped by
+    /// `clip` and has the bounding box `bounds`, in a group whose origin
+    /// lies at `origin` in the figure's coordinates. The hatch is a group
+    /// under `clip` holding one stroke of all its lines, with butt caps and
+    /// miter joins, in its color (the theme's ink by default). Nothing is
+    /// appended when no line crosses the box.
     pub(crate) fn draw(
         &self,
         clip: Clip,

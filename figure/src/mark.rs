@@ -1,18 +1,19 @@
-//! Marks: the [`Mark`] trait every mark implements, [`Ctx`], what a mark
-//! sees while it draws one panel, and the figure's marks: [`dots`],
-//! [`line()`], [`area()`], [`ribbon`], [`ribbon_series`], [`bar_y`],
-//! [`bar_x`], [`bar_y_spans`], [`bar_x_spans`], [`rect()`],
-//! [`histogram()`], [`density_y`], [`density_x`], [`image()`],
-//! [`note()`], [`rule_x`] and [`rule_y`].
+//! Marks: the [`Mark`] trait every mark implements, [`Ctx`] (what a mark
+//! sees while it draws one panel), and the figure's own marks.
 //!
-//! A mark of your own draws as these do with the theme's readers
+//! The figure's marks are [`dots`], [`line()`], [`area()`], [`ribbon`],
+//! [`ribbon_series`], [`bar_y`], [`bar_x`], [`bar_y_spans`],
+//! [`bar_x_spans`], [`rect()`], [`histogram()`], [`density_y`],
+//! [`density_x`], [`image()`], [`note()`], [`rule_x`] and [`rule_y`].
+//!
+//! A mark of your own draws as these do, with the theme's readers
 //! ([`Theme::get_color`](crate::Theme::get_color),
 //! [`Theme::get_line_width`](crate::Theme::get_line_width), …),
 //! [`list::brush`](crate::list::brush), [`Ctx::snap`] and the [`guard`]
-//! band, and labels what it draws through the text kit: it reports each
-//! label with [`Fits::label`] while fitting and places the shaped label
-//! from [`Ctx::get_label`] while drawing, numbers written in [`Ctx::get_locale`]
-//! and baselines set from [`Ctx::line`].
+//! band. It labels what it draws through the text kit, reporting each
+//! label with [`Fits::label`] while fitting and placing the shaped label
+//! from [`Ctx::get_label`] while drawing. Numbers are written in
+//! [`Ctx::get_locale`], and baselines are set from [`Ctx::line`].
 //!
 //! ```
 //! use rustd3_core::scale;
@@ -74,9 +75,8 @@ use crate::theme::Theme;
 use crate::thin::{self, Thin};
 
 /// A mark: data drawn through the figure's scales in one panel. Its data
-/// may borrow for `'a` (a recording's
-/// [`Points`], say), so a figure that borrows
-/// is built where the data lives.
+/// may borrow for `'a` (a recording's [`Points`], say), so a figure that
+/// borrows is built where the data lives.
 pub trait Mark<'a>: 'a {
     /// Reports the values each fitted handle must span ([`Fits::add`]),
     /// and the values margins stop at ([`Fits::stick`]).
@@ -200,11 +200,11 @@ impl Ctx<'_> {
         self.resolved.target().scale_factor()
     }
 
-    /// How the target drawn for lays edges and hairlines on its pixel grid:
-    /// a custom mark snaps its filled boxes ([`Snap::rect`]), stroke widths
-    /// ([`Snap::width`]) and the centres of its axis-parallel lines
+    /// How the target drawn for lays edges and hairlines on its pixel grid.
+    /// A custom mark snaps its filled boxes ([`Snap::rect`]), stroke widths
+    /// ([`Snap::width`]) and the centers of its axis-parallel lines
     /// ([`Snap::line`]) through it to come out as crisp as the rect and
-    /// rule marks on raster targets; vector output keeps everything as it
+    /// rule marks on raster targets. Vector output keeps everything as it
     /// is.
     #[must_use]
     pub fn snap(&self) -> Snap {
@@ -232,12 +232,13 @@ impl Ctx<'_> {
         guard::band(self.rect.width(), self.rect.height()).inflate(o, o)
     }
 
-    /// The column grid lines on the x handle at table position `x` thin
-    /// on and anchor their dashes to: the one a widget holds for it
-    /// ([`Held::grids`](crate::Held::grids)), else, when the plot area is
-    /// grown, the grid from its left edge at the target's density (the
-    /// grid a widget holds before a drag moves it); `None` otherwise (the
-    /// file outputs, which thin on the target's own columns).
+    /// The column grid that lines on the x handle at table position `x`
+    /// thin on and anchor their dashes to. It is the grid a widget holds
+    /// for the handle ([`Held::grids`](crate::Held::grids)), or, when the
+    /// plot area is grown, the grid from its left edge at the target's
+    /// density (the grid a widget holds before a drag moves it). `None`
+    /// otherwise, as for the file outputs, which thin on the target's own
+    /// columns.
     pub(crate) fn grid(&self, x: usize) -> Option<thin::Grid> {
         self.resolved.grid(x).or_else(|| {
             (self.resolved.overscan() > 0.0).then_some(thin::Grid {
@@ -248,9 +249,10 @@ impl Ctx<'_> {
     }
 
     /// The thinning column edges of the plot area for a line on the x
-    /// handle at table position `x` whose scale's bridge is `indexed`: on
-    /// [`Ctx::grid`] over the view, else `round(w × columns)` columns
-    /// across it ([`Target`](crate::Target)'s columns per list px).
+    /// handle at table position `x` whose scale's bridge is `indexed`. They
+    /// lie on [`Ctx::grid`] over the view, or else are `round(w × columns)`
+    /// columns across the plot area ([`Target`](crate::Target)'s columns
+    /// per list px).
     pub(crate) fn edges<D>(&self, indexed: &dyn Indexed<D>, x: usize) -> Option<Vec<D>> {
         let view = self.view();
         match self.grid(x) {
@@ -288,12 +290,12 @@ impl Ctx<'_> {
         self.resolved.locale()
     }
 
-    /// The line box labels of `size` px share: the text face's ascender
-    /// above the baseline and descender below it, px, as typst reads them.
-    /// A custom mark that sets labels by their line (as tick labels and the
-    /// helpers' value labels sit), not by each label's ink box, places
-    /// their baselines from it: labels with and without descenders then
-    /// line up.
+    /// The line box that labels of `size` px share: the text face's
+    /// ascender above the baseline and descender below it, in px, as typst
+    /// reads them. A custom mark that sets labels by their line (as tick
+    /// labels and the helpers' value labels are set), not by each label's
+    /// ink box, places their baselines from it, so labels with and without
+    /// descenders line up.
     #[must_use]
     pub fn line(&self, size: f64) -> [f64; 2] {
         self.text.fonts().line(size)
@@ -319,9 +321,9 @@ fn at<S: Position>(scale: &S, v: &<S as Kind>::Domain) -> Option<f64> {
 }
 
 /// Where `v` lies across its band on `scale`, dodged into `slot` (see
-/// [`dodge`]): `share` of the way across the slot (0.5: its middle); the
-/// position itself on scales without bands. `None` for a key outside the
-/// domain or a position that is not finite.
+/// [`dodge`]), at `share` of the way across the slot (0.5 is its middle).
+/// On scales without bands it is the position itself. `None` for a key
+/// outside the domain or a position that is not finite.
 fn across<S: Position>(
     scale: &S,
     v: &<S as Kind>::Domain,
@@ -345,10 +347,11 @@ fn admits<S: Kind>(scale: &S, v: f64) -> bool {
 }
 
 /// Reports `points` on `x` and `y`, and `x` as placed across the plot
-/// area: a recording channel through the x scale's index (its first and
-/// last x, and its y extremes among the values `y` admits), read in
-/// O(log n); anything else pair by pair. When `y` is fitted to what `x`
-/// shows (`Fit::Visible`), only the y values of the points `x` shows.
+/// area. A recording channel is read through the x scale's index in
+/// O(log n): its first and last x, and its y extremes among the values `y`
+/// admits. Anything else is read pair by pair. When `y` is fitted to what
+/// `x` shows (`Fit::Visible`), only the y values of the points `x` shows
+/// are reported.
 fn fit<'a, X: Position, Y: Position>(
     points: &Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     x: ScaleRef<X>,
@@ -387,9 +390,9 @@ fn fit<'a, X: Position, Y: Position>(
 }
 
 /// Reports to `y` the y values of `points` whose x `window` shows (it
-/// places them in [0, 1], ends included): a recording channel's extremes
-/// through the x scale's index over `window`'s domain, in O(log n);
-/// anything else pair by pair.
+/// places them in [0, 1], ends included). A recording channel reports its
+/// extremes through the x scale's index over `window`'s domain, in
+/// O(log n). Anything else is read pair by pair.
 fn visible<'a, X: Position, Y: Position>(
     points: &Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     window: &X,
@@ -595,9 +598,9 @@ pub(crate) fn dashes(pattern: impl IntoIterator<Item = f64>) -> Option<Vec<f64>>
     (valid && pattern.iter().sum::<f64>() > 0.0).then_some(pattern)
 }
 
-/// Appends `hatch`, when set, over a shape of the panel `ctx` draws:
-/// clipped by `clip`, over its bounding box `bounds` in the panel's
-/// coordinates, its lines anchored to the figure.
+/// Appends `hatch`, when set, over a shape of the panel `ctx` draws. The
+/// hatch is clipped by `clip` and covers the shape's bounding box `bounds`
+/// in the panel's coordinates, with its lines anchored to the figure.
 fn hatch(hatch: Option<&Hatch>, clip: Clip, bounds: kurbo::Rect, ctx: &Ctx<'_>, list: &mut List) {
     if let Some(hatch) = hatch {
         let origin = ctx.get_rect().origin().to_vec2();

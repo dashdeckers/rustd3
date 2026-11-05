@@ -63,7 +63,7 @@ fn markers(list: &List) -> Vec<rustd3_figure::kurbo::Point> {
         .collect()
 }
 
-/// `a` within `tolerance` of `b`.
+/// Whether `a` is within `tolerance` of `b`.
 fn near(a: f64, b: f64, tolerance: f64) -> bool {
     (a - b).abs() <= tolerance
 }
@@ -242,7 +242,7 @@ fn hourly(domain: [Timestamp; 2], width: f64) -> (Figure<'static>, Size) {
 }
 
 /// The instants of the tick labels `fig` keeps at `size`: each kept box's
-/// centre through the resolved scale, to the minute.
+/// center through the resolved scale, to the minute.
 fn kept(fig: &Figure<'_>, size: Size) -> Vec<Timestamp> {
     let r = resolve(fig, size);
     let area = r.get_plot_areas()[0];

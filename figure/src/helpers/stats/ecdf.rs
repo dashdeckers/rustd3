@@ -25,11 +25,12 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for E
 }
 
 /// The empirical cumulative distribution of the finite `values` on `x`
-/// and `y`, matplotlib's `Axes.ecdf`: a step up by 1/n at each sorted
-/// value, from 0 at the least to 1 at the greatest (each value's step
-/// ends at `(value, i/n)`), drawn as a [`line`](crate::mark::line) in
-/// the theme palette's first color. y reports 0 and 1 and holds both, as
-/// matplotlib's sticky edges do; x reports the least and greatest value.
+/// and `y`, as matplotlib's `Axes.ecdf`, drawn as a
+/// [`line`](crate::mark::line) in the theme palette's first color. It
+/// steps up by 1/n at each sorted value, from 0 at the least to 1 at the
+/// greatest, and each value's step ends at `(value, i/n)`. y reports 0 and
+/// 1 and holds both, as matplotlib's sticky edges do; x reports the least
+/// and greatest value.
 ///
 /// ```
 /// use rustd3_core::scale;

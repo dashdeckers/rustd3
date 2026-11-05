@@ -8,8 +8,8 @@ use super::Line;
 use crate::js;
 use crate::path::PathContext;
 
-/// d3's MonotoneX; MonotoneY when `reflect`, drawing MonotoneX of the
-/// swapped points through a [`Reflect`] context, as d3's does.
+/// d3's MonotoneX, or MonotoneY when `reflect`. As in d3, MonotoneY draws
+/// MonotoneX of the swapped points through a [`Reflect`] context.
 pub(crate) struct Monotone {
     reflect: bool,
     line: Line,
@@ -135,7 +135,7 @@ impl Monotone {
     }
 
     /// d3's `slope3`: the tangent at `p1` with the next point (`x2`, `y2`),
-    /// limited so the curve stays monotone; 0 when it is NaN.
+    /// limited so the curve stays monotone. It is 0 where the limit is NaN.
     fn slope3(&self, x2: f64, y2: f64) -> f64 {
         let ((x0, y0), (x1, y1)) = (self.p0, self.p1);
         let (h0, h1) = (x1 - x0, x2 - x1);
@@ -166,8 +166,9 @@ impl Monotone {
     }
 }
 
-/// d3's `h || other < 0 && -0`: a zero (or NaN) step as a zero signed like
-/// the step beside it, so a vertical segment's slope is ±∞ the right way.
+/// d3's `h || other < 0 && -0`: a zero (or NaN) step becomes a zero signed
+/// like the step beside it, so that a vertical segment's slope is ±∞ with
+/// the right sign.
 fn or_zero(h: f64, other: f64) -> f64 {
     if js::truthy(h) {
         h

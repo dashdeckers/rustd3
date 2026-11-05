@@ -1,5 +1,5 @@
 //! Hatching: a clip group after each hatched shape's fill, lines anchored
-//! to the figure so neighbouring bars share them, path clips for areas,
+//! to the figure so neighboring bars share them, path clips for areas,
 //! and legend swatches that repeat their key's hatch.
 
 use rustd3_core::color::Rgb;
@@ -15,9 +15,9 @@ use rustd3_figure::{Figure, Held, Target, axis};
 
 use crate::figure::cache;
 
-/// The spacing and width of a default hatch at notebook, px: 6 pt and
-/// 0.8 pt.
+/// The spacing of a default hatch at notebook, px: 6 pt.
 const SPACING: f64 = 8.0;
+/// The line width of a default hatch at notebook, px: 0.8 pt.
 const WIDTH: f64 = 0.8 * 4.0 / 3.0;
 
 /// `fig` drawn at 640 × 480 for vector output.
@@ -63,8 +63,8 @@ fn groups(commands: &[Command]) -> Vec<(&Clip, &BezPath, f64, &Brush)> {
     out
 }
 
-/// Each line's `k`, the multiple of the spacing its normal offset is in
-/// the figure's coordinates, for a 45° family in a group at `origin`.
+/// Each line's `k`: its normal offset in the figure's coordinates as a
+/// multiple of the spacing, for a 45° family in a group at `origin`.
 fn offsets(path: &BezPath, origin: Vec2) -> Vec<f64> {
     let n = Vec2::new(0.5_f64.sqrt(), 0.5_f64.sqrt());
     path.elements()

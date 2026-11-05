@@ -29,9 +29,9 @@ impl Reach {
         *side = side.max(reach);
     }
 
-    /// Tick labels of an axis on side `orient` that reach `before` and
-    /// `after` past the ends of the panel, along the axis, widen the sides
-    /// they cross.
+    /// Widens the sides crossed by the tick labels of an axis on side
+    /// `orient` that reach `before` and `after` past the panel's ends,
+    /// along the axis.
     pub(crate) fn overhang(&mut self, orient: Orient, [before, after]: [f64; 2]) {
         let (start, end) = match orient {
             Orient::Top | Orient::Bottom => (Orient::Left, Orient::Right),

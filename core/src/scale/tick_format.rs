@@ -13,9 +13,10 @@ pub struct TickFormat {
     keep: Option<Keep>,
 }
 
-/// Which ticks of a log scale keep their label (log.js `tickFormat`): the
-/// value over the power of the base nearest it, times the base when below
-/// `base − 0.5`, is at most `k`.
+/// Which ticks of a log scale keep their label (log.js `tickFormat`). A
+/// tick keeps it when its value over the nearest power of the base is at
+/// most `k`, that quotient first multiplied by the base when the product
+/// is below `base − 0.5`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Keep {
     log: transform::Log,
@@ -31,7 +32,7 @@ impl From<Format> for TickFormat {
 
 impl TickFormat {
     /// `format` for the ticks of a log scale under `log` (set for its
-    /// domain), labelling only those whose leading digit is at most `k`.
+    /// domain), labeling only those whose leading digit is at most `k`.
     pub(crate) fn thinned(format: Format, log: transform::Log, k: f64) -> TickFormat {
         TickFormat {
             format,
@@ -39,10 +40,9 @@ impl TickFormat {
         }
     }
 
-    /// `,f` under `locale` to the decimal places
+    /// `,f` under `locale` with the decimal places
     /// ([`format::precision_fixed`]) of the smallest positive gap between
-    /// neighbouring `ticks`, every tick labelled: the default labels of a
-    /// scale whose tick rule replaces its transform's. The gap is read to 12
+    /// neighboring `ticks`, labeling every tick. The gap is read to 12
     /// significant digits of the largest tick, so that the float noise of a
     /// difference adds no place. `None` for fewer than two ticks or no
     /// positive gap at that resolution.
@@ -64,7 +64,7 @@ impl TickFormat {
         Some(TickFormat::from(Format::new(locale, specifier)))
     }
 
-    /// One tick's label; `""` for a tick a log scale leaves unlabelled.
+    /// One tick's label; `""` for a tick a log scale leaves unlabeled.
     #[must_use]
     pub fn format(&self, value: f64) -> String {
         match &self.keep {
@@ -132,10 +132,10 @@ impl Keep {
 
 /// d3-scale's tickFormat(start, stop, count, specifier): a format for
 /// about `count` ticks over `domain` under `locale`. The specifier defaults
-/// to `",f"`; when it sets no precision, the precision follows from the
-/// tick step: significant digits for no type, `e`, `g`, `p` and `r`,
-/// decimal places for `f` and `%`, and for `s` decimal places under the SI
-/// prefix of the larger end.
+/// to `",f"`. When it sets no precision, the precision follows from the
+/// tick step. It counts significant digits for no type, `e`, `g`, `p` and
+/// `r`, decimal places for `f` and `%`, and for `s` decimal places under
+/// the SI prefix of the larger end.
 ///
 /// # Errors
 ///

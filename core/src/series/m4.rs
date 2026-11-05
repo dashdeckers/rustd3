@@ -3,8 +3,8 @@
 
 use std::ops::Range;
 
-/// Indices of the minimum and maximum of a sample range, with values; the
-/// earliest sample wins ties.
+/// The indices and values of the minimum and maximum of a sample range.
+/// The earliest sample wins ties.
 ///
 /// ```
 /// use rustd3_core::series::{Clock, Recording};
@@ -49,12 +49,13 @@ impl Extremes {
 impl Lines {
     /// M4 over column `edges` (sample indices e₀ … e_c, non-decreasing) for
     /// the `runs` that overlap the view [e₀, e_c). Each run yields one
-    /// polyline: the sample before the view when the run holds it, then per
-    /// column the sorted, deduplicated first and last of the run's samples
-    /// in it and the minimum and maximum of each channel `extremes` gives
-    /// (one channel, or a joint query's two; `None` when no sample
-    /// qualifies), then the sample after the view when the run holds it. A
-    /// gap is never crossed.
+    /// polyline, and a gap is never crossed. The polyline starts with the
+    /// sample before the view when the run holds it. Then, per column, it
+    /// holds the first and last of the run's samples in the column and the
+    /// minimum and maximum of each channel `extremes` gives, sorted and
+    /// deduplicated. `extremes` gives one channel, or a joint query's two,
+    /// with `None` when no sample qualifies. The polyline ends with the
+    /// sample after the view when the run holds it.
     pub(crate) fn thin(
         runs: &[Range<usize>],
         edges: &[usize],

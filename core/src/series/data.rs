@@ -3,8 +3,8 @@
 use crate::series::{Coordinate, Points, Series, Slices};
 
 /// Mark data: collected pairs, a borrowed indexed view, borrowed slices, or
-/// [`Points`] as another builder kept them. No bound on `X` or `Y`: band
-/// keys (`PartialEq` only) work.
+/// [`Points`] as another builder kept them. There is no bound on `X` or
+/// `Y`, so band keys, which are only `PartialEq`, work.
 ///
 /// A borrowed `Vec` yields references, not pairs, so it is rejected (E0271):
 ///
@@ -36,7 +36,7 @@ use crate::series::{Coordinate, Points, Series, Slices};
 ///
 /// A generic function that calls `into_points` without naming `Points<'a,
 /// X, Y>` (or a type that holds it) in its signature needs `X: 'a, Y: 'a`
-/// spelled out: borrowed slices are part of what `Points` can hold.
+/// spelled out, because `Points` can hold borrowed slices.
 pub trait Data<'a, X, Y>: crate::sealed::Data<'a, X, Y> {
     /// The data as a mark holds it.
     fn into_points(self) -> Points<'a, X, Y>;

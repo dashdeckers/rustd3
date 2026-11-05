@@ -30,11 +30,11 @@ impl<X: Position, Y: Position> std::fmt::Debug for Note<X, Y> {
 }
 
 /// `text` at the point `at` on `x` and `y` (the middle of a band on band
-/// scales), its first line's start at the point by default (matplotlib's
-/// `text`, `ha="left"`, `va="baseline"`), at the axis-label size (12 pt)
-/// in the theme's ink. The point enters fitting; the text itself does not,
-/// and no collision pass moves or drops it: notes go where users put
-/// them. Like every mark it is clipped to the plot area.
+/// scales), at the axis-label size (12 pt) in the theme's ink. By default
+/// the first line's start sits at the point (matplotlib's `text`,
+/// `ha="left"`, `va="baseline"`). The point enters fitting but the text
+/// does not, and no collision pass moves or drops it, so notes go where
+/// users put them. Like every mark it is clipped to the plot area.
 ///
 /// ```
 /// use rustd3_core::scale;

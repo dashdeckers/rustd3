@@ -12,10 +12,9 @@ use crate::{js, locale, ticks};
 /// d3's scaleSequential: the domain's two ends mapped to 0 and 1 through a
 /// transform, then an interpolator of `t`, such as a color scheme. The
 /// interpolator sits behind an `Arc`, so the type stays nameable
-/// (`Sequential<Rgb>`) and clones share it. Log, pow, sqrt and symlog
-/// variants are [`transform`](Sequential::transform) with their builders;
-/// ticks, nice and tick formats act on the domain through the transform.
-/// There is no `invert`, as in d3.
+/// (`Sequential<Rgb>`) and clones share it. Ticks, nice and tick formats
+/// act on the domain through the transform, and there is no `invert`, as
+/// in d3.
 ///
 /// ```
 /// use rustd3_core::scale::{self, Ticks};
@@ -130,8 +129,8 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
 
     /// d3's `scale(x)`: the interpolator at `x`'s place between the domain
     /// ends in transformed space, clamped to [0, 1] when set, or at 0.5 when
-    /// the ends transform alike. NaN gives the unknown value when set and
-    /// the interpolator at NaN otherwise (d3 returns undefined).
+    /// the ends transform alike. NaN gives the unknown value when set, and
+    /// the interpolator at NaN otherwise, where d3 returns undefined.
     ///
     /// ```
     /// use rustd3_core::scale;
@@ -222,8 +221,8 @@ impl<R: Clone, T: Transform> Sequential<R, T> {
     }
 
     /// Where `x` lies between the domain ends in transformed space (d3's
-    /// `(T(x) − t0)·k10`), before clamping: 0.5 when the ends transform
-    /// alike.
+    /// `(T(x) − t0)·k10`), before clamping. It is 0.5 when the ends
+    /// transform alike.
     fn fraction(&self, x: f64) -> f64 {
         let [t0, t1] = self.forward;
         let k10 = if t0 == t1 { 0.0 } else { 1.0 / (t1 - t0) };
@@ -287,10 +286,10 @@ impl<R: Clone> Sequential<R, transform::Symlog> {
     }
 }
 
-/// The domain fitted as a continuous scale's under the same transform:
-/// with no margin it is the data's extent, a flat one widened by
-/// matplotlib's `nonsingular`, as `Normalize.autoscale_None` fits a color
-/// map.
+/// Fits the domain as a continuous scale under the same transform would,
+/// as matplotlib's `Normalize.autoscale_None` fits a color map. With no
+/// margin it is the data's extent, a flat extent widened by matplotlib's
+/// `nonsingular`.
 ///
 /// ```
 /// use rustd3_core::scale::{self, Pad};

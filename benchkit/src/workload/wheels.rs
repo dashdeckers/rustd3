@@ -1,10 +1,10 @@
-//! The `wheels` workload: the wheel figure from
-//! `gallery::wheels`, 4 × 4 panels and 52 marks over its 5,600
-//! samples, at its own 960 × 760; the wheel zooms vibration and
-//! temperature on the scatters. It holds no recording, and its data does
-//! not scale with the plan. Its x is a band scale, so nothing pans along
-//! x: the gestures act on the scatters, the wheel and the horizontal drag
-//! on the front-left one, the vertical drag on the rear-left one.
+//! The `wheels` workload: the wheel figure from `gallery::wheels`, with
+//! 4 × 4 panels and 52 marks over its 5,600 samples, at its own 960 × 760.
+//! It holds no recording, and its data does not scale with the plan. Its x
+//! is a band scale, so nothing pans along x and the gestures act on the
+//! scatters. The scroll wheel zooms vibration and temperature, the
+//! horizontal drag acts on the front-left scatter, and the vertical drag on
+//! the rear-left one.
 
 use std::fmt;
 

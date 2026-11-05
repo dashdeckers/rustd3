@@ -74,14 +74,14 @@ impl Held {
         });
     }
 
-    /// Column grids to thin with, per handle index (additive): a line whose
-    /// x handle has one thins on its columns instead of columns from its
-    /// plot area's left edge at the target's density, and a dashed one
-    /// sets its dash offset so that the pattern's phase is 0 at the first
-    /// sample of the column containing the grid's origin (a millionth of a
-    /// px past it, so that rounding cannot start the dash on the segment
-    /// before), measured along the emitted polyline. Replaces the grids set
-    /// before.
+    /// Column grids to thin with, per handle index (additive). A line whose
+    /// x handle has a grid thins on its columns, instead of on columns from
+    /// its plot area's left edge at the target's density. A dashed line
+    /// sets its dash offset, measured along the emitted polyline, so the
+    /// pattern's phase is 0 at the first sample of the column containing
+    /// the grid's origin. The phase is 0 a millionth of a px past that
+    /// sample, so rounding cannot start the dash on the segment before.
+    /// Replaces the grids set before.
     pub fn grids(&mut self, grids: Vec<(usize, thin::Grid)>) -> &mut Held {
         self.grids = grids.into_iter().collect();
         self
@@ -95,14 +95,14 @@ impl Held {
     }
 
     /// Extends each plot area's data range and clip by `px` list px, for
-    /// plot-area tile jobs (additive): its background and grid lines cover
-    /// the grown area, its marks are clipped to it and draw the data there
-    /// (lines thin the columns of the grown view and keep one sample
-    /// beyond it; without a grid of their own they thin and anchor dashes
-    /// on the grid from the plot area's left edge at the target's
-    /// density), so tiles around the view show what a pan brings in. The
-    /// rest of the figure draws as it would without; a width that is not
-    /// finite and positive extends nothing.
+    /// plot-area tile jobs (additive), so tiles around the view show what a
+    /// pan brings in. A plot area's background and grid lines cover the
+    /// grown area, and its marks are clipped to it and draw the data there.
+    /// Lines thin the columns of the grown view and keep one sample beyond
+    /// it. Without a grid of their own, they thin and anchor dashes on the
+    /// grid from the plot area's left edge at the target's density. The
+    /// rest of the figure draws as it would without overscan. A width that
+    /// is not finite and positive extends nothing.
     pub fn overscan(&mut self, px: f64) -> &mut Held {
         self.overscan = if px.is_finite() && px > 0.0 { px } else { 0.0 };
         self

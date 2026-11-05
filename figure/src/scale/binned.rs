@@ -56,7 +56,7 @@ impl Scale for Quantize<Rgb> {
 impl crate::sealed::Scale for Quantize<Rgb> {}
 
 /// Fitted to the data's extent through core's `Pad` with no margin (the
-/// theme's is ignored), the bins following; no data keeps the domain as
+/// theme's is ignored), and the bins follow. No data keeps the domain as
 /// built.
 impl Kind for Quantize<Rgb> {
     type Domain = f64;
