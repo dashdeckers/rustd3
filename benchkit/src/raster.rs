@@ -1,11 +1,11 @@
-//! The `raster` command: the two raster variants, envelope fills and
-//! marker splatting, on every plot-area cell of the plan's workloads at
-//! factor 1 and 2 in the standard window and at 4K, each rendered with the
-//! figure's raster path on one vello_cpu thread (as each thread of the
-//! widget's pool renders): thinned lines stroked as drawn against envelope
-//! fills ([`envelope`]), and markers filled point by point against
-//! splatted coverage stamps ([`splat`]). Writes `raster.csv` and prints
-//! the table with the rule each variant must meet to be built.
+//! The `raster` command, which measures two raster variants against the
+//! figure's raster path as drawn. Thinned lines stroked as drawn are
+//! compared with envelope fills ([`envelope`]), and markers filled point
+//! by point with splatted coverage stamps ([`splat`]). Every plot-area cell
+//! of the plan's workloads is rendered at factor 1 and 2 in the standard
+//! window and at 4K, each on one vello_cpu thread (as each thread of the
+//! widget's pool renders). It writes `raster.csv` and prints the table
+//! with the rule each variant must meet to be built.
 
 mod envelope;
 mod splat;
@@ -27,7 +27,7 @@ use crate::scenario::Scenario;
 use crate::stats::percentile;
 use crate::workload::Workload;
 
-/// Renders per variant and cell; the median is reported.
+/// Renders per variant and cell. The median is reported.
 const RUNS: usize = 7;
 
 /// The least speedup a variant needs to be built.
@@ -48,8 +48,9 @@ struct Config {
 }
 
 /// One row of `raster.csv`: a variant's time summed over a workload's
-/// plot-area cells, and against the cells as drawn its speedup, largest
-/// channel difference and share of channels off by more than 16/255.
+/// plot-area cells. Against the cells as drawn, it also holds the
+/// variant's speedup, largest channel difference and share of channels off
+/// by more than 16/255.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Row {
     /// The workload's name.
@@ -60,7 +61,7 @@ pub struct Row {
     pub variant: &'static str,
     /// Median render time summed over the cells, ms.
     pub ms: f64,
-    /// The as-drawn time over this one; for variants only.
+    /// The as-drawn time divided by this one, for variants only.
     pub speedup: Option<f64>,
     /// The largest channel difference from the as-drawn render, /255.
     pub max: Option<u8>,

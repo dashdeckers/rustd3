@@ -2,18 +2,17 @@
 //! produced it, and times the plot's update and draw calls.
 //!
 //! A replay's positions are logical px in the plot size it was generated
-//! for; the driver places each at the same fractions of the widget's real
-//! bounds, so a window the window manager gave another size still gets
-//! its gestures on the plot areas.
+//! for. The driver places each at the same fractions of the widget's real
+//! bounds, so a window that the window manager gave another size still
+//! gets its gestures on the plot areas.
 
 use std::cell::RefCell;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use iced::advanced::Shell;
 use iced::advanced::layout::{self, Layout};
-use iced::advanced::renderer;
 use iced::advanced::widget::{self, Tree, Widget, tree};
+use iced::advanced::{Shell, renderer};
 use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, keyboard, mouse, window};
 use rustd3_iced::plot::probe::{Sample, Stage, Target};
 
@@ -33,12 +32,13 @@ const TIMEOUT: Duration = Duration::from_secs(30);
 /// the last event (operational reading 4).
 const AFTER_LAST: Duration = Duration::from_millis(300);
 
-/// Feeds a replay to its child as if the user produced it, and times the
-/// child's update and draw calls.
+/// A widget that feeds a replay to its child as if the user produced it,
+/// and times the child's update and draw calls.
 pub struct Driver<'a, Message> {
     child: Element<'a, Message, Theme, Renderer>,
     replay: &'a Replay,
-    /// The plot size, logical px, the replay's positions were generated for.
+    /// The plot size the replay's positions were generated for, in logical
+    /// px.
     planned: Size,
     records: mpsc::Sender<Record>,
     cue: fn(Cue) -> Message,
@@ -59,10 +59,11 @@ struct State {
     /// The widget's logical size in the last pass before the scenario's
     /// own first resize (the size the window manager gave it).
     widget: Size,
-    /// A resize cue was injected: the size is the scenario's from here.
+    /// Whether a resize cue has been injected, after which the size is the
+    /// scenario's.
     resized: bool,
     modifiers: keyboard::Modifiers,
-    /// The last `Frame` sample showed every slot current.
+    /// Whether the last `Frame` sample showed every slot current.
     sharp: bool,
     /// Injected events waiting for the frame that shows them.
     waiting: Vec<Waiting>,
@@ -88,9 +89,9 @@ struct Waiting {
 }
 
 impl<'a, Message> Driver<'a, Message> {
-    /// Drives `child` with `replay`, generated for a plot of `planned`
-    /// logical px; records to `records`, cues to the app through `cue`;
-    /// `samples` receives the child's probe.
+    /// A driver that feeds `child` the `replay` generated for a plot of
+    /// `planned` logical px. It sends records to `records` and cues to the
+    /// app through `cue`, and `samples` receives the child's probe.
     pub fn new(
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
         replay: &'a Replay,
@@ -221,7 +222,7 @@ impl<'a, Message> Driver<'a, Message> {
     }
 
     /// Injects `event` as the iced event it stands for, or publishes the
-    /// cue; the child's update is timed.
+    /// cue. The child's update is timed.
     #[expect(
         clippy::too_many_arguments,
         reason = "the widget's update arguments, passed through"
@@ -421,9 +422,10 @@ impl<Message> Widget<Message, Theme, Renderer> for Driver<'_, Message> {
 }
 
 impl<Message> Driver<'_, Message> {
-    /// One `RedrawRequested(now)` pass: inject every due event, forward
-    /// the redraw (timed), join the samples, mark the interaction window,
-    /// and either request the next frame or end the run.
+    /// Runs one `RedrawRequested(now)` pass. It injects every due event,
+    /// forwards the redraw (timed), joins the samples, marks the
+    /// interaction window, and either requests the next frame or ends the
+    /// run.
     #[expect(
         clippy::too_many_arguments,
         reason = "the widget's update arguments, passed through"
@@ -509,8 +511,8 @@ impl<'a, Message: 'a> From<Driver<'a, Message>> for Element<'a, Message, Theme, 
     }
 }
 
-/// The renderer iced chose, by which half of its fallback renderer runs:
-/// the software one is the half that reports no scale, which is how the
+/// The renderer iced chose, by which half of its fallback renderer runs.
+/// The software half is the one that reports no scale, which is how the
 /// widget tells them apart (`rustd3-iced`'s `scale_factor`).
 fn backend(renderer: &Renderer) -> &'static str {
     match renderer {
@@ -546,7 +548,7 @@ fn spot(target: Target) -> (Option<u32>, Option<[i32; 3]>) {
     }
 }
 
-/// The bench's button as iced's.
+/// The replay's button as iced's.
 fn iced_button(button: replay::Button) -> mouse::Button {
     match button {
         replay::Button::Left => mouse::Button::Left,
@@ -586,7 +588,7 @@ mod tests {
     #[test]
     fn replayed_positions_keep_their_fractions_of_the_plot() {
         let planned = Size::new(1600.0, 1000.0);
-        // pan-x's press, right of centre on the top panel.
+        // pan-x's press, right of center on the top panel.
         let at = |origin, size| place(1100.0, 270.0, planned, Rectangle::new(origin, size));
         assert_eq!(at(Point::ORIGIN, planned), Point::new(1100.0, 270.0));
         assert_eq!(

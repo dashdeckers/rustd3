@@ -2,25 +2,26 @@
 //! renderer, virtual frames paced at the refresh rate, pixels read back as
 //! the windowed runtime would present them.
 //!
-//! Per frame: `renderer.tick()` (on wgpu it drains the image upload
-//! worker, which only winit's `Action::Tick` calls otherwise); `Waken` if
-//! the waker fired; `RedrawRequested(now)`, and while that publishes
-//! messages, apply them, rebuild and repeat with the same `now` (at most
-//! three passes, as `winit/src/lib.rs:788-830`); draw; screenshot.
+//! Each frame runs these steps:
+//! 1. `renderer.tick()`. On wgpu it drains the image upload worker, which
+//!    otherwise only winit's `Action::Tick` calls.
+//! 2. `Waken`, if the waker fired.
+//! 3. `RedrawRequested(now)`. While that publishes messages, the loop
+//!    applies them, rebuilds and repeats with the same `now`, for at most
+//!    three passes (as `winit/src/lib.rs:788-830`).
+//! 4. Draw, then screenshot.
 //!
 //! On the software renderer this is the software profile's offscreen
-//! frame: the screenshot is iced composing the frame into a
-//! pixmap. Before the first frame the loop times the readback of an empty
-//! frame, the screenshot's fixed cost; with `--frames` it writes every
+//! frame, and the screenshot is iced composing the frame into a pixmap.
+//! Before the first frame, the loop times the readback of an empty frame,
+//! which is the screenshot's fixed cost. With `--frames`, it writes every
 //! n-th frame as a PNG on a thread of its own.
 
-use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc;
-use std::thread;
+use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
+use std::{fs, thread};
 
 use iced::advanced::renderer::{self, Headless as _};
 use iced::advanced::{Renderer as _, shell};
@@ -44,7 +45,7 @@ pub enum Error {
 /// reads back and writes.
 #[derive(Debug, Clone)]
 pub struct Settings<'a> {
-    /// The backend (`None`: iced's choice).
+    /// The backend, or `None` for iced's choice.
     pub backend: Option<&'a str>,
     /// The scale factor.
     pub factor: f32,
@@ -61,7 +62,7 @@ pub struct Settings<'a> {
 pub struct Frames {
     /// The run's directory of PNGs.
     pub dir: PathBuf,
-    /// Every n-th frame, from the first.
+    /// Which frames are written: every n-th, from the first.
     pub every: u32,
 }
 
@@ -120,8 +121,8 @@ impl Pacer {
     }
 }
 
-/// Runs `app` as `settings` say until its driver is done; returns the
-/// renderer that ran.
+/// Runs `app` as `settings` say until its driver is done, and returns the
+/// name of the renderer that ran.
 pub fn run(app: &mut App, settings: &Settings<'_>) -> Result<String, Error> {
     let Settings {
         backend,
@@ -297,9 +298,9 @@ fn physical(size: Size, factor: f32) -> [u32; 2] {
     ]
 }
 
-/// Writes each frame it receives as a PNG, on a thread of its own so the
-/// encoding stays off the frame loop (it still takes a core); the first
-/// failure is printed and the rest dropped.
+/// Writes each frame it receives as a PNG. It runs on a thread of its own
+/// so the encoding stays off the frame loop, though it still takes a core.
+/// The first failure is printed and every later frame is dropped.
 fn write(shots: mpsc::Receiver<Shot>) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut failed = false;

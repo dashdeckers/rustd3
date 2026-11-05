@@ -1,19 +1,16 @@
-//! The chart presets of `helpers::chart` over fixed data, each at the
-//! presets' 640 × 480: lines, a symlog line of a recording's RMS, a
-//! scatter, grouped, stacked and diverging bars, a stacked area, a pie, a
-//! donut, a heatmap and a keyed heatmap. The `presets` example writes them
-//! as files; the benchmark's figure profile times them.
+//! The chart presets of `helpers::chart` over fixed data, each at 640 ×
+//! 480. The `presets` example writes them as files, and the benchmark's
+//! figure profile times them.
 
 use std::f64::consts::PI;
 
-use rustd3_core::scale;
-use rustd3_core::scheme;
 use rustd3_core::series::{Clock, Recording};
-use rustd3_figure::Figure;
-use rustd3_figure::helpers::chart::{self, bar::Mode};
+use rustd3_core::{scale, scheme};
+use rustd3_figure::helpers::chart::bar::Mode;
+use rustd3_figure::helpers::chart::{self};
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::mark::Grid;
-use rustd3_figure::text;
+use rustd3_figure::{Figure, text};
 
 /// The presets' size in logical px: matplotlib's 6.4 × 4.8 in at 100 dpi.
 pub const SIZE: Size = Size::new(640.0, 480.0);

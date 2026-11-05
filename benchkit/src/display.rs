@@ -1,12 +1,14 @@
-//! [`Display`]: what a level learns about the display before its
-//! profiles run, in a few seconds. One
-//! short windowed run (`bench_gestures --plan display`: `hover` on `trace` for 3 s,
-//! data ÷ 100) on iced's own choice of renderer gives the refresh rate
-//! (its idle frames' median interval, when they are paced), the scale
-//! factor (the one the window reports) and the backend iced chose. Where
-//! no window can open, the level runs headless and says why; where the
-//! frames are not paced (a VM, Xvfb, a remote desktop), it runs at 60 Hz
-//! and every frame budget assumes that rate.
+//! [`Display`]: what a level learns about the display in a few seconds,
+//! before its profiles run.
+//!
+//! One short windowed run on iced's own choice of renderer
+//! (`bench_gestures --plan display`, which is `hover` on `trace` for 3 s
+//! with data ÷ 100) gives three values. The refresh rate is its idle
+//! frames' median interval, when they are paced. The scale factor is the
+//! one the window reports, and the backend is the one iced chose. Where no
+//! window can open, the level runs headless and says why. Where the frames
+//! are not paced (a VM, Xvfb, a remote desktop), it runs at 60 Hz and
+//! every frame budget assumes that rate.
 
 use std::ffi::OsStr;
 use std::fs;
@@ -73,10 +75,10 @@ impl Source {
 }
 
 impl Display {
-    /// The display from the command line's `hz` and `factor` and the
-    /// measurement: `Ok` with what the window showed, or `Err` with why
-    /// the level runs headless. What is given wins; what the window did
-    /// not show is assumed (60 Hz, factor 1).
+    /// The display from the command line's `hz` and `factor` and from
+    /// `measured`, which is `Ok` with what the window showed or `Err` with
+    /// why the level runs headless. What is given wins, and what the window
+    /// did not show is assumed (60 Hz, factor 1).
     pub fn decide(
         hz: Option<f64>,
         factor: Option<f32>,
@@ -161,9 +163,10 @@ impl Display {
     }
 }
 
-/// Why no window can open here, known without trying: on a Unix other
-/// than macOS, neither `WAYLAND_DISPLAY` nor `DISPLAY` names a display
-/// (SSH, CI, a console), empty counting as unset as winit reads them.
+/// Why no window can open here, known without trying. On a Unix other
+/// than macOS, that is when neither `WAYLAND_DISPLAY` nor `DISPLAY` names
+/// a display (SSH, CI, a console). An empty value counts as unset, as
+/// winit reads them.
 pub fn unreachable(
     os: &str,
     wayland_display: Option<&OsStr>,
@@ -226,8 +229,8 @@ pub fn read(raw: &Path) -> Option<Measured> {
 /// The refresh rate the runs' frames show: the median interval between
 /// frames, in Hz, when at least half the intervals lie within 5 % of it
 /// and it lies within 20–500 Hz. A display paces frames to its vblanks
-/// (the user's hover frames: 96 % within 5 % of 16.67 ms); without one,
-/// as under Xvfb, they spread (13–29 % here) and give no rate.
+/// (in the user's hover frames, 96 % lie within 5 % of 16.67 ms). Without
+/// one, as under Xvfb, they spread (13–29 % here) and give no rate.
 fn idle_hz(runs: &[Vec<Record>]) -> Option<f64> {
     let mut intervals = Vec::new();
     for records in runs {

@@ -1,21 +1,22 @@
 //! benchkit: the machinery of rustd3's benchmark examples, which are thin
-//! `main`s over [`run`]. `bench_all [--quick | --default | --full]` is a
-//! level: it takes a CPU reference, times the plotting library alone (the
-//! figure profile, `bench_figure`) and, with the `widget` feature (the
-//! default), drives the real `Plot` widget through a wrapper that replays
-//! time-stamped input, offscreen (`bench_software`) and in windows
-//! (`bench_gestures`), one cold process per run, and writes raw records,
-//! CSV summaries and a report that evaluates the rule registered before
-//! any run. Without the feature it builds no iced, winit or wgpu and
-//! offers the library's part alone. Each example's `--help` prints what
-//! it runs.
+//! `main`s over [`run`].
+//!
+//! `bench_all [--quick | --default | --full]` runs a level. A level takes a
+//! CPU reference and times the plotting library alone (the figure profile,
+//! `bench_figure`). With the `widget` feature (the default), it also drives
+//! the real `Plot` widget through a wrapper that replays time-stamped
+//! input, offscreen (`bench_software`) and in windows (`bench_gestures`),
+//! with one cold process per run. It writes raw records, CSV summaries and
+//! a report that evaluates the rule registered before any run. Without the
+//! feature, benchkit builds no iced, winit or wgpu and offers only the
+//! library's part. Each example's `--help` prints what it runs.
 //!
 //! [`gallery`] holds the example figures the benchmark draws and the
 //! examples show: the trace, the wheel figure and the chart presets.
 
-// Without the widget, its modules are out and some of what the rest
-// offers them goes unused; the default build, which has them, checks
-// for dead code.
+// Without the `widget` feature its modules are compiled out, and some
+// items that only serve them go unused. The default build, which has
+// them, still checks for dead code.
 #![cfg_attr(
     not(feature = "widget"),
     allow(
@@ -89,7 +90,8 @@ pub enum Example {
     /// offscreen on the software renderer, every frame timed by part.
     #[cfg(feature = "widget")]
     Software,
-    /// `bench_all`: a level, the others run as child processes.
+    /// `bench_all`: a level, which runs the other examples as child
+    /// processes.
     #[cfg(feature = "widget")]
     All,
     /// `bench_compare`: two results side by side.
@@ -99,7 +101,7 @@ pub enum Example {
 }
 
 impl Example {
-    /// Its name: the example's, and its binary's file stem.
+    /// The example's name, which is also its binary's file stem.
     pub fn name(self) -> &'static str {
         match self {
             Example::Figure => "bench_figure",
@@ -115,7 +117,8 @@ impl Example {
     }
 }
 
-/// Runs `example` with the process's arguments: what its `main` returns.
+/// Runs `example` with the process's arguments and returns the exit code
+/// for its `main`.
 pub fn run(example: Example) -> ExitCode {
     // Cold start counts from here.
     #[cfg(feature = "widget")]

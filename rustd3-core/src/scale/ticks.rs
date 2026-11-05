@@ -1,0 +1,155 @@
+//! [`Ticks`]: what an axis needs from a scale, and its impls for the
+//! scales of this crate.
+
+mod continuous;
+mod identity;
+
+use crate::format::InvalidFormat;
+use crate::locale::Locale;
+use crate::scale::{TickFormat, Transform, tick_format};
+use crate::ticks;
+
+/// What an axis needs from a scale. d3 duck-types it (`scale.ticks`,
+/// `scale.tickFormat`, `scale.bandwidth`), and this trait names it.
+///
+/// Labels are one batch over the whole set, so the neutral locale groups an
+/// axis all or nothing:
+///
+/// ```
+/// use rustd3_core::locale::Locale;
+/// use rustd3_core::scale::{self, Ticks};
+///
+/// let a = scale::linear().domain([0.0, 8000.0]);
+/// assert_eq!(a.labels(&a.tick_set(5), &Locale::NEUTRAL), ["0", "2000", "4000", "6000", "8000"]);
+/// let b = scale::linear().domain([0.0, 12000.0]);
+/// assert_eq!(b.labels(&b.tick_set(5), &Locale::NEUTRAL)[1], "2\u{202f}000");
+/// ```
+///
+/// The method is `tick_set`, not `ticks`, because a scale's inherent
+/// `ticks(count)` is d3's and would shadow it. For the same reason a
+/// continuous scale's minor ticks of a set are written
+/// `Ticks::minor(&scale, &set)`.
+///
+/// The trait is sealed, implemented for core's scales only, so that it can
+/// grow. A scale of one's own is a `Continuous` over a custom
+/// [`Transform`](crate::scale::Transform).
+///
+/// ```compile_fail,E0277
+/// use rustd3_core::scale::Ticks;
+///
+/// struct Mine;
+/// impl Ticks for Mine {
+/// #   type Domain = f64;
+/// #   type Step = f64;
+/// #   fn tick_set(&self, _: usize) -> rustd3_core::ticks::Set<f64, f64> { unimplemented!() }
+/// #   fn position(&self, _: &f64) -> Option<f64> { None }
+/// #   fn tick_format(&self, _: &rustd3_core::ticks::Set<f64, f64>) -> rustd3_core::scale::TickFormat { unimplemented!() }
+/// }
+/// ```
+pub trait Ticks: crate::sealed::Ticks {
+    /// The values ticks mark (`f64`, a band key, a `Timestamp`).
+    type Domain: Clone;
+    /// The step the scale chooses ticks with: `f64` for continuous and
+    /// binned scales, a time interval for time scales, `()` for band,
+    /// point and ordinal scales.
+    type Step: Clone;
+
+    /// About `count` ticks, with the step and count they were chosen for.
+    fn tick_set(&self, count: usize) -> ticks::Set<Self::Domain, Self::Step>;
+
+    /// The tick's position along the range for an axis with `offset`
+    /// (d3's `number` / `center`); `None` for a key outside the domain.
+    /// A scale whose range is not numeric normalizes it to [0, 1].
+    fn position(&self, value: &Self::Domain, offset: f64) -> Option<f64>;
+
+    /// One label per value, as one batch under `locale`.
+    fn labels(&self, ticks: &ticks::Set<Self::Domain, Self::Step>, locale: &Locale) -> Vec<String>;
+
+    /// Minor tick values for `.minor(true)`; none by default.
+    fn minor(&self, _ticks: &ticks::Set<Self::Domain, Self::Step>) -> Vec<Self::Domain> {
+        Vec::new()
+    }
+
+    /// The two ends of the domain as the scale maps them, the span an axis
+    /// draws along. For a numeric range they are the first and last range
+    /// values, d3's `range[0]` and `range[n-1]`. A range that is not
+    /// numeric, such as a color scale's, gives `[0, 1]`, which a colorbar
+    /// maps to pixels. Unlike the scale's `get_range`, which is the range
+    /// as given at any length and value type, this is always two numbers.
+    fn ends(&self) -> [f64; 2];
+}
+
+/// The labels of `ticks` under `locale` by a scale's default tick format
+/// `format` (its `tick_format_in` with no specifier).
+///
+/// # Panics
+///
+/// When `format` is an error: a transform's default specifier must parse,
+/// as [`Transform::tick_format`] requires.
+pub(super) fn labels(
+    format: Result<TickFormat, InvalidFormat>,
+    ticks: &ticks::Set<f64, f64>,
+    locale: &Locale,
+) -> Vec<String> {
+    format
+        .expect("invariant: a transform's default tick format specifier parses")
+        .labels(ticks, locale)
+}
+
+/// The minor ticks of a scale under `transform` whose end stops are
+/// `ends`. The majors are extended by one step on each side in transformed
+/// space (u₋₁ = 2u₀ − u₁, uₙ₊₁ = 2uₙ − uₙ₋₁), and the transform's minor
+/// ticks of that list are kept inside the ends and off the majors. An
+/// extension is left out when it maps back to no finite value or not past
+/// its end, as where the transform is undefined (a square root's
+/// negatives). None for fewer than two majors.
+pub(super) fn minor<T: Transform>(transform: &T, ends: [f64; 2], majors: &[f64]) -> Vec<f64> {
+    let ([first, second, ..], [.., before, last]) = (majors, majors) else {
+        return Vec::new();
+    };
+    let beyond = |end: f64, inner: f64| {
+        let u = 2.0 * transform.forward(end) - transform.forward(inner);
+        Some(transform.inverse(u)).filter(|v| v.is_finite() && (v - end) * (end - inner) > 0.0)
+    };
+    let extended: Vec<f64> = beyond(*first, *second)
+        .into_iter()
+        .chain(majors.iter().copied())
+        .chain(beyond(*last, *before))
+        .collect();
+    let (low, high) = if ends[1] < ends[0] {
+        (ends[1], ends[0])
+    } else {
+        (ends[0], ends[1])
+    };
+    transform
+        .minor(&extended)
+        .into_iter()
+        .filter(|v| (low..=high).contains(v) && !majors.contains(v))
+        .collect()
+}
+
+/// A binned scale's ticks, its bin edges `values` in order. The step is
+/// the smallest positive gap between neighbors, or NaN for none, and sets
+/// the labels' precision as d3's `tickFormat` uses its tick step.
+pub(super) fn edges(values: Vec<f64>, count: usize) -> ticks::Set<f64, f64> {
+    let step = values
+        .windows(2)
+        .map(|pair| (pair[1] - pair[0]).abs())
+        .filter(|gap| gap.is_finite() && *gap > 0.0)
+        .min_by(f64::total_cmp)
+        .unwrap_or(f64::NAN);
+    ticks::Set::new(values, step, count)
+}
+
+/// The labels of a binned scale's edges: d3's linear tick format at the
+/// set's step (`,f` to [`precision_fixed`](crate::format::precision_fixed)
+/// of it) under `locale`, as one batch.
+pub(super) fn edge_labels(set: &ticks::Set<f64, f64>, locale: &Locale) -> Vec<String> {
+    let largest = set
+        .get_values()
+        .iter()
+        .fold(0.0, |m: f64, v| m.max(v.abs()));
+    tick_format::stepped(locale.get_number(), *set.get_step(), largest, None)
+        .expect("invariant: `,f` parses")
+        .format_all(set.get_values())
+}

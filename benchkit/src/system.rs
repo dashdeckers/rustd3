@@ -1,19 +1,18 @@
-//! The machine and the process: `/proc` counters, `nvidia-smi`, [`Meta`],
-//! what `meta.json` records about a run, and the display diagnostics of
-//! `system.txt`. Everything here builds on every platform; what a
-//! platform does not have reads as unknown: the CPU time and RSS come from
+//! The machine and the process: `/proc` counters, `nvidia-smi`, [`Meta`]
+//! (what `meta.json` records about a run), and the display diagnostics of
+//! `system.txt`. Everything here builds on every platform, and what a
+//! platform does not have reads as unknown. The CPU time and RSS come from
 //! Linux's `/proc` (absent elsewhere, so the report has no CPU rate), the
-//! GPU from `nvidia-smi`, the displays from `xrandr` and `cosmic-randr`
-//! where they exist.
+//! GPU from `nvidia-smi`, and the displays from `xrandr` and
+//! `cosmic-randr` where they exist.
 
 use std::fmt::Write as _;
-use std::fs;
 use std::io::{self, Read};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
-use std::thread;
 use std::time::{Duration, Instant};
+use std::{fs, thread};
 
 use serde::{Deserialize, Serialize};
 
@@ -64,7 +63,7 @@ pub struct Meta {
     pub stamp: String,
     /// `model name` of `/proc/cpuinfo`.
     pub cpu: String,
-    /// Logical cores.
+    /// The number of logical cores.
     pub cores: usize,
     /// `MemTotal`, MiB.
     pub ram_mb: u64,
@@ -80,9 +79,9 @@ pub struct Meta {
     pub present_mode: String,
     /// `wgpu` or `tiny-skia`.
     pub backend: String,
-    /// Headless or windowed.
+    /// Whether the run was headless rather than windowed.
     pub headless: bool,
-    /// Hz.
+    /// The refresh rate, in Hz.
     pub refresh_hz: f64,
     /// The display's factor.
     pub native_factor: f32,
@@ -118,7 +117,7 @@ pub struct Meta {
     pub pixels_per_ms: f64,
     /// The widget's cost model: work items per ms.
     pub items_per_ms: f64,
-    /// Median of measured / modelled raster time over every `Raster`
+    /// Median of measured / modeled raster time over every `Raster`
     /// sample, once the runs are in.
     pub calibration: Option<f64>,
     /// Whole-GPU memory in use before the first run, MiB.
@@ -129,8 +128,8 @@ pub struct Meta {
     /// `suite` passes); `None` when nothing limited them.
     #[serde(default)]
     pub cpu_limit: Option<String>,
-    /// The runs' windows used X11 through XWayland in a Wayland session
-    /// (`--xwayland`): the report is report-only.
+    /// Whether the runs' windows used X11 through XWayland in a Wayland
+    /// session (`--xwayland`), which makes the report report-only.
     #[serde(default)]
     pub xwayland: bool,
     /// With `--frames`, every how many composed frames were written as
@@ -150,9 +149,9 @@ pub struct Planned {
     pub workload: String,
     /// The factor.
     pub factor: f32,
-    /// Runs asked for.
+    /// The number of runs asked for.
     pub runs: u32,
-    /// False for "n/a": the workload does not support the scenario.
+    /// Whether the workload supports the scenario. False shows as "n/a".
     pub applies: bool,
 }
 
@@ -165,7 +164,7 @@ pub struct Sampler {
 }
 
 impl Sampler {
-    /// Starts sampling into `records`, times since `epoch`.
+    /// Starts sampling into `records`, with times counted from `epoch`.
     pub fn start(records: mpsc::Sender<Record>, epoch: Instant) -> Sampler {
         let stop = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&stop);
@@ -203,7 +202,7 @@ impl Drop for Sampler {
     }
 }
 
-/// A `sys` record now: CPU ticks, RSS and `gpu`.
+/// A `sys` record of this moment: CPU ticks, RSS and `gpu_mb`.
 pub fn sys(epoch: Instant, mark: &str, gpu_mb: Option<f64>) -> Record {
     Record::Sys {
         at_ms: since(epoch, Instant::now()),
@@ -240,14 +239,14 @@ fn civil(days: u64) -> [u64; 3] {
     [year, month, day]
 }
 
-/// ms from `epoch` to `at`.
+/// The time from `epoch` to `at`, in ms.
 pub fn since(epoch: Instant, at: Instant) -> f64 {
     at.saturating_duration_since(epoch).as_secs_f64() * 1e3
 }
 
-/// utime + stime of this process, in clock ticks: fields 14 and 15 of
-/// `/proc/self/stat`, counted after the command name's closing paren;
-/// `None` where there is no `/proc` (Windows, macOS).
+/// utime + stime of this process, in clock ticks, or `None` where there is
+/// no `/proc` (Windows, macOS). They are fields 14 and 15 of
+/// `/proc/self/stat`, counted after the command name's closing paren.
 pub fn cpu_ticks() -> Option<u64> {
     let stat = fs::read_to_string("/proc/self/stat").ok()?;
     let rest = &stat[stat.rfind(')')? + 1..];
@@ -413,8 +412,9 @@ pub fn release() -> String {
         .unwrap_or_else(|| "unknown".to_owned())
 }
 
-/// Memory, MiB: `/proc/meminfo`'s `MemTotal`, `sysctl hw.memsize` on macOS,
-/// the computer system's CIM total on Windows; else 0.
+/// The machine's memory in MiB: `/proc/meminfo`'s `MemTotal`,
+/// `sysctl hw.memsize` on macOS, the computer system's CIM total on
+/// Windows; else 0.
 pub fn ram_mb() -> u64 {
     let meminfo = fs::read_to_string("/proc/meminfo").ok().and_then(|info| {
         info.lines()
@@ -470,7 +470,7 @@ pub fn diagnostics() -> String {
 }
 
 /// What `program` prints (standard output, then error) within `limit`,
-/// colours stripped, ending in a newline; or why it printed nothing.
+/// colors stripped, ending in a newline; or why it printed nothing.
 fn limited(program: &str, args: &[&str], limit: Duration) -> String {
     let spawned = Command::new(program)
         .args(args)
@@ -502,8 +502,8 @@ fn limited(program: &str, args: &[&str], limit: Duration) -> String {
     text
 }
 
-/// Waits for `child` to exit, at most `limit`: its status, or `None`
-/// once it was killed for running longer.
+/// Waits at most `limit` for `child` to exit. Returns its status, or
+/// `None` once it was killed for running longer.
 pub fn wait(child: &mut Child, limit: Duration) -> io::Result<Option<ExitStatus>> {
     let begin = Instant::now();
     loop {
@@ -530,7 +530,7 @@ pub fn drain(pipe: Option<impl Read + Send + 'static>) -> thread::JoinHandle<Str
     })
 }
 
-/// `text` without ANSI escape sequences (`cosmic-randr` colours its
+/// `text` without ANSI escape sequences (`cosmic-randr` colors its
 /// output even into a pipe).
 fn plain(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
@@ -592,7 +592,7 @@ mod tests {
             "(timed out after 0.2 s)\n"
         );
         assert!(begin.elapsed() < Duration::from_secs(5));
-        // cosmic-randr's colours.
+        // cosmic-randr's colors.
         assert_eq!(
             plain("\u{1b}[35m2560x1600\u{1b}[0m @ \u{1b}[1;36m165.000 Hz\u{1b}[0m"),
             "2560x1600 @ 165.000 Hz"

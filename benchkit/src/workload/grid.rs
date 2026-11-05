@@ -1,6 +1,6 @@
-//! The `grid16` workload: 4 × 4 panels, x shared per column and y per row;
-//! per panel a line over its own recording and dots, with a left and a
-//! bottom axis, zoomed on both.
+//! The `grid16` workload: 4 × 4 panels, with x shared per column and y per
+//! row. Each panel draws a line over its own recording and dots, has a left
+//! and a bottom axis, and zooms on both.
 
 use rustd3_core::scale;
 use rustd3_core::series::{self, Clock, Recording};
@@ -35,8 +35,8 @@ pub struct Grid {
 }
 
 impl Grid {
-    /// Each panel `samples` samples (seed 100 + panel) and `n` dots over
-    /// the same span (seed 200 + panel).
+    /// A grid whose panels each hold `samples` samples (seed 100 + panel)
+    /// and `n` dots over the same span (seed 200 + panel).
     pub fn new(samples: usize, n: usize) -> Grid {
         let cells = (0..SIDE * SIDE)
             .map(|panel| {

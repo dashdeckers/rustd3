@@ -47,10 +47,9 @@ jobs:
       - run: .github/ci-run.sh cargo clippy --workspace --all-targets --all-features -- -D warnings
       # No default feature: no fonts, and benchkit without its widget.
       - run: .github/ci-run.sh cargo clippy --workspace --all-targets --no-default-features -- -D warnings
-      # The libraries alone with no feature on: benchkit, a dev-dependency
-      # of rustd3-figure for its gallery, turns figure's features on for
-      # every test and example build, so this is the only build of the
-      # featureless crates.
+      # The libraries alone, with no features. benchkit, a dev-dependency of
+      # rustd3-figure, turns figure's features on in every test and example
+      # build, so this is the only build of the featureless crates.
       - run: .github/ci-run.sh cargo clippy --workspace --exclude benchkit --lib --no-default-features -- -D warnings
 
   test:
@@ -72,37 +71,36 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      # poppler's pdftoppm, pdftotext and pdffonts read the PDF outputs
-      # back; lavapipe gives wgpu a Vulkan device on a runner without a GPU.
-      # Two full builds of the workspace (both feature sets) plus the
-      # per-backend iced tests exceed the runner's free disk: the linker
-      # died with a bus error once the disk was full. The preinstalled
-      # .NET, Android and Haskell toolchains free about 30 GB.
+      # Two full workspace builds (both feature sets) plus the per-backend
+      # iced tests exceed the runner's free disk, and the linker then fails
+      # with a bus error. Removing the preinstalled .NET, Android and
+      # Haskell toolchains frees about 30 GB.
       - name: Free disk space (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
+      # poppler's pdftoppm, pdftotext and pdffonts read the PDF outputs
+      # back; lavapipe gives wgpu a Vulkan device on a runner without a GPU.
       - name: Install poppler and lavapipe (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y poppler-utils mesa-vulkan-drivers
-      # The PDF tests fail without poppler rather than skip, so that a
-      # machine without it cannot pass them silently: Windows installs it
-      # too.
+      # The PDF tests fail, rather than skip, without poppler, so Windows
+      # installs it too.
       - name: Install poppler (Windows)
         if: runner.os == 'Windows'
         run: choco install poppler --no-progress -y
-      # Every crate but the widget's: its tests run below, per backend and
-      # with a retry, because lavapipe, the runners' software Vulkan, now
-      # and then segfaults in a test that passes on a rerun.
+      # Every crate except the widget. Its tests run below, per backend and
+      # with a retry, because lavapipe (the runners' software Vulkan)
+      # occasionally segfaults in a test that passes on a rerun.
       - run: .github/ci-run.sh cargo test --workspace --exclude rustd3-iced --all-features
       - run: .github/ci-run.sh cargo test --workspace --exclude rustd3-iced --no-default-features
       - name: iced tests without features
         run: .github/ci-run.sh --retry cargo test -p rustd3-iced --no-default-features
-      # The iced tests on each backend explicitly; with ICED_TEST_BACKEND
-      # set iced does not fall back.
+      # The iced tests once per backend. With ICED_TEST_BACKEND set, iced
+      # does not fall back to another backend.
       - name: iced tests on tiny-skia
         run: .github/ci-run.sh --retry cargo test -p rustd3-iced -p benchkit --all-features
         env:

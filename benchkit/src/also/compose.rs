@@ -1,31 +1,34 @@
-//! A real gesture frame of the `Plot` widget composed by
-//! iced's software renderer, headlessly. The widget is driven on
-//! tiny-skia through a zoom burst (a wheel line every 33 ms) and a drag (5
-//! px a frame) over `trace` and `scatter100k` at factors 1 and 2, every
-//! frame composed as a window composes it, paced at 60 Hz with the pool's
-//! results landing between frames. One frame mid-burst and one mid-drag
-//! are kept: their images (and the scaled ones among them), the handles
-//! the renderer had not drawn the frame before, the widget's draw (which
-//! composes a mosaic on the software renderer), and what composing the
-//! frame costs, the first time (which converts the new handles) and warm
-//! (the median of later compositions of the same frame). The same images
-//! are then replayed through a widget that only draws them, as captured
-//! and as each candidate would draw them: (a) every image with nearest
-//! filtering, (b) each plot area's images composed into one image on the
-//! CPU first (row copies for images at 1:1, nearest sampling for scaled
-//! ones), so iced draws one image per area.
+//! A real gesture frame of the `Plot` widget, composed headlessly by
+//! iced's software renderer.
+//!
+//! The widget is driven on tiny-skia through a zoom burst (a wheel line
+//! every 33 ms) and a drag (5 px a frame) over `trace` and `scatter100k`
+//! at factors 1 and 2. Every frame is composed as a window composes it,
+//! paced at 60 Hz, with the pool's results landing between frames. One
+//! frame mid-burst and one mid-drag are kept, with:
+//! - their images, and the scaled ones among them;
+//! - the handles the renderer had not drawn before the frame;
+//! - the widget's draw, which composes a mosaic on the software renderer;
+//! - what composing the frame costs, the first time (which converts the
+//!   new handles) and warm (the median of later compositions of the same
+//!   frame).
+//!
+//! The same images are then replayed through a widget that only draws
+//! them, as captured and as each candidate would draw them:
+//! - (a) every image with nearest filtering;
+//! - (b) each plot area's images composed into one image on the CPU first
+//!   (row copies for images at 1:1, nearest sampling for scaled ones), so
+//!   iced draws one image per area.
 
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use iced::advanced::graphics;
 use iced::advanced::image::{self, FilterMethod, Handle};
-use iced::advanced::layout;
 use iced::advanced::renderer::{self as iced_renderer, Headless as _};
 use iced::advanced::widget::{Meta, Tree, Widget};
-use iced::advanced::{Layout, Renderer as _, shell};
+use iced::advanced::{Layout, Renderer as _, graphics, layout, shell};
 use iced::{Event, Length, Rectangle, mouse, window};
 use iced_runtime::user_interface::{self, UserInterface};
 use rustd3_figure::cache::Cache;
@@ -71,9 +74,8 @@ struct Kept {
     warm: f64,
 }
 
-/// What composing one replayed frame costs, ms: the first composition and
-/// the warm median; and its largest channel difference from the frame as
-/// captured.
+/// What composing one replayed frame costs in ms, first and as the warm
+/// median, and its largest channel difference from the frame as captured.
 struct Composed {
     first: f64,
     warm: f64,
@@ -149,11 +151,12 @@ pub(super) fn frames() -> Row {
     }
 }
 
-/// What tiny-skia's composition of a frame costs per image and per
-/// pixel, at factors 1 and 2: a 1400 × 800 logical area of opaque images
-/// as 256-device-px tiles clipped to the area (as the widget draws a plot
-/// area's tiles) and each to itself, as one image, and as as many 4 × 4
-/// px images as there are tiles, against a frame of no image.
+/// The row on what tiny-skia's composition of a frame costs per image and
+/// per pixel, at factors 1 and 2. A 1400 × 800 logical area of opaque
+/// images is composed four ways, each against a frame of no image: as
+/// 256-device-px tiles clipped to the area (as the widget draws a plot
+/// area's tiles), as the same tiles each clipped to itself, as one image,
+/// and as as many 4 × 4 px images as there are tiles.
 pub(super) fn per_images() -> Row {
     let item = "a frame of images composed by tiny-skia (headless, 1600 × 1000 logical, \
                 warm medians of 8)"
@@ -465,9 +468,10 @@ impl Window {
         )
     }
 
-    /// One frame: the pool's results if it woke the window, `events` and a
-    /// `RedrawRequested`, the draw and its composition, then a wait to the
-    /// next 60 Hz frame. The images the frame drew.
+    /// Runs one frame and returns the images it drew. It takes the pool's
+    /// results if the pool woke the window, then `events` and a
+    /// `RedrawRequested`, draws and composes, and waits for the next 60 Hz
+    /// frame.
     fn frame(
         &mut self,
         ui: &mut UserInterface<'_, (), iced::Theme, iced::Renderer>,
@@ -520,9 +524,9 @@ impl Window {
         images(&mut self.renderer)
     }
 
-    /// The next frame, kept: drawn, its new handles counted against the
-    /// last composition, composed once (converting them) and then 8 times
-    /// more for the warm median.
+    /// Keeps the next frame. It draws the frame, counts its new handles
+    /// against the last composition, then composes it once (converting
+    /// them) and 8 more times for the warm median.
     fn keep(
         &mut self,
         ui: &mut UserInterface<'_, (), iced::Theme, iced::Renderer>,
@@ -704,11 +708,12 @@ fn replay(kept: &Kept, k: f32) -> Option<Replayed> {
     })
 }
 
-/// `images` with each plot area's (those clipped inside one of `areas`,
-/// device px at `k`) composed into one image of the area in their order,
-/// drawn where the first of them was: images at 1:1 by rows, opaque rows
-/// copied, scaled ones by nearest sampling, each pixel composited once
-/// per image source-over in straight RGBA.
+/// `images` with each plot area's images composed, in their order, into
+/// one image of the area, drawn where the first of them was. A plot
+/// area's images are those clipped inside one of `areas` (device px at
+/// `k`). Images at 1:1 go by rows, with opaque rows copied, and scaled
+/// ones by nearest sampling. Each pixel is composited once per image,
+/// source-over in straight RGBA.
 fn per_area(images: &[Drawn], areas: &[[i32; 4]], k: f32) -> Vec<Drawn> {
     let device =
         |r: Rectangle| [r.x, r.y, r.x + r.width, r.y + r.height].map(|e| (e * k).round() as i32);

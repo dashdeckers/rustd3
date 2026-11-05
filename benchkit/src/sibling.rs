@@ -87,8 +87,8 @@ fn build(cargo: &Path, dir: &Path) -> Result<(), Box<dyn Error>> {
     }
 }
 
-/// Cargo's flags for the profile whose directory is `name`: `debug` is
-/// `dev`'s.
+/// Cargo's flags for the profile whose directory is `name`. The `debug`
+/// directory belongs to the `dev` profile.
 fn profile_args(name: &str) -> Vec<String> {
     match name {
         "debug" => Vec::new(),

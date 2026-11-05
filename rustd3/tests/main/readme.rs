@@ -1,8 +1,8 @@
-//! The README's code blocks are examples that compile: its `rust` blocks,
+//! The README's code blocks are examples that compile. Its `rust` blocks,
 //! in order, are `examples/figure_png.rs`, `examples/core_level.rs` and
-//! rustd3-iced's `readme_plot` (which rustd3-iced's tests check against
-//! the last block, with the facade's paths), each below its `//!` header, so
-//! the README cannot drift from code that builds.
+//! rustd3-iced's `readme_plot`, each below its `//!` header, so the README
+//! cannot drift from code that builds. rustd3-iced's tests check the last
+//! block, with the facade's paths.
 
 const README: &str = include_str!("../../../README.md");
 

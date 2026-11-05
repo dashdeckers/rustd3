@@ -270,7 +270,7 @@ notices of the d3 code it follows are in [LICENSE-d3](LICENSE-d3) (each
 crate that carries such code ships a copy). The bundled fonts keep their
 own licences: DejaVu Sans under the Bitstream Vera licence (with the
 Arev terms), New Computer Modern Math under the GUST Font License, both
-given in full in `rustd3-fonts`' [LICENSE](fonts/LICENSE).
+given in full in `rustd3-fonts`' [LICENSE](rustd3-fonts/LICENSE).
 
 ## Credits
 

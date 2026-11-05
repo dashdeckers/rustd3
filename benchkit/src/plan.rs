@@ -15,43 +15,47 @@ pub enum Plan {
     /// Every scenario × workload once at factor 2, durations ÷ 5, data ÷
     /// 100, `soak` 20 s: the headless check.
     Smoke,
-    /// The display measurement that starts every level: one
-    /// `hover` on `trace` at the native factor for 3 s, data ÷ 100, whose
-    /// frames give the refresh rate and whose window gives the factor and
-    /// the backend iced chose.
+    /// The display measurement that starts every level: one `hover` on
+    /// `trace` at the native factor for 3 s, with data ÷ 100. Its frames
+    /// give the refresh rate, and its window gives the factor and the
+    /// backend iced chose.
     Display,
-    /// The quick level's cells: `hover`, `pan-x` and `zoom-lines`
-    /// on `trace` and `scatter100k`, and `drag-resize` on `trace`, at the
-    /// native factor, three runs each; report-only. Its software profile
+    /// The quick level's cells: `hover`, `pan-x` and `zoom-lines` on
+    /// `trace` and `scatter100k`, and `drag-resize` on `trace`, at the
+    /// native factor, three runs each (report-only). Its software profile
     /// selects `pan-x` and `zoom-lines` on `trace`.
     Quick,
     /// The verdict's cells: five runs each, `soak` once.
     Default,
-    /// Weaker machines: `hover`, `pan-x` and `zoom-lines` on
-    /// `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the native
-    /// factor, five runs each, held to the weak profile's budgets; run
-    /// without a GPU (`--backend tiny-skia`) and on 4 and 2 cores.
+    /// Weaker machines: `hover`, `pan-x` and `zoom-lines` on `trace`, and
+    /// `pan-x` and `zoom-lines` on `scatter100k`, at the native factor,
+    /// five runs each, held to the weak profile's budgets. It runs without
+    /// a GPU (`--backend tiny-skia`) and on 4 and 2 cores.
     Weak,
-    /// The zooms, pans and window drags, five runs each, at the
-    /// native factor unless named: `zoom-lines` and `zoom-pixels` on
-    /// `trace`; `zoom-lines` on `trace` at the other three factors and on
-    /// `scatter100k`, `scatter1m`, `grid16` and `label-churn`; `pan-x` on
-    /// `trace` and `scatter1m`; `drag-resize` on `trace` and `grid16`.
-    /// Report-only: held to the desktop budgets to show where the cells
-    /// stand, it is not the rule's run.
+    /// The zooms, pans and window drags, five runs each, at the native
+    /// factor unless named:
+    /// - `zoom-lines` and `zoom-pixels` on `trace`;
+    /// - `zoom-lines` on `trace` at the other three factors, and on
+    ///   `scatter100k`, `scatter1m`, `grid16` and `label-churn`;
+    /// - `pan-x` on `trace` and `scatter1m`;
+    /// - `drag-resize` on `trace` and `grid16`.
+    ///
+    /// It is report-only. It is held to the desktop budgets to show where
+    /// the cells stand, but it is not the rule's run.
     Focus,
     /// Every scenario × workload × factor, five runs each.
     Full,
-    /// The software path offscreen: `hover`, `pan-x`, `zoom-lines`
-    /// and `drag-resize` on `trace`, `scatter100k` and `grid16` at factors
-    /// 1 and 2, three runs each, on iced's software renderer headless,
-    /// every frame composed into an offscreen pixmap; held to the weak
-    /// budgets, report-only. Its cells keep 1600 × 1000 logical px at both
-    /// factors (it runs with a native factor of 2, so neither is shrunk).
+    /// The software path offscreen: `hover`, `pan-x`, `zoom-lines` and
+    /// `drag-resize` on `trace`, `scatter100k` and `grid16` at factors 1
+    /// and 2, three runs each. It runs headless on iced's software
+    /// renderer, with every frame composed into an offscreen pixmap, and is
+    /// held to the weak budgets (report-only). Its cells keep 1600 × 1000
+    /// logical px at both factors (it runs with a native factor of 2, so
+    /// neither is shrunk).
     Software,
 }
 
-/// One scenario × workload × factor, run `runs` times; a workload that
+/// One scenario × workload × factor, run `runs` times. A workload that
 /// does not support the scenario makes it "n/a" (reported, never run).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
@@ -82,7 +86,7 @@ pub struct Selection {
 pub const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
 
 /// The workloads besides `trace` that `quick` and `default` run `hover`,
-/// `pan-x` and `zoom-lines` on, as registered before any run; `wheels`
+/// `pan-x` and `zoom-lines` on, as registered before any run. `wheels`
 /// runs in `smoke` and `full`.
 const REGISTERED: [Workload; 4] = [
     Workload::Scatter100k,
@@ -91,8 +95,8 @@ const REGISTERED: [Workload; 4] = [
     Workload::LabelChurn,
 ];
 
-/// Process start, data, first frame and the 2 s settle, per run: the
-/// estimate's allowance on real hardware.
+/// The estimate's allowance per run on real hardware for process start,
+/// data, the first frame and the 2 s settle.
 pub const OVERHEAD_MS: f64 = 4_000.0;
 
 /// The software plan's factors.
@@ -110,8 +114,8 @@ const SOFTWARE_SCENARIOS: [Scenario; 4] = [
     Scenario::DragResize,
 ];
 
-/// How long the display measurement hovers, ms: with the driver's 2 s
-/// settle about 300 frame intervals at 60 Hz, 150 at 30 Hz.
+/// How long the display measurement hovers, in ms. With the driver's 2 s
+/// settle, that is about 300 frame intervals at 60 Hz, or 150 at 30 Hz.
 const DISPLAY_MS: f64 = 3_000.0;
 
 impl Plan {
@@ -299,8 +303,8 @@ impl Plan {
         }
     }
 
-    /// The estimated wall time of `cells` on real hardware, s: each run's
-    /// duration plus 4 s of start, data and settle; "n/a" cells cost
+    /// The estimated wall time of `cells` on real hardware, in s: each
+    /// run's duration plus 4 s of start, data and settle. "n/a" cells cost
     /// nothing.
     pub fn estimate_s(self, cells: &[Cell]) -> f64 {
         cells
@@ -312,7 +316,7 @@ impl Plan {
     }
 }
 
-/// Whether `list` (none: everything) admits `item`.
+/// Whether `list` admits `item`. `None` admits everything.
 fn keep<T: PartialEq>(list: &Option<Vec<T>>, item: &T) -> bool {
     list.as_ref().is_none_or(|list| list.contains(item))
 }
@@ -323,12 +327,12 @@ impl Cell {
         self.workload.supports(self.scenario)
     }
 
-    /// The window's logical size on a display of factor `native`: the
-    /// scenario's; at another factor k (the factor cells) the standard
-    /// window's 1600 × 1000 device px, 1600 / k × 1000 / k logical px, so
-    /// it fits a 1080p display. A workload with a size of its own
-    /// (the wheel figure) keeps it wherever the scenario does not ask for
-    /// the 4k window.
+    /// The window's logical size on a display of factor `native`. At the
+    /// native factor it is the scenario's. At another factor k (the factor
+    /// cells) it is the standard window's 1600 × 1000 device px, that is
+    /// 1600 / k × 1000 / k logical px, so it fits a 1080p display. A
+    /// workload with a size of its own (the wheel figure) keeps it wherever
+    /// the scenario does not ask for the 4k window.
     pub fn window(&self, native: f32) -> Size {
         let window = self.scenario.window(self.factor);
         match self.scenario {
@@ -598,8 +602,8 @@ mod tests {
     fn smoke_plan_covers_every_scenario_and_workload() {
         let cells = Plan::Smoke.cells(2.0, &Selection::default());
         assert_eq!(cells.len(), 66);
-        // `live` and `soak` need recordings: the scatters and `wheels` have
-        // none; `pan-x` needs an x that pans, which `wheels` lacks.
+        // `live` and `soak` need recordings, which the scatters and
+        // `wheels` lack. `pan-x` needs an x that pans, which `wheels` lacks.
         assert_eq!(cells.iter().filter(|c| c.applies()).count(), 59);
         assert!(cells.iter().all(|c| c.factor == 2.0 && c.runs == 1));
         assert_eq!(Plan::Smoke.duration_ms(Scenario::PanX), 2_400.0);

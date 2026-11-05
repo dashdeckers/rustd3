@@ -1,8 +1,8 @@
-//! The wheel figure: four wheels, three sources and
-//! 20 speed bins. Per wheel, a scatter of value over speed bin with its
-//! distributions attached on the right and a histogram of counts attached
-//! below, on shared scales: a 4 × 4 grid of 52 marks over 5,600 samples
-//! from [`simulate`].
+//! The wheel figure: four wheels, three sources and 20 speed bins. Each
+//! wheel has a scatter of value over speed bin, with its distributions
+//! attached on the right and a histogram of counts attached below, all on
+//! shared scales. The result is a 4 × 4 grid of 52 marks over 5,600
+//! samples from [`simulate`].
 
 use std::fmt;
 
@@ -77,16 +77,16 @@ const MIN_COUNT: f64 = 20.0;
 
 /// The wheel figure of `samples` in [`PALETTE`], its legend below the
 /// grid, or in a corner of FL's scatter with `inset`. Every mark owns its
-/// data, so the figure borrows nothing: it is a `Figure<'static>`, or a
-/// figure of any shorter lifetime beside figures that borrow (`Figure` is
-/// invariant in its lifetime).
+/// data, so the figure borrows nothing. It can be a `Figure<'static>`, or
+/// a figure of any shorter lifetime that sits beside figures that borrow
+/// (`Figure` is invariant in its lifetime).
 pub fn figure<'a>(samples: &[Sample], inset: bool) -> Figure<'a> {
     figure_with(samples, inset, PALETTE, None)
 }
 
 /// The wheel figure of `samples` with its histograms' bars hatched at 45°
-/// (6 pt apart, 0.8 pt wide in the theme's ink), the legend's squares
-/// repeating it.
+/// (6 pt apart, 0.8 pt wide in the theme's ink). The legend's squares
+/// repeat the hatch.
 pub fn hatched<'a>(samples: &[Sample], inset: bool) -> Figure<'a> {
     figure_with(samples, inset, PALETTE, Some(&Hatch::lines(45.0)))
 }
@@ -249,7 +249,7 @@ pub fn figure_with<'a>(
 }
 
 /// Ordinary least squares of value on the bin index, evaluated at the
-/// first and last bin with data: two points, none without data.
+/// first and last bin with data. Returns two points, or none without data.
 fn trend(pts: &[(Bin, f64)]) -> Vec<(Bin, f64)> {
     let (Some(lo), Some(hi)) = (
         pts.iter().map(|p| p.0.0).min(),
@@ -271,10 +271,10 @@ fn trend(pts: &[(Bin, f64)]) -> Vec<(Bin, f64)> {
     vec![at(lo), at(hi)]
 }
 
-/// The samples: 600 drives per wheel, both accelerations logged on every
-/// drive and the bearing temperature on every third, 5,600 in all; RL's
-/// bearing is worn above 100 km/h. Deterministic: an LCG seeded with 11
-/// and Box–Muller normal deviates.
+/// The samples: 600 drives per wheel, with both accelerations logged on
+/// every drive and the bearing temperature on every third, 5,600 in all.
+/// RL's bearing is worn above 100 km/h. The samples are deterministic,
+/// drawn from an LCG seeded with 11 and Box–Muller normal deviates.
 pub fn simulate() -> Vec<Sample> {
     let mut seed = 11_u32;
     let mut u = move || {
@@ -324,8 +324,8 @@ mod tests {
 
     #[test]
     fn the_wheel_figures_densities_binned_are_within_a_thousandth_of_exact() {
-        // Its densities hold 200 to 600 values, so they draw
-        // exactly; binned, each of the twelve stays within 1e-3 of that.
+        // Its densities hold 200 to 600 values, so they draw exactly.
+        // Binned, each of the twelve stays within 1e-3 of that.
         let samples = simulate();
         for wheel in [Wheel::FL, Wheel::FR, Wheel::RL, Wheel::RR] {
             for source in SOURCES {

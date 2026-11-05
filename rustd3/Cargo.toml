@@ -19,7 +19,7 @@ all-features = true
 name = "main"
 path = "tests/main/main.rs"
 
-# The README's examples; `tests/main/readme.rs` holds the README to them.
+# The README's examples; `tests/main/readme.rs` checks the README matches them.
 [[example]]
 name = "core_level"
 

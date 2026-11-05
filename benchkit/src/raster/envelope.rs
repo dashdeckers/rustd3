@@ -1,7 +1,7 @@
-//! Envelope fills: each thinned line in a plot area drawn as one band
-//! polygon per run of device columns, its edges at each column's M4
-//! extremes grown by half the line width, instead of M4's polyline
-//! stroked.
+//! Envelope fills, which draw each thinned line in a plot area as one band
+//! polygon per run of device columns instead of stroking M4's polyline.
+//! A band's edges lie at each column's M4 extremes, grown by half the line
+//! width.
 
 use std::collections::BTreeMap;
 
@@ -11,9 +11,9 @@ use rustd3_figure::list::{Command, List};
 /// The fewest device columns a stroke spans to count as thinned.
 const COLUMNS: usize = 8;
 
-/// The fewest vertices per column a thinned stroke has: M4 keeps up to
-/// four per column of dense data, a polyline through sparse points fewer
-/// than one.
+/// The fewest vertices per column a thinned stroke has. M4 keeps up to
+/// four per column of dense data, while a polyline through sparse points
+/// has fewer than one.
 const PER_COLUMN: usize = 2;
 
 /// A thinned line over one run of contiguous device columns: per column,
@@ -26,25 +26,24 @@ pub struct Band {
     spans: Vec<[f64; 2]>,
 }
 
-/// One thinned stroke's envelope: the stroke's command index, the outline
-/// in the cell's device px, and the transform from the stroke's group
-/// into them.
+/// One thinned stroke's envelope.
 #[derive(Debug, Clone)]
 pub struct Outline {
     /// The `Stroke` command it replaces.
     pub command: usize,
     /// Its bands' outlines, device px of the cell.
     pub path: BezPath,
-    /// The stroke's group space into the cell's device px.
+    /// The transform from the stroke's group space into the cell's device
+    /// px.
     pub device: Affine,
 }
 
 impl Band {
-    /// The bands of `path` (a polyline in the space `device` maps to the
-    /// cell's device px): its vertices grouped by device column, one band
-    /// per run of contiguous columns. `None` unless the path is a polyline
-    /// at least 90 % of whose vertices lie in subpaths with at least two
-    /// vertices per column over at least eight columns.
+    /// The bands of `path`, a polyline in the space that `device` maps to
+    /// the cell's device px. Its vertices are grouped by device column, one
+    /// band per run of contiguous columns. Returns `None` unless the path
+    /// is a polyline with at least 90 % of its vertices in subpaths that
+    /// have at least two vertices per column over at least eight columns.
     pub fn of(path: &BezPath, device: Affine) -> Option<Vec<Band>> {
         let mut columns: BTreeMap<i64, [f64; 2]> = BTreeMap::new();
         // Per subpath: its vertices and the columns it spans.
@@ -94,10 +93,11 @@ impl Band {
         Some(bands)
     }
 
-    /// Appends the band's outline grown by `grow` device px on every side
-    /// to `path`, in device px: at each x, the least top and the greatest
-    /// bottom of the columns within `grow` of it, so a column's extremes
-    /// reach as far as a stroke `2 · grow` wide around them does.
+    /// Appends to `path` the band's outline in device px, grown by `grow`
+    /// device px on every side. At each x, the outline takes the least top
+    /// and the greatest bottom of the columns within `grow` of it, so a
+    /// column's extremes reach as far as a stroke `2 · grow` wide around
+    /// them does.
     pub fn outline(&self, grow: f64, path: &mut BezPath) {
         let first = self.first as f64;
         let n = self.spans.len();
@@ -141,10 +141,11 @@ impl Band {
     }
 }
 
-/// The envelopes of the thinned strokes `list` draws into the plot-area
-/// cell `area` (list px) at `k` device px per list px: solid strokes whose
-/// path is a polyline with at least two vertices per device column, each
-/// band grown by half the stroke's width.
+/// The envelopes of the thinned strokes that `list` draws into the
+/// plot-area cell `area` (list px) at `k` device px per list px. A thinned
+/// stroke is a solid stroke whose path is a polyline with at least two
+/// vertices per device column. Each band is grown by half the stroke's
+/// width.
 pub fn outlines(list: &List, area: Rect, k: f64) -> Vec<Outline> {
     let cell = Affine::scale(k) * Affine::translate((-area.x0, -area.y0));
     let mut groups = vec![Affine::IDENTITY];
@@ -186,8 +187,8 @@ pub fn outlines(list: &List, area: Rect, k: f64) -> Vec<Outline> {
 }
 
 /// `list` with each thinned stroke of the plot-area cell `area` (list px)
-/// at `k` replaced by a fill of its envelope ([`outlines`]) in its paint;
-/// `None` when the cell has no thinned stroke.
+/// at `k` replaced by a fill of its envelope ([`outlines`]) in its paint.
+/// Returns `None` when the cell has no thinned stroke.
 pub fn envelope(list: &List, area: Rect, k: f64) -> Option<List> {
     let outlines = outlines(list, area, k);
     if outlines.is_empty() {

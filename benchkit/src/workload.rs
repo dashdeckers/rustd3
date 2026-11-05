@@ -1,9 +1,9 @@
 //! [`Workload`]: the figures the benchmark drives, with their data
 //! generated deterministically by xorshift64* from fixed seeds. Their
-//! layout and data are fixed here for repeatable timing; they are not the
-//! example figures. What the widget's scenarios need of them (window
-//! sizes, where gestures act, which scenarios apply) is in `window`,
-//! with the `widget` feature.
+//! layout and data are fixed here for repeatable timing, and they are not
+//! the example figures. With the `widget` feature, `window` adds what the
+//! widget's scenarios need of them (window sizes, where gestures act,
+//! which scenarios apply).
 
 mod grid;
 mod label_churn;
@@ -28,8 +28,8 @@ pub enum Workload {
     Scatter1m,
     /// 4 × 4 panels, each a 100k-sample line and 2k dots.
     Grid16,
-    /// `trace` on a UTC time axis around midnight: labels that change as
-    /// pans cross the day and on every zoom.
+    /// `trace` on a UTC time axis around midnight, whose labels change as
+    /// pans cross the day boundary and on every zoom.
     LabelChurn,
     /// The wheel figure at 960 × 760.
     Wheels,
@@ -138,7 +138,7 @@ impl Workload {
 }
 
 impl Data {
-    /// The figure over this data; with `windowed`, x follows the newest
+    /// The figure over this data. With `windowed`, x follows the newest
     /// 10 s (`Fit::Window`) of the workloads with recordings.
     pub fn figure(&self, windowed: bool) -> Figure<'_> {
         match self {
@@ -150,8 +150,8 @@ impl Data {
         }
     }
 
-    /// Appends `n` samples to every channel of every recording; the
-    /// scatters and the wheel figure have none.
+    /// Appends `n` samples to every channel of every recording. The
+    /// scatters and the wheel figure have none, so nothing changes.
     pub fn append(&mut self, n: usize) {
         match self {
             Data::Trace(trace) => trace.append(n),
@@ -163,8 +163,8 @@ impl Data {
 }
 
 impl Rng {
-    /// A generator seeded with `seed` (0 becomes 1: xorshift's zero state
-    /// is fixed).
+    /// A generator seeded with `seed`. A seed of 0 becomes 1, because
+    /// xorshift's zero state is a fixed point.
     pub fn new(seed: u64) -> Rng {
         Rng(seed.max(1))
     }

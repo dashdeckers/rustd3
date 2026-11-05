@@ -1,12 +1,13 @@
-//! [`Reference`]: the CPU reference, a few headless,
-//! single-threaded timings of fixed renders that put a submitting machine
-//! on a scale with ours, taken at every level after the display
-//! measurement, into `results.json` and the report: one `trace` tile
-//! mid-zoom, the `scatter100k` plot area with its markers filled and
-//! splatted, and the software composition of a `trace` frame mid-zoom,
-//! which needs iced and is
-//! not measured in a build without the widget. Each is a median of a few
-//! repetitions, at factor 1, 1600 × 1000; a panic in one is caught and
+//! [`Reference`]: the CPU reference, a few headless, single-threaded
+//! timings of fixed renders that put a submitting machine on a scale with
+//! ours. Every level takes it after the display measurement, for
+//! `results.json` and the report.
+//!
+//! It times one `trace` tile mid-zoom, the `scatter100k` plot area with
+//! its markers filled and splatted, and the software composition of a
+//! `trace` frame mid-zoom. The composition needs iced, so a build without
+//! the widget does not measure it. Each timing is a median of a few
+//! repetitions, at factor 1 and 1600 × 1000. A panic in one is caught and
 //! recorded as not measured.
 
 use std::panic::{self, AssertUnwindSafe};
@@ -32,7 +33,7 @@ pub struct Reference {
     pub what: String,
     /// The median, ms; `None` when it could not be measured.
     pub ms: Option<f64>,
-    /// The repetitions the median is of.
+    /// The number of repetitions the median is taken over.
     pub repetitions: u32,
 }
 
@@ -90,11 +91,12 @@ pub fn measure() -> Vec<Reference> {
     ]
 }
 
-/// `fig`'s list at `k` with the top plot area's layer drawn as the pool
-/// draws it mid-zoom (the widget's overscan of two tiles, the x domain a
-/// zoom of ×1.6 about the area's centre gives, 1600 × 1000), and the
-/// 256-device-px tile in its second column across the area's middle,
-/// list px.
+/// `fig`'s list at `k`, with the top plot area's layer drawn as the pool
+/// draws it mid-zoom, and the tile to render, in list px. The layer has
+/// the widget's overscan of two tiles and the x domain that a zoom of ×1.6
+/// about the area's center gives, at 1600 × 1000. The tile is the
+/// 256-device-px one in the layer's second column, across the area's
+/// middle.
 pub fn zoomed_tile(fig: &Figure<'_>, k: f64) -> Result<(List, Rect), &'static str> {
     let target = Target::Screen { scale: k };
     let size = WINDOW;
@@ -134,7 +136,8 @@ pub fn first_area(fig: &Figure<'_>, k: f64) -> Option<(List, Rect)> {
 }
 
 /// The median of `n` single-threaded renders of `rect` of `list` at `k`,
-/// markers splatted when `splat`, after one to warm the renderer, ms.
+/// in ms, after one render to warm the renderer. Markers are splatted when
+/// `splat`.
 pub fn median_render_ms(list: &List, rect: Rect, k: f64, splat: bool, n: usize) -> f64 {
     let bounds = Bounds::of(list, &mut Outlines::default());
     let mut renderer = raster::Renderer::new(Settings::default().simd(Simd::Detect));

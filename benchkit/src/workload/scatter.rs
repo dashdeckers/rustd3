@@ -2,15 +2,14 @@
 //! Gaussian clusters, a dots mark per cluster in its palette color, zoomed
 //! on both handles.
 
-use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_core::series;
+use rustd3_core::{scale, series};
 use rustd3_figure::mark::dots;
 use rustd3_figure::{Figure, axis};
 
 use crate::workload::Rng;
 
-/// The clusters: key, centre and standard deviations.
+/// The clusters: key, center and standard deviations.
 const CLUSTERS: [(&str, [f64; 2], [f64; 2]); 5] = [
     ("a", [0.0, 0.0], [1.0, 0.6]),
     ("b", [3.0, 1.0], [0.8, 0.8]),

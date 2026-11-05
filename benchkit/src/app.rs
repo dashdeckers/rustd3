@@ -1,7 +1,7 @@
 //! [`App`]: the application a child runs, in a window or headlessly. It
 //! owns the workload's data, builds the figure in `view` and wraps the
-//! `Plot` in a [`Driver`]; it applies the driver's cues (appends, resizes)
-//! and on `Done` writes the run's raw file.
+//! `Plot` in a [`Driver`]. It applies the driver's cues (appends, resizes)
+//! and writes the run's raw file on `Done`.
 
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -60,7 +60,8 @@ pub struct App {
     reported: Option<Size>,
     /// The plot's logical size the driver placed the replay in.
     widget: Option<Size>,
-    /// The scenario resized the window: later sizes are its own.
+    /// Whether the scenario has resized the window, after which the sizes
+    /// are its own.
     resized: bool,
     /// The renderer iced chose, once the driver is done.
     backend: Option<&'static str>,
@@ -176,9 +177,9 @@ impl App {
         self.records.clone()
     }
 
-    /// Writes the run's raw file under `raw/`, headed by its `run` record;
-    /// `backend` names the renderer that ran, unless the driver saw
-    /// another. Returns its path.
+    /// Writes the run's raw file under `raw/`, headed by its `run` record,
+    /// and returns its path. `backend` names the renderer that ran, unless
+    /// the driver saw another.
     pub fn finish(&mut self, backend: &str) -> Result<PathBuf, record::Error> {
         let backend = self.backend.unwrap_or(backend);
         self.sampler = None;
@@ -186,7 +187,8 @@ impl App {
         let options = &self.config.child.options;
         let window = cell.window(self.config.native);
         // The window's factor times the app's (the cell's over the
-        // window's) is the cell's: logical px times it are device px.
+        // window's) is the cell's factor, which turns logical px into
+        // device px.
         let device = self.reported.unwrap_or(window) * cell.factor;
         let pair = |size: Size| [size.width, size.height];
         let mut records = vec![Record::Run(record::Run {
@@ -222,8 +224,8 @@ impl App {
         match message {
             Message::Cue(cue) => match self.apply(cue) {
                 Effect::None => Task::none(),
-                // iced sizes windows in the app's logical px (the plot's):
-                // it applies the app's factor and the window's itself.
+                // iced sizes windows in the app's logical px, which are the
+                // plot's, and applies the app's factor and the window's.
                 Effect::Resize(size) => match self.window {
                     Some(id) => window::resize(id, size),
                     None => Task::none(),
@@ -271,13 +273,14 @@ impl App {
     }
 }
 
-/// Runs `config` in a window; the window factor is assumed to be the
+/// Runs `config` in a window. The window factor is assumed to be the
 /// display's native factor until the window reports its own.
 ///
 /// iced takes the window's size in the app's logical px and multiplies it
-/// by the app's factor (the cell's over the native one) into the window
-/// system's, so the plot's own size opens a window of that size × factor ÷
-/// native there, and the cell's factor in device px.
+/// by the app's factor (the cell's over the native one) to get the window
+/// system's size. The plot's own size therefore opens a window of that
+/// size × factor ÷ native in the window system's units, which is that
+/// size × the cell's factor in device px.
 ///
 /// The window is not resizable, so tiling window managers float it at its
 /// size, except in `resize` and `drag-resize`, whose cues resize it (a

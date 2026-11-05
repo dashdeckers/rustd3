@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Runs a command for CI. When it fails, the lines of its output that name
-# the failure (errors, failed tests, panics, rustfmt diffs) are emitted as
-# GitHub error annotations, which the checks API reports, since the raw
-# logs are not always reachable from where the results are read.
+# Runs a command for CI. When it fails, the output lines that name the
+# failure (errors, failed tests, panics, rustfmt diffs) become GitHub error
+# annotations, which the checks API reports even where the raw logs are not
+# reachable.
 #
 #   .github/ci-run.sh cargo test --workspace
 #   .github/ci-run.sh --retry cargo test -p rustd3-iced

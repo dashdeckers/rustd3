@@ -1,10 +1,10 @@
-//! [`Subject`]: the figures the figure profile times, and their data,
-//! generated deterministically before the timings: the widget's workloads
-//! where they serve (`trace`, the scatters, `grid16`), figures a library
-//! user makes that the widget's profiles do not (labels with typst math, a
-//! statistical figure, a heatmap), lines and scatters along a ladder of
-//! sizes, and the gallery's presets and wheel figure as real-world
-//! figures at their own sizes.
+//! [`Subject`]: the figures the figure profile times, with their data
+//! generated deterministically before the timings. They cover the widget's
+//! workloads where those serve (`trace`, the scatters, `grid16`), figures a
+//! library user makes that the widget's profiles do not (labels with typst
+//! math, a statistical figure, a heatmap), lines and scatters along a
+//! ladder of sizes, and the gallery's presets and wheel figure as
+//! real-world figures at their own sizes.
 
 use std::f64::consts::TAU;
 
@@ -28,7 +28,7 @@ pub enum Subject {
     /// The widget's `trace`: 2 panels, 3 channels × 1M samples on a time
     /// axis in seconds, a legend.
     Trace,
-    /// `n` markers in 5 clusters: `scatter100k` is the widget's.
+    /// `n` markers in 5 clusters. At 100k it is the widget's `scatter100k`.
     Scatter(usize),
     /// The widget's `grid16`: 4 × 4 panels, each a 100k-sample line and
     /// 2k markers.
@@ -89,8 +89,8 @@ impl Subject {
         }
     }
 
-    /// The ladder it is a rung of (`lines`, `scatters`; `scatter100k` is
-    /// one), and its size.
+    /// The ladder it is a rung of (`lines` or `scatters`, which includes
+    /// `scatter100k`), and its size.
     pub fn rung(self) -> Option<(&'static str, usize)> {
         match self {
             Subject::Line(n) => Some(("lines", n)),
@@ -140,8 +140,8 @@ impl Subject {
         }
     }
 
-    /// Starting its process and generating its data, s, on two cores at
-    /// 2.1 GHz, where the estimates were measured.
+    /// The estimated time to start its process and generate its data, in
+    /// s, on two cores at 2.1 GHz, where the estimates were measured.
     pub fn data_s(self) -> f64 {
         let data = match self {
             Subject::Trace | Subject::Grid16 => 0.3,
@@ -152,7 +152,8 @@ impl Subject {
         0.15 + data
     }
 
-    /// One repetition of build, resolve, list and `stages`, s, there.
+    /// The estimated time of one repetition of build, resolve, list and
+    /// `stages`, in s, on the same machine.
     pub fn repetition_s(self, stages: &[Stage]) -> f64 {
         let (base, gif) = match self {
             Subject::Trace | Subject::Scatter(100_000) | Subject::Grid16 => (1.0, 0.9),
@@ -173,9 +174,9 @@ impl Subject {
         }
     }
 
-    /// The memory its process needs at its peak, MiB, as measured here:
-    /// about 1.4 KiB a marker for the scatters (vello_cpu's PNG at 2× and
-    /// the PDF hold the most), 250 MiB at most for the others.
+    /// The memory its process needs at its peak, in MiB, as measured here.
+    /// The scatters need about 1.4 KiB a marker (vello_cpu's PNG at 2× and
+    /// the PDF hold the most), and the others 250 MiB at most.
     pub fn memory_mb(self) -> f64 {
         match self {
             Subject::Scatter(n) => 100.0 + 1.4e-3 * n as f64,
@@ -262,7 +263,7 @@ pub fn count(n: usize) -> String {
 }
 
 /// The label-heavy figure: partial sums of a square wave's Fourier series,
-/// one per panel of a 3 × 3 grid, each titled with its sum and labelled
+/// one per panel of a 3 × 3 grid, each titled with its sum and labeled
 /// in typst math, with minor ticks and a math note at its peak.
 fn labels<'a>() -> Figure<'a> {
     let mut fig = Figure::new();
@@ -364,8 +365,8 @@ mod tests {
 
     #[test]
     fn the_stats_figures_binned_density_is_within_a_thousandth_of_the_exact_one() {
-        // The stats figure's 1M values take the binned path;
-        // the exact sum, 200 points × 1M kernels, is split over the cores.
+        // The stats figure's 1M values take the binned path. The exact
+        // sum, 200 points × 1M kernels, is split over the cores.
         let Data::Stats(values) = Subject::Stats.data() else {
             panic!("the stats figure's values");
         };

@@ -1,7 +1,7 @@
-//! Reading results back for `compare` and `report`: a level's directory
-//! or archive by its `results.json`, and the layout from before the
-//! levels (a suite's directory of plans, or one plan's) by each
-//! plan's `summary.csv`, `meta.json` and `report.md`, read only.
+//! Reads results back for `compare` and `report`. A level's directory or
+//! archive is read by its `results.json`. The layout from before the
+//! levels (a suite's directory of plans, or one plan's) is read only, by
+//! each plan's `summary.csv`, `meta.json` and `report.md`.
 
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -30,10 +30,11 @@ pub fn results(path: &Path) -> Result<Results, Box<dyn Error>> {
     })
 }
 
-/// The files of `path` a reader needs, by their path relative to the
-/// results directory: every file of an archive (its one top directory
-/// taken off), or a directory's `results.json`, and its and its
-/// subdirectories' `summary.csv`, `meta.json` and `report.md`.
+/// The files of `path` a reader needs, keyed by their path relative to
+/// the results directory. For an archive that is every file, with its one
+/// top directory taken off. For a directory it is `results.json`, plus the
+/// `summary.csv`, `meta.json` and `report.md` of the directory and its
+/// subdirectories.
 pub fn files(path: &Path) -> Result<BTreeMap<String, Vec<u8>>, Box<dyn Error>> {
     let mut files = BTreeMap::new();
     if path.is_dir() {
@@ -72,10 +73,11 @@ pub fn files(path: &Path) -> Result<BTreeMap<String, Vec<u8>>, Box<dyn Error>> {
     Ok(files)
 }
 
-/// The layout from before the levels: a plan's directory (`summary.csv` at the
-/// top), or a suite's (one per plan), as results whose profiles keep
-/// their cells' medians and budgets; the suite's plan names become the
-/// profiles' (`default` → `native`, `weak-nogpu` → `nogpu`, …).
+/// The results of the layout from before the levels, either a plan's
+/// directory (`summary.csv` at the top) or a suite's (one per plan). Their
+/// profiles keep their cells' medians and budgets, and the suite's plan
+/// names become the profiles' names (`default` → `native`, `weak-nogpu` →
+/// `nogpu`, …).
 fn old(files: &BTreeMap<String, Vec<u8>>, path: &Path) -> Option<Results> {
     let text = |name: &str| files.get(name).map(|bytes| String::from_utf8_lossy(bytes));
     let mut plans: Vec<String> = files

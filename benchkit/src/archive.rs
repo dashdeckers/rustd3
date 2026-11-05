@@ -1,7 +1,7 @@
-//! The submission archive: a results directory packed as a
-//! ustar archive written here and gzipped with `flate2`, and read back in
-//! memory by `compare` and `report`. Entries carry no owner (uid, gid and
-//! their names are empty); their times are the pack's.
+//! The submission archive: a results directory packed as a ustar archive
+//! (written by this module) and gzipped with `flate2`, then read back in
+//! memory. Entries carry no owner (uid, gid and their names are empty), and
+//! their times are the pack's.
 
 use std::fs;
 use std::io::{self, Read, Write};
@@ -71,9 +71,9 @@ pub fn pack(dir: &Path, archive: &Path) -> io::Result<u64> {
     Ok(fs::metadata(archive)?.len())
 }
 
-/// The files of the gzipped tar archive at `path`, in its order:
-/// ustar's names and prefixes, GNU long names and pax paths are read;
-/// links and other kinds are skipped.
+/// The files of the gzipped tar archive at `path`, in its order. It reads
+/// ustar's names and prefixes, GNU long names and pax paths, and skips
+/// links and other kinds.
 pub fn read(path: &Path) -> io::Result<Vec<Entry>> {
     let mut bytes = Vec::new();
     MultiGzDecoder::new(fs::File::open(path)?).read_to_end(&mut bytes)?;
@@ -150,8 +150,9 @@ pub fn extract(entries: &[Entry], dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// Every directory and file under `dir`, sorted, as (archive path, source
-/// file; `None` for a directory).
+/// Pushes every directory and file under `dir` onto `out`, sorted, as
+/// (archive path under `name`, source file). The source is `None` for a
+/// directory.
 fn walk(dir: &Path, name: &str, out: &mut Vec<(String, Option<PathBuf>)>) -> io::Result<()> {
     let mut entries: Vec<fs::DirEntry> = fs::read_dir(dir)?.collect::<Result<_, _>>()?;
     entries.sort_by_key(fs::DirEntry::file_name);

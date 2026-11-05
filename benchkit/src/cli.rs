@@ -1,6 +1,6 @@
 //! Hand-parsed arguments: each example's [`Command`], a level's
-//! [`Request`], and with the `widget` feature the widget examples'
-//! commands of `widget`.
+//! [`Request`], and, with the `widget` feature, the widget examples'
+//! commands in `widget`.
 
 #[cfg(feature = "widget")]
 pub mod widget;
@@ -350,11 +350,11 @@ fn figure_child(rest: &[String]) -> Result<Command, Error> {
 
 impl Request {
     /// Parses a level's flags: at most one of `--quick`, `--default` and
-    /// `--full` (`--default` when none), `--out DIR`, the hidden
-    /// `--dry-run`, and in `bench_all` (`widget`) `--figure-only`,
-    /// `--refresh-hz HZ`, `--native-factor F`, `--frames DIR`, `--every N`
-    /// and the experiment flags; without `widget` the level is the
-    /// plotting library's alone.
+    /// `--full` (`--default` when none), `--out DIR` and the hidden
+    /// `--dry-run`. In `bench_all` (`widget`), it also takes
+    /// `--figure-only`, `--refresh-hz HZ`, `--native-factor F`,
+    /// `--frames DIR`, `--every N` and the experiment flags. Without
+    /// `widget`, the level is the plotting library's alone.
     fn parse(args: &[String], widget: bool) -> Result<Request, Error> {
         let mut request = Request {
             level: Level::Default,

@@ -1,8 +1,8 @@
-//! [`Results`]: a level's `results.json`, the summary a
-//! submission is read by, versioned by its `format` (the schema is in
-//! `benchkit/README.md`), and the level's `report.md`, written from it.
-//! Format 2 adds the figure profile's figures; format 1 reads as
-//! a level without them.
+//! [`Results`]: a level's `results.json`, the summary a submission is read
+//! by, and the level's `report.md`, written from it. `results.json` is
+//! versioned by its `format` (the schema is in `benchkit/README.md`).
+//! Format 2 adds the figure profile's figures, and format 1 reads as a
+//! level without them.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -11,9 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::display::Display;
 use crate::experiment::{self, Experiment};
-use crate::figure;
 use crate::reference::Reference;
-use crate::system;
+use crate::{figure, system};
 
 /// The format `results.json` is written in.
 pub const FORMAT: u32 = 2;
@@ -29,7 +28,8 @@ pub struct Results {
     pub level: String,
     /// When it started, UTC (`YYYYmmddTHHMMSSZ`).
     pub stamp: String,
-    /// False while profiles remain: the archive of an interrupted level.
+    /// Whether every profile has run. False marks the archive of an
+    /// interrupted level.
     pub complete: bool,
     /// The machine.
     pub machine: Machine,
@@ -74,7 +74,7 @@ pub struct Machine {
     pub arch: String,
     /// The CPU's model.
     pub cpu: String,
-    /// Logical cores.
+    /// The number of logical cores.
     pub cores: usize,
     /// Memory, MiB.
     pub ram_mb: u64,
@@ -107,9 +107,9 @@ pub struct Profile {
     pub budgets: String,
     /// How its cores were limited.
     pub limit: Option<String>,
-    /// Its windows opened on X11 through XWayland.
+    /// Whether its windows opened on X11 through XWayland.
     pub xwayland: bool,
-    /// It ran headless.
+    /// Whether it ran headless.
     pub headless: bool,
     /// Whether it ran.
     pub status: Status,
@@ -153,7 +153,7 @@ pub struct Figure {
 pub struct Timing {
     /// `build`, `resolve`, `list`, `svg`, `pdf`, `png-1x`, `png-2x`, `gif`.
     pub stage: String,
-    /// The first repetition's, cold, ms.
+    /// The first repetition's time, cold, in ms.
     pub cold_ms: f64,
     /// The median of the repetitions after it, ms.
     pub median_ms: f64,
@@ -163,7 +163,7 @@ pub struct Timing {
     pub p90_ms: f64,
     /// The repetitions after the cold one.
     pub repetitions: u32,
-    /// The output's bytes, for the outputs.
+    /// The output's size in bytes, for the output stages.
     pub bytes: Option<u64>,
 }
 
@@ -201,11 +201,12 @@ pub struct Cell {
     pub workload: String,
     /// The scale factor.
     pub factor: f32,
-    /// Runs planned.
+    /// The number of runs planned.
     pub runs: u32,
-    /// Runs that wrote their records.
+    /// The number of runs that wrote their records.
     pub read: u32,
-    /// False for "n/a": the workload has no such cell.
+    /// Whether the cell applies. False shows as "n/a", where the workload
+    /// has no such cell.
     pub applies: bool,
     /// Each per-run statistic's median across runs (the names of
     /// `summary.csv`).
@@ -217,12 +218,12 @@ pub struct Cell {
 /// One budget of a cell.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Check {
-    /// `frame p99`, `pan latency p95`, `zoom latency p95`, `preview
-    /// share`, with `pan: ` or `zoom: ` for `4k`'s halves.
+    /// `frame p99`, `pan latency p95`, `zoom latency p95` or
+    /// `preview share`, with `pan: ` or `zoom: ` for `4k`'s halves.
     pub budget: String,
     /// Its limit (ms, or a share).
     pub limit: f64,
-    /// Runs read.
+    /// The number of runs read.
     pub n: usize,
     /// The per-run statistic's mean.
     pub mean: Option<f64>,
@@ -262,7 +263,7 @@ pub const SOFTWARE_KEY: [Key; 8] = [
 ];
 
 impl Version {
-    /// This build's, in the working directory's checkout.
+    /// This build's version, from the working directory's checkout.
     pub fn here() -> Version {
         Version {
             version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -273,7 +274,7 @@ impl Version {
 }
 
 impl Machine {
-    /// This machine's.
+    /// This machine's description.
     pub fn here() -> Machine {
         Machine {
             os: std::env::consts::OS.to_owned(),
@@ -681,8 +682,8 @@ pub fn value(value: Option<f64>, digits: usize, share: bool) -> String {
     }
 }
 
-/// A budget's verdict in a line, with its statistic against its limit;
-/// a frame budget notes the rate it assumes on an unpaced display.
+/// A budget's verdict in a line, with its statistic against its limit. A
+/// frame budget notes the rate it assumes on an unpaced display.
 fn verdict(check: &Check, assumed: Option<f64>) -> String {
     let share = check.budget.ends_with("preview share");
     let mean = value(check.mean, if share { 0 } else { 1 }, share);

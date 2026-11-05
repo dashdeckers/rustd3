@@ -1,6 +1,6 @@
-//! The `record` command's app: the `trace` window, whose real mouse and
-//! modifier events are written as a replay, timed from the first one,
-//! until Escape.
+//! The `record` command's app: the `trace` window, which writes its real
+//! mouse and modifier events as a replay until Escape. Event times count
+//! from the first event.
 
 use std::path::PathBuf;
 use std::time::Instant;
@@ -117,7 +117,7 @@ impl Recorder {
     }
 }
 
-/// The bench's button for iced's, if it has one.
+/// The replay's [`Button`] for iced's `button`, if it has one.
 fn button(button: mouse::Button) -> Option<Button> {
     match button {
         mouse::Button::Left => Some(Button::Left),

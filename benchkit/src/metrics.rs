@@ -1,8 +1,5 @@
-//! [`Metrics`]: one run's records as the rule reads them: frame
-//! intervals, input-to-sharp latency, preview share, UI busy time, the
-//! raster critical path, CPU and upload rates, memory, and the shares of
-//! UI, raster and upload in any window of frames; for a headless run that
-//! read every frame back, each frame's cost by [`Part`].
+//! [`Metrics`]: the measurements a rule checks, derived from one run's
+//! records.
 
 use std::collections::HashMap;
 
@@ -10,7 +7,7 @@ use crate::record::{self, Record};
 use crate::scenario::Scenario;
 use crate::stats::{self, percentile};
 
-/// The part of a run a budget reads: `4k` is a pan, then a zoom.
+/// The part of a run a budget reads. `4k` is a pan, then a zoom.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Half {
     /// The whole run.
@@ -30,7 +27,7 @@ pub struct Frame {
     pub at_ms: f64,
     /// The newest generation planned.
     pub generation: u64,
-    /// Slots without an image or showing outdated content.
+    /// The number of slots without an image or showing outdated content.
     pub stale: u32,
     /// Bytes of new handles drawn.
     pub uploaded: u64,
@@ -38,9 +35,9 @@ pub struct Frame {
     pub ui_ms: f64,
 }
 
-/// One frame composed offscreen, by part: the widget's UI work,
-/// iced's composition into the pixmap, and after a frame that still shows
-/// previews or missing tiles the time to the next frame, which the loop
+/// One frame composed offscreen, by part: the widget's UI work, iced's
+/// composition into the pixmap, and, after a frame that still shows
+/// previews or missing tiles, the time to the next frame, which the loop
 /// spends waiting on the pool's renders.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Part {
@@ -51,10 +48,10 @@ pub struct Part {
     pub ui_ms: f64,
     /// The screenshot: iced composing the frame and reading it back.
     pub compose_ms: f64,
-    /// After a stale frame, its end to the next frame's instant; 0 after a
-    /// sharp one (the loop idles then).
+    /// After a stale frame, the time from its end to the next frame's
+    /// instant. It is 0 after a sharp one, when the loop idles.
     pub wait_ms: f64,
-    /// Slots missing or outdated.
+    /// Whether any slot is missing or outdated.
     pub stale: bool,
 }
 
@@ -65,8 +62,8 @@ pub struct Latency {
     pub event: String,
     /// When it was scheduled, ms since process start.
     pub scheduled_ms: f64,
-    /// Scheduled to the first sharp frame showing it (to the run's end
-    /// when none did: a lower bound).
+    /// The time from scheduling to the first sharp frame showing it. When
+    /// none did, it runs to the run's end and is a lower bound.
     pub ms: f64,
     /// Whether a sharp frame showed it.
     pub sharp: bool,
@@ -85,9 +82,9 @@ pub struct Shares {
     pub raster_ms: f64,
     /// Uploaded MB times the run's slope of interval on MB, ms.
     pub upload_ms: f64,
-    /// Inline renders among the raster samples.
+    /// The number of inline renders among the raster samples.
     pub inline: u32,
-    /// Offending latency windows or frames summed.
+    /// The number of offending latency windows or frames summed.
     pub windows: u32,
 }
 
@@ -144,11 +141,12 @@ pub struct Metrics {
     pub readback_ms: Option<f64>,
 }
 
-/// Window extension past the last input, ms (reading 4).
+/// How far the interaction window extends past the last input, in ms
+/// (reading 4).
 const AFTER_LAST_MS: f64 = 300.0;
 
-/// Inputs further apart than this, ms, end a burst: a window drag's steps
-/// are 16 ms apart, its drags 1.5 s.
+/// Inputs further apart than this, in ms, end a burst. A window drag's
+/// steps are 16 ms apart, and its drags 1.5 s.
 const BURST_GAP_MS: f64 = 100.0;
 
 impl Metrics {
@@ -332,9 +330,9 @@ impl Metrics {
         percentile(&ms, p)
     }
 
-    /// The latencies of the inputs that end a burst, the next input more
-    /// than 100 ms later or none: from a window drag's last step to the
-    /// first current frame.
+    /// The latencies of the inputs that end a burst, where the next input
+    /// is more than 100 ms later or there is none. For a window drag, that
+    /// is the time from its last step to the first current frame.
     pub fn last_steps(&self) -> Vec<f64> {
         self.latencies
             .iter()
@@ -348,8 +346,8 @@ impl Metrics {
             .collect()
     }
 
-    /// From the first input of `half` to 300 ms after its last, ms since
-    /// process start; for a run without input, start to end.
+    /// The span from the first input of `half` to 300 ms after its last, in
+    /// ms since process start. For a run without input, it is start to end.
     pub fn window(&self, half: Half) -> [f64; 2] {
         let inputs = self.latencies_of(half);
         match (inputs.first(), inputs.last()) {
@@ -366,8 +364,8 @@ impl Metrics {
             .collect()
     }
 
-    /// Frames with a missing or outdated slot over frames, in `half`'s
-    /// window (reading 4).
+    /// The share of frames in `half`'s window that have a missing or
+    /// outdated slot (reading 4).
     pub fn preview_share(&self, half: Half) -> Option<f64> {
         let frames = self.shown_in(self.window(half));
         (!frames.is_empty())
@@ -471,7 +469,7 @@ impl Metrics {
             .collect()
     }
 
-    /// Measured over modelled time of every render with a model time.
+    /// Measured over modeled time of every render with a model time.
     pub fn calibration(&self) -> Vec<f64> {
         self.rasters
             .iter()
@@ -498,8 +496,8 @@ impl Metrics {
         (bytes as f64 / 1e6 * self.slope().unwrap_or(0.0)).max(0.0)
     }
 
-    /// Shares over latency windows slower than `limit` in `half`; for a
-    /// run composed offscreen, the frames' compositions in place of
+    /// Shares over latency windows slower than `limit` in `half`. For a run
+    /// composed offscreen, the frames' compositions take the place of
     /// uploads.
     pub fn latency_shares(&self, half: Half, limit: f64) -> Shares {
         let mut shares = Shares::default();
@@ -526,8 +524,8 @@ impl Metrics {
         shares
     }
 
-    /// Shares over frames whose next interval exceeds 1.5 T: inline
-    /// renders count as raster and leave the UI share.
+    /// Shares over frames whose next interval exceeds 1.5 T. Inline
+    /// renders count as raster and are taken out of the UI share.
     pub fn interval_shares(&self) -> Shares {
         let period = self.period_ms();
         let shown = self.shown();
@@ -578,8 +576,8 @@ impl Metrics {
 }
 
 impl Metrics {
-    /// Whether every frame was composed and read back (a headless run):
-    /// its frames have parts.
+    /// Whether every frame was composed and read back (a headless run), so
+    /// that its frames have parts.
     pub fn is_composed(&self) -> bool {
         !self.compositions.is_empty()
     }
@@ -644,10 +642,10 @@ impl Metrics {
         stats::mean(&values)
     }
 
-    /// The mean split of the sharp latencies: the UI work and the
-    /// compositions of the frames from the one that applied the input to
-    /// the one before the sharp frame, and the rest (the wait on the pool
-    /// and for the next frame), ms.
+    /// The mean split of the sharp latencies, in ms. The first two parts
+    /// are the UI work and the compositions of the frames from the one that
+    /// applied the input to the one before the sharp frame. The third is
+    /// the rest: the wait on the pool and for the next frame.
     pub fn latency_parts(&self) -> Option<[f64; 3]> {
         let parts = self.parts();
         let at = |frame: u64| {
@@ -676,9 +674,10 @@ impl Metrics {
     }
 
     /// Shares over the window's composed frames whose cost exceeds
-    /// `limit`: their UI work without inline renders, the inline renders
-    /// as raster, and their composition in the upload share (offscreen
-    /// there is nothing to upload; iced's composition takes its place).
+    /// `limit`. Their UI work without inline renders counts as UI, the
+    /// inline renders as raster, and their composition in the upload
+    /// share. Offscreen there is nothing to upload, so iced's composition
+    /// takes its place.
     pub fn cost_shares(&self, limit: f64) -> Shares {
         let mut shares = Shares::default();
         for part in self.parts_in_window().iter().filter(|p| p.cost() > limit) {
@@ -758,9 +757,10 @@ impl Shares {
     }
 }
 
-/// The latency of an input applied in pass `frame`: the first pass from
-/// it on whose generation is at least the one after it and whose slots
-/// are all current; to `end_ms` when none is.
+/// The latency of an input applied in pass `frame`. It runs to the first
+/// pass from `frame` on whose generation is at least that of the pass
+/// that applied it and whose slots are all current, or to `end_ms` when
+/// there is none.
 fn latency(frames: &[Frame], event: String, scheduled_ms: f64, frame: u64, end_ms: f64) -> Latency {
     let applied = frames.iter().find(|f| f.frame >= frame);
     let generation = applied.map_or(0, |f| f.generation);
@@ -865,9 +865,10 @@ pub mod tests {
 
     #[test]
     fn a_drags_last_step_is_the_input_a_pause_follows() {
-        // Two drags of three steps 16 ms apart, about 1 s between them,
-        // each step applied in its own frame, which shows an outdated slot:
-        // the third and sixth steps end them, current a frame later.
+        // Two drags of three steps 16 ms apart, about 1 s between them.
+        // Each step is applied in its own frame, which shows an outdated
+        // slot. The third and sixth steps end the drags and are current a
+        // frame later.
         let steps = [0_u64, 1, 2, 62, 63, 64];
         let mut records = vec![header("drag-resize")];
         for k in 0..80_u64 {
@@ -969,8 +970,8 @@ pub mod tests {
         assert_eq!(metrics.part(Part::cost, 100.0), Some(7.0));
         assert_eq!(metrics.part(Part::cost, 50.0), Some(6.5));
         assert_eq!(metrics.part_mean(|p| p.wait_ms), Some(19.5 / 4.0));
-        // The input is sharp 32 ms later: the two frames before cost 4.5 ms
-        // of UI and 8 of composition; 19.5 waited.
+        // The input is sharp 32 ms later. The two frames before cost 4.5 ms
+        // of UI and 8 of composition, and 19.5 ms went to waiting.
         assert_eq!(metrics.latencies[0].ms, 32.0);
         assert_eq!(metrics.latency_parts(), Some([4.5, 8.0, 19.5]));
         // Frames over 6 ms: their UI, and their composition where a display
