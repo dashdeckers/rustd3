@@ -73,6 +73,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # poppler's pdftoppm, pdftotext and pdffonts read the PDF outputs
       # back; lavapipe gives wgpu a Vulkan device on a runner without a GPU.
+      # Two full builds of the workspace (both feature sets) plus the
+      # per-backend iced tests exceed the runner's free disk: the linker
+      # died with a bus error once the disk was full. The preinstalled
+      # .NET, Android and Haskell toolchains free about 30 GB.
+      - name: Free disk space (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
       - name: Install poppler and lavapipe (Linux)
         if: runner.os == 'Linux'
         run: |
