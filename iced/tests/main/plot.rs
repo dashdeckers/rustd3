@@ -20,7 +20,6 @@ use rustd3_figure::mark::{dots, line};
 use rustd3_figure::scale::{Fit, ScaleRef};
 use rustd3_figure::{Figure, Held, Target, Theme, axis};
 use rustd3_iced::Plot;
-#[cfg(feature = "__dev")]
 use rustd3_iced::plot::cost;
 use rustd3_iced::plot::probe::{self, Sample};
 use rustd3_iced::plot::{Caching, Probe, Render};
@@ -946,7 +945,6 @@ fn fit_window_follows_in_whole_device_columns() {
     }
 }
 
-#[cfg(feature = "__dev")]
 #[test]
 fn ten_hz_appends_stay_sharp() {
     // 800 × 500 at 2: plot areas about 1,400 × 760 device px.

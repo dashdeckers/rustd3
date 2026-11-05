@@ -437,7 +437,7 @@ with a cache you keep between frames.
 
 `rustd3_iced::path` turns d3 drawing into an iced `canvas::Path`; the
 app writes the axis labels with iced's own text. The `canvas` example
-of `dev/examples` is a whole app; its draw function, in part:
+of rustd3-iced is a whole app; its draw function, in part:
 
 ```rust
 let x = scale::linear().domain([0.0, 10.0]).range([40.0, width - 40.0]);
@@ -546,8 +546,9 @@ domains of handles nobody listens to) in iced's widget tree.
   the UI thread, so panning a scatter of a million points is bound by
   list building.
 
-`cargo rustd3-bench --quick` measures all of this on a machine;
-`dev/bench/README.md` describes the levels and the archive.
+`cargo run --release --example bench_all -- --quick` measures all of
+this on a machine; `benchkit/README.md` describes the levels and the
+archive.
 
 ### Error handling
 

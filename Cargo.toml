@@ -9,7 +9,7 @@ documentation = "https://docs.rs/rustd3"
 readme = "README.md"
 keywords = ["d3", "plot", "chart", "visualization", "dataviz"]
 categories = ["visualization", "graphics", "rendering"]
-include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE-MIT", "/LICENSE-APACHE"]
+include = ["src/**/*.rs", "/Cargo.toml", "/README.md", "/CHANGELOG.md", "/LICENSE-MIT", "/LICENSE-APACHE", "/LICENSE-d3"]
 autotests = false
 
 [package.metadata.docs.rs]
@@ -50,7 +50,11 @@ workspace = true
 [workspace]
 resolver = "3"
 members = ["core", "derive", "figure", "fonts", "iced",
-           "testkit", "dev/examples", "dev/bench"]
+           "testkit", "benchkit"]
+# Every member, so that `cargo run --example <name>` finds any crate's
+# example from the root (example names are unique across the workspace).
+default-members = [".", "core", "derive", "figure", "fonts", "iced",
+                   "testkit", "benchkit"]
 exclude = [".claude"]
 
 [workspace.package]
@@ -66,6 +70,7 @@ rustd3-figure = { path = "figure", version = "0.1.0", default-features = false }
 rustd3-fonts = { path = "fonts", version = "0.1.0" }
 rustd3-iced = { path = "iced" }
 rustd3-testkit = { path = "testkit" }
+benchkit = { path = "benchkit", default-features = false }
 jiff = "0.2.38"
 thiserror = "2"
 syn = "2"

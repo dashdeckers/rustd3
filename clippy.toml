@@ -1,5 +1,5 @@
 # clippy.toml — library crates never read clocks or the system zone.
-# Dev crates opt out in dev/clippy.toml.
+# benchkit, which times what it measures, opts out in its [lints] table.
 allow-unwrap-in-tests = true
 disallowed-methods = [
   { path = "std::time::Instant::now", reason = "time is a parameter; library code reads no clock" },

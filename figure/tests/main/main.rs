@@ -43,15 +43,17 @@ mod theme;
 mod thin;
 mod threads;
 mod visible;
+// The wheel figure: its example draws benchkit's gallery figure.
+#[cfg(all(feature = "fonts", feature = "pdf", feature = "raster"))]
+mod wheels;
 
-// The example figures of rustd3-examples, compiled into these tests so
-// that the snapshots and the thinning spot checks draw exactly what the
-// examples draw.
-#[path = "../../../dev/examples/src/scatter.rs"]
-#[cfg_attr(
-    not(all(feature = "png", feature = "fonts")),
-    expect(dead_code, reason = "only the PNG agreement test reads SCALE")
+// The example figures, so that the snapshots and the thinning spot
+// checks draw exactly what the examples draw: the trace from benchkit's
+// gallery, the scatter compiled from its example.
+use benchkit::gallery::trace;
+#[path = "../../examples/scatter.rs"]
+#[allow(
+    dead_code,
+    reason = "the example's `main`, and SCALE outside the PNG agreement test"
 )]
 mod scatter;
-#[path = "../../../dev/examples/src/trace.rs"]
-mod trace;

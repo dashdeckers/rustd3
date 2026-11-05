@@ -2,7 +2,8 @@
 //! recordings agree with a plain model of their samples: appends between
 //! queries, drops at chunk boundaries, NaN runs, ties, ±∞, and columns
 //! narrower and wider than a block. 12 cases by default and 300 with
-//! `RUSTD3_FUZZ=1` (run in release by `scripts/check.sh`).
+//! `RUSTD3_FUZZ=1`, in release
+//! (`cargo test --release -p rustd3-core --test main fuzz`).
 
 use rustd3_core::series::{Clock, Recording};
 

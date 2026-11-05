@@ -249,27 +249,48 @@ has the details.
 To measure a machine, run the benchmark from a checkout:
 
 ```bash
-cargo rustd3-bench --quick
+cargo run --release --example bench_all -- --quick                       # the library and the widget
+cargo run --release -p rustd3-figure --example bench_figure -- --quick   # the library alone, headless
 ```
 
-It takes about a quarter of an hour, drives the widget and times figures
-from data to SVG, PDF and PNG, and ends by printing the path of one
-archive; if a plot is slow, open an issue and attach the archive.
-[dev/bench/README.md](dev/bench/README.md) describes its levels and what
-the archive holds.
+`bench_all` takes about a quarter of an hour, drives the widget and times
+figures from data to SVG, PDF and PNG, and ends by printing the path of
+one archive; if a plot is slow, open an issue and attach the archive.
+`bench_figure` times the figures alone, in about a minute, without iced.
+`bench_gestures` and `bench_software` run the widget's profiles one at a
+time, and `bench_compare` and `bench_report` read archives.
+[benchkit/README.md](benchkit/README.md) describes the levels, the flags
+and what the archive holds.
 
-## Licence and credits
+## Licence
 
-rustd3 is licensed under MIT OR Apache-2.0, at your option. The bundled
-fonts keep their own licences: DejaVu Sans under the Bitstream Vera
-licence (with the Arev terms), New Computer Modern Math under the GUST
-Font License (`rustd3-fonts`' `LICENSE`).
+rustd3 is licensed under MIT OR Apache-2.0, at your option
+([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)). The
+notices of the d3 code it follows are in [LICENSE-d3](LICENSE-d3) (each
+crate that carries such code ships a copy). The bundled fonts keep their
+own licences: DejaVu Sans under the Bitstream Vera licence (with the
+Arev terms), New Computer Modern Math under the GUST Font License, both
+given in full in `rustd3-fonts`' [LICENSE](fonts/LICENSE).
 
-- **d3** by Mike Bostock, ISC: the core ports d3's scales, ticks, axes,
-  shapes, formats, time, color, interpolation, arrays, zoom, brush and
-  drag, and its color schemes (ColorBrewer's under Apache-2.0); d3-ease,
-  with Robert Penner's easing equations, is BSD-3-Clause. The notices are
-  in `rustd3-core`'s `LICENSE-d3`.
-- **seaborn** (BSD-3-Clause): the themes' styles, contexts and palettes
+## Credits
+
+rustd3 stands on these projects:
+
+- **[d3](https://d3js.org)** by Mike Bostock, ISC: the core follows d3's
+  scales, ticks, axes, shapes, formats, time, color, interpolation,
+  arrays, zoom, brush and drag, and carries its color schemes
+  (ColorBrewer's under Apache-2.0); d3-ease, with Robert Penner's easing
+  equations, is BSD-3-Clause. The notices are in
+  [LICENSE-d3](LICENSE-d3).
+- **[typst](https://typst.app)**, Apache-2.0: it sets all figure text and
+  math.
+- **[vello](https://github.com/linebender/vello)**, Apache-2.0 OR MIT:
+  `vello_cpu` rasterizes the PNG and GIF outputs and the widget's images.
+- **[krilla](https://github.com/LaurenzV/krilla)**, MIT OR Apache-2.0:
+  it writes the PDF output.
+- **[iced](https://iced.rs)**, MIT: the GUI toolkit `rustd3-iced`
+  integrates with, and the `Plot` widget's home.
+- **seaborn**, BSD-3-Clause: the themes' styles, contexts and palettes
   take seaborn 0.13.2's values.
-- **typst** sets all figure text and math.
+- The fonts: DejaVu Sans and New Computer Modern Math, under the
+  licences above (`rustd3-fonts`).
