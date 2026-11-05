@@ -94,14 +94,17 @@ jobs:
       - name: Install poppler (Windows)
         if: runner.os == 'Windows'
         run: choco install poppler --no-progress -y
-      # iced picks the renderer: wgpu where it finds an adapter, else
-      # tiny-skia.
-      - run: .github/ci-run.sh cargo test --workspace --all-features
-      - run: .github/ci-run.sh cargo test --workspace --no-default-features
-      # The iced tests again on each backend explicitly; with
-      # ICED_TEST_BACKEND set iced does not fall back. Each runs a second
-      # time if the first fails: lavapipe, the runners' software Vulkan,
-      # now and then segfaults in a test that passes on a rerun.
+      # Every crate but the widget's: its tests run below, per backend and
+      # with a retry, because lavapipe, the runners' software Vulkan, now
+      # and then segfaults in a test that passes on a rerun.
+      - run: .github/ci-run.sh cargo test --workspace --exclude rustd3-iced --all-features
+      - run: .github/ci-run.sh cargo test --workspace --exclude rustd3-iced --no-default-features
+      - name: iced tests without features
+        run: |
+          .github/ci-run.sh cargo test -p rustd3-iced --no-default-features \
+            || .github/ci-run.sh cargo test -p rustd3-iced --no-default-features
+      # The iced tests on each backend explicitly; with ICED_TEST_BACKEND
+      # set iced does not fall back.
       - name: iced tests on tiny-skia
         run: |
           .github/ci-run.sh cargo test -p rustd3-iced -p benchkit --all-features \
