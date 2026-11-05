@@ -47,6 +47,10 @@ jobs:
       - run: .github/ci-run.sh cargo clippy --workspace --all-targets --all-features -- -D warnings
       # No default feature: no fonts, and benchkit without its widget.
       - run: .github/ci-run.sh cargo clippy --workspace --all-targets --no-default-features -- -D warnings
+      # The libraries alone with no feature on: benchkit as a dev-dependency
+      # turns figure's and iced's features on for every test and example
+      # build, so this is the only build of the featureless crates.
+      - run: .github/ci-run.sh cargo clippy --workspace --exclude benchkit --lib --no-default-features -- -D warnings
 
   test:
     name: test (${{ matrix.os }})
