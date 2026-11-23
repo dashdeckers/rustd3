@@ -61,7 +61,8 @@
 //! `RedrawRequested`, and only when the figure was rebuilt, the widget
 //! resized, the scale factor changed or a gesture changed a domain. It
 //! draws for the screen at the effective scale factor: `Plot::scale_factor`,
-//! else the renderer's hint, else the window's factor, else 1.
+//! else the renderer's hint, else the window's factor, else 1, times
+//! `Plot::magnification` for a host that draws the widget scaled.
 //!
 //! The drawing list splits into one layer per plot area and the chrome. A
 //! plot area's layer holds the figure's background, the panel's background,

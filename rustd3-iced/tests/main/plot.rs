@@ -1185,3 +1185,187 @@ fn a_factor_of_a_billion_renders_at_eight() {
     let plot = Plot::new(fig).render(Render::Inline).scale_factor(1e9);
     one_frame(plot, SIZE);
 }
+
+/// A host that draws `content` scaled by `scale` and then moved by
+/// `offset` logical px, as a pan-and-zoom surface draws a card. Layout
+/// and events pass through unchanged.
+struct Surface<W> {
+    content: W,
+    scale: f32,
+    offset: iced::Vector,
+}
+
+impl<W> iced::advanced::widget::Meta for Surface<W> {}
+
+impl<W, Message> iced::advanced::Widget<Message, iced::Theme, iced::Renderer> for Surface<W>
+where
+    W: iced::advanced::Widget<Message, iced::Theme, iced::Renderer>,
+{
+    fn tag(&self) -> iced::advanced::widget::tree::Tag {
+        self.content.tag()
+    }
+
+    fn state(&self) -> iced::advanced::widget::tree::State {
+        self.content.state()
+    }
+
+    fn diff(&mut self, tree: &mut iced::advanced::widget::Tree) {
+        self.content.diff(tree);
+    }
+
+    fn size(&self) -> Size<iced::Length> {
+        self.content.size()
+    }
+
+    fn layout(
+        &mut self,
+        tree: &mut iced::advanced::widget::Tree,
+        renderer: &iced::Renderer,
+        _limits: &iced::advanced::layout::Limits,
+    ) {
+        // The content is as large as it asks, whatever the window shows.
+        let limits = iced::advanced::layout::Limits::new(Size::ZERO, Size::INFINITE);
+        self.content.layout(tree, renderer, &limits);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut iced::advanced::widget::Tree,
+        event: &Event,
+        layout: iced::advanced::Layout,
+        cursor: mouse::Cursor,
+        renderer: &iced::Renderer,
+        shell: &mut iced::advanced::Shell<'_, Message>,
+        viewport: &iced::Rectangle,
+    ) {
+        self.content
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
+    }
+
+    fn draw(
+        &self,
+        tree: &iced::advanced::widget::Tree,
+        renderer: &mut iced::Renderer,
+        theme: &iced::Theme,
+        style: &iced::advanced::renderer::Style,
+        layout: iced::advanced::Layout,
+        cursor: mouse::Cursor,
+        viewport: &iced::Rectangle,
+    ) {
+        use iced::advanced::Renderer as _;
+
+        let transformation = iced::Transformation::translate(self.offset.x, self.offset.y)
+            * iced::Transformation::scale(self.scale);
+        renderer.with_transformation(transformation, |renderer| {
+            self.content
+                .draw(tree, renderer, theme, style, layout, cursor, viewport);
+        });
+    }
+}
+
+/// [`figure`] at [`SIZE`] in a window of factor `k`, magnified by `z` on
+/// a [`Surface`] moved by `offset` device px. Returns the part of the
+/// first frame the plot covers, the same plot's first frame drawn
+/// directly at `k * z`, and the backend's name.
+fn magnified(k: f32, z: f32, offset: [f32; 2]) -> Option<(Shot, Shot, String)> {
+    let plot = |factor, magnification| {
+        Plot::<()>::new(figure())
+            .width(SIZE.width)
+            .height(SIZE.height)
+            .scale_factor(factor)
+            .magnification(magnification)
+            .render(Render::Inline)
+    };
+    let mut direct = Harness::new(plot(k * z, 1.0), SIZE, k * z)?;
+    let direct = direct.frame(headless::epoch());
+
+    let surface = Surface {
+        content: plot(k, z),
+        scale: z,
+        offset: iced::Vector::new(offset[0] / k, offset[1] / k),
+    };
+    // Room for the moved plot, in whole device px.
+    let [left, top] = offset.map(|d| d.floor() as u32);
+    let window = Size::new(
+        (direct.width + left + 1) as f32 / k,
+        (direct.height + top + 1) as f32 / k,
+    );
+    let mut harness = Harness::new(surface, window, k)?;
+    let backend = harness.backend();
+    let whole = harness.frame(headless::epoch());
+    let mut rgba = Vec::with_capacity(direct.rgba.len());
+    for y in top..top + direct.height {
+        for x in left..left + direct.width {
+            rgba.extend_from_slice(&whole.pixel(x, y));
+        }
+    }
+    let shown = Shot {
+        width: direct.width,
+        height: direct.height,
+        rgba,
+    };
+    Some((shown, direct, backend))
+}
+
+#[test]
+fn a_magnified_plot_matches_the_plot_drawn_at_the_product() {
+    // Above and below 1, at whole and fractional products, at the origin
+    // and at a whole device offset.
+    for (k, z, offset) in [
+        (2.0, 1.25, [0.0, 0.0]),
+        (2.0, 0.75, [0.0, 0.0]),
+        (1.25, 1.3, [7.0, 3.0]),
+        (1.25, 0.7, [7.0, 3.0]),
+    ] {
+        let Some((shown, direct, backend)) = magnified(k, z, offset) else {
+            return;
+        };
+        let diff = pixels::Diff::between(&shown.image(), &direct.image(), 16)
+            .expect("invariant: the crop has the direct frame's size");
+        println!(
+            "magnified against direct, {backend}, k = {k}, z = {z}, offset {offset:?}: \
+             max {}/255, {} channels over 16",
+            diff.max(),
+            diff.over()
+        );
+        assert!(
+            diff.max() <= bound(&backend),
+            "{backend}, k = {k}, z = {z}: max {}/255",
+            diff.max()
+        );
+    }
+}
+
+#[test]
+fn a_magnification_that_is_not_finite_and_positive_draws_as_one() {
+    let Some((plain, _)) = shoot(figure(), 2.0) else {
+        return;
+    };
+    for bad in [0.0, -1.5, f32::NAN, f32::INFINITY] {
+        let plot = Plot::<()>::new(figure())
+            .scale_factor(2.0)
+            .magnification(bad)
+            .render(Render::Inline);
+        let Some(mut harness) = Harness::new(plot, SIZE, 2.0) else {
+            return;
+        };
+        let shot = harness.frame(headless::epoch());
+        assert_eq!(shot.rgba, plain.rgba, "{bad}");
+    }
+}
+
+#[test]
+fn a_magnified_factor_above_eight_renders_at_eight() {
+    let at = |factor, magnification| {
+        let plot = Plot::<()>::new(figure())
+            .scale_factor(factor)
+            .magnification(magnification)
+            .render(Render::Inline);
+        let mut harness = Harness::new(plot, Size::new(120.0, 80.0), 8.0)?;
+        Some(harness.frame(headless::epoch()))
+    };
+    let (Some(capped), Some(eight)) = (at(4.0, 2.5), at(8.0, 1.0)) else {
+        return;
+    };
+    assert_eq!(capped.rgba, eight.rgba);
+}
