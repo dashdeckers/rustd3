@@ -8,7 +8,7 @@
 //! 2. `Waken`, if the waker fired.
 //! 3. `RedrawRequested(now)`. While that publishes messages, the loop
 //!    applies them, rebuilds and repeats with the same `now`, for at most
-//!    three passes (as `winit/src/lib.rs:788-830`).
+//!    three passes (as `winit/src/lib.rs:784-826`).
 //! 4. Draw, then screenshot.
 //!
 //! On the software renderer this is the software profile's offscreen

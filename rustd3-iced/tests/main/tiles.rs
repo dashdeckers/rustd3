@@ -35,7 +35,7 @@ pub fn clock() -> Instant {
     Instant::now()
 }
 
-/// The widget against the PNG, opaque: 1/255 on tiny-skia, 2/255 on wgpu.
+/// The widget against the PNG, opaque: 1/255 on vello_cpu, 2/255 on wgpu.
 pub fn bound(backend: &str) -> u8 {
     if backend == "wgpu" { 2 } else { 1 }
 }

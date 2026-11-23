@@ -30,7 +30,7 @@ pub enum Plan {
     /// Weaker machines: `hover`, `pan-x` and `zoom-lines` on `trace`, and
     /// `pan-x` and `zoom-lines` on `scatter100k`, at the native factor,
     /// five runs each, held to the weak profile's budgets. It runs without
-    /// a GPU (`--backend tiny-skia`) and on 4 and 2 cores.
+    /// a GPU (`--backend vello-cpu`) and on 4 and 2 cores.
     Weak,
     /// The zooms, pans and window drags, five runs each, at the native
     /// factor unless named:

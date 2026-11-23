@@ -1,14 +1,14 @@
 //! A real gesture frame of the `Plot` widget, composed headlessly by
 //! iced's software renderer.
 //!
-//! The widget is driven on tiny-skia through a zoom burst (a wheel line
+//! The widget is driven on vello-cpu through a zoom burst (a wheel line
 //! every 33 ms) and a drag (5 px a frame) over `trace` and `scatter100k`
 //! at factors 1 and 2. Every frame is composed as a window composes it,
 //! paced at 60 Hz, with the pool's results landing between frames. One
 //! frame mid-burst and one mid-drag are kept, with:
 //! - their images, and the scaled ones among them;
 //! - the handles the renderer had not drawn before the frame;
-//! - the widget's draw, which composes a mosaic on the software renderer;
+//! - the widget's draw;
 //! - what composing the frame costs, the first time (which converts the
 //!   new handles) and warm (the median of later compositions of the same
 //!   frame).
@@ -131,7 +131,7 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Shown {
 /// The row: per workload, gesture and factor, the kept frame and the
 /// candidates replayed.
 pub(super) fn frames() -> Row {
-    let item = "a gesture frame composed by tiny-skia (headless, 1600 × 1000 logical, \
+    let item = "a gesture frame composed by vello-cpu (headless, 1600 × 1000 logical, \
                 Auto, the default pool)"
         .to_owned();
     let mut parts = Vec::new();
@@ -139,7 +139,7 @@ pub(super) fn frames() -> Row {
         for gesture in [Gesture::Zoom, Gesture::Drag] {
             for k in [1.0_f32, 2.0] {
                 let Some(kept) = keep(workload, gesture, k) else {
-                    return failed(&item, "no headless tiny-skia renderer");
+                    return failed(&item, "no headless vello-cpu renderer");
                 };
                 parts.push(describe(workload, gesture, k, &kept));
             }
@@ -151,20 +151,20 @@ pub(super) fn frames() -> Row {
     }
 }
 
-/// The row on what tiny-skia's composition of a frame costs per image and
+/// The row on what vello-cpu's composition of a frame costs per image and
 /// per pixel, at factors 1 and 2. A 1400 × 800 logical area of opaque
 /// images is composed four ways, each against a frame of no image: as
 /// 256-device-px tiles clipped to the area (as the widget draws a plot
 /// area's tiles), as the same tiles each clipped to itself, as one image,
 /// and as as many 4 × 4 px images as there are tiles.
 pub(super) fn per_images() -> Row {
-    let item = "a frame of images composed by tiny-skia (headless, 1600 × 1000 logical, \
+    let item = "a frame of images composed by vello-cpu (headless, 1600 × 1000 logical, \
                 warm medians of 8)"
         .to_owned();
     let mut parts = Vec::new();
     for k in [1.0_f32, 2.0] {
         let Some([empty, tiles, own, one, tiny, n]) = per_image(k) else {
-            return failed(&item, "no headless tiny-skia renderer");
+            return failed(&item, "no headless vello-cpu renderer");
         };
         parts.push(format!(
             "at {k}: no image {empty:.1} ms; the area as {n} tiles clipped to the area \
@@ -181,11 +181,11 @@ pub(super) fn per_images() -> Row {
 
 /// [`per_images`]' compositions at `k`, ms: no image, the tiles clipped to
 /// the area and each to itself, one image, the small images, and the
-/// number of tiles; `None` without a headless tiny-skia renderer.
+/// number of tiles; `None` without a headless vello-cpu renderer.
 fn per_image(k: f32) -> Option<[f64; 6]> {
     let mut renderer = iced::futures::executor::block_on(iced::Renderer::new(
         iced_renderer::Settings::default(),
-        Some("tiny-skia"),
+        Some("vello-cpu"),
     ))?;
     if !matches!(renderer, iced::Renderer::Secondary(_)) {
         return None;
@@ -297,7 +297,7 @@ fn warm(renderer: &mut iced::Renderer, images: Vec<Drawn>, k: f32) -> f64 {
 }
 
 /// The warm composition of the `trace` frame kept mid-zoom at factor 1,
-/// ms (the CPU reference's); `None` without a headless tiny-skia renderer.
+/// ms (the CPU reference's); `None` without a headless vello-cpu renderer.
 pub(super) fn zoom_frame_ms() -> Option<f64> {
     keep(Workload::Trace, Gesture::Zoom, 1.0).map(|kept| kept.warm)
 }
@@ -354,12 +354,12 @@ fn describe(workload: Workload, gesture: Gesture, k: f32, kept: &Kept) -> String
 }
 
 /// Drives the widget through `gesture` over `workload` at `k` on a
-/// headless tiny-skia renderer, every frame composed, and keeps the
+/// headless vello-cpu renderer, every frame composed, and keeps the
 /// gesture's frame; `None` without the renderer.
 fn keep(workload: Workload, gesture: Gesture, k: f32) -> Option<Kept> {
     let renderer = iced::futures::executor::block_on(iced::Renderer::new(
         iced_renderer::Settings::default(),
-        Some("tiny-skia"),
+        Some("vello-cpu"),
     ))?;
     if !matches!(renderer, iced::Renderer::Secondary(_)) {
         return None;
@@ -601,7 +601,7 @@ impl Window {
     }
 }
 
-/// The raster images the tiny-skia renderer holds, in draw order.
+/// The raster images the vello-cpu renderer holds, in draw order.
 fn images(renderer: &mut iced::Renderer) -> Vec<Drawn> {
     let iced::Renderer::Secondary(renderer) = renderer else {
         return Vec::new();
@@ -627,13 +627,13 @@ fn images(renderer: &mut iced::Renderer) -> Vec<Drawn> {
         .collect()
 }
 
-/// `kept`'s frame replayed on a fresh tiny-skia renderer: no image, as
+/// `kept`'s frame replayed on a fresh vello-cpu renderer: no image, as
 /// captured, (a) every image nearest, (b) one image per plot area composed
 /// on the CPU; `None` without the renderer.
 fn replay(kept: &Kept, k: f32) -> Option<Replayed> {
     let mut renderer = iced::futures::executor::block_on(iced::Renderer::new(
         iced_renderer::Settings::default(),
-        Some("tiny-skia"),
+        Some("vello-cpu"),
     ))?;
     let physical = iced::Size::new(
         (WINDOW.width * k).round() as u32,

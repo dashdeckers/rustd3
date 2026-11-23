@@ -31,7 +31,7 @@ cargo run --release --example bench_figure -- --quick   # the library alone: no 
 | --- | --- |
 | `bench_all` | a level (below): the CPU reference, the figure profile, the display measurement and the widget's profiles, each by the example that runs it, as child processes; the archive |
 | `bench_figure` | the CPU reference and the figure profile at a level, headless, without iced, winit or wgpu |
-| `bench_software` | the software profile: the widget on tiny-skia offscreen, headless |
+| `bench_software` | the software profile: the widget on vello-cpu offscreen, headless |
 | `bench_gestures` | one plan of the widget's cells (scenario × workload × factor) in windows, on the native backend or the software renderer; hover is the scenario `--scenario hover` |
 | `bench_compare` | two results, directories or archives, side by side |
 | `bench_report` | a level's report rebuilt from its raw records |
@@ -135,10 +135,10 @@ into its own directory:
 
 | Profile | `--quick` | `--default` | `--full` |
 | --- | --- | --- | --- |
-| `software`: tiny-skia offscreen, headless at 60 Hz, weak budgets, report-only | `hover`, `pan-x`, `zoom-lines`, `drag-resize` on `trace`, `scatter100k` and `grid16` at factors 1 and 2; 1 run | the same, 3 runs | the same, 5 runs |
-| `native`: the renderer iced chooses (wgpu, or tiny-skia without a GPU), desktop budgets | `hover`, `pan-x`, `zoom-lines` on `trace` and `scatter100k`, `drag-resize` on `trace`; 3 runs | the default plan: the registered verdict run, its rule outcome | the full plan: every scenario × workload × factor, 5 runs |
-| `nogpu`: tiny-skia, weak budgets | `pan-x`, `zoom-lines` on `trace`; 3 runs | the weak plan, 5 runs | the weak plan |
-| `nogpu-x11`: tiny-skia on X11 through XWayland, a Linux Wayland session only, report-only | as `nogpu` | the weak plan | the weak plan |
+| `software`: vello-cpu offscreen, headless at 60 Hz, weak budgets, report-only | `hover`, `pan-x`, `zoom-lines`, `drag-resize` on `trace`, `scatter100k` and `grid16` at factors 1 and 2; 1 run | the same, 3 runs | the same, 5 runs |
+| `native`: the renderer iced chooses (wgpu, or vello-cpu without a GPU), desktop budgets | `hover`, `pan-x`, `zoom-lines` on `trace` and `scatter100k`, `drag-resize` on `trace`; 3 runs | the default plan: the registered verdict run, its rule outcome | the full plan: every scenario × workload × factor, 5 runs |
+| `nogpu`: vello-cpu, weak budgets | `pan-x`, `zoom-lines` on `trace`; 3 runs | the weak plan, 5 runs | the weak plan |
+| `nogpu-x11`: vello-cpu on X11 through XWayland, a Linux Wayland session only, report-only | as `nogpu` | the weak plan | the weak plan |
 | `4cores`, `2cores`: iced's renderer limited to 4 and 2 cores, weak budgets | — | the weak plan | the weak plan |
 
 `--full` ends with every `also` measurement (`also.md`). The quick level
@@ -203,10 +203,10 @@ bytes) and `run-figure.log`; the level's `report.md` shows the medians.
 The `Plot` widget's software path as a user without a GPU gets it,
 measured where nothing else intervenes: the real widget, driven
 through the gestures with replayed input on iced's software renderer
-(tiny-skia), headless. No window, display or compositor is involved, so
+(vello-cpu), headless. No window, display or compositor is involved, so
 the profile runs on any machine, and what it measures is the widget's and
 iced's work alone. It is `bench_software` (the software plan, headless on
-tiny-skia), one cold process per run.
+vello-cpu), one cold process per run.
 
 - **Cells.** `hover`, `pan-x`, `zoom-lines` and `drag-resize` on `trace`,
   `scatter100k` and `grid16`, at factors 1 and 2, each at 1600 × 1000
@@ -219,11 +219,11 @@ tiny-skia), one cold process per run.
   `screenshot`).
 - **Each frame's cost, by part** (`parts.csv`, one row per composed
   frame): the widget's UI work (update and draw over the frame's passes,
-  inline renders and the software mosaic included), iced's composition
+  inline renders included), iced's composition
   into the pixmap (the screenshot), and, after a frame that still shows
   previews or missing tiles, the wait on the pool until the next frame.
   Before its first frame, each run reads back an empty frame of its size:
-  the screenshot's fixed cost (a frame-sized buffer and clip mask, the
+  the screenshot's fixed cost (a frame-sized buffer, the
   background, the conversion to RGBA), which a window's composition does
   not pay.
 - **Latency** in the replay's clock, from an input to the first frame
@@ -256,7 +256,7 @@ each frame back has them).
 - **A display that paces no frames** (a VM, Xvfb, a remote desktop): the
   level runs at 60 Hz (or `--refresh-hz`), and the report marks every
   frame budget as assuming that rate.
-- **No GPU adapter**: iced falls back to tiny-skia, so `native` is the
+- **No GPU adapter**: iced falls back to vello-cpu, so `native` is the
   software renderer, which the report says; `nogpu` would repeat it and
   is skipped. (An explicit `--backend wgpu` opens no window there; the
   levels use `--backend auto`, which leaves the choice to iced.)
@@ -352,12 +352,12 @@ frame's cost, not its interval.
 | `stamp` | the level's start, UTC, `YYYYmmddTHHMMSSZ` |
 | `complete` | false in the archive of an interrupted level |
 | `machine` | `os`, `release`, `kernel`, `arch`, `cpu`, `cores`, `ram_mb`, `gpu` (each "unknown" or 0 where no tool says), `session`, `desktop` (`XDG_SESSION_TYPE`, `XDG_CURRENT_DESKTOP`, or "unset"), `wayland`, `x11` (whether `WAYLAND_DISPLAY`, `DISPLAY` are set) |
-| `display` | `headless` (why, or null), `refresh_hz`, `refresh`, `native_factor`, `factor` (`refresh` and `factor`: `given`, `measured` or `assumed`), `backend` (the renderer iced chose: `wgpu` or `tiny-skia`, or null) |
+| `display` | `headless` (why, or null), `refresh_hz`, `refresh`, `native_factor`, `factor` (`refresh` and `factor`: `given`, `measured` or `assumed`), `backend` (the renderer iced chose: `wgpu` or `vello-cpu`, or null) |
 | `cpu_reference` | per timing `name` (`trace-tile`, `scatter-filled`, `scatter-splatted`, `composition`), `what`, `ms` (the median, or null when not measured), `repetitions` |
 | `profiles` | in order, those skipped and not run included; each below |
 
 A profile: `name` (a sweep's variants `<profile>@KEY=V`), `what` (a
-line), `plan`, `backend` (asked: `auto`, `tiny-skia`), `ran` (the
+line), `plan`, `backend` (asked: `auto`, `vello-cpu`), `ran` (the
 renderers its runs ran on), `budgets` (`desktop` or `weak`), `limit`
 (how its cores were limited, or null), `xwayland`, `headless`, `status`
 (`done`, `failed`, `skipped`, `pending`), `reason` (why skipped, or what
@@ -397,14 +397,14 @@ Beside the levels, each widget example has commands of its own (its
 
 - `bench_gestures [FLAGS]`: one plan into `--out DIR/<UTC stamp>/`
   (`bench-out` by default), every flag of a run (`--plan`, `--scenario`,
-  `--workload`, `--factor`, `--runs`, `--backend wgpu|tiny-skia|auto`,
+  `--workload`, `--factor`, `--runs`, `--backend wgpu|vello-cpu|auto`,
   `--budgets desktop|weak`, `--present-mode`, `--headless`, `--readback`,
   `--render`, `--caching`, `--threads`, `--replay`, `--data-scale`,
   `--cpu-limit`, `--xwayland`, `--no-also`). Windowed, `--refresh-hz` and
   `--native-factor` are required; the benchmark never guesses them.
   Headless they default to 60 and 2, and `--headless` without `--plan`
   runs `smoke`. The `software` plan is `bench_software`'s.
-- `bench_software [FLAGS]`: the software plan, headless on tiny-skia, with
+- `bench_software [FLAGS]`: the software plan, headless on vello-cpu, with
   the same flags but the plan, backend, display and X11 ones, and
   `--frames DIR [--every N]`.
 - `bench_gestures list`: the readings, scenarios, workloads, plans and a
@@ -448,7 +448,7 @@ benchkit without its `widget` feature (as `rustd3-figure`'s
   Report-only: `bench_gestures --plan focus` only.
 - `software`: `hover`, `pan-x`, `zoom-lines`, `drag-resize` on
   `trace`, `scatter100k` and `grid16` at factors 1 and 2, three runs each;
-  run headless on tiny-skia with `--native-factor 2`, so both factors keep
+  run headless on vello-cpu with `--native-factor 2`, so both factors keep
   1600 × 1000 logical px. Report-only, the weak budgets, the frame budget
   read as each frame's cost.
 - `smoke`: every scenario × workload once at factor 2, durations ÷ 5,
@@ -505,7 +505,7 @@ suffices.
 
 **Weak profile.** The `weak` plan (`hover`, `pan-x` and
 `zoom-lines` on `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the
-native factor, five runs each) runs without a GPU (`--backend tiny-skia`)
+native factor, five runs each) runs without a GPU (`--backend vello-cpu`)
 and on wgpu pinned to 4 and to 2 cores, each its own report. Budgets: p99
 frame interval ≤ 2 T; pan latency p95 ≤ 150 ms; zoom latency p95 ≤ 250
 ms; preview share ≤ 25% during pans. Each is met, missed or inconclusive
@@ -555,7 +555,7 @@ per second and the session's display variables. It is an advanced command
 for a question to iced upstream (why iced's software renderer presents
 few frames on Wayland); the software profile measures the widget's
 software path offscreen. Run it on each renderer, on Wayland and on X11
-through XWayland: `ICED_BACKEND=tiny-skia cargo run --release --example
+through XWayland: `ICED_BACKEND=vello-cpu cargo run --release --example
 bench_gestures -- repro-software [--out FILE]` (and `ICED_BACKEND=wgpu` as
 the control), with `env -u WAYLAND_DISPLAY` for X11.
 
@@ -564,7 +564,7 @@ the control), with `env -u WAYLAND_DISPLAY` for X11.
 Automated checks run the windowed benchmark only under Xvfb, and
 `--headless` otherwise. Headless frame intervals are not display
 intervals: every headless number is report-only. `bench_gestures
---headless --backend tiny-skia` runs the smoke plan and fails only on
+--headless --backend vello-cpu` runs the smoke plan and fails only on
 errors.
 
 ### Also measured
@@ -590,5 +590,5 @@ same):
 - the `scatter100k` plot area, markers filled and splatted;
 - a 1400 × 800 area of opaque images composed by iced's software
   renderer as tiles clipped to the area and each to itself, as one image,
-  and as as many tiny images, against no image: tiny-skia's cost per
+  and as as many tiny images, against no image: vello-cpu's cost per
   image and per pixel at factors 1 and 2.

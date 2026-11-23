@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use crate::record::Record;
 
 /// The iced revision the workspace pins.
-pub const ICED_REV: &str = "3cbdacc3b0841c5145c766c3a758657d36b41ffe";
+pub const ICED_REV: &str = "98bd48fe011efc0ec5819fee0fa7673a7169ff11";
 
 /// How long each diagnostic command may take.
 const LIMIT: Duration = Duration::from_secs(5);
@@ -77,7 +77,7 @@ pub struct Meta {
     pub desktop: String,
     /// The present mode asked for, or iced's default.
     pub present_mode: String,
-    /// `wgpu` or `tiny-skia`.
+    /// `wgpu` or `vello-cpu`.
     pub backend: String,
     /// Whether the run was headless rather than windowed.
     pub headless: bool,

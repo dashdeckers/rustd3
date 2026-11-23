@@ -43,8 +43,8 @@ pub struct Frame {
 pub struct Part {
     /// The `RedrawRequested` instant, ms since process start.
     pub at_ms: f64,
-    /// Update and draw over every pass of the instant, inline renders and
-    /// the software mosaic included.
+    /// Update and draw over every pass of the instant, inline renders
+    /// included.
     pub ui_ms: f64,
     /// The screenshot: iced composing the frame and reading it back.
     pub compose_ms: f64,

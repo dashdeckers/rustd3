@@ -8,9 +8,8 @@ use iced_core::renderer::Quad;
 use iced_core::{Color, Rectangle};
 use rustd3_figure::kurbo::Rect;
 
-use crate::plot::mosaic::{Mosaic, Source};
+use crate::plot::BAND_BYTES;
 use crate::plot::preview::{Affine1, Basis};
-use crate::plot::{BAND_BYTES, NUDGE};
 
 /// One cell of the partition: its device rect and current content hash,
 /// what it shows and the render it waits for.
@@ -45,38 +44,12 @@ pub(crate) struct Band {
     /// Device rows relative to the cell.
     rows: Range<i32>,
     handle: image::Handle,
-    /// Whether every pixel is opaque, so a mosaic copies its rows.
-    opaque: bool,
 }
 
 impl Band {
     /// Rows `rows` of a cell, shown by `handle`.
     pub(crate) fn new(rows: Range<i32>, handle: image::Handle) -> Band {
-        let opaque = rgba(&handle)
-            .is_some_and(|pixels| pixels.as_chunks::<4>().0.iter().all(|p| p[3] == 255));
-        Band {
-            rows,
-            handle,
-            opaque,
-        }
-    }
-
-    /// The band as a mosaic's source: its pixels, size and opacity.
-    fn source(&self) -> Option<Source<'_>> {
-        match &self.handle {
-            image::Handle::Rgba {
-                width,
-                height,
-                pixels,
-                ..
-            } => Some(Source {
-                rgba: pixels,
-                width: *width,
-                height: *height,
-                opaque: self.opaque,
-            }),
-            image::Handle::Path(..) | image::Handle::Bytes(..) => None,
-        }
+        Band { rows, handle }
     }
 }
 
@@ -381,48 +354,6 @@ impl Slot {
         }
     }
 
-    /// Lays the image, if there is one, into `mosaic` as
-    /// [`draw_at`](Slot::draw_at) draws it: on its device pixels moved by
-    /// `shift`, clipped to `clip`.
-    pub(crate) fn lay_at(&self, mosaic: &mut Mosaic, shift: [i32; 2], clip: [i32; 4]) {
-        let Some(shown) = &self.shown else {
-            return;
-        };
-        let [x0, y0, x1, _] = self.rect;
-        for band in &shown.bands {
-            let Some(source) = band.source() else {
-                continue;
-            };
-            let at = [
-                x0 + shift[0],
-                y0 + band.rows.start + shift[1],
-                x1 + shift[0],
-                y0 + band.rows.end + shift[1],
-            ];
-            mosaic.lay(source, at.map(f64::from), clip);
-        }
-    }
-
-    /// Lays the image, if there is one, into `mosaic` as
-    /// [`draw_mapped`](Slot::draw_mapped) draws it: each band at its
-    /// device rect mapped by `maps`, clipped to `clip`, sampled nearest.
-    pub(crate) fn lay_mapped(&self, mosaic: &mut Mosaic, maps: [Affine1; 2], clip: [i32; 4]) {
-        let Some(shown) = &self.shown else {
-            return;
-        };
-        let [x0, y0, x1, _] = self.rect;
-        let [mx, my] = maps;
-        for band in &shown.bands {
-            let Some(source) = band.source() else {
-                continue;
-            };
-            let (left, right) = (mx.apply(f64::from(x0)), mx.apply(f64::from(x1)));
-            let top = my.apply(f64::from(y0 + band.rows.start));
-            let bottom = my.apply(f64::from(y0 + band.rows.end));
-            mosaic.lay(source, [left, top, right, bottom], clip);
-        }
-    }
-
     /// Each band's rows and image: width, height and straight RGBA.
     #[cfg(test)]
     pub(crate) fn images(&self) -> Vec<(Range<i32>, u32, u32, iced_core::Bytes)> {
@@ -448,14 +379,13 @@ impl Slot {
         self.shown.as_ref().map(|shown| shown.generation)
     }
 
-    /// Logical bounds that land exactly on a band's device pixels: its
-    /// device position nudged toward zero's side ([`nudged`]), and its
-    /// device size, over the factor.
+    /// Logical bounds that land exactly on a band's device pixels
+    /// ([`logical`]).
     pub(crate) fn bounds(&self, rows: &Range<i32>, origin: [i32; 2], factor: f32) -> Rectangle {
         let [x0, y0, x1, _] = self.rect;
         Rectangle {
-            x: nudged(origin[0] + x0) / factor,
-            y: nudged(origin[1] + y0 + rows.start) / factor,
+            x: (origin[0] + x0) as f32 / factor,
+            y: (origin[1] + y0 + rows.start) as f32 / factor,
             width: (x1 - x0) as f32 / factor,
             height: rows.len() as f32 / factor,
         }
@@ -472,27 +402,20 @@ fn rgba(handle: &image::Handle) -> Option<&[u8]> {
 }
 
 /// Logical bounds that land exactly on device rect `[x0, y0, x1, y1]` of a
-/// widget whose device origin is `origin`: its device position nudged
-/// ([`nudged`]), and its device size, over the factor.
+/// widget whose device origin is `origin`: its device position and size
+/// over the factor.
+///
+/// The software renderer draws an image at the fraction of a device pixel
+/// its bounds have and antialiases its edges and its clip
+/// (`vello_cpu/src/raster.rs:46-79`, `vello_cpu/src/lib.rs:191-194`), so a
+/// position biased off the pixel shows a blended edge. wgpu adds 0.001 and
+/// rounds, which absorbs the f32 round-off of dividing by the factor.
 pub(crate) fn logical([x0, y0, x1, y1]: [i32; 4], origin: [i32; 2], factor: f32) -> Rectangle {
     Rectangle {
-        x: nudged(origin[0] + x0) / factor,
-        y: nudged(origin[1] + y0) / factor,
+        x: (origin[0] + x0) as f32 / factor,
+        y: (origin[1] + y0) as f32 / factor,
         width: (x1 - x0) as f32 / factor,
         height: (y1 - y0) as f32 / factor,
-    }
-}
-
-/// Device position `p` nudged by `NUDGE` away from its pixel's edge, on the
-/// side that lands on `p`. tiny-skia truncates toward zero (`as i32`,
-/// `tiny_skia/src/raster.rs:63-64`), and wgpu adds 0.001 and rounds. So a
-/// nudge above lands on `p` for `p ≥ 0`, and a nudge below lands on it for
-/// a tile of the overscan ring left of or above the window's origin.
-pub(crate) fn nudged(p: i32) -> f32 {
-    if p < 0 {
-        p as f32 - NUDGE
-    } else {
-        p as f32 + NUDGE
     }
 }
 
@@ -533,8 +456,8 @@ mod tests {
     use rustd3_figure::kurbo::Rect;
 
     use super::{Band, Slot, bands};
+    use crate::plot::BAND_BYTES;
     use crate::plot::preview::{Affine1, Basis, View};
-    use crate::plot::{BAND_BYTES, NUDGE};
 
     /// A slot of `rect` showing nothing, its content hashed 0.
     fn slot(rect: [i32; 4]) -> Slot {
@@ -584,9 +507,9 @@ mod tests {
     }
 
     #[test]
-    fn a_cell_at_device_x_125_at_factor_1_25_is_drawn_at_logical_x_100_05() {
+    fn a_cell_at_device_x_125_at_factor_1_25_is_drawn_at_logical_x_100() {
         let bounds = slot([125, 0, 250, 50]).bounds(&(0..50), [0, 0], 1.25);
-        assert_eq!(bounds.x, 100.05);
+        assert_eq!(bounds.x, 100.0);
         assert_eq!(bounds.width, 100.0);
     }
 
@@ -596,22 +519,23 @@ mod tests {
         let origin = (10.3_f32 * k).round() as i32;
         assert_eq!(origin, 15);
         let bounds = slot([0, 0, 30, 30]).bounds(&(0..30), [origin, 0], k);
-        assert_eq!(bounds.x, (15.0 + NUDGE) / 1.5);
-        assert!((bounds.x - 10.0417).abs() < 1e-4);
-        // Back in device px, tiny-skia truncates, and wgpu adds 0.001 and
-        // rounds. Both land on 15, where a half-pixel bias rounds to 16.
-        assert_eq!((bounds.x * k) as i32, 15);
+        assert_eq!(bounds.x, 10.0);
+        // Back in device px, wgpu adds 0.001 and rounds, and the software
+        // renderer draws at the product itself.
+        assert_eq!(bounds.x * k, 15.0);
         assert_eq!((bounds.x * k + 0.001).round(), 15.0);
-        assert_eq!(((15.0 + 0.5) / k * k + 0.001_f32).round(), 16.0);
     }
 
     #[test]
-    fn negative_positions_nudge_toward_zero() {
-        // tiny-skia truncates toward zero, wgpu adds 0.001 and rounds.
-        for p in [-140, -1, 0, 1, 140] {
-            let at = super::nudged(p);
-            assert_eq!(at as i32, p, "tiny-skia");
-            assert_eq!((at + 0.001).round() as i32, p, "wgpu");
+    fn device_positions_come_back_within_a_thousandth_of_a_pixel() {
+        // The f32 round-off of dividing by the factor, which wgpu's 0.001
+        // absorbs and the software renderer shows as under 1/255 of an
+        // edge pixel's coverage.
+        for k in [1.0_f32, 1.25, 1.5, 1.75, 2.0, 3.0] {
+            for p in [-4000, -140, -1, 0, 1, 140, 4000] {
+                let back = slot([p, 0, p + 8, 8]).bounds(&(0..8), [0, 0], k).x * k;
+                assert!((back - p as f32).abs() < 1e-3, "{p} at {k}: {back}");
+            }
         }
     }
 
@@ -621,8 +545,8 @@ mod tests {
         assert_eq!(
             at,
             Rectangle {
-                x: (43.0 + NUDGE) / 2.0,
-                y: (579.0 + NUDGE) / 2.0,
+                x: 21.5,
+                y: 289.5,
                 width: 480.0,
                 height: 47.5,
             }

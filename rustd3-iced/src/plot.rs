@@ -126,12 +126,6 @@
 //! stay drawn under the new merged gutter cells until those render, so no
 //! frame shows the background where content was.
 //!
-//! On iced's software renderer (one that reports no scale), a plot area
-//! that shows a preview layer is composed into one image on the CPU first
-//! and drawn at once. Its scaled, overlapping tiles would each cost
-//! tiny-skia a frame-sized clip mask and a filtered pass, and every new
-//! tile a conversion. The previews are then sampled nearest.
-//!
 //! Results wake the runtime through its waker and land on `Event::Waken`,
 //! newest generation first, so an older result never replaces a newer
 //! image. Zoom steps coalesce. Each step's renders replace those still
@@ -274,7 +268,6 @@ mod job;
 mod layer;
 mod listener;
 mod merge;
-mod mosaic;
 mod overlay;
 mod preview;
 pub mod probe;
@@ -305,17 +298,3 @@ use crate::Plot;
 /// under 2 MiB inside the frame (`wgpu/src/image/cache.rs:223-246`)
 /// and larger ones through a worker drained only by `Renderer::tick`.
 pub(crate) const BAND_BYTES: usize = 2 * 1024 * 1024;
-
-/// Device px added to an image's origin before dividing by the factor.
-///
-/// tiny-skia truncates an image's position in image pixels, and wgpu adds
-/// 0.001 and rounds its device position. With no nudge, tiny-skia
-/// truncates a hair early from f32 round-off, which is under a hundredth of
-/// a pixel up to 40,000 px. With half a pixel, wgpu rounds a pixel late. A
-/// sixteenth lands on the intended pixel on both. It also stays under half
-/// a device pixel when the renderer draws at up to seven times the factor
-/// the widget assumes (a capture at 2 of a widget told 1), so both
-/// renderers then place each image and its clip on the same device pixels.
-/// A quarter, doubled to half a pixel, moved wgpu's images and tiny-skia's
-/// clips a pixel later and left a one-pixel seam where cells meet.
-pub(crate) const NUDGE: f32 = 0.0625;

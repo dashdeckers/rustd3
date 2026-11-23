@@ -417,12 +417,10 @@ fn a_drags_entering_tiles_render_inline_and_a_wheel_steps_on_the_pool() {
 fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
     // While a gesture lasts, the widget's images go in one layer whose
     // bounds differ from one draw to the next. iced's software renderer
-    // damages such a layer whole, so it redraws one rect a frame and draws
-    // each image once. When idle, the layer keeps the widget's bounds. Of
-    // the previews only those that meet the plot area are drawn. A step's
-    // 16 old tiles (the ring included), which the pool has not replaced
-    // yet, draw as 4 on the GPU renderer. The software renderer composes
-    // them into one image first.
+    // damages such a layer whole, so a frame damages one rect. When idle,
+    // the layer keeps the widget's bounds. Of the previews only those that
+    // meet the plot area are drawn. A step's 16 old tiles (the ring
+    // included), which the pool has not replaced yet, draw as 4.
     let mut state = state();
     let t0 = epoch();
     let fig = bare();
@@ -468,81 +466,6 @@ fn a_gesture_draws_in_one_layer_that_changes_and_no_preview_outside_the_area() {
     );
     assert!(a.layers().contains(&bounds) || b.layers().contains(&bounds));
     assert_eq!(a.images().1, 4, "the previews that meet the area");
-}
-
-#[test]
-fn on_the_software_renderer_an_area_with_previews_draws_one_image() {
-    // A renderer that reports no scale (iced's software one) draws a plot
-    // area that shows a preview layer as one image composed on the CPU, at
-    // the area's rect and sampled nearest. The GPU renderer draws its
-    // previews and tiles one by one. Once every tile is sharp the preview
-    // layer goes, and so does the mosaic.
-    let mut state = state();
-    let t0 = epoch();
-    let fig = bare();
-    rendered(&mut state, &fig, t0);
-    let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));
-    let theme = rustd3_figure::Theme::default();
-    let [x0, y0, x1, y1] = state.areas[0].rect().map(|v| v as f32);
-    // An image that reaches into the area by more than half a px.
-    let inside = |r: &Rectangle| {
-        r.x < x1 - 0.5 && r.x + r.width > x0 + 0.5 && r.y < y1 - 0.5 && r.y + r.height > y0 + 0.5
-    };
-    // The images drawn in the area, and how many of them are linear.
-    let drawn = |state: &State, mut recorder: Recorder| {
-        state.draw(&mut recorder, bounds, &theme);
-        let images: Vec<(Rectangle, bool)> = recorder
-            .drawn_images()
-            .into_iter()
-            .filter(|(r, _)| inside(r))
-            .collect();
-        let linear = images.iter().filter(|(_, linear)| *linear).count();
-        (images, linear)
-    };
-    let idle = drawn(&state, Recorder::default()).0.len();
-    assert_eq!(idle, 4, "idle, the 4 tiles that show");
-    let (waker, wakes) = counting();
-    let pipeline = piped(Render::Worker, None, &waker);
-    let area = state.map.area(0).expect("one panel");
-    assert!(state.queue(wheel(area.center())).capture);
-    let step = t0 + Duration::from_millis(16);
-    state.redraw::<()>(&fig, 1.0, step, &pipeline, (&[], &[]));
-    assert!(state.areas[0].has_preview());
-    let (software, linear) = drawn(&state, Recorder::default());
-    let whole = Rectangle {
-        x: x0,
-        y: y0,
-        width: x1 - x0,
-        height: y1 - y0,
-    };
-    assert_eq!(software.len(), 1, "one image: {software:?}");
-    assert_eq!(linear, 0);
-    let one = software[0].0;
-    assert!(
-        (one.x - whole.x).abs() < 0.1 && (one.width - whole.width).abs() < 0.01,
-        "{one:?} at the area {whole:?}"
-    );
-    let (gpu, linear) = drawn(&state, Recorder::gpu());
-    assert!(
-        gpu.len() > 1 && linear >= 4,
-        "{} images, {linear} previews",
-        gpu.len()
-    );
-    // The step's tiles land sharp, with no preview, and each tile draws as
-    // its own image again.
-    let mut seen = 0;
-    while !state.waiting().is_empty() || state.areas[0].has_preview() {
-        let woke = (0..10_000).any(|_| {
-            wakes.load(Ordering::SeqCst) > seen || {
-                std::thread::sleep(std::time::Duration::from_millis(1));
-                false
-            }
-        });
-        assert!(woke, "no wake within ten seconds");
-        seen = wakes.load(Ordering::SeqCst);
-        state.drain(None);
-    }
-    assert_eq!(drawn(&state, Recorder::default()).0.len(), 4, "sharp");
 }
 
 #[test]
@@ -861,8 +784,9 @@ fn layout_holds_during_a_wheel_gesture() {
 fn the_first_draw_of_a_gesture_damages_the_widget_whole() {
     // iced's software renderer redraws a layer whole only when its bounds
     // differ from the last frame's. Otherwise it damages each moved image
-    // separately and redraws every image once per damaged rect, which took
-    // a tiny-skia zoom burst's first frame 10–11 s at factor 2 under Xvfb.
+    // separately. On the tiny-skia renderer before it, which redrew every
+    // image once per damaged rect, that took a zoom burst's first frame
+    // 10–11 s at factor 2 under Xvfb.
     // However many idle draws came before, the first draw of a gesture is
     // in a layer whose bounds differ from the last idle draw's.
     let bounds = Rectangle::new(iced_core::Point::ORIGIN, Size::new(480.0, 320.0));

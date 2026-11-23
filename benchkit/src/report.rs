@@ -55,11 +55,11 @@ const QUICK_OUTCOME: &str = "report-only, the quick level: ";
 
 /// What the software plan is, said before its budget table.
 const SOFTWARE: &str = "the software profile drives the real `Plot` widget through the \
-                        gestures with replayed input on iced's software renderer (tiny-skia), \
+                        gestures with replayed input on iced's software renderer (vello-cpu), \
                         headless: no window, display or compositor. Every frame is composed into \
                         an offscreen pixmap and read back, paced at 60 Hz in the replay's clock, \
                         and its cost is timed by part: the widget's UI work (update and draw, \
-                        inline renders and the software mosaic included), iced's composition (the \
+                        inline renders included), iced's composition (the \
                         screenshot, whose fixed cost an empty frame shows), and after a frame \
                         that still shows previews the wait on the pool until the next. The frame \
                         budget reads the cost: a frame must be produced within 2 T. The cells \
@@ -705,8 +705,9 @@ fn markdown(
     }
     let profile = budgets_of(meta);
     if profile == Profile::Weak && kind != Kind::Software {
-        let gpu = if backend.starts_with("tiny-skia") {
-            "no GPU (tiny-skia)".to_owned()
+        // An archive from before iced's vello-cpu renderer names tiny-skia.
+        let gpu = if backend.starts_with("vello-cpu") || backend.starts_with("tiny-skia") {
+            "no GPU (vello-cpu)".to_owned()
         } else {
             format!("{backend}, {}", meta.gpu)
         };
@@ -863,9 +864,9 @@ fn parts(md: &mut String, cells: &[Cell<'_>]) {
         md,
         "## Frame cost by part\n\nEach composed frame from the first input to 300 ms after the \
          last, medians across runs, ms. Cost = UI + composition: the widget's update and draw \
-         over the frame's passes (inline renders and the software mosaic included), and iced \
+         over the frame's passes (inline renders included), and iced \
          composing the frame into the pixmap and reading it back; readback = the same for an \
-         empty frame of the run's size (the buffer, the clip mask, the background and the \
+         empty frame of the run's size (the buffer, the background and the \
          conversion to RGBA, which a window does not pay). Means per frame: UI, composition and \
          the wait on the pool (after a frame that still shows previews or missing tiles, to the \
          next frame). Latency p95 and the mean split of the sharp latencies: the UI work and \

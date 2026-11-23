@@ -49,7 +49,7 @@ pub trait App {
     fn view(&self) -> Plot<'static, Message>;
 }
 
-/// Runs one frame as iced's runtime does (`winit/src/lib.rs:788-830`). It
+/// Runs one frame as iced's runtime does (`winit/src/lib.rs:784-826`). It
 /// sends `RedrawRequested(now)`. While the widget publishes messages, `app`
 /// applies them, the interface is rebuilt from its view and
 /// `RedrawRequested(now)` is sent again, at most three times in all.
@@ -1195,7 +1195,7 @@ fn zoomed_pixels_match_a_figure_built_with_the_published_domain() {
     }
 }
 
-/// The pixel bound of `backend` against the PNG: 1/255 on tiny-skia,
+/// The pixel bound of `backend` against the PNG: 1/255 on vello_cpu,
 /// 2/255 on wgpu.
 pub fn bound(backend: &str) -> u8 {
     if backend == "wgpu" { 2 } else { 1 }

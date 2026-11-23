@@ -19,7 +19,7 @@ The first release.
 - `rustd3-derive`: `#[derive(Interpolate)]`, behind the core's `derive`
   feature.
 - `rustd3-iced`, from git, not on crates.io: it depends on iced at
-  revision 3cbdacc, and crates.io does not accept git dependencies. It is
+  revision 98bd48f, and crates.io does not accept git dependencies. It is
   published, and the facade gains an `iced` feature, once iced 0.15 is on
   crates.io.
 

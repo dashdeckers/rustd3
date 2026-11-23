@@ -144,7 +144,7 @@ the same revision in your app:
 [dependencies]
 rustd3 = { git = "https://github.com/dashdeckers/rustd3", features = ["figure"] }
 rustd3-iced = { git = "https://github.com/dashdeckers/rustd3", features = ["figure"] }
-iced = { git = "https://github.com/iced-rs/iced", rev = "3cbdacc3b0841c5145c766c3a758657d36b41ffe" }
+iced = { git = "https://github.com/iced-rs/iced", rev = "98bd48fe011efc0ec5819fee0fa7673a7169ff11" }
 ```
 
 The app builds the figure in `view` and owns the x window here; y stays
@@ -158,6 +158,17 @@ use rustd3::figure::{Figure, axis};
 use rustd3_iced::Plot;
 
 fn main() -> iced::Result {
+    // DirectX on Windows, where Intel's Vulkan driver shows frames it has
+    // not finished drawing. Without a GPU, iced still falls back to its
+    // software renderer.
+    #[cfg(windows)]
+    if std::env::var_os("WGPU_BACKEND").is_none() {
+        // SAFETY: no other thread runs yet to read the environment.
+        #[allow(unsafe_code, reason = "wgpu takes its API from the environment alone")]
+        unsafe {
+            std::env::set_var("WGPU_BACKEND", "dx12");
+        }
+    }
     iced::run(App::update, App::view)
 }
 

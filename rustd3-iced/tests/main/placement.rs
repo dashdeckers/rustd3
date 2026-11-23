@@ -1,8 +1,8 @@
 //! Image placement on both backends at factors 1, 1.25, 1.5 and 2, which
-//! pins the two constants the `Plot` widget is built on: `NUDGE`, the bias
-//! that lands an image on exact device pixels, and `BAND_BYTES`, the
-//! smallest image wgpu does not upload inside the frame that first draws
-//! it.
+//! pins what the `Plot` widget is built on: an image whose bounds are its
+//! device rect over the factor lands on exact device pixels, and
+//! `BAND_BYTES` is the smallest image wgpu does not upload inside the frame
+//! that first draws it.
 
 use std::time::Duration;
 
@@ -18,8 +18,6 @@ use crate::headless::{self, Harness, Shot};
 /// The size in bytes below which wgpu uploads an RGBA image inside the
 /// frame that first draws it.
 pub const BAND_BYTES: usize = 2 * 1024 * 1024;
-/// Device px added to an image's origin before dividing by the factor.
-pub const NUDGE: f32 = 0.0625;
 
 /// The factors every placement is checked at.
 const FACTORS: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
@@ -40,8 +38,8 @@ struct Placed {
     handle: image::Handle,
 }
 
-/// Draws its images with nearest filtering at bounds `(device + NUDGE) / k`
-/// and `size / k`, each clipped to its own rect, as the `Plot` widget
+/// Draws its images with nearest filtering at bounds `device / k` and
+/// `size / k`, each clipped to its own rect, as the `Plot` widget
 /// places its cells.
 struct Images {
     scale: f32,
@@ -95,8 +93,8 @@ impl Widget<(), Theme, iced::Renderer> for Images {
         let (left, top) = ((origin.x * k).round(), (origin.y * k).round());
         for placed in &self.placed {
             let bounds = Rectangle {
-                x: (left + placed.x as f32 + NUDGE) / k,
-                y: (top + placed.y as f32 + NUDGE) / k,
+                x: (left + placed.x as f32) / k,
+                y: (top + placed.y as f32) / k,
                 width: placed.width as f32 / k,
                 height: placed.height as f32 / k,
             };
@@ -162,7 +160,7 @@ fn channel_diff(pixel: [u8; 4], color: [u8; 4]) -> u8 {
         .unwrap_or(0)
 }
 
-/// The pixel bound of `backend`: 1/255 on tiny-skia, 2/255 on wgpu.
+/// The pixel bound of `backend`: 1/255 on vello_cpu, 2/255 on wgpu.
 fn bound(backend: &str) -> u8 {
     if backend == "wgpu" { 2 } else { 1 }
 }
@@ -230,11 +228,6 @@ fn images_land_on_device_pixels_at_every_factor() {
 }
 
 #[test]
-fn image_bounds_for_device_125_at_125_percent_are_100_05() {
-    assert_eq!((125.0 + NUDGE) / 1.25, 100.05);
-}
-
-#[test]
 fn a_sub_2mib_image_shows_in_its_first_frame() {
     let placed = Placed::new(0, 0, 724, 724, solid(724, 724, [30, 160, 90, 255]));
     assert_eq!(placed.bytes(), 2_096_704);
@@ -276,7 +269,7 @@ fn a_larger_image_needs_a_tick() {
         let limit = bound(&backend);
         let t = headless::epoch();
         let first = harness.frame(t);
-        if backend == "tiny-skia" {
+        if backend == "vello_cpu" {
             assert!(shown_diff(&first, &placed) <= limit);
             continue;
         }
@@ -301,9 +294,8 @@ fn a_larger_image_needs_a_tick() {
 fn every_device_offset_lands_exactly_at_every_factor() {
     // 4 × 4 images of distinct texels at device offsets 1, 8, …, 771 on
     // both axes, which covers every residue the factors repeat with at
-    // magnitudes up to the window's. Biases of 0 (tiny-skia, a pixel early
-    // at some offsets at 1.25 and 1.5) and 0.5 (wgpu, a pixel late at all)
-    // fail here.
+    // magnitudes up to the window's. Biases of 1/16 (vello_cpu, a blended
+    // edge at all) and 0.5 (wgpu, a pixel late at all) fail here.
     let texels: Vec<u8> = (0..4u8)
         .flat_map(|j| (0..4u8).flat_map(move |i| [50 + 60 * i, 50 + 60 * j, 0, 255]))
         .collect();

@@ -310,7 +310,7 @@ impl State {
     /// for `listeners` and the brush listeners `brushes`. When applying the
     /// input published a message, the list is not built in this pass. The
     /// runtime runs the app's `update`, rebuilds the view and sends
-    /// `RedrawRequested` again (`winit/src/lib.rs:788-830`).
+    /// `RedrawRequested` again (`winit/src/lib.rs:784-826`).
     pub(crate) fn redraw<Message>(
         &mut self,
         figure: &Figure<'_>,
@@ -1874,9 +1874,8 @@ impl State {
     /// While a gesture lasts, and while previews or an earlier layout's
     /// gutter images show, the images are drawn in one layer over the
     /// widget. That layer's bounds alternate between frames by half a
-    /// logical px, so that iced's software renderer redraws the widget once
-    /// a frame. On that renderer an area that shows a preview layer is
-    /// drawn as one image composed on the CPU ([`Area::draw_mosaic`]).
+    /// logical px, so that iced's software renderer damages the widget as
+    /// one rect.
     pub(crate) fn draw<Renderer>(&self, renderer: &mut Renderer, bounds: Rectangle, theme: &Theme)
     where
         Renderer: image::Renderer<Handle = image::Handle>,
@@ -1886,20 +1885,17 @@ impl State {
         };
         let origin = origin(bounds, factor);
         let background = overlay::color(theme.get_background());
-        // iced's software renderer redraws each damaged rect of a frame
-        // separately, and draws every image that meets a rect once per
-        // rect. Each draw clears a frame-sized clip mask
-        // (`tiny_skia/src/lib.rs:72-160`, `engine.rs:533`). It finds a
-        // moved image's damage image by image (`layer.rs:289-294`), so a
+        // iced's software renderer draws a frame clipped to its damaged
+        // rects (`vello_cpu/src/lib.rs:852-898`). It finds a moved image's
+        // damage image by image (`vello_cpu/src/layer.rs:300-305`), so a
         // frame of a pan or zoom, where every image moves, damages many
         // small rects. A layer whose bounds changed is damaged as a whole
-        // (`layer.rs:206-209`). So while a gesture lasts, and while images
+        // (`layer.rs:211-214`). So while a gesture lasts, and while images
         // of an earlier grid or layout show, the images go in one layer
-        // whose bounds alternate by half a px. The frame then damages one
-        // rect and draws each image once. Images of an earlier grid or
-        // layout count as moving because they are mapped to the current
-        // views and move with them, and at a settle all of them move at
-        // once.
+        // whose bounds alternate by half a px, and the frame damages one
+        // rect. Images of an earlier grid or layout count as moving because
+        // they are mapped to the current views and move with them, and at a
+        // settle all of them move at once.
         let moving =
             self.is_active() || !self.former.is_empty() || self.areas.iter().any(Area::has_preview);
         // Grown when the last draw was not, so that the first draw of a
@@ -1907,12 +1903,6 @@ impl State {
         let grown = moving && !self.grown.get();
         self.grown.set(grown);
         let layer = if grown { bounds.expand(0.5) } else { bounds };
-        // A renderer that reports no scale is iced's software one
-        // (`scale_factor`). While an area shows a preview layer, its scaled
-        // and overlapping tiles are composed on the CPU and drawn as one
-        // image (`Mosaic`), since each image would cost tiny-skia a
-        // frame-sized clip mask and a filtered pass.
-        let software = renderer.scale().is_none();
         renderer.with_layer(layer, |renderer| {
             for run in &self.gutters {
                 run.slot().fill(renderer, origin, factor, background);
@@ -1924,12 +1914,7 @@ impl State {
                 run.slot().draw(renderer, origin, factor);
             }
             for (p, area) in self.areas.iter().enumerate() {
-                let at = (origin, factor);
-                if software && area.has_preview() {
-                    area.draw_mosaic(renderer, at, self.peek(p), background);
-                } else {
-                    area.draw(renderer, at, self.peek(p), background);
-                }
+                area.draw(renderer, (origin, factor), self.peek(p), background);
             }
         });
         for brush in &self.brushes {

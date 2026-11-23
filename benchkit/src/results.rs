@@ -763,7 +763,7 @@ pub mod tests {
             rustd3: Version {
                 version: "0.1.0".to_owned(),
                 commit: "c9b2c9d0123456789".to_owned(),
-                iced: "3cbdacc3b0841c5145c766c3a758657d36b41ffe".to_owned(),
+                iced: "98bd48fe011efc0ec5819fee0fa7673a7169ff11".to_owned(),
             },
             level: "quick".to_owned(),
             stamp: "20261029T120000Z".to_owned(),

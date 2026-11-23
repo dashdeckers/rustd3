@@ -20,6 +20,17 @@ use crate::app::{App, Message};
     reason = "the app reads the clock and passes the instants to the library"
 )]
 fn main() -> iced::Result {
+    // DirectX on Windows, where Intel's Vulkan driver shows frames it has
+    // not finished drawing. Without a GPU, iced still falls back to its
+    // software renderer.
+    #[cfg(windows)]
+    if std::env::var_os("WGPU_BACKEND").is_none() {
+        // SAFETY: no other thread runs yet to read the environment.
+        #[allow(unsafe_code, reason = "wgpu takes its API from the environment alone")]
+        unsafe {
+            std::env::set_var("WGPU_BACKEND", "dx12");
+        }
+    }
     iced::application(|| App::new(Instant::now()), App::update, App::view)
         .subscription(|app: &App| {
             let data = every(Duration::from_millis(1500)).map(Message::NewData);

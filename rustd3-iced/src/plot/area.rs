@@ -48,7 +48,6 @@ use rustd3_figure::kurbo::Rect;
 use rustd3_figure::scale::Scale;
 
 use crate::plot::domains;
-use crate::plot::mosaic::Mosaic;
 use crate::plot::preview::{Affine1, Basis};
 use crate::plot::region::Along;
 use crate::plot::slot::{self, Band, Slot};
@@ -613,8 +612,7 @@ impl Area {
         let [x0, y0, x1, y1] = self.rect.map(f64::from);
         for preview in &self.preview {
             // The ring's previews lie outside the area until a zoom out
-            // brings them in. Each image drawn costs the software renderer
-            // a frame-sized clip mask.
+            // brings them in.
             let [a0, b0, a1, b1] = self.mapped(preview, f64::from(factor), now);
             if a1 <= x0 || x1 <= a0 || b1 <= y0 || y1 <= b0 {
                 continue;
@@ -633,53 +631,6 @@ impl Area {
         for slot in &self.overlays {
             slot.draw_at(renderer, (origin, factor), [0, 0], slot.rect());
         }
-    }
-
-    /// Draws what [`draw`](Area::draw) draws, composed into one image on
-    /// the CPU and drawn by the renderer at once ([`Mosaic`]). The software
-    /// renderer draws this way while the area shows a preview layer, since
-    /// every scaled tile would otherwise cost it a frame-sized clip mask
-    /// and a filtered pass. The previews are sampled nearest, and those the
-    /// exact tiles hide are left out.
-    pub(crate) fn draw_mosaic<Renderer>(
-        &self,
-        renderer: &mut Renderer,
-        (origin, factor): ([i32; 2], f32),
-        now: [Option<Basis>; 2],
-        background: Color,
-    ) where
-        Renderer: image::Renderer<Handle = image::Handle>,
-    {
-        let at = self.grid.origin();
-        let visible = || self.tiles.iter().filter(|tile| self.shows(tile));
-        let open = visible().any(|tile| !tile.covers_in(at, self.rect));
-        let mut mosaic = Mosaic::new(self.rect, open.then_some(background));
-        let [x0, y0, x1, y1] = self.rect.map(f64::from);
-        // What the exact tiles show, which hides the previews under it.
-        let exact: Vec<[f64; 4]> = visible()
-            .filter(|tile| self.is_exact(tile))
-            .map(|tile| tile::intersect(tile.rect(), self.rect).map(f64::from))
-            .collect();
-        for preview in &self.preview {
-            let [a0, b0, a1, b1] = self.mapped(preview, f64::from(factor), now);
-            if a1 <= x0 || x1 <= a0 || b1 <= y0 || y1 <= b0 {
-                continue;
-            }
-            let shown = [a0.max(x0), b0.max(y0), a1.min(x1), b1.min(y1)];
-            if covered(shown, &exact) {
-                continue;
-            }
-            let maps = self.maps(preview, factor, now);
-            preview.tile.slot().lay_mapped(&mut mosaic, maps, self.rect);
-        }
-        for tile in visible() {
-            let clip = tile::intersect(tile.rect(), self.rect);
-            tile.slot().lay_at(&mut mosaic, tile.shift(at), clip);
-        }
-        for slot in &self.overlays {
-            slot.lay_at(&mut mosaic, [0, 0], slot.rect());
-        }
-        mosaic.draw(renderer, origin, factor);
     }
 
     /// The whole device pixels both axes moved by from the views the grid
