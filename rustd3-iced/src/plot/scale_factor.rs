@@ -31,6 +31,16 @@ pub(crate) fn resolve(
         .min(MOST)
 }
 
+/// `factor` times `magnification`, at most [`MOST`]. A magnification that
+/// is not finite and positive is taken as 1.
+pub(crate) fn magnified(factor: f32, magnification: f32) -> f32 {
+    if magnification.is_finite() && magnification > 0.0 {
+        (factor * magnification).min(MOST)
+    } else {
+        factor
+    }
+}
+
 /// The most device px a side that the figure's raster renderer draws.
 /// Beyond it a render fails with `raster::Error::TooLarge`.
 const SIDE: f32 = 65_408.0;
@@ -52,7 +62,27 @@ mod tests {
     use iced_core::Size;
     use iced_core::renderer::Scale;
 
-    use super::{fit, resolve};
+    use super::{fit, magnified, resolve};
+
+    #[test]
+    fn a_magnification_multiplies_the_factor() {
+        assert_eq!(magnified(2.0, 1.25), 2.5);
+        assert_eq!(magnified(2.0, 0.5), 1.0);
+        assert_eq!(magnified(1.5, 1.0), 1.5);
+    }
+
+    #[test]
+    fn a_magnification_that_is_not_finite_and_positive_is_one() {
+        for bad in [0.0, -2.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            assert_eq!(magnified(2.0, bad), 2.0, "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_magnified_factor_above_the_most_is_taken_as_the_most() {
+        assert_eq!(magnified(4.0, 2.5), super::MOST);
+        assert_eq!(magnified(super::MOST, 1e9), super::MOST);
+    }
 
     #[test]
     fn a_widget_wider_than_the_renderer_draws_lowers_its_factor() {

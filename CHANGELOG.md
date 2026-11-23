@@ -121,7 +121,8 @@ rule is:
   grid.
 - The `Plot` widget takes a scale factor above 8 as 8, and renders a
   widget wider or taller than 65,408 device px at the factor that fits
-  it.
+  it. `Plot::magnification(z)` multiplies the factor for a host that
+  draws the widget under a scaling transformation.
 
 ### API review
 

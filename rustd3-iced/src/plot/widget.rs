@@ -36,6 +36,7 @@ pub struct Plot<'a, Message> {
     width: Length,
     height: Length,
     scale_factor: Option<f32>,
+    magnification: f32,
     crosshair: bool,
     highlight: bool,
     render: Render,
@@ -63,6 +64,7 @@ impl<'a, Message> Plot<'a, Message> {
             width: Length::Fill,
             height: Length::Fill,
             scale_factor: None,
+            magnification: 1.0,
             crosshair: true,
             highlight: true,
             render: Render::default(),
@@ -106,8 +108,10 @@ impl<'a, Message> Plot<'a, Message> {
     ///
     /// A factor that is not finite and positive is skipped for the next in
     /// the chain. One above 8, from here or from the window, is taken as 8.
-    /// A widget wider or taller than 65,408 device px, the most the
-    /// renderer draws, renders at the factor that fits it.
+    /// [`Plot::magnification`] multiplies the factor the chain gives, and
+    /// the product above 8 is taken as 8. A widget wider or taller than
+    /// 65,408 device px, the most the renderer draws, renders at the
+    /// factor that fits it.
     ///
     /// ```text
     /// let plot = Plot::new(fig).scale_factor(2.0); // as iced_test snapshots
@@ -118,6 +122,34 @@ impl<'a, Message> Plot<'a, Message> {
     pub fn scale_factor(self, factor: f32) -> Self {
         Plot {
             scale_factor: Some(factor),
+            ..self
+        }
+    }
+
+    /// The scale of a transformation the host draws the widget under, 1 by
+    /// default. The widget renders at the scale factor times this, so its
+    /// images cover the device pixels they are shown on.
+    ///
+    /// A widget cannot see the transformation it is drawn under: it
+    /// renders before the draw, and only wgpu reports one. A host that
+    /// draws its content inside `Renderer::with_transformation`, such as a
+    /// pan-and-zoom surface, passes the scale here. The widget's layout
+    /// and the cursor it is given stay in its own logical units.
+    ///
+    /// The host's translation has to be a whole number of device pixels.
+    /// At any other the software renderer resamples the images, which
+    /// softens them and can show seams between cells; wgpu rounds each image
+    /// to a device pixel.
+    ///
+    /// A change of magnification is a change of factor, and renders every
+    /// cell again while the old images stand in. A host that animates its
+    /// zoom passes the magnification once the zoom settles.
+    ///
+    /// A magnification that is not finite and positive is taken as 1.
+    #[must_use]
+    pub fn magnification(self, magnification: f32) -> Self {
+        Plot {
+            magnification,
             ..self
         }
     }
@@ -481,7 +513,10 @@ where
             state.rescale(*scale_factor);
         }
         let factor = scale_factor::fit(
-            scale_factor::resolve(self.scale_factor, renderer.scale(), state.window_factor()),
+            scale_factor::magnified(
+                scale_factor::resolve(self.scale_factor, renderer.scale(), state.window_factor()),
+                self.magnification,
+            ),
             layout.bounds().size(),
         );
         // Gesture input is queued for the next `RedrawRequested`, which the

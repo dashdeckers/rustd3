@@ -509,7 +509,10 @@ domains of handles nobody listens to) in iced's widget tree.
   image.
 - **Scale factor.** The widget renders for the window's scale factor;
   `Plot::scale_factor(k)` sets it where the host reports none (iced's
-  test simulator snapshots at 2 and reports none).
+  test simulator snapshots at 2 and reports none). A host that draws the
+  widget under a scaling transformation, such as a pan-and-zoom surface,
+  passes the scale to `Plot::magnification(z)`, and the widget renders at
+  the factor times `z`.
 - **Diagnostics.** `Plot::probe(probe)` reports every frame,
   `Plot::caching(Caching::Verify)` checks the tile cache, and
   `Plot::revision(n)` re-renders everything once for a change the hashes
