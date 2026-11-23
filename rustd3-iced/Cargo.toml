@@ -38,5 +38,18 @@ path = "tests/main/main.rs"
 name = "readme_plot"
 required-features = ["figure"]
 
-[lints]
-workspace = true
+# The workspace's lints, except that unsafe code is denied, not forbidden:
+# the examples set wgpu's API in the environment, which is unsafe, and
+# allow that one call. The library forbids unsafe code in `lib.rs`.
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "deny"
+
+[lints.clippy]
+unwrap_used = "warn"
+allow_attributes_without_reason = "warn"
+mod_module_files = "warn"
+wildcard_enum_match_arm = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"

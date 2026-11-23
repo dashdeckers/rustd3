@@ -19,8 +19,8 @@
 //! compositor refuses the other's name.
 //!
 //! ```text
-//! ICED_BACKEND=tiny-skia bench_gestures repro-software [--single]               # Wayland
-//! ICED_BACKEND=tiny-skia env -u WAYLAND_DISPLAY bench_gestures repro-software   # X11
+//! ICED_BACKEND=vello-cpu bench_gestures repro-software [--single]               # Wayland
+//! ICED_BACKEND=vello-cpu env -u WAYLAND_DISPLAY bench_gestures repro-software   # X11
 //! ICED_BACKEND=wgpu bench_gestures repro-software [--out FILE]                  # control
 //! ```
 

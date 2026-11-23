@@ -109,7 +109,7 @@ pub enum Record {
     },
     /// A headless readback of an empty frame at the run's first size, taken
     /// before its first frame as the median of a few. It is the
-    /// screenshot's fixed cost (a frame-sized buffer and clip mask, the
+    /// screenshot's fixed cost (a frame-sized buffer, the
     /// background, the conversion to RGBA), which a window's composition
     /// does not pay.
     Readback {
@@ -145,7 +145,7 @@ pub struct Run {
     pub factor: f32,
     /// The run's number, from 1.
     pub run: u32,
-    /// The renderer that ran (`wgpu`, `tiny-skia`).
+    /// The renderer that ran (`wgpu`, `vello-cpu`).
     pub backend: String,
     /// Whether the run was headless rather than windowed.
     pub headless: bool,

@@ -465,7 +465,9 @@ program's state and pass it every event with the bounds and cursor:
 They return the new transform or selection; `interact::Rescale` applies a
 zoom transform to a scale (`scale.rescale_x(&transform)`). Time comes
 only from `RedrawRequested`, so a program returns
-`Action::request_redraw()` while `tracker.wants_redraw()`.
+`Action::request_redraw()` while `tracker.wants_redraw()`. A program
+captures the presses it handles, since iced selects text from a press no
+widget captured and redraws every frame until its release.
 `anim::Animated` and `anim::Marks` are sampled at the instants the app
 passes in, `anim::Instant` (`web_time`'s: std's on native targets, iced's
 `time::Instant`, and a working clock on wasm). The `focus_context` and
@@ -536,12 +538,11 @@ domains of handles nobody listens to) in iced's widget tree.
   composited from precomputed coverage stamps at eighth-pixel phases
   (`raster::Renderer::splat`), within 32/255 of the filled markers and
   several times faster; files always fill every marker.
-- **Software renderer.** On iced's tiny-skia renderer every image costs a
-  frame-sized clip mask and a filtered pass, so a plot area that shows
-  previews is composed into one image on the CPU first. A software frame
-  costs tens of milliseconds at 1600 × 1000; a zoom's latency there is
-  bounded by the wheel burst, since no frame of a burst is sharp until
-  the burst pauses.
+- **Software renderer.** iced's vello_cpu renderer draws the widget's
+  tiles and previews as wgpu does, each image on its device pixels. A
+  software frame at 1600 × 1000 costs 10 to 30 ms at factor 1 and 25 to
+  115 ms at factor 2; a zoom's latency there is bounded by the wheel
+  burst, since no frame of a burst is sharp until the burst pauses.
 - **Known limit.** The figure is resolved and its drawing list built on
   the UI thread, so panning a scatter of a million points is bound by
   list building.

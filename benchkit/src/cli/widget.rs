@@ -119,8 +119,8 @@ pub enum Backend {
     #[default]
     Wgpu,
     /// The software renderer.
-    TinySkia,
-    /// Whichever iced chooses (`ICED_BACKEND` unset): wgpu, or tiny-skia
+    VelloCpu,
+    /// Whichever iced chooses (`ICED_BACKEND` unset): wgpu, or vello-cpu
     /// on a machine without a GPU adapter, where an explicit `wgpu` opens
     /// no window at all.
     Auto,
@@ -268,7 +268,7 @@ impl Options {
                 "--backend" => {
                     options.backend = match value.as_str() {
                         "wgpu" => Backend::Wgpu,
-                        "tiny-skia" => Backend::TinySkia,
+                        "vello-cpu" => Backend::VelloCpu,
                         "auto" => Backend::Auto,
                         _ => return Err(bad()),
                     };
@@ -328,19 +328,19 @@ impl Options {
     }
 
     /// Parses `bench_software`'s flags: `run`'s flags, with the software
-    /// plan, headless on tiny-skia.
+    /// plan, headless on vello-cpu.
     fn software(args: &[String]) -> Result<Options, Error> {
         let mut options = Options::parse(args, &[])?;
         options.headless = true;
         if !args.iter().any(|a| a == "--backend") {
-            options.backend = Backend::TinySkia;
+            options.backend = Backend::VelloCpu;
         }
         options.plan = Some(options.plan.unwrap_or(Plan::Software));
         Options::software_checked(options)
     }
 
     /// `options` when they are the software profile's: its plan, headless,
-    /// on tiny-skia, at its own rate and factor.
+    /// on vello-cpu, at its own rate and factor.
     fn software_checked(options: Options) -> Result<Options, Error> {
         let given = |flag: &str, value: String| {
             Err(Error::Value {
@@ -351,7 +351,7 @@ impl Options {
         if let Some(plan) = options.plan.filter(|plan| *plan != Plan::Software) {
             return given("--plan", plan.name().to_owned());
         }
-        if options.backend != Backend::TinySkia {
+        if options.backend != Backend::VelloCpu {
             return given("--backend", options.backend.name().to_owned());
         }
         if !options.headless {
@@ -529,7 +529,7 @@ impl Backend {
     pub fn name(self) -> &'static str {
         match self {
             Backend::Wgpu => "wgpu",
-            Backend::TinySkia => "tiny-skia",
+            Backend::VelloCpu => "vello-cpu",
             Backend::Auto => "auto",
         }
     }
@@ -537,7 +537,7 @@ impl Backend {
     /// What `ICED_BACKEND` is set to; `None` (unset) for `auto`.
     pub fn iced(self) -> Option<&'static str> {
         match self {
-            Backend::Wgpu | Backend::TinySkia => Some(self.name()),
+            Backend::Wgpu | Backend::VelloCpu => Some(self.name()),
             Backend::Auto => None,
         }
     }
@@ -659,7 +659,7 @@ mod tests {
     fn cli_parses_every_documented_flag() {
         let line = "--plan quick --scenario pan-x,zoom-lines --workload trace,grid16 \
                     --factor 1,1.25 --runs 3 --refresh-hz 144 --native-factor 1.25 \
-                    --backend tiny-skia --present-mode fifo_relaxed --headless --readback last \
+                    --backend vello-cpu --present-mode fifo_relaxed --headless --readback last \
                     --render worker --caching verify --threads 3 --replay in.jsonl \
                     --data-scale 0.5 --budgets weak --no-also --out o";
         let Ok(Command::Run(options)) = parse(line) else {
@@ -678,7 +678,7 @@ mod tests {
         assert_eq!(options.selection.runs, Some(3));
         assert_eq!(options.refresh_hz, Some(144.0));
         assert_eq!(options.native, Some(1.25));
-        assert_eq!(options.backend, Backend::TinySkia);
+        assert_eq!(options.backend, Backend::VelloCpu);
         assert_eq!(options.present_mode, Some(PresentMode::FifoRelaxed));
         assert!(options.headless);
         assert_eq!(options.readback, Readback::Last);
@@ -700,7 +700,7 @@ mod tests {
             (options.backend, options.backend.iced()),
             (Backend::Auto, None)
         );
-        assert_eq!(Backend::TinySkia.iced(), Some("tiny-skia"));
+        assert_eq!(Backend::VelloCpu.iced(), Some("vello-cpu"));
         assert!(parse("--budgets laptop").is_err());
         let Ok(Command::Run(limited)) = parse("--cpu-limit pinned --xwayland") else {
             panic!("a run");
@@ -718,7 +718,7 @@ mod tests {
         }
         for line in [
             "raster --plan default --out target/bench-raster",
-            "child --headless --backend tiny-skia --cell hover__trace__f1 --run 1 --dir d",
+            "child --headless --backend vello-cpu --cell hover__trace__f1 --run 1 --dir d",
         ] {
             assert!(parse_as(Example::Software, line).is_ok(), "{line}");
         }
@@ -740,7 +740,7 @@ mod tests {
         };
         assert_eq!(
             (software.plan(), software.backend, software.headless),
-            (Plan::Software, Backend::TinySkia, true)
+            (Plan::Software, Backend::VelloCpu, true)
         );
         // A child round-trips through the flags `run` gives it.
         let Ok(Command::Run(written)) = parse("--headless --frames f --every 5") else {

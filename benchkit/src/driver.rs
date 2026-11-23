@@ -512,12 +512,10 @@ impl<'a, Message: 'a> From<Driver<'a, Message>> for Element<'a, Message, Theme, 
 }
 
 /// The renderer iced chose, by which half of its fallback renderer runs.
-/// The software half is the one that reports no scale, which is how the
-/// widget tells them apart (`rustd3-iced`'s `scale_factor`).
 fn backend(renderer: &Renderer) -> &'static str {
     match renderer {
         Renderer::Primary(_) => "wgpu",
-        Renderer::Secondary(_) => "tiny-skia",
+        Renderer::Secondary(_) => "vello-cpu",
     }
 }
 

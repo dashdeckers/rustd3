@@ -78,8 +78,9 @@ fn sine(n: usize, seed: usize) -> Vec<(f64, f64)> {
 }
 
 /// A renderer that records what a widget draws, for the tests of how it
-/// draws. By default it reports no scale, as iced's software renderer
-/// does. [`Recorder::gpu`] reports one, as the GPU renderer does.
+/// draws. By default it reports no scale, as a renderer that was never
+/// hinted one does. [`Recorder::gpu`] reports one, as iced's renderers do
+/// in a window.
 #[derive(Debug, Default)]
 pub(crate) struct Recorder {
     pub(crate) drawn: Vec<Drawn>,
@@ -109,17 +110,6 @@ impl Recorder {
                 application: 1.0,
             }),
         }
-    }
-
-    /// The bounds of each image drawn, with linear filtering or not.
-    pub(crate) fn drawn_images(&self) -> Vec<(Rectangle, bool)> {
-        self.drawn
-            .iter()
-            .filter_map(|drawn| match drawn {
-                Drawn::Image { bounds, linear } => Some((*bounds, *linear)),
-                Drawn::Layer(_) | Drawn::Close | Drawn::Quad => None,
-            })
-            .collect()
     }
 
     /// The bounds of each layer opened, in order.

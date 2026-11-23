@@ -51,7 +51,7 @@ suffices.
 pub const WEAK: &str = "\
 **Weak profile.** The `weak` plan (`hover`, `pan-x` and
 `zoom-lines` on `trace`, `pan-x` and `zoom-lines` on `scatter100k`, at the
-native factor, five runs each) runs without a GPU (`--backend tiny-skia`)
+native factor, five runs each) runs without a GPU (`--backend vello-cpu`)
 and on wgpu pinned to 4 and to 2 cores, each its own report. Budgets: p99
 frame interval ≤ 2 T; pan latency p95 ≤ 150 ms; zoom latency p95 ≤ 250
 ms; preview share ≤ 25% during pans. Each is met, missed or inconclusive

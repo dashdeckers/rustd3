@@ -9,6 +9,17 @@ use iced::{Fill, Point, Rectangle, Renderer, Theme, Vector, Widget, mouse};
 use rustd3_core::{axis, scale, shape};
 
 fn main() -> iced::Result {
+    // DirectX on Windows, where Intel's Vulkan driver shows frames it has
+    // not finished drawing. Without a GPU, iced still falls back to its
+    // software renderer.
+    #[cfg(windows)]
+    if std::env::var_os("WGPU_BACKEND").is_none() {
+        // SAFETY: no other thread runs yet to read the environment.
+        #[allow(unsafe_code, reason = "wgpu takes its API from the environment alone")]
+        unsafe {
+            std::env::set_var("WGPU_BACKEND", "dx12");
+        }
+    }
     iced::run(Wave::update, Wave::view)
 }
 

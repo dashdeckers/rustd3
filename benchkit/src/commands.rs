@@ -242,6 +242,13 @@ fn run(options: &Options, example: Example, args: &[String]) -> Result<(), Box<d
                 Some(backend) => command.env("ICED_BACKEND", backend),
                 None => command.env_remove("ICED_BACKEND"),
             };
+            // On Windows wgpu draws through DirectX 12 unless the user chose
+            // an API: Intel's Vulkan driver shows frames it has not finished
+            // drawing. iced still falls back to the software renderer
+            // where no adapter is found.
+            if cfg!(windows) && std::env::var_os("WGPU_BACKEND").is_none() {
+                command.env("WGPU_BACKEND", "dx12");
+            }
             if let Some(mode) = options.present_mode {
                 command.env("ICED_PRESENT_MODE", mode.name());
             }

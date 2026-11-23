@@ -5,8 +5,9 @@ use rustd3_figure::raster;
 
 /// Moves a straight-alpha raster image into an iced handle (no copy).
 ///
-/// iced handles carry straight alpha (tiny-skia premultiplies on load,
-/// `tiny_skia/src/raster.rs:104-115`), which is what vello_cpu returns, so
+/// iced handles carry straight alpha (the software renderer premultiplies
+/// on load, `vello_cpu/src/raster.rs:139-149`), which is what the figure's
+/// rasterizer returns, so
 /// the bytes move into `Handle::from_rgba` as they are. Every call makes a
 /// new handle id and so a new texture (`core/src/image.rs:134`).
 pub(crate) fn from_image(image: raster::Image) -> image::Handle {

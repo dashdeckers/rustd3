@@ -32,7 +32,7 @@ pub struct Display {
     pub native_factor: f32,
     /// Where the factor comes from.
     pub factor: Source,
-    /// The renderer iced chose on its own (`wgpu` or `tiny-skia`), when
+    /// The renderer iced chose on its own (`wgpu` or `vello-cpu`), when
     /// known.
     pub backend: Option<String>,
 }
@@ -118,7 +118,7 @@ impl Display {
     /// Whether iced's own choice is the software renderer (no GPU
     /// adapter), so the native profile is the software one.
     pub fn software(&self) -> bool {
-        self.backend.as_deref() == Some("tiny-skia")
+        self.backend.as_deref() == Some("vello-cpu")
     }
 
     /// Whether windows open and their frames pace no rate, so every frame
@@ -324,7 +324,7 @@ mod tests {
         let mut records = vec![header("hover")];
         if let Record::Run(run) = &mut records[0] {
             run.window_factor = Some(1.25);
-            run.backend = "tiny-skia".to_owned();
+            run.backend = "vello-cpu".to_owned();
         }
         records.extend(frames(1e3 / 60.0, 200));
         record::write(&raw.join("hover__trace__f1__r1.jsonl"), &records).unwrap();
@@ -333,7 +333,7 @@ mod tests {
             Some(Measured {
                 hz: Some(60.0),
                 factor: Some(1.25),
-                backend: Some("tiny-skia".to_owned()),
+                backend: Some("vello-cpu".to_owned()),
             })
         );
         fs::remove_dir_all(&raw).unwrap();
@@ -387,14 +387,14 @@ mod tests {
         assert!(unpaced.describe().contains("every frame budget assumes"));
         // `--refresh-hz` on an unpaced display: given, not flagged.
         assert!(!Display::decide(Some(60.0), None, Ok(unpaced_measure())).unpaced());
-        // No GPU adapter: iced falls back to tiny-skia.
+        // No GPU adapter: iced falls back to vello-cpu.
         let software = Display::decide(
             None,
             None,
             Ok(Measured {
                 hz: Some(60.0),
                 factor: Some(1.0),
-                backend: Some("tiny-skia".to_owned()),
+                backend: Some("vello-cpu".to_owned()),
             }),
         );
         assert!(software.software());
