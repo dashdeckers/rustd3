@@ -361,7 +361,7 @@ fn scatter_lists() -> Row {
 /// excluding the ring's renders in the update before them. The row gives
 /// medians of 30 frames.
 fn tile_draw() -> Row {
-    let parts: Vec<String> = ["tiny-skia", "wgpu"]
+    let parts: Vec<String> = ["vello-cpu", "wgpu"]
         .into_iter()
         .map(|backend| match tile_frames(backend) {
             Some(([draw, compose], [images, empty])) => format!(
@@ -536,7 +536,7 @@ fn tile_frames(backend: &str) -> Option<([f64; 2], [f64; 2])> {
 /// over 40 frames after the press.
 fn pan_frames() -> Row {
     let mut parts = Vec::new();
-    for backend in ["tiny-skia", "wgpu"] {
+    for backend in ["vello-cpu", "wgpu"] {
         for k in [1.0_f32, 2.0] {
             parts.push(match pan_counts(backend, k) {
                 Some(c) => format!(
@@ -942,7 +942,7 @@ fn tile_geometry() -> Row {
 
 /// The warm composition of a `trace` frame mid-zoom by iced's software
 /// renderer at factor 1 ([`compose`]'s harness), in ms, or `None` without
-/// a headless tiny-skia renderer.
+/// a headless vello-cpu renderer.
 pub fn composition_ms() -> Option<f64> {
     compose::zoom_frame_ms()
 }

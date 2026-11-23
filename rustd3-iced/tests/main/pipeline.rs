@@ -155,7 +155,7 @@ fn cell(fig: &Figure<'_>, size: Size, k: f32, index: u32) -> [u32; 4] {
     [rect.x0, rect.y0, rect.x1, rect.y1].map(|edge| edge as u32)
 }
 
-/// The pixel bound of `backend` against the PNG: 1/255 on tiny-skia,
+/// The pixel bound of `backend` against the PNG: 1/255 on vello_cpu,
 /// 2/255 on wgpu.
 fn bound(backend: &str) -> u8 {
     if backend == "wgpu" { 2 } else { 1 }

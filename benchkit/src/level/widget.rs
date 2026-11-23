@@ -173,7 +173,7 @@ impl Level {
                 },
                 ..Selection::default()
             },
-            backend: Backend::TinySkia,
+            backend: Backend::VelloCpu,
             budgets: rule::Profile::Weak,
             cores: None,
             xwayland: false,
@@ -197,7 +197,7 @@ impl Level {
             name: "nogpu",
             plan: weak,
             selection: software,
-            backend: Backend::TinySkia,
+            backend: Backend::VelloCpu,
             budgets: rule::Profile::Weak,
             cores: None,
             xwayland: false,
@@ -315,12 +315,12 @@ impl Profile {
             (Some(_) | None, Some(_) | None) => String::new(),
         };
         let backend = match (self.backend, self.offscreen) {
-            (Backend::TinySkia, true) => {
-                "the software renderer (tiny-skia) offscreen: headless, every frame composed into \
+            (Backend::VelloCpu, true) => {
+                "the software renderer (vello-cpu) offscreen: headless, every frame composed into \
                  a pixmap at 60 Hz, 1600 × 1000 logical px at factors 1 and 2"
             }
             (Backend::Auto, _) => "the native backend (iced's choice)",
-            (Backend::TinySkia, false) => "the software renderer (tiny-skia)",
+            (Backend::VelloCpu, false) => "the software renderer (vello-cpu)",
             (Backend::Wgpu, _) => "wgpu",
         };
         let mut text = format!(
@@ -953,7 +953,7 @@ mod tests {
         // The software path offscreen, one run a cell at quick.
         assert_eq!(
             (software.plan, software.backend, software.budgets),
-            (Plan::Software, Backend::TinySkia, rule::Profile::Weak)
+            (Plan::Software, Backend::VelloCpu, rule::Profile::Weak)
         );
         assert!(software.offscreen);
         assert_eq!(software.cells(1.25).len(), 24);
@@ -964,7 +964,7 @@ mod tests {
         );
         assert_eq!(
             (nogpu.plan, nogpu.backend, nogpu.budgets),
-            (Plan::Quick, Backend::TinySkia, rule::Profile::Weak)
+            (Plan::Quick, Backend::VelloCpu, rule::Profile::Weak)
         );
         assert_eq!(nogpu.cells(1.0).len(), 2, "pan-x and zoom-lines on trace");
         assert!(x11.xwayland);
@@ -1067,7 +1067,7 @@ mod tests {
         let args = profiles[2].0.args(&display, Path::new("o/nogpu"), None);
         assert_eq!(
             args.join(" "),
-            "--plan quick --backend tiny-skia --budgets weak --no-also --refresh-hz 144 \
+            "--plan quick --backend vello-cpu --budgets weak --no-also --refresh-hz 144 \
              --native-factor 1.25 --scenario pan-x,zoom-lines --workload trace --out o/nogpu"
         );
         // The software profile ignores the display: headless at 60 Hz, and
@@ -1078,7 +1078,7 @@ mod tests {
             .args(&display, Path::new("o/software"), Some(&frames));
         assert_eq!(
             args.join(" "),
-            "--plan software --backend tiny-skia --budgets weak --no-also --refresh-hz 60 \
+            "--plan software --backend vello-cpu --budgets weak --no-also --refresh-hz 60 \
              --native-factor 2 --runs 1 --headless --frames f --every 10 --out o/software"
         );
         assert!(

@@ -13,10 +13,11 @@ pub(crate) const MOST: f32 = 8.0;
 /// hint, the window's factor, then 1.0. Non-finite or non-positive values
 /// are skipped, and one above [`MOST`] is taken as `MOST`.
 ///
-/// tiny-skia's renderer reports no scale. wgpu's reports the window's and
-/// the application's factors, whose product it draws at
-/// (`core/src/renderer.rs:75,214`). Window events carry the window's
-/// factor alone (`winit/src/lib.rs:671-675`).
+/// A renderer reports the window's and the application's factors, whose
+/// product it draws at (`core/src/renderer.rs:75,214`), once the runtime
+/// has hinted them. One that was never hinted, such as `iced_test`'s
+/// `Simulator`'s, reports none. Window events carry the window's factor
+/// alone (`winit/src/lib.rs:671-675`).
 pub(crate) fn resolve(
     explicit: Option<f32>,
     renderer: Option<renderer::Scale>,

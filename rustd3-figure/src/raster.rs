@@ -21,11 +21,11 @@ use crate::list;
 #[cfg(feature = "raster")]
 use crate::list::{Bounds, List, Outlines};
 
-/// The longest side of a render, in device px. vello_cpu 0.3.0 sizes are
-/// `u16`, but its spans round widths up to 128 px and its tiles round
-/// heights up to 4 px, and either overflows past 65,535. Widths from 65,409
-/// and heights from 65,533 panic (`vello_cpu-0.3.0/src/span.rs:84-90`,
-/// `vello_common-0.3.0/src/util.rs:222-238`).
+/// The longest side of a render, in device px. vello_cpu's sizes are
+/// `u16`, and rounding a rect out to whole tiles overflows past 65,535
+/// (`vello_common-0.4.0/src/util.rs:236-255`). The limit was measured on
+/// 0.3.0, where widths from 65,409 (spans rounded up to 128 px) and heights
+/// from 65,533 (tiles to 4 px) panicked.
 #[cfg(any(feature = "raster", feature = "tiny-skia"))]
 const MAX_SIDE: f64 = 65_408.0;
 /// The longest side of an image in a list: vello_cpu's `u16` pixmaps.

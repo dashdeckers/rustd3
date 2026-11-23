@@ -96,13 +96,13 @@ impl<'a, Message> Plot<'a, Message> {
 
     /// Device pixels per logical pixel, which wins over every fallback.
     ///
-    /// In a window the widget learns the factor from the window's events
-    /// (and wgpu's renderer), so an app passes it only when it scales
-    /// itself on the software renderer, which reports none. `iced_test`'s
+    /// In a window the widget learns the factor from the renderer and the
+    /// window's events, so an app has no need to pass it. `iced_test`'s
     /// `Simulator` has no window. It snapshots at 2 and tells widgets no
     /// factor, so a test that snapshots a `Plot` passes the snapshot's
     /// factor here. Without it the widget draws for 1, and the snapshot
-    /// shows each of its pixels doubled.
+    /// shows its pixels scaled to twice their size: doubled on wgpu, and
+    /// resampled with soft seams between cells on the software renderer.
     ///
     /// A factor that is not finite and positive is skipped for the next in
     /// the chain. One above 8, from here or from the window, is taken as 8.

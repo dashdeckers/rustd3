@@ -29,6 +29,11 @@ impl canvas::Program<Pointer> for Trace {
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<Pointer>> {
         match tracker.translate(event, bounds, cursor) {
+            // iced selects text from a press no widget captured, and
+            // redraws every frame until its release.
+            Some(pointer @ Pointer::Pressed { .. }) => {
+                Some(canvas::Action::publish(pointer).and_capture())
+            }
             Some(pointer) => Some(canvas::Action::publish(pointer)),
             None if tracker.wants_redraw() => Some(canvas::Action::request_redraw()),
             None => None,
@@ -94,7 +99,7 @@ fn a_d3_line_on_a_canvas_lands_on_its_device_rows() {
 
 #[test]
 fn the_two_backends_draw_the_canvas_line_alike() {
-    let Some(mut software) = trace(Some("tiny-skia")) else {
+    let Some(mut software) = trace(Some("vello-cpu")) else {
         return;
     };
     let Some(mut gpu) = trace(Some("wgpu")) else {
@@ -104,7 +109,7 @@ fn the_two_backends_draw_the_canvas_line_alike() {
     let (a, b) = (software.frame(now), gpu.frame(now));
     let diff = pixels::Diff::between(&a.image(), &b.image(), 16).unwrap();
     println!(
-        "tiny-skia against wgpu: max {}/255, {} channels over 16 ({})",
+        "vello_cpu against wgpu: max {}/255, {} channels over 16 ({})",
         diff.max(),
         diff.over(),
         headless::features()

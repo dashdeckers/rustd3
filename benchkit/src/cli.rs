@@ -186,7 +186,7 @@ bench_gestures: the Plot widget driven by replayed gestures, in windows.
   cargo run --release --example bench_gestures -- [FLAGS]
       [--plan smoke|display|quick|default|weak|focus|full]
       [--scenario A,B] [--workload A,B] [--factor 1,1.25] [--runs N]
-      [--refresh-hz HZ] [--native-factor F] [--backend wgpu|tiny-skia|auto]
+      [--refresh-hz HZ] [--native-factor F] [--backend wgpu|vello-cpu|auto]
       [--budgets desktop|weak]
       [--present-mode vsync|no_vsync|immediate|fifo|fifo_relaxed|mailbox]
       [--headless] [--readback every|last] [--render auto|inline|worker]
@@ -204,7 +204,7 @@ plan (smoke runs at the listed factors instead of 2); hover is a scenario
 (--scenario hover). `weak` is the weaker machines' plan, held to the weak
 budgets (as --budgets weak holds any plan); `focus` is report-only. The
 software profile is bench_software. --backend auto leaves the choice to
-iced (wgpu, or tiny-skia without a GPU adapter). --threads sets the
+iced (wgpu, or vello-cpu without a GPU adapter). --threads sets the
 widget's render pool (1 to 64; default the available parallelism less one,
 1 to 8); --caching verify renders every kept image again and reports what
 differs. --xwayland (Linux, a Wayland session with XWayland) removes
@@ -240,7 +240,7 @@ bench_software: the Plot widget on the software renderer, offscreen.
       [--data-scale F] [--cpu-limit TEXT] [--no-also]
       [--frames DIR [--every N]] [--out DIR]
 
-The software profile: the software plan headless on tiny-skia at 60 Hz
+The software profile: the software plan headless on vello-cpu at 60 Hz
 and a native factor of 2, on any machine, every frame composed into a
 pixmap and its cost timed by part (parts.csv), into DIR/<UTC stamp>/
 (default bench-out), a process per cell and run. bench_all runs it as its

@@ -11,7 +11,7 @@
 //! which are `rustd3_core::shape` and `rustd3_figure::Figure` in the
 //! component crates.
 //!
-//! The crate depends on iced at git revision 3cbdacc, and its signatures
+//! The crate depends on iced at git revision 98bd48f, and its signatures
 //! name iced's types (`Event`, `Rectangle`, `mouse::Cursor`, `Point`,
 //! `Length`, `Element`, `canvas::Path`). The app depends on iced at the
 //! same revision and names them through `iced`.
@@ -31,6 +31,8 @@
 // a bug.
 #![warn(clippy::must_use_candidate, clippy::return_self_not_must_use)]
 #![warn(missing_debug_implementations)]
+// The package denies unsafe code so that its examples can allow one call.
+#![forbid(unsafe_code)]
 
 mod path;
 #[cfg(feature = "figure")]

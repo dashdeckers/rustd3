@@ -40,6 +40,10 @@ const DOUBLE_CLICK_PX: f64 = 6.0;
 /// anyway). One press waits at a time, and a second press before the
 /// redraw takes its place.
 ///
+/// A program captures the presses it handles (`Action::and_capture`): iced
+/// selects text from a press no widget captured, and redraws every frame
+/// until its release (`runtime/src/user_interface.rs:431-453`).
+///
 /// ```
 /// # mod rustd3 { pub use rustd3_core::interact; }
 /// use iced_core::{mouse, Event, Point, Rectangle, Size};

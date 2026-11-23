@@ -78,7 +78,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
         Self::with_backend(root, size, scale, backend.as_deref())
     }
 
-    /// As [`Harness::new`] on the named backend (`tiny-skia` or `wgpu`), or
+    /// As [`Harness::new`] on the named backend (`vello-cpu` or `wgpu`), or
     /// iced's first that works for `None`.
     pub fn with_backend(
         root: impl iced::Widget<Message> + 'a,
@@ -98,7 +98,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
             }
             panic!("no headless renderer for backend {backend:?}");
         };
-        // wgpu reports the factor from the hint; tiny-skia ignores hints.
+        // Both renderers report the factor from the hint.
         renderer.hint(renderer::Scale {
             window: scale,
             application: 1.0,
@@ -310,7 +310,7 @@ impl<'a, Message: 'a> Harness<'a, Message> {
         self.bus.drain().map(|(message, _)| message).collect()
     }
 
-    /// The renderer's name: `tiny-skia` or `wgpu`.
+    /// The renderer's name: `vello_cpu` or `wgpu`.
     pub fn backend(&self) -> String {
         self.renderer.name()
     }
