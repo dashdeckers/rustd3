@@ -104,7 +104,8 @@ impl Figure<'_> {
             .zip(resolved.get_plot_areas())
             .enumerate()
             .map(|(i, (panel, area))| {
-                let ctx = Ctx::new(resolved, self.get_theme(), *area, text, &frame);
+                let taken = RefCell::new(Vec::new());
+                let ctx = Ctx::new(resolved, self.get_theme(), *area, text, &frame, &taken);
                 let mut points = Vec::new();
                 for (j, mark) in panel.marks().iter().enumerate() {
                     let mut sink = Sink::new(area.origin());

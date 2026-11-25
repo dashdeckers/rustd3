@@ -65,7 +65,8 @@ impl Figure<'_> {
                     grid(list, laid, (*area, overscan), style);
                 });
             }
-            let ctx = Ctx::new(resolved, theme, *area, text, frame);
+            let taken = RefCell::new(Vec::new());
+            let ctx = Ctx::new(resolved, theme, *area, text, frame, &taken);
             marks(list, i, panel, &ctx);
             for (j, (block, at)) in laid.insets.iter().enumerate() {
                 part(list, part::id(Role::Legend, i, j), |list| {

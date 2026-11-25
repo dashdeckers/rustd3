@@ -61,7 +61,8 @@ impl Figure<'_> {
             .zip(resolved.get_plot_areas())
             .enumerate()
         {
-            let ctx = Ctx::new(&resolved, self.get_theme(), *area, text, &frame);
+            let taken = RefCell::new(Vec::new());
+            let ctx = Ctx::new(&resolved, self.get_theme(), *area, text, &frame, &taken);
             for (j, mark) in panel.marks().iter().enumerate() {
                 mark.issues(&ctx.at(i, j), &mut marks);
             }

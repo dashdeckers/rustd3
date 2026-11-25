@@ -84,6 +84,9 @@ The first release.
   ticks with one group name is labeled once, past the tick labels and
   under a line that spans the run. `axis::Nested(outer, inner)` is a key
   of two levels for band and point scales.
+- `Note::avoid(Avoid::Step)` moves a note up or down by its height when
+  its box would overlap a note drawn before it, and `Avoid::Drop` leaves
+  it out. Notes that do not avoid are drawn where they are put.
 
 ### iced (`rustd3-iced`, from git)
 

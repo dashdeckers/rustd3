@@ -1,4 +1,5 @@
-//! [`Note`]: text at a point in data coordinates.
+//! [`Note`]: text at a point in data coordinates, and [`Avoid`], how notes
+//! make way for each other.
 
 use kurbo::{Point, Vec2};
 use rustd3_core::color::Rgb;
@@ -11,8 +12,20 @@ use crate::scale::{Kind, Position, ScaleRef};
 use crate::text::{Anchor, Key, Text};
 use crate::theme::Theme;
 
+/// What a note does when its box would overlap that of a note drawn
+/// before it in the same panel ([`Note::avoid`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Avoid {
+    /// The note steps up or down by its own height, to the nearest place
+    /// that is free.
+    Step,
+    /// The note is not drawn.
+    Drop,
+}
+
 /// Text placed at a point in data coordinates, with an anchor and an
-/// offset in px; it takes part in no collision pass.
+/// offset in px. It takes part in no layout pass, and makes way for other
+/// notes only when told to ([`Note::avoid`]).
 pub struct Note<X: Position, Y: Position> {
     at: (<X as Kind>::Domain, <Y as Kind>::Domain),
     text: Text,
@@ -21,6 +34,7 @@ pub struct Note<X: Position, Y: Position> {
     anchor: Anchor,
     offset: Vec2,
     fill: Option<Rgb>,
+    avoid: Option<Avoid>,
 }
 
 impl<X: Position, Y: Position> std::fmt::Debug for Note<X, Y> {
@@ -33,8 +47,9 @@ impl<X: Position, Y: Position> std::fmt::Debug for Note<X, Y> {
 /// scales), at the axis-label size (12 pt) in the theme's ink. By default
 /// the first line's start sits at the point (matplotlib's `text`,
 /// `ha="left"`, `va="baseline"`). The point enters fitting but the text
-/// does not, and no collision pass moves or drops it, so notes go where
-/// users put them. Like every mark it is clipped to the plot area.
+/// does not, and nothing moves or drops it unless [`Note::avoid`] says so,
+/// so notes go where users put them. Like every mark it is clipped to the
+/// plot area.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -63,6 +78,7 @@ pub fn note<X: Position, Y: Position>(
         anchor: Anchor::default(),
         offset: Vec2::ZERO,
         fill: None,
+        avoid: None,
     }
 }
 
@@ -101,11 +117,89 @@ impl<X: Position, Y: Position> Note<X, Y> {
         }
     }
 
+    /// Makes way for the notes of the panel drawn before this one that
+    /// also avoid. A note without this call is drawn where it is put and
+    /// is avoided by none.
+    ///
+    /// With [`Avoid::Step`], a note whose box comes within 1 px of an
+    /// earlier one moves up or down by its height plus 2 px, as often as
+    /// it takes and at most four times, to the nearest free place inside
+    /// the plot area. A note that finds none stays where it was put. With
+    /// [`Avoid::Drop`] it is not drawn. Marks draw in insertion order, so
+    /// the notes added first keep their places.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::{Avoid, dots, note};
+    ///
+    /// let points = [(1.0, 1.10), (1.1, 1.12), (2.0, 1.4)];
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// fig.panel(0, 0).mark(dots(points, x, y));
+    /// for (at, value) in points {
+    ///     let label = note((at, value), format!("{value:.2}"), x, y);
+    ///     fig.panel(0, 0).mark(label.offset(6.0, 0.0).avoid(Avoid::Step));
+    /// }
+    /// ```
+    #[must_use]
+    pub fn avoid(self, a: Avoid) -> Self {
+        Self {
+            avoid: Some(a),
+            ..self
+        }
+    }
+
+    /// Where the note is drawn when its box at `p` is `bounds`, among the
+    /// boxes `taken` in a plot area `area`: `p`, moved as its [`Avoid`]
+    /// says, or `None` for a note that is dropped. The box it takes is
+    /// added to `taken`.
+    fn settle(
+        &self,
+        p: Point,
+        bounds: kurbo::Rect,
+        area: kurbo::Rect,
+        taken: &mut Vec<kurbo::Rect>,
+    ) -> Option<Point> {
+        let Some(avoid) = self.avoid else {
+            return Some(p);
+        };
+        let free = |b: kurbo::Rect| !taken.iter().any(|t| overlaps(*t, b));
+        let step = bounds.height() + STEP_GAP;
+        let moved = match avoid {
+            _ if free(bounds) => Some(Vec2::ZERO),
+            Avoid::Drop => None,
+            Avoid::Step => {
+                let tries = (1..=STEPS).flat_map(|k| [-f64::from(k), f64::from(k)]);
+                let inside = |b: kurbo::Rect| area.union(b) == area;
+                let at = tries
+                    .map(|k| Vec2::new(0.0, k * step))
+                    .find(|by| free(bounds + *by) && inside(bounds + *by));
+                Some(at.unwrap_or(Vec2::ZERO))
+            }
+        }?;
+        taken.push(bounds + moved);
+        Some(p + moved)
+    }
+
     /// The text's key under `theme`.
     fn key(&self, theme: &Theme) -> Key {
         let fill = self.fill.unwrap_or_else(|| theme.get_ink());
         Key::new(&self.text, &theme.note(self.anchor.h, fill))
     }
+}
+
+/// How often a stepping note moves each way before it gives up.
+const STEPS: u32 = 4;
+
+/// The space a stepping note leaves between its box and the one it steps
+/// past, in px.
+const STEP_GAP: f64 = 2.0;
+
+/// Whether boxes `a` and `b` come within 1 px of each other.
+fn overlaps(a: kurbo::Rect, b: kurbo::Rect) -> bool {
+    let a = a.inflate(1.0, 1.0);
+    a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1
 }
 
 impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
@@ -117,9 +211,10 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         fits.label(key);
     }
 
-    /// The text's glyph runs at its point plus the offset, when the point
-    /// is placed on both scales and lies within the guard band around the
-    /// plot area; nothing otherwise, or when typst rejected the text.
+    /// The text's glyph runs at its point plus the offset, moved as its
+    /// [`Avoid`] says, when the point is placed on both scales and lies
+    /// within the guard band around the plot area. Nothing otherwise, for a
+    /// note that is dropped, or when typst rejected the text.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         let (Some(sx), Some(sy)) = (ctx.x(self.x), ctx.y(self.y)) else {
             return;
@@ -132,7 +227,12 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Note<X, Y> {
         if !within(band, p) {
             return;
         }
-        if let Some(shaped) = ctx.get_label(&self.key(ctx.get_theme())) {
+        let Some(shaped) = ctx.get_label(&self.key(ctx.get_theme())) else {
+            return;
+        };
+        let bounds = shaped.bounds(self.anchor) + p.to_vec2();
+        let area = ctx.get_rect().with_origin(Point::ORIGIN);
+        if let Some(p) = self.settle(p, bounds, area, &mut ctx.taken()) {
             shaped.place(list, p, self.anchor, 0.0);
         }
     }
