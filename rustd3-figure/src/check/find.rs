@@ -236,7 +236,7 @@ fn overflow(figure: &Figure<'_>, resolved: &Resolved, text: &text::Cache) -> Vec
         if let Some(width) = width(text, laid.title.as_ref()) {
             over(Element::PanelTitle, Some(i), width, area.width());
         }
-        for placed in laid.axes.iter().filter(|a| a.plan.shown && a.plan.labeled) {
+        for placed in laid.axes.iter().filter(|a| a.plan.shown) {
             if let Some(width) = width(text, placed.labels.title()) {
                 let length = if axis::across(placed.labels.orient()) {
                     area.width()

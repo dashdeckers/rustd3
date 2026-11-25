@@ -52,13 +52,14 @@ pub(super) struct Group {
 impl Labels {
     /// The labels of `axis` over the resolved scales for about `count`
     /// ticks, in `theme`'s styles, with the line box of `text`'s fonts.
-    /// Without `labeled` there are no tick labels, offset label or title.
+    /// Without `labeled` there are no tick labels or offset label, and
+    /// without `titled` no title.
     pub(crate) fn new<'a>(
         axis: &(dyn Draw<'a> + 'a),
         resolved: &Resolved,
         theme: &Theme,
         text: &text::Cache,
-        labeled: bool,
+        [labeled, titled]: [bool; 2],
         count: usize,
     ) -> Labels {
         let orient = axis.orient();
@@ -89,7 +90,7 @@ impl Labels {
             .map(|t| Key::new(&Text::from(t), &theme.tick_label(notation(orient).h, ink)));
         let title = axis
             .title()
-            .filter(|_| labeled)
+            .filter(|_| titled)
             .map(|t| Key::new(t, &theme.axis_label(ink)));
         Labels {
             orient,

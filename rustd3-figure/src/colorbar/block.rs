@@ -80,7 +80,7 @@ impl<'g, 'a> Content<'g, 'a> {
             orient,
             binned: self.strip.binned(),
         };
-        let labels = Labels::new(&side, resolved, theme, text, true, count);
+        let labels = Labels::new(&side, resolved, theme, text, [true; 2], count);
         self.side = Some(Measured {
             orient,
             count,

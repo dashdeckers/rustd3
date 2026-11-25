@@ -42,6 +42,8 @@ pub(crate) struct Role {
     pub(crate) shown: bool,
     /// Whether it is drawn with its tick labels and title.
     pub(crate) labeled: bool,
+    /// Whether it is drawn with its title.
+    pub(crate) titled: bool,
 }
 
 /// Each panel's axes' roles, in insertion order. An axis is inner when a
@@ -50,7 +52,8 @@ pub(crate) struct Role {
 /// it spans for a bottom axis. It is stacked when an axis drawn before it
 /// is on its side. Inner axes lose their labels, and inner axes that are
 /// stacked or moved outward are not drawn. `.labels(b)` sets the labels
-/// and draws the axis whatever its place.
+/// and draws the axis whatever its place. `.keep_label(true)` keeps the
+/// title of an axis drawn without its labels.
 pub(crate) fn roles(panels: &[Panel<'_>]) -> Vec<Vec<Role>> {
     panels
         .iter()
@@ -63,9 +66,11 @@ pub(crate) fn roles(panels: &[Panel<'_>]) -> Vec<Vec<Role>> {
                     let side = side(a.orient());
                     let inner = inner(panels, panel, &**a);
                     let outward = a.outward().is_some() || drawn[side];
+                    let labeled = a.labels().unwrap_or(!inner);
                     let role = Role {
                         shown: a.labels().is_some() || !(inner && outward),
-                        labeled: a.labels().unwrap_or(!inner),
+                        labeled,
+                        titled: labeled || a.keeps_label(),
                     };
                     drawn[side] |= role.shown;
                     role

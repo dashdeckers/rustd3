@@ -111,6 +111,7 @@ pub struct Axis<'a, S: Kind> {
     label: Option<Text>,
     outward: Option<f64>,
     labels: Option<bool>,
+    keep_label: bool,
     offset: bool,
     minor: bool,
     rotate: f64,
@@ -136,6 +137,7 @@ impl<S: Kind> Clone for Axis<'_, S> {
             label: self.label.clone(),
             outward: self.outward,
             labels: self.labels,
+            keep_label: self.keep_label,
             offset: self.offset,
             minor: self.minor,
             rotate: self.rotate,
@@ -300,6 +302,32 @@ impl<'a, S: Kind> Axis<'a, S> {
         }
     }
 
+    /// Keeps the title ([`label`](Axis::label)) wherever the axis is drawn
+    /// without its tick labels: an inner axis of a grid that shares the
+    /// handle loses its tick labels only, as matplotlib's `sharex` and
+    /// `sharey` do. Off by default, when an inner axis loses both.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::{Figure, axis};
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// for col in 0..2 {
+    ///     fig.panel(0, col)
+    ///         .axis(axis::bottom(x).label("order"))
+    ///         // The right panel's y ticks are unlabeled, its title kept.
+    ///         .axis(axis::left(y).label("amplitude").keep_label(true));
+    /// }
+    /// ```
+    #[must_use]
+    pub fn keep_label(self, yes: bool) -> Self {
+        Axis {
+            keep_label: yes,
+            ..self
+        }
+    }
+
     /// With or without offset and multiplier notation, on by default, as in
     /// matplotlib's `ScalarFormatter`. It applies to a continuous axis whose
     /// ticks lie evenly on d3's grid. When the domain `[a, b]` sits more
@@ -447,6 +475,7 @@ fn new<'a, S: Kind>(orient: Orient, h: ScaleRef<S>) -> Axis<'a, S> {
         label: None,
         outward: None,
         labels: None,
+        keep_label: false,
         offset: true,
         minor: false,
         rotate: 0.0,

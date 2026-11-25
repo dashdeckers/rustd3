@@ -681,6 +681,46 @@ fn a_stacked_axis_on_an_inner_panel_is_not_drawn() {
 }
 
 #[test]
+fn keep_label_keeps_the_title_of_an_inner_axis_without_its_tick_labels() {
+    let fig = one_by_two(|p, y, _| {
+        p.axis(axis::left(y).label("amplitude").keep_label(true));
+    });
+    let r = resolve(&fig, &Held::default());
+    let left = r.get_plan(0, 0).expect("the left panel's axis");
+    let right = r.get_plan(1, 0).expect("the right panel's axis");
+    assert!(right.shown && !right.labeled, "{right:?}");
+    // Ticks, a tick pad, a label pad and the title: thinner than the
+    // labeled axis, thicker than ticks alone.
+    assert!(
+        8.0 < right.thickness && right.thickness < left.thickness,
+        "{right:?} {left:?}"
+    );
+    let list = fig.draw_with(
+        &mut cache(),
+        Size::new(640.0, 480.0),
+        Target::Vector,
+        &Held::default(),
+    );
+    let texts = |panel: u64| -> Vec<String> {
+        let id = part::Id::new(4 << 56 | panel << 32);
+        list.parts
+            .iter()
+            .filter(|p| p.id == id)
+            .flat_map(|p| &list.commands[p.commands.clone()])
+            .filter_map(|c| {
+                if let Command::Glyphs(run) = c {
+                    Some(run.text.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+    assert_eq!(texts(1), ["amplitude"]);
+    assert!(texts(0).len() > 2 && texts(0).contains(&"amplitude".to_owned()));
+}
+
+#[test]
 fn labels_true_labels_an_inner_axis() {
     let fig = one_by_two(|p, y, _| {
         p.axis(axis::left(y).labels(true));

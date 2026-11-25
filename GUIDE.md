@@ -280,7 +280,9 @@ At the figure level an axis is a value placed on panels:
 `.rotate(…)`; grid lines are the theme's. `.group(f)` names each tick's
 group and labels each run of neighbors once, past the tick labels, and
 `axis::Nested(outer, inner)` is a key of two levels for a band scale. Band and point axes label
-their keys through `Display`.
+their keys through `Display`. An axis whose handle a panel further
+out on its side also shows is inner: it loses its tick labels and title,
+and `.keep_label(true)` keeps the title, as matplotlib's `sharex` does.
 
 ### Marks
 

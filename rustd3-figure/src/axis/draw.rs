@@ -33,6 +33,11 @@ pub(crate) trait Draw<'a>: 'a {
     /// Whether `.labels(b)` set its tick labels and title on or off.
     fn labels(&self) -> Option<bool>;
 
+    /// Whether `.keep_label(true)` keeps its title without tick labels.
+    fn keeps_label(&self) -> bool {
+        false
+    }
+
     /// The tick count `.ticks(n)` set.
     fn count(&self) -> Option<usize>;
 
@@ -127,6 +132,10 @@ where
 
     fn labels(&self) -> Option<bool> {
         self.labels
+    }
+
+    fn keeps_label(&self) -> bool {
+        self.keep_label
     }
 
     fn count(&self) -> Option<usize> {

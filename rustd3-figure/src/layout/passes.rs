@@ -162,8 +162,8 @@ impl Layout {
                         .zip(roles)
                         .zip(counts)
                         .map(|((a, role), &count)| {
-                            let labeled = role.shown && role.labeled;
-                            Labels::new(&**a, resolved, theme, text, labeled, count)
+                            let shown = [role.labeled, role.titled].map(|on| role.shown && on);
+                            Labels::new(&**a, resolved, theme, text, shown, count)
                         })
                         .collect()
                 })

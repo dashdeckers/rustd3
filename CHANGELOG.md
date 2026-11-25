@@ -126,6 +126,9 @@ The first release.
 - `Theme::tick_length(px)` and `Theme::tick_width(px)` size major tick
   marks at any context, as matplotlib's `xtick.major.size` and `.width`
   (3.5 by 0.8 pt); minor ticks keep seaborn's proportions to them.
+- `Axis::keep_label(true)` keeps an inner axis's title when it loses its
+  tick labels to the panel further out that shows its handle, as
+  matplotlib's `sharex` and `sharey` keep axis labels.
 
 ### iced (`rustd3-iced`, from git)
 
