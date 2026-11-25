@@ -387,7 +387,10 @@ fig.panel_at(Cell::new(1, 0).span(1, 2)); // a panel across both columns
 
 `em` is the tick-label size, so gaps scale with the theme. Panels of one
 column share their plot area's `x` and width exactly, and panels of one
-row their `y` and height.
+row their `y` and height. On the screen every labeled vertical axis keeps
+room for two more digits past its labels, so a zoom does not move the plot
+area; `fig.axis_room(n)` sets that room for every target, so a PNG and the
+live widget lay out alike.
 
 ### Themes
 

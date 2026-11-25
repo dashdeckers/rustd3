@@ -129,6 +129,9 @@ The first release.
 - `Axis::keep_label(true)` keeps an inner axis's title when it loses its
   tick labels to the panel further out that shows its handle, as
   matplotlib's `sharex` and `sharey` keep axis labels.
+- `Figure::axis_room(zeros)` sets the room labeled vertical axes keep for
+  growing labels, in widths of "0", for every target: 2 on the screen and
+  0 in files by default, so a file and the live plot can match.
 
 ### iced (`rustd3-iced`, from git)
 

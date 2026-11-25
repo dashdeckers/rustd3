@@ -89,9 +89,9 @@ impl Layout {
     /// their lengths and measures the labels, which may then reach past the
     /// old reaches.
     ///
-    /// Every labeled vertical axis of a figure drawn for the screen
-    /// reserves twice the width of "0" at tick-label size past its
-    /// decorations, so labels can grow during a gesture.
+    /// Every labeled vertical axis reserves the figure's axis room, in
+    /// widths of "0" at tick-label size, past its decorations, so labels
+    /// can grow during a gesture (`Figure::axis_room`).
     pub(crate) fn new(
         figure: &Figure<'_>,
         resolved: &Resolved,
@@ -107,7 +107,8 @@ impl Layout {
             .map(|p| p.heading().map(|t| Key::new(t, &theme.title())))
             .collect();
         let title = figure.heading().map(|t| Key::new(t, &theme.figure_title()));
-        let zero = resolved.target().interactive().then(|| {
+        let spare = figure.room(resolved.target());
+        let zero = (spare > 0.0).then(|| {
             let style = theme.tick_label(anchor::Horizontal::Middle, theme.get_ink());
             Key::new(&Text::from("0"), &style)
         });
@@ -184,7 +185,7 @@ impl Layout {
             let slack = zero
                 .as_ref()
                 .and_then(|key| get(text, key))
-                .map_or(0.0, |s| 2.0 * s.get_width());
+                .map_or(0.0, |s| spare * s.get_width());
             axes = panels
                 .iter()
                 .zip(labels)

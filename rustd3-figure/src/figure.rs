@@ -19,6 +19,7 @@ pub use resolved::Resolved;
 use rustd3_core::locale::Locale;
 pub use save::Error;
 
+use crate::Target;
 use crate::check::Issue;
 use crate::layout::{Cell, Grid};
 use crate::legend::{self, Slot};
@@ -80,6 +81,9 @@ pub struct Figure<'a> {
     legends: Vec<(Slot, legend::Stored<'a>)>,
     /// What its builder found wrong, which `check` reports last.
     noted: Vec<Issue>,
+    /// The room past labeled vertical axes, in widths of "0", in place of
+    /// the target's.
+    axis_room: Option<f64>,
 }
 
 impl<'a> std::fmt::Debug for Figure<'a> {
@@ -124,6 +128,7 @@ impl<'a> Figure<'a> {
             locale: Locale::default(),
             legends: Vec::new(),
             noted: Vec::new(),
+            axis_room: None,
         }
     }
 
@@ -274,6 +279,34 @@ impl<'a> Figure<'a> {
     pub fn locale(&mut self, l: Locale) -> &mut Self {
         self.locale = l;
         self
+    }
+
+    /// The room every labeled vertical axis keeps past its tick labels, in
+    /// widths of "0" at tick-label size, so labels that grow during a zoom
+    /// or pan do not move the plot area. By default it is 2 for the screen
+    /// (`Target::Screen`, the iced widget) and 0 for files and vector
+    /// output; setting it makes every target lay the figure out alike, so
+    /// a PNG and the live plot match. A room that is not finite and 0 or
+    /// more leaves the figure as it was.
+    ///
+    /// ```
+    /// use rustd3_figure::Figure;
+    ///
+    /// let mut fig = Figure::new();
+    /// fig.axis_room(2.0); // the PNG keeps the room the widget keeps
+    /// ```
+    pub fn axis_room(&mut self, zeros: f64) -> &mut Self {
+        if zeros.is_finite() && zeros >= 0.0 {
+            self.axis_room = Some(zeros);
+        }
+        self
+    }
+
+    /// The room past labeled vertical axes drawn for `target`, in widths
+    /// of "0".
+    pub(crate) fn room(&self, target: Target) -> f64 {
+        let default = if target.interactive() { 2.0 } else { 0.0 };
+        self.axis_room.unwrap_or(default)
     }
 
     /// Places guide `g` in figure slot `slot`, outside the grid. A legend

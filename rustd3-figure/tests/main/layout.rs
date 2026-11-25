@@ -1330,6 +1330,37 @@ fn a_labelled_vertical_axis_on_screen_reserves_two_characters_of_slack() {
 }
 
 #[test]
+fn the_axis_room_lays_every_target_out_alike() {
+    let size = Size::new(640.0, 480.0);
+    // Each target snaps to its own pixels: the left edges, within one.
+    let lefts = |room: Option<f64>| -> Vec<f64> {
+        let (mut fig, _) = held_left();
+        if let Some(room) = room {
+            fig.axis_room(room);
+        }
+        [
+            Target::Screen { scale: 1.0 },
+            Target::File { scale: 2.0 },
+            Target::Vector,
+        ]
+        .into_iter()
+        .map(|target| {
+            let r = fig.resolve(size, &mut cache(), &Held::default(), target);
+            r.get_plot_areas()[0].x0
+        })
+        .collect()
+    };
+    let near = |a: &[f64], b: f64| a.iter().all(|x| (x - b).abs() < 1.0);
+    let by_target = lefts(None);
+    assert!(by_target[0] - by_target[1] > 18.0, "{by_target:?}");
+    assert!(near(&by_target[1..], by_target[2]), "{by_target:?}");
+    assert!(near(&lefts(Some(2.0)), by_target[0]));
+    assert!(near(&lefts(Some(0.0)), by_target[2]));
+    assert_eq!(lefts(Some(f64::NAN)), by_target);
+    assert_eq!(lefts(Some(-1.0)), by_target);
+}
+
+#[test]
 fn labels_that_grow_past_held_reaches_give_way_to_a_larger_panels() {
     let size = Size::new(640.0, 480.0);
     let mut fig = Figure::new();
