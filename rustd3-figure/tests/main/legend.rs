@@ -605,3 +605,48 @@ fn a_round_frame_is_matplotlibs_in_a_corner_or_a_slot_and_off_is_none() {
         [(solid(0xcccccc), 1.0, false)]
     );
 }
+
+#[test]
+fn a_mono_legend_lines_up_padded_names_and_counts_and_ticks_keep_the_theme() {
+    let ends = |font: &'static str| -> (Vec<f64>, Vec<u64>, u64) {
+        let mut fig = Figure::new();
+        let x = fig.fit(scale::linear());
+        let color = fig.scale(scale::ordinal(["FL      12", "FRONT  340"], COLORBLIND));
+        fig.panel(0, 0)
+            .mark(line(x, [0.0, 10.0]))
+            .axis(axis::bottom(x))
+            .legend(Inset::TopLeft, legend(color).font(font).label_size(8.0));
+        let list = draw(&fig);
+        let face = |run: &rustd3_figure::list::GlyphRun| list.fonts[run.font].data.id();
+        let mut ends = Vec::new();
+        let mut faces = Vec::new();
+        for c in commands(&list, inset(0, 0)) {
+            if let Command::Glyphs(run) = c {
+                let last = run.glyphs.last().expect("a glyph");
+                ends.push(run.transform.translation().x + f64::from(last.x + last.advance));
+                faces.push(face(run));
+            }
+        }
+        let tick = list
+            .commands
+            .iter()
+            .find_map(|c| {
+                if let Command::Glyphs(run) = c
+                    && &*run.text == "10"
+                {
+                    Some(face(run))
+                } else {
+                    None
+                }
+            })
+            .expect("a tick label");
+        (ends, faces, tick)
+    };
+    let (mono, faces, tick) = ends("DejaVu Sans Mono");
+    assert_eq!(mono.len(), 2);
+    assert!((mono[0] - mono[1]).abs() < 1e-3, "{mono:?}");
+    assert!(faces.iter().all(|f| *f != tick), "ticks stay in sans");
+    let (sans, faces, tick) = ends("");
+    assert!((sans[0] - sans[1]).abs() > 1.0, "{sans:?}");
+    assert!(faces.iter().all(|f| *f == tick));
+}

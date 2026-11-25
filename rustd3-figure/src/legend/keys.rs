@@ -96,11 +96,17 @@ struct Rows {
 
 impl Content {
     /// `legend`'s title and entries over the resolved scales, in `theme`'s
-    /// legend styles at its own label size; entries without a color take
-    /// the theme's gray.
+    /// legend styles at its own label size and in its own family; entries
+    /// without a color take the theme's gray.
     pub(crate) fn new(legend: &dyn Draw, resolved: &Resolved, theme: &Theme) -> Content {
-        let title = legend.title().map(|t| Key::new(t, &theme.legend_title()));
-        let style = theme.legend_label();
+        let font = |style: text::Style| text::Style {
+            font: legend.font().or(style.font),
+            ..style
+        };
+        let title = legend
+            .title()
+            .map(|t| Key::new(t, &font(theme.legend_title())));
+        let style = font(theme.legend_label());
         let style = text::Style {
             size: legend.label_size().unwrap_or(style.size),
             ..style

@@ -373,6 +373,8 @@ grid, centred on the plot areas beside it; a panel inset sits in a
 corner. Guides in one slot stack outward in the order they are added.
 `legend(h).label_size(px)` sizes the entries, as matplotlib's
 `legend(prop={"size": …})`, and the legend's spacing with them;
+`.font(family)` sets its family apart from the theme's (mono, so padded
+names and counts line up);
 `.frame(Frame::Round)` draws matplotlib's rounded box (`Frame::Square`,
 an inset's default, and `Frame::Off`, a slot's). A
 colorbar of an ordinal palette, or a legend of a continuous scale, does

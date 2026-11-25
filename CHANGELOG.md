@@ -123,6 +123,9 @@ The first release.
   size; `Legend::frame(legend::Frame::Round)` draws matplotlib's frame (a
   box with rounded corners on the panel's color at 0.8, a gray edge), in a
   corner or a figure slot.
+- `Legend::font(family)` sets a legend's family apart from the theme's:
+  in DejaVu Sans Mono at a small `label_size`, padded names and counts
+  line up while tick labels stay in the theme's sans.
 - `Theme::tick_length(px)` and `Theme::tick_width(px)` size major tick
   marks at any context, as matplotlib's `xtick.major.size` and `.width`
   (3.5 by 0.8 pt); minor ticks keep seaborn's proportions to them.

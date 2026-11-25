@@ -81,6 +81,7 @@ pub struct Legend<K> {
     title: Option<Text>,
     glyph: Option<Swatch>,
     label_size: Option<f64>,
+    font: Option<&'static str>,
     frame: Option<Frame>,
 }
 
@@ -97,6 +98,7 @@ impl<K> Clone for Legend<K> {
             title: self.title.clone(),
             glyph: self.glyph,
             label_size: self.label_size,
+            font: self.font,
             frame: self.frame,
         }
     }
@@ -113,6 +115,7 @@ where
         title: None,
         glyph: None,
         label_size: None,
+        font: None,
         frame: None,
     }
 }
@@ -164,6 +167,31 @@ impl<K> Legend<K> {
         }
     }
 
+    /// The legend's font family, its entries and title alike, as its name
+    /// table gives it; the theme's ([`Theme::font`](crate::Theme::font))
+    /// by default. In DejaVu Sans Mono, bundled with the `fonts` feature,
+    /// padded names and counts line up while tick labels keep the theme's
+    /// family. An empty name leaves it as it was.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_core::scheme::COLORBLIND;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::legend::{Inset, legend};
+    ///
+    /// let mut fig = Figure::new();
+    /// let color = fig.scale(scale::ordinal(["FL     12", "RR    340"], COLORBLIND));
+    /// let key = legend(color).font("DejaVu Sans Mono").label_size(8.0);
+    /// fig.panel(0, 0).legend(Inset::TopLeft, key);
+    /// ```
+    #[must_use]
+    pub fn font(self, family: &'static str) -> Self {
+        Legend {
+            font: Some(family).filter(|f| !f.is_empty()).or(self.font),
+            ..self
+        }
+    }
+
     /// The box behind the legend, in a panel corner or a figure slot alike;
     /// [`Frame::Square`] in a corner and [`Frame::Off`] in a slot by
     /// default.
@@ -201,6 +229,11 @@ pub(crate) trait Draw {
 
     /// The entries' text size `.label_size(px)` set.
     fn label_size(&self) -> Option<f64> {
+        None
+    }
+
+    /// The font family `.font(family)` set.
+    fn font(&self) -> Option<&'static str> {
         None
     }
 
@@ -259,6 +292,10 @@ where
 
     fn label_size(&self) -> Option<f64> {
         self.label_size
+    }
+
+    fn font(&self) -> Option<&'static str> {
+        self.font
     }
 
     fn frame(&self) -> Option<Frame> {
