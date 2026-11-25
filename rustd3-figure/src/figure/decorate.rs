@@ -56,7 +56,7 @@ impl Figure<'_> {
             part(list, part::id(Role::Panel, i, 0), |list| {
                 list.commands.push(Command::Fill {
                     path: area.inflate(overscan, overscan).to_path(TOLERANCE),
-                    paint: list::brush(theme.panel()),
+                    paint: list::brush(theme.get_panel()),
                 });
             });
             if let Some(color) = theme.grid() {

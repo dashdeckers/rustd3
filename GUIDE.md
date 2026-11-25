@@ -391,7 +391,9 @@ fig.theme(
 Styles are seaborn's (`DarkGrid`, `WhiteGrid`, `Dark`, `White`,
 `Ticks`), contexts scale every size at once (`Paper`, `Notebook`,
 `Talk`, `Poster`), palettes are seaborn's and d3's. `Theme::default()`
-is rustd3's own. Custom marks read the theme through `Theme::get_color`,
+is rustd3's own. `.background(c)`, `.panel(c)` and `.ink(c)` recolor the
+figure, its plot areas and its text, which makes a dark figure. Custom
+marks read the theme through `Theme::get_color`,
 `get_line_width` and the other readers.
 
 ### Time, zones and locales

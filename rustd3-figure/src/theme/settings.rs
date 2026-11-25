@@ -69,6 +69,8 @@ pub struct Theme {
     ink: Rgb,
     /// The color behind the whole figure.
     background: Rgb,
+    /// The color behind each plot area, in place of the style's.
+    panel: Option<Rgb>,
 }
 
 impl Default for Theme {
@@ -95,6 +97,7 @@ impl Theme {
             domains: Domains::Margin(0.05),
             ink: INK,
             background: Rgb::hex(0xffffff),
+            panel: None,
         }
     }
 
@@ -189,6 +192,36 @@ impl Theme {
         }
     }
 
+    /// The color behind each plot area, `c`, at any opacity, in place of
+    /// the style's (white, or seaborn's gray-blue in the dark styles).
+    /// With [`background`](Theme::background) and [`ink`](Theme::ink) it
+    /// makes a dark figure. Grid lines and axis lines keep the style's
+    /// colors. A color with a channel or an opacity that is not finite
+    /// leaves the theme as it was.
+    ///
+    /// ```
+    /// use rustd3_core::color::Rgb;
+    /// use rustd3_figure::Theme;
+    ///
+    /// let night = Rgb::hex(0x1f2430);
+    /// let theme = Theme::default()
+    ///     .background(night)
+    ///     .panel(night)
+    ///     .ink(Rgb::hex(0xd9dee7));
+    /// assert_eq!(theme.get_panel(), night);
+    /// ```
+    #[must_use]
+    pub fn panel(self, c: Rgb) -> Self {
+        if finite(c) {
+            Theme {
+                panel: Some(c),
+                ..self
+            }
+        } else {
+            self
+        }
+    }
+
     /// The color of text, tick labels, tick marks and the white styles'
     /// axis lines.
     #[must_use]
@@ -233,9 +266,11 @@ impl Theme {
         self.style.ticks()
     }
 
-    /// The color behind each plot area.
-    pub(crate) fn panel(&self) -> Rgb {
-        self.style.panel()
+    /// The color behind each plot area: the one [`panel`](Theme::panel)
+    /// set, or the style's.
+    #[must_use]
+    pub fn get_panel(&self) -> Rgb {
+        self.panel.unwrap_or_else(|| self.style.panel())
     }
 
     /// The size of tick labels: 11 pt.
@@ -396,7 +431,7 @@ impl Theme {
     /// The color behind an inset legend: the panel's color at matplotlib's
     /// `legend.framealpha`, 0.8.
     pub(crate) fn legend_face(&self) -> Rgb {
-        self.panel().with_opacity(0.8)
+        self.get_panel().with_opacity(0.8)
     }
 
     /// The color of an inset legend's edge: matplotlib's
@@ -555,7 +590,7 @@ mod tests {
         for (style, panel, edge, grid, ticks) in rows {
             let theme = Theme::seaborn(style, Context::Notebook);
             assert_eq!(
-                (theme.panel(), theme.edge(), theme.grid(), theme.ticks()),
+                (theme.get_panel(), theme.edge(), theme.grid(), theme.ticks()),
                 (panel, edge, grid, ticks),
                 "{style:?}"
             );
@@ -602,6 +637,21 @@ mod tests {
     }
 
     #[test]
+    fn the_panel_builder_replaces_the_styles_color_behind_plot_areas() {
+        let night = Rgb::hex(0x1f2430);
+        let dark = Theme::seaborn(Style::DarkGrid, Context::Notebook);
+        assert_eq!(dark.get_panel(), Rgb::hex(0xeaeaf2));
+        assert_eq!(dark.clone().panel(night).get_panel(), night);
+        // An inset legend stands on the panel's color.
+        assert_eq!(
+            Theme::default().panel(night).legend_face(),
+            night.with_opacity(0.8)
+        );
+        let bad = Rgb::new(f64::NAN, 0.0, 0.0);
+        assert_eq!(dark.clone().panel(bad), dark);
+    }
+
+    #[test]
     fn ink_and_background_builders_set_what_the_readers_return() {
         let red = Rgb::hex(0xff0000);
         let half = Rgb::hex(0x336699).with_opacity(0.5);
@@ -613,7 +663,7 @@ mod tests {
         assert_eq!(theme.figure_title().fill, red);
         assert_eq!(theme.legend_label().fill, red);
         // The panel keeps its own color, and whitegrid its gray edge.
-        assert_eq!(theme.panel(), Rgb::hex(0xffffff));
+        assert_eq!(theme.get_panel(), Rgb::hex(0xffffff));
         let grid = Theme::seaborn(Style::WhiteGrid, Context::Notebook).ink(red);
         assert_eq!(grid.edge(), Some(Rgb::hex(0xcccccc)));
     }

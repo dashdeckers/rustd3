@@ -76,6 +76,8 @@ The first release.
   fill takes the most opaque, so squares of opaque marks stay opaque.
 - `helpers::chart::Line::key` and `Area::keys` name the series their
   legends show; a name given twice is `check::Issue::DuplicateKey`.
+- `Theme::panel(c)` sets the color behind the plot areas, so a figure can
+  be dark throughout; `Theme::get_panel` reads it.
 
 ### iced (`rustd3-iced`, from git)
 
