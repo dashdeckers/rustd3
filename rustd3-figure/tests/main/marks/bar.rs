@@ -184,6 +184,28 @@ fn a_stroked_rect_is_outlined_and_filled_only_when_asked() {
 }
 
 #[test]
+fn a_rect_outline_takes_its_width_and_keeps_its_own_for_bad_widths() {
+    let (mut fig, x, y) = fitted();
+    let color = fig.scale(scale::ordinal(["a"], COLORBLIND));
+    let cell = || rect([([0.0, 1.0], [0.0, 1.0])], x, y).stroke(color, "a");
+    fig.panel(0, 0)
+        .mark(cell().stroke_width(3.0))
+        .mark(cell().stroke_width(3.0).stroke_width(f64::NAN))
+        .mark(cell().stroke_width(-1.0));
+    let list = draw(&fig);
+    let widths: Vec<f64> = marked(&list)
+        .into_iter()
+        .map(|c| {
+            let Command::Stroke { style, .. } = c else {
+                panic!("not an outline: {c:?}");
+            };
+            style.width
+        })
+        .collect();
+    assert_eq!(widths, [3.0, 3.0, 4.0 / 3.0]);
+}
+
+#[test]
 fn bars_fill_their_band_and_dodged_bars_their_key_slot() {
     let mut fig = Figure::new();
     let x = fig.scale(scale::band([0, 1, 2, 3]).padding(0.1));

@@ -95,6 +95,8 @@ The first release.
   hexagon at the size of the circle they replace, and `Dots::hollow`
   draws their outlines one patch edge wide; d3's line symbols are always
   outlines. Legend swatches repeat both (`legend::Swatch::Symbol`).
+- `Rect::stroke_width` sets the width of a rectangle's outline, 1 pt by
+  default: a heatmap can box the cells it highlights.
 
 ### iced (`rustd3-iced`, from git)
 
