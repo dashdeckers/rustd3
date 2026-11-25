@@ -11,7 +11,7 @@ The first release.
   adds one dependency.
 - `rustd3-core`: d3's vocabulary, renderer-agnostic. It follows d3
   7.9.0's semantics and is checked by tests derived from d3's own test
-  suites: 5,308 assertions in 1,586 tests, each naming d3's file and
+  suites: 5,321 assertions in 1,593 tests, each naming d3's file and
   line.
 - `rustd3-figure`: the figure layer and its outputs.
 - `rustd3-fonts`: DejaVu Sans (regular and bold) and New Computer Modern
@@ -50,6 +50,10 @@ The first release.
   `minIndex`: the position of the greatest and of the least value.
 - `locale::Locale::ladder(l)` puts a locale's dates on another ladder in
   one call.
+- `shape::Symbol` has d3's seven stroke symbols (`Symbol::STROKE`: plus,
+  times, asterisk and stroke-sized circle, triangle, square and diamond)
+  beside its fill symbols, and Observable Plot's hexagon.
+  `Symbol::is_open` tells the three that are lines without an inside.
 
 ### Figure
 

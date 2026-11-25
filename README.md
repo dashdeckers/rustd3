@@ -20,7 +20,7 @@ layout and a backend do the rest.
 
 The time zone, the locale and the clock are always parameters: nothing
 in the library reads the system's. The core follows d3's semantics and
-is checked by tests derived from d3's own test suites (5,308 assertions,
+is checked by tests derived from d3's own test suites (5,321 assertions,
 each naming d3's file and line), and the figure layer against matplotlib
 and seaborn reference values.
 

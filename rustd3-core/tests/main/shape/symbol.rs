@@ -58,6 +58,26 @@ fn fill_lists_d3s_symbols_fill_in_order() {
     );
 }
 
+#[test]
+fn the_hexagon_draws_observable_plots_path_with_a_circles_half_width() {
+    // Plot's symbolHexagon at size 64: rx = √(64 / π), ry = rx · 2 / √3.
+    assert_eq!(
+        drawn(Symbol::Hexagon, 64.0),
+        "M0,5.212L4.514,2.606L4.514,-2.606L0,-5.212L-4.514,-2.606L-4.514,2.606Z"
+    );
+}
+
+#[test]
+fn only_plus_times_and_asterisk_are_open() {
+    let open: Vec<Symbol> = Symbol::FILL
+        .into_iter()
+        .chain(Symbol::STROKE)
+        .chain([Symbol::Hexagon])
+        .filter(|s| s.is_open())
+        .collect();
+    assert_eq!(open, [Symbol::Plus, Symbol::Times, Symbol::Asterisk]);
+}
+
 /// Records each `PathContext` call by name, its own `rect` included.
 #[derive(Default)]
 struct Calls(Vec<&'static str>);

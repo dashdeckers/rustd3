@@ -27,6 +27,19 @@ fn symbol_size_size_observes_the_specified_size_constant() {
     ); // d3-shape/test/symbol-test.js:44:3
 }
 
+// d3-shape/test/symbol-test.js: symbol.type(symbolAsterisk) generates the expected path
+#[test]
+fn symbol_type_symbolasterisk_generates_the_expected_path() {
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Asterisk.draw(0.0, ctx)),
+        &"M0,0L0,0M0,0L0,0M0,0L0,0",
+    ); // d3-shape/test/symbol-test.js:49:3
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Asterisk.draw(20.0, ctx)),
+        &"M0,2.705108L0,-2.705108M-2.342692,-1.352554L2.342692,1.352554M-2.342692,1.352554L2.342692,-1.352554",
+    ); // d3-shape/test/symbol-test.js:50:3
+}
+
 // d3-shape/test/symbol-test.js: symbol.type(symbolCircle) generates the expected path
 #[test]
 fn symbol_type_symbolcircle_generates_the_expected_path() {
@@ -83,6 +96,32 @@ fn symbol_type_symboldiamond_generates_the_expected_path() {
     ); // d3-shape/test/symbol-test.js:80:3
 }
 
+// d3-shape/test/symbol-test.js: symbol.type(symbolDiamond2) generates the expected path
+#[test]
+fn symbol_type_symboldiamond2_generates_the_expected_path() {
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Diamond2.draw(0.0, ctx)),
+        &"M0,0L0,0L0,0L0,0Z",
+    ); // d3-shape/test/symbol-test.js:85:3
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Diamond2.draw(20.0, ctx)),
+        &"M0,-2.800675L2.800675,0L0,2.800675L-2.800675,0Z",
+    ); // d3-shape/test/symbol-test.js:86:3
+}
+
+// d3-shape/test/symbol-test.js: symbol.type(symbolPlus) generates the expected path
+#[test]
+fn symbol_type_symbolplus_generates_the_expected_path() {
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Plus.draw(0.0, ctx)),
+        &"M0,0L0,0M0,0L0,0",
+    ); // d3-shape/test/symbol-test.js:91:3
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Plus.draw(20.0, ctx)),
+        &"M-3.714814,0L3.714814,0M0,3.714814L0,-3.714814",
+    ); // d3-shape/test/symbol-test.js:92:3
+}
+
 // d3-shape/test/symbol-test.js: symbol.type(symbolStar) generates a polygon with the specified size
 #[test]
 fn symbol_type_symbolstar_generates_a_polygon_with_the_specified_size() {
@@ -133,6 +172,19 @@ fn symbol_type_symbolsquare_generates_the_expected_path() {
     ); // d3-shape/test/symbol-test.js:117:3
 }
 
+// d3-shape/test/symbol-test.js: symbol.type(symbolSquare2) generates the expected path
+#[test]
+fn symbol_type_symbolsquare2_generates_the_expected_path() {
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Square2.draw(0.0, ctx)),
+        &"M0,0L0,0L0,0L0,0Z",
+    ); // d3-shape/test/symbol-test.js:122:3
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Square2.draw(20.0, ctx)),
+        &"M1.981603,1.981603L1.981603,-1.981603L-1.981603,-1.981603L-1.981603,1.981603Z",
+    ); // d3-shape/test/symbol-test.js:123:3
+}
+
 // d3-shape/test/symbol-test.js: symbol.type(symbolTriangle) generates a polygon with the specified size
 #[test]
 fn symbol_type_symboltriangle_generates_a_polygon_with_the_specified_size() {
@@ -156,6 +208,19 @@ fn symbol_type_symboltriangle_generates_the_expected_path() {
     ); // d3-shape/test/symbol-test.js:135:3
 }
 
+// d3-shape/test/symbol-test.js: symbol.type(symbolTriangle2) generates the expected path
+#[test]
+fn symbol_type_symboltriangle2_generates_the_expected_path() {
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Triangle2.draw(0.0, ctx)),
+        &"M0,0L0,0L0,0Z",
+    ); // d3-shape/test/symbol-test.js:140:3
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Triangle2.draw(20.0, ctx)),
+        &"M0,-3.051786L2.642924,1.525893L-2.642924,1.525893Z",
+    ); // d3-shape/test/symbol-test.js:141:3
+}
+
 // d3-shape/test/symbol-test.js: symbol.type(symbolWye) generates a polygon with the specified size
 #[test]
 fn symbol_type_symbolwye_generates_a_polygon_with_the_specified_size() {
@@ -177,6 +242,19 @@ fn symbol_type_symbolwye_generates_the_expected_path() {
         &drawn(|ctx| shape::Symbol::Wye.draw(10.0, ctx)),
         &"M0.853360,0.492688L0.853360,2.199408L-0.853360,2.199408L-0.853360,0.492688L-2.331423,-0.360672L-1.478063,-1.838735L0,-0.985375L1.478063,-1.838735L2.331423,-0.360672Z",
     ); // d3-shape/test/symbol-test.js:153:3
+}
+
+// d3-shape/test/symbol-test.js: symbol.type(symbolTimes) generates the expected path
+#[test]
+fn symbol_type_symboltimes_generates_the_expected_path() {
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Times.draw(0.0, ctx)),
+        &"M0,0L0,0M0,0L0,0",
+    ); // d3-shape/test/symbol-test.js:158:3
+    assert_path_eq(
+        &drawn(|ctx| shape::Symbol::Times.draw(20.0, ctx)),
+        &"M-2.647561,-2.647561L2.647561,2.647561M-2.647561,2.647561L2.647561,-2.647561",
+    ); // d3-shape/test/symbol-test.js:159:3
 }
 
 // d3-shape/test/symbol-test.js: symbol(type, size) is equivalent to symbol().type(type).size(size)
@@ -203,4 +281,21 @@ fn symbolsfill_is_the_array_of_symbol_types() {
             shape::Symbol::Wye
         ]
     ); // d3-shape/test/symbols-test.js:9:3
+}
+
+// d3-shape/test/symbols-test.js: symbolsStroke is the array of symbol types
+#[test]
+fn symbolsstroke_is_the_array_of_symbol_types() {
+    assert_eq!(
+        shape::Symbol::STROKE,
+        [
+            shape::Symbol::Circle,
+            shape::Symbol::Plus,
+            shape::Symbol::Times,
+            shape::Symbol::Triangle2,
+            shape::Symbol::Asterisk,
+            shape::Symbol::Square2,
+            shape::Symbol::Diamond2
+        ]
+    ); // d3-shape/test/symbols-test.js:21:3
 }
