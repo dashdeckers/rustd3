@@ -14,8 +14,9 @@ The first release.
   suites: 5,321 assertions in 1,593 tests, each naming d3's file and
   line.
 - `rustd3-figure`: the figure layer and its outputs.
-- `rustd3-fonts`: DejaVu Sans (regular and bold), DejaVu Sans Mono and
-  New Computer Modern Math, bundled.
+- `rustd3-fonts`: DejaVu Sans and DejaVu Sans Mono (regular and bold
+  each) and New Computer Modern Math, bundled; `SANS` and `MONO` name
+  the two text families.
 - `rustd3-derive`: `#[derive(Interpolate)]`, behind the core's `derive`
   feature.
 - `rustd3-iced`, from git, not on crates.io: it depends on iced at

@@ -44,8 +44,8 @@ impl fmt::Debug for Fonts {
 }
 
 impl Fonts {
-    /// DejaVu Sans, DejaVu Sans Bold, New Computer Modern Math and DejaVu
-    /// Sans Mono, from `rustd3-fonts`; parsed once per process.
+    /// DejaVu Sans and DejaVu Sans Mono in two weights each and New
+    /// Computer Modern Math, from `rustd3-fonts`; parsed once per process.
     #[cfg(feature = "fonts")]
     pub fn bundled() -> Arc<Fonts> {
         static BUNDLED: std::sync::OnceLock<Arc<Fonts>> = std::sync::OnceLock::new();
@@ -190,7 +190,7 @@ mod tests {
                 "DejaVu Sans Mono"
             ]
         );
-        assert_eq!(fonts.faces.len(), 5);
+        assert_eq!(fonts.faces.len(), 6);
     }
 
     #[test]

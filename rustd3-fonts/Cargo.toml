@@ -12,6 +12,7 @@ include = [
     "src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE",
     "/LICENSE-DejaVu", "/LICENSE-NewCMMath.txt",
     "/DejaVuSans.ttf", "/DejaVuSans-Bold.ttf", "/NewCMMath-Regular.otf", "/DejaVuSansMono.ttf",
+    "/DejaVuSansMono-Bold.ttf",
 ]
 autotests = false
 

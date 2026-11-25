@@ -1,7 +1,17 @@
 //! The bundled fonts, parsed with ttf-parser.
 #![allow(clippy::unwrap_used, reason = "test helpers outside #[test] fns")]
 
-use rustd3_fonts::{ALL, DEJAVU_SANS, DEJAVU_SANS_BOLD, DEJAVU_SANS_MONO, Font, NEW_CM_MATH};
+use rustd3_fonts::{
+    ALL,
+    DEJAVU_SANS,
+    DEJAVU_SANS_BOLD,
+    DEJAVU_SANS_MONO,
+    DEJAVU_SANS_MONO_BOLD,
+    Font,
+    MONO,
+    NEW_CM_MATH,
+    SANS,
+};
 use ttf_parser::{Face, name_id};
 
 /// Narrow no-break space and minus (the neutral locale's group separator
@@ -80,13 +90,25 @@ fn dejavu_sans_mono_is_regular_dejavu_sans_mono_without_a_math_table() {
 }
 
 #[test]
-fn dejavu_sans_mono_gives_every_character_one_advance() {
-    let face = Face::parse(DEJAVU_SANS_MONO.data(), 0).unwrap();
-    assert!(face.is_monospaced());
-    let advance = |c: char| face.glyph_hor_advance(face.glyph_index(c).unwrap());
-    let chars = " 0123456789.,-+abcxyzABCXYZ_|".chars().chain(LOCALE_CHARS);
-    for c in chars {
-        assert_eq!(advance(c), advance('0'), "{c:?}");
+fn dejavu_sans_mono_bold_is_bold_dejavu_sans_mono_without_a_math_table() {
+    let parsed = Parsed::from(DEJAVU_SANS_MONO_BOLD);
+    assert_eq!(parsed.family, "DejaVu Sans Mono");
+    assert!(parsed.bold);
+    assert!(!parsed.math);
+    assert_eq!(parsed.glyphs, 3_316);
+    assert_eq!(parsed.missing, Vec::<char>::new());
+}
+
+#[test]
+fn both_mono_weights_give_every_character_one_advance() {
+    for font in [DEJAVU_SANS_MONO, DEJAVU_SANS_MONO_BOLD] {
+        let face = Face::parse(font.data(), 0).unwrap();
+        assert!(face.is_monospaced());
+        let advance = |c: char| face.glyph_hor_advance(face.glyph_index(c).unwrap());
+        let chars = " 0123456789.,-+abcxyzABCXYZ_|".chars().chain(LOCALE_CHARS);
+        for c in chars {
+            assert_eq!(advance(c), advance('0'), "{c:?}");
+        }
     }
 }
 
@@ -97,4 +119,16 @@ fn every_font_reports_the_family_and_weight_its_tables_hold() {
         assert_eq!(font.family(), parsed.family);
         assert_eq!(font.bold(), parsed.bold);
     }
+}
+
+#[test]
+fn the_family_names_are_the_text_faces_in_both_weights() {
+    let of = |family: &str| -> Vec<bool> {
+        ALL.iter()
+            .filter(|font| font.family() == family)
+            .map(|font| font.bold())
+            .collect()
+    };
+    assert_eq!(of(SANS), [false, true]);
+    assert_eq!(of(MONO), [false, true]);
 }

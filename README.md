@@ -224,7 +224,7 @@ shows both.
 | none | the core: scales, ticks, axes, shapes, formats, time, locales, color and schemes, interpolation and easing, array statistics, recordings, zoom, brush, drag, animation |
 | `derive` | `#[derive(Interpolate)]` in `rustd3::interpolate` |
 | `figure` | figures, layout, typst text and math, the SVG writer |
-| `fonts` (default) | DejaVu Sans in two weights, DejaVu Sans Mono and New Computer Modern Math, bundled (3.1 MB); it does not turn `figure` on |
+| `fonts` (default) | DejaVu Sans and DejaVu Sans Mono in two weights each and New Computer Modern Math, bundled (3.4 MB); it does not turn `figure` on |
 | `raster` | vello_cpu rendering the drawing list into pixels |
 | `png`, `gif` | `raster` and an encoder |
 | `pdf` | PDF through krilla, with selectable text |

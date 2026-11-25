@@ -1,16 +1,17 @@
 rustd3-fonts is licensed under MIT OR Apache-2.0, at your option (the
 texts are LICENSE-MIT and LICENSE-APACHE at the root of the rustd3
 repository); that covers the crate's code, not the fonts it bundles.
-DejaVuSans.ttf, DejaVuSans-Bold.ttf and DejaVuSansMono.ttf (DejaVu Sans
-and DejaVu Sans Mono 2.37) are under the Bitstream Vera Fonts licence,
-with the Arev Fonts licence for the glyphs imported from Arev and the
-DejaVu changes in the public domain; the full text follows first and is
-also in LICENSE-DejaVu. NewCMMath-Regular.otf (New Computer Modern
-Math) is under the GUST Font License 1.0, that is the LaTeX Project
-Public License 1.3c or later with a request to rename modified
-versions; the full text follows second and is also in
-LICENSE-NewCMMath.txt. Both texts are lines 139-236 and 103-130 of the
-NOTICE file of typst-assets 0.15.1, which also ships DejaVuSansMono.ttf.
+DejaVuSans.ttf, DejaVuSans-Bold.ttf, DejaVuSansMono.ttf and
+DejaVuSansMono-Bold.ttf (DejaVu Sans and DejaVu Sans Mono 2.37) are
+under the Bitstream Vera Fonts licence, with the Arev Fonts licence for
+the glyphs imported from Arev and the DejaVu changes in the public
+domain; the full text follows first and is also in LICENSE-DejaVu.
+NewCMMath-Regular.otf (New Computer Modern Math) is under the GUST Font
+License 1.0, that is the LaTeX Project Public License 1.3c or later
+with a request to rename modified versions; the full text follows
+second and is also in LICENSE-NewCMMath.txt. Both texts are lines
+139-236 and 103-130 of the NOTICE file of typst-assets 0.15.1, which
+also ships both DejaVuSansMono files.
 
 ================================================================================
 
