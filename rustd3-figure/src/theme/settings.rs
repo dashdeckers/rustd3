@@ -71,6 +71,10 @@ pub struct Theme {
     background: Rgb,
     /// The color behind each plot area, in place of the style's.
     panel: Option<Rgb>,
+    /// The font family of all text, in place of the fonts' fallback order.
+    font: Option<&'static str>,
+    /// The font family of `raw` markup, in place of typst's.
+    mono: Option<&'static str>,
 }
 
 impl Default for Theme {
@@ -98,6 +102,8 @@ impl Theme {
             ink: INK,
             background: Rgb::hex(0xffffff),
             panel: None,
+            font: None,
+            mono: None,
         }
     }
 
@@ -219,6 +225,48 @@ impl Theme {
             }
         } else {
             self
+        }
+    }
+
+    /// Sets all text in font family `family`, as its name table gives it:
+    /// tick labels, axis labels, titles, legends, notes and rule labels. A
+    /// note or a span may name its own. By default text takes the fonts'
+    /// fallback order, which starts with DejaVu Sans (`rustd3_fonts::SANS`)
+    /// when the fonts are the bundled ones; characters the family lacks
+    /// fall back as typst does. An empty name leaves the theme as it was.
+    ///
+    /// ```
+    /// use rustd3_figure::Theme;
+    ///
+    /// let mono = Theme::default().font("DejaVu Sans Mono");
+    /// assert_ne!(mono, Theme::default());
+    /// assert_eq!(Theme::default().font(""), Theme::default());
+    /// ```
+    #[must_use]
+    pub fn font(self, family: &'static str) -> Self {
+        if family.is_empty() {
+            self
+        } else {
+            Theme {
+                font: Some(family),
+                ..self
+            }
+        }
+    }
+
+    /// Sets `raw` markup (typst's monospaced text, `` `x` `` in a label's
+    /// markup) in font family `family`. By default it is typst's own, DejaVu
+    /// Sans Mono (`rustd3_fonts::MONO`), bundled with the `fonts` feature.
+    /// An empty name leaves the theme as it was.
+    #[must_use]
+    pub fn mono(self, family: &'static str) -> Self {
+        if family.is_empty() {
+            self
+        } else {
+            Theme {
+                mono: Some(family),
+                ..self
+            }
         }
     }
 
@@ -391,41 +439,41 @@ impl Theme {
 
     /// A tick label's style: its lines aligned by `align`, in `fill`.
     pub(crate) fn tick_label(&self, align: anchor::Horizontal, fill: Rgb) -> text::Style {
-        style(self.tick_text(), align, fill)
+        self.style(self.tick_text(), align, fill)
     }
 
     /// An axis label's style: centered lines in `fill`.
     pub(crate) fn axis_label(&self, fill: Rgb) -> text::Style {
-        style(self.label_text(), anchor::Horizontal::Middle, fill)
+        self.style(self.label_text(), anchor::Horizontal::Middle, fill)
     }
 
     /// A panel title's style: centered lines in ink.
     pub(crate) fn title(&self) -> text::Style {
-        style(self.label_text(), anchor::Horizontal::Middle, self.ink)
+        self.style(self.label_text(), anchor::Horizontal::Middle, self.ink)
     }
 
     /// A mark's label (a rule's): tick-label size, its lines aligned by
     /// `align`, in `fill`.
     pub(crate) fn mark_label(&self, align: anchor::Horizontal, fill: Rgb) -> text::Style {
-        style(self.tick_text(), align, fill)
+        self.style(self.tick_text(), align, fill)
     }
 
     /// A note's text: the axis-label size (matplotlib's `font.size` at
     /// seaborn's notebook, 12 pt), its lines aligned by `align`, in `fill`.
     pub(crate) fn note(&self, align: anchor::Horizontal, fill: Rgb) -> text::Style {
-        style(self.label_text(), align, fill)
+        self.style(self.label_text(), align, fill)
     }
 
     /// A legend entry's label: tick-label size (matplotlib's
     /// `legend.fontsize` at seaborn's notebook, 11 pt), in ink.
     pub(crate) fn legend_label(&self) -> text::Style {
-        style(self.tick_text(), anchor::Horizontal::Start, self.ink)
+        self.style(self.tick_text(), anchor::Horizontal::Start, self.ink)
     }
 
     /// A legend's title: 12 pt (`legend.title_fontsize`), centered lines in
     /// ink.
     pub(crate) fn legend_title(&self) -> text::Style {
-        style(self.label_text(), anchor::Horizontal::Middle, self.ink)
+        self.style(self.label_text(), anchor::Horizontal::Middle, self.ink)
     }
 
     /// The color behind an inset legend: the panel's color at matplotlib's
@@ -442,7 +490,7 @@ impl Theme {
 
     /// The figure title's style: centered lines in ink.
     pub(crate) fn figure_title(&self) -> text::Style {
-        style(
+        self.style(
             self.figure_title_text(),
             anchor::Horizontal::Middle,
             self.ink,
@@ -458,21 +506,24 @@ impl Theme {
     fn text(&self, v: f64) -> f64 {
         self.pt(v) * self.font_scale
     }
+
+    /// Regular text in the theme's family of `size` px in `fill`, its
+    /// lines aligned by `align`.
+    fn style(&self, size: f64, align: anchor::Horizontal, fill: Rgb) -> text::Style {
+        text::Style {
+            font: self.font,
+            mono: self.mono,
+            size,
+            bold: false,
+            fill,
+            align,
+        }
+    }
 }
 
 /// Whether every channel and the opacity of `c` are finite.
 fn finite(c: Rgb) -> bool {
     [c.r, c.g, c.b, c.opacity].iter().all(|v| v.is_finite())
-}
-
-/// Regular text of `size` px in `fill`, its lines aligned by `align`.
-fn style(size: f64, align: anchor::Horizontal, fill: Rgb) -> text::Style {
-    text::Style {
-        size,
-        bold: false,
-        fill,
-        align,
-    }
 }
 
 #[cfg(test)]

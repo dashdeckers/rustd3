@@ -21,6 +21,8 @@ const PAD: f64 = 0.8 * 11.0 * 4.0 / 3.0;
 /// ink descent).
 fn shape(label: &str, size: f64) -> (f64, f64, f64) {
     let style = Style {
+        font: None,
+        mono: None,
         size,
         bold: false,
         fill: Rgb::hex(0x262626),

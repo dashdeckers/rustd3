@@ -148,6 +148,8 @@ mod tests {
     #[test]
     fn no_spot_check_label_draws_a_typst_warning() {
         let style = Style {
+            font: None,
+            mono: None,
             size: 11.0,
             bold: false,
             fill: Rgb::hex(0),

@@ -23,6 +23,8 @@ const GAP: f64 = (6.0 + 3.5) * 4.0 / 3.0;
 /// ascent).
 fn ink(label: &str) -> (f64, f64, f64) {
     let style = Style {
+        font: None,
+        mono: None,
         size: SIZE,
         bold: false,
         fill: Rgb::hex(0x262626),

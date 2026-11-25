@@ -36,6 +36,7 @@ pub struct Note<X: Position, Y: Position> {
     fill: Option<Rgb>,
     size: Option<f64>,
     bold: bool,
+    font: Option<&'static str>,
     avoid: Option<Avoid>,
 }
 
@@ -82,6 +83,7 @@ pub fn note<X: Position, Y: Position>(
         fill: None,
         size: None,
         bold: false,
+        font: None,
         avoid: None,
     }
 }
@@ -147,6 +149,29 @@ impl<X: Position, Y: Position> Note<X, Y> {
     #[must_use]
     pub fn bold(self, yes: bool) -> Self {
         Self { bold: yes, ..self }
+    }
+
+    /// The text's font family, as its name table gives it; the theme's by
+    /// default ([`Theme::font`]). In DejaVu Sans Mono, bundled with the
+    /// `fonts` feature, padded columns line up. An empty name leaves it as
+    /// it was.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::note;
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// let table = "peak    3.00\nmean   12.50";
+    /// fig.panel(0, 0).mark(note((1.0, 3.0), table, x, y).font("DejaVu Sans Mono"));
+    /// ```
+    #[must_use]
+    pub fn font(self, family: &'static str) -> Self {
+        Self {
+            font: Some(family).filter(|f| !f.is_empty()).or(self.font),
+            ..self
+        }
     }
 
     /// Makes way for the notes of the panel drawn before this one that
@@ -221,6 +246,7 @@ impl<X: Position, Y: Position> Note<X, Y> {
         let style = Style {
             size: self.size.unwrap_or(style.size),
             bold: self.bold,
+            font: self.font.or(style.font),
             ..style
         };
         Key::new(&self.text, &style)

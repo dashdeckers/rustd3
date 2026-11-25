@@ -26,6 +26,8 @@ impl Total {
     fn key(&self, locale: &Locale, theme: &Theme) -> Key {
         let format = locale.get_number().format(",.1f").expect("a specifier");
         let style = Style {
+            font: None,
+            mono: None,
             size: 12.0,
             bold: false,
             fill: theme.get_palette()[1],

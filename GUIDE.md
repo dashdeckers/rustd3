@@ -294,7 +294,7 @@ their keys through `Display`.
 | `histogram(values, x, y)` | counts of values per key or per bin (`mark::Bins`: d3's nice bins or a count of equal ones) |
 | `density_y(values, y, w)`, `density_x` | a Gaussian kernel density estimate (`rustd3::figure::stats::Kde`, Scott's bandwidth) |
 | `image(grid, x, y, color)` | a grid of values as a raster heatmap through a color handle |
-| `note(at, text, x, y)` | a label at a data position; `.size(px)` and `.bold(true)` set its text; `.avoid(Avoid::Step)` steps aside for the notes before it, `Avoid::Drop` leaves it out |
+| `note(at, text, x, y)` | a label at a data position; `.size(px)`, `.bold(true)` and `.font(family)` set its text; `.avoid(Avoid::Step)` steps aside for the notes before it, `Avoid::Drop` leaves it out |
 | `rule_x(value, x)`, `rule_y` | a reference line across the plot area; `.label(text)` names it, `.label_at(Place::Start)` and `.label_offset(dx, dy)` move the name, `.label_size(px)` sizes it |
 
 Areas and bars take a `hatch::Hatch`. A density over more than 10,000
@@ -332,7 +332,11 @@ shapes only labels it has not seen. Without the `fonts` feature the app
 supplies fonts through `text::Fonts::with`. Tick labels are written
 through the figure's locale; axes drop labels that would collide, keeping
 a regular stride. Outside a figure, `text::draw(markup, &fonts)` draws a
-typst snippet as a drawing list of its own size, for an icon.
+typst snippet as a drawing list of its own size, for an icon. Text is set
+in the fonts' first family, DejaVu Sans with the bundled fonts, and `raw`
+markup in DejaVu Sans Mono (`rustd3_fonts::SANS` and `MONO`);
+`Theme::font` and `Theme::mono` choose others, and a note
+(`.font(family)`) or a span (`span(s).font(family)`) its own.
 
 ### Legends and colorbars
 

@@ -53,6 +53,8 @@ pub fn fonts() -> Arc<Fonts> {
 /// The spot checks' style: 11 px, black, lines centered.
 pub fn style() -> Style {
     Style {
+        font: None,
+        mono: None,
         size: 11.0,
         bold: false,
         fill: Rgb::hex(0),
@@ -676,6 +678,8 @@ pub fn placements() -> Vec<Placed> {
     use anchor::{Horizontal, Vertical};
     let at = |h, v| Anchor { h, v };
     let sized = |size: f64, align: Horizontal| Style {
+        font: None,
+        mono: None,
         size,
         fill: Rgb::hex(0x262626),
         align,

@@ -114,6 +114,10 @@ The first release.
   ordinal scale.
 - `Rule::label_size(px)` sets the size of a rule's label, the tick-label
   size by default.
+- `Theme::font(family)` sets the family of all text, `Theme::mono(family)`
+  that of `raw` markup (DejaVu Sans Mono by default), and
+  `Note::font(family)` and `text::Span::font(family)` a note's or a
+  span's own: in DejaVu Sans Mono padded columns line up.
 
 ### iced (`rustd3-iced`, from git)
 

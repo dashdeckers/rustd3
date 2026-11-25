@@ -4,12 +4,12 @@
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_figure::kurbo::{Rect, Size};
+use rustd3_figure::kurbo::{Point, Rect, Size};
 use rustd3_figure::list::{self, Command, GlyphRun, List};
 use rustd3_figure::mark::{Avoid, dots, note};
 use rustd3_figure::scale::ScaleRef;
-use rustd3_figure::text::{Anchor, anchor};
-use rustd3_figure::{Figure, Held, Target};
+use rustd3_figure::text::{self, Anchor, anchor};
+use rustd3_figure::{Figure, Held, Target, Theme, axis};
 
 use super::{role, solid};
 use crate::figure::{cache, resolve};
@@ -110,6 +110,100 @@ fn a_note_takes_its_size_and_weight_and_keeps_its_size_for_bad_sizes() {
     let regular = faces[0];
     assert_eq!(faces[..4], [regular; 4]);
     assert_ne!(faces[4], regular, "DejaVu Sans Bold");
+}
+
+/// The right end of each line of `runs`' glyphs, list px, top line first.
+fn line_ends(runs: &[GlyphRun]) -> Vec<f64> {
+    let mut ends: Vec<(f64, f64)> = Vec::new();
+    for run in runs {
+        for g in &run.glyphs {
+            let end = run.transform * Point::new(f64::from(g.x + g.advance), f64::from(g.y));
+            match ends.iter_mut().find(|(y, _)| (*y - end.y).abs() < 0.5) {
+                Some((_, x)) => *x = x.max(end.x),
+                None => ends.push((end.y, end.x)),
+            }
+        }
+    }
+    ends.sort_by(|a, b| a.0.total_cmp(&b.0));
+    ends.into_iter().map(|(_, x)| x).collect()
+}
+
+#[test]
+fn a_note_in_dejavu_sans_mono_lines_up_padded_columns() {
+    let table = "iiii  1.0\nmmmm 22.5";
+    let (mut fig, x, y) = tens();
+    fig.panel(0, 0)
+        .mark(note((1.0, 5.0), table, x, y).font("DejaVu Sans Mono"));
+    let ends = line_ends(&runs(&drawn(&fig).0).0);
+    assert_eq!(ends.len(), 2);
+    assert!((ends[0] - ends[1]).abs() < 1e-3, "{ends:?}");
+
+    // In the default family the narrow line ends short.
+    let (mut fig, x, y) = tens();
+    fig.panel(0, 0).mark(note((1.0, 5.0), table, x, y).font(""));
+    let ends = line_ends(&runs(&drawn(&fig).0).0);
+    assert!(ends[1] - ends[0] > 10.0, "{ends:?}");
+}
+
+#[test]
+fn the_themes_font_sets_every_label_and_a_note_names_its_own() {
+    let (mut fig, x, y) = tens();
+    fig.theme(Theme::default().font("DejaVu Sans Mono"));
+    fig.title("t");
+    fig.panel(0, 0)
+        .axis(axis::bottom(x).label("x"))
+        .mark(note((5.0, 5.0), "mono", x, y))
+        .mark(note((5.0, 5.0), "sans", x, y).font("DejaVu Sans"));
+    let (list, _) = drawn(&fig);
+    let face = |text: &str| {
+        let run = list.commands.iter().find_map(|c| {
+            if let Command::Glyphs(run) = c
+                && &*run.text == text
+            {
+                Some(run)
+            } else {
+                None
+            }
+        });
+        run.map(|r| list.fonts[r.font].data.id())
+    };
+    let mono = face("mono").expect("a mono note");
+    assert_eq!([face("t"), face("x"), face("10")], [Some(mono); 3]);
+    assert_ne!(face("sans"), Some(mono));
+}
+
+/// The blob id of the face each glyph run of `fig`'s notes is set in, by
+/// the run's text.
+fn faces(fig: &Figure<'_>) -> Vec<(String, u64)> {
+    let (list, _) = drawn(fig);
+    runs(&list)
+        .0
+        .iter()
+        .map(|r| (r.text.to_string(), list.fonts[r.font].data.id()))
+        .collect()
+}
+
+#[test]
+fn raw_markup_is_set_in_dejavu_sans_mono_or_the_themes_mono_family() {
+    let (mut fig, x, y) = tens();
+    fig.panel(0, 0)
+        .mark(note((5.0, 5.0), text::typst("a `b`"), x, y))
+        .mark(note((5.0, 5.0), "b", x, y).font("DejaVu Sans Mono"));
+    let set = faces(&fig);
+    assert_eq!(set.len(), 3, "{set:?}");
+    assert_ne!(set[0].1, set[1].1, "a in sans, b in mono");
+    assert_eq!(set[1].1, set[2].1, "raw b in DejaVu Sans Mono");
+
+    let (mut fig, x, y) = tens();
+    fig.theme(Theme::default().mono("DejaVu Sans"));
+    fig.panel(0, 0)
+        .mark(note((5.0, 5.0), text::typst("a `b`"), x, y));
+    let set = faces(&fig);
+    assert_eq!(
+        set.iter().map(|s| s.1).collect::<Vec<_>>(),
+        [set[0].1; 2],
+        "{set:?}"
+    );
 }
 
 #[test]

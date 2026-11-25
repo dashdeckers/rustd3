@@ -180,6 +180,14 @@ mod tests {
     }
 
     #[test]
+    fn the_family_constants_name_bundled_families() {
+        let bundled = Fonts::bundled();
+        for family in [rustd3_fonts::SANS, rustd3_fonts::MONO] {
+            assert!(bundled.families().iter().any(|f| f == family), "{family}");
+        }
+    }
+
+    #[test]
     fn user_families_come_first_and_each_family_once() {
         let fonts = Fonts::with([rustd3_fonts::NEW_CM_MATH.data().to_vec()]).unwrap();
         assert_eq!(

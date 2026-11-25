@@ -332,6 +332,8 @@ impl Fits {
     /// }
     ///
     /// let style = Style {
+    ///     font: None,
+    ///     mono: None,
     ///     size: 16.0,
     ///     bold: false,
     ///     fill: Rgb::hex(0x262626),
