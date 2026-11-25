@@ -3860,6 +3860,7 @@ dependencies = [
  "png",
  "rustd3-core",
  "rustd3-figure",
+ "rustd3-fonts",
  "rustd3-testkit",
  "thiserror 2.0.21",
 ]

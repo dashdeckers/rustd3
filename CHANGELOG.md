@@ -127,6 +127,9 @@ The first release.
   with a crosshair and highlight, one-dimensional brushing; cached tiles
   that pans move by whole device pixels, a render pool and a cost model
   fitted on the machine it runs on.
+- `font` (`fonts` feature): `SANS`, `SANS_BOLD`, `MONO` and `MONO_BOLD` as
+  iced fonts, and `all()`, the bundled faces for `application(…).fonts(…)`,
+  so an app's own text is set in the faces of its plots.
 
 ### Robustness
 

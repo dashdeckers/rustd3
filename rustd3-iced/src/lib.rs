@@ -6,6 +6,9 @@
 //! the `Plot` widget shows rendered images of a figure with interaction
 //! feedback drawn on top.
 //!
+//! With the `fonts` feature, [`font`] holds the bundled faces as iced fonts,
+//! so an app's own text is set in the faces its plots are drawn in.
+//!
 //! An app depends on the `rustd3` facade and on this crate. The examples
 //! here use the facade's paths (`rustd3::shape`, `rustd3::figure::Figure`),
 //! which are `rustd3_core::shape` and `rustd3_figure::Figure` in the
@@ -34,6 +37,8 @@
 // The package denies unsafe code so that its examples can allow one call.
 #![forbid(unsafe_code)]
 
+#[cfg(feature = "fonts")]
+pub mod font;
 mod path;
 #[cfg(feature = "figure")]
 pub mod plot;

@@ -9,6 +9,8 @@ mod canvas;
 #[cfg(all(feature = "figure", feature = "fonts"))]
 mod classify;
 mod focus_context;
+#[cfg(feature = "fonts")]
+mod font;
 #[cfg(all(feature = "figure", feature = "fonts"))]
 mod gestures;
 mod headless;
