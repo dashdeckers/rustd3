@@ -1,14 +1,15 @@
 //! Laying out a legend of keys as a [`Block`], and drawing it. The legend
 //! is a row in top and bottom slots, and a column in side slots and
 //! insets. Its spacing follows matplotlib 3.11.2's legend rc, in em of the
-//! legend's text (the tick-label size).
+//! legend's text (the tick-label size, unless `Legend::label_size` sets
+//! it).
 
 use kurbo::{Point, Rect, Shape, Size, Vec2};
 use rustd3_core::color::Rgb;
 
 use crate::figure::Resolved;
 use crate::hatch::Hatch;
-use crate::legend::{Draw, Swatch, swatch};
+use crate::legend::{Draw, Frame, Swatch, swatch};
 use crate::list::{self, Command, List};
 use crate::text::{self, Anchor, Key, Shaped, Text, anchor};
 use crate::theme::Theme;
@@ -33,15 +34,24 @@ pub(crate) const PAD: f64 = 0.4;
 /// The frame's edge, px.
 const EDGE: f64 = 1.0;
 
-/// The tolerance of a rectangle's path. Any value is exact, since
-/// rectangles have no curves.
+/// A round frame's corner radius, em: matplotlib's `rounding_size`.
+const ROUND: f64 = 0.2;
+
+/// The opacity of a round frame's edge: matplotlib's `legend.framealpha`.
+const ALPHA: f64 = 0.8;
+
+/// The tolerance of a frame's path, px.
 const TOLERANCE: f64 = 0.1;
 
-/// A legend's content for one resolve: its title's key and its entries in
-/// order.
+/// A legend's content for one resolve: its title's key, its entries in
+/// order, the em of its spacing and its frame.
 pub(crate) struct Content {
     title: Option<Key>,
     entries: Vec<Keyed>,
+    /// The entries' text size, px.
+    em: f64,
+    /// The box `.frame(f)` set.
+    frame: Option<Frame>,
 }
 
 /// An entry for one resolve.
@@ -62,8 +72,8 @@ struct Keyed {
 pub(crate) struct Block {
     /// Its size, px.
     size: Size,
-    /// Whether it is framed.
-    framed: bool,
+    /// Its frame, and the em it is drawn at.
+    framed: Option<(Frame, f64)>,
     /// Its swatches.
     swatches: Vec<Swatched>,
     /// Its labels, with where their first baselines start (or, for a
@@ -86,10 +96,15 @@ struct Rows {
 
 impl Content {
     /// `legend`'s title and entries over the resolved scales, in `theme`'s
-    /// legend styles; entries without a color take the theme's gray.
+    /// legend styles at its own label size; entries without a color take
+    /// the theme's gray.
     pub(crate) fn new(legend: &dyn Draw, resolved: &Resolved, theme: &Theme) -> Content {
         let title = legend.title().map(|t| Key::new(t, &theme.legend_title()));
         let style = theme.legend_label();
+        let style = text::Style {
+            size: legend.label_size().unwrap_or(style.size),
+            ..style
+        };
         let entries = legend
             .entries(resolved, theme)
             .into_iter()
@@ -101,7 +116,22 @@ impl Content {
                 size: entry.size,
             })
             .collect();
-        Content { title, entries }
+        Content {
+            title,
+            entries,
+            em: style.size,
+            frame: legend.frame(),
+        }
+    }
+
+    /// The entries' text size, px: the em of the legend's spacing.
+    pub(crate) fn em(&self) -> f64 {
+        self.em
+    }
+
+    /// The box `.frame(f)` set.
+    pub(crate) fn frame(&self) -> Option<Frame> {
+        self.frame
     }
 
     /// Every key, for the text cache's batch.
@@ -119,8 +149,8 @@ impl Content {
     /// (the text face's ascender and descender at their size) united with
     /// their ink and the swatches.
     pub(crate) fn row(&self, text: &text::Cache, theme: &Theme) -> Block {
-        let em = theme.em();
-        let entry = text.fonts().line(theme.tick_text());
+        let em = self.em;
+        let entry = text.fonts().line(em);
         let mut rows = Rows {
             top: -SWATCH * em,
             ..Rows::default()
@@ -170,9 +200,9 @@ impl Content {
     /// the height of its label's line box united with its ink and swatch.
     /// Squares and dots are centered in boxes wider than they are.
     pub(crate) fn column(&self, text: &text::Cache, theme: &Theme) -> Block {
-        let em = theme.em();
+        let em = self.em;
         let side = self.entries.iter().map(|e| e.width(em)).fold(0.0, f64::max);
-        let entry = text.fonts().line(theme.tick_text());
+        let entry = text.fonts().line(em);
         let width = |key: &Key| get(text, key).map_or(0.0, Shaped::get_width);
         let labels = self
             .entries
@@ -256,7 +286,7 @@ impl Rows {
     fn block(self, size: Size, by: Vec2) -> Block {
         Block {
             size,
-            framed: false,
+            framed: None,
             swatches: self
                 .swatches
                 .into_iter()
@@ -277,14 +307,17 @@ impl Block {
         self.size
     }
 
-    /// The block in a frame 0.4 em larger on every side, as an inset draws
-    /// it.
-    pub(crate) fn framed(self, em: f64) -> Block {
+    /// The block in frame `frame`, 0.4 em larger on every side; as it is
+    /// for [`Frame::Off`].
+    pub(crate) fn framed(self, frame: Frame, em: f64) -> Block {
+        if frame == Frame::Off {
+            return self;
+        }
         let pad = PAD * em;
         let by = Vec2::new(pad, pad);
         Block {
             size: Size::new(self.size.width + 2.0 * pad, self.size.height + 2.0 * pad),
-            framed: true,
+            framed: Some((frame, em)),
             swatches: self
                 .swatches
                 .into_iter()
@@ -299,12 +332,14 @@ impl Block {
     }
 
     /// Appends the block with its top-left corner at `at`: the frame (the
-    /// theme's legend face, an edge of 1 px), each swatch in its box, then
-    /// each label.
+    /// theme's legend face and edge), each swatch in its box, then each
+    /// label.
     pub(crate) fn draw(&self, at: Point, text: &text::Cache, theme: &Theme, list: &mut List) {
         let by = at.to_vec2();
-        if self.framed {
-            frame(self.size.to_rect() + by, theme, list);
+        match self.framed {
+            Some((Frame::Round, em)) => round(self.size.to_rect() + by, em, theme, list),
+            Some((Frame::Square | Frame::Off, _)) => frame(self.size.to_rect() + by, theme, list),
+            None => {}
         }
         for (rect, color, glyph, hatch, size) in &self.swatches {
             glyph.draw(*rect + by, *color, hatch.as_ref(), *size, theme, list);
@@ -332,6 +367,23 @@ pub(crate) fn frame(rect: Rect, theme: &Theme, list: &mut List) {
         path: rect.to_path(TOLERANCE),
         style: list::stroke(EDGE),
         paint: list::brush(theme.legend_edge()),
+    });
+}
+
+/// Appends matplotlib's frame around `rect` for a legend em of `em` px:
+/// corners rounded by 0.2 em, the theme's legend face, and an edge as
+/// wide as the outlines of bars in its legend edge color at 0.8 opacity.
+fn round(rect: Rect, em: f64, theme: &Theme, list: &mut List) {
+    let path = rect.to_rounded_rect(ROUND * em).to_path(TOLERANCE);
+    list.commands.push(Command::Fill {
+        path: path.clone(),
+        paint: list::brush(theme.legend_face()),
+    });
+    let edge = theme.legend_edge();
+    list.commands.push(Command::Stroke {
+        path,
+        style: list::stroke(theme.get_patch_width()),
+        paint: list::brush(edge.with_opacity(ALPHA * edge.opacity)),
     });
 }
 

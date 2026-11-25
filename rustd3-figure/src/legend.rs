@@ -23,6 +23,7 @@
 mod block;
 mod content;
 mod entry;
+mod frame;
 mod guide;
 mod inset;
 pub(crate) mod keys;
@@ -35,6 +36,7 @@ use std::fmt::Display;
 pub(crate) use block::Block;
 pub(crate) use content::Content;
 pub(crate) use entry::Entry;
+pub use frame::Frame;
 pub use guide::Guide;
 pub(crate) use guide::{Erased, Stored};
 pub use inset::Inset;
@@ -78,6 +80,8 @@ pub struct Legend<K> {
     palette: ScaleRef<Ordinal<K, Rgb>>,
     title: Option<Text>,
     glyph: Option<Swatch>,
+    label_size: Option<f64>,
+    frame: Option<Frame>,
 }
 
 impl<K> std::fmt::Debug for Legend<K> {
@@ -92,6 +96,8 @@ impl<K> Clone for Legend<K> {
             palette: self.palette,
             title: self.title.clone(),
             glyph: self.glyph,
+            label_size: self.label_size,
+            frame: self.frame,
         }
     }
 }
@@ -106,6 +112,8 @@ where
         palette,
         title: None,
         glyph: None,
+        label_size: None,
+        frame: None,
     }
 }
 
@@ -125,6 +133,44 @@ impl<K> Legend<K> {
     pub fn glyph(self, g: Swatch) -> Self {
         Legend {
             glyph: Some(g),
+            ..self
+        }
+    }
+
+    /// The entries' text size in px (typst's `pt`), as matplotlib's
+    /// `legend(prop={"size": …})`; by default the tick-label size, 11 pt.
+    /// The legend's spacing is in em of this size, as matplotlib's is in
+    /// its font size; the title keeps its own. A size that is not finite
+    /// and positive leaves it as it was.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_core::scheme::COLORBLIND;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::legend::{Frame, Inset, legend};
+    ///
+    /// let mut fig = Figure::new();
+    /// let color = fig.scale(scale::ordinal(["FL", "FR"], COLORBLIND));
+    /// let key = legend(color).label_size(6.5 * 4.0 / 3.0).frame(Frame::Round);
+    /// fig.panel(0, 0).legend(Inset::TopLeft, key);
+    /// ```
+    #[must_use]
+    pub fn label_size(self, px: f64) -> Self {
+        Legend {
+            label_size: (px.is_finite() && px > 0.0)
+                .then_some(px)
+                .or(self.label_size),
+            ..self
+        }
+    }
+
+    /// The box behind the legend, in a panel corner or a figure slot alike;
+    /// [`Frame::Square`] in a corner and [`Frame::Off`] in a slot by
+    /// default.
+    #[must_use]
+    pub fn frame(self, f: Frame) -> Self {
+        Legend {
+            frame: Some(f),
             ..self
         }
     }
@@ -152,6 +198,16 @@ pub(crate) trait Draw {
 
     /// The title.
     fn title(&self) -> Option<&Text>;
+
+    /// The entries' text size `.label_size(px)` set.
+    fn label_size(&self) -> Option<f64> {
+        None
+    }
+
+    /// The box `.frame(f)` set.
+    fn frame(&self) -> Option<Frame> {
+        None
+    }
 }
 
 impl<K> Draw for Legend<K>
@@ -194,5 +250,13 @@ where
 
     fn title(&self) -> Option<&Text> {
         self.title.as_ref()
+    }
+
+    fn label_size(&self) -> Option<f64> {
+        self.label_size
+    }
+
+    fn frame(&self) -> Option<Frame> {
+        self.frame
     }
 }

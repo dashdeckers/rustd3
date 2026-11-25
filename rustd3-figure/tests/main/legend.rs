@@ -5,8 +5,8 @@
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Ordinal};
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_figure::kurbo::{Rect, Shape, Size};
-use rustd3_figure::legend::{Inset, Legend, Slot, Swatch, legend};
+use rustd3_figure::kurbo::{PathEl, Rect, Shape, Size};
+use rustd3_figure::legend::{Frame, Inset, Legend, Slot, Swatch, legend};
 use rustd3_figure::list::{Command, List, part};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::ScaleRef;
@@ -510,4 +510,98 @@ fn legend_parts_follow_the_marks_of_their_panel_and_the_figure_title() {
         panic!("a frame first: {first:?}");
     };
     assert!(path.bounding_box().area() > 0.0);
+}
+
+/// The edge strokes among `commands`: paint, width and whether the path
+/// has curves.
+fn edges(commands: &[Command]) -> Vec<(Brush, f64, bool)> {
+    commands
+        .iter()
+        .filter_map(|c| {
+            if let Command::Stroke { path, style, paint } = c {
+                let curved = path
+                    .elements()
+                    .iter()
+                    .any(|e| matches!(e, PathEl::CurveTo(..) | PathEl::QuadTo(..)));
+                Some((paint.clone(), style.width, curved))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn a_legends_label_size_sets_its_entries_and_its_spacing_and_keeps_its_title() {
+    let (mut fig, color) = sources();
+    let small = 6.5 * 4.0 / 3.0;
+    fig.panel(0, 0)
+        .legend(Inset::TopLeft, legend(color).title("source"))
+        .legend(
+            Inset::TopRight,
+            legend(color).title("source").label_size(small),
+        )
+        .legend(
+            Inset::BottomLeft,
+            legend(color).label_size(small).label_size(f64::NAN),
+        )
+        .legend(Inset::BottomRight, legend(color).label_size(-1.0));
+    let list = draw(&fig);
+    let sizes = |index| -> Vec<String> {
+        commands(&list, inset(0, index))
+            .iter()
+            .filter_map(|c| {
+                if let Command::Glyphs(run) = c {
+                    Some(format!("{:.2}", run.size))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    };
+    let (em, title) = ("14.67", "16.00");
+    assert_eq!(sizes(0), [title, em, em, em]);
+    assert_eq!(sizes(1), [title, "8.67", "8.67", "8.67"]);
+    assert_eq!(sizes(2), ["8.67"; 3]);
+    assert_eq!(sizes(3), [em; 3]);
+    // Swatches, pads and the gap to the corner are in em of the labels.
+    let area = area(&fig);
+    let square = fills(commands(&list, inset(0, 2)))[1].0;
+    assert!((square.width() - 0.7 * small).abs() < 1e-3, "{square:?}");
+    let frame = fills(commands(&list, inset(0, 2)))[0].0;
+    assert!((frame.x0 - area.x0 - 0.5 * small).abs() < 1e-9, "{frame:?}");
+}
+
+#[test]
+fn a_round_frame_is_matplotlibs_in_a_corner_or_a_slot_and_off_is_none() {
+    let (mut fig, color) = sources();
+    fig.legend(Slot::Bottom, legend(color).frame(Frame::Round))
+        .legend(Slot::Bottom, legend(color));
+    fig.panel(0, 0)
+        .legend(Inset::TopLeft, legend(color).frame(Frame::Round))
+        .legend(Inset::TopRight, legend(color).frame(Frame::Off))
+        .legend(Inset::BottomLeft, legend(color));
+    let list = draw(&fig);
+    // A rounded path, an edge of 1 pt of #cccccc at 0.8, a face of white
+    // at 0.8 behind the swatches.
+    let round = (
+        Brush::Solid(Color::from_rgba8(204, 204, 204, 204)),
+        4.0 / 3.0,
+        true,
+    );
+    assert_eq!(
+        edges(commands(&list, inset(0, 0))),
+        std::slice::from_ref(&round)
+    );
+    assert_eq!(edges(commands(&list, slotted(0))), [round]);
+    let face = &fills(commands(&list, inset(0, 0)))[0];
+    assert_eq!(face.1, Brush::Solid(Color::from_rgba8(255, 255, 255, 204)));
+    // Off draws no box in a corner, a slot draws none by default, and a
+    // corner draws the square one.
+    assert_eq!(fills(commands(&list, inset(0, 1))).len(), 3);
+    assert_eq!(fills(commands(&list, slotted(1))).len(), 3);
+    assert_eq!(
+        edges(commands(&list, inset(0, 2))),
+        [(solid(0xcccccc), 1.0, false)]
+    );
 }

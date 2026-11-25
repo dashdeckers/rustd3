@@ -6,7 +6,7 @@ use rustd3_core::axis::Orient;
 
 use crate::colorbar;
 use crate::figure::Resolved;
-use crate::legend::{Block, Slot, Stored, keys};
+use crate::legend::{Block, Frame, Slot, Stored, keys};
 use crate::text::{self, Key};
 use crate::theme::Theme;
 
@@ -27,6 +27,15 @@ impl<'g, 'a> Content<'g, 'a> {
         match stored {
             Stored::Keys(legend) => Content::Keys(keys::Content::new(&**legend, resolved, theme)),
             Stored::Bar(bar) => Content::Bar(Box::new(colorbar::Content::new(&**bar, resolved))),
+        }
+    }
+
+    /// The em of the guide's spacing, px: a legend's label size, or the
+    /// theme's em for a colorbar.
+    pub(crate) fn em(&self, theme: &Theme) -> f64 {
+        match self {
+            Content::Keys(content) => content.em(),
+            Content::Bar(_) => theme.em(),
         }
     }
 
@@ -86,10 +95,14 @@ impl<'g, 'a> Content<'g, 'a> {
         theme: &Theme,
     ) -> Block {
         match self {
-            Content::Keys(content) => Block::Keys(match slot {
-                Slot::Top | Slot::Bottom => content.row(text, theme),
-                Slot::Left | Slot::Right => content.column(text, theme),
-            }),
+            Content::Keys(content) => {
+                let block = match slot {
+                    Slot::Top | Slot::Bottom => content.row(text, theme),
+                    Slot::Left | Slot::Right => content.column(text, theme),
+                };
+                let frame = content.frame().unwrap_or(Frame::Off);
+                Block::Keys(block.framed(frame, content.em()))
+            }
             Content::Bar(content) => {
                 let (orient, length) = along(slot, extent);
                 Block::Bar(Box::new(content.block(orient, length, text, theme)))
@@ -105,7 +118,10 @@ impl<'g, 'a> Content<'g, 'a> {
     pub(crate) fn inset(&self, area: Rect, text: &text::Cache, theme: &Theme) -> Block {
         let em = theme.em();
         match self {
-            Content::Keys(content) => Block::Keys(content.column(text, theme).framed(em)),
+            Content::Keys(content) => {
+                let frame = content.frame().unwrap_or(Frame::Square);
+                Block::Keys(content.column(text, theme).framed(frame, content.em()))
+            }
             Content::Bar(content) => {
                 let orient = content.orient().unwrap_or_else(|| corner(area));
                 let block = content.block(orient, inset(orient, area), text, theme);

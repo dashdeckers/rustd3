@@ -77,10 +77,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// Places guide `g` in corner `at` of the plot area, framed, 0.5 em
-    /// from the corner and drawn over the marks. A legend is a column; a
-    /// colorbar runs along the plot area's longer side, at 40% of its
-    /// length. A guide of a handle of another figure is not placed, and
+    /// Places guide `g` in corner `at` of the plot area, framed (as
+    /// `Legend::frame` says), 0.5 em of its text from the corner and drawn
+    /// over the marks. A legend is a column; a colorbar runs along the plot
+    /// area's longer side, at 40% of its length. A guide of a handle of
+    /// another figure is not placed, and
     /// [`Figure::check`](crate::Figure::check) reports the handle.
     pub fn legend(&mut self, at: Inset, g: impl legend::Guide<'a>) -> &mut Self {
         let stored = g.erase().0;

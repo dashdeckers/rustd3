@@ -276,7 +276,8 @@ impl Layout {
                                 .filter(|(c, _)| *c == at)
                                 .map(|(_, h)| h + INSET * em)
                                 .sum();
-                            let corner = at.place(*area, block.size(), INSET * em, inward);
+                            let gap = INSET * content.em(theme);
+                            let corner = at.place(*area, block.size(), gap, inward);
                             stacked.push((at, block.size().height));
                             (block, corner)
                         })

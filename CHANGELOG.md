@@ -118,6 +118,11 @@ The first release.
   that of `raw` markup (DejaVu Sans Mono by default), and
   `Note::font(family)` and `text::Span::font(family)` a note's or a
   span's own: in DejaVu Sans Mono padded columns line up.
+- `Legend::label_size(px)` sizes a legend's entries apart from the theme,
+  as matplotlib's `legend(prop={"size": …})`, its spacing in em of that
+  size; `Legend::frame(legend::Frame::Round)` draws matplotlib's frame (a
+  box with rounded corners on the panel's color at 0.8, a gray edge), in a
+  corner or a figure slot.
 
 ### iced (`rustd3-iced`, from git)
 
