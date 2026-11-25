@@ -1,11 +1,13 @@
 //! [`Dots`]: a scatter of points.
 
 use std::collections::HashMap;
+use std::f64::consts::PI;
 
-use kurbo::{Point, Shape};
+use kurbo::{BezPath, Cap, Join, Point, Shape};
 use peniko::Brush;
 use rustd3_core::color::Rgb;
 use rustd3_core::series::{Data, Points};
+use rustd3_core::shape::Symbol;
 
 use crate::check::Issue;
 use crate::figure::Fits;
@@ -15,13 +17,15 @@ use crate::mark::channel::Channel;
 use crate::mark::color::{Alpha, Color};
 use crate::mark::{Ctx, Error, Mark, across, at, positive, within};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
-use crate::{hit, text};
+use crate::{hit, path, text};
 
-/// How closely a dot's circle follows the true circle, in px.
+/// How closely a dot's circle, or a hollow dot's outline, follows the true
+/// shape, in px.
 const TOLERANCE: f64 = 1e-3;
 
-/// A scatter: one circle per point, in one color or colored and sized per
-/// point through handles, drawn as one `Markers` command.
+/// A scatter: one symbol per point, a filled circle unless told otherwise,
+/// in one color or colored and sized per point through handles, drawn as
+/// `Markers` commands.
 pub struct Dots<'a, X: Position, Y: Position> {
     points: Points<'a, <X as Kind>::Domain, <Y as Kind>::Domain>,
     x: ScaleRef<X>,
@@ -33,6 +37,8 @@ pub struct Dots<'a, X: Position, Y: Position> {
     jitter: f64,
     fill_by: Option<Result<Channel<Rgb>, Error>>,
     size_by: Option<Result<Channel<f64>, Error>>,
+    symbol: Symbol,
+    hollow: bool,
 }
 
 impl<'a, X: Position, Y: Position> std::fmt::Debug for Dots<'a, X, Y> {
@@ -133,6 +139,8 @@ pub fn dots<'a, X: Position, Y: Position>(
         jitter: 0.0,
         fill_by: None,
         size_by: None,
+        symbol: Symbol::Circle,
+        hollow: false,
     }
 }
 
@@ -190,6 +198,44 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
     pub fn r(self, px: f64) -> Self {
         Self {
             r: positive(px).or(self.r),
+            ..self
+        }
+    }
+
+    /// Draws each dot as `symbol` in place of a circle, with the circle's
+    /// area (π r²), so that dots of different shapes look as large; the
+    /// hexagon is as wide as the circle, as in Observable Plot. d3's
+    /// line symbols ([`Symbol::Plus`], [`Symbol::Times`] and
+    /// [`Symbol::Asterisk`]) have no inside and are drawn as outlines, as
+    /// [`hollow`](Dots::hollow) draws the others.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_core::scheme::COLORBLIND;
+    /// use rustd3_core::shape::Symbol;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::dots;
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// let run = fig.scale(scale::ordinal(["pass", "fail"], COLORBLIND));
+    /// fig.panel(0, 0)
+    ///     .mark(dots([(0.0, 1.0), (1.0, 3.0)], x, y).fill(run, "pass"))
+    ///     .mark(dots([(0.5, 2.0)], x, y).fill(run, "fail").symbol(Symbol::Diamond).hollow(true));
+    /// ```
+    #[must_use]
+    pub fn symbol(self, symbol: Symbol) -> Self {
+        Self { symbol, ..self }
+    }
+
+    /// With or without a filled inside; filled by default. A hollow dot is
+    /// its symbol's outline in the dot's color, as wide as the theme's patch
+    /// edges (1 pt), at every radius `size_by` gives. Legend swatches of the
+    /// dot's key are hollow too.
+    #[must_use]
+    pub fn hollow(self, yes: bool) -> Self {
+        Self {
+            hollow: yes,
             ..self
         }
     }
@@ -322,7 +368,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
             return;
         }
         super::fit(&self.points, self.x, self.y, fits);
-        self.color.report(Swatch::Dot, None, Alpha::OPAQUE, fits);
+        self.color.report(self.swatch(), None, Alpha::OPAQUE, fits);
         if let Some(Ok(channel)) = &self.fill_by {
             channel.fit(fits);
         }
@@ -331,12 +377,16 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
         }
     }
 
-    /// One `Markers` command: a circle at every point placed on both
-    /// scales, finite, with a color and a finite radius from its channels,
-    /// and at most its radius outside the plot area (grown by a widget's
-    /// overscan). Nothing is drawn when no point qualifies. Sized dots
-    /// stamp a unit circle at per-point radii, and colored dots index a
-    /// table of their distinct colors (8-bit, in first-seen order).
+    /// The dot's symbol at every point placed on both scales, finite, with a
+    /// color and a finite radius from its channels, and at most its radius
+    /// outside the plot area (grown by a widget's overscan). Nothing is
+    /// drawn when no point qualifies. Colored dots index a table of their
+    /// distinct colors (8-bit, in first-seen order).
+    ///
+    /// Filled dots are one `Markers` command, sized ones stamping the symbol
+    /// at unit radius at per-point radii. Outlined dots (hollow, or a line
+    /// symbol) are one `Markers` command per distinct radius, each stamping
+    /// the outline drawn at that radius, so it is equally wide on all.
     fn draw(&self, ctx: &Ctx<'_>, list: &mut List) {
         // One pass over the points into the command's own vectors: the
         // centers, and the radii and colors only when a channel sets them.
@@ -360,6 +410,23 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
         }
         let color = self.color.resolve(ctx);
         let shown = |c: Rgb| c.with_opacity(c.opacity * self.opacity);
+        if self.outlined() {
+            let width = ctx.get_theme().get_patch_width();
+            let groups = match sizes {
+                Some(sizes) => by_radius(at, &sizes, fills),
+                None => vec![(self.radius(ctx), at, fills)],
+            };
+            for (r, at, fills) in groups {
+                list.commands.push(Command::Markers {
+                    shape: outline(self.symbol, r, width),
+                    at,
+                    paint: list::brush(shown(color)),
+                    sizes: None,
+                    paints: fills.map(|fills| paints(fills.into_iter().map(shown))),
+                });
+            }
+            return;
+        }
         // Sized dots stamp a unit circle, followed as closely at their
         // largest radius as a plain dot's circle is.
         let (r, tolerance) = match &sizes {
@@ -371,7 +438,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Dots<'a, X, Y> {
         };
         let paints = fills.map(|fills| paints(fills.into_iter().map(shown)));
         list.commands.push(Command::Markers {
-            shape: kurbo::Circle::new(Point::ORIGIN, r).to_path(tolerance),
+            shape: symbol_path(self.symbol, r, tolerance),
             at,
             paint: list::brush(shown(color)),
             sizes,
@@ -410,6 +477,25 @@ impl<X: Position, Y: Position> Dots<'_, X, Y> {
             self.r.unwrap_or(ctx.get_theme().get_marker() / 2.0),
             largest(ctx),
         )
+    }
+
+    /// Whether each dot is drawn as its symbol's outline: hollow, or a line
+    /// symbol, which has no inside.
+    fn outlined(&self) -> bool {
+        self.hollow || self.symbol.is_open()
+    }
+
+    /// The legend swatch of the dot: a plain dot for a filled circle, else
+    /// its symbol, hollow when outlined.
+    fn swatch(&self) -> Swatch {
+        if self.symbol == Symbol::Circle && !self.outlined() {
+            Swatch::Dot
+        } else {
+            Swatch::Symbol {
+                symbol: self.symbol,
+                hollow: self.outlined(),
+            }
+        }
     }
 
     /// The error a channel keeps, `fill_by`'s first.
@@ -525,6 +611,49 @@ fn jitter(i: usize) -> f64 {
     z = z.wrapping_mul(0xBF58_476D_1CE4_E5B9);
     z ^= z >> 32;
     (z >> 11) as f64 / (1_u64 << 53) as f64
+}
+
+/// `symbol` centered on the origin with the area of a circle of radius
+/// `r`, its curves within `tolerance` px. A circle is kurbo's, as every dot
+/// before symbols was drawn.
+pub(crate) fn symbol_path(symbol: Symbol, r: f64, tolerance: f64) -> BezPath {
+    if symbol == Symbol::Circle {
+        kurbo::Circle::new(Point::ORIGIN, r).to_path(tolerance)
+    } else {
+        path::bez(|p| symbol.draw(PI * r * r, p))
+    }
+}
+
+/// The outline of `symbol` at radius `r`, `width` px wide with round caps
+/// and mitered corners, as a shape to fill.
+fn outline(symbol: Symbol, r: f64, width: f64) -> BezPath {
+    let style = kurbo::Stroke::new(width)
+        .with_caps(Cap::Round)
+        .with_join(Join::Miter);
+    let path = symbol_path(symbol, r, TOLERANCE);
+    kurbo::stroke(path, &style, &kurbo::StrokeOpts::default(), TOLERANCE)
+}
+
+/// The dots at `at` grouped by their radius in `sizes`, each group with its
+/// colors from `fills`, in the order their radii first appear.
+fn by_radius(
+    at: Vec<Point>,
+    sizes: &[f64],
+    fills: Option<Vec<Rgb>>,
+) -> Vec<(f64, Vec<Point>, Option<Vec<Rgb>>)> {
+    let mut groups: Vec<(f64, Vec<Point>, Option<Vec<Rgb>>)> = Vec::new();
+    let mut index: HashMap<u64, usize> = HashMap::new();
+    for (i, (p, r)) in at.into_iter().zip(sizes).enumerate() {
+        let g = *index.entry(r.to_bits()).or_insert_with(|| {
+            groups.push((*r, Vec::new(), fills.as_ref().map(|_| Vec::new())));
+            groups.len() - 1
+        });
+        groups[g].1.push(p);
+        if let (Some(fills), Some(group)) = (&fills, &mut groups[g].2) {
+            group.push(fills[i]);
+        }
+    }
+    groups
 }
 
 #[cfg(test)]

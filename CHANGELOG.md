@@ -91,6 +91,10 @@ The first release.
 - `Note::avoid(Avoid::Step)` moves a note up or down by its height when
   its box would overlap a note drawn before it, and `Avoid::Drop` leaves
   it out. Notes that do not avoid are drawn where they are put.
+- `Dots::symbol` draws dots as any of d3's symbols or Observable Plot's
+  hexagon at the size of the circle they replace, and `Dots::hollow`
+  draws their outlines one patch edge wide; d3's line symbols are always
+  outlines. Legend swatches repeat both (`legend::Swatch::Symbol`).
 
 ### iced (`rustd3-iced`, from git)
 

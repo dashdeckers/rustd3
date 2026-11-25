@@ -1,7 +1,7 @@
 //! Marks: what dots and rules fit and draw, their colors, and where they
 //! sit in a figure's list; areas, ribbons, bars, rects, histograms,
-//! densities, dodging and jitter, per-point channels, images and notes in
-//! submodules.
+//! densities, dodging and jitter, per-point channels, images, notes and
+//! symbols in submodules.
 
 mod area;
 mod bar;
@@ -11,6 +11,7 @@ mod dodge;
 mod histogram;
 mod image;
 mod note;
+mod symbol;
 
 use rustd3_core::color::Rgb;
 use rustd3_core::scale::{self, Linear};

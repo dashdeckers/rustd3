@@ -1,7 +1,8 @@
 //! [`Swatch`]: what a legend draws beside each label.
 
-use kurbo::{BezPath, Point, Rect, Shape, Vec2};
+use kurbo::{Affine, BezPath, Cap, Point, Rect, Shape, Vec2};
 use rustd3_core::color::Rgb;
+use rustd3_core::shape::Symbol;
 
 use crate::hatch::Hatch;
 use crate::list::{self, Clip, Command, List};
@@ -46,6 +47,16 @@ pub enum Swatch {
     /// A filled dot of the theme's marker diameter (at most the square's
     /// side), centered where the square would be: for scatters.
     Dot,
+    /// A symbol with the area of the dot, filled, or its outline at the
+    /// theme's patch width when `hollow`: for scatters drawn with
+    /// [`Dots::symbol`](crate::mark::Dots::symbol) or
+    /// [`Dots::hollow`](crate::mark::Dots::hollow).
+    Symbol {
+        /// The symbol.
+        symbol: Symbol,
+        /// Whether only its outline is drawn.
+        hollow: bool,
+    },
     /// A line 2 em long (matplotlib's `legend.handlelength`) at the height
     /// of the square's center, in the theme's line width: for lines. It is
     /// solid, or dashed by `dash` as a line mark's `.dash` is. A dash that
@@ -60,7 +71,7 @@ impl Swatch {
     /// Its box's width for a legend em of `em` px.
     pub(crate) fn width(self, em: f64) -> f64 {
         match self {
-            Swatch::Square | Swatch::Dot => SIDE * em,
+            Swatch::Square | Swatch::Dot | Swatch::Symbol { .. } => SIDE * em,
             Swatch::Line { .. } => LENGTH * em,
         }
     }
@@ -100,6 +111,17 @@ impl Swatch {
                 Command::Fill {
                     path: kurbo::Circle::new(rect.center(), r).to_path(TOLERANCE),
                     paint,
+                }
+            }
+            Swatch::Symbol { symbol, hollow } => {
+                let d = size.unwrap_or_else(|| theme.get_marker().min(rect.height()));
+                let at = Affine::translate(rect.center().to_vec2());
+                let path = at * mark::symbol_path(symbol, d / 2.0, TOLERANCE);
+                if hollow || symbol.is_open() {
+                    let style = list::stroke(theme.get_patch_width()).with_caps(Cap::Round);
+                    Command::Stroke { path, style, paint }
+                } else {
+                    Command::Fill { path, paint }
                 }
             }
             Swatch::Line { dash } => {

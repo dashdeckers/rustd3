@@ -286,7 +286,7 @@ their keys through `Display`.
 
 | Mark | What it draws |
 | --- | --- |
-| `dots(points, x, y)` | markers, with per-point size and color channels (`size_by`, `fill_by`), dodge and jitter |
+| `dots(points, x, y)` | markers, with per-point size and color channels (`size_by`, `fill_by`), dodge and jitter; `.symbol(Symbol::Diamond)` for d3's symbols and `.hollow(true)` for outlines |
 | `line(points, x, y)` | a polyline with a `shape::Curve`; recordings are thinned (below) |
 | `area(rows, x, y)`, `ribbon`, `ribbon_series` | filled areas between a baseline and a line, or two lines |
 | `bar_y`, `bar_x`, `bar_y_spans`, `bar_x_spans` | bars from a base to each value, or spans, on a band scale; `.dodge()` groups them |
