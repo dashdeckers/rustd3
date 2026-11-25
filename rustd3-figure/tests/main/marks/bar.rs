@@ -1,6 +1,7 @@
 //! Bars, span bars and rects: held and free edges, placement across bands
 //! and continuous keys, dodging, and one rectangle per row.
 
+use rustd3_core::color::Rgb;
 use rustd3_core::scale;
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::kurbo::{Point, Rect, Shape, Size};
@@ -181,6 +182,33 @@ fn a_stroked_rect_is_outlined_and_filled_only_when_asked() {
         })
         .collect();
     assert_eq!(kinds, ["stroke", "fill", "stroke"]);
+}
+
+#[test]
+fn a_rect_takes_fixed_colors_as_it_takes_a_palettes() {
+    let (mut fig, x, y) = fitted();
+    let (tint, frame) = (Rgb::hex(0xeeeeee), Rgb::hex(0x949494));
+    let cell = |x0: f64| rect([([x0, x0 + 1.0], [0.0, 1.0])], x, y);
+    fig.panel(0, 0)
+        .mark(cell(0.0).stroke_color(frame))
+        .mark(cell(1.0).fill_color(tint).stroke_color(frame))
+        .mark(cell(2.0).fill_color(tint));
+    let list = draw(&fig);
+    let kinds: Vec<&str> = marked(&list)
+        .into_iter()
+        .map(|c| {
+            if let Command::Fill { paint, .. } = c {
+                assert_eq!(*paint, solid(tint));
+                "fill"
+            } else if let Command::Stroke { paint, .. } = c {
+                assert_eq!(*paint, solid(frame));
+                "stroke"
+            } else {
+                panic!("{c:?}")
+            }
+        })
+        .collect();
+    assert_eq!(kinds, ["stroke", "fill", "stroke", "fill"]);
 }
 
 #[test]

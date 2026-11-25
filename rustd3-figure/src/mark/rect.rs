@@ -5,6 +5,7 @@ use std::any::Any;
 
 use kurbo::{Join, Shape};
 use peniko::Brush;
+use rustd3_core::color::Rgb;
 
 use crate::check::Issue;
 use crate::figure::Fits;
@@ -100,6 +101,30 @@ impl<X: Position, Y: Position> Rect<X, Y> {
         }
     }
 
+    /// Fills the rectangles with `c`, a tint no palette names.
+    ///
+    /// ```
+    /// use rustd3_core::color::Rgb;
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::rect;
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// // A pale band behind the marks, framed in gray.
+    /// let band = rect([([2.0, 4.0], [0.0, 10.0])], x, y)
+    ///     .fill_color(Rgb::hex(0xeeeeee))
+    ///     .stroke_color(Rgb::hex(0x949494));
+    /// fig.panel(0, 0).mark(band);
+    /// ```
+    #[must_use]
+    pub fn fill_color(self, c: Rgb) -> Self {
+        Self {
+            fill: Some(Color::Fixed(c)),
+            ..self
+        }
+    }
+
     /// Outlines the rectangles in `palette`'s color for `key`, as wide as
     /// the theme's patch edges (1 pt, seaborn's) unless
     /// [`stroke_width`](Rect::stroke_width) says otherwise. As in
@@ -109,6 +134,17 @@ impl<X: Position, Y: Position> Rect<X, Y> {
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             stroke: Some(Color::keyed(palette, key)),
+            ..self
+        }
+    }
+
+    /// Outlines the rectangles in `c`, as [`stroke`](Rect::stroke) does
+    /// in a palette's color: without [`fill`](Rect::fill) or
+    /// [`fill_color`](Rect::fill_color) they are not filled.
+    #[must_use]
+    pub fn stroke_color(self, c: Rgb) -> Self {
+        Self {
+            stroke: Some(Color::Fixed(c)),
             ..self
         }
     }

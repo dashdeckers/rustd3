@@ -108,6 +108,9 @@ The first release.
   version.
 - `Note::size(px)` and `Note::bold(true)` set a note's text size and
   weight without typst markup.
+- `Rect::fill_color(c)` and `Rect::stroke_color(c)` fill and outline
+  rectangles in a fixed color, so a one-off tint or frame needs no
+  ordinal scale.
 
 ### iced (`rustd3-iced`, from git)
 
