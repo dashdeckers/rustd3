@@ -386,6 +386,66 @@ fn a_clipping_box_draws_only_what_it_clips_to() {
 }
 
 #[test]
+fn a_drawing_is_its_one_page_from_its_top_left_corner() {
+    let half = "#box(height: 8pt, clip: true, circle(radius: 8pt, fill: red))";
+    let list = text::draw(half, &fonts()).expect("typst draws it");
+    list::check(&list).expect("a valid list");
+    assert_eq!(list.size, Size::new(16.0, 8.0));
+    let [
+        Command::Push {
+            clip: Some(Clip::Path(clip)),
+            ..
+        },
+        Command::Fill { path, paint },
+        Command::Pop,
+    ] = &list.commands[..]
+    else {
+        panic!("not a clipped disc: {:?}", list.commands);
+    };
+    let (clip, disc) = (clip.bounding_box(), path.bounding_box());
+    assert_eq!(
+        [clip.x0, clip.y0, clip.x1, clip.y1].map(places),
+        ["0.000", "0.000", "16.000", "8.000"]
+    );
+    assert_eq!(
+        [disc.x0, disc.y0, disc.x1, disc.y1].map(places),
+        ["0.000", "0.000", "16.000", "16.000"]
+    );
+    assert_eq!(*paint, Brush::Solid(Color::from_rgba8(255, 65, 54, 255)));
+
+    // Text is typst's default, not a label's, unless the markup sets it.
+    let list = text::draw("A #text(size: 20pt, fill: blue)[B]", &fonts()).expect("typst draws it");
+    let runs: Vec<(f32, &Brush)> = list
+        .commands
+        .iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some((run.size, &run.fill))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let blue = Brush::Solid(Color::from_rgba8(0, 116, 217, 255));
+    assert_eq!(runs, [(11.0, &Brush::Solid(Color::BLACK)), (20.0, &blue)]);
+}
+
+#[test]
+fn a_drawing_typst_rejects_or_lays_out_as_pages_is_an_error() {
+    assert!(matches!(
+        text::draw("$ x^ $", &fonts()),
+        Err(Error::Markup { markup, message }) if markup == "$ x^ $" && !message.is_empty()
+    ));
+    assert_eq!(
+        text::draw("a#pagebreak()b", &fonts()),
+        Err(Error::Pages {
+            markup: "a#pagebreak()b".into(),
+            pages: 2
+        })
+    );
+}
+
+#[test]
 fn glyphs_no_font_has_are_counted_missing() {
     shaped("漢字", |s| {
         let runs = runs(s);

@@ -102,6 +102,10 @@ The first release.
   threshold can be named clear of the marks.
 - Labels keep typst's clips (`box(clip: true)`): what typst clips is
   drawn in a group clipped to its path, in every output.
+- `text::draw(markup, &fonts)` draws a typst snippet as a list of its own
+  size, without a label's style: an icon in one call. `typst` is
+  re-exported, so a crate that compiles typst itself uses the same
+  version.
 
 ### iced (`rustd3-iced`, from git)
 

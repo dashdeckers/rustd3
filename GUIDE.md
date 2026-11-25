@@ -331,7 +331,8 @@ batch of new labels in one document; shaped labels live in the figure's
 shapes only labels it has not seen. Without the `fonts` feature the app
 supplies fonts through `text::Fonts::with`. Tick labels are written
 through the figure's locale; axes drop labels that would collide, keeping
-a regular stride.
+a regular stride. Outside a figure, `text::draw(markup, &fonts)` draws a
+typst snippet as a drawing list of its own size, for an icon.
 
 ### Legends and colorbars
 

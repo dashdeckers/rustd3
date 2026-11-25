@@ -6,7 +6,8 @@
 //! The list's geometry is kurbo's and its paint is peniko's; both crates
 //! are re-exported ([`kurbo`], [`peniko`]) so that callers name the same
 //! versions, and a major version of either is a major version of this
-//! crate.
+//! crate. So is [`typst`], which sets the text, for callers that use its
+//! compiler or types themselves.
 //!
 //! Applications usually reach this crate as `rustd3::figure`, through the
 //! `rustd3` facade's `figure` feature. The examples here use the component
@@ -62,6 +63,7 @@
 
 pub use kurbo;
 pub use peniko;
+pub use typst;
 
 pub mod axis;
 pub mod brush;

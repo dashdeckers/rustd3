@@ -2,6 +2,7 @@
 //! markup, with explicit `\n` line breaks. typst shapes them in one
 //! document per batch of new labels, a caller-owned [`Cache`] keeps them,
 //! and they are placed into a drawing list as glyph runs and fills.
+//! [`draw`] turns a typst snippet into a drawing of its own size.
 //!
 //! ```
 //! use rustd3_core::color::Rgb;
@@ -25,6 +26,7 @@ mod span;
 mod style;
 mod world;
 
+pub use batch::draw;
 pub use cache::{Cache, Stats};
 pub use error::Error;
 pub use fonts::Fonts;

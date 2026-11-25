@@ -9,7 +9,8 @@ pub enum Error {
     /// typst rejects the label's markup.
     #[error("typst rejects {markup:?}: {message}")]
     Markup {
-        /// The label's snippet, as its key holds it.
+        /// The label's snippet, as its key holds it, or the markup given
+        /// to [`draw`](crate::text::draw).
         markup: String,
         /// typst's error messages, joined by "; ".
         message: String,
@@ -18,7 +19,8 @@ pub enum Error {
     /// break, for one).
     #[error("{markup:?} lays out as {pages} pages, not one")]
     Pages {
-        /// The label's snippet, as its key holds it.
+        /// The label's snippet, as its key holds it, or the markup given
+        /// to [`draw`](crate::text::draw).
         markup: String,
         /// How many pages it made.
         pages: usize,
