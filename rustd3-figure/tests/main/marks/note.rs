@@ -93,6 +93,26 @@ fn a_note_places_its_anchor_at_its_point_moved_by_its_offset() {
 }
 
 #[test]
+fn a_note_takes_its_size_and_weight_and_keeps_its_size_for_bad_sizes() {
+    let (mut fig, x, y) = tens();
+    let hi = || note((5.0, 5.0), "HI", x, y);
+    fig.panel(0, 0)
+        .mark(hi())
+        .mark(hi().size(9.0))
+        .mark(hi().size(9.0).size(f64::NAN))
+        .mark(hi().size(-1.0))
+        .mark(hi().bold(true));
+    let (list, _) = drawn(&fig);
+    let (runs, _) = runs(&list);
+    let sizes: Vec<f32> = runs.iter().map(|r| r.size).collect();
+    assert_eq!(sizes, [16.0, 9.0, 9.0, 16.0, 16.0]);
+    let faces: Vec<usize> = runs.iter().map(|r| r.font).collect();
+    let regular = faces[0];
+    assert_eq!(faces[..4], [regular; 4]);
+    assert_ne!(faces[4], regular, "DejaVu Sans Bold");
+}
+
+#[test]
 fn a_notes_point_enters_fitting_and_the_text_does_not() {
     let mut fig = Figure::new();
     let x = fig.fit(scale::linear());

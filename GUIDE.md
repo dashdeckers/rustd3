@@ -294,7 +294,7 @@ their keys through `Display`.
 | `histogram(values, x, y)` | counts of values per key or per bin (`mark::Bins`: d3's nice bins or a count of equal ones) |
 | `density_y(values, y, w)`, `density_x` | a Gaussian kernel density estimate (`rustd3::figure::stats::Kde`, Scott's bandwidth) |
 | `image(grid, x, y, color)` | a grid of values as a raster heatmap through a color handle |
-| `note(at, text, x, y)` | a label at a data position; `.avoid(Avoid::Step)` steps aside for the notes before it, `Avoid::Drop` leaves it out |
+| `note(at, text, x, y)` | a label at a data position; `.size(px)` and `.bold(true)` set its text; `.avoid(Avoid::Step)` steps aside for the notes before it, `Avoid::Drop` leaves it out |
 | `rule_x(value, x)`, `rule_y` | a reference line across the plot area; `.label(text)` names it, `.label_at(Place::Start)` and `.label_offset(dx, dy)` move the name |
 
 Areas and bars take a `hatch::Hatch`. A density over more than 10,000

@@ -7,9 +7,9 @@ use rustd3_core::color::Rgb;
 use crate::check::Issue;
 use crate::figure::Fits;
 use crate::list::List;
-use crate::mark::{Ctx, Mark, at, outside_count, within};
+use crate::mark::{Ctx, Mark, at, outside_count, positive, within};
 use crate::scale::{Kind, Position, ScaleRef};
-use crate::text::{Anchor, Key, Text};
+use crate::text::{Anchor, Key, Style, Text};
 use crate::theme::Theme;
 
 /// What a note does when its box would overlap that of a note drawn
@@ -34,6 +34,8 @@ pub struct Note<X: Position, Y: Position> {
     anchor: Anchor,
     offset: Vec2,
     fill: Option<Rgb>,
+    size: Option<f64>,
+    bold: bool,
     avoid: Option<Avoid>,
 }
 
@@ -78,6 +80,8 @@ pub fn note<X: Position, Y: Position>(
         anchor: Anchor::default(),
         offset: Vec2::ZERO,
         fill: None,
+        size: None,
+        bold: false,
         avoid: None,
     }
 }
@@ -115,6 +119,34 @@ impl<X: Position, Y: Position> Note<X, Y> {
             fill: Some(c),
             ..self
         }
+    }
+
+    /// The text's size in px (typst's `pt`, as in a label's markup); by
+    /// default the axis-label size, 12 pt (16 px at seaborn's notebook). A
+    /// size that is not finite and positive leaves it as it was.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::note;
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// fig.panel(0, 0).mark(note((1.0, 3.0), "peak", x, y).size(9.0).bold(true));
+    /// ```
+    #[must_use]
+    pub fn size(self, px: f64) -> Self {
+        Self {
+            size: positive(px).or(self.size),
+            ..self
+        }
+    }
+
+    /// With the whole text bold, or regular, the default; a bold span stays
+    /// bold.
+    #[must_use]
+    pub fn bold(self, yes: bool) -> Self {
+        Self { bold: yes, ..self }
     }
 
     /// Makes way for the notes of the panel drawn before this one that
@@ -185,7 +217,13 @@ impl<X: Position, Y: Position> Note<X, Y> {
     /// The text's key under `theme`.
     fn key(&self, theme: &Theme) -> Key {
         let fill = self.fill.unwrap_or_else(|| theme.get_ink());
-        Key::new(&self.text, &theme.note(self.anchor.h, fill))
+        let style = theme.note(self.anchor.h, fill);
+        let style = Style {
+            size: self.size.unwrap_or(style.size),
+            bold: self.bold,
+            ..style
+        };
+        Key::new(&self.text, &style)
     }
 }
 

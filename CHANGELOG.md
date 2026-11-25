@@ -106,6 +106,8 @@ The first release.
   size, without a label's style: an icon in one call. `typst` is
   re-exported, so a crate that compiles typst itself uses the same
   version.
+- `Note::size(px)` and `Note::bold(true)` set a note's text size and
+  weight without typst markup.
 
 ### iced (`rustd3-iced`, from git)
 
