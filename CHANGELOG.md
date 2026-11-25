@@ -48,6 +48,8 @@ The first release.
   a clock that works on wasm).
 - `array::max_index` and `array::min_index` are d3's `maxIndex` and
   `minIndex`: the position of the greatest and of the least value.
+- `locale::Locale::ladder(l)` puts a locale's dates on another ladder in
+  one call.
 
 ### Figure
 

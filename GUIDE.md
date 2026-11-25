@@ -415,7 +415,9 @@ let label = time::format("%H:%M").format(t.invert(480.0), &TimeZone::UTC);
 A time axis labels its ticks by climbing the locale's ladder
 (`time::Ladder`): the neutral `Iso` ladder writes `2026-03`, `03-08`,
 `12:00`; d3's ladder writes `March`, `Mar 08`. Set the figure's locale
-with `fig.locale(rustd3::locale::Locale::EN_US)`.
+with `fig.locale(rustd3::locale::Locale::EN_US)`. Every constant but
+`EN_US` keeps the ISO ladder, and `Locale::DE_DE.ladder(time::Ladder::D3)`
+writes d3's.
 
 ### Outputs and their settings
 

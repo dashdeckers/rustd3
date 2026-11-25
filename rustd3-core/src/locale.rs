@@ -166,6 +166,29 @@ impl Locale {
         Locale { time, ..self }
     }
 
+    /// The locale with its dates on ladder `l`: `with_time` of its time
+    /// half on that ladder. Every constant but `EN_US` writes tick labels
+    /// on the ISO ladder until told otherwise.
+    ///
+    /// ```
+    /// use rustd3_core::jiff::{Timestamp, tz::TimeZone};
+    /// use rustd3_core::locale::Locale;
+    /// use rustd3_core::scale::Ticks;
+    /// use rustd3_core::time::{self, Ladder};
+    ///
+    /// let span: [Timestamp; 2] = ["2026-10-29T00:00:00Z".parse()?, "2026-10-31T00:00:00Z".parse()?];
+    /// let t = time::time(TimeZone::UTC).domain(span);
+    /// let labels = |locale| t.labels(&t.tick_set(2), &locale);
+    /// assert_eq!(labels(Locale::DE_DE), ["10-29", "10-30", "10-31"]);
+    /// assert_eq!(labels(Locale::DE_DE.ladder(Ladder::D3)), ["Do 29", "Fr 30", "Sa 31"]);
+    /// # Ok::<(), rustd3_core::jiff::Error>(())
+    /// ```
+    #[must_use]
+    pub fn ladder(self, l: time::Ladder) -> Locale {
+        let time = self.time.clone().ladder(l);
+        Locale { time, ..self }
+    }
+
     /// The number half, d3's `formatLocale`.
     #[must_use]
     pub fn get_number(&self) -> &format::Locale {
