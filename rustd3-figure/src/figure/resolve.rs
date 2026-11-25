@@ -164,7 +164,7 @@ impl Figure<'_> {
             let mut memory = cache.visible().clone();
             let scales = self.settled(&fitted, &columns, &mut memory);
             let locale = self.locale.clone();
-            let mut resolved = Resolved::new(self.id, scales, locale, target, size);
+            let mut resolved = Resolved::new(self.ids(), scales, locale, target, size);
             resolved.bind(&self.panels, windowed.clone());
             resolved.keyed(Rc::clone(&fitted.keys));
             resolved.foreign(fitted.foreign.clone());
@@ -266,7 +266,7 @@ impl Figure<'_> {
             })
             .collect();
         let reports = self.report(Fits::new(
-            self.id,
+            self.ids(),
             slots,
             built,
             self.theme.clone(),
@@ -342,7 +342,7 @@ impl Figure<'_> {
                 .collect();
             let resolved = scales.iter().map(|s| s.boxed()).collect();
             let fits = Fits::new(
-                self.id,
+                self.ids(),
                 slots,
                 resolved,
                 self.theme.clone(),

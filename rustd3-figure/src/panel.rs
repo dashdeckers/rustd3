@@ -4,6 +4,7 @@ use rustd3_core::color::Rgb;
 use rustd3_core::scale::Ticks;
 
 use crate::axis::{self, Axis};
+use crate::figure::Remap;
 use crate::layout::Cell;
 use crate::legend::{self, Inset};
 use crate::mark::Mark;
@@ -148,6 +149,30 @@ impl<'a> Panel<'a> {
         self
     }
 
+    /// The panel taken into another figure (`Figure::facet`): its cell
+    /// moved by `at`, and the handles of its axes, insets, zooms and brush
+    /// remapped to that figure's table. Its marks keep theirs, which the
+    /// figure finds through the figures it took in.
+    pub(crate) fn moved(mut self, at: &Cell, to: &Remap<'_>) -> Panel<'a> {
+        self.figure = to.target();
+        self.cell = self.cell.shifted(at);
+        for a in &mut self.axes {
+            a.remap(to);
+        }
+        for (_, stored) in &mut self.insets {
+            stored.remap(to);
+        }
+        for zooms in &mut self.zooms {
+            for h in zooms.iter_mut() {
+                *h = to.apply(*h);
+            }
+        }
+        if let Some(brush) = &mut self.brush {
+            brush.remap(to);
+        }
+        self
+    }
+
     /// The table positions of the handles zoomed along x and along y, in
     /// the order they were added.
     pub(crate) fn zooms(&self) -> [Vec<usize>; 2] {
@@ -216,10 +241,10 @@ impl<'a> Panel<'a> {
     /// [`Figure::check`](crate::Figure::check).
     fn admit(&mut self, needed: &[ScaleRef<()>], optional: &[ScaleRef<()>]) -> bool {
         for h in needed.iter().chain(optional) {
-            if h.of(self.figure).is_none() && !self.foreign.contains(&h.get_index()) {
+            if !h.is_of(self.figure) && !self.foreign.contains(&h.get_index()) {
                 self.foreign.push(h.get_index());
             }
         }
-        needed.iter().all(|h| h.of(self.figure).is_some())
+        needed.iter().all(|h| h.is_of(self.figure))
     }
 }

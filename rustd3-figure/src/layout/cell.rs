@@ -64,6 +64,15 @@ impl Cell {
     pub(crate) fn cols(&self) -> Range<usize> {
         self.cols.clone()
     }
+
+    /// The cell moved down and right by the first row and column of `by`.
+    pub(crate) fn shifted(&self, by: &Cell) -> Cell {
+        let (down, right) = (by.rows.start, by.cols.start);
+        Cell {
+            rows: self.rows.start.saturating_add(down)..self.rows.end.saturating_add(down),
+            cols: self.cols.start.saturating_add(right)..self.cols.end.saturating_add(right),
+        }
+    }
 }
 
 #[cfg(test)]

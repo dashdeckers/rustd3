@@ -30,7 +30,8 @@ impl std::fmt::Debug for Held {
 }
 
 impl Held {
-    /// Holds `scale` for handle `h`.
+    /// Holds `scale` for handle `h`, a handle of the figure resolved; a
+    /// facet's handle goes through [`Figure::handle`] first.
     pub fn hold<S: Kind>(&mut self, h: ScaleRef<S>, scale: S) {
         self.scales
             .insert(h.get_index(), (TypeId::of::<S>(), Box::new(scale)));

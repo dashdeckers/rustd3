@@ -24,7 +24,7 @@ use crate::theme::Theme;
 /// swatches repeat. A handle of another figure is ignored, and recorded
 /// with the panel whose mark reported it.
 pub struct Fits {
-    figure: figure::Id,
+    figure: figure::Ids,
     /// One per table entry: a `Slot<S>` for the fitted ones.
     slots: Vec<Option<Box<dyn Any>>>,
     /// One per table entry: the scale as held, or as built.
@@ -193,7 +193,7 @@ impl Fits {
     /// Reports for figure `figure` drawn with `theme` and `locale`: one
     /// slot and one scale (as held, or as built) per table entry.
     pub(super) fn new(
-        figure: figure::Id,
+        figure: figure::Ids,
         slots: Vec<Option<Box<dyn Any>>>,
         scales: Vec<Box<dyn Scale>>,
         theme: Theme,
@@ -236,7 +236,7 @@ impl Fits {
         x: ScaleRef<X>,
         y: ScaleRef<Y>,
     ) -> Option<X> {
-        let Some(index) = x.of(self.figure) else {
+        let Some(index) = x.of(&self.figure) else {
             self.note(x.get_index());
             return None;
         };
@@ -274,7 +274,10 @@ impl Fits {
     /// `h`'s scale before fitting, as a gesture holds it or as built;
     /// `None` for a handle of another figure.
     pub(crate) fn scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
-        self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
+        self.scales
+            .get(h.of(&self.figure)?)?
+            .as_any()
+            .downcast_ref()
     }
 
     /// The figure's theme, as
@@ -361,7 +364,7 @@ impl Fits {
         key: Box<dyn Any>,
         (glyph, hatch, alpha): Look<'_>,
     ) {
-        let Some(palette) = palette.of(self.figure) else {
+        let Some(palette) = palette.of(&self.figure) else {
             self.note(palette.get_index());
             return;
         };
@@ -383,7 +386,7 @@ impl Fits {
     /// across its plot area. A `Fit::Window` handle's columns are counted
     /// in that area.
     pub(crate) fn across<S: Kind>(&mut self, h: ScaleRef<S>) {
-        let Some(index) = h.of(self.figure) else {
+        let Some(index) = h.of(&self.figure) else {
             self.note(h.get_index());
             return;
         };
@@ -407,7 +410,7 @@ impl Fits {
 
     /// `h`'s slot, if it is fitted and not held.
     fn slot<S: Kind>(&mut self, h: ScaleRef<S>) -> Option<&mut Slot<S>> {
-        let Some(index) = h.of(self.figure) else {
+        let Some(index) = h.of(&self.figure) else {
             self.note(h.get_index());
             return None;
         };

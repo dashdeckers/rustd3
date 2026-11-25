@@ -69,7 +69,7 @@ use rustd3_core::scale::Ticks;
 pub(crate) use side::Side;
 pub(crate) use strip::Strip;
 
-use crate::figure::Resolved;
+use crate::figure::{Remap, Resolved};
 use crate::legend::{Erased, Guide, Stored};
 use crate::scale::{Paint, ScaleRef};
 use crate::text::Text;
@@ -174,6 +174,9 @@ pub(crate) trait Draw<'a>: 'a {
     /// Its handle, its scale type erased.
     fn scale(&self) -> ScaleRef<()>;
 
+    /// Moves its handle to the table of the figure taking it in.
+    fn remap(&mut self, to: &Remap<'_>);
+
     /// The strip of its resolved scale.
     fn strip(&self, resolved: &Resolved) -> Strip;
 
@@ -211,6 +214,10 @@ where
 
     fn scale(&self) -> ScaleRef<()> {
         self.handle.erased()
+    }
+
+    fn remap(&mut self, to: &Remap<'_>) {
+        self.handle = to.apply(self.handle);
     }
 
     fn strip(&self, resolved: &Resolved) -> Strip {

@@ -9,8 +9,9 @@ use crate::figure;
 /// A typed handle to a scale in a figure's table: `Copy`, so one handle is
 /// placed on every mark and axis that should agree. Its type recovers the
 /// concrete scale at draw time. A handle carries its figure's id: used
-/// with another figure it finds no scale, what uses it draws nothing, and
-/// [`Figure::check`](crate::Figure::check) reports it
+/// with another figure it finds no scale (unless that figure took its own
+/// in, [`Figure::facet`](crate::Figure::facet)), what uses it draws
+/// nothing, and [`Figure::check`](crate::Figure::check) reports it
 /// ([`Issue::ForeignHandle`](crate::check::Issue::ForeignHandle)).
 ///
 /// ```
@@ -80,10 +81,23 @@ impl<S> ScaleRef<S> {
         self.index as usize
     }
 
-    /// The position in figure `figure`'s table: every use of a handle goes
-    /// through here. `None` for a handle of another figure.
-    pub(crate) fn of(self, figure: figure::Id) -> Option<usize> {
-        (self.figure == figure).then(|| self.get_index())
+    /// The position in the table of the figure `ids` names: every use of a
+    /// handle goes through here. A handle of a figure it took in
+    /// ([`Figure::facet`](crate::Figure::facet)) finds the position its
+    /// scale moved to; `None` for a handle of another figure.
+    pub(crate) fn of(self, ids: &figure::Ids) -> Option<usize> {
+        ids.position(self.figure, self.get_index())
+    }
+
+    /// Whether the handle was made by figure `figure`.
+    pub(crate) fn is_of(self, figure: figure::Id) -> bool {
+        self.figure == figure
+    }
+
+    /// The same handle at position `index` of figure `figure`'s table.
+    pub(crate) fn moved(self, figure: figure::Id, index: usize) -> Self {
+        let index = u32::try_from(index).expect("invariant: a figure holds fewer than 2^32 scales");
+        ScaleRef::new(figure, index)
     }
 
     /// The same handle without its scale type, for lists of handles of

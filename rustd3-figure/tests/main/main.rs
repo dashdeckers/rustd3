@@ -5,6 +5,8 @@
 mod check;
 mod colorbar;
 mod draw;
+#[cfg(feature = "fonts")]
+mod facet;
 mod figure;
 mod fit;
 #[cfg(feature = "fonts")]

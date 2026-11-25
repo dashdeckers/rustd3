@@ -98,7 +98,7 @@ pub mod text;
 pub mod theme;
 pub mod thin;
 
-pub use figure::{Error, Figure, Fits, Held, Resolved};
+pub use figure::{Error, Figure, Fits, Held, Resolved, Share};
 pub use panel::Panel;
 pub use target::Target;
 pub use theme::settings::Theme;

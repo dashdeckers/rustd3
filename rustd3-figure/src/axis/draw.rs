@@ -10,7 +10,7 @@ use rustd3_core::scale::Ticks;
 use rustd3_core::time::{Interval, Time};
 
 use crate::axis::{Axis, across};
-use crate::figure::Resolved;
+use crate::figure::{Remap, Resolved};
 use crate::layout::collide;
 use crate::scale::{Kind, Position, ScaleRef};
 use crate::text;
@@ -37,6 +37,9 @@ pub(crate) trait Draw<'a>: 'a {
     fn keeps_label(&self) -> bool {
         false
     }
+
+    /// Moves its handles to the table of the figure taking its panel in.
+    fn remap(&mut self, _to: &Remap<'_>) {}
 
     /// The tick count `.ticks(n)` set.
     fn count(&self) -> Option<usize>;
@@ -136,6 +139,11 @@ where
 
     fn keeps_label(&self) -> bool {
         self.keep_label
+    }
+
+    fn remap(&mut self, to: &Remap<'_>) {
+        self.scale = to.apply(self.scale);
+        self.palette = self.palette.map(|p| to.apply(p));
     }
 
     fn count(&self) -> Option<usize> {

@@ -1,6 +1,7 @@
 //! [`Guide`]: what a figure slot or a panel corner holds.
 
 use crate::colorbar;
+use crate::figure::Remap;
 use crate::legend::Draw;
 use crate::scale::ScaleRef;
 
@@ -39,6 +40,14 @@ impl Stored<'_> {
         match self {
             Stored::Keys(keys) => [keys.scale()],
             Stored::Bar(bar) => [bar.scale()],
+        }
+    }
+
+    /// Moves the guide's handle to the table of the figure taking it in.
+    pub(crate) fn remap(&mut self, to: &Remap<'_>) {
+        match self {
+            Stored::Keys(keys) => keys.remap(to),
+            Stored::Bar(bar) => bar.remap(to),
         }
     }
 }

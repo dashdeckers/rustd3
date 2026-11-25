@@ -93,7 +93,7 @@ impl Figure<'_> {
     /// # }
     /// ```
     pub fn draw_resolved(&self, cache: &mut Cache, resolved: &Resolved) -> List {
-        if resolved.figure() != self.id {
+        if *resolved.figure() != self.ids() {
             let own = self.resolve(resolved.size(), cache, &Held::default(), resolved.target());
             return self.draw_resolved(cache, &own);
         }

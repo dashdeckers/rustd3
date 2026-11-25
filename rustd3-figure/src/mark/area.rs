@@ -361,7 +361,7 @@ impl<'a, X: Position, Y: Position<Domain = f64>> Ribbon<'a, X, Y> {
             return None;
         }
         let indexed = sx.indexed()?;
-        let edges = ctx.edges(indexed, self.x.get_index())?;
+        let edges = ctx.edges(indexed, self.x)?;
         let valid = |v| admits(sy, v);
         indexed.thin_joint(&self.lower, &self.upper, &edges, &valid, &mut ctx.frame())
     }

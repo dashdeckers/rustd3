@@ -3,6 +3,7 @@
 
 mod decorate;
 mod draw;
+mod facet;
 mod fits;
 mod held;
 mod part;
@@ -11,8 +12,10 @@ mod resolved;
 mod save;
 
 use std::any::{Any, TypeId};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+pub(crate) use facet::Remap;
 pub use fits::Fits;
 pub use held::Held;
 pub use resolved::Resolved;
@@ -34,6 +37,39 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 /// A figure's identity, which its handles carry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Id(u64);
+
+/// A figure's identity with those of the figures it took in
+/// ([`Figure::facet`]) and where their scales went: what finds a handle's
+/// table position.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Ids {
+    own: Id,
+    taken: Arc<[(Id, Vec<usize>)]>,
+}
+
+impl Ids {
+    /// The table position of entry `index` of figure `id`'s table.
+    pub(crate) fn position(&self, id: Id, index: usize) -> Option<usize> {
+        if id == self.own {
+            return Some(index);
+        }
+        let (_, moved) = self.taken.iter().find(|(taken, _)| *taken == id)?;
+        moved.get(index).copied()
+    }
+}
+
+/// Whether the figures [`Figure::facet`] takes in share their scales.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Share {
+    /// A scale at a table position where a figure taken in before with
+    /// `Share::Scales` had a scale of the same type becomes that scale:
+    /// one domain fitted to every facet's marks, zoomed together in the
+    /// iced `Plot` widget.
+    Scales,
+    /// Every scale stays the facet's own.
+    None,
+}
 
 /// A figure: a table of scales, panels in grid cells, a layout, a title
 /// and a theme. Built with `&mut`, resolved and drawn with `&`.
@@ -84,6 +120,12 @@ pub struct Figure<'a> {
     /// The room past labeled vertical axes, in widths of "0", in place of
     /// the target's.
     axis_room: Option<f64>,
+    /// The figures taken in by `facet`, each with the table positions its
+    /// scales went to.
+    taken: Vec<(Id, Vec<usize>)>,
+    /// Per table position of the facets that share scales, the position
+    /// here of the first such facet's scale.
+    shared: Vec<usize>,
 }
 
 impl<'a> std::fmt::Debug for Figure<'a> {
@@ -129,6 +171,8 @@ impl<'a> Figure<'a> {
             legends: Vec::new(),
             noted: Vec::new(),
             axis_room: None,
+            taken: Vec::new(),
+            shared: Vec::new(),
         }
     }
 
@@ -318,7 +362,7 @@ impl<'a> Figure<'a> {
     pub fn legend(&mut self, slot: Slot, g: impl legend::Guide<'a>) -> &mut Self {
         let stored = g.erase().0;
         let [h] = stored.handles();
-        if h.of(self.id).is_some() {
+        if h.of(&self.ids()).is_some() {
             self.legends.push((slot, stored));
         } else if !self.foreign.contains(&h.get_index()) {
             self.foreign.push(h.get_index());
@@ -347,10 +391,30 @@ impl<'a> Figure<'a> {
     }
 
     /// Whether handle `h` is of this figure: a handle of another figure
-    /// finds no scale here, and what uses it draws nothing.
+    /// finds no scale here, and what uses it draws nothing. The handles of
+    /// a figure taken in by [`facet`](Figure::facet) are this figure's.
     #[must_use]
     pub fn owns<S>(&self, h: ScaleRef<S>) -> bool {
-        h.of(self.id).is_some()
+        h.of(&self.ids()).is_some()
+    }
+
+    /// This figure's own handle to the scale `h` finds here: `h` itself,
+    /// or for a handle of a figure taken in by [`facet`](Figure::facet)
+    /// the handle of the scale it became. A widget's listeners and
+    /// [`Held`] name scales by table position, so they take this handle.
+    /// `None` for a handle of another figure.
+    #[must_use]
+    pub fn handle<S>(&self, h: ScaleRef<S>) -> Option<ScaleRef<S>> {
+        let index = h.of(&self.ids())?;
+        Some(h.moved(self.id, index))
+    }
+
+    /// The figure's identity with those of the figures it took in.
+    pub(crate) fn ids(&self) -> Ids {
+        Ids {
+            own: self.id,
+            taken: self.taken.as_slice().into(),
+        }
     }
 
     /// The guides in figure slots, in the order they were added.

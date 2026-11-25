@@ -16,9 +16,10 @@ use rustd3_core::scale::{self, Linear};
 use rustd3_core::time;
 use rustd3_figure::cache::Cache;
 use rustd3_figure::kurbo::{self, Rect};
+use rustd3_figure::layout::Cell;
 use rustd3_figure::mark::dots;
 use rustd3_figure::scale::ScaleRef;
-use rustd3_figure::{Figure, Held, Target, axis};
+use rustd3_figure::{Figure, Held, Share, Target, axis};
 use rustd3_iced::Plot;
 use rustd3_iced::plot::probe::Sample;
 use rustd3_iced::plot::{Probe, Render};
@@ -1240,4 +1241,44 @@ fn a_listener_on_a_handle_of_another_figure_is_not_added() {
     let messages = harness.messages();
     assert_eq!(domains(&messages).0, None, "{messages:?}");
     assert!(domains(&messages).1.is_some(), "{messages:?}");
+}
+
+#[test]
+fn a_wheel_over_one_facet_zooms_only_the_scales_it_shares() {
+    for share in [Share::Scales, Share::None] {
+        let t0 = headless::epoch();
+        let (left, lx, _) = figure([0.0, 100.0], [0.0, 10.0]);
+        let (right, rx, _) = figure([0.0, 100.0], [0.0, 10.0]);
+        let mut fig = Figure::new();
+        fig.facet(Cell::new(0, 0), left, share)
+            .facet(Cell::new(0, 1), right, share);
+        let (Some(lx), Some(rx)) = (fig.handle(lx), fig.handle(rx)) else {
+            panic!("the facets' handles are the figure's");
+        };
+        assert_eq!(lx == rx, share == Share::Scales);
+        let area = areas(&fig, 1.0)[0];
+        let mut plot = Plot::new(fig)
+            .scale_factor(1.0)
+            .render(Render::Inline)
+            .on_change(lx, Message::X);
+        if lx != rx {
+            plot = plot.on_change(rx, Message::Vib);
+        }
+        let Some(mut harness) = Harness::new(plot, SIZE, 1.0) else {
+            return;
+        };
+        let _ = harness.frame(t0);
+        harness.point_at(Point::new(area.center().x as f32, area.center().y as f32));
+        let _ = harness.events(&[lines(3.0)]);
+        let _ = harness.frame(t0 + FRAME);
+        let messages = harness.messages();
+        assert!(
+            messages.iter().any(|m| matches!(m, Message::X(_))),
+            "{share:?}: {messages:?}"
+        );
+        assert!(
+            !messages.iter().any(|m| matches!(m, Message::Vib(_))),
+            "{share:?}: the right facet's own x stays: {messages:?}"
+        );
+    }
 }

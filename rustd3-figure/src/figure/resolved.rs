@@ -22,7 +22,7 @@ use crate::{brush, figure, thin};
 /// fitted or held, every panel's plot area, and per panel its axes' tick
 /// positions and label keys, for drawing.
 pub struct Resolved {
-    figure: figure::Id,
+    figure: figure::Ids,
     scales: Vec<Box<dyn Scale>>,
     locale: Locale,
     target: Target,
@@ -67,7 +67,7 @@ impl Resolved {
     /// The resolved scales of figure `figure` for `target` and `size`,
     /// labeled in `locale`, before layout.
     pub(super) fn new(
-        figure: figure::Id,
+        figure: figure::Ids,
         scales: Vec<Box<dyn Scale>>,
         locale: Locale,
         target: Target,
@@ -102,7 +102,10 @@ impl Resolved {
     /// `None` for a handle of another figure.
     #[must_use]
     pub fn get_scale<S: Kind>(&self, h: ScaleRef<S>) -> Option<&S> {
-        self.scales.get(h.of(self.figure)?)?.as_any().downcast_ref()
+        self.scales
+            .get(h.of(&self.figure)?)?
+            .as_any()
+            .downcast_ref()
     }
 
     /// The resolved scale behind a handle of an axis, guide or brush the
@@ -240,8 +243,14 @@ impl Resolved {
     }
 
     /// The figure this was resolved from.
-    pub(super) fn figure(&self) -> figure::Id {
-        self.figure
+    pub(super) fn figure(&self) -> &figure::Ids {
+        &self.figure
+    }
+
+    /// The table position of handle `h`; `None` for a handle of another
+    /// figure.
+    pub(crate) fn position<S>(&self, h: ScaleRef<S>) -> Option<usize> {
+        h.of(&self.figure)
     }
 
     /// The size the figure was resolved for.

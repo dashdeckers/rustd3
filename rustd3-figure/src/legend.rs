@@ -45,7 +45,7 @@ use rustd3_core::scale::Ordinal;
 pub use slot::Slot;
 pub use swatch::Swatch;
 
-use crate::figure::Resolved;
+use crate::figure::{Remap, Resolved};
 use crate::scale::ScaleRef;
 use crate::text::Text;
 use crate::theme::Theme;
@@ -208,6 +208,9 @@ pub(crate) trait Draw {
     fn frame(&self) -> Option<Frame> {
         None
     }
+
+    /// Moves its handle to the table of the figure taking it in.
+    fn remap(&mut self, _to: &Remap<'_>) {}
 }
 
 impl<K> Draw for Legend<K>
@@ -219,14 +222,16 @@ where
     }
 
     fn entries(&self, resolved: &Resolved, _theme: &Theme) -> Vec<Entry> {
-        let Some(palette) = resolved.get_scale(self.palette) else {
+        let (Some(palette), Some(index)) = (
+            resolved.get_scale(self.palette),
+            resolved.position(self.palette),
+        ) else {
             return Vec::new();
         };
         palette
             .get_domain()
             .iter()
             .map(|key| {
-                let index = self.palette.get_index();
                 let is = |k: &dyn Any| k.downcast_ref::<K>() == Some(key);
                 let glyph = self
                     .glyph
@@ -258,5 +263,9 @@ where
 
     fn frame(&self) -> Option<Frame> {
         self.frame
+    }
+
+    fn remap(&mut self, to: &Remap<'_>) {
+        self.palette = to.apply(self.palette);
     }
 }

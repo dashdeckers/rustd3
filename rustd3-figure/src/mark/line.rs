@@ -190,7 +190,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
         }
         let width = self.width.unwrap_or(ctx.get_theme().get_line_width());
         let mut style = stroke(width, &self.dash);
-        if let Some(grid) = ctx.grid(self.x.get_index()).filter(|_| anchored) {
+        if let Some(grid) = ctx.grid(self.x).filter(|_| anchored) {
             style.dash_offset = phase(&items, grid, &self.dash);
         }
         list.commands.push(Command::Stroke {

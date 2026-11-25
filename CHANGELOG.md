@@ -132,6 +132,13 @@ The first release.
 - `Figure::axis_room(zeros)` sets the room labeled vertical axes keep for
   growing labels, in widths of "0", for every target: 2 on the screen and
   0 in files by default, so a file and the live plot can match.
+- `Figure::facet(at, other, Share::Scales | Share::None)` takes a figure
+  built on its own in as panels of a grid, its handles remapped to the
+  figure's table: shared scales fit every facet and zoom together in the
+  `Plot` widget, inner axes of a shared scale drop their tick labels, its
+  title becomes its panel's, its slot legends are kept once and its noted
+  issues carry over. `Figure::handle(h)` is the figure's own handle for a
+  facet's.
 
 ### iced (`rustd3-iced`, from git)
 

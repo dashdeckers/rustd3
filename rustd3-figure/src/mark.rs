@@ -238,15 +238,18 @@ impl Ctx<'_> {
         guard::band(self.rect.width(), self.rect.height()).inflate(o, o)
     }
 
-    /// The column grid that lines on the x handle at table position `x`
-    /// thin on and anchor their dashes to. It is the grid a widget holds
-    /// for the handle ([`Held::grids`](crate::Held::grids)), or, when the
-    /// plot area is grown, the grid from its left edge at the target's
-    /// density (the grid a widget holds before a drag moves it). `None`
-    /// otherwise, as for the file outputs, which thin on the target's own
-    /// columns.
-    pub(crate) fn grid(&self, x: usize) -> Option<thin::Grid> {
-        self.resolved.grid(x).or_else(|| {
+    /// The column grid that lines on x handle `x` thin on and anchor their
+    /// dashes to. It is the grid a widget holds for the handle
+    /// ([`Held::grids`](crate::Held::grids)), or, when the plot area is
+    /// grown, the grid from its left edge at the target's density (the
+    /// grid a widget holds before a drag moves it). `None` otherwise, as for
+    /// the file outputs, which thin on the target's own columns.
+    pub(crate) fn grid<S>(&self, x: ScaleRef<S>) -> Option<thin::Grid> {
+        let held = self
+            .resolved
+            .position(x)
+            .and_then(|x| self.resolved.grid(x));
+        held.or_else(|| {
             (self.resolved.overscan() > 0.0).then_some(thin::Grid {
                 origin: 0.0,
                 density: self.columns(),
@@ -254,12 +257,11 @@ impl Ctx<'_> {
         })
     }
 
-    /// The thinning column edges of the plot area for a line on the x
-    /// handle at table position `x` whose scale's bridge is `indexed`. They
-    /// lie on [`Ctx::grid`] over the view, or else are `round(w × columns)`
-    /// columns across the plot area ([`Target`](crate::Target)'s columns
-    /// per list px).
-    pub(crate) fn edges<D>(&self, indexed: &dyn Indexed<D>, x: usize) -> Option<Vec<D>> {
+    /// The thinning column edges of the plot area for a line on x handle
+    /// `x` whose scale's bridge is `indexed`. They lie on [`Ctx::grid`]
+    /// over the view, or else are `round(w × columns)` columns across the
+    /// plot area ([`Target`](crate::Target)'s columns per list px).
+    pub(crate) fn edges<D, S>(&self, indexed: &dyn Indexed<D>, x: ScaleRef<S>) -> Option<Vec<D>> {
         let view = self.view();
         match self.grid(x) {
             Some(grid) => thin::edges_on(indexed, [view.x0, view.x1], grid),
@@ -448,7 +450,7 @@ fn thinned<X: Position, Y: Position>(
     }
     let channel = points.indexed()?;
     let indexed = sx.indexed()?;
-    let edges = ctx.edges(indexed, x.get_index())?;
+    let edges = ctx.edges(indexed, x)?;
     indexed.thin(&channel, &edges, &|v| admits(sy, v), &mut ctx.frame())
 }
 

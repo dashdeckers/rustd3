@@ -1,6 +1,7 @@
 //! [`Placed`]: a brush as a panel stores it, its handles' types erased.
 
 use super::Dim;
+use crate::figure::Remap;
 use crate::scale::{Invert, Kind, Position, Scale, ScaleRef};
 
 /// A selection's ends over `over`'s range as a scale of the target's type,
@@ -91,6 +92,12 @@ impl Placed {
     /// or an end does not lie at a finite position.
     pub fn place(&self, over: &dyn Scale, window: &dyn Scale) -> Option<[f64; 2]> {
         (self.place)(over, window)
+    }
+
+    /// Moves its handles to the table of the figure taking its panel in.
+    pub(crate) fn remap(&mut self, to: &Remap<'_>) {
+        self.over = to.apply(self.over);
+        self.target = self.target.map(|h| to.apply(h));
     }
 
     /// The handles the brush is over and sets.
