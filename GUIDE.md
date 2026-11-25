@@ -256,7 +256,10 @@ Every scale kind has a constructor in `rustd3::scale` (`linear`, `log`,
 `identity`) or `rustd3::time` (`time(zone)`, `utc()`). Continuous scales
 take `.nice(count)`, `.clamp(on)`, `.interpolate(…)` and `.unknown(…)`
 as d3's do. A scale used as a figure handle gets its domain from the
-figure when fitted, and its range from the panel it is drawn on.
+figure when fitted, and its range from the panel it is drawn on. A
+handle's type is its scale's, so a transform chosen at run time goes
+through `scale::AnyContinuous::from(scale::log())`, which is one type
+for every transform.
 
 At the core level an axis is a drawing:
 

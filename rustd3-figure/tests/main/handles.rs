@@ -631,3 +631,33 @@ fn binned_handles_paint_their_bins_as_d3() {
         [0.0, 1.0]
     );
 }
+
+#[test]
+fn a_transform_chosen_at_run_time_is_one_handle_type_for_marks_and_axes() {
+    use rustd3_core::scale::AnyContinuous;
+
+    // Linear or log, decided by a value: both arms are one type.
+    let figure = |log: bool| {
+        let mut fig = Figure::new();
+        let x = fig.fit(scale::linear());
+        let y = fig.fit(if log {
+            AnyContinuous::from(scale::log())
+        } else {
+            AnyContinuous::from(scale::linear())
+        });
+        fig.panel(0, 0)
+            .mark(line([(0.0, 1.0), (1.0, 10.0), (2.0, 100.0)], x, y))
+            .axis(axis::left(y));
+        fig
+    };
+    let size = Size::new(400.0, 300.0);
+    let (linear, log) = (
+        texts(&draw(&figure(false), size)),
+        texts(&draw(&figure(true), size)),
+    );
+    assert!(linear.contains(&"50".to_owned()), "{linear:?}");
+    assert!(
+        log.contains(&"10".to_owned()) && !log.contains(&"50".to_owned()),
+        "{log:?}"
+    );
+}
