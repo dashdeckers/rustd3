@@ -240,9 +240,9 @@ fig.panel(0, 0)
 `fig.fit_with(scale, fit)` chooses how a handle follows its data
 (`rustd3::figure::scale::Fit`): `All` (every value, the default),
 `Window(span)` (the newest `span` of x, for live data) or `Visible` (y
-fitted to what the x handles show). `fig.stick(handle, value)` keeps a
-value inside the fitted domain, as matplotlib's sticky edges do (bars
-start at 0).
+fitted to what the x handles show). A mark keeps a value at the edge of
+its fitted domain with `Fits::stick`, as matplotlib's sticky edges do
+(bars start at 0).
 
 `fig.check(size)` lays the figure out without drawing and returns the
 `check::Issue`s that will not read well (labels that do not fit, marks
