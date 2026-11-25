@@ -63,7 +63,8 @@
 //!
 //! # Features
 //!
-//! - `fonts` (default): bundled DejaVu Sans and New Computer Modern Math.
+//! - `fonts` (default): bundled DejaVu Sans, DejaVu Sans Mono and New
+//!   Computer Modern Math.
 //! - `figure`: figures, layout, typst text and the SVG writer.
 //! - `raster`, `png`, `gif`: pixels through vello_cpu, PNG and GIF files.
 //! - `pdf`: PDF through krilla, with selectable text.

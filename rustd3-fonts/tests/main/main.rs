@@ -1,7 +1,7 @@
 //! The bundled fonts, parsed with ttf-parser.
 #![allow(clippy::unwrap_used, reason = "test helpers outside #[test] fns")]
 
-use rustd3_fonts::{ALL, DEJAVU_SANS, DEJAVU_SANS_BOLD, Font, NEW_CM_MATH};
+use rustd3_fonts::{ALL, DEJAVU_SANS, DEJAVU_SANS_BOLD, DEJAVU_SANS_MONO, Font, NEW_CM_MATH};
 use ttf_parser::{Face, name_id};
 
 /// Narrow no-break space and minus (the neutral locale's group separator
@@ -67,6 +67,27 @@ fn new_cm_math_is_regular_new_computer_modern_math_with_a_math_table() {
     assert!(parsed.math);
     assert_eq!(parsed.glyphs, 8_603);
     assert_eq!(parsed.missing, Vec::<char>::new());
+}
+
+#[test]
+fn dejavu_sans_mono_is_regular_dejavu_sans_mono_without_a_math_table() {
+    let parsed = Parsed::from(DEJAVU_SANS_MONO);
+    assert_eq!(parsed.family, "DejaVu Sans Mono");
+    assert!(!parsed.bold);
+    assert!(!parsed.math);
+    assert_eq!(parsed.glyphs, 3_377);
+    assert_eq!(parsed.missing, Vec::<char>::new());
+}
+
+#[test]
+fn dejavu_sans_mono_gives_every_character_one_advance() {
+    let face = Face::parse(DEJAVU_SANS_MONO.data(), 0).unwrap();
+    assert!(face.is_monospaced());
+    let advance = |c: char| face.glyph_hor_advance(face.glyph_index(c).unwrap());
+    let chars = " 0123456789.,-+abcxyzABCXYZ_|".chars().chain(LOCALE_CHARS);
+    for c in chars {
+        assert_eq!(advance(c), advance('0'), "{c:?}");
+    }
 }
 
 #[test]

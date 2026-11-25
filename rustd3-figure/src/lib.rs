@@ -41,10 +41,11 @@
 //!
 //! # Features
 //!
-//! - `fonts` (default): DejaVu Sans and New Computer Modern Math from
-//!   rustd3-fonts, and the items that use them when the app supplies no
-//!   fonts (`Figure::draw`, `Figure::save_svg`, `gif::Writer`). Without
-//!   it, text is set in the fonts the app gives `text::Fonts::with`.
+//! - `fonts` (default): DejaVu Sans, DejaVu Sans Mono and New Computer
+//!   Modern Math from rustd3-fonts, and the items that use them when the
+//!   app supplies no fonts (`Figure::draw`, `Figure::save_svg`,
+//!   `gif::Writer`). Without it, text is set in the fonts the app gives
+//!   `text::Fonts::with`.
 //! - `raster`: vello_cpu renders a drawing list into pixels
 //!   (`raster::Renderer`).
 //! - `png`: `raster` and the PNG encoder (`Figure::save_png`,

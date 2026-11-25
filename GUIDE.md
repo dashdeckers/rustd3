@@ -26,7 +26,7 @@ rustd3 works at two levels.
 | `rustd3-core` | core | d3's scales, shapes, formats and interaction with d3's semantics; renderer-agnostic |
 | `rustd3-derive` | core | `#[derive(Interpolate)]` (feature `derive`) |
 | `rustd3-figure` | figure | the figure model, layout, typst text, the drawing list and its outputs |
-| `rustd3-fonts` | figure | DejaVu Sans (regular, bold) and New Computer Modern Math (feature `fonts`) |
+| `rustd3-fonts` | figure | DejaVu Sans (regular, bold), DejaVu Sans Mono and New Computer Modern Math (feature `fonts`) |
 | `rustd3-iced` | both | `IcedPath` and `pointer::Tracker` for the core level; the `Plot` widget (feature `figure`) |
 
 Two rules hold everywhere. Time zones, locales and clocks are

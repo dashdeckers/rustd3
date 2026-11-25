@@ -44,8 +44,8 @@ impl fmt::Debug for Fonts {
 }
 
 impl Fonts {
-    /// DejaVu Sans, DejaVu Sans Bold and New Computer Modern Math, from
-    /// `rustd3-fonts`; parsed once per process.
+    /// DejaVu Sans, DejaVu Sans Bold, New Computer Modern Math and DejaVu
+    /// Sans Mono, from `rustd3-fonts`; parsed once per process.
     #[cfg(feature = "fonts")]
     pub fn bundled() -> Arc<Fonts> {
         static BUNDLED: std::sync::OnceLock<Arc<Fonts>> = std::sync::OnceLock::new();
@@ -171,7 +171,11 @@ mod tests {
     fn the_bundled_families_are_the_names_typst_reports() {
         assert_eq!(
             Fonts::bundled().families(),
-            ["DejaVu Sans", "New Computer Modern Math"]
+            [
+                "DejaVu Sans",
+                "New Computer Modern Math",
+                "DejaVu Sans Mono"
+            ]
         );
     }
 
@@ -180,9 +184,13 @@ mod tests {
         let fonts = Fonts::with([rustd3_fonts::NEW_CM_MATH.data().to_vec()]).unwrap();
         assert_eq!(
             fonts.families(),
-            ["New Computer Modern Math", "DejaVu Sans"]
+            [
+                "New Computer Modern Math",
+                "DejaVu Sans",
+                "DejaVu Sans Mono"
+            ]
         );
-        assert_eq!(fonts.faces.len(), 4);
+        assert_eq!(fonts.faces.len(), 5);
     }
 
     #[test]

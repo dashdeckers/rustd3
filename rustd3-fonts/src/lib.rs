@@ -1,18 +1,20 @@
 //! Bundled fonts, so a figure renders the same on every machine.
 //!
-//! DejaVu Sans in two weights sets text and New Computer Modern Math sets
-//! math. Each constant carries the bytes of its font file, which keep
-//! their own licenses (see this crate's `LICENSE`). rustd3-figure loads
-//! them through its default `fonts` feature.
+//! DejaVu Sans in two weights sets text, New Computer Modern Math sets
+//! math, and DejaVu Sans Mono sets text whose columns line up. Each
+//! constant carries the bytes of its font file, which keep their own
+//! licenses (see this crate's `LICENSE`). rustd3-figure loads them through
+//! its default `fonts` feature.
 //!
 //! ```
-//! use rustd3_fonts::{ALL, DEJAVU_SANS, NEW_CM_MATH};
+//! use rustd3_fonts::{ALL, DEJAVU_SANS, DEJAVU_SANS_MONO, NEW_CM_MATH};
 //!
 //! assert_eq!(DEJAVU_SANS.family(), "DejaVu Sans");
 //! assert!(!DEJAVU_SANS.bold());
 //! assert_eq!(DEJAVU_SANS.data()[..4], [0, 1, 0, 0]); // TrueType
 //! assert_eq!(NEW_CM_MATH.data()[..4], *b"OTTO"); // OpenType with CFF outlines
-//! assert_eq!(ALL.len(), 3);
+//! assert_eq!(DEJAVU_SANS_MONO.family(), "DejaVu Sans Mono");
+//! assert_eq!(ALL.len(), 4);
 //! ```
 
 // A `const` that held `include_bytes!` directly would be copied into every
@@ -71,5 +73,14 @@ pub const NEW_CM_MATH: Font = Font {
     data: bundled!("../NewCMMath-Regular.otf"),
 };
 
-/// Every bundled font.
-pub const ALL: [Font; 3] = [DEJAVU_SANS, DEJAVU_SANS_BOLD, NEW_CM_MATH];
+/// DejaVu Sans Mono 2.37, regular (`DejaVuSansMono.ttf`): every glyph is
+/// as wide as every other, so padded columns of text line up.
+pub const DEJAVU_SANS_MONO: Font = Font {
+    family: "DejaVu Sans Mono",
+    bold: false,
+    data: bundled!("../DejaVuSansMono.ttf"),
+};
+
+/// Every bundled font, the monospaced face last, so that it comes after
+/// the others in a fallback order.
+pub const ALL: [Font; 4] = [DEJAVU_SANS, DEJAVU_SANS_BOLD, NEW_CM_MATH, DEJAVU_SANS_MONO];

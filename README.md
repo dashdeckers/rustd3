@@ -224,7 +224,7 @@ shows both.
 | none | the core: scales, ticks, axes, shapes, formats, time, locales, color and schemes, interpolation and easing, array statistics, recordings, zoom, brush, drag, animation |
 | `derive` | `#[derive(Interpolate)]` in `rustd3::interpolate` |
 | `figure` | figures, layout, typst text and math, the SVG writer |
-| `fonts` (default) | DejaVu Sans in two weights and New Computer Modern Math, bundled (2.8 MB); it does not turn `figure` on |
+| `fonts` (default) | DejaVu Sans in two weights, DejaVu Sans Mono and New Computer Modern Math, bundled (3.1 MB); it does not turn `figure` on |
 | `raster` | vello_cpu rendering the drawing list into pixels |
 | `png`, `gif` | `raster` and an encoder |
 | `pdf` | PDF through krilla, with selectable text |
@@ -279,9 +279,10 @@ rustd3 is licensed under MIT OR Apache-2.0, at your option
 ([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)). The
 notices of the d3 code it follows are in [LICENSE-d3](LICENSE-d3) (each
 crate that carries such code ships a copy). The bundled fonts keep their
-own licences: DejaVu Sans under the Bitstream Vera licence (with the
-Arev terms), New Computer Modern Math under the GUST Font License, both
-given in full in `rustd3-fonts`' [LICENSE](rustd3-fonts/LICENSE).
+own licences: DejaVu Sans and DejaVu Sans Mono under the Bitstream Vera
+licence (with the Arev terms), New Computer Modern Math under the GUST
+Font License, both given in full in `rustd3-fonts`'
+[LICENSE](rustd3-fonts/LICENSE).
 
 ## Credits
 
@@ -303,5 +304,5 @@ rustd3 stands on these projects:
   integrates with, and the `Plot` widget's home.
 - **seaborn**, BSD-3-Clause: the themes' styles, contexts and palettes
   take seaborn 0.13.2's values.
-- The fonts: DejaVu Sans and New Computer Modern Math, under the
-  licences above (`rustd3-fonts`).
+- The fonts: DejaVu Sans, DejaVu Sans Mono and New Computer Modern
+  Math, under the licences above (`rustd3-fonts`).

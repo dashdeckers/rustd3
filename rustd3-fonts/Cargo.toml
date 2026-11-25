@@ -1,6 +1,6 @@
 [package]
 name = "rustd3-fonts"
-description = "DejaVu Sans and New Computer Modern Math, bundled for rustd3's figures"
+description = "DejaVu Sans, DejaVu Sans Mono and New Computer Modern Math, bundled for rustd3's figures"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +11,7 @@ categories = ["visualization"]
 include = [
     "src/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE",
     "/LICENSE-DejaVu", "/LICENSE-NewCMMath.txt",
-    "/DejaVuSans.ttf", "/DejaVuSans-Bold.ttf", "/NewCMMath-Regular.otf",
+    "/DejaVuSans.ttf", "/DejaVuSans-Bold.ttf", "/NewCMMath-Regular.otf", "/DejaVuSansMono.ttf",
 ]
 autotests = false
 
