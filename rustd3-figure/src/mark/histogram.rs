@@ -79,6 +79,11 @@ impl<X: Binned, Y: Position<Domain = f64>> std::fmt::Debug for Histogram<X, Y> {
 /// the y margin stops there. The values are collected when the mark is
 /// built.
 ///
+/// Each histogram bins its own values, so the bars of two samples do not
+/// line up. `helpers::stats::hist` bins on edges you give
+/// (`helpers::stats::hist::Bins::Edges`), which several samples can share,
+/// and `helpers::stats::hist::stacked` stacks groups over shared edges.
+///
 /// ```
 /// use rustd3_core::scale;
 /// use rustd3_figure::Figure;
