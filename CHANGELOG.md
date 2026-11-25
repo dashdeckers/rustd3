@@ -46,6 +46,8 @@ The first release.
   over pointer input; animation sampled from explicit instants,
   `anim::Instant` (`web_time`'s: `std::time::Instant` on native targets,
   a clock that works on wasm).
+- `array::max_index` and `array::min_index` are d3's `maxIndex` and
+  `minIndex`: the position of the greatest and of the least value.
 
 ### Figure
 
