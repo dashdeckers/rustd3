@@ -1,5 +1,5 @@
-//! A typst page frame as glyph runs and fills: positions in px, y down,
-//! relative to the first text item's baseline.
+//! A typst page frame as glyph runs, fills and clips: positions in px, y
+//! down, relative to the first text item's baseline.
 
 use std::sync::Arc;
 
@@ -7,7 +7,7 @@ use kurbo::{Affine, BezPath, Cap, Join, StrokeOpts};
 use peniko::{Brush, Color};
 use typst::layout::{Frame, FrameItem, Transform};
 use typst::text::TextItem;
-use typst::visualize::{self, CurveItem, FixedStroke, Geometry, LineCap, LineJoin, Paint};
+use typst::visualize::{self, Curve, CurveItem, FixedStroke, Geometry, LineCap, LineJoin, Paint};
 
 use crate::list::{Glyph, GlyphRun};
 use crate::text::Fonts;
@@ -48,6 +48,8 @@ pub(crate) fn page(fonts: &Arc<Fonts>, frame: &Frame, fill: Color) -> Shaped {
                 path: shift * path,
                 paint,
             },
+            Item::Push { clip } => Item::Push { clip: shift * clip },
+            Item::Pop => Item::Pop,
         })
         .collect();
     let last = last(&items);
@@ -66,7 +68,7 @@ fn last(items: &[Item]) -> f64 {
     let runs = || {
         items.iter().filter_map(|item| match item {
             Item::Run(run) => Some(run),
-            Item::Fill { .. } => None,
+            Item::Fill { .. } | Item::Push { .. } | Item::Pop => None,
         })
     };
     let size = runs().map(|run| run.size).fold(0.0, f32::max);
@@ -100,7 +102,17 @@ impl Walk<'_> {
                             inner * kurbo::Point::new(0.0, group.frame.baseline().to_pt());
                         self.ascent.get_or_insert(baseline.y);
                     }
+                    // A clip (a `box` with `clip: true`) is in the group's
+                    // space.
+                    if let Some(clip) = &group.clip {
+                        self.items.push(Item::Push {
+                            clip: inner * curve(clip),
+                        });
+                    }
                     self.frame(&group.frame, inner);
+                    if group.clip.is_some() {
+                        self.items.push(Item::Pop);
+                    }
                 }
                 FrameItem::Text(text) => self.text(text, here),
                 FrameItem::Shape(shape, _) => self.shape(shape, here),
@@ -202,20 +214,23 @@ fn geometry(geometry: &Geometry) -> BezPath {
             &kurbo::Rect::new(0.0, 0.0, size.x.to_pt(), size.y.to_pt()),
             TOLERANCE,
         ),
-        Geometry::Curve(curve) => {
-            let p = |p: &typst::layout::Point| (p.x.to_pt(), p.y.to_pt());
-            let mut path = BezPath::new();
-            for item in &curve.0 {
-                match item {
-                    CurveItem::Move(a) => path.move_to(p(a)),
-                    CurveItem::Line(a) => path.line_to(p(a)),
-                    CurveItem::Cubic(a, b, c) => path.curve_to(p(a), p(b), p(c)),
-                    CurveItem::Close => path.close_path(),
-                }
-            }
-            path
+        Geometry::Curve(c) => curve(c),
+    }
+}
+
+/// A typst curve as a path in its own space.
+fn curve(curve: &Curve) -> BezPath {
+    let p = |p: &typst::layout::Point| (p.x.to_pt(), p.y.to_pt());
+    let mut path = BezPath::new();
+    for item in &curve.0 {
+        match item {
+            CurveItem::Move(a) => path.move_to(p(a)),
+            CurveItem::Line(a) => path.line_to(p(a)),
+            CurveItem::Cubic(a, b, c) => path.curve_to(p(a), p(b), p(c)),
+            CurveItem::Close => path.close_path(),
         }
     }
+    path
 }
 
 /// typst's stroke as kurbo's.

@@ -100,6 +100,8 @@ The first release.
 - `Rule::label_at(mark::Place::Start | Middle | End)` chooses where along
   a rule its label sits, and `Rule::label_offset(dx, dy)` moves it, so a
   threshold can be named clear of the marks.
+- Labels keep typst's clips (`box(clip: true)`): what typst clips is
+  drawn in a group clipped to its path, in every output.
 
 ### iced (`rustd3-iced`, from git)
 

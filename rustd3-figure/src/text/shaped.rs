@@ -5,13 +5,13 @@ use std::sync::Arc;
 use kurbo::{Affine, BezPath, Point, Rect};
 use peniko::{Brush, FontData};
 
-use crate::list::{Command, GlyphRun, List};
+use crate::list::{Clip, Command, GlyphRun, List};
 use crate::text::{Anchor, Fonts, anchor};
 
 /// A label shaped by typst: its glyph runs and filled shapes (math rules)
-/// in frame order, relative to the first line's baseline at the box's left
-/// edge (y down), and its box. The box is as wide as the advances and as
-/// tall as the ink.
+/// in frame order, within the clips typst set (`box(clip: true)`),
+/// relative to the first line's baseline at the box's left edge (y down),
+/// and its box. The box is as wide as the advances and as tall as the ink.
 #[derive(Debug)]
 pub struct Shaped {
     fonts: Arc<Fonts>,
@@ -35,6 +35,13 @@ pub(crate) enum Item {
         /// Its paint.
         paint: Brush,
     },
+    /// Opens a group clipped to a path, until its [`Item::Pop`].
+    Push {
+        /// The clip, nonzero fill.
+        clip: BezPath,
+    },
+    /// Closes the innermost clip.
+    Pop,
 }
 
 impl Shaped {
@@ -102,7 +109,8 @@ impl Shaped {
     /// rotated by `angle` radians (clockwise on screen) about it: the
     /// placement is `translate(at) × rotate(angle) × translate(offset)`.
     /// Each run's face is found in `list.fonts` by blob id and index, or
-    /// appended to it.
+    /// appended to it. What typst clips is drawn in groups clipped to its
+    /// placed path.
     pub fn place(&self, list: &mut List, at: Point, anchor: Anchor, angle: f64) {
         let placement = Affine::translate(at.to_vec2())
             * Affine::rotate(angle)
@@ -118,6 +126,11 @@ impl Shaped {
                     path: placement * path.clone(),
                     paint: paint.clone(),
                 },
+                Item::Push { clip } => Command::Push {
+                    transform: Affine::IDENTITY,
+                    clip: Some(Clip::Path(placement * clip.clone())),
+                },
+                Item::Pop => Command::Pop,
             };
             list.commands.push(command);
         }

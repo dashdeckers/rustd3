@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use rustd3_core::color::Rgb;
-use rustd3_figure::kurbo::{Affine, Point, Rect, Size};
-use rustd3_figure::list::{self, Command, GlyphRun, List};
+use rustd3_figure::kurbo::{Affine, Point, Rect, Shape, Size};
+use rustd3_figure::list::{self, Clip, Command, GlyphRun, List};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::svg;
 use rustd3_figure::text::{
@@ -328,6 +328,61 @@ fn stacked_math_keeps_the_baseline_of_its_line() {
             "x sits on the baseline"
         );
     });
+}
+
+#[test]
+fn a_clipping_box_draws_only_what_it_clips_to() {
+    // A disc 10 px across in a box 5 px tall that clips it to its top half.
+    shaped(
+        text::typst("#box(height: 5pt, clip: true, circle(radius: 5pt, fill: black))"),
+        |s| {
+            let mut list = List {
+                size: Size::new(20.0, 20.0),
+                ..List::default()
+            };
+            s.place(&mut list, Point::new(5.0, 5.0), TOP_LEFT, 0.0);
+            let [
+                Command::Push {
+                    transform,
+                    clip: Some(Clip::Path(clip)),
+                },
+                Command::Fill { path, .. },
+                Command::Pop,
+            ] = &list.commands[..]
+            else {
+                panic!("not a clipped disc: {:?}", list.commands);
+            };
+            assert_eq!(*transform, Affine::IDENTITY);
+            let (clip, disc) = (clip.bounding_box(), path.bounding_box());
+            assert_eq!(
+                [clip.width(), clip.height()].map(places),
+                ["10.000", "5.000"]
+            );
+            assert_eq!(
+                [disc.width(), disc.height()].map(places),
+                ["10.000", "10.000"]
+            );
+            assert_eq!(
+                [clip.x0, clip.y0].map(places),
+                [disc.x0, disc.y0].map(places)
+            );
+
+            #[cfg(feature = "raster")]
+            {
+                let image = rustd3_figure::raster::render(&list, 1.0).expect("the disc renders");
+                let inked = |y: u32| {
+                    (0..image.width)
+                        .any(|x| image.rgba[((y * image.width + x) * 4 + 3) as usize] > 0)
+                };
+                let rows: Vec<u32> = (0..image.height).filter(|&y| inked(y)).collect();
+                assert_eq!(
+                    (rows.first(), rows.last()),
+                    (Some(&(clip.y0 as u32)), Some(&(clip.y1.ceil() as u32 - 1))),
+                    "ink in the clip's rows only"
+                );
+            }
+        },
+    );
 }
 
 #[test]
