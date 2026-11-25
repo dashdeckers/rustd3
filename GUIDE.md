@@ -406,7 +406,9 @@ Styles are seaborn's (`DarkGrid`, `WhiteGrid`, `Dark`, `White`,
 `Ticks`), contexts scale every size at once (`Paper`, `Notebook`,
 `Talk`, `Poster`), palettes are seaborn's and d3's. `Theme::default()`
 is rustd3's own. `.background(c)`, `.panel(c)` and `.ink(c)` recolor the
-figure, its plot areas and its text, which makes a dark figure. Custom
+figure, its plot areas and its text, which makes a dark figure.
+`.tick_length(px)` and `.tick_width(px)` size the major tick marks at any
+context (matplotlib's are 3.5 by 0.8 pt), and minor ticks in proportion. Custom
 marks read the theme through `Theme::get_color`,
 `get_line_width` and the other readers.
 

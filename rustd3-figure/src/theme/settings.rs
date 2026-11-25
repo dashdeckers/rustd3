@@ -75,6 +75,9 @@ pub struct Theme {
     font: Option<&'static str>,
     /// The font family of `raw` markup, in place of typst's.
     mono: Option<&'static str>,
+    /// The length and width of major tick marks, px, in place of the
+    /// context's.
+    ticks: [Option<f64>; 2],
 }
 
 impl Default for Theme {
@@ -104,6 +107,7 @@ impl Theme {
             panel: None,
             font: None,
             mono: None,
+            ticks: [None; 2],
         }
     }
 
@@ -270,6 +274,48 @@ impl Theme {
         }
     }
 
+    /// The length of major tick marks in px at any context, in place of the
+    /// context's (6 pt at notebook); matplotlib's default is 3.5 pt. Tick
+    /// labels sit a tick pad past it, and minor ticks take 2/3 of it. A
+    /// length that is not finite and 0 or more leaves the theme as it was.
+    ///
+    /// ```
+    /// use rustd3_figure::Theme;
+    ///
+    /// // matplotlib's ticks, at 4/3 px per pt.
+    /// let pt = 4.0 / 3.0;
+    /// let theme = Theme::default().tick_length(3.5 * pt).tick_width(0.8 * pt);
+    /// assert_ne!(theme, Theme::default());
+    /// assert_eq!(Theme::default().tick_length(f64::NAN), Theme::default());
+    /// ```
+    #[must_use]
+    pub fn tick_length(self, px: f64) -> Self {
+        if px.is_finite() && px >= 0.0 {
+            Theme {
+                ticks: [Some(px), self.ticks[1]],
+                ..self
+            }
+        } else {
+            self
+        }
+    }
+
+    /// The width of major tick marks in px at any context, in place of the
+    /// context's (1.25 pt at notebook); matplotlib's default is 0.8 pt.
+    /// Minor ticks take 0.8 of it. A width that is not finite and positive
+    /// leaves the theme as it was.
+    #[must_use]
+    pub fn tick_width(self, px: f64) -> Self {
+        if px.is_finite() && px > 0.0 {
+            Theme {
+                ticks: [self.ticks[0], Some(px)],
+                ..self
+            }
+        } else {
+            self
+        }
+    }
+
     /// The color of text, tick labels, tick marks and the white styles'
     /// axis lines.
     #[must_use]
@@ -288,9 +334,10 @@ impl Theme {
         self.pt(1.25)
     }
 
-    /// Major ticks' width: 1.25 pt.
-    pub(crate) fn tick_width(&self) -> f64 {
-        self.pt(1.25)
+    /// Major ticks' width: 1.25 pt, or as [`tick_width`](Theme::tick_width)
+    /// set it.
+    pub(crate) fn major_width(&self) -> f64 {
+        self.ticks[1].unwrap_or_else(|| self.pt(1.25))
     }
 
     /// Grid lines' width: 1 pt.
@@ -341,21 +388,22 @@ impl Theme {
         self.tick_text()
     }
 
-    /// The length of tick marks: 6 pt, the room they take whether drawn or
-    /// not.
+    /// The length of tick marks: 6 pt, or as
+    /// [`tick_length`](Theme::tick_length) set it; the room they take
+    /// whether drawn or not.
     pub(crate) fn tick(&self) -> f64 {
-        self.pt(6.0)
+        self.ticks[0].unwrap_or_else(|| self.pt(6.0))
     }
 
     /// The length of minor ticks, and of ticks whose label the scale's
-    /// format leaves empty: 4 pt.
+    /// format leaves empty: 4 pt, or 2/3 of a set tick length.
     pub(crate) fn minor_tick(&self) -> f64 {
-        self.pt(4.0)
+        self.ticks[0].map_or_else(|| self.pt(4.0), |px| px * 4.0 / 6.0)
     }
 
-    /// Minor ticks' width: 1 pt.
+    /// Minor ticks' width: 1 pt, or 0.8 of a set tick width.
     pub(crate) fn minor_width(&self) -> f64 {
-        self.pt(1.0)
+        self.ticks[1].map_or_else(|| self.pt(1.0), |px| px * 0.8)
     }
 
     /// The gap between a tick and its label: 3.5 pt.
@@ -555,7 +603,7 @@ mod tests {
             theme.grid_width(),
             theme.get_line_width(),
             theme.get_patch_width(),
-            theme.tick_width(),
+            theme.major_width(),
             theme.minor_width(),
             theme.tick(),
             theme.minor_tick(),
@@ -748,5 +796,28 @@ mod tests {
         assert!(close(kept.font_scale, 0.5));
         let deep = theme.palette(scheme::DEEP);
         assert_eq!(deep.get_color(), scheme::DEEP[0]);
+    }
+
+    #[test]
+    fn tick_builders_set_major_ticks_and_minor_ones_in_proportion() {
+        let theme = Theme::seaborn(Style::Ticks, Context::Talk)
+            .tick_length(3.5 * PX_PER_PT)
+            .tick_width(0.8 * PX_PER_PT);
+        // At any context, unlike the context's sizes.
+        assert!(close(pt(theme.tick()), 3.5) && close(pt(theme.major_width()), 0.8));
+        assert!(close(pt(theme.minor_tick()), 3.5 * 4.0 / 6.0));
+        assert!(close(pt(theme.minor_width()), 0.64));
+        // The axis line keeps its width.
+        assert!(close(
+            theme.axis_width(),
+            Theme::seaborn(Style::Ticks, Context::Talk).axis_width()
+        ));
+        let base = Theme::default();
+        for bad in [f64::NAN, f64::INFINITY, -1.0] {
+            assert_eq!(base.clone().tick_length(bad), base);
+            assert_eq!(base.clone().tick_width(bad), base);
+        }
+        assert_eq!(base.clone().tick_width(0.0), base);
+        assert!(close(base.tick_length(0.0).tick(), 0.0));
     }
 }

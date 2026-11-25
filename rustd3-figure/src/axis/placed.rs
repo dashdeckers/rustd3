@@ -333,7 +333,7 @@ impl Placed {
     /// targets (`snap`) they lie on whole device pixels.
     fn ticks(&self, spine: &Spine, theme: &Theme, snap: Snap, list: &mut List) {
         let labels = &self.labels;
-        let width = theme.tick_width();
+        let width = theme.major_width();
         let mut ticks = BezPath::new();
         let mut minor = BezPath::new();
         for (i, p) in self.positions.iter().enumerate() {

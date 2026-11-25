@@ -227,6 +227,34 @@ fn theme_styles_draw_their_panel_grid_axis_lines_and_tick_marks() {
 }
 
 #[test]
+fn tick_length_and_width_draw_matplotlibs_ticks_and_bring_labels_closer() {
+    let pt = 4.0 / 3.0;
+    let (_, seaborn) = drawn(Theme::default());
+    let (mpl, area) = drawn(Theme::default().tick_length(3.5 * pt).tick_width(0.8 * pt));
+    let marks = |list: &List| -> Vec<(f64, f64)> {
+        commands(list, AXIS)
+            .into_iter()
+            .filter_map(|c| {
+                let Command::Stroke { path, style, .. } = c else {
+                    return None;
+                };
+                let tick = path.segments().next()?;
+                Some((style.width, (tick.end() - tick.start()).hypot()))
+            })
+            .collect()
+    };
+    let drawn_marks = marks(&mpl);
+    assert!(!drawn_marks.is_empty());
+    for (width, length) in drawn_marks {
+        assert!((width - 0.8 * pt).abs() < 1e-9, "{width}");
+        assert!((length - 3.5 * pt).abs() < 1e-9, "{length}");
+    }
+    // The left axis takes 2.5 pt less room: its labels sit closer.
+    let closer = area.x0 - seaborn.x0;
+    assert!((closer + 2.5 * pt).abs() < 1e-6, "{closer}");
+}
+
+#[test]
 fn whitegrid_draws_one_grid_line_per_major_tick_under_the_marks() {
     let (list, area) = drawn(Theme::seaborn(Style::WhiteGrid, Context::Notebook));
     let grid = commands(&list, GRID);
