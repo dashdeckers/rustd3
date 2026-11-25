@@ -477,9 +477,56 @@ impl<'a> Figure<'a> {
         &self.theme
     }
 
-    /// The title.
-    pub(crate) fn heading(&self) -> Option<&Text> {
+    /// The locale tick labels are written in, as [`locale`](Figure::locale)
+    /// set it.
+    #[must_use]
+    pub fn get_locale(&self) -> &Locale {
+        &self.locale
+    }
+
+    /// The title above the grid, as [`title`](Figure::title) set it.
+    #[must_use]
+    pub fn get_title(&self) -> Option<&Text> {
         self.title.as_ref()
+    }
+
+    /// Takes the title out of the figure, which then has none: a plot
+    /// drawn once per facet lifts its title to the grid, and
+    /// [`facet`](Figure::facet) then puts no title on the facet's panel.
+    ///
+    /// ```
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::text::Text;
+    ///
+    /// let mut fig = Figure::new();
+    /// fig.title("spectra");
+    /// assert_eq!(fig.take_title(), Some(Text::from("spectra")));
+    /// assert_eq!(fig.get_title(), None);
+    /// ```
+    pub fn take_title(&mut self) -> Option<Text> {
+        self.title.take()
+    }
+
+    /// How many grid rows and columns its panels reach: one past the last
+    /// row and column a panel's cell spans, `(0, 0)` without panels. A
+    /// caller placing figures with [`facet`](Figure::facet) steps by it so
+    /// that facets of several panels do not overlap.
+    ///
+    /// ```
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::layout::Cell;
+    ///
+    /// let mut fig = Figure::new();
+    /// fig.panel_at(Cell::new(0, 0).span(1, 2));
+    /// fig.panel(2, 1);
+    /// assert_eq!(fig.get_extent(), (3, 2));
+    /// ```
+    #[must_use]
+    pub fn get_extent(&self) -> (usize, usize) {
+        self.panels.iter().fold((0, 0), |(rows, cols), p| {
+            let cell = p.cell();
+            (rows.max(cell.rows().end), cols.max(cell.cols().end))
+        })
     }
 
     /// Appends `entry` to the table and returns its handle.

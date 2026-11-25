@@ -139,6 +139,10 @@ The first release.
   title becomes its panel's, its slot legends are kept once and its noted
   issues carry over. `Figure::handle(h)` is the figure's own handle for a
   facet's.
+- `Figure::get_title`, `take_title`, `get_locale` and `get_extent` read a
+  figure's title, locale and the rows and columns its panels reach, so a
+  caller that facets a plot lifts its title and locale to the grid and
+  places figures of several panels side by side.
 
 ### iced (`rustd3-iced`, from git)
 

@@ -45,10 +45,13 @@ impl<'a> Figure<'a> {
     /// [`Share::None`] every scale stays the facet's own.
     ///
     /// `other`'s title becomes its first panel's title, unless that panel
-    /// has one; its figure-slot legends are kept, a legend on a scale whose
-    /// slot already holds one on that scale once; what it noted for
-    /// [`check`](Figure::check) carries over. Its theme, locale, grid
-    /// weights and axis room give way to this figure's.
+    /// has one (a caller that lifts it to the grid takes it first,
+    /// [`take_title`](Figure::take_title)); its figure-slot legends are
+    /// kept, a legend on a scale whose slot already holds one on that scale
+    /// once; what it noted for [`check`](Figure::check) carries over. Its
+    /// theme, locale ([`get_locale`](Figure::get_locale)), grid weights and
+    /// axis room give way to this figure's; it takes the rows and columns
+    /// [`get_extent`](Figure::get_extent) gives from `at`.
     ///
     /// ```
     /// use rustd3_core::scale;

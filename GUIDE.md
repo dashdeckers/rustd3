@@ -256,6 +256,9 @@ facet filled with one of its type becomes that scale, fitted to every
 facet and zoomed together, and inner axes drop their tick labels
 (`Share::None` keeps each facet's own). Its title becomes its panel's,
 and `fig.handle(h)` is the figure's own handle for a facet's `h`.
+`other.take_title()` lifts a plot's title to the grid instead,
+`get_locale()` reads its locale, and `get_extent()` gives the rows and
+columns its panels reach, the step to the next facet's cell.
 
 ### Scales and axes
 

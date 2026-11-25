@@ -106,7 +106,9 @@ impl Layout {
             .iter()
             .map(|p| p.heading().map(|t| Key::new(t, &theme.title())))
             .collect();
-        let title = figure.heading().map(|t| Key::new(t, &theme.figure_title()));
+        let title = figure
+            .get_title()
+            .map(|t| Key::new(t, &theme.figure_title()));
         let spare = figure.room(resolved.target());
         let zero = (spare > 0.0).then(|| {
             let style = theme.tick_label(anchor::Horizontal::Middle, theme.get_ink());

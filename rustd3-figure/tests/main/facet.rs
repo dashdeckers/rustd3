@@ -1,6 +1,7 @@
 //! `Figure::facet`: figures built on their own, taken in as panels of one
 //! grid, their scales shared or their own.
 
+use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ordinal};
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::check::Issue;
@@ -145,4 +146,58 @@ fn facets_of_facets_and_their_noted_issues_carry_over() {
         "{:?}",
         fig.check(SIZE)
     );
+}
+
+#[test]
+fn a_taken_title_goes_to_the_grid_and_leaves_the_facets_panel_untitled() {
+    let mut grid = Figure::new();
+    for (col, top) in [10.0, 40.0].into_iter().enumerate() {
+        let (mut fig, _) = plot(top);
+        let title = fig.take_title();
+        assert_eq!(fig.get_title(), None);
+        if grid.get_title().is_none()
+            && let Some(title) = title
+        {
+            grid.title(title);
+        }
+        fig.panel(0, 0).title(format!("value {col}"));
+        grid.facet(Cell::new(0, col), fig, Share::Scales);
+    }
+    let drawn = texts(&grid);
+    let count = |t: &str| drawn.iter().filter(|d| *d == t).count();
+    assert_eq!(
+        [
+            count("top 10"),
+            count("top 40"),
+            count("value 0"),
+            count("value 1")
+        ],
+        [1, 0, 1, 1]
+    );
+}
+
+#[test]
+fn a_figure_reports_its_locale_and_the_rows_and_columns_its_panels_reach() {
+    let mut fig = Figure::new();
+    assert_eq!(fig.get_extent(), (0, 0));
+    assert_eq!(*fig.get_locale(), Locale::default());
+    fig.locale(Locale::DE_DE);
+    assert_eq!(*fig.get_locale(), Locale::DE_DE);
+    // Two facets of a column of two panels each, stepped by their extent.
+    let pair = || {
+        let (mut fig, (x, y, _)) = plot(1.0);
+        fig.panel(1, 0).mark(line([(0.0, 0.0), (1.0, 2.0)], x, y));
+        fig
+    };
+    let mut grid = Figure::new();
+    let mut row = 0;
+    for _ in 0..2 {
+        let facet = pair();
+        let (rows, _) = facet.get_extent();
+        assert_eq!(facet.get_extent(), (2, 1));
+        grid.facet(Cell::new(row, 0), facet, Share::None);
+        row += rows;
+    }
+    assert_eq!(grid.get_extent(), (4, 1));
+    assert_eq!(resolve(&grid, &Held::default()).get_plot_areas().len(), 4);
 }
