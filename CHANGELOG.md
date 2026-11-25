@@ -80,6 +80,10 @@ The first release.
   be dark throughout; `Theme::get_panel` reads it.
 - `rect` takes edges of any position scale's domain: a span of time is a
   pair of timestamps.
+- `Axis::group(f)` adds a second level of labels: each run of neighboring
+  ticks with one group name is labeled once, past the tick labels and
+  under a line that spans the run. `axis::Nested(outer, inner)` is a key
+  of two levels for band and point scales.
 
 ### iced (`rustd3-iced`, from git)
 

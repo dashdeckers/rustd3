@@ -51,6 +51,13 @@ pub(crate) trait Draw<'a>: 'a {
     /// not the scale's blanking.
     fn formats(&self) -> bool;
 
+    /// The group name of each of about `count` ticks (`Axis::group`),
+    /// aligned with [`texts`](Draw::texts); empty for an axis without
+    /// groups.
+    fn groups(&self, _resolved: &Resolved, _count: usize) -> Vec<String> {
+        Vec::new()
+    }
+
     /// The position of each of about `count` ticks along a panel `length`
     /// px long, aligned with [`texts`](Draw::texts). Positions run across
     /// [0, length] for a horizontal axis and up [length, 0] for a vertical
@@ -140,6 +147,10 @@ where
 
     fn formats(&self) -> bool {
         self.format.is_some()
+    }
+
+    fn groups(&self, resolved: &Resolved, count: usize) -> Vec<String> {
+        Axis::groups(self, resolved.own(self.scale), count)
     }
 
     fn positions(&self, resolved: &Resolved, length: f64, count: usize) -> Vec<Option<f64>> {

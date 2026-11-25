@@ -274,7 +274,9 @@ for label in bottom.labels() {
 At the figure level an axis is a value placed on panels:
 `axis::bottom(x)`, `left`, `top`, `right`, with `.label(text)`,
 `.ticks(count)`, `.values(…)`, `.minor(on)`, `.format(spec)` and
-`.rotate(…)`; grid lines are the theme's. Band and point axes label
+`.rotate(…)`; grid lines are the theme's. `.group(f)` names each tick's
+group and labels each run of neighbors once, past the tick labels, and
+`axis::Nested(outer, inner)` is a key of two levels for a band scale. Band and point axes label
 their keys through `Display`.
 
 ### Marks

@@ -16,8 +16,8 @@ use crate::theme::Theme;
 /// `None` for an empty label) with their ticks' absolute indices, how each
 /// follows the one before it on a time axis, and their rotation. It also
 /// holds which ticks the scale's format blanks, the line box its tick
-/// labels share, and the keys of its offset or multiplier label and of its
-/// title, all set in that color.
+/// labels share, its group labels, and the keys of its offset or
+/// multiplier label and of its title, all set in that color.
 #[derive(Clone)]
 pub(crate) struct Labels {
     pub(super) orient: Orient,
@@ -33,9 +33,20 @@ pub(crate) struct Labels {
     /// drawn as minor ticks.
     pub(super) minor: Vec<bool>,
     /// The text face's ascender and descender at the tick-label size.
-    line: [f64; 2],
+    pub(super) line: [f64; 2],
+    /// The group labels (`Axis::group`), in tick order.
+    pub(super) groups: Vec<Group>,
     pub(super) notation: Option<Key>,
     pub(super) title: Option<Key>,
+}
+
+/// One group label: its key, and the first and last of the ticks it
+/// names, as positions among the axis's ticks.
+#[derive(Clone)]
+pub(super) struct Group {
+    pub(super) key: Key,
+    pub(super) first: usize,
+    pub(super) last: usize,
 }
 
 impl Labels {
@@ -55,6 +66,11 @@ impl Labels {
         let ink = tint.unwrap_or(theme.get_ink());
         let style = theme.tick_label(align(orient), ink);
         let texts = axis.texts(resolved, count);
+        let groups = if labeled {
+            runs(&axis.groups(resolved, count), &style)
+        } else {
+            Vec::new()
+        };
         let blanking = !axis.formats();
         let minor = texts.iter().map(|t| blanking && t.is_empty()).collect();
         let (ticks, indices, restarts) = if labeled {
@@ -85,6 +101,7 @@ impl Labels {
             restarts,
             minor,
             line: text.fonts().line(theme.tick_text()),
+            groups,
             notation,
             title,
         }
@@ -117,6 +134,7 @@ impl Labels {
         self.ticks
             .iter()
             .flatten()
+            .chain(self.groups.iter().map(|g| &g.key))
             .chain(&self.notation)
             .chain(&self.title)
     }
@@ -124,15 +142,15 @@ impl Labels {
     /// How far the axis reaches past its offset. That is its tick and, when
     /// labeled, the tick pad and its labels' extent across the axis (the
     /// widest advance beside a vertical axis, the tallest box under a
-    /// horizontal one). A horizontal axis adds its offset or multiplier
-    /// label a tick pad further, and a title adds the label pad and the
-    /// title's ink height.
+    /// horizontal one). Group labels add their row a tick pad further. A
+    /// horizontal axis adds its offset or multiplier label a tick pad
+    /// further, and a title adds the label pad and the title's ink height.
     pub(crate) fn thickness(&self, text: &text::Cache, theme: &Theme) -> f64 {
         let mut thickness = theme.tick();
         if self.ticks.is_empty() && self.title.is_none() {
             return thickness;
         }
-        thickness += theme.tick_pad() + self.extent(text);
+        thickness += theme.tick_pad() + self.extent(text) + self.grouped(text, theme);
         if across(self.orient) {
             thickness += self.raise(text, theme);
         }
@@ -150,6 +168,25 @@ impl Labels {
             .as_ref()
             .and_then(|key| get(text, key))
             .map_or(0.0, |s| theme.tick_pad() + ink(s))
+    }
+
+    /// The room the group labels take past the tick labels: a tick pad and
+    /// their extent across the axis (the line box's height under or over a
+    /// horizontal axis, the widest advance beside a vertical one); 0
+    /// without group labels.
+    pub(super) fn grouped(&self, text: &text::Cache, theme: &Theme) -> f64 {
+        let shaped = self.groups.iter().filter_map(|g| get(text, &g.key));
+        let [ascender, descender] = self.line;
+        let extent = if across(self.orient) {
+            shaped.map(|_| ascender + descender).fold(0.0, f64::max)
+        } else {
+            shaped.map(Shaped::get_width).fold(0.0, f64::max)
+        };
+        if extent > 0.0 {
+            theme.tick_pad() + extent
+        } else {
+            0.0
+        }
     }
 
     /// The tick labels' extent across the axis: the widest advance beside
@@ -316,6 +353,27 @@ pub(crate) fn notation(orient: Orient) -> Anchor {
         Orient::Left => (anchor::Horizontal::Start, anchor::Vertical::Bottom),
     };
     Anchor { h, v }
+}
+
+/// The group labels of ticks named `names`, in `style`: one for each run
+/// of neighboring ticks with the same name. Ticks with an empty name
+/// belong to no group.
+fn runs(names: &[String], style: &text::Style) -> Vec<Group> {
+    let mut groups: Vec<Group> = Vec::new();
+    let mut open: Option<&String> = None;
+    for (i, name) in names.iter().enumerate() {
+        match groups.last_mut() {
+            Some(group) if open == Some(name) => group.last = i,
+            _ if name.is_empty() => {}
+            _ => groups.push(Group {
+                key: Key::new(&Text::from(name.as_str()), style),
+                first: i,
+                last: i,
+            }),
+        }
+        open = (!name.is_empty()).then_some(name);
+    }
+    groups
 }
 
 /// The ink height of a shaped label.

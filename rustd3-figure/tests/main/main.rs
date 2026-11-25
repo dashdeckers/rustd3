@@ -11,6 +11,7 @@ mod fit;
 mod foreign;
 #[cfg(all(feature = "gif", feature = "fonts"))]
 mod gif;
+mod groups;
 mod handles;
 mod hatch;
 #[cfg(feature = "helpers")]
