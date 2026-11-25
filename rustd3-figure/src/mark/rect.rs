@@ -11,7 +11,7 @@ use crate::figure::Fits;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List};
 use crate::mark::color::{Alpha, Color};
-use crate::mark::{Ctx, Mark, at};
+use crate::mark::{Ctx, Mark, at, positive};
 use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// How closely a rectangle's path follows it, in px: exact, as it has no
@@ -27,6 +27,7 @@ pub struct Rect<X: Position, Y: Position> {
     y: ScaleRef<Y>,
     fill: Option<Color>,
     stroke: Option<Color>,
+    stroke_width: Option<f64>,
 }
 
 /// One rectangle: its two x edges and its two y edges, in data units.
@@ -83,6 +84,7 @@ where
         y,
         fill: None,
         stroke: None,
+        stroke_width: None,
     }
 }
 
@@ -98,13 +100,41 @@ impl<X: Position, Y: Position> Rect<X, Y> {
         }
     }
 
-    /// Outlines the rectangles in `palette`'s color for `key`, 1 pt wide
-    /// (seaborn's patch edges). As in Observable Plot, a stroked rectangle
-    /// without [`fill`](Rect::fill) is not filled.
+    /// Outlines the rectangles in `palette`'s color for `key`, as wide as
+    /// the theme's patch edges (1 pt, seaborn's) unless
+    /// [`stroke_width`](Rect::stroke_width) says otherwise. As in
+    /// Observable Plot, a stroked rectangle without [`fill`](Rect::fill)
+    /// is not filled.
     #[must_use]
     pub fn stroke<C: Paint>(self, palette: ScaleRef<C>, key: C::Domain) -> Self {
         Self {
             stroke: Some(Color::keyed(palette, key)),
+            ..self
+        }
+    }
+
+    /// The outline's width in px; by default the theme's patch edge, 1 pt.
+    /// The outline is centered on the rectangle's edges, so half of it lies
+    /// outside. A width that is not finite and positive leaves it as it
+    /// was.
+    ///
+    /// ```
+    /// use rustd3_core::color::Rgb;
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::rect;
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// let ink = fig.scale(scale::ordinal(["picked"], [Rgb::hex(0xd62728)]));
+    /// // A heatmap's picked cell, boxed 3 px wide.
+    /// fig.panel(0, 0)
+    ///     .mark(rect([([2.0, 3.0], [1.0, 2.0])], x, y).stroke(ink, "picked").stroke_width(3.0));
+    /// ```
+    #[must_use]
+    pub fn stroke_width(self, px: f64) -> Self {
+        Self {
+            stroke_width: positive(px).or(self.stroke_width),
             ..self
         }
     }
@@ -141,6 +171,9 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Rect<X, Y> {
         };
         let fill = fill.map(|color| list::brush(color.resolve(ctx)));
         let stroke = self.stroke.as_ref().map(|c| list::brush(c.resolve(ctx)));
+        let width = self
+            .stroke_width
+            .unwrap_or_else(|| ctx.get_theme().get_patch_width());
         for ([x0, x1], [y0, y1]) in &self.rows {
             let placed = (|| {
                 let [x0, x1] = [x0, x1].map(|v| edge(&sx, v, [band.x0, band.x1]));
@@ -154,7 +187,7 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Rect<X, Y> {
                 self::fill(list, ctx, r, paint);
             }
             if let Some(paint) = &stroke {
-                outline(list, ctx, r, paint);
+                outline(list, ctx, r, (paint, width));
             }
         }
     }
@@ -229,12 +262,12 @@ pub(super) fn fill(
     })
 }
 
-/// Pushes the outline of `r` stroked with `paint`, the theme's patch edge
-/// wide with mitred corners, on whole device pixels on raster targets.
-fn outline(list: &mut List, ctx: &Ctx<'_>, r: kurbo::Rect, paint: &Brush) {
+/// Pushes the outline of `r` stroked with `paint`, `width` px wide with
+/// mitered corners, on whole device pixels on raster targets.
+fn outline(list: &mut List, ctx: &Ctx<'_>, r: kurbo::Rect, (paint, width): (&Brush, f64)) {
     let band = ctx.band();
     let r = r.abs().intersect(band);
-    let (snap, width) = (ctx.snap(), ctx.get_theme().get_patch_width());
+    let snap = ctx.snap();
     let at = |v: f64| snap.line(v, width);
     let r = kurbo::Rect::new(at(r.x0), at(r.y0), at(r.x1), at(r.y1));
     list.commands.push(Command::Stroke {

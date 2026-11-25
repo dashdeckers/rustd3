@@ -286,16 +286,16 @@ their keys through `Display`.
 
 | Mark | What it draws |
 | --- | --- |
-| `dots(points, x, y)` | markers, with per-point size and color channels (`size_by`, `fill_by`), dodge and jitter |
+| `dots(points, x, y)` | markers, with per-point size and color channels (`size_by`, `fill_by`), dodge and jitter; `.symbol(Symbol::Diamond)` for d3's symbols and `.hollow(true)` for outlines |
 | `line(points, x, y)` | a polyline with a `shape::Curve`; recordings are thinned (below) |
 | `area(rows, x, y)`, `ribbon`, `ribbon_series` | filled areas between a baseline and a line, or two lines |
 | `bar_y`, `bar_x`, `bar_y_spans`, `bar_x_spans` | bars from a base to each value, or spans, on a band scale; `.dodge()` groups them |
-| `rect(rows, x, y)` | rectangles `([x0, x1], [y0, y1])` in data coordinates, on any position scales |
+| `rect(rows, x, y)` | rectangles `([x0, x1], [y0, y1])` in data coordinates, on any position scales; `.stroke(palette, key)` outlines them, `.stroke_width(px)` sets how wide |
 | `histogram(values, x, y)` | counts of values per key or per bin (`mark::Bins`: d3's nice bins or a count of equal ones) |
 | `density_y(values, y, w)`, `density_x` | a Gaussian kernel density estimate (`rustd3::figure::stats::Kde`, Scott's bandwidth) |
 | `image(grid, x, y, color)` | a grid of values as a raster heatmap through a color handle |
 | `note(at, text, x, y)` | a label at a data position; `.avoid(Avoid::Step)` steps aside for the notes before it, `Avoid::Drop` leaves it out |
-| `rule_x(value, x)`, `rule_y` | a reference line across the plot area |
+| `rule_x(value, x)`, `rule_y` | a reference line across the plot area; `.label(text)` names it, `.label_at(Place::Start)` and `.label_offset(dx, dy)` move the name |
 
 Areas and bars take a `hatch::Hatch`. A density over more than 10,000
 values is estimated from linearly binned values convolved with the

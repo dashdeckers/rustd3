@@ -179,7 +179,7 @@ where
                 // A square repeats the most opaque fill of its marks.
                 let shown = |c: Rgb| match glyph {
                     Swatch::Square => c.with_opacity(resolved.opacity(index, is, c.opacity)),
-                    Swatch::Dot | Swatch::Line { .. } => c,
+                    Swatch::Dot | Swatch::Symbol { .. } | Swatch::Line { .. } => c,
                 };
                 Entry {
                     color: palette.apply(key).copied().map(shown),

@@ -11,7 +11,7 @@ The first release.
   adds one dependency.
 - `rustd3-core`: d3's vocabulary, renderer-agnostic. It follows d3
   7.9.0's semantics and is checked by tests derived from d3's own test
-  suites: 5,308 assertions in 1,586 tests, each naming d3's file and
+  suites: 5,321 assertions in 1,593 tests, each naming d3's file and
   line.
 - `rustd3-figure`: the figure layer and its outputs.
 - `rustd3-fonts`: DejaVu Sans (regular and bold) and New Computer Modern
@@ -50,6 +50,10 @@ The first release.
   `minIndex`: the position of the greatest and of the least value.
 - `locale::Locale::ladder(l)` puts a locale's dates on another ladder in
   one call.
+- `shape::Symbol` has d3's seven stroke symbols (`Symbol::STROKE`: plus,
+  times, asterisk and stroke-sized circle, triangle, square and diamond)
+  beside its fill symbols, and Observable Plot's hexagon.
+  `Symbol::is_open` tells the three that are lines without an inside.
 
 ### Figure
 
@@ -87,6 +91,15 @@ The first release.
 - `Note::avoid(Avoid::Step)` moves a note up or down by its height when
   its box would overlap a note drawn before it, and `Avoid::Drop` leaves
   it out. Notes that do not avoid are drawn where they are put.
+- `Dots::symbol` draws dots as any of d3's symbols or Observable Plot's
+  hexagon at the size of the circle they replace, and `Dots::hollow`
+  draws their outlines one patch edge wide; d3's line symbols are always
+  outlines. Legend swatches repeat both (`legend::Swatch::Symbol`).
+- `Rect::stroke_width` sets the width of a rectangle's outline, 1 pt by
+  default: a heatmap can box the cells it highlights.
+- `Rule::label_at(mark::Place::Start | Middle | End)` chooses where along
+  a rule its label sits, and `Rule::label_offset(dx, dy)` moves it, so a
+  threshold can be named clear of the marks.
 
 ### iced (`rustd3-iced`, from git)
 
