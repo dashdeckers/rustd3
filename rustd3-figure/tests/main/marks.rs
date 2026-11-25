@@ -19,7 +19,7 @@ use rustd3_core::scheme::COLORBLIND;
 use rustd3_core::shape::Curve;
 use rustd3_figure::kurbo::{Affine, BezPath, Cap, Join, PathEl, Point, Rect, Size};
 use rustd3_figure::list::{self, Clip, Command, List, part};
-use rustd3_figure::mark::{dots, line, rule_x, rule_y};
+use rustd3_figure::mark::{Place, Rule, dots, line, rule_x, rule_y};
 use rustd3_figure::peniko::{Brush, Color};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::{Figure, Held, Target};
@@ -341,6 +341,78 @@ fn a_rule_label_sits_above_its_right_end_in_the_rule_color() {
         label.x1 < area.x1 && label.x1 > area.x1 - 10.0,
         "{label:?} in {area:?}"
     );
+}
+
+/// The ink of the label "limit" of the rule `rule` draws on a figure whose
+/// x and y run over [0, 10], and the plot area, for vector output at 640 ×
+/// 480.
+fn rule_label(rule: impl Fn(ScaleRef<Linear>, ScaleRef<Linear>) -> Rule<Linear>) -> (Rect, Rect) {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 10.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 10.0]));
+    fig.panel(0, 0).mark(rule(x, y).label("limit"));
+    let mut cache = cache();
+    let size = Size::new(640.0, 480.0);
+    let list = fig.draw_with(&mut cache, size, Target::Vector, &Held::default());
+    let area = fig
+        .resolve(size, &mut cache, &Held::default(), Target::Vector)
+        .get_plot_areas()[0];
+    let bounds = list::Bounds::of(&list, &mut list::Outlines::default());
+    let ink = list
+        .commands
+        .iter()
+        .position(|c| matches!(c, Command::Glyphs(run) if &*run.text == "limit"))
+        .and_then(|i| bounds.get(i))
+        .expect("the label has ink");
+    (ink, area)
+}
+
+#[test]
+fn a_rule_label_sits_where_label_at_and_label_offset_put_it() {
+    // A horizontal rule at 5 runs through the middle of the plot area.
+    let (ink, area) = rule_label(|_, y| rule_y(5.0, y).label_at(Place::Start));
+    let line = area.center().y;
+    assert!(
+        ink.x0 > area.x0 && ink.x0 < area.x0 + 10.0,
+        "{ink:?} at the left of {area:?}"
+    );
+    assert!(ink.y1 < line && ink.y1 > line - 10.0, "{ink:?} over {line}");
+
+    let (ink, area) = rule_label(|_, y| rule_y(5.0, y).label_at(Place::Middle));
+    assert!(
+        (ink.center().x - area.center().x).abs() < 1.0,
+        "{ink:?} in the middle of {area:?}"
+    );
+
+    // Moved 20 px down, the label sits under the line.
+    let (ink, area) = rule_label(|_, y| {
+        rule_y(5.0, y)
+            .label_at(Place::Start)
+            .label_offset(0.0, 20.0)
+    });
+    assert!(ink.y0 > area.center().y, "{ink:?} under the line");
+
+    // A vertical rule's label at its start sits at the bottom, right of
+    // the line.
+    let (ink, area) = rule_label(|x, _| rule_x(5.0, x).label_at(Place::Start));
+    let line = area.center().x;
+    assert!(
+        ink.y1 < area.y1 && ink.y1 > area.y1 - 10.0,
+        "{ink:?} at the bottom of {area:?}"
+    );
+    assert!(
+        ink.x0 > line && ink.x0 < line + 10.0,
+        "{ink:?} right of {line}"
+    );
+
+    // An offset that is not finite leaves the label where it was.
+    let (kept, _) = rule_label(|_, y| {
+        rule_y(5.0, y)
+            .label_offset(4.0, 0.0)
+            .label_offset(f64::NAN, 1.0)
+    });
+    let (moved, _) = rule_label(|_, y| rule_y(5.0, y).label_offset(4.0, 0.0));
+    assert_eq!(kept, moved);
 }
 
 #[test]

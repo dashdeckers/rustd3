@@ -97,6 +97,9 @@ The first release.
   outlines. Legend swatches repeat both (`legend::Swatch::Symbol`).
 - `Rect::stroke_width` sets the width of a rectangle's outline, 1 pt by
   default: a heatmap can box the cells it highlights.
+- `Rule::label_at(mark::Place::Start | Middle | End)` chooses where along
+  a rule its label sits, and `Rule::label_offset(dx, dy)` moves it, so a
+  threshold can be named clear of the marks.
 
 ### iced (`rustd3-iced`, from git)
 

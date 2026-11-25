@@ -59,7 +59,7 @@ pub use image::{Grid, Image, image};
 use kurbo::{BezPath, Cap, Join, Point};
 pub use line::{Line, line};
 pub use rect::{Rect, rect};
-pub use rule::{Rule, rule_x, rule_y};
+pub use rule::{Place, Rule, rule_x, rule_y};
 use rustd3_core::series::{Points, m4};
 pub use snap::Snap;
 pub use text::{Avoid, Note, note};
