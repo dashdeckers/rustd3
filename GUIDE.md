@@ -285,7 +285,7 @@ their keys through `Display`.
 | `line(points, x, y)` | a polyline with a `shape::Curve`; recordings are thinned (below) |
 | `area(rows, x, y)`, `ribbon`, `ribbon_series` | filled areas between a baseline and a line, or two lines |
 | `bar_y`, `bar_x`, `bar_y_spans`, `bar_x_spans` | bars from a base to each value, or spans, on a band scale; `.dodge()` groups them |
-| `rect(rows, x, y)` | rectangles `([x0, x1], [y0, y1])` in data coordinates |
+| `rect(rows, x, y)` | rectangles `([x0, x1], [y0, y1])` in data coordinates, on any position scales |
 | `histogram(values, x, y)` | counts of values per key or per bin (`mark::Bins`: d3's nice bins or a count of equal ones) |
 | `density_y(values, y, w)`, `density_x` | a Gaussian kernel density estimate (`rustd3::figure::stats::Kde`, Scott's bandwidth) |
 | `image(grid, x, y, color)` | a grid of values as a raster heatmap through a color handle |

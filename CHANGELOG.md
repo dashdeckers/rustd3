@@ -78,6 +78,8 @@ The first release.
   legends show; a name given twice is `check::Issue::DuplicateKey`.
 - `Theme::panel(c)` sets the color behind the plot areas, so a figure can
   be dark throughout; `Theme::get_panel` reads it.
+- `rect` takes edges of any position scale's domain: a span of time is a
+  pair of timestamps.
 
 ### iced (`rustd3-iced`, from git)
 
