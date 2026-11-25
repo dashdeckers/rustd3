@@ -6,7 +6,7 @@ use rustd3_core::scale::{self, Linear};
 use rustd3_core::scheme::COLORBLIND;
 use rustd3_figure::kurbo::{Rect, Size};
 use rustd3_figure::list::{self, Command, GlyphRun, List};
-use rustd3_figure::mark::{dots, note};
+use rustd3_figure::mark::{Avoid, dots, note};
 use rustd3_figure::scale::ScaleRef;
 use rustd3_figure::text::{Anchor, anchor};
 use rustd3_figure::{Figure, Held, Target};
@@ -136,4 +136,86 @@ fn a_note_beyond_the_guard_band_or_outside_its_band_draws_nothing() {
             }]
         );
     }
+}
+
+/// The ink of each of a list's mark glyph runs, in order.
+fn inks(list: &List) -> Vec<Rect> {
+    let bounds = list::Bounds::of(list, &mut list::Outlines::default());
+    let marks = list.parts.iter().filter(|p| role(p.id) == 6);
+    marks
+        .flat_map(|p| p.commands.clone())
+        .filter(|i| matches!(list.commands[*i], Command::Glyphs(_)))
+        .filter_map(|i| bounds.get(i))
+        .collect()
+}
+
+/// Two notes at one point, each with `avoid` when given, drawn.
+fn pair(avoid: [Option<Avoid>; 2]) -> List {
+    let (mut fig, x, y) = tens();
+    for (text, avoid) in ["1.10", "1.12"].into_iter().zip(avoid) {
+        let label = note((5.0, 5.0), text, x, y);
+        fig.panel(0, 0).mark(match avoid {
+            Some(avoid) => label.avoid(avoid),
+            None => label,
+        });
+    }
+    drawn(&fig).0
+}
+
+#[test]
+fn notes_that_do_not_avoid_are_drawn_over_each_other() {
+    let inks = inks(&pair([None, None]));
+    assert_eq!(inks.len(), 2);
+    assert!((inks[0].y0 - inks[1].y0).abs() < 0.5, "{inks:?}");
+}
+
+#[test]
+fn a_stepping_note_moves_by_its_height_to_the_nearest_free_place() {
+    let step = Some(Avoid::Step);
+    let inks = inks(&pair([step, step]));
+    assert_eq!(inks.len(), 2);
+    // The second steps up, the first way tried, and clears the first.
+    assert!(inks[1].y1 < inks[0].y0, "{inks:?}");
+    assert!(inks[0].y0 - inks[1].y1 < 12.0, "{inks:?}");
+    assert!((inks[0].x0 - inks[1].x0).abs() < 0.5, "{inks:?}");
+}
+
+#[test]
+fn a_dropping_note_is_not_drawn_where_one_was_drawn_before_it() {
+    let drop = Some(Avoid::Drop);
+    assert_eq!(inks(&pair([drop, drop])).len(), 1);
+}
+
+#[test]
+fn a_note_that_does_not_avoid_is_avoided_by_none() {
+    let inks = inks(&pair([None, Some(Avoid::Drop)]));
+    assert_eq!(inks.len(), 2);
+}
+
+#[test]
+fn notes_apart_keep_their_places_whatever_they_avoid() {
+    let (mut fig, x, y) = tens();
+    fig.panel(0, 0)
+        .mark(note((2.0, 2.0), "a", x, y).avoid(Avoid::Step))
+        .mark(note((8.0, 8.0), "b", x, y).avoid(Avoid::Drop));
+    let avoiding = inks(&drawn(&fig).0);
+    let (mut fig, x, y) = tens();
+    fig.panel(0, 0)
+        .mark(note((2.0, 2.0), "a", x, y))
+        .mark(note((8.0, 8.0), "b", x, y));
+    assert_eq!(avoiding, inks(&drawn(&fig).0));
+}
+
+#[test]
+fn a_stepping_note_with_no_free_place_stays_where_it_was_put() {
+    // Nine notes at one point: four steps each way are taken by the
+    // second to the ninth, so the tenth has nowhere to go.
+    let (mut fig, x, y) = tens();
+    for _ in 0..10 {
+        fig.panel(0, 0)
+            .mark(note((5.0, 5.0), "1.10", x, y).avoid(Avoid::Step));
+    }
+    let inks = inks(&drawn(&fig).0);
+    assert_eq!(inks.len(), 10);
+    assert!((inks[9].y0 - inks[0].y0).abs() < 0.5, "{inks:?}");
 }

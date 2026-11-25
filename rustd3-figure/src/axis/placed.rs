@@ -11,6 +11,7 @@ use crate::axis::{Labels, across};
 use crate::layout::{Obb, Plan};
 use crate::list::{self, Command, List};
 use crate::mark::Snap;
+use crate::text::anchor::{Horizontal, Vertical};
 use crate::text::{self, Anchor};
 use crate::theme::Theme;
 
@@ -130,8 +131,8 @@ impl Placed {
         self.ticks(&self.spine(area, theme), theme, snap, list);
     }
 
-    /// Appends the axis's kept tick labels, its offset or multiplier label
-    /// and its title beside plot area `area` to `list`.
+    /// Appends the axis's kept tick labels, its group labels, its offset or
+    /// multiplier label and its title beside plot area `area` to `list`.
     ///
     /// Tick labels sit a tick pad past the ticks, on the baselines their
     /// line box gives ([`Labels::baseline`]). Rotated labels are turned
@@ -171,6 +172,8 @@ impl Placed {
             }
         }
         let extent = labels.extent(text);
+        self.groups(&spine, gap + extent, text, theme, list);
+        let extent = extent + labels.grouped(text, theme);
         if let Some(shaped) = labels.notation.as_ref().and_then(|key| get(text, key)) {
             let at = if across(orient) {
                 spine.at(length, gap + extent + theme.tick_pad())
@@ -196,6 +199,94 @@ impl Placed {
                 v,
             };
             title.place(list, spine.at(length / 2.0, beyond), anchor, angle);
+        }
+    }
+
+    /// Appends the group labels and their lines to `list`, `beyond` px
+    /// past the axis line along `spine` (the tick labels' outer edge).
+    ///
+    /// Each group's line lies half a tick pad further and spans its ticks,
+    /// reaching half the closest tick spacing less 3 px past the first and
+    /// the last, so neighboring groups' lines stay apart. Its label sits a
+    /// tick pad past `beyond`, centered on the line: on the tick labels'
+    /// shared baseline under or over a horizontal axis, and beside a
+    /// vertical one aligned as its tick labels are. A label that would
+    /// come within 2 px of the one drawn before it is left out, with its
+    /// line kept.
+    fn groups(
+        &self,
+        spine: &Spine,
+        beyond: f64,
+        text: &text::Cache,
+        theme: &Theme,
+        list: &mut List,
+    ) {
+        let labels = &self.labels;
+        if labels.groups.is_empty() {
+            return;
+        }
+        let orient = labels.orient;
+        let placed: Vec<f64> = self.positions.iter().flatten().copied().collect();
+        let spacing = placed
+            .windows(2)
+            .map(|pair| (pair[1] - pair[0]).abs())
+            .filter(|d| *d > 0.0)
+            .fold(f64::INFINITY, f64::min);
+        let reach = if spacing.is_finite() {
+            (spacing / 2.0 - 3.0).max(0.0)
+        } else {
+            0.0
+        };
+        let [ascender, descender] = labels.line;
+        let row = beyond + theme.tick_pad();
+        let (across_axis, anchor) = match orient {
+            Orient::Bottom => (
+                row + ascender,
+                anchor_of(Horizontal::Middle, Vertical::Baseline),
+            ),
+            Orient::Top => (
+                row + descender,
+                anchor_of(Horizontal::Middle, Vertical::Baseline),
+            ),
+            Orient::Left => (row, anchor_of(Horizontal::End, Vertical::Middle)),
+            Orient::Right => (row, anchor_of(Horizontal::Start, Vertical::Middle)),
+        };
+        let mut lines = BezPath::new();
+        let mut taken = f64::NEG_INFINITY;
+        for group in &labels.groups {
+            let run = self.positions.get(group.first..=group.last);
+            let within: Vec<f64> = run.into_iter().flatten().flatten().copied().collect();
+            let low = within.iter().copied().fold(f64::INFINITY, f64::min);
+            let high = within.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            if within.is_empty() {
+                continue;
+            }
+            if high - low + 2.0 * reach > 0.0 {
+                let at = beyond + theme.tick_pad() / 2.0;
+                lines.move_to(spine.at(low - reach, at));
+                lines.line_to(spine.at(high + reach, at));
+            }
+            let Some(shaped) = get(text, &group.key) else {
+                continue;
+            };
+            let center = (low + high) / 2.0;
+            let half = if across(orient) {
+                shaped.get_width() / 2.0
+            } else {
+                (shaped.get_ascent() + shaped.get_descent()) / 2.0
+            };
+            if center - half < taken + 2.0 {
+                continue;
+            }
+            taken = center + half;
+            shaped.place(list, spine.at(center, across_axis), anchor, 0.0);
+        }
+        if !lines.elements().is_empty() {
+            list.commands.push(Command::Stroke {
+                path: lines,
+                style: list::stroke(theme.minor_width()),
+                paint: list::brush(labels.ink),
+            });
         }
     }
 
@@ -284,6 +375,11 @@ impl Placed {
             width: theme.axis_width(),
         }
     }
+}
+
+/// The anchor of halves `h` and `v`.
+fn anchor_of(h: Horizontal, v: Vertical) -> Anchor {
+    Anchor { h, v }
 }
 
 /// An axis line: its side of a plot area, its offset outside it and its

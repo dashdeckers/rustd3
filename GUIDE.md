@@ -240,9 +240,9 @@ fig.panel(0, 0)
 `fig.fit_with(scale, fit)` chooses how a handle follows its data
 (`rustd3::figure::scale::Fit`): `All` (every value, the default),
 `Window(span)` (the newest `span` of x, for live data) or `Visible` (y
-fitted to what the x handles show). `fig.stick(handle, value)` keeps a
-value inside the fitted domain, as matplotlib's sticky edges do (bars
-start at 0).
+fitted to what the x handles show). A mark keeps a value at the edge of
+its fitted domain with `Fits::stick`, as matplotlib's sticky edges do
+(bars start at 0).
 
 `fig.check(size)` lays the figure out without drawing and returns the
 `check::Issue`s that will not read well (labels that do not fit, marks
@@ -256,7 +256,10 @@ Every scale kind has a constructor in `rustd3::scale` (`linear`, `log`,
 `identity`) or `rustd3::time` (`time(zone)`, `utc()`). Continuous scales
 take `.nice(count)`, `.clamp(on)`, `.interpolate(…)` and `.unknown(…)`
 as d3's do. A scale used as a figure handle gets its domain from the
-figure when fitted, and its range from the panel it is drawn on.
+figure when fitted, and its range from the panel it is drawn on. A
+handle's type is its scale's, so a transform chosen at run time goes
+through `scale::AnyContinuous::from(scale::log())`, which is one type
+for every transform.
 
 At the core level an axis is a drawing:
 
@@ -274,7 +277,9 @@ for label in bottom.labels() {
 At the figure level an axis is a value placed on panels:
 `axis::bottom(x)`, `left`, `top`, `right`, with `.label(text)`,
 `.ticks(count)`, `.values(…)`, `.minor(on)`, `.format(spec)` and
-`.rotate(…)`; grid lines are the theme's. Band and point axes label
+`.rotate(…)`; grid lines are the theme's. `.group(f)` names each tick's
+group and labels each run of neighbors once, past the tick labels, and
+`axis::Nested(outer, inner)` is a key of two levels for a band scale. Band and point axes label
 their keys through `Display`.
 
 ### Marks
@@ -285,11 +290,11 @@ their keys through `Display`.
 | `line(points, x, y)` | a polyline with a `shape::Curve`; recordings are thinned (below) |
 | `area(rows, x, y)`, `ribbon`, `ribbon_series` | filled areas between a baseline and a line, or two lines |
 | `bar_y`, `bar_x`, `bar_y_spans`, `bar_x_spans` | bars from a base to each value, or spans, on a band scale; `.dodge()` groups them |
-| `rect(rows, x, y)` | rectangles `([x0, x1], [y0, y1])` in data coordinates |
+| `rect(rows, x, y)` | rectangles `([x0, x1], [y0, y1])` in data coordinates, on any position scales |
 | `histogram(values, x, y)` | counts of values per key or per bin (`mark::Bins`: d3's nice bins or a count of equal ones) |
 | `density_y(values, y, w)`, `density_x` | a Gaussian kernel density estimate (`rustd3::figure::stats::Kde`, Scott's bandwidth) |
 | `image(grid, x, y, color)` | a grid of values as a raster heatmap through a color handle |
-| `note(at, text, x, y)` | a label at a data position |
+| `note(at, text, x, y)` | a label at a data position; `.avoid(Avoid::Step)` steps aside for the notes before it, `Avoid::Drop` leaves it out |
 | `rule_x(value, x)`, `rule_y` | a reference line across the plot area |
 
 Areas and bars take a `hatch::Hatch`. A density over more than 10,000
@@ -391,7 +396,9 @@ fig.theme(
 Styles are seaborn's (`DarkGrid`, `WhiteGrid`, `Dark`, `White`,
 `Ticks`), contexts scale every size at once (`Paper`, `Notebook`,
 `Talk`, `Poster`), palettes are seaborn's and d3's. `Theme::default()`
-is rustd3's own. Custom marks read the theme through `Theme::get_color`,
+is rustd3's own. `.background(c)`, `.panel(c)` and `.ink(c)` recolor the
+figure, its plot areas and its text, which makes a dark figure. Custom
+marks read the theme through `Theme::get_color`,
 `get_line_width` and the other readers.
 
 ### Time, zones and locales
@@ -415,7 +422,9 @@ let label = time::format("%H:%M").format(t.invert(480.0), &TimeZone::UTC);
 A time axis labels its ticks by climbing the locale's ladder
 (`time::Ladder`): the neutral `Iso` ladder writes `2026-03`, `03-08`,
 `12:00`; d3's ladder writes `March`, `Mar 08`. Set the figure's locale
-with `fig.locale(rustd3::locale::Locale::EN_US)`.
+with `fig.locale(rustd3::locale::Locale::EN_US)`. Every constant but
+`EN_US` keeps the ISO ladder, and `Locale::DE_DE.ladder(time::Ladder::D3)`
+writes d3's.
 
 ### Outputs and their settings
 

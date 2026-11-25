@@ -67,6 +67,25 @@ type Format<'a, D> = Rc<dyn Fn(&D) -> String + 'a>;
 /// The color of a twin axis, read from the resolved palette.
 type Tint<'a> = Rc<dyn Fn(&Resolved) -> Option<Rgb> + 'a>;
 
+/// A key of two levels for a band or point scale: an outer one, shared by
+/// a group of neighboring keys, and an inner one. It is written as its
+/// inner level, so an axis's ticks show that, and [`Axis::group`] names
+/// the outer.
+///
+/// ```
+/// use rustd3_figure::axis::Nested;
+///
+/// assert_eq!(Nested("2026", "Q1").to_string(), "Q1");
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Nested<O, I>(pub O, pub I);
+
+impl<O, I: std::fmt::Display> std::fmt::Display for Nested<O, I> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.1.fmt(f)
+    }
+}
+
 /// An axis of one quantity: its side, its handle, and how its ticks are
 /// chosen and labeled. It is built once and placed on many panels
 /// (`From<&Axis>` clones it). Its closures are shared, never boxed per
@@ -87,6 +106,7 @@ pub struct Axis<'a, S: Kind> {
     scale: ScaleRef<S>,
     values: Option<Rc<[S::Domain]>>,
     format: Option<Format<'a, S::Domain>>,
+    group: Option<Format<'a, S::Domain>>,
     count: Option<usize>,
     label: Option<Text>,
     outward: Option<f64>,
@@ -111,6 +131,7 @@ impl<S: Kind> Clone for Axis<'_, S> {
             scale: self.scale,
             values: self.values.clone(),
             format: self.format.clone(),
+            group: self.group.clone(),
             count: self.count,
             label: self.label.clone(),
             outward: self.outward,
@@ -184,6 +205,35 @@ impl<'a, S: Kind> Axis<'a, S> {
         let format: Format<'a, S::Domain> = Rc::new(f);
         Axis {
             format: Some(format),
+            ..self
+        }
+    }
+
+    /// A second level of labels: `f(value)` names each tick's group, and
+    /// each run of neighboring ticks with one name is labeled once, past
+    /// the tick labels and centered on the run, under a line that spans
+    /// it. An empty name leaves its ticks ungrouped. A group label that
+    /// would run into the one before it is not drawn.
+    ///
+    /// With [`Nested`] keys on a band or point scale, the ticks show the
+    /// inner level and this names the outer one:
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::axis::{self, Nested};
+    /// use rustd3_figure::Figure;
+    ///
+    /// let keys = [("2025", "Q3"), ("2025", "Q4"), ("2026", "Q1"), ("2026", "Q2")];
+    /// let mut fig = Figure::new();
+    /// let quarter = fig.scale(scale::band(keys.map(|(y, q)| Nested(y, q))).padding(0.2));
+    /// fig.panel(0, 0)
+    ///     .axis(axis::bottom(quarter).group(|key| key.0.to_owned()));
+    /// ```
+    #[must_use]
+    pub fn group(self, f: impl Fn(&S::Domain) -> String + 'a) -> Self {
+        let group: Format<'a, S::Domain> = Rc::new(f);
+        Axis {
+            group: Some(group),
             ..self
         }
     }
@@ -346,6 +396,16 @@ where
         linear.labels(&ticks::Set::new(values, step, count), locale)
     }
 
+    /// The group name of each of `scale`'s about `count` ticks; empty
+    /// without `.group`.
+    fn groups(&self, scale: &S, count: usize) -> Vec<String> {
+        let Some(group) = &self.group else {
+            return Vec::new();
+        };
+        let set = self.set(scale, count);
+        set.get_values().iter().map(|v| group(v)).collect()
+    }
+
     /// The notation of `scale`'s about `count` ticks: none with
     /// `.offset(false)` or `.format`, for a domain that is not numeric, or
     /// for ticks that do not lie evenly on d3's grid (log and symlog
@@ -382,6 +442,7 @@ fn new<'a, S: Kind>(orient: Orient, h: ScaleRef<S>) -> Axis<'a, S> {
         scale: h,
         values: None,
         format: None,
+        group: None,
         count: None,
         label: None,
         outward: None,

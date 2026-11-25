@@ -1,6 +1,8 @@
 //! [`Rect`]: one rectangle per row in data units, and the rectangle code
 //! bars and histograms draw through.
 
+use std::any::Any;
+
 use kurbo::{Join, Shape};
 use peniko::Brush;
 
@@ -9,8 +11,8 @@ use crate::figure::Fits;
 use crate::legend::Swatch;
 use crate::list::{self, Command, List};
 use crate::mark::color::{Alpha, Color};
-use crate::mark::{Ctx, Mark, reach};
-use crate::scale::{Paint, Position, ScaleRef};
+use crate::mark::{Ctx, Mark, at};
+use crate::scale::{Kind, Paint, Position, ScaleRef};
 
 /// How closely a rectangle's path follows it, in px: exact, as it has no
 /// curves.
@@ -19,15 +21,18 @@ const TOLERANCE: f64 = 0.1;
 /// Observable Plot's `rect`: one rectangle per row, `x0..x1 × y0..y1` in
 /// data units, filled (in the theme palette's first color unless given a
 /// fill or only a stroke) and optionally outlined.
-pub struct Rect<X: Position<Domain = f64>, Y: Position<Domain = f64>> {
-    rows: Vec<([f64; 2], [f64; 2])>,
+pub struct Rect<X: Position, Y: Position> {
+    rows: Vec<Row<X, Y>>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
     fill: Option<Color>,
     stroke: Option<Color>,
 }
 
-impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for Rect<X, Y> {
+/// One rectangle: its two x edges and its two y edges, in data units.
+type Row<X, Y> = ([<X as Kind>::Domain; 2], [<Y as Kind>::Domain; 2]);
+
+impl<X: Position, Y: Position> std::fmt::Debug for Rect<X, Y> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Rect").finish_non_exhaustive()
     }
@@ -35,7 +40,8 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for R
 
 /// One filled rectangle per row `([x0, x1], [y0, y1])` on `x` and `y`.
 /// All four edges enter fitting, and none is held. Rows over shared bin
-/// edges stack histograms.
+/// edges stack histograms. The edges are values of the handles' domains,
+/// so a span of time on a time handle is a pair of timestamps.
 ///
 /// ```
 /// use rustd3_core::scale;
@@ -46,14 +52,30 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> std::fmt::Debug for R
 /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
 /// fig.panel(0, 0).mark(rect([([0.0, 1.0], [0.0, 2.0]), ([1.0, 3.0], [1.0, 4.0])], x, y));
 /// ```
+///
+/// A night shaded on a time axis:
+///
+/// ```
+/// use rustd3_core::jiff::Timestamp;
+/// use rustd3_core::{scale, time};
+/// use rustd3_figure::Figure;
+/// use rustd3_figure::mark::rect;
+///
+/// let night: [Timestamp; 2] = ["2026-10-24T18:00:00Z".parse()?, "2026-10-25T06:00:00Z".parse()?];
+/// let mut fig = Figure::new();
+/// let t = fig.fit(time::utc());
+/// let kw = fig.scale(scale::linear().domain([0.0, 100.0]));
+/// fig.panel(0, 0).mark(rect([(night, [0.0, 100.0])], t, kw));
+/// # Ok::<(), rustd3_core::jiff::Error>(())
+/// ```
 pub fn rect<X, Y>(
-    rows: impl IntoIterator<Item = ([f64; 2], [f64; 2])>,
+    rows: impl IntoIterator<Item = Row<X, Y>>,
     x: ScaleRef<X>,
     y: ScaleRef<Y>,
 ) -> Rect<X, Y>
 where
-    X: Position<Domain = f64>,
-    Y: Position<Domain = f64>,
+    X: Position,
+    Y: Position,
 {
     Rect {
         rows: rows.into_iter().collect(),
@@ -64,7 +86,7 @@ where
     }
 }
 
-impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Rect<X, Y> {
+impl<X: Position, Y: Position> Rect<X, Y> {
     /// Fills the rectangles with `palette`'s color for `key`, looked up
     /// when the figure draws; a key the palette lacks draws the theme's
     /// gray.
@@ -88,7 +110,7 @@ impl<X: Position<Domain = f64>, Y: Position<Domain = f64>> Rect<X, Y> {
     }
 }
 
-impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect<X, Y> {
+impl<'a, X: Position, Y: Position> Mark<'a> for Rect<X, Y> {
     fn fit(&self, fits: &mut Fits) {
         fits.across(self.x);
         for ([x0, x1], [y0, y1]) in &self.rows {
@@ -121,8 +143,8 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
         let stroke = self.stroke.as_ref().map(|c| list::brush(c.resolve(ctx)));
         for ([x0, x1], [y0, y1]) in &self.rows {
             let placed = (|| {
-                let [x0, x1] = [x0, x1].map(|&v| reach(&sx, v, [band.x0, band.x1]));
-                let [y0, y1] = [y0, y1].map(|&v| reach(&sy, v, [band.y0, band.y1]));
+                let [x0, x1] = [x0, x1].map(|v| edge(&sx, v, [band.x0, band.x1]));
+                let [y0, y1] = [y0, y1].map(|v| edge(&sy, v, [band.y0, band.y1]));
                 Some(kurbo::Rect::new(x0?, y0?, x1?, y1?))
             })();
             let Some(r) = placed else {
@@ -143,6 +165,47 @@ impl<'a, X: Position<Domain = f64>, Y: Position<Domain = f64>> Mark<'a> for Rect
             super::unknown(color, ctx, issues);
         }
     }
+}
+
+/// Where edge `v` lies along `scale`, clamped to `ends` (a guard band's
+/// extent along it); `None` for a value the scale places nowhere. A number
+/// is placed as bars place their values ([`number`]).
+fn edge<S: Position>(scale: &S, v: &<S as Kind>::Domain, ends: [f64; 2]) -> Option<f64> {
+    match (v as &dyn Any).downcast_ref::<f64>() {
+        Some(v) => number(scale, *v, ends),
+        None => at(scale, v).map(|p| p.clamp(ends[0], ends[1])),
+    }
+}
+
+/// Where the number `v` lies along `scale`, whose domain is `f64`,
+/// clamped to `[lo, hi]`. A value the scale's transform does not take (0
+/// or less on a log scale) lies at the end of the guard band on the side
+/// of the domain it lies beyond, as `mark::reach` places it. `None` for
+/// NaN, or for a scale whose domain is not `f64`.
+fn number<S: Position>(scale: &S, v: f64, [lo, hi]: [f64; 2]) -> Option<f64> {
+    if v.is_nan() {
+        return None;
+    }
+    let position = |v: f64| {
+        let v = (&v as &dyn Any).downcast_ref::<<S as Kind>::Domain>()?;
+        scale.position(v)
+    };
+    let p = position(v)?;
+    if !p.is_nan() {
+        return Some(p.clamp(lo, hi));
+    }
+    let ends = Kind::ends(scale)?;
+    let [d0, d1] = *(&ends as &dyn Any).downcast_ref::<[f64; 2]>()?;
+    let (low, high) = (d0.min(d1), d0.max(d1));
+    let (beyond, other) = if v < low {
+        (low, high)
+    } else if v > high {
+        (high, low)
+    } else {
+        return None;
+    };
+    let toward = position(beyond)? > position(other)?;
+    Some(if toward { hi } else { lo })
 }
 
 /// Pushes `r`, a rectangle in the panel's coordinates, filled with `paint`

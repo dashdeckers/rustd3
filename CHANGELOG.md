@@ -46,6 +46,10 @@ The first release.
   over pointer input; animation sampled from explicit instants,
   `anim::Instant` (`web_time`'s: `std::time::Instant` on native targets,
   a clock that works on wasm).
+- `array::max_index` and `array::min_index` are d3's `maxIndex` and
+  `minIndex`: the position of the greatest and of the least value.
+- `locale::Locale::ladder(l)` puts a locale's dates on another ladder in
+  one call.
 
 ### Figure
 
@@ -72,6 +76,17 @@ The first release.
   fill takes the most opaque, so squares of opaque marks stay opaque.
 - `helpers::chart::Line::key` and `Area::keys` name the series their
   legends show; a name given twice is `check::Issue::DuplicateKey`.
+- `Theme::panel(c)` sets the color behind the plot areas, so a figure can
+  be dark throughout; `Theme::get_panel` reads it.
+- `rect` takes edges of any position scale's domain: a span of time is a
+  pair of timestamps.
+- `Axis::group(f)` adds a second level of labels: each run of neighboring
+  ticks with one group name is labeled once, past the tick labels and
+  under a line that spans the run. `axis::Nested(outer, inner)` is a key
+  of two levels for band and point scales.
+- `Note::avoid(Avoid::Step)` moves a note up or down by its height when
+  its box would overlap a note drawn before it, and `Avoid::Drop` leaves
+  it out. Notes that do not avoid are drawn where they are put.
 
 ### iced (`rustd3-iced`, from git)
 

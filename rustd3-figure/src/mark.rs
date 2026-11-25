@@ -61,7 +61,7 @@ pub use rect::{Rect, rect};
 pub use rule::{Rule, rule_x, rule_y};
 use rustd3_core::series::{Points, m4};
 pub use snap::Snap;
-pub use text::{Note, note};
+pub use text::{Avoid, Note, note};
 
 use crate::check::{self, Issue};
 use crate::figure::{Fits, Resolved};
@@ -106,6 +106,8 @@ pub struct Ctx<'r> {
     rect: kurbo::Rect,
     text: &'r crate::text::Cache,
     frame: &'r RefCell<thin::Frame>,
+    /// The boxes of the panel's notes that avoid each other, drawn so far.
+    taken: &'r RefCell<Vec<kurbo::Rect>>,
     panel: usize,
     mark: usize,
 }
@@ -117,14 +119,16 @@ impl<'r> std::fmt::Debug for Ctx<'r> {
 }
 
 impl<'r> Ctx<'r> {
-    /// What the marks of the panel whose plot area is `rect` see; they
-    /// thin through the draw's `frame`.
+    /// What the marks of the panel whose plot area is `rect` see. They
+    /// thin through the draw's `frame`, and their notes avoid the boxes in
+    /// `taken`, the panel's own.
     pub(crate) fn new(
         resolved: &'r Resolved,
         theme: &'r Theme,
         rect: kurbo::Rect,
         text: &'r crate::text::Cache,
         frame: &'r RefCell<thin::Frame>,
+        taken: &'r RefCell<Vec<kurbo::Rect>>,
     ) -> Ctx<'r> {
         Ctx {
             resolved,
@@ -132,6 +136,7 @@ impl<'r> Ctx<'r> {
             rect,
             text,
             frame,
+            taken,
             panel: 0,
             mark: 0,
         }
@@ -259,6 +264,12 @@ impl Ctx<'_> {
             Some(grid) => thin::edges_on(indexed, [view.x0, view.x1], grid),
             None => thin::edges(indexed, self.rect.width(), self.columns()),
         }
+    }
+
+    /// The boxes, in the panel's coordinates, of the notes drawn so far
+    /// that avoid each other ([`Note::avoid`]).
+    pub(crate) fn taken(&self) -> RefMut<'_, Vec<kurbo::Rect>> {
+        self.taken.borrow_mut()
     }
 
     /// The draw's thinning frame.
