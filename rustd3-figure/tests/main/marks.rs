@@ -416,6 +416,36 @@ fn a_rule_label_sits_where_label_at_and_label_offset_put_it() {
 }
 
 #[test]
+fn a_rule_label_takes_its_size_and_keeps_its_size_for_bad_sizes() {
+    let mut fig = Figure::new();
+    let y = fig.scale(scale::linear().domain([0.0, 10.0]));
+    fig.panel(0, 0)
+        .mark(rule_y(2.0, y).label("a").label_size(9.0))
+        .mark(
+            rule_y(4.0, y)
+                .label("b")
+                .label_size(9.0)
+                .label_size(f64::NAN),
+        )
+        .mark(rule_y(6.0, y).label("c").label_size(-1.0));
+    let sizes: Vec<f32> = marked(&draw(&fig))
+        .into_iter()
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.size)
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(sizes[..2], [9.0, 9.0]);
+    assert!(
+        (sizes[2] - 11.0 * 4.0 / 3.0).abs() < 1e-3,
+        "11 pt: {sizes:?}"
+    );
+}
+
+#[test]
 fn a_rule_label_is_shaped_with_the_figure_labels_once() {
     let mut fig = Figure::new();
     let y = fig.scale(scale::linear().domain([0.0, 10.0]));

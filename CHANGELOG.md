@@ -111,6 +111,8 @@ The first release.
 - `Rect::fill_color(c)` and `Rect::stroke_color(c)` fill and outline
   rectangles in a fixed color, so a one-off tint or frame needs no
   ordinal scale.
+- `Rule::label_size(px)` sets the size of a rule's label, the tick-label
+  size by default.
 
 ### iced (`rustd3-iced`, from git)
 

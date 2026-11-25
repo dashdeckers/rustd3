@@ -9,7 +9,7 @@ use crate::figure::Fits;
 use crate::list::{self, Command, List};
 use crate::mark::{Ctx, Mark, at, dashes, positive, stroke};
 use crate::scale::{Kind, Position, ScaleRef};
-use crate::text::{Anchor, Key, Text, anchor};
+use crate::text::{Anchor, Key, Style, Text, anchor};
 use crate::theme::Theme;
 
 /// A line across the plot area at one value of one scale: vertical for
@@ -24,6 +24,7 @@ pub struct Rule<S: Position> {
     label: Option<Text>,
     place: Place,
     offset: Vec2,
+    label_size: Option<f64>,
 }
 
 impl<S: Position> std::fmt::Debug for Rule<S> {
@@ -96,6 +97,7 @@ impl<S: Position> Rule<S> {
             label: None,
             place: Place::End,
             offset: Vec2::ZERO,
+            label_size: None,
         }
     }
 
@@ -128,9 +130,10 @@ impl<S: Position> Rule<S> {
         Self { dash, ..self }
     }
 
-    /// Text beside the line, at tick-label size in the line's color: right
-    /// of a vertical rule, above a horizontal one, at its top or right end
-    /// unless [`label_at`](Rule::label_at) places it elsewhere.
+    /// Text beside the line, at tick-label size unless
+    /// [`label_size`](Rule::label_size) says otherwise, in the line's
+    /// color: right of a vertical rule, above a horizontal one, at its top
+    /// or right end unless [`label_at`](Rule::label_at) places it elsewhere.
     #[must_use]
     pub fn label(self, text: impl Into<Text>) -> Self {
         Self {
@@ -174,6 +177,27 @@ impl<S: Position> Rule<S> {
         }
     }
 
+    /// The label's text size in px (typst's `pt`, as in a label's markup);
+    /// by default the tick-label size, 11 pt. A size that is not finite and
+    /// positive leaves it as it was.
+    ///
+    /// ```
+    /// use rustd3_core::scale;
+    /// use rustd3_figure::Figure;
+    /// use rustd3_figure::mark::rule_y;
+    ///
+    /// let mut fig = Figure::new();
+    /// let y = fig.fit(scale::linear());
+    /// fig.panel(0, 0).mark(rule_y(2.5, y).label("limit").label_size(9.0));
+    /// ```
+    #[must_use]
+    pub fn label_size(self, px: f64) -> Self {
+        Self {
+            label_size: positive(px).or(self.label_size),
+            ..self
+        }
+    }
+
     /// The label's key under `theme`, if the rule has a label.
     fn key(&self, theme: &Theme) -> Option<Key> {
         // Lines align as the label's box: by its start beside a vertical
@@ -185,7 +209,12 @@ impl<S: Position> Rule<S> {
         };
         let color = self.color.unwrap_or_else(|| theme.get_color());
         let text = self.label.as_ref()?;
-        Some(Key::new(text, &theme.mark_label(align, color)))
+        let style = theme.mark_label(align, color);
+        let style = Style {
+            size: self.label_size.unwrap_or(style.size),
+            ..style
+        };
+        Some(Key::new(text, &style))
     }
 }
 
