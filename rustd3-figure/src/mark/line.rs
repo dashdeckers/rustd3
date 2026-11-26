@@ -1,5 +1,7 @@
 //! [`Line`]: a polyline or curve through points.
 
+use std::any::Any;
+
 use kurbo::Point;
 use rustd3_core::color::Rgb;
 use rustd3_core::series::{Data, Points, m4};
@@ -209,12 +211,21 @@ impl<'a, X: Position, Y: Position> Mark<'a> for Line<'a, X, Y> {
             return;
         };
         let slot = self.slot(ctx);
-        let place = |(a, b)| Some(Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?));
+        // Each datum's place, and its data when both are numbers.
+        let place = |(a, b): (X::Domain, Y::Domain)| {
+            let p = Point::new(across(&sx, &a, slot, 0.5)?, at(&sy, &b)?);
+            let (da, db): (&dyn Any, &dyn Any) = (&a, &b);
+            let data = da.downcast_ref::<f64>().zip(db.downcast_ref::<f64>());
+            Some((p, data.map(|(x, y)| [*x, *y])))
+        };
+        sink.series(self.color.label(), self.color.resolve(ctx));
         let area = ctx.get_rect().with_origin(Point::ORIGIN);
-        let mut push = |i: usize, p: Option<Point>| {
-            if let Some(p) = p.filter(|p| within(area, *p)) {
-                sink.push(i, p);
-            }
+        let mut push = |i: usize, placed: Option<(Point, Option<[f64; 2]>)>| match placed
+            .filter(|(p, _)| within(area, *p))
+        {
+            Some((p, Some(data))) => sink.push_data(i, p, data),
+            Some((p, None)) => sink.push(i, p),
+            None => {}
         };
         match self.thinned(ctx, &sx, &sy) {
             Some(lines) => {

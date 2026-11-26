@@ -188,3 +188,50 @@ fn areas_ribbons_densities_rects_and_images_report_no_hits() {
     let index = indexed(&fig);
     assert!(index.is_empty(), "{} points", index.len());
 }
+
+#[test]
+fn a_readout_gives_each_lines_value_label_and_color_at_the_pointers_x() {
+    let (mut fig, x, y) = identity();
+    let keys = fig.scale(scale::ordinal(["FL  12", "RR 340"], COLORBLIND));
+    fig.panel(0, 0)
+        .mark(line([(100.0, 100.0), (300.0, 300.0)], x, y).stroke(keys, "FL  12"))
+        .mark(dots([(150.0, 50.0)], x, y))
+        .mark(line([(200.0, 50.0), (400.0, 250.0)], x, y).stroke(keys, "RR 340"))
+        .mark(line([(120.0, 400.0), (180.0, 400.0)], x, y));
+    let mut cache = cache();
+    let size = Size::new(640.0, 480.0);
+    let r = fig.resolve(size, &mut cache, &Held::default(), Target::Vector);
+    let index = fig.hits(&r, &mut cache);
+    // x = 250: both keyed lines span it, the short line does not, dots
+    // are not curves. Data is figure px on these scales.
+    let read = index
+        .read(Point::new(250.0, 240.0))
+        .expect("inside the plot area");
+    assert_eq!(read.panel, 0);
+    let marks: Vec<usize> = read.readings.iter().map(|r| r.mark).collect();
+    assert_eq!(marks, [0, 2]);
+    let [fl, rr] = [&read.readings[0], &read.readings[1]];
+    assert_eq!(fl.label.as_deref(), Some("FL  12"));
+    assert_eq!(rr.label.as_deref(), Some("RR 340"));
+    assert_eq!((fl.color, rr.color), (COLORBLIND[0], COLORBLIND[1]));
+    let data = |r: &rustd3_figure::hit::Reading| r.data.map(|d| d.map(|v| (v * 1e6).round() / 1e6));
+    assert_eq!(data(fl), Some([250.0, 250.0]));
+    assert_eq!(data(rr), Some([250.0, 100.0]));
+    assert!(
+        (fl.at.x - 250.0).abs() < 1e-9 && (fl.at.y - 250.0).abs() < 1e-9,
+        "{fl:?}"
+    );
+    // An unkeyed line reads without a label, in the palette's first color.
+    let read = index.read(Point::new(150.0, 100.0)).expect("inside");
+    let short = read
+        .readings
+        .iter()
+        .find(|r| r.mark == 3)
+        .expect("the short line");
+    assert_eq!(short.label, None);
+    assert_eq!(
+        index.read(Point::new(1.0, 1.0)),
+        None,
+        "outside the plot area"
+    );
+}

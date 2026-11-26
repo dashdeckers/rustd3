@@ -143,6 +143,9 @@ The first release.
   facet's own, its title becomes its panel's, its slot legends are kept
   once and its noted issues carry over. `Figure::handle(h)` is the
   figure's own handle for a facet's.
+- `hit::Index::read(at)` is a readout of the panel under a position: each
+  line's place, data x and y, legend label and color at the position's x,
+  straight between the points it passes through.
 - `Figure::get_title`, `take_title`, `get_locale` and `get_extent` read a
   figure's title, locale and the rows and columns its panels reach, so a
   caller that facets a plot lifts its title and locale to the grid and

@@ -50,6 +50,9 @@ pub(crate) trait Lookup {
 
     /// The palette's position in the scale table and the key, boxed.
     fn key(&self) -> (ScaleRef<()>, Box<dyn Any>);
+
+    /// The key as a legend writes it, when it is a string.
+    fn label(&self) -> Option<String>;
 }
 
 /// A palette handle and a key of its domain.
@@ -69,6 +72,13 @@ impl<C: Paint> Lookup for Keyed<C> {
 
     fn key(&self) -> (ScaleRef<()>, Box<dyn Any>) {
         (self.palette.erased(), Box::new(self.key.clone()))
+    }
+
+    fn label(&self) -> Option<String> {
+        let key: &dyn Any = &self.key;
+        key.downcast_ref::<String>()
+            .cloned()
+            .or_else(|| key.downcast_ref::<&str>().map(|s| (*s).to_owned()))
     }
 }
 
@@ -123,6 +133,15 @@ impl Color {
         if let Color::Keyed(lookup) = self {
             let (palette, key) = lookup.key();
             fits.key(palette, key, (glyph, hatch, alpha));
+        }
+    }
+
+    /// The key as a legend writes it, when the color is a palette's for a
+    /// string key.
+    pub(crate) fn label(&self) -> Option<String> {
+        match self {
+            Color::Theme | Color::Fixed(_) => None,
+            Color::Keyed(lookup) => lookup.label(),
         }
     }
 
