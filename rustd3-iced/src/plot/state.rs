@@ -1823,6 +1823,7 @@ impl State {
         let [x0, y0] = origin(bounds, factor);
         let k = f64::from(factor);
         let mut hover = None;
+        let mut reading = None;
         let next = match self.pointer {
             None => Overlay::default(),
             Some(at) => {
@@ -1836,6 +1837,7 @@ impl State {
                 let hit = panel
                     .filter(|_| !busy)
                     .and_then(|panel| self.hits.nearest(near, panel));
+                reading = panel.filter(|_| !busy).and_then(|_| self.hits.read(near));
                 hover = hit.map(|hit| Hover {
                     panel: hit.panel,
                     mark: hit.mark,
@@ -1847,9 +1849,10 @@ impl State {
             }
         };
         let pending = !busy && self.hits.set(hover);
+        let read = !busy && self.hits.set_reading(reading);
         let changed = next != self.overlay;
         self.overlay = next;
-        changed || pending
+        changed || pending || read
     }
 
     /// What `on_hover` hears after this frame, once per change of the
@@ -1861,6 +1864,16 @@ impl State {
             return None;
         }
         self.hits.report()
+    }
+
+    /// What `on_readout` hears after this frame, once per change of the
+    /// readout, with `Some(None)` once when the pointer left every plot
+    /// area; `None` while a gesture is active or the index is out of date.
+    pub(crate) fn read(&mut self) -> Option<Option<hit::Readout>> {
+        if self.is_active() || self.unhit {
+            return None;
+        }
+        self.hits.report_reading()
     }
 
     /// Draws the widget laid out at `bounds`.

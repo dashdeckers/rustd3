@@ -44,6 +44,10 @@ pub(crate) struct Hits {
     now: Option<Hover>,
     /// What was last reported: panel, mark and index.
     reported: Option<[usize; 3]>,
+    /// The readout at the last hit test.
+    reading: Option<hit::Readout>,
+    /// The readout last reported.
+    read: Option<hit::Readout>,
 }
 
 impl Hover {
@@ -74,6 +78,28 @@ impl Hits {
         let changed = now.map(|hover| hover.key()) != self.now.map(|hover| hover.key());
         self.now = now;
         changed
+    }
+
+    /// What the curves of the panel under `at` (list px) show at its x
+    /// ([`hit::Index::read`]).
+    pub(crate) fn read(&self, at: kurbo::Point) -> Option<hit::Readout> {
+        self.index.read(at)
+    }
+
+    /// Records the readout a hit test found.
+    pub(crate) fn set_reading(&mut self, now: Option<hit::Readout>) -> bool {
+        let changed = now != self.reading;
+        self.reading = now;
+        changed
+    }
+
+    /// The readout to report, once per change, and `Some(None)` once when
+    /// the pointer left every plot area.
+    pub(crate) fn report_reading(&mut self) -> Option<Option<hit::Readout>> {
+        (self.reading != self.read).then(|| {
+            self.read.clone_from(&self.reading);
+            self.reading.clone()
+        })
     }
 
     /// The hover to report, once per change of the hovered point. It is

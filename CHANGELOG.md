@@ -159,6 +159,10 @@ The first release.
   with a crosshair and highlight, one-dimensional brushing; cached tiles
   that pans move by whole device pixels, a render pool and a cost model
   fitted on the machine it runs on.
+- `Plot::on_readout(f)` reports, whenever the pointer moves inside a plot
+  area, every line of that panel at the pointer's x: its data x and y in
+  the zoomed view, legend label and color (`hit::Readout`); `None` once
+  when it leaves. `on_hover` works beside it.
 - `font` (`fonts` feature): `SANS`, `SANS_BOLD`, `MONO` and `MONO_BOLD` as
   iced fonts, and `all()`, the bundled faces for `application(…).fonts(…)`,
   so an app's own text is set in the faces of its plots.

@@ -9,6 +9,7 @@ use iced::time::Instant;
 use iced::{Event, Point, Size, mouse};
 use rustd3_core::scale;
 use rustd3_figure::cache::Cache;
+use rustd3_figure::hit::Readout;
 use rustd3_figure::kurbo::{self, Rect};
 use rustd3_figure::mark::{bar_y, dots, line};
 use rustd3_figure::{Figure, Held, Resolved, Target, axis};
@@ -302,4 +303,51 @@ fn hover_does_not_rebuild_the_hit_index() {
         ),
         "{backend}: {messages:?}"
     );
+}
+
+/// What the readout test app hears.
+#[derive(Debug, Clone, PartialEq)]
+enum Reads {
+    Read(Option<Readout>),
+    Hovered(Option<Hover>),
+}
+
+#[test]
+fn a_readout_reports_the_line_at_the_pointers_x_and_none_outside() {
+    let k = 1.0;
+    let t0 = headless::epoch();
+    let resolved = resolve(&grid(), k);
+    let plot = Plot::new(grid())
+        .scale_factor(k)
+        .render(Render::Inline)
+        .on_readout(Reads::Read)
+        .on_hover(Reads::Hovered);
+    let Some(mut harness) = Harness::new(plot, SIZE, k) else {
+        return;
+    };
+    let _ = harness.frame(t0);
+    let area = resolved.get_plot_areas()[0];
+    // Far from the line, at x = 2.5 (its sample 10): no hover, a readout.
+    let to = at(area, (2.5, 0.5));
+    harness.point_at(to);
+    let _ = harness.events(&[Event::Mouse(mouse::Event::CursorMoved { position: to })]);
+    let _ = harness.frame(t0 + FRAME);
+    let messages = harness.messages();
+    let [Reads::Read(Some(read))] = &messages[..] else {
+        panic!("one readout and no hover: {messages:?}");
+    };
+    assert_eq!(read.panel, 0);
+    let [line] = &read.readings[..] else {
+        panic!("the line alone: {read:?}");
+    };
+    let [x, y] = line.data.expect("numbers");
+    assert!(
+        (x - 2.5).abs() < 1e-6 && (y - (5.0 + 3.0 * 2.0f64.sin())).abs() < 1e-6,
+        "{line:?}"
+    );
+    // Leaving the widget: none, once.
+    let _ = harness.events(&[Event::Mouse(mouse::Event::CursorLeft)]);
+    harness.point_at(Point::new(-10.0, -10.0));
+    let _ = harness.frame(t0 + FRAME * 2);
+    assert_eq!(harness.messages(), [Reads::Read(None)]);
 }

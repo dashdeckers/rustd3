@@ -15,8 +15,8 @@ use iced_core::{
     renderer,
     window,
 };
-use rustd3_figure::Figure;
 use rustd3_figure::scale::{Invert, Kind, ScaleRef};
+use rustd3_figure::{Figure, hit};
 
 use crate::plot::listener::Listener;
 use crate::plot::overlay::Shown;
@@ -25,6 +25,9 @@ use crate::plot::{Caching, Hover, Probe, Render, brush, scale_factor, worker};
 
 /// The app's message for what the pointer hovers.
 type Report<'a, Message> = Box<dyn Fn(Option<Hover>) -> Message + 'a>;
+
+/// What turns a readout into a message.
+type Read<'a, Message> = Box<dyn Fn(Option<hit::Readout>) -> Message + 'a>;
 
 /// A figure shown as images rendered from its drawing list.
 ///
@@ -47,6 +50,7 @@ pub struct Plot<'a, Message> {
     listeners: Vec<Listener<'a, Message>>,
     brushes: Vec<brush::Listener<'a, Message>>,
     on_hover: Option<Report<'a, Message>>,
+    on_readout: Option<Read<'a, Message>>,
 }
 
 impl<'a, Message> std::fmt::Debug for Plot<'a, Message> {
@@ -75,6 +79,7 @@ impl<'a, Message> Plot<'a, Message> {
             listeners: Vec::new(),
             brushes: Vec::new(),
             on_hover: None,
+            on_readout: None,
         }
     }
 
@@ -457,6 +462,47 @@ impl<'a, Message> Plot<'a, Message> {
         }
     }
 
+    /// What every curve shows at the pointer's x becomes messages, for a
+    /// readout of every line in the panel.
+    ///
+    /// `f(Some(readout))` goes out whenever the pointer moves inside a
+    /// panel's plot area: the panel, the pointer in figure px (the
+    /// widget's logical px from its top-left corner) and, per line in the
+    /// panel that spans the pointer's x, its place, its data x and y there
+    /// in the zoomed view, its legend label and its color
+    /// ([`hit::Index::read`]). `f(None)` goes out once when the pointer
+    /// leaves every plot area or the widget. As with
+    /// [`on_hover`](Plot::on_hover), at most one message goes out per
+    /// frame, none during a gesture, and nothing renders; `on_hover` keeps
+    /// working beside it.
+    ///
+    /// ```no_run
+    /// # mod rustd3 { pub use rustd3_core::scale; pub use rustd3_figure as figure; }
+    /// use rustd3::figure::hit::Readout;
+    /// use rustd3::figure::mark::line;
+    /// use rustd3::figure::Figure;
+    /// use rustd3::scale;
+    /// use rustd3_iced::Plot;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// enum Message {
+    ///     Read(Option<Readout>),
+    /// }
+    ///
+    /// let mut fig = Figure::new();
+    /// let (x, y) = (fig.fit(scale::linear()), fig.fit(scale::linear()));
+    /// fig.panel(0, 0).mark(line([(0.0, 1.0), (1.0, 3.0)], x, y));
+    /// let plot: Plot<'_, Message> = Plot::new(fig).on_readout(Message::Read);
+    /// # let _ = plot;
+    /// ```
+    #[must_use]
+    pub fn on_readout(self, f: impl Fn(Option<hit::Readout>) -> Message + 'a) -> Self {
+        Plot {
+            on_readout: Some(Box::new(f)),
+            ..self
+        }
+    }
+
     /// The overlay parts this widget shows.
     fn shown(&self) -> Shown {
         Shown {
@@ -545,7 +591,7 @@ where
                     probe: self.probe.as_ref(),
                     waker: shell.waker(),
                     threads: self.threads.unwrap_or_else(worker::default_size),
-                    hover: self.highlight || self.on_hover.is_some(),
+                    hover: self.highlight || self.on_hover.is_some() || self.on_readout.is_some(),
                 };
                 let listeners = (self.listeners.as_slice(), self.brushes.as_slice());
                 let (_, messages) = state.redraw(&self.figure, factor, *now, &pipeline, listeners);
@@ -559,6 +605,11 @@ where
                     && let Some(report) = &self.on_hover
                 {
                     shell.publish(report(hover));
+                }
+                if let Some(reading) = state.read()
+                    && let Some(read) = &self.on_readout
+                {
+                    shell.publish(read(reading));
                 }
                 if let Some(end) = state.wheel_end() {
                     shell.request_redraw_at(window::RedrawRequest::At(end));

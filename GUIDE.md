@@ -536,7 +536,9 @@ domains of handles nobody listens to) in iced's widget tree.
   render nothing; `Plot::on_hover` reports the nearest drawn point
   (`plot::Hover`) from a hit index of the last drawing list
   (`rustd3::figure::hit`). `Plot::crosshair(false)` and
-  `highlight(false)` turn them off.
+  `highlight(false)` turn them off. `Plot::on_readout` reports every line
+  of the panel under the pointer at its x (data x and y, label, color),
+  for a readout of all curves.
 - **Live data.** Append to a `series::Recording` and rebuild the figure;
   the hashes of the drawing list's parts are the dependency tracker, so
   only the cells the new data touched render. `Fit::Window(span)` on x
