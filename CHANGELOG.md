@@ -137,11 +137,12 @@ The first release.
   0 in files by default, so a file and the live plot can match.
 - `Figure::facet(at, other, Share::Scales | Share::None)` takes a figure
   built on its own in as panels of a grid, its handles remapped to the
-  figure's table: shared scales fit every facet and zoom together in the
-  `Plot` widget, inner axes of a shared scale drop their tick labels, its
-  title becomes its panel's, its slot legends are kept once and its noted
-  issues carry over. `Figure::handle(h)` is the figure's own handle for a
-  facet's.
+  figure's table: the position scales of facets that share fit every
+  facet and zoom together in the `Plot` widget, inner axes of a shared
+  scale drop their tick labels, palettes and inset legends stay each
+  facet's own, its title becomes its panel's, its slot legends are kept
+  once and its noted issues carry over. `Figure::handle(h)` is the
+  figure's own handle for a facet's.
 - `Figure::get_title`, `take_title`, `get_locale` and `get_extent` read a
   figure's title, locale and the rows and columns its panels reach, so a
   caller that facets a plot lifts its title and locale to the grid and

@@ -4,13 +4,14 @@
 use rustd3_core::locale::Locale;
 use rustd3_core::scale::{self, Linear, Ordinal};
 use rustd3_core::scheme::COLORBLIND;
-use rustd3_figure::check::Issue;
+use rustd3_figure::check::{Element, Issue};
 use rustd3_figure::kurbo::Size;
 use rustd3_figure::layout::Cell;
 use rustd3_figure::legend::{Inset, Slot, legend};
 use rustd3_figure::list::Command;
 use rustd3_figure::mark::line;
 use rustd3_figure::scale::{Fit, ScaleRef};
+use rustd3_figure::text::{Text, span};
 use rustd3_figure::{Figure, Held, Share, Target, axis};
 
 use crate::figure::{cache, resolve};
@@ -200,4 +201,107 @@ fn a_figure_reports_its_locale_and_the_rows_and_columns_its_panels_reach() {
     }
     assert_eq!(grid.get_extent(), (4, 1));
     assert_eq!(resolve(&grid, &Held::default()).get_plot_areas().len(), 4);
+}
+
+/// The labels of `fig`'s inset legend `index` of panel `panel`.
+fn inset_labels(fig: &Figure<'_>, panel: u64, index: u64) -> Vec<String> {
+    let list = fig.draw_with(&mut cache(), SIZE, Target::Vector, &Held::default());
+    let id = rustd3_figure::list::part::Id::new(7 << 56 | panel << 32 | index);
+    list.parts
+        .iter()
+        .filter(|p| p.id == id)
+        .flat_map(|p| &list.commands[p.commands.clone()])
+        .filter_map(|c| {
+            if let Command::Glyphs(run) = c {
+                Some(run.text.to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// A facet whose legend names its curves `keys`, with a count each, on
+/// fixed x and y as `plot` draws them.
+fn counted(keys: &[&'static str]) -> Figure<'static> {
+    let mut fig = Figure::new();
+    let x = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let y = fig.scale(scale::linear().domain([0.0, 1.0]));
+    let color = fig.scale(scale::ordinal(keys.to_vec(), COLORBLIND));
+    let panel = fig.panel(0, 0);
+    for (i, key) in keys.iter().enumerate() {
+        let v = i as f64 / 4.0;
+        panel.mark(line([(0.0, v), (1.0, v)], x, y).stroke(color, *key));
+    }
+    panel
+        .axis(axis::bottom(x))
+        .axis(axis::left(y))
+        .legend(Inset::TopLeft, legend(color));
+    fig
+}
+
+#[test]
+fn shared_facets_keep_their_own_legends_entries() {
+    let facets: [&[&'static str]; 3] = [&["FL  12", "FR   3"], &[], &["RL 340"]];
+    let mut fig = Figure::new();
+    for (col, keys) in facets.into_iter().enumerate() {
+        fig.facet(Cell::new(0, col), counted(keys), Share::Scales);
+    }
+    assert_eq!(inset_labels(&fig, 0, 0), ["FL  12", "FR   3"]);
+    assert_eq!(inset_labels(&fig, 1, 0), Vec::<String>::new());
+    assert_eq!(inset_labels(&fig, 2, 0), ["RL 340"]);
+    // The position scales are still one.
+    let r = resolve(&fig, &Held::default());
+    assert!(!r.get_plan(1, 1).expect("the middle y axis").labeled);
+}
+
+#[test]
+fn an_inset_legend_that_does_not_fit_is_drawn_and_reported() {
+    let long = "a legend entry far wider than its small panel, counted 1234";
+    let mut fig = Figure::new();
+    for col in 0..4 {
+        fig.facet(Cell::new(0, col), counted(&[long]), Share::Scales);
+    }
+    for panel in 0..4 {
+        assert_eq!(inset_labels(&fig, panel, 0), [long], "panel {panel}");
+    }
+    let issues = fig.check(SIZE);
+    assert!(
+        issues.iter().any(|i| matches!(
+            i,
+            Issue::Overflow {
+                what: Element::Legend,
+                ..
+            }
+        )),
+        "{issues:?}"
+    );
+}
+
+#[test]
+fn a_panel_title_set_after_facet_stays_in_its_own_font() {
+    let (mut plot_fig, _) = plot(10.0);
+    plot_fig.title("the plot");
+    let mut grid = Figure::new();
+    grid.facet(Cell::new(0, 0), plot_fig, Share::Scales);
+    let mono = Text::from(span("wheel= FL").font("DejaVu Sans Mono"));
+    grid.panel(0, 0).title(mono);
+    let list = grid.draw_with(&mut cache(), SIZE, Target::Vector, &Held::default());
+    let face = |text: &str| {
+        list.commands.iter().find_map(|c| {
+            if let Command::Glyphs(run) = c
+                && &*run.text == text
+            {
+                Some(list.fonts[run.font].data.id())
+            } else {
+                None
+            }
+        })
+    };
+    assert_eq!(face("the plot"), None, "replaced");
+    let (title, tick) = (face("wheel= FL"), face("0.0"));
+    assert!(
+        title.is_some() && tick.is_some() && title != tick,
+        "{title:?} {tick:?}"
+    );
 }

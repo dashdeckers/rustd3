@@ -251,11 +251,12 @@ with nothing to draw), so a test can assert that a figure fits.
 `fig.facet(Cell::new(r, c), other, Share::Scales)` takes a figure built on
 its own in as panels of a grid: a plot drawn once per facet. Its marks,
 axes, legends, zooms and brushes keep their scales wherever those went in
-the table; with `Share::Scales` a scale at a table position an earlier
-facet filled with one of its type becomes that scale, fitted to every
-facet and zoomed together, and inner axes drop their tick labels
-(`Share::None` keeps each facet's own). Its title becomes its panel's,
-and `fig.handle(h)` is the figure's own handle for a facet's `h`.
+the table; with `Share::Scales` a scale its axes, zooms or brushes are on,
+at a table position an earlier facet filled with one of its type, becomes
+that scale, fitted to every facet and zoomed together, and inner axes drop
+their tick labels; palettes, and with them each facet's legends, stay its
+own (`Share::None` keeps every scale the facet's own). Its title becomes
+its panel's, and `fig.handle(h)` is the figure's own handle for a facet's `h`.
 `other.take_title()` lifts a plot's title to the grid instead,
 `get_locale()` reads its locale, and `get_extent()` gives the rows and
 columns its panels reach, the step to the next facet's cell.

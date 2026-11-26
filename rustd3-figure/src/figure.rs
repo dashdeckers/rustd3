@@ -12,6 +12,7 @@ mod resolved;
 mod save;
 
 use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -62,10 +63,11 @@ impl Ids {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Share {
-    /// A scale at a table position where a figure taken in before with
-    /// `Share::Scales` had a scale of the same type becomes that scale:
-    /// one domain fitted to every facet's marks, zoomed together in the
-    /// iced `Plot` widget.
+    /// A scale an axis, zoom or brush of the facet is on, at a table
+    /// position where a facet taken in before with `Share::Scales` had
+    /// such a scale of the same type, becomes that scale: one domain fitted
+    /// to every facet's marks, zoomed together in the iced `Plot` widget.
+    /// Palettes stay each facet's own.
     Scales,
     /// Every scale stays the facet's own.
     None,
@@ -123,9 +125,12 @@ pub struct Figure<'a> {
     /// The figures taken in by `facet`, each with the table positions its
     /// scales went to.
     taken: Vec<(Id, Vec<usize>)>,
-    /// Per table position of the facets that share scales, the position
-    /// here of the first such facet's scale.
-    shared: Vec<usize>,
+    /// Per table position in the facets that share scales, the position
+    /// here of the first such facet's scale an axis, zoom or brush is on.
+    shared: HashMap<usize, usize>,
+    /// The slots and facet table positions of the figure-slot legends the
+    /// facets that share scales brought, each kept once.
+    slotted: Vec<(Slot, usize)>,
 }
 
 impl<'a> std::fmt::Debug for Figure<'a> {
@@ -172,7 +177,8 @@ impl<'a> Figure<'a> {
             noted: Vec::new(),
             axis_room: None,
             taken: Vec::new(),
-            shared: Vec::new(),
+            shared: HashMap::new(),
+            slotted: Vec::new(),
         }
     }
 

@@ -2,6 +2,7 @@
 
 use crate::figure::{Figure, Id, Ids, Share};
 use crate::layout::Cell;
+use crate::panel::Panel;
 use crate::scale::ScaleRef;
 
 /// Where the handles of a figure taken in go: each position of its table
@@ -37,20 +38,25 @@ impl<'a> Figure<'a> {
     /// handles are this figure's ([`owns`](Figure::owns),
     /// [`handle`](Figure::handle)).
     ///
-    /// With [`Share::Scales`], a scale at a table position where a figure
-    /// taken in before with `Share::Scales` had a scale of the same type
-    /// becomes that scale: one domain fitted to every facet's marks, and
-    /// axes on it in a row or column label their ticks on the outer panels
-    /// only (see [`Axis::keep_label`](crate::axis::Axis::keep_label)). With
-    /// [`Share::None`] every scale stays the facet's own.
+    /// With [`Share::Scales`], a scale an axis, zoom or brush of `other` is
+    /// on, at a table position where a facet taken in before with
+    /// `Share::Scales` had such a scale of the same type, becomes that
+    /// scale: one domain fitted to every facet's marks, and axes on it in a
+    /// row or column label their ticks on the outer panels only (see
+    /// [`Axis::keep_label`](crate::axis::Axis::keep_label)). Its palettes
+    /// and other scales stay its own, so its legends list its own entries.
+    /// With [`Share::None`] every scale stays the facet's own.
     ///
     /// `other`'s title becomes its first panel's title, unless that panel
     /// has one (a caller that lifts it to the grid takes it first,
-    /// [`take_title`](Figure::take_title)); its figure-slot legends are
-    /// kept, a legend on a scale whose slot already holds one on that scale
-    /// once; what it noted for [`check`](Figure::check) carries over. Its
-    /// theme, locale ([`get_locale`](Figure::get_locale)), grid weights and
-    /// axis room give way to this figure's; it takes the rows and columns
+    /// [`take_title`](Figure::take_title)); a title set on the panel after
+    /// `facet` replaces it. Its inset legends stay in its panel; its
+    /// figure-slot legends are kept, and with `Share::Scales` a slot
+    /// legend on the facet table position of one an earlier facet brought
+    /// to the same slot is kept once. What it noted for
+    /// [`check`](Figure::check) carries over. Its theme, locale
+    /// ([`get_locale`](Figure::get_locale)), grid weights and axis room give
+    /// way to this figure's; it takes the rows and columns
     /// [`get_extent`](Figure::get_extent) gives from `at`.
     ///
     /// ```
@@ -94,24 +100,30 @@ impl<'a> Figure<'a> {
             axis_room: _,
             taken,
             shared: _,
+            slotted: _,
         } = other;
+        // Only the scales its axes, zooms and brushes are on are shared: its
+        // palettes, and with them its legends, stay its own.
+        let positional: Vec<usize> = panels
+            .iter()
+            .flat_map(Panel::positional)
+            .filter_map(|h| h.of(&from))
+            .collect();
         let mut map = Vec::with_capacity(scales.len());
         for (i, entry) in scales.into_iter().enumerate() {
             let kind = entry.scale.as_any().type_id();
-            let kept = match share {
-                Share::Scales => self
-                    .shared
-                    .get(i)
-                    .copied()
-                    .filter(|&j| self.scales[j].scale.as_any().type_id() == kind),
-                Share::None => None,
-            };
+            let shares = share == Share::Scales && positional.contains(&i);
+            let kept = self
+                .shared
+                .get(&i)
+                .copied()
+                .filter(|&j| shares && self.scales[j].scale.as_any().type_id() == kind);
             let j = kept.unwrap_or_else(|| {
                 self.scales.push(entry);
                 self.scales.len() - 1
             });
-            if share == Share::Scales && i == self.shared.len() {
-                self.shared.push(j);
+            if shares {
+                self.shared.entry(i).or_insert(j);
             }
             map.push(j);
         }
@@ -142,18 +154,20 @@ impl<'a> Figure<'a> {
         {
             panel.title(title);
         }
-        let ids = self.ids();
+        // Facets that share scales are drawn by one plot: a slot legend of the
+        // same slot on the same facet table position is one legend, kept once.
         for (slot, mut stored) in legends {
-            stored.remap(&remap);
             let [h] = stored.handles();
-            let place = h.of(&ids);
-            let twice = self
-                .legends
-                .iter()
-                .any(|(s, kept)| *s == slot && kept.handles()[0].of(&ids) == place);
-            if !twice {
-                self.legends.push((slot, stored));
+            let place = h.of(&from);
+            let seen = (slot, place.unwrap_or(usize::MAX));
+            if share == Share::Scales && place.is_some() {
+                if self.slotted.contains(&seen) {
+                    continue;
+                }
+                self.slotted.push(seen);
             }
+            stored.remap(&remap);
+            self.legends.push((slot, stored));
         }
         self.outside
             .extend(outside.iter().map(|cell| cell.shifted(&at)));

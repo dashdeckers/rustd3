@@ -149,6 +149,14 @@ impl<'a> Panel<'a> {
         self
     }
 
+    /// The handles its axes, zooms and brush are on: its position scales.
+    pub(crate) fn positional(&self) -> Vec<ScaleRef<()>> {
+        let axes = self.axes.iter().map(|a| a.scale());
+        let zooms = self.zooms.iter().flatten().copied();
+        let brush = self.brush.iter().flat_map(brush::Placed::handles);
+        axes.chain(zooms).chain(brush).collect()
+    }
+
     /// The panel taken into another figure (`Figure::facet`): its cell
     /// moved by `at`, and the handles of its axes, insets, zooms and brush
     /// remapped to that figure's table. Its marks keep theirs, which the
